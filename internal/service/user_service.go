@@ -64,35 +64,24 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 
 	s.tracer.AddAttribute(ctx, "user.email", input.Email)
 
-	// Check if user exists, if not create a new one
+	// Check if user exists - return error if user not found
 	user, err := s.repo.GetUserByEmail(ctx, input.Email)
 	if err != nil {
-		if _, ok := err.(*domain.ErrUserNotFound); !ok {
-			s.logger.WithField("email", input.Email).WithField("error", err.Error()).Error("Failed to get user by email")
+		if _, ok := err.(*domain.ErrUserNotFound); ok {
+			// User not found, return error instead of creating new user
+			s.logger.WithField("email", input.Email).Error("User does not exist")
+			s.tracer.AddAttribute(ctx, "error", "user_not_found")
 			s.tracer.MarkSpanError(ctx, err)
-			return "", err
+			return "", &domain.ErrUserNotFound{Message: "user does not exist"}
 		}
 
-		// User not found, create a new one
-		user = &domain.User{
-			ID:        generateID(),
-			Email:     input.Email,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-
-		s.tracer.AddAttribute(ctx, "user.id", user.ID)
-		s.tracer.AddAttribute(ctx, "action", "create_new_user")
-
-		if err := s.repo.CreateUser(ctx, user); err != nil {
-			s.logger.WithField("email", input.Email).WithField("error", err.Error()).Error("Failed to create user")
-			s.tracer.MarkSpanError(ctx, err)
-			return "", err
-		}
-	} else {
-		s.tracer.AddAttribute(ctx, "user.id", user.ID)
-		s.tracer.AddAttribute(ctx, "action", "use_existing_user")
+		s.logger.WithField("email", input.Email).WithField("error", err.Error()).Error("Failed to get user by email")
+		s.tracer.MarkSpanError(ctx, err)
+		return "", err
 	}
+
+	s.tracer.AddAttribute(ctx, "user.id", user.ID)
+	s.tracer.AddAttribute(ctx, "action", "use_existing_user")
 
 	// Generate magic code
 	code := s.generateMagicCode()

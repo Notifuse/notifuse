@@ -128,6 +128,23 @@ func TestUserHandler_SignIn(t *testing.T) {
 				"error": "invalid email",
 			},
 		},
+		{
+			name:    "user does not exist",
+			handler: prodHandler,
+			input: domain.SignInInput{
+				Email: "nonexistent@example.com",
+			},
+			setupMock: func() {
+				mockUserSvc.EXPECT().
+					SignIn(gomock.Any(), domain.SignInInput{
+						Email: "nonexistent@example.com",
+					}).Return("", &domain.ErrUserNotFound{Message: "user does not exist"})
+			},
+			expectedCode: http.StatusBadRequest,
+			expectedBody: map[string]string{
+				"error": "user does not exist",
+			},
+		},
 	}
 
 	for _, tt := range tests {

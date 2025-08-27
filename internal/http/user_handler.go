@@ -77,6 +77,14 @@ func (h *UserHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 	h.tracer.AddAttribute(ctx, "operation", "SignIn")
 	code, err := h.userService.SignIn(ctx, input)
 	if err != nil {
+		// Check if it's a user not found error and return 400
+		if _, ok := err.(*domain.ErrUserNotFound); ok {
+			WriteJSONError(w, err.Error(), http.StatusBadRequest)
+			h.tracer.MarkSpanError(ctx, err)
+			return
+		}
+		
+		// For all other errors, return 500
 		WriteJSONError(w, err.Error(), http.StatusInternalServerError)
 		h.tracer.MarkSpanError(ctx, err)
 		return

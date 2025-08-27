@@ -115,25 +115,19 @@ func TestUserService_SignIn(t *testing.T) {
 		require.Empty(t, code)
 	})
 
-	t.Run("successful sign in - new user", func(t *testing.T) {
-		mockSender.shouldError = true // Force email sending error for logging
-
+	t.Run("sign in fails - user does not exist", func(t *testing.T) {
 		mockRepo.EXPECT().
 			GetUserByEmail(gomock.Any(), email).
 			Return(nil, &domain.ErrUserNotFound{})
 
-		mockRepo.EXPECT().
-			CreateUser(gomock.Any(), gomock.Any()).
-			Return(nil)
-
-		mockRepo.EXPECT().
-			CreateSession(gomock.Any(), gomock.Any()).
-			Return(nil)
-
 		code, err := service.SignIn(context.Background(), domain.SignInInput{Email: email})
 		require.Error(t, err)
-		require.Equal(t, "mock error", err.Error())
+		require.Equal(t, "user does not exist", err.Error())
 		require.Empty(t, code)
+		
+		// Verify it's the correct error type
+		_, ok := err.(*domain.ErrUserNotFound)
+		require.True(t, ok, "Expected ErrUserNotFound error type")
 	})
 
 	t.Run("development mode returns code directly", func(t *testing.T) {

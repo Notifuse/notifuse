@@ -38,8 +38,9 @@ export function SignInPage() {
         setTimeout(() => {
           navigate({ to: '/' })
         }, 100)
-      } catch (error) {
-        message.error('Failed to verify code')
+      } catch (error: any) {
+        const errorMessage = error?.message || 'Failed to verify code'
+        message.error(errorMessage)
       } finally {
         setLoading(false)
       }
@@ -66,8 +67,9 @@ export function SignInPage() {
         setEmail(values.email)
         setShowCodeInput(true)
         message.success('Magic code sent to your email')
-      } catch (error) {
-        message.error('Failed to send magic code')
+      } catch (error: any) {
+        const errorMessage = error?.message || 'Failed to send magic code'
+        message.error(errorMessage)
       } finally {
         setLoading(false)
       }
@@ -114,8 +116,9 @@ export function SignInPage() {
       }
 
       message.success('New magic code sent to your email')
-    } catch (error) {
-      message.error('Failed to resend magic code')
+    } catch (error: any) {
+      const errorMessage = error?.message || 'Failed to resend magic code'
+      message.error(errorMessage)
     } finally {
       setResendLoading(false)
     }
