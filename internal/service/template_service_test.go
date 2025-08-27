@@ -743,8 +743,8 @@ func TestCompileTemplate_TreeToMjmlError(t *testing.T) {
 	// Check that the error message originates from the TreeToMjml function and indicates a liquid error
 	assert.Contains(t, resp.Error.Message, "liquid processing failed for block badliq", "Error message should wrap the liquid error")
 
-	// Note: Testing the specific mjmlgo.Error path (where err is nil but resp.Success is false)
-	// would ideally involve mocking mjmlgo.ToHTML or using specific input known to cause mjmlgo.Error.
+	// Note: Testing the specific CompileError path (where err is nil but resp.Success is false)
+	// would ideally involve mocking gomjml.Render or using specific input known to cause CompileError.
 }
 
 func TestCompileTemplate_AuthError(t *testing.T) {
@@ -827,7 +827,7 @@ func TestCompileTemplate_InvalidTreeData(t *testing.T) {
 	invalidTree := &notifuse_mjml.MJMLBlock{
 		BaseBlock: notifuse_mjml.BaseBlock{
 			ID:         "root_invalid",
-			Type:       notifuse_mjml.MJMLComponentMjml,
+			Type:       "invalid-component", // This will cause gomjml to fail
 			Attributes: map[string]interface{}{"version": "4.0.0"},
 		},
 	}
@@ -847,6 +847,6 @@ func TestCompileTemplate_InvalidTreeData(t *testing.T) {
 	require.NotNil(t, resp)
 	assert.False(t, resp.Success, "Response Success should be false for invalid tree")
 	require.NotNil(t, resp.Error, "Response Error should not be nil for invalid tree")
-	assert.Contains(t, resp.Error.Message, "mjml", "Error message should relate to MJML processing")
+	assert.Contains(t, resp.Error.Message, "unknown component", "Error message should relate to unknown component")
 
 }
