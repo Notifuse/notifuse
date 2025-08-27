@@ -83,7 +83,7 @@ func (h *UserHandler) SignIn(w http.ResponseWriter, r *http.Request) {
 			h.tracer.MarkSpanError(ctx, err)
 			return
 		}
-		
+
 		// For all other errors, return 500
 		WriteJSONError(w, err.Error(), http.StatusInternalServerError)
 		h.tracer.MarkSpanError(ctx, err)

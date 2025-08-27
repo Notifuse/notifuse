@@ -124,7 +124,7 @@ func TestUserService_SignIn(t *testing.T) {
 		require.Error(t, err)
 		require.Equal(t, "user does not exist", err.Error())
 		require.Empty(t, code)
-		
+
 		// Verify it's the correct error type
 		_, ok := err.(*domain.ErrUserNotFound)
 		require.True(t, ok, "Expected ErrUserNotFound error type")
