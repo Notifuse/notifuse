@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.7] - 2024-12-19
+
+### Added
+
+- New feature: custom endpoint URL in workspace settings to customize the tracking links and notification center URLs
+
 ## [v3.6] - 2024-08-28
 
 ### Fixed
