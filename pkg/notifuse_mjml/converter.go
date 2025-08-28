@@ -192,6 +192,9 @@ func processLiquidContent(content string, templateData map[string]interface{}, b
 		return content, nil // No Liquid markup found, return original content
 	}
 
+	// Clean non-breaking spaces and other invisible characters from template variables
+	content = cleanLiquidTemplate(content)
+
 	// Create Liquid engine
 	engine := liquid.NewEngine()
 
@@ -210,6 +213,22 @@ func processLiquidContent(content string, templateData map[string]interface{}, b
 	}
 
 	return renderedContent, nil
+}
+
+// cleanLiquidTemplate removes non-breaking spaces and other invisible characters from Liquid template variables
+func cleanLiquidTemplate(content string) string {
+	// Replace non-breaking spaces (\u00a0) with regular spaces within {{ }} and {% %} blocks
+	// This regex finds Liquid template variables and removes non-breaking spaces from them
+	liquidVarRegex := regexp.MustCompile(`(\{\{[^}]*\}\}|\{%[^%]*%\})`)
+
+	return liquidVarRegex.ReplaceAllStringFunc(content, func(match string) string {
+		// Remove non-breaking spaces (\u00a0) and other invisible characters
+		cleaned := strings.ReplaceAll(match, "\u00a0", "")  // Non-breaking space
+		cleaned = strings.ReplaceAll(cleaned, "\u200b", "") // Zero-width space
+		cleaned = strings.ReplaceAll(cleaned, "\u2060", "") // Word joiner
+		cleaned = strings.ReplaceAll(cleaned, "\ufeff", "") // Byte order mark
+		return cleaned
+	})
 }
 
 // getBlockContent extracts content from a block using type assertion

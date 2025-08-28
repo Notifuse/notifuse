@@ -271,20 +271,23 @@ export function CreateTemplateDrawer({
     }
   })
 
-  const defaultTestData = {
-    contact: {
-      first_name: 'John',
-      last_name: 'Doe',
-      email: 'john.doe@example.com'
-    },
-    list: {
-      id: 'newsletter',
-      name: 'Newsletter'
-    },
-    unsubscribe_url: `${window.API_ENDPOINT}/notification-center?action=unsubscribe&email=john.doe@example.com&lid=newsletter&email_hmac=abc123`,
-    confirm_subscription_url: `${window.API_ENDPOINT}/notification-center?action=confirm&email=john.doe@example.com&lid=newsletter&email_hmac=abc123`,
-    notification_center_url: `${window.API_ENDPOINT}/notification-center?email=john.doe@example.com&email_hmac=abc123&wid=workspace123`
-  }
+  const defaultTestData = useMemo(() => {
+    const endpoint = workspace.settings?.custom_endpoint_url || window.API_ENDPOINT
+    return {
+      contact: {
+        first_name: 'John',
+        last_name: 'Doe',
+        email: 'john.doe@example.com'
+      },
+      list: {
+        id: 'newsletter',
+        name: 'Newsletter'
+      },
+      unsubscribe_url: `${endpoint}/notification-center?action=unsubscribe&email=john.doe@example.com&lid=newsletter&email_hmac=abc123`,
+      confirm_subscription_url: `${endpoint}/notification-center?action=confirm&email=john.doe@example.com&lid=newsletter&email_hmac=abc123`,
+      notification_center_url: `${endpoint}/notification-center?email=john.doe@example.com&email_hmac=abc123&wid=workspace123`
+    }
+  }, [workspace.settings?.custom_endpoint_url])
 
   const showDrawer = () => {
     if (template) {

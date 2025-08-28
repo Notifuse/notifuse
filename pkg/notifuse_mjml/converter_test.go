@@ -281,6 +281,22 @@ func TestLiquidInHrefAttributes(t *testing.T) {
 			expectError:  false,
 		},
 		{
+			name: "liquid with non-breaking space should be cleaned",
+			block: &MJButtonBlock{
+				BaseBlock: BaseBlock{
+					ID:   "btn_nbsp",
+					Type: MJMLComponentMjButton,
+					Attributes: map[string]interface{}{
+						"href": "{{ \u00a0confirm_subscription_url }}",
+					},
+				},
+				Content: stringPtr("Confirm"),
+			},
+			templateData: `{"confirm_subscription_url": "https://example.com/confirm"}`,
+			expectedHref: `href="https://example.com/confirm"`,
+			expectError:  false,
+		},
+		{
 			name: "invalid liquid syntax should return original",
 			block: &MJButtonBlock{
 				BaseBlock: BaseBlock{
