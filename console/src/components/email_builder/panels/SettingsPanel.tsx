@@ -43,7 +43,12 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
       // Apply all updates at once
       Object.entries(updates).forEach(([key, value]) => {
-        ;(updatedBlock.attributes as Record<string, any>)[key] = value
+        // Special handling for content property - it goes directly on the block, not in attributes
+        if (key === 'content') {
+          ;(updatedBlock as any)[key] = value
+        } else {
+          ;(updatedBlock.attributes as Record<string, any>)[key] = value
+        }
       })
 
       // Update tree immediately

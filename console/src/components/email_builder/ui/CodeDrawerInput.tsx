@@ -26,8 +26,7 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
   }
 
   const handleDrawerSave = () => {
-    const trimmedValue = tempContent.trim()
-    onChange(trimmedValue || undefined)
+    onChange(tempContent)
     setIsDrawerOpen(false)
   }
 
