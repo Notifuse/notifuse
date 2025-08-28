@@ -25,7 +25,7 @@ type MessageSender interface {
 		template *domain.Template, data map[string]interface{}, emailProvider *domain.EmailProvider, timeoutAt time.Time) error
 
 	// SendBatch sends messages to a batch of recipients
-	SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
+	SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
 		templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time) (sent int, failed int, err error)
 }
 
@@ -355,7 +355,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 }
 
 // SendBatch sends messages to a batch of recipients
-func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
+func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integrationID string, workspaceSecretKey string, endpoint string, trackingEnabled bool, broadcastID string, recipients []*domain.ContactWithList,
 	templates map[string]*domain.Template, emailProvider *domain.EmailProvider, timeoutAt time.Time) (sent int, failed int, err error) {
 
 	// Track specific error types for better reporting
@@ -485,7 +485,7 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 		messageID := generateMessageID(workspaceID)
 
 		trackingSettings := notifuse_mjml.TrackingSettings{
-			Endpoint:       s.apiEndpoint,
+			Endpoint:       endpoint,
 			EnableTracking: trackingEnabled,
 			UTMSource:      broadcast.UTMParameters.Source,
 			UTMMedium:      broadcast.UTMParameters.Medium,

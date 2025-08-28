@@ -37,9 +37,9 @@ func (m *MockMessageSender) EXPECT() *MockMessageSenderMockRecorder {
 }
 
 // SendBatch mocks base method.
-func (m *MockMessageSender) SendBatch(arg0 context.Context, arg1, arg2, arg3 string, arg4 bool, arg5 string, arg6 []*domain.ContactWithList, arg7 map[string]*domain.Template, arg8 *domain.EmailProvider, arg9 time.Time) (int, int, error) {
+func (m *MockMessageSender) SendBatch(arg0 context.Context, arg1, arg2, arg3, arg4 string, arg5 bool, arg6 string, arg7 []*domain.ContactWithList, arg8 map[string]*domain.Template, arg9 *domain.EmailProvider, arg10 time.Time) (int, int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SendBatch", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
+	ret := m.ctrl.Call(m, "SendBatch", arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(int)
 	ret2, _ := ret[2].(error)
@@ -47,9 +47,9 @@ func (m *MockMessageSender) SendBatch(arg0 context.Context, arg1, arg2, arg3 str
 }
 
 // SendBatch indicates an expected call of SendBatch.
-func (mr *MockMessageSenderMockRecorder) SendBatch(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9 interface{}) *gomock.Call {
+func (mr *MockMessageSenderMockRecorder) SendBatch(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendBatch", reflect.TypeOf((*MockMessageSender)(nil).SendBatch), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendBatch", reflect.TypeOf((*MockMessageSender)(nil).SendBatch), arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)
 }
 
 // SendToRecipient mocks base method.

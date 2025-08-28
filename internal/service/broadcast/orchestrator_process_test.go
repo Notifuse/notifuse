@@ -198,6 +198,7 @@ func TestProcess_HappyPath(t *testing.T) {
 		mockLogger,
 		config,
 		mockTimeProvider,
+		"https://api.example.com",
 	)
 
 	ctx := context.Background()
@@ -286,6 +287,7 @@ func TestProcess_NilTaskState(t *testing.T) {
 		mockLogger,
 		config,
 		mockTimeProvider,
+		"https://api.example.com",
 	)
 
 	ctx := context.Background()
@@ -382,6 +384,7 @@ func TestProcess_NilSendBroadcastState(t *testing.T) {
 		mockLogger,
 		config,
 		mockTimeProvider,
+		"https://api.example.com",
 	)
 
 	ctx := context.Background()
@@ -463,6 +466,7 @@ func TestProcess_MissingBroadcastID(t *testing.T) {
 		mockLogger,
 		config,
 		mockTimeProvider,
+		"https://api.example.com",
 	)
 
 	ctx := context.Background()
@@ -555,6 +559,7 @@ func TestProcess_ZeroRecipients(t *testing.T) {
 		mockLogger,
 		config,
 		mockTimeProvider,
+		"https://api.example.com",
 	)
 
 	ctx := context.Background()
@@ -650,6 +655,7 @@ func TestProcess_GetTotalRecipientCountError(t *testing.T) {
 		mockLogger,
 		config,
 		mockTimeProvider,
+		"https://api.example.com",
 	)
 
 	ctx := context.Background()
@@ -755,6 +761,7 @@ func TestProcess_LastRetryError(t *testing.T) {
 		mockLogger,
 		config,
 		mockTimeProvider,
+		"https://api.example.com",
 	)
 
 	ctx := context.Background()
@@ -848,6 +855,7 @@ func TestProcess_LoadTemplatesError(t *testing.T) {
 		mockLogger,
 		config,
 		mockTimeProvider,
+		"https://api.example.com",
 	)
 
 	ctx := context.Background()

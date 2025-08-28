@@ -223,11 +223,11 @@ func TestDemoService_CreateSampleLists_Error(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockListRepo := domainmocks.NewMockListRepository(ctrl)
-	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockContactListRepo := domainmocks.NewMockContactListRepository(ctrl)
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
 	mockEmail := domainmocks.NewMockEmailServiceInterface(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
 	listSvc := NewListService(mockListRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuth, mockEmail, logger.NewLoggerWithLevel("disabled"), "https://api.test")
 
@@ -249,11 +249,11 @@ func TestDemoService_SubscribeContactsToList_Success(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
-	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockListRepo := domainmocks.NewMockListRepository(ctrl)
 	mockContactListRepo := domainmocks.NewMockContactListRepository(ctrl)
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
 	mockEmail := domainmocks.NewMockEmailServiceInterface(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 
 	// Services
 	contactSvc := NewContactService(mockContactRepo, mockWorkspaceRepo, mockAuth, logger.NewLoggerWithLevel("disabled"))

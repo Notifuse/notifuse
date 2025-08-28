@@ -27,7 +27,8 @@ export function WorkspaceSettings({ workspace, onWorkspaceUpdate }: WorkspaceSet
       website_url: workspace?.settings.website_url || '',
       logo_url: workspace?.settings.logo_url || '',
       timezone: workspace?.settings.timezone || 'UTC',
-      email_tracking_enabled: workspace?.settings.email_tracking_enabled || false
+      email_tracking_enabled: workspace?.settings.email_tracking_enabled || false,
+      custom_endpoint_url: workspace?.settings.custom_endpoint_url || ''
     })
     setFormTouched(false)
   }, [workspace, form])
@@ -46,7 +47,8 @@ export function WorkspaceSettings({ workspace, onWorkspaceUpdate }: WorkspaceSet
           logo_url: values.logo_url || null,
           cover_url: workspace?.settings.cover_url || null,
           timezone: values.timezone,
-          email_tracking_enabled: values.email_tracking_enabled
+          email_tracking_enabled: values.email_tracking_enabled,
+          custom_endpoint_url: values.custom_endpoint_url || null
         }
       })
 
@@ -111,6 +113,60 @@ export function WorkspaceSettings({ workspace, onWorkspaceUpdate }: WorkspaceSet
             tooltip="When enabled, links in the email will be tracked for opens and clicks"
           >
             <Switch />
+          </Form.Item>
+
+          <Form.Item
+            name="custom_endpoint_url"
+            label="Custom Endpoint URL"
+            tooltip="Custom domain for email links (unsubscribe, tracking, notification center). By default, the config API endpoint is used. Leave empty to use the default."
+            rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
+            help={
+              <div className="mb-4">
+                <div>
+                  To use a custom domain, create a CNAME record pointing your domain to the API
+                  endpoint and ensure SSL certificates are configured.
+                </div>
+                <div
+                  style={{
+                    marginTop: 8,
+                    fontFamily: 'monospace',
+                    fontSize: '12px',
+                    background: '#f5f5f5',
+                    padding: '4px 8px',
+                    borderRadius: '4px'
+                  }}
+                >
+                  <strong>DNS Record:</strong>
+                  <br />
+                  Type: CNAME
+                  <br />
+                  Name:{' '}
+                  {(() => {
+                    try {
+                      const customUrl = form.getFieldValue('custom_endpoint_url')
+                      if (customUrl) {
+                        return new URL(customUrl).hostname
+                      }
+                      return 'api.yourdomain.com'
+                    } catch {
+                      return 'api.yourdomain.com'
+                    }
+                  })()}
+                  <br />
+                  Value:{' '}
+                  {(() => {
+                    try {
+                      const apiEndpoint = window.API_ENDPOINT || 'http://localhost:3000'
+                      return new URL(apiEndpoint).hostname
+                    } catch {
+                      return 'your-api-endpoint.com'
+                    }
+                  })()}
+                </div>
+              </div>
+            }
+          >
+            <Input placeholder="https://api.yourdomain.com" />
           </Form.Item>
 
           <Form.Item>

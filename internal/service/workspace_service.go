@@ -286,6 +286,7 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	existingWorkspace.Settings.TransactionalEmailProviderID = settings.TransactionalEmailProviderID
 	existingWorkspace.Settings.MarketingEmailProviderID = settings.MarketingEmailProviderID
 	existingWorkspace.Settings.EmailTrackingEnabled = settings.EmailTrackingEnabled
+	existingWorkspace.Settings.CustomEndpointURL = settings.CustomEndpointURL
 
 	// Handle template blocks - ensure they have proper timestamps and IDs
 	for i := range settings.TemplateBlocks {

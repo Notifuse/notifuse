@@ -275,8 +275,20 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		request.TrackingSettings.UTMContent = template.ID
 	}
 
+	// Get workspace to check for custom endpoint URL
+	workspace, err := s.workspaceRepo.GetByID(ctx, request.WorkspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+
+	// Use workspace CustomEndpointURL if provided, otherwise use the default API endpoint
+	endpoint := s.apiEndpoint
+	if workspace.Settings.CustomEndpointURL != nil && *workspace.Settings.CustomEndpointURL != "" {
+		endpoint = *workspace.Settings.CustomEndpointURL
+	}
+
 	trackingSettings := notifuse_mjml.TrackingSettings{
-		Endpoint:       s.apiEndpoint,
+		Endpoint:       endpoint,
 		EnableTracking: request.TrackingSettings.EnableTracking,
 		UTMSource:      request.TrackingSettings.UTMSource,
 		UTMMedium:      request.TrackingSettings.UTMMedium,

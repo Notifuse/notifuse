@@ -920,6 +920,17 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 	}
 
 	t.Run("Successfully sends email template", func(t *testing.T) {
+		// Setup workspace mock
+		workspace := &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				CustomEndpointURL: nil, // No custom endpoint for this test
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
 		// Setup template service mock
 		mockTemplateService.EXPECT().
 			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
@@ -1000,6 +1011,17 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 	})
 
 	t.Run("Error compiling template", func(t *testing.T) {
+		// Setup workspace mock
+		workspace := &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				CustomEndpointURL: nil,
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
 		// Setup template service mock
 		mockTemplateService.EXPECT().
 			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
@@ -1034,6 +1056,17 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 	})
 
 	t.Run("Template compilation unsuccessful", func(t *testing.T) {
+		// Setup workspace mock
+		workspace := &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				CustomEndpointURL: nil,
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
 		// Setup template service mock
 		mockTemplateService.EXPECT().
 			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
@@ -1076,6 +1109,17 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 	})
 
 	t.Run("Error creating message history", func(t *testing.T) {
+		// Setup workspace mock
+		workspace := &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				CustomEndpointURL: nil,
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
 		// Setup template service mock
 		mockTemplateService.EXPECT().
 			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
@@ -1115,6 +1159,17 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 	})
 
 	t.Run("Error sending email", func(t *testing.T) {
+		// Setup workspace mock
+		workspace := &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				CustomEndpointURL: nil,
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
 		// Setup template service mock
 		mockTemplateService.EXPECT().
 			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
@@ -1172,6 +1227,17 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 	})
 
 	t.Run("Error updating message history after failed email", func(t *testing.T) {
+		// Setup workspace mock
+		workspace := &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				CustomEndpointURL: nil,
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
 		// Setup template service mock
 		mockTemplateService.EXPECT().
 			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).

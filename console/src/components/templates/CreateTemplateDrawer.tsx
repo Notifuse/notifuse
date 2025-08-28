@@ -712,7 +712,14 @@ export function CreateTemplateDrawer({
                               workspace_id: workspace.id,
                               message_id: 'preview',
                               visual_editor_tree: tree as any,
-                              test_data: testData || {}
+                              test_data: testData || {},
+                              tracking_settings: {
+                                enable_tracking:
+                                  workspace.settings?.email_tracking_enabled || false,
+                                endpoint: workspace.settings?.custom_endpoint_url || undefined,
+                                workspace_id: workspace.id,
+                                message_id: 'preview'
+                              }
                             })
 
                             if (response.error) {

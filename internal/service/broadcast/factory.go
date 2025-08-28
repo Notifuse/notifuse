@@ -86,6 +86,7 @@ func (f *Factory) CreateOrchestrator() BroadcastOrchestratorInterface {
 		f.logger,
 		f.config,
 		timeProvider,
+		f.apiEndpoint,
 	)
 }
 

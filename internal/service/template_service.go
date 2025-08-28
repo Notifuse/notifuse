@@ -221,7 +221,10 @@ func (s *TemplateService) CompileTemplate(ctx context.Context, payload domain.Co
 		}
 	}
 
-	payload.TrackingSettings.Endpoint = s.apiEndpoint
+	// Set endpoint as fallback if not already set
+	if payload.TrackingSettings.Endpoint == "" {
+		payload.TrackingSettings.Endpoint = s.apiEndpoint
+	}
 
 	return notifuse_mjml.CompileTemplate(payload)
 }

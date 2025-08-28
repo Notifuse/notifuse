@@ -77,7 +77,13 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         workspace_id: workspace.id,
         message_id: 'preview',
         visual_editor_tree: treeObject as any,
-        test_data: templateData || record.test_data || {}
+        test_data: templateData || record.test_data || {},
+        tracking_settings: {
+          enable_tracking: workspace.settings?.email_tracking_enabled || false,
+          endpoint: workspace.settings?.custom_endpoint_url || undefined,
+          workspace_id: workspace.id,
+          message_id: 'preview'
+        }
       }
 
       // console.log('Compile Request:', req)

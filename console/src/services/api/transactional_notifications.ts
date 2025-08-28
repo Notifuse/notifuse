@@ -1,5 +1,5 @@
 import { api } from './client'
-import { TestTemplateRequest, TestTemplateResponse } from './types'
+import { TestTemplateRequest, TestTemplateResponse, TrackingSettings } from './types'
 
 export type TransactionalChannel = 'email'
 // Add other channels in the future (sms, push, etc.)
@@ -12,18 +12,6 @@ export interface ChannelTemplate {
 export interface ChannelTemplates {
   email?: ChannelTemplate
   // Other channel templates in the future
-}
-
-export interface TrackingSettings {
-  enable_tracking?: boolean
-  endpoint?: string
-  utm_source?: string
-  utm_medium?: string
-  utm_campaign?: string
-  utm_content?: string
-  utm_term?: string
-  workspace_id?: string
-  message_id?: string
 }
 
 export interface TransactionalNotification {

@@ -201,6 +201,7 @@ type WorkspaceSettings struct {
 	EncryptedSecretKey           string              `json:"encrypted_secret_key,omitempty"`
 	EmailTrackingEnabled         bool                `json:"email_tracking_enabled"`
 	TemplateBlocks               []TemplateBlock     `json:"template_blocks,omitempty"`
+	CustomEndpointURL            *string             `json:"custom_endpoint_url,omitempty"`
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`

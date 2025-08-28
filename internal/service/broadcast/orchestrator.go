@@ -47,6 +47,7 @@ type BroadcastOrchestrator struct {
 	logger          logger.Logger
 	config          *Config
 	timeProvider    TimeProvider
+	apiEndpoint     string
 }
 
 // NewBroadcastOrchestrator creates a new broadcast orchestrator
@@ -61,6 +62,7 @@ func NewBroadcastOrchestrator(
 	logger logger.Logger,
 	config *Config,
 	timeProvider TimeProvider,
+	apiEndpoint string,
 ) BroadcastOrchestratorInterface {
 	if config == nil {
 		config = DefaultConfig()
@@ -81,6 +83,7 @@ func NewBroadcastOrchestrator(
 		logger:          logger,
 		config:          config,
 		timeProvider:    timeProvider,
+		apiEndpoint:     apiEndpoint,
 	}
 }
 
@@ -865,12 +868,19 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			break
 		}
 
+		// Use workspace CustomEndpointURL if provided, otherwise use default API endpoint
+		endpoint := o.apiEndpoint
+		if workspace.Settings.CustomEndpointURL != nil && *workspace.Settings.CustomEndpointURL != "" {
+			endpoint = *workspace.Settings.CustomEndpointURL
+		}
+
 		// Process this batch of recipients
 		sent, failed, sendErr := o.messageSender.SendBatch(
 			ctx,
 			task.WorkspaceID,
 			integrationID,
 			workspace.Settings.SecretKey,
+			endpoint,
 			workspace.Settings.EmailTrackingEnabled,
 			broadcastState.BroadcastID,
 			recipients,

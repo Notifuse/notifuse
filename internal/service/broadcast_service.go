@@ -811,8 +811,14 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 
 	messageID := uuid.New().String()
 
+	// Use workspace CustomEndpointURL if provided, otherwise use the default API endpoint
+	endpoint := s.apiEndpoint
+	if workspace.Settings.CustomEndpointURL != nil && *workspace.Settings.CustomEndpointURL != "" {
+		endpoint = *workspace.Settings.CustomEndpointURL
+	}
+
 	trackingSettings := notifuse_mjml.TrackingSettings{
-		Endpoint:       s.apiEndpoint,
+		Endpoint:       endpoint,
 		EnableTracking: workspace.Settings.EmailTrackingEnabled,
 		WorkspaceID:    request.WorkspaceID,
 		MessageID:      messageID,
@@ -859,6 +865,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		MessageID:        messageID,
 		VisualEditorTree: template.Email.VisualEditorTree,
 		TemplateData:     notifuse_mjml.MapOfAny(templateData),
+		TrackingSettings: trackingSettings,
 	})
 	if err != nil {
 		s.logger.Error("Failed to compile template for broadcast")

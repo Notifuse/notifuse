@@ -50,6 +50,7 @@ export interface WorkspaceSettings {
   marketing_email_provider_id?: string
   email_tracking_enabled: boolean
   template_blocks?: TemplateBlock[]
+  custom_endpoint_url?: string
 }
 
 export interface FileManagerSettings {
@@ -467,17 +468,24 @@ export interface MjmlCompileError {
   details: MjmlErrorDetail[]
 }
 
-export interface CompileTemplateRequest {
-  workspace_id: string
-  message_id: string
-  visual_editor_tree: EmailBlock
-  test_data?: Record<string, any> | null
-  tracking_enabled?: boolean
+export interface TrackingSettings {
+  enable_tracking: boolean
+  endpoint?: string
   utm_source?: string
   utm_medium?: string
   utm_campaign?: string
   utm_content?: string
   utm_term?: string
+  workspace_id?: string
+  message_id?: string
+}
+
+export interface CompileTemplateRequest {
+  workspace_id: string
+  message_id: string
+  visual_editor_tree: EmailBlock
+  test_data?: Record<string, any> | null
+  tracking_settings?: TrackingSettings
 }
 
 export interface CompileTemplateResponse {

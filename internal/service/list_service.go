@@ -273,8 +273,14 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 
 		messageID := uuid.New().String()
 
+		// Use workspace CustomEndpointURL if provided, otherwise use the default API endpoint
+		endpoint := s.apiEndpoint
+		if workspace.Settings.CustomEndpointURL != nil && *workspace.Settings.CustomEndpointURL != "" {
+			endpoint = *workspace.Settings.CustomEndpointURL
+		}
+
 		trackingSettings := notifuse_mjml.TrackingSettings{
-			Endpoint:       s.apiEndpoint,
+			Endpoint:       endpoint,
 			EnableTracking: workspace.Settings.EmailTrackingEnabled,
 			UTMSource:      workspace.Settings.WebsiteURL,
 			UTMMedium:      "email",
@@ -433,8 +439,14 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 		if list.UnsubscribeTemplate != nil && marketingEmailProvider != nil {
 			messageID := uuid.New().String()
 
+			// Use workspace CustomEndpointURL if provided, otherwise use the default API endpoint
+			endpoint := s.apiEndpoint
+			if workspace.Settings.CustomEndpointURL != nil && *workspace.Settings.CustomEndpointURL != "" {
+				endpoint = *workspace.Settings.CustomEndpointURL
+			}
+
 			trackingSettings := notifuse_mjml.TrackingSettings{
-				Endpoint:       s.apiEndpoint,
+				Endpoint:       endpoint,
 				EnableTracking: workspace.Settings.EmailTrackingEnabled,
 				UTMSource:      workspace.Settings.WebsiteURL,
 				UTMMedium:      "email",
