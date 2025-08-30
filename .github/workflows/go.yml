@@ -154,13 +154,13 @@ jobs:
           # Copy to repo root for codecov action
           cp coverage-integration.txt ../
 
-      - name: Upload integration test coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          slug: Notifuse/notifuse
-          file: coverage-integration.txt
-          fail_ci_if_error: true
-          verbose: true
-          name: codecov-integration-tests
-          flags: integration
+      # - name: Upload integration test coverage to Codecov
+      #   uses: codecov/codecov-action@v3
+      #   with:
+      #     token: ${{ secrets.CODECOV_TOKEN }}
+      #     slug: Notifuse/notifuse
+      #     file: coverage-integration.txt
+      #     fail_ci_if_error: true
+      #     verbose: true
+      #     name: codecov-integration-tests
+      #     flags: integration
