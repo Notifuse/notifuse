@@ -51,7 +51,7 @@ func NewTestSMTPMailer(config *Config) *SMTPMailer {
 
 // SendWorkspaceInvitation sends an invitation email with the given token
 func (m *SMTPMailer) SendWorkspaceInvitation(email, workspaceName, inviterName, token string) error {
-	inviteURL := fmt.Sprintf("%s/invitation?token=%s", m.config.APIEndpoint, token)
+	inviteURL := fmt.Sprintf("%s/accept-invitation?token=%s", m.config.APIEndpoint, token)
 
 	// Create a new message
 	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())

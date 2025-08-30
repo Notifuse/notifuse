@@ -20,7 +20,9 @@ import {
   UpdateIntegrationRequest,
   UpdateIntegrationResponse,
   DeleteIntegrationRequest,
-  DeleteIntegrationResponse
+  DeleteIntegrationResponse,
+  VerifyInvitationTokenResponse,
+  AcceptInvitationResponse
 } from './types'
 
 interface DetectFaviconResponse {
@@ -64,5 +66,12 @@ export const workspaceService = {
     api.post<UpdateIntegrationResponse>('/api/workspaces.updateIntegration', data),
 
   deleteIntegration: (data: DeleteIntegrationRequest) =>
-    api.post<DeleteIntegrationResponse>('/api/workspaces.deleteIntegration', data)
+    api.post<DeleteIntegrationResponse>('/api/workspaces.deleteIntegration', data),
+
+  // Invitation endpoints
+  verifyInvitationToken: (token: string) =>
+    api.post<VerifyInvitationTokenResponse>('/api/workspaces.verifyInvitationToken', { token }),
+
+  acceptInvitation: (token: string) =>
+    api.post<AcceptInvitationResponse>('/api/workspaces.acceptInvitation', { token })
 }

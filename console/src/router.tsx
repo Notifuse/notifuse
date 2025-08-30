@@ -3,6 +3,7 @@ import { RootLayout } from './layouts/RootLayout'
 import { WorkspaceLayout } from './layouts/WorkspaceLayout'
 import { SignInPage } from './pages/SignInPage'
 import { LogoutPage } from './pages/LogoutPage'
+import { AcceptInvitationPage } from './pages/AcceptInvitationPage'
 import { CreateWorkspacePage } from './pages/CreateWorkspacePage'
 import { DashboardPage } from './pages/DashboardPage'
 import { WorkspaceSettingsPage } from './pages/WorkspaceSettingsPage'
@@ -31,6 +32,10 @@ export interface ContactsSearch {
 
 export interface SignInSearch {
   email?: string
+}
+
+export interface AcceptInvitationSearch {
+  token?: string
 }
 
 // Create the root route
@@ -66,7 +71,10 @@ const logoutRoute = createRoute({
 const acceptInvitationRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/accept-invitation',
-  component: () => <div>Accept Invitation</div>
+  component: AcceptInvitationPage,
+  validateSearch: (search: Record<string, unknown>): AcceptInvitationSearch => ({
+    token: search.token as string | undefined
+  })
 })
 
 // Create the workspace create route

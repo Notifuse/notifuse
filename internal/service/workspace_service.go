@@ -98,18 +98,21 @@ func (s *WorkspaceService) ListWorkspaces(ctx context.Context) ([]*domain.Worksp
 
 // GetWorkspace returns a workspace by ID if the user has access
 func (s *WorkspaceService) GetWorkspace(ctx context.Context, id string) (*domain.Workspace, error) {
-	// Validate user is a member of the workspace
-	var user *domain.User
-	var err error
-	ctx, user, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to authenticate user: %w", err)
-	}
+	// Check if this is a system call that should bypass authentication
+	if ctx.Value("system_call") == nil {
+		// Validate user is a member of the workspace
+		var user *domain.User
+		var err error
+		ctx, user, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
+		if err != nil {
+			return nil, fmt.Errorf("failed to authenticate user: %w", err)
+		}
 
-	_, err = s.repo.GetUserWorkspace(ctx, user.ID, id)
-	if err != nil {
-		s.logger.WithField("workspace_id", id).WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to get user workspace")
-		return nil, err
+		_, err = s.repo.GetUserWorkspace(ctx, user.ID, id)
+		if err != nil {
+			s.logger.WithField("workspace_id", id).WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to get user workspace")
+			return nil, err
+		}
 	}
 
 	workspace, err := s.repo.GetByID(ctx, id)
@@ -707,6 +710,104 @@ func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string,
 	token := s.authService.GenerateAPIAuthToken(apiUser)
 
 	return token, apiEmail, nil
+}
+
+// GetInvitationByID retrieves a workspace invitation by its ID
+func (s *WorkspaceService) GetInvitationByID(ctx context.Context, invitationID string) (*domain.WorkspaceInvitation, error) {
+	return s.repo.GetInvitationByID(ctx, invitationID)
+}
+
+// AcceptInvitation processes an invitation acceptance by creating a user if needed and adding them to the workspace
+func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, workspaceID, email string) (*domain.AuthResponse, error) {
+	// Check if user already exists
+	existingUser, err := s.userService.GetUserByEmail(ctx, email)
+	var user *domain.User
+
+	if err != nil {
+		// User doesn't exist, create a new one
+		user = &domain.User{
+			ID:        uuid.New().String(),
+			Email:     email,
+			Name:      "", // User can update this later
+			Type:      domain.UserTypeUser,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		}
+
+		err = s.userRepo.CreateUser(ctx, user)
+		if err != nil {
+			s.logger.WithField("email", email).WithField("error", err.Error()).Error("Failed to create user for invitation acceptance")
+			return nil, fmt.Errorf("failed to create user: %w", err)
+		}
+
+		s.logger.WithField("user_id", user.ID).WithField("email", email).Info("Created new user from invitation acceptance")
+	} else {
+		user = existingUser
+
+		// Check if user is already a member of the workspace
+		isMember, err := s.repo.IsUserWorkspaceMember(ctx, user.ID, workspaceID)
+		if err != nil {
+			s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to check if user is already a member")
+			return nil, fmt.Errorf("failed to check workspace membership: %w", err)
+		}
+
+		if isMember {
+			s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).Info("User is already a member of the workspace")
+			// Delete the invitation since it's no longer needed
+			if err := s.repo.DeleteInvitation(ctx, invitationID); err != nil {
+				s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Warn("Failed to delete invitation after finding user is already a member")
+			}
+			return nil, fmt.Errorf("user is already a member of the workspace")
+		}
+	}
+
+	// Add user to workspace as a member
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      user.ID,
+		WorkspaceID: workspaceID,
+		Role:        "member", // Always set invited users as members
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+	}
+
+	err = s.repo.AddUserToWorkspace(ctx, userWorkspace)
+	if err != nil {
+		s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to add user to workspace")
+		return nil, fmt.Errorf("failed to add user to workspace: %w", err)
+	}
+
+	// Create a new session for the user
+	sessionExpiry := time.Now().Add(24 * time.Hour * 30) // 30 days
+	session := &domain.Session{
+		ID:        uuid.New().String(),
+		UserID:    user.ID,
+		ExpiresAt: sessionExpiry,
+		CreatedAt: time.Now().UTC(),
+	}
+
+	err = s.userRepo.CreateSession(ctx, session)
+	if err != nil {
+		s.logger.WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to create session for invitation acceptance")
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	// Generate authentication token
+	token := s.authService.GenerateUserAuthToken(user, session.ID, session.ExpiresAt)
+
+	// Delete the invitation after successful acceptance
+	err = s.repo.DeleteInvitation(ctx, invitationID)
+	if err != nil {
+		s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Warn("Failed to delete invitation after successful acceptance")
+		// Don't return error here as the main operation succeeded
+	}
+
+	s.logger.WithField("user_id", user.ID).WithField("workspace_id", workspaceID).WithField("invitation_id", invitationID).Info("Successfully accepted invitation and created session")
+
+	return &domain.AuthResponse{
+		Token:     token,
+		User:      *user,
+		ExpiresAt: session.ExpiresAt,
+	}, nil
 }
 
 // RemoveMember removes a member from a workspace and deletes the user if it's an API key

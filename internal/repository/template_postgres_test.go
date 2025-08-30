@@ -110,6 +110,11 @@ func (m *MockWorkspaceRepository) GetInvitationByEmail(ctx context.Context, work
 	return inv, args.Error(1)
 }
 
+func (m *MockWorkspaceRepository) DeleteInvitation(ctx context.Context, id string) error {
+	args := m.Called(ctx, id)
+	return args.Error(0)
+}
+
 func (m *MockWorkspaceRepository) IsUserWorkspaceMember(ctx context.Context, userID, workspaceID string) (bool, error) {
 	args := m.Called(ctx, userID, workspaceID)
 	return args.Bool(0), args.Error(1)

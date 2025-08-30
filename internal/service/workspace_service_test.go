@@ -213,6 +213,23 @@ func TestWorkspaceService_GetWorkspace(t *testing.T) {
 		assert.Nil(t, workspace)
 		assert.Equal(t, assert.AnError, err)
 	})
+
+	t.Run("system call bypasses authentication", func(t *testing.T) {
+		expectedWorkspace := &domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test Workspace",
+		}
+
+		// Create a system context that should bypass authentication
+		systemCtx := context.WithValue(ctx, "system_call", true)
+
+		// No auth service call expected since this is a system call
+		mockRepo.EXPECT().GetByID(systemCtx, workspaceID).Return(expectedWorkspace, nil)
+
+		workspace, err := service.GetWorkspace(systemCtx, workspaceID)
+		require.NoError(t, err)
+		assert.Equal(t, expectedWorkspace, workspace)
+	})
 }
 
 func TestWorkspaceService_CreateWorkspace(t *testing.T) {
@@ -1691,5 +1708,437 @@ func TestGenerateSecureKey(t *testing.T) {
 			assert.False(t, seen[key], "Duplicate key generated")
 			seen[key] = true
 		}
+	})
+}
+
+func TestWorkspaceService_GetInvitationByID(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockMailer := pkgmocks.NewMockMailer(ctrl)
+	mockConfig := &config.Config{}
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockContactListService := mocks.NewMockContactListService(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
+
+	service := NewWorkspaceService(
+		mockRepo,
+		mockUserRepo,
+		mockLogger,
+		mockUserService,
+		mockAuthService,
+		mockMailer,
+		mockConfig,
+		mockContactService,
+		mockListService,
+		mockContactListService,
+		mockTemplateService,
+		mockWebhookRegService,
+		"secret_key",
+	)
+
+	invitationID := "invitation-123"
+	invitation := &domain.WorkspaceInvitation{
+		ID:          invitationID,
+		WorkspaceID: "workspace-123",
+		InviterID:   "inviter-123",
+		Email:       "test@example.com",
+		ExpiresAt:   time.Now().Add(24 * time.Hour),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	t.Run("successful retrieval", func(t *testing.T) {
+		mockRepo.EXPECT().
+			GetInvitationByID(context.Background(), invitationID).
+			Return(invitation, nil)
+
+		result, err := service.GetInvitationByID(context.Background(), invitationID)
+
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, invitationID, result.ID)
+		assert.Equal(t, invitation.WorkspaceID, result.WorkspaceID)
+		assert.Equal(t, invitation.Email, result.Email)
+	})
+
+	t.Run("invitation not found", func(t *testing.T) {
+		mockRepo.EXPECT().
+			GetInvitationByID(context.Background(), "non-existent").
+			Return(nil, errors.New("invitation not found"))
+
+		result, err := service.GetInvitationByID(context.Background(), "non-existent")
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		assert.Contains(t, err.Error(), "invitation not found")
+	})
+}
+
+func TestWorkspaceService_AcceptInvitation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockMailer := pkgmocks.NewMockMailer(ctrl)
+	mockConfig := &config.Config{}
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockContactListService := mocks.NewMockContactListService(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
+
+	service := NewWorkspaceService(
+		mockRepo,
+		mockUserRepo,
+		mockLogger,
+		mockUserService,
+		mockAuthService,
+		mockMailer,
+		mockConfig,
+		mockContactService,
+		mockListService,
+		mockContactListService,
+		mockTemplateService,
+		mockWebhookRegService,
+		"secret_key",
+	)
+
+	invitationID := "invitation-123"
+	workspaceID := "workspace-123"
+	email := "test@example.com"
+
+	t.Run("successful acceptance with new user", func(t *testing.T) {
+		// User doesn't exist, should create new user
+		mockUserService.EXPECT().
+			GetUserByEmail(context.Background(), email).
+			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
+
+		// Mock user creation
+		mockUserRepo.EXPECT().
+			CreateUser(context.Background(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, user *domain.User) error {
+				user.ID = "new-user-123" // Simulate ID assignment
+				return nil
+			})
+
+		// Mock adding user to workspace
+		mockRepo.EXPECT().
+			AddUserToWorkspace(context.Background(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, userWorkspace *domain.UserWorkspace) error {
+				assert.Equal(t, "new-user-123", userWorkspace.UserID)
+				assert.Equal(t, workspaceID, userWorkspace.WorkspaceID)
+				assert.Equal(t, "member", userWorkspace.Role)
+				return nil
+			})
+
+		// Mock session creation
+		mockUserRepo.EXPECT().
+			CreateSession(context.Background(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, session *domain.Session) error {
+				assert.Equal(t, "new-user-123", session.UserID)
+				assert.NotEmpty(t, session.ID)
+				return nil
+			})
+
+		// Mock auth token generation
+		mockAuthService.EXPECT().
+			GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return("auth-token-123")
+
+		// Mock invitation deletion
+		mockRepo.EXPECT().
+			DeleteInvitation(context.Background(), invitationID).
+			Return(nil)
+
+		// Mock logger calls
+		mockLogger.EXPECT().
+			WithField("user_id", "new-user-123").
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("email", email).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Info("Created new user from invitation acceptance")
+
+		mockLogger.EXPECT().
+			WithField("user_id", "new-user-123").
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("workspace_id", workspaceID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("invitation_id", invitationID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Info("Successfully accepted invitation and created session")
+
+		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
+
+		require.NoError(t, err)
+		require.NotNil(t, authResponse)
+		assert.Equal(t, "auth-token-123", authResponse.Token)
+		assert.Equal(t, "new-user-123", authResponse.User.ID)
+		assert.Equal(t, email, authResponse.User.Email)
+		assert.NotZero(t, authResponse.ExpiresAt)
+	})
+
+	t.Run("successful acceptance with existing user", func(t *testing.T) {
+		existingUser := &domain.User{
+			ID:    "existing-user-123",
+			Email: email,
+		}
+
+		// User exists
+		mockUserService.EXPECT().
+			GetUserByEmail(context.Background(), email).
+			Return(existingUser, nil)
+
+		// Check if user is already a member (not a member)
+		mockRepo.EXPECT().
+			IsUserWorkspaceMember(context.Background(), existingUser.ID, workspaceID).
+			Return(false, nil)
+
+		// Mock adding user to workspace
+		mockRepo.EXPECT().
+			AddUserToWorkspace(context.Background(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, userWorkspace *domain.UserWorkspace) error {
+				assert.Equal(t, existingUser.ID, userWorkspace.UserID)
+				assert.Equal(t, workspaceID, userWorkspace.WorkspaceID)
+				assert.Equal(t, "member", userWorkspace.Role)
+				return nil
+			})
+
+		// Mock session creation
+		mockUserRepo.EXPECT().
+			CreateSession(context.Background(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, session *domain.Session) error {
+				assert.Equal(t, existingUser.ID, session.UserID)
+				assert.NotEmpty(t, session.ID)
+				return nil
+			})
+
+		// Mock auth token generation
+		mockAuthService.EXPECT().
+			GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return("auth-token-456")
+
+		// Mock invitation deletion
+		mockRepo.EXPECT().
+			DeleteInvitation(context.Background(), invitationID).
+			Return(nil)
+
+		// Mock logger call
+		mockLogger.EXPECT().
+			WithField("user_id", existingUser.ID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("workspace_id", workspaceID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("invitation_id", invitationID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Info("Successfully accepted invitation and created session")
+
+		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
+
+		require.NoError(t, err)
+		require.NotNil(t, authResponse)
+		assert.Equal(t, "auth-token-456", authResponse.Token)
+		assert.Equal(t, existingUser.ID, authResponse.User.ID)
+		assert.Equal(t, email, authResponse.User.Email)
+		assert.NotZero(t, authResponse.ExpiresAt)
+	})
+
+	t.Run("user already member", func(t *testing.T) {
+		existingUser := &domain.User{
+			ID:    "existing-user-123",
+			Email: email,
+		}
+
+		// User exists
+		mockUserService.EXPECT().
+			GetUserByEmail(context.Background(), email).
+			Return(existingUser, nil)
+
+		// Check if user is already a member (is a member)
+		mockRepo.EXPECT().
+			IsUserWorkspaceMember(context.Background(), existingUser.ID, workspaceID).
+			Return(true, nil)
+
+		// Mock invitation deletion (cleanup)
+		mockRepo.EXPECT().
+			DeleteInvitation(context.Background(), invitationID).
+			Return(nil)
+
+		// Mock logger calls
+		mockLogger.EXPECT().
+			WithField("user_id", existingUser.ID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("workspace_id", workspaceID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Info("User is already a member of the workspace")
+
+		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
+
+		require.Error(t, err)
+		assert.Nil(t, authResponse)
+		assert.Contains(t, err.Error(), "user is already a member of the workspace")
+	})
+
+	t.Run("failed user creation", func(t *testing.T) {
+		// User doesn't exist, should create new user but fails
+		mockUserService.EXPECT().
+			GetUserByEmail(context.Background(), email).
+			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
+
+		// Mock user creation failure
+		mockUserRepo.EXPECT().
+			CreateUser(context.Background(), gomock.Any()).
+			Return(errors.New("database error"))
+
+		// Mock logger calls
+		mockLogger.EXPECT().
+			WithField("email", email).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("error", "database error").
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Error("Failed to create user for invitation acceptance")
+
+		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
+
+		require.Error(t, err)
+		assert.Nil(t, authResponse)
+		assert.Contains(t, err.Error(), "failed to create user")
+	})
+
+	t.Run("failed to add user to workspace", func(t *testing.T) {
+		existingUser := &domain.User{
+			ID:    "existing-user-123",
+			Email: email,
+		}
+
+		// User exists
+		mockUserService.EXPECT().
+			GetUserByEmail(context.Background(), email).
+			Return(existingUser, nil)
+
+		// Check if user is already a member (not a member)
+		mockRepo.EXPECT().
+			IsUserWorkspaceMember(context.Background(), existingUser.ID, workspaceID).
+			Return(false, nil)
+
+		// Mock adding user to workspace failure
+		mockRepo.EXPECT().
+			AddUserToWorkspace(context.Background(), gomock.Any()).
+			Return(errors.New("database error"))
+
+		// Mock logger calls
+		mockLogger.EXPECT().
+			WithField("user_id", existingUser.ID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("workspace_id", workspaceID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("error", "database error").
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Error("Failed to add user to workspace")
+
+		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
+
+		require.Error(t, err)
+		assert.Nil(t, authResponse)
+		assert.Contains(t, err.Error(), "failed to add user to workspace")
+	})
+
+	t.Run("invitation deletion fails but main operation succeeds", func(t *testing.T) {
+		existingUser := &domain.User{
+			ID:    "existing-user-123",
+			Email: email,
+		}
+
+		// User exists
+		mockUserService.EXPECT().
+			GetUserByEmail(context.Background(), email).
+			Return(existingUser, nil)
+
+		// Check if user is already a member (not a member)
+		mockRepo.EXPECT().
+			IsUserWorkspaceMember(context.Background(), existingUser.ID, workspaceID).
+			Return(false, nil)
+
+		// Mock adding user to workspace
+		mockRepo.EXPECT().
+			AddUserToWorkspace(context.Background(), gomock.Any()).
+			Return(nil)
+
+		// Mock session creation
+		mockUserRepo.EXPECT().
+			CreateSession(context.Background(), gomock.Any()).
+			DoAndReturn(func(ctx context.Context, session *domain.Session) error {
+				assert.Equal(t, existingUser.ID, session.UserID)
+				assert.NotEmpty(t, session.ID)
+				return nil
+			})
+
+		// Mock auth token generation
+		mockAuthService.EXPECT().
+			GenerateUserAuthToken(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return("auth-token-789")
+
+		// Mock invitation deletion failure (should not fail the main operation)
+		mockRepo.EXPECT().
+			DeleteInvitation(context.Background(), invitationID).
+			Return(errors.New("deletion failed"))
+
+		// Mock logger calls for deletion failure
+		mockLogger.EXPECT().
+			WithField("invitation_id", invitationID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("error", "deletion failed").
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Warn("Failed to delete invitation after successful acceptance")
+
+		// Mock logger calls for success
+		mockLogger.EXPECT().
+			WithField("user_id", existingUser.ID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("workspace_id", workspaceID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			WithField("invitation_id", invitationID).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Info("Successfully accepted invitation and created session")
+
+		authResponse, err := service.AcceptInvitation(context.Background(), invitationID, workspaceID, email)
+
+		require.NoError(t, err) // Should still succeed despite deletion failure
+		require.NotNil(t, authResponse)
+		assert.Equal(t, "auth-token-789", authResponse.Token)
+		assert.Equal(t, existingUser.ID, authResponse.User.ID)
+		assert.Equal(t, email, authResponse.User.Email)
+		assert.NotZero(t, authResponse.ExpiresAt)
 	})
 }

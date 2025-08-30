@@ -742,3 +742,212 @@ func TestAuthService_GetPrivateKey(t *testing.T) {
 		require.NotEqual(t, allZeros, keyBytes)
 	})
 }
+
+func TestAuthService_ValidateInvitationToken(t *testing.T) {
+	_, _, mockLogger, service := setupAuthTest(t)
+
+	invitationID := "invitation123"
+	workspaceID := "workspace123"
+	email := "test@example.com"
+
+	t.Run("successful token validation", func(t *testing.T) {
+		// First generate a valid token
+		invitation := &domain.WorkspaceInvitation{
+			ID:          invitationID,
+			WorkspaceID: workspaceID,
+			InviterID:   "inviter123",
+			Email:       email,
+			ExpiresAt:   time.Now().Add(15 * 24 * time.Hour),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		token := service.GenerateInvitationToken(invitation)
+		require.NotEmpty(t, token)
+
+		// Now validate the token
+		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(token)
+
+		require.NoError(t, err)
+		require.Equal(t, invitationID, parsedInvitationID)
+		require.Equal(t, workspaceID, parsedWorkspaceID)
+		require.Equal(t, email, parsedEmail)
+	})
+
+	t.Run("expired token", func(t *testing.T) {
+		// Generate a token that's already expired
+		invitation := &domain.WorkspaceInvitation{
+			ID:          invitationID,
+			WorkspaceID: workspaceID,
+			InviterID:   "inviter123",
+			Email:       email,
+			ExpiresAt:   time.Now().Add(-1 * time.Hour), // Expired 1 hour ago
+			CreatedAt:   time.Now().Add(-2 * time.Hour),
+			UpdatedAt:   time.Now().Add(-2 * time.Hour),
+		}
+
+		token := service.GenerateInvitationToken(invitation)
+		require.NotEmpty(t, token)
+
+		mockLogger.EXPECT().
+			WithField("error", gomock.Any()).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Error("Failed to parse invitation token")
+
+		// Now try to validate the expired token
+		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(token)
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid invitation token")
+		require.Empty(t, parsedInvitationID)
+		require.Empty(t, parsedWorkspaceID)
+		require.Empty(t, parsedEmail)
+	})
+
+	t.Run("invalid token format", func(t *testing.T) {
+		invalidToken := "invalid.token.format"
+
+		mockLogger.EXPECT().
+			WithField("error", gomock.Any()).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Error("Failed to parse invitation token")
+
+		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(invalidToken)
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid invitation token")
+		require.Empty(t, parsedInvitationID)
+		require.Empty(t, parsedWorkspaceID)
+		require.Empty(t, parsedEmail)
+	})
+
+	t.Run("token with missing claims", func(t *testing.T) {
+		// Create a token without the required claims
+		token := paseto.NewToken()
+		token.SetIssuedAt(time.Now())
+		token.SetNotBefore(time.Now())
+		token.SetExpiration(time.Now().Add(time.Hour))
+		token.SetString("some_other_claim", "value")
+
+		privateKey := service.GetPrivateKey()
+		signedToken := token.V4Sign(privateKey, nil)
+		require.NotEmpty(t, signedToken)
+
+		mockLogger.EXPECT().
+			WithField("error", gomock.Any()).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Error("Invitation ID not found in token")
+
+		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(signedToken)
+
+		require.Error(t, err)
+		require.Equal(t, "invitation ID not found in token", err.Error())
+		require.Empty(t, parsedInvitationID)
+		require.Empty(t, parsedWorkspaceID)
+		require.Empty(t, parsedEmail)
+	})
+
+	t.Run("token with missing workspace_id claim", func(t *testing.T) {
+		// Create a token with invitation_id but missing workspace_id
+		token := paseto.NewToken()
+		token.SetIssuedAt(time.Now())
+		token.SetNotBefore(time.Now())
+		token.SetExpiration(time.Now().Add(time.Hour))
+		token.SetString("invitation_id", invitationID)
+
+		privateKey := service.GetPrivateKey()
+		signedToken := token.V4Sign(privateKey, nil)
+		require.NotEmpty(t, signedToken)
+
+		mockLogger.EXPECT().
+			WithField("error", gomock.Any()).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Error("Workspace ID not found in token")
+
+		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(signedToken)
+
+		require.Error(t, err)
+		require.Equal(t, "workspace ID not found in token", err.Error())
+		require.Empty(t, parsedInvitationID)
+		require.Empty(t, parsedWorkspaceID)
+		require.Empty(t, parsedEmail)
+	})
+
+	t.Run("token with missing email claim", func(t *testing.T) {
+		// Create a token with invitation_id and workspace_id but missing email
+		token := paseto.NewToken()
+		token.SetIssuedAt(time.Now())
+		token.SetNotBefore(time.Now())
+		token.SetExpiration(time.Now().Add(time.Hour))
+		token.SetString("invitation_id", invitationID)
+		token.SetString("workspace_id", workspaceID)
+
+		privateKey := service.GetPrivateKey()
+		signedToken := token.V4Sign(privateKey, nil)
+		require.NotEmpty(t, signedToken)
+
+		mockLogger.EXPECT().
+			WithField("error", gomock.Any()).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Error("Email not found in token")
+
+		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(signedToken)
+
+		require.Error(t, err)
+		require.Equal(t, "email not found in token", err.Error())
+		require.Empty(t, parsedInvitationID)
+		require.Empty(t, parsedWorkspaceID)
+		require.Empty(t, parsedEmail)
+	})
+
+	t.Run("empty token", func(t *testing.T) {
+		mockLogger.EXPECT().
+			WithField("error", gomock.Any()).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Error("Failed to parse invitation token")
+
+		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken("")
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid invitation token")
+		require.Empty(t, parsedInvitationID)
+		require.Empty(t, parsedWorkspaceID)
+		require.Empty(t, parsedEmail)
+	})
+
+	t.Run("token signed with wrong key", func(t *testing.T) {
+		// Create a token signed with a different key
+		wrongPrivateKey := paseto.NewV4AsymmetricSecretKey()
+		
+		token := paseto.NewToken()
+		token.SetIssuedAt(time.Now())
+		token.SetNotBefore(time.Now())
+		token.SetExpiration(time.Now().Add(time.Hour))
+		token.SetString("invitation_id", invitationID)
+		token.SetString("workspace_id", workspaceID)
+		token.SetString("email", email)
+
+		signedToken := token.V4Sign(wrongPrivateKey, nil)
+		require.NotEmpty(t, signedToken)
+
+		mockLogger.EXPECT().
+			WithField("error", gomock.Any()).
+			Return(mockLogger)
+		mockLogger.EXPECT().
+			Error("Failed to parse invitation token")
+
+		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(signedToken)
+
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "invalid invitation token")
+		require.Empty(t, parsedInvitationID)
+		require.Empty(t, parsedWorkspaceID)
+		require.Empty(t, parsedEmail)
+	})
+}

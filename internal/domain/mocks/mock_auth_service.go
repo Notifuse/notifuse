@@ -124,6 +124,23 @@ func (mr *MockAuthServiceMockRecorder) GetPrivateKey() *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrivateKey", reflect.TypeOf((*MockAuthService)(nil).GetPrivateKey))
 }
 
+// ValidateInvitationToken mocks base method.
+func (m *MockAuthService) ValidateInvitationToken(arg0 string) (string, string, string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateInvitationToken", arg0)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(string)
+	ret2, _ := ret[2].(string)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
+}
+
+// ValidateInvitationToken indicates an expected call of ValidateInvitationToken.
+func (mr *MockAuthServiceMockRecorder) ValidateInvitationToken(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateInvitationToken", reflect.TypeOf((*MockAuthService)(nil).ValidateInvitationToken), arg0)
+}
+
 // VerifyUserSession mocks base method.
 func (m *MockAuthService) VerifyUserSession(arg0 context.Context, arg1, arg2 string) (*domain.User, error) {
 	m.ctrl.T.Helper()

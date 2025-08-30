@@ -1,5 +1,7 @@
 # TODO
 
+- template preview: copy buttons to clipboard for html and mjml
+- send template test: merge test data with template data
 - better design for system email
 - double opt in template for newsletter
 - welcome template for notifuse newsletter

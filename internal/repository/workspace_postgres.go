@@ -483,6 +483,26 @@ func (r *workspaceRepository) GetInvitationByEmail(ctx context.Context, workspac
 	return &invitation, nil
 }
 
+// DeleteInvitation deletes a workspace invitation by its ID
+func (r *workspaceRepository) DeleteInvitation(ctx context.Context, id string) error {
+	query := `DELETE FROM workspace_invitations WHERE id = $1`
+	result, err := r.systemDB.ExecContext(ctx, query, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete invitation: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("invitation not found")
+	}
+
+	return nil
+}
+
 // IsUserWorkspaceMember checks if a user is a member of a workspace
 func (r *workspaceRepository) IsUserWorkspaceMember(ctx context.Context, userID, workspaceID string) (bool, error) {
 	query := `

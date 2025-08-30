@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -2132,4 +2133,440 @@ func TestGetBytesFromBody(t *testing.T) {
 	// Call helper
 	got := getBytesFromBody(rc)
 	assert.Equal(t, []byte(content), got)
+}
+
+func TestWorkspaceHandler_HandleVerifyInvitationToken(t *testing.T) {
+	handler, workspaceSvc, _, _, authSvc := setupTest(t)
+
+	invitationID := "invitation-123"
+	workspaceID := "workspace-123"
+	email := "test@example.com"
+
+	invitation := &domain.WorkspaceInvitation{
+		ID:          invitationID,
+		WorkspaceID: workspaceID,
+		InviterID:   "inviter-123",
+		Email:       email,
+		ExpiresAt:   time.Now().Add(24 * time.Hour),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	workspace := &domain.Workspace{
+		ID:   workspaceID,
+		Name: "Test Workspace",
+	}
+
+	t.Run("successful verification", func(t *testing.T) {
+		// Mock token validation
+		authSvc.EXPECT().
+			ValidateInvitationToken("valid-token").
+			Return(invitationID, workspaceID, email, nil)
+
+		// Mock invitation retrieval
+		workspaceSvc.EXPECT().
+			GetInvitationByID(gomock.Any(), invitationID).
+			Return(invitation, nil)
+
+		// Mock workspace retrieval
+		workspaceSvc.EXPECT().
+			GetWorkspace(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
+		// Create request
+		reqBody := VerifyInvitationTokenRequest{
+			Token: "valid-token",
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.verifyInvitationToken", bytes.NewReader(body))
+
+		// Execute request
+		w := httptest.NewRecorder()
+		handler.handleVerifyInvitationToken(w, req)
+
+		// Assert response
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+
+		assert.Equal(t, "success", response["status"])
+		assert.Equal(t, true, response["valid"])
+		assert.NotNil(t, response["invitation"])
+		assert.NotNil(t, response["workspace"])
+	})
+
+	t.Run("invalid token", func(t *testing.T) {
+		// Mock token validation failure
+		authSvc.EXPECT().
+			ValidateInvitationToken("invalid-token").
+			Return("", "", "", errors.New("invalid token"))
+
+		// Create request
+		reqBody := VerifyInvitationTokenRequest{
+			Token: "invalid-token",
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.verifyInvitationToken", bytes.NewReader(body))
+
+		// Execute request
+		w := httptest.NewRecorder()
+		handler.handleVerifyInvitationToken(w, req)
+
+		// Assert response
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Invalid or expired invitation token", response["error"])
+	})
+
+	t.Run("invitation not found", func(t *testing.T) {
+		// Mock token validation
+		authSvc.EXPECT().
+			ValidateInvitationToken("valid-token").
+			Return(invitationID, workspaceID, email, nil)
+
+		// Mock invitation retrieval failure
+		workspaceSvc.EXPECT().
+			GetInvitationByID(gomock.Any(), invitationID).
+			Return(nil, errors.New("invitation not found"))
+
+		// Create request
+		reqBody := VerifyInvitationTokenRequest{
+			Token: "valid-token",
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.verifyInvitationToken", bytes.NewReader(body))
+
+		// Execute request
+		w := httptest.NewRecorder()
+		handler.handleVerifyInvitationToken(w, req)
+
+		// Assert response
+		assert.Equal(t, http.StatusNotFound, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Invitation not found", response["error"])
+	})
+
+	t.Run("invitation details mismatch", func(t *testing.T) {
+		mismatchInvitation := &domain.WorkspaceInvitation{
+			ID:          invitationID,
+			WorkspaceID: "different-workspace",
+			InviterID:   "inviter-123",
+			Email:       "different@example.com",
+			ExpiresAt:   time.Now().Add(24 * time.Hour),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		// Mock token validation
+		authSvc.EXPECT().
+			ValidateInvitationToken("valid-token").
+			Return(invitationID, workspaceID, email, nil)
+
+		// Mock invitation retrieval with mismatched data
+		workspaceSvc.EXPECT().
+			GetInvitationByID(gomock.Any(), invitationID).
+			Return(mismatchInvitation, nil)
+
+		// Create request
+		reqBody := VerifyInvitationTokenRequest{
+			Token: "valid-token",
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.verifyInvitationToken", bytes.NewReader(body))
+
+		// Execute request
+		w := httptest.NewRecorder()
+		handler.handleVerifyInvitationToken(w, req)
+
+		// Assert response
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Invalid invitation token", response["error"])
+	})
+
+	t.Run("method not allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.verifyInvitationToken", nil)
+
+		w := httptest.NewRecorder()
+		handler.handleVerifyInvitationToken(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+
+		var response map[string]string
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Method not allowed", response["error"])
+	})
+
+	t.Run("invalid request body", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.verifyInvitationToken", strings.NewReader("invalid json"))
+
+		w := httptest.NewRecorder()
+		handler.handleVerifyInvitationToken(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Invalid request body", response["error"])
+	})
+
+	t.Run("missing token", func(t *testing.T) {
+		reqBody := VerifyInvitationTokenRequest{
+			Token: "",
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.verifyInvitationToken", bytes.NewReader(body))
+
+		w := httptest.NewRecorder()
+		handler.handleVerifyInvitationToken(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Token is required", response["error"])
+	})
+}
+
+func TestWorkspaceHandler_HandleAcceptInvitation(t *testing.T) {
+	handler, workspaceSvc, _, _, authSvc := setupTest(t)
+
+	invitationID := "invitation-123"
+	workspaceID := "workspace-123"
+	email := "test@example.com"
+
+	invitation := &domain.WorkspaceInvitation{
+		ID:          invitationID,
+		WorkspaceID: workspaceID,
+		InviterID:   "inviter-123",
+		Email:       email,
+		ExpiresAt:   time.Now().Add(24 * time.Hour),
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+
+	t.Run("successful acceptance", func(t *testing.T) {
+		// Mock token validation
+		authSvc.EXPECT().
+			ValidateInvitationToken("valid-token").
+			Return(invitationID, workspaceID, email, nil)
+
+		// Mock invitation retrieval
+		workspaceSvc.EXPECT().
+			GetInvitationByID(gomock.Any(), invitationID).
+			Return(invitation, nil)
+
+		// Mock invitation acceptance
+		authResponse := &domain.AuthResponse{
+			Token: "auth-token-123",
+			User: domain.User{
+				ID:    "user-123",
+				Email: email,
+				Type:  domain.UserTypeUser,
+			},
+			ExpiresAt: time.Now().Add(24 * time.Hour),
+		}
+		workspaceSvc.EXPECT().
+			AcceptInvitation(gomock.Any(), invitationID, workspaceID, email).
+			Return(authResponse, nil)
+
+		// Create request
+		reqBody := AcceptInvitationRequest{
+			Token: "valid-token",
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.acceptInvitation", bytes.NewReader(body))
+
+		// Execute request
+		w := httptest.NewRecorder()
+		handler.handleAcceptInvitation(w, req)
+
+		// Assert response
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+
+		assert.Equal(t, "success", response["status"])
+		assert.Equal(t, "Invitation accepted successfully", response["message"])
+		assert.Equal(t, workspaceID, response["workspace_id"])
+		assert.Equal(t, email, response["email"])
+		assert.Equal(t, "auth-token-123", response["token"])
+		assert.NotNil(t, response["user"])
+		assert.NotNil(t, response["expires_at"])
+	})
+
+	t.Run("invalid token", func(t *testing.T) {
+		// Mock token validation failure
+		authSvc.EXPECT().
+			ValidateInvitationToken("invalid-token").
+			Return("", "", "", errors.New("invalid token"))
+
+		// Create request
+		reqBody := AcceptInvitationRequest{
+			Token: "invalid-token",
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.acceptInvitation", bytes.NewReader(body))
+
+		// Execute request
+		w := httptest.NewRecorder()
+		handler.handleAcceptInvitation(w, req)
+
+		// Assert response
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Invalid or expired invitation token", response["error"])
+	})
+
+	t.Run("invitation not found", func(t *testing.T) {
+		// Mock token validation
+		authSvc.EXPECT().
+			ValidateInvitationToken("valid-token").
+			Return(invitationID, workspaceID, email, nil)
+
+		// Mock invitation retrieval failure
+		workspaceSvc.EXPECT().
+			GetInvitationByID(gomock.Any(), invitationID).
+			Return(nil, errors.New("invitation not found"))
+
+		// Create request
+		reqBody := AcceptInvitationRequest{
+			Token: "valid-token",
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.acceptInvitation", bytes.NewReader(body))
+
+		// Execute request
+		w := httptest.NewRecorder()
+		handler.handleAcceptInvitation(w, req)
+
+		// Assert response
+		assert.Equal(t, http.StatusNotFound, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Invitation not found", response["error"])
+	})
+
+	t.Run("invitation acceptance failure", func(t *testing.T) {
+		// Mock token validation
+		authSvc.EXPECT().
+			ValidateInvitationToken("valid-token").
+			Return(invitationID, workspaceID, email, nil)
+
+		// Mock invitation retrieval
+		workspaceSvc.EXPECT().
+			GetInvitationByID(gomock.Any(), invitationID).
+			Return(invitation, nil)
+
+		// Mock invitation acceptance failure
+		workspaceSvc.EXPECT().
+			AcceptInvitation(gomock.Any(), invitationID, workspaceID, email).
+			Return(nil, errors.New("acceptance failed"))
+
+		// Create request
+		reqBody := AcceptInvitationRequest{
+			Token: "valid-token",
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.acceptInvitation", bytes.NewReader(body))
+
+		// Execute request
+		w := httptest.NewRecorder()
+		handler.handleAcceptInvitation(w, req)
+
+		// Assert response
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Failed to accept invitation", response["error"])
+	})
+
+	t.Run("method not allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.acceptInvitation", nil)
+
+		w := httptest.NewRecorder()
+		handler.handleAcceptInvitation(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+
+		var response map[string]string
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Method not allowed", response["error"])
+	})
+
+	t.Run("invalid request body", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.acceptInvitation", strings.NewReader("invalid json"))
+
+		w := httptest.NewRecorder()
+		handler.handleAcceptInvitation(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Invalid request body", response["error"])
+	})
+
+	t.Run("missing token", func(t *testing.T) {
+		reqBody := AcceptInvitationRequest{
+			Token: "",
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.acceptInvitation", bytes.NewReader(body))
+
+		w := httptest.NewRecorder()
+		handler.handleAcceptInvitation(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Token is required", response["error"])
+	})
 }

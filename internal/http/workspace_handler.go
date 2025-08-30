@@ -2,6 +2,7 @@ package http
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -56,6 +57,10 @@ func (h *WorkspaceHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/workspaces.inviteMember", requireAuth(http.HandlerFunc(h.handleInviteMember)))
 	mux.Handle("/api/workspaces.createAPIKey", requireAuth(http.HandlerFunc(h.handleCreateAPIKey)))
 	mux.Handle("/api/workspaces.removeMember", requireAuth(http.HandlerFunc(h.handleRemoveMember)))
+
+	// Public invitation routes (no authentication required)
+	mux.Handle("/api/workspaces.verifyInvitationToken", http.HandlerFunc(h.handleVerifyInvitationToken))
+	mux.Handle("/api/workspaces.acceptInvitation", http.HandlerFunc(h.handleAcceptInvitation))
 
 	// Integration management routes
 	mux.Handle("/api/workspaces.createIntegration", requireAuth(http.HandlerFunc(h.handleCreateIntegration)))
@@ -356,6 +361,16 @@ type RemoveMemberRequest struct {
 	UserID      string `json:"user_id"`
 }
 
+// VerifyInvitationTokenRequest defines the request structure for verifying invitation tokens
+type VerifyInvitationTokenRequest struct {
+	Token string `json:"token"`
+}
+
+// AcceptInvitationRequest defines the request structure for accepting invitations
+type AcceptInvitationRequest struct {
+	Token string `json:"token"`
+}
+
 func (h *WorkspaceHandler) handleRemoveMember(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -521,5 +536,132 @@ func (h *WorkspaceHandler) handleDeleteIntegration(w http.ResponseWriter, r *htt
 	writeJSON(w, http.StatusOK, map[string]string{
 		"status":  "success",
 		"message": "Integration deleted successfully",
+	})
+}
+
+// handleVerifyInvitationToken verifies an invitation token and returns invitation details
+func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req VerifyInvitationTokenRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Token == "" {
+		WriteJSONError(w, "Token is required", http.StatusBadRequest)
+		return
+	}
+
+	// Validate the invitation token
+	invitationID, workspaceID, email, err := h.authService.ValidateInvitationToken(req.Token)
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to validate invitation token")
+		WriteJSONError(w, "Invalid or expired invitation token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get invitation details from database
+	invitation, err := h.workspaceService.GetInvitationByID(r.Context(), invitationID)
+	if err != nil {
+		h.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to get invitation")
+		WriteJSONError(w, "Invitation not found", http.StatusNotFound)
+		return
+	}
+
+	// Verify that the invitation details match the token
+	if invitation.WorkspaceID != workspaceID || invitation.Email != email {
+		h.logger.WithField("invitation_id", invitationID).Error("Invitation details mismatch")
+		WriteJSONError(w, "Invalid invitation token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get workspace details using system context to bypass authentication for invitation verification
+	systemCtx := context.WithValue(r.Context(), "system_call", true)
+	workspace, err := h.workspaceService.GetWorkspace(systemCtx, workspaceID)
+	if err != nil {
+		// Check if it's a workspace not found error
+		var workspaceNotFoundErr *domain.ErrWorkspaceNotFound
+		if errors.As(err, &workspaceNotFoundErr) {
+			h.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Workspace not found for invitation verification")
+			WriteJSONError(w, "Workspace not found", http.StatusNotFound)
+			return
+		}
+		h.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to get workspace")
+		WriteJSONError(w, "Failed to get workspace", http.StatusInternalServerError)
+		return
+	}
+
+	// Return invitation and workspace details
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status":     "success",
+		"invitation": invitation,
+		"workspace":  workspace,
+		"valid":      true,
+	})
+}
+
+// handleAcceptInvitation processes an invitation token to create user and add to workspace
+func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req AcceptInvitationRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Token == "" {
+		WriteJSONError(w, "Token is required", http.StatusBadRequest)
+		return
+	}
+
+	// Validate the invitation token
+	invitationID, workspaceID, email, err := h.authService.ValidateInvitationToken(req.Token)
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to validate invitation token")
+		WriteJSONError(w, "Invalid or expired invitation token", http.StatusUnauthorized)
+		return
+	}
+
+	// Get invitation details from database
+	invitation, err := h.workspaceService.GetInvitationByID(r.Context(), invitationID)
+	if err != nil {
+		h.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to get invitation")
+		WriteJSONError(w, "Invitation not found", http.StatusNotFound)
+		return
+	}
+
+	// Verify that the invitation details match the token
+	if invitation.WorkspaceID != workspaceID || invitation.Email != email {
+		h.logger.WithField("invitation_id", invitationID).Error("Invitation details mismatch")
+		WriteJSONError(w, "Invalid invitation token", http.StatusUnauthorized)
+		return
+	}
+
+	// Process the invitation acceptance
+	authResponse, err := h.workspaceService.AcceptInvitation(r.Context(), invitationID, workspaceID, email)
+	if err != nil {
+		h.logger.WithField("invitation_id", invitationID).WithField("workspace_id", workspaceID).WithField("email", email).WithField("error", err.Error()).Error("Failed to accept invitation")
+		WriteJSONError(w, "Failed to accept invitation", http.StatusInternalServerError)
+		return
+	}
+
+	// Return success response with auth token
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status":       "success",
+		"message":      "Invitation accepted successfully",
+		"workspace_id": workspaceID,
+		"email":        email,
+		"token":        authResponse.Token,
+		"user":         authResponse.User,
+		"expires_at":   authResponse.ExpiresAt,
 	})
 }

@@ -309,7 +309,7 @@ func TestSMTPMailer_SendWorkspaceInvitation(t *testing.T) {
 	})
 
 	// Verify log output contains expected information
-	expectedInviteURL := baseURL + "/invitation?token=" + token
+	expectedInviteURL := baseURL + "/accept-invitation?token=" + token
 	expectedLogLines := []string{
 		"Sending invitation email to: " + email,
 		"From: " + config.FromName + " <" + config.FromEmail + ">",

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -115,17 +116,23 @@ func (s *AuthService) VerifyUserSession(ctx context.Context, userID, sessionID s
 	expiresAt, err := s.repo.GetSessionByID(ctx, sessionID, userID)
 
 	if err == sql.ErrNoRows {
-		s.logger.WithField("user_id", userID).WithField("session_id", sessionID).Error("Session not found")
+		if s.logger != nil {
+			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).Error("Session not found")
+		}
 		return nil, ErrSessionExpired
 	}
 	if err != nil {
-		s.logger.WithField("user_id", userID).WithField("session_id", sessionID).WithField("error", err.Error()).Error("Failed to query session")
+		if s.logger != nil {
+			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).WithField("error", err.Error()).Error("Failed to query session")
+		}
 		return nil, err
 	}
 
 	// Check if session is expired
 	if time.Now().After(*expiresAt) {
-		s.logger.WithField("user_id", userID).WithField("session_id", sessionID).WithField("expires_at", expiresAt).Error("Session expired")
+		if s.logger != nil {
+			s.logger.WithField("user_id", userID).WithField("session_id", sessionID).WithField("expires_at", expiresAt).Error("Session expired")
+		}
 		return nil, ErrSessionExpired
 	}
 
@@ -133,11 +140,15 @@ func (s *AuthService) VerifyUserSession(ctx context.Context, userID, sessionID s
 	user, err := s.repo.GetUserByID(ctx, userID)
 
 	if err == sql.ErrNoRows {
-		s.logger.WithField("user_id", userID).Error("User not found")
+		if s.logger != nil {
+			s.logger.WithField("user_id", userID).Error("User not found")
+		}
 		return nil, ErrUserNotFound
 	}
 	if err != nil {
-		s.logger.WithField("user_id", userID).WithField("error", err.Error()).Error("Failed to query user")
+		if s.logger != nil {
+			s.logger.WithField("user_id", userID).WithField("error", err.Error()).Error("Failed to query user")
+		}
 		return nil, err
 	}
 
@@ -156,7 +167,7 @@ func (s *AuthService) GenerateUserAuthToken(user *domain.User, sessionID string,
 	token.SetString("email", user.Email)
 
 	encrypted := token.V4Sign(s.privateKey, nil)
-	if encrypted == "" {
+	if encrypted == "" && s.logger != nil {
 		s.logger.WithField("user_id", user.ID).WithField("session_id", sessionID).Error("Failed to sign authentication token")
 	}
 
@@ -173,7 +184,7 @@ func (s *AuthService) GenerateAPIAuthToken(user *domain.User) string {
 	token.SetString("type", string(domain.UserTypeAPIKey))
 
 	encrypted := token.V4Sign(s.privateKey, nil)
-	if encrypted == "" {
+	if encrypted == "" && s.logger != nil {
 		s.logger.WithField("user_id", user.ID).Error("Failed to sign API authentication token")
 	}
 
@@ -196,11 +207,53 @@ func (s *AuthService) GenerateInvitationToken(invitation *domain.WorkspaceInvita
 	token.SetString("email", invitation.Email)
 
 	encrypted := token.V4Sign(s.privateKey, nil)
-	if encrypted == "" {
+	if encrypted == "" && s.logger != nil {
 		s.logger.WithField("invitation_id", invitation.ID).Error("Failed to sign invitation token")
 	}
 
 	return encrypted
+}
+
+// ValidateInvitationToken validates a PASETO invitation token and returns the invitation details
+func (s *AuthService) ValidateInvitationToken(token string) (invitationID, workspaceID, email string, err error) {
+	parser := paseto.NewParser()
+	parser.AddRule(paseto.NotExpired())
+
+	// Verify token and get claims
+	verified, err := parser.ParseV4Public(s.publicKey, token, nil)
+	if err != nil {
+		if s.logger != nil {
+			s.logger.WithField("error", err.Error()).Error("Failed to parse invitation token")
+		}
+		return "", "", "", fmt.Errorf("invalid invitation token: %w", err)
+	}
+
+	// Extract invitation details from claims
+	invitationID, err = verified.GetString("invitation_id")
+	if err != nil {
+		if s.logger != nil {
+			s.logger.WithField("error", err.Error()).Error("Invitation ID not found in token")
+		}
+		return "", "", "", fmt.Errorf("invitation ID not found in token")
+	}
+
+	workspaceID, err = verified.GetString("workspace_id")
+	if err != nil {
+		if s.logger != nil {
+			s.logger.WithField("error", err.Error()).Error("Workspace ID not found in token")
+		}
+		return "", "", "", fmt.Errorf("workspace ID not found in token")
+	}
+
+	email, err = verified.GetString("email")
+	if err != nil {
+		if s.logger != nil {
+			s.logger.WithField("error", err.Error()).Error("Email not found in token")
+		}
+		return "", "", "", fmt.Errorf("email not found in token")
+	}
+
+	return invitationID, workspaceID, email, nil
 }
 
 // GetUserByID retrieves a user by their ID
@@ -211,7 +264,9 @@ func (s *AuthService) GetUserByID(ctx context.Context, userID string) (*domain.U
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
-		s.logger.WithField("error", err.Error()).WithField("user_id", userID).Error("Failed to get user by ID")
+		if s.logger != nil {
+			s.logger.WithField("error", err.Error()).WithField("user_id", userID).Error("Failed to get user by ID")
+		}
 		return nil, err
 	}
 	return user, nil

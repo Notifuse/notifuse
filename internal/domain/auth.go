@@ -24,4 +24,5 @@ type AuthService interface {
 	GenerateAPIAuthToken(user *User) string
 	GetPrivateKey() paseto.V4AsymmetricSecretKey
 	GenerateInvitationToken(invitation *WorkspaceInvitation) string
+	ValidateInvitationToken(token string) (invitationID, workspaceID, email string, err error)
 }

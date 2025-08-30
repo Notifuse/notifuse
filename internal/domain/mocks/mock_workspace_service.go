@@ -35,6 +35,21 @@ func (m *MockWorkspaceServiceInterface) EXPECT() *MockWorkspaceServiceInterfaceM
 	return m.recorder
 }
 
+// AcceptInvitation mocks base method.
+func (m *MockWorkspaceServiceInterface) AcceptInvitation(arg0 context.Context, arg1, arg2, arg3 string) (*domain.AuthResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AcceptInvitation", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(*domain.AuthResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AcceptInvitation indicates an expected call of AcceptInvitation.
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) AcceptInvitation(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AcceptInvitation", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).AcceptInvitation), arg0, arg1, arg2, arg3)
+}
+
 // AddUserToWorkspace mocks base method.
 func (m *MockWorkspaceServiceInterface) AddUserToWorkspace(arg0 context.Context, arg1, arg2, arg3 string) error {
 	m.ctrl.T.Helper()
@@ -121,6 +136,21 @@ func (m *MockWorkspaceServiceInterface) DeleteWorkspace(arg0 context.Context, ar
 func (mr *MockWorkspaceServiceInterfaceMockRecorder) DeleteWorkspace(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteWorkspace", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).DeleteWorkspace), arg0, arg1)
+}
+
+// GetInvitationByID mocks base method.
+func (m *MockWorkspaceServiceInterface) GetInvitationByID(arg0 context.Context, arg1 string) (*domain.WorkspaceInvitation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetInvitationByID", arg0, arg1)
+	ret0, _ := ret[0].(*domain.WorkspaceInvitation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetInvitationByID indicates an expected call of GetInvitationByID.
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) GetInvitationByID(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetInvitationByID", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).GetInvitationByID), arg0, arg1)
 }
 
 // GetWorkspace mocks base method.

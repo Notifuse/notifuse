@@ -610,3 +610,46 @@ export interface ListTasksResponse {
   offset: number
   has_more: boolean
 }
+
+// Invitation types
+export interface WorkspaceInvitation {
+  id: string
+  workspace_id: string
+  inviter_id: string
+  email: string
+  expires_at: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Workspace {
+  id: string
+  name: string
+  settings: WorkspaceSettings
+}
+
+export interface User {
+  id: string
+  email: string
+  name: string
+  type: string
+  created_at: string
+  updated_at: string
+}
+
+export interface VerifyInvitationTokenResponse {
+  status: string
+  invitation: WorkspaceInvitation
+  workspace: Workspace
+  valid: boolean
+}
+
+export interface AcceptInvitationResponse {
+  status: string
+  message: string
+  workspace_id: string
+  email: string
+  token: string
+  user: User
+  expires_at: string
+}

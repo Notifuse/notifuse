@@ -211,3 +211,68 @@ func TestWorkspaceRepository_GetInvitationByEmail(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestWorkspaceRepository_DeleteInvitation(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	repo := &workspaceRepository{
+		systemDB: db,
+		dbConfig: &config.DatabaseConfig{},
+	}
+
+	invitationID := "inv-123"
+
+	t.Run("successful deletion", func(t *testing.T) {
+		mock.ExpectExec(`DELETE FROM workspace_invitations WHERE id = \$1`).
+			WithArgs(invitationID).
+			WillReturnResult(sqlmock.NewResult(0, 1)) // 1 row affected
+
+		err := repo.DeleteInvitation(context.Background(), invitationID)
+		require.NoError(t, err)
+
+		err = mock.ExpectationsWereMet()
+		require.NoError(t, err)
+	})
+
+	t.Run("invitation not found", func(t *testing.T) {
+		mock.ExpectExec(`DELETE FROM workspace_invitations WHERE id = \$1`).
+			WithArgs("non-existent-id").
+			WillReturnResult(sqlmock.NewResult(0, 0)) // 0 rows affected
+
+		err := repo.DeleteInvitation(context.Background(), "non-existent-id")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invitation not found")
+
+		err = mock.ExpectationsWereMet()
+		require.NoError(t, err)
+	})
+
+	t.Run("database error on exec", func(t *testing.T) {
+		mock.ExpectExec(`DELETE FROM workspace_invitations WHERE id = \$1`).
+			WithArgs(invitationID).
+			WillReturnError(fmt.Errorf("database error"))
+
+		err := repo.DeleteInvitation(context.Background(), invitationID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete invitation")
+
+		err = mock.ExpectationsWereMet()
+		require.NoError(t, err)
+	})
+
+	t.Run("error getting rows affected", func(t *testing.T) {
+		// Create a result that will return an error when RowsAffected is called
+		mock.ExpectExec(`DELETE FROM workspace_invitations WHERE id = \$1`).
+			WithArgs(invitationID).
+			WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("rows affected error")))
+
+		err := repo.DeleteInvitation(context.Background(), invitationID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get rows affected")
+
+		err = mock.ExpectationsWereMet()
+		require.NoError(t, err)
+	})
+}

@@ -592,7 +592,7 @@ func ScanWorkspace(scanner interface {
 	}
 
 	// Unmarshal integrations if present
-	if dbw.Integrations != nil && len(dbw.Integrations) > 0 {
+	if len(dbw.Integrations) > 0 {
 		if err := json.Unmarshal(dbw.Integrations, &w.Integrations); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal integrations: %w", err)
 		}
@@ -664,6 +664,7 @@ type WorkspaceRepository interface {
 	CreateInvitation(ctx context.Context, invitation *WorkspaceInvitation) error
 	GetInvitationByID(ctx context.Context, id string) (*WorkspaceInvitation, error)
 	GetInvitationByEmail(ctx context.Context, workspaceID, email string) (*WorkspaceInvitation, error)
+	DeleteInvitation(ctx context.Context, id string) error
 	IsUserWorkspaceMember(ctx context.Context, userID, workspaceID string) (bool, error)
 
 	// Database management
@@ -708,6 +709,10 @@ type WorkspaceServiceInterface interface {
 	TransferOwnership(ctx context.Context, workspaceID string, newOwnerID string, currentOwnerID string) error
 	CreateAPIKey(ctx context.Context, workspaceID string, emailPrefix string) (string, string, error)
 	RemoveMember(ctx context.Context, workspaceID string, userIDToRemove string) error
+
+	// Invitation management
+	GetInvitationByID(ctx context.Context, invitationID string) (*WorkspaceInvitation, error)
+	AcceptInvitation(ctx context.Context, invitationID, workspaceID, email string) (*AuthResponse, error)
 
 	// Integration management
 	CreateIntegration(ctx context.Context, workspaceID, name string, integrationType IntegrationType, provider EmailProvider) (string, error)
