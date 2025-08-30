@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.8] - 2024-12-19
+
+### Fixed
+
+- Fixed issue: accept invitation
+
 ## [v3.7] - 2024-12-19
 
 ### Added
