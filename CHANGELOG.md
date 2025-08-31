@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.9] - 2024-12-20
+
+### Added
+
+- Mailgun integration now supports broadcast campaigns and newsletters, in addition to transactional emails
+
 ## [v3.8] - 2024-12-19
 
 ### Fixed
