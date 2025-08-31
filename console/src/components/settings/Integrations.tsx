@@ -56,7 +56,7 @@ import { emailProviders } from '../integrations/EmailProviders'
 import { v4 as uuidv4 } from 'uuid'
 
 // Provider types that only support transactional emails, not marketing emails
-const transactionalEmailOnly: EmailProviderKind[] = ['postmark', 'mailgun']
+const transactionalEmailOnly: EmailProviderKind[] = ['postmark']
 
 // Component Props
 interface IntegrationsProps {
