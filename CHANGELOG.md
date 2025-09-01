@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.10] - 2024-12-21
+
+### Added
+
+- View a resend member invitations
+- Access template test data in "Send test template" transactional email
+
 ## [v3.9] - 2024-12-20
 
 ### Added
