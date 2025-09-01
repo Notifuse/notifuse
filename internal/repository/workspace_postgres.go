@@ -406,11 +406,15 @@ func (r *workspaceRepository) GetUserWorkspace(ctx context.Context, userID strin
 	return &uw, nil
 }
 
-// CreateInvitation creates a new workspace invitation
+// CreateInvitation creates a new workspace invitation or updates an existing one
 func (r *workspaceRepository) CreateInvitation(ctx context.Context, invitation *domain.WorkspaceInvitation) error {
 	query := `
 		INSERT INTO workspace_invitations (id, workspace_id, inviter_id, email, expires_at, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		ON CONFLICT (workspace_id, email) DO UPDATE SET
+			inviter_id = EXCLUDED.inviter_id,
+			expires_at = EXCLUDED.expires_at,
+			updated_at = EXCLUDED.updated_at
 	`
 	_, err := r.systemDB.ExecContext(
 		ctx,
@@ -424,7 +428,7 @@ func (r *workspaceRepository) CreateInvitation(ctx context.Context, invitation *
 		invitation.UpdatedAt,
 	)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create or update invitation: %w", err)
 	}
 	return nil
 }
@@ -481,6 +485,45 @@ func (r *workspaceRepository) GetInvitationByEmail(ctx context.Context, workspac
 		return nil, err
 	}
 	return &invitation, nil
+}
+
+// GetWorkspaceInvitations retrieves all workspace invitations for a specific workspace
+func (r *workspaceRepository) GetWorkspaceInvitations(ctx context.Context, workspaceID string) ([]*domain.WorkspaceInvitation, error) {
+	query := `
+		SELECT id, workspace_id, inviter_id, email, expires_at, created_at, updated_at
+		FROM workspace_invitations
+		WHERE workspace_id = $1
+		ORDER BY created_at DESC
+	`
+	rows, err := r.systemDB.QueryContext(ctx, query, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace invitations: %w", err)
+	}
+	defer rows.Close()
+
+	var invitations []*domain.WorkspaceInvitation
+	for rows.Next() {
+		var invitation domain.WorkspaceInvitation
+		err := rows.Scan(
+			&invitation.ID,
+			&invitation.WorkspaceID,
+			&invitation.InviterID,
+			&invitation.Email,
+			&invitation.ExpiresAt,
+			&invitation.CreatedAt,
+			&invitation.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan workspace invitation: %w", err)
+		}
+		invitations = append(invitations, &invitation)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating workspace invitations rows: %w", err)
+	}
+
+	return invitations, nil
 }
 
 // DeleteInvitation deletes a workspace invitation by its ID

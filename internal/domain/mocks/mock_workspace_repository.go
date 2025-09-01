@@ -239,6 +239,21 @@ func (mr *MockWorkspaceRepositoryMockRecorder) GetUserWorkspaces(arg0, arg1 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserWorkspaces", reflect.TypeOf((*MockWorkspaceRepository)(nil).GetUserWorkspaces), arg0, arg1)
 }
 
+// GetWorkspaceInvitations mocks base method.
+func (m *MockWorkspaceRepository) GetWorkspaceInvitations(arg0 context.Context, arg1 string) ([]*domain.WorkspaceInvitation, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetWorkspaceInvitations", arg0, arg1)
+	ret0, _ := ret[0].([]*domain.WorkspaceInvitation)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetWorkspaceInvitations indicates an expected call of GetWorkspaceInvitations.
+func (mr *MockWorkspaceRepositoryMockRecorder) GetWorkspaceInvitations(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWorkspaceInvitations", reflect.TypeOf((*MockWorkspaceRepository)(nil).GetWorkspaceInvitations), arg0, arg1)
+}
+
 // GetWorkspaceUsersWithEmail mocks base method.
 func (m *MockWorkspaceRepository) GetWorkspaceUsersWithEmail(arg0 context.Context, arg1 string) ([]*domain.UserWorkspaceWithEmail, error) {
 	m.ctrl.T.Helper()

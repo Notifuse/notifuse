@@ -20,6 +20,13 @@ func InitializeDatabase(db *sql.DB, rootEmail string) error {
 		}
 	}
 
+	// Run migration statements for schema changes
+	for _, query := range schema.MigrationStatements {
+		if _, err := db.Exec(query); err != nil {
+			return fmt.Errorf("failed to run migration: %w", err)
+		}
+	}
+
 	// Create root user if it doesn't exist
 	if rootEmail != "" {
 		// Check if root user exists

@@ -42,7 +42,8 @@ var TableDefinitions = []string{
 		email VARCHAR(255) NOT NULL,
 		expires_at TIMESTAMP NOT NULL,
 		created_at TIMESTAMP NOT NULL,
-		updated_at TIMESTAMP NOT NULL
+		updated_at TIMESTAMP NOT NULL,
+		UNIQUE (workspace_id, email)
 	)`,
 	`CREATE TABLE IF NOT EXISTS tasks (
 		id UUID PRIMARY KEY,
@@ -71,6 +72,26 @@ var TableDefinitions = []string{
 	`CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks (created_at)`,
 	`CREATE INDEX IF NOT EXISTS idx_tasks_broadcast_id ON tasks (broadcast_id)`,
 	`CREATE UNIQUE INDEX IF NOT EXISTS idx_tasks_workspace_broadcast_id ON tasks (workspace_id, broadcast_id) WHERE broadcast_id IS NOT NULL`,
+}
+
+// MigrationStatements contains SQL statements to be run after table creation
+// These are for schema changes that need to be applied to existing databases
+var MigrationStatements = []string{
+	`DO $$
+	BEGIN
+		-- Add unique constraint on workspace_invitations (workspace_id, email) if it doesn't exist
+		IF NOT EXISTS (
+			SELECT 1 FROM pg_constraint
+			WHERE conname = 'workspace_invitations_workspace_id_email_key'
+			AND conrelid = 'workspace_invitations'::regclass
+		) THEN
+			ALTER TABLE workspace_invitations ADD CONSTRAINT workspace_invitations_workspace_id_email_key UNIQUE (workspace_id, email);
+		END IF;
+	EXCEPTION
+		WHEN duplicate_object THEN
+			-- Constraint already exists, ignore
+			NULL;
+	END $$`,
 }
 
 // TableNames returns a list of all table names in creation order

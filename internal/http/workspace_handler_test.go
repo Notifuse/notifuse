@@ -2570,3 +2570,122 @@ func TestWorkspaceHandler_HandleAcceptInvitation(t *testing.T) {
 		assert.Equal(t, "Token is required", response["error"])
 	})
 }
+
+func TestWorkspaceHandler_DeleteInvitation(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	t.Run("successful deletion", func(t *testing.T) {
+		invitationID := "inv-123"
+
+		// Create test token
+		token := createTestToken(t, secretKey, "user1")
+
+		reqBody := map[string]string{
+			"invitation_id": invitationID,
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.deleteInvitation", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/json")
+
+		// Mock the workspace service
+		workspaceSvc.EXPECT().DeleteInvitation(gomock.Any(), invitationID).Return(nil)
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "success", response["status"])
+		assert.Equal(t, "Invitation deleted successfully", response["message"])
+	})
+
+	t.Run("missing invitation_id", func(t *testing.T) {
+		token := createTestToken(t, secretKey, "user1")
+
+		reqBody := map[string]string{}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.deleteInvitation", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "invitation_id is required", response["error"])
+	})
+
+	t.Run("invalid JSON", func(t *testing.T) {
+		token := createTestToken(t, secretKey, "user1")
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.deleteInvitation", strings.NewReader("invalid json"))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/json")
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Invalid request body", response["error"])
+	})
+
+	t.Run("service error", func(t *testing.T) {
+		invitationID := "inv-123"
+		token := createTestToken(t, secretKey, "user1")
+
+		reqBody := map[string]string{
+			"invitation_id": invitationID,
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.deleteInvitation", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+token)
+		req.Header.Set("Content-Type", "application/json")
+
+		workspaceSvc.EXPECT().DeleteInvitation(gomock.Any(), invitationID).Return(fmt.Errorf("service error"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Failed to delete invitation", response["error"])
+	})
+
+	t.Run("method not allowed", func(t *testing.T) {
+		token := createTestToken(t, secretKey, "user1")
+
+		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.deleteInvitation", nil)
+		req.Header.Set("Authorization", "Bearer "+token)
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+
+		var response map[string]string
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Method not allowed", response["error"])
+	})
+}

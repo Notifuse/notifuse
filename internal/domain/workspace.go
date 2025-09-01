@@ -613,8 +613,10 @@ type UserWorkspace struct {
 // UserWorkspaceWithEmail extends UserWorkspace to include user email
 type UserWorkspaceWithEmail struct {
 	UserWorkspace
-	Email string   `json:"email" db:"email"`
-	Type  UserType `json:"type" db:"type"`
+	Email               string     `json:"email" db:"email"`
+	Type                UserType   `json:"type" db:"type"`
+	InvitationExpiresAt *time.Time `json:"invitation_expires_at" db:"invitation_expires_at"`
+	InvitationID        string     `json:"invitation_id,omitempty" db:"invitation_id"`
 }
 
 // Validate performs validation on the user workspace fields
@@ -664,6 +666,7 @@ type WorkspaceRepository interface {
 	CreateInvitation(ctx context.Context, invitation *WorkspaceInvitation) error
 	GetInvitationByID(ctx context.Context, id string) (*WorkspaceInvitation, error)
 	GetInvitationByEmail(ctx context.Context, workspaceID, email string) (*WorkspaceInvitation, error)
+	GetWorkspaceInvitations(ctx context.Context, workspaceID string) ([]*WorkspaceInvitation, error)
 	DeleteInvitation(ctx context.Context, id string) error
 	IsUserWorkspaceMember(ctx context.Context, userID, workspaceID string) (bool, error)
 
@@ -713,6 +716,7 @@ type WorkspaceServiceInterface interface {
 	// Invitation management
 	GetInvitationByID(ctx context.Context, invitationID string) (*WorkspaceInvitation, error)
 	AcceptInvitation(ctx context.Context, invitationID, workspaceID, email string) (*AuthResponse, error)
+	DeleteInvitation(ctx context.Context, invitationID string) error
 
 	// Integration management
 	CreateIntegration(ctx context.Context, workspaceID, name string, integrationType IntegrationType, provider EmailProvider) (string, error)

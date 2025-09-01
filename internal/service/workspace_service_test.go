@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 )
 
@@ -2140,5 +2142,173 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		assert.Equal(t, existingUser.ID, authResponse.User.ID)
 		assert.Equal(t, email, authResponse.User.Email)
 		assert.NotZero(t, authResponse.ExpiresAt)
+	})
+}
+
+func TestWorkspaceService_DeleteInvitation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockUserSvc := mocks.NewMockUserServiceInterface(ctrl)
+	mockAuthSvc := mocks.NewMockAuthService(ctrl)
+	mockMailer := pkgmocks.NewMockMailer(ctrl)
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockContactListService := domainmocks.NewMockContactListService(ctrl)
+	mockTemplateService := domainmocks.NewMockTemplateService(ctrl)
+	mockWebhookRegService := domainmocks.NewMockWebhookRegistrationService(ctrl)
+	cfg := &config.Config{}
+
+	service := NewWorkspaceService(
+		mockRepo,
+		mockUserRepo,
+		mockLogger,
+		mockUserSvc,
+		mockAuthSvc,
+		mockMailer,
+		cfg,
+		mockContactService,
+		mockListService,
+		mockContactListService,
+		mockTemplateService,
+		mockWebhookRegService,
+		"secret_key",
+	)
+
+	ctx := context.Background()
+	workspaceID := "workspace1"
+	invitationID := "invitation1"
+	userID := "user1"
+
+	// Setup common logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	t.Run("successful deletion", func(t *testing.T) {
+		// Setup invitation for testing
+		invitation := &domain.WorkspaceInvitation{
+			ID:          invitationID,
+			WorkspaceID: workspaceID,
+			InviterID:   "inviter1",
+			Email:       "test@example.com",
+			ExpiresAt:   time.Now().Add(24 * time.Hour),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		mockAuthSvc.EXPECT().
+			AuthenticateUserFromContext(ctx).
+			Return(&domain.User{ID: userID}, nil)
+
+		mockRepo.EXPECT().
+			GetInvitationByID(ctx, invitationID).
+			Return(invitation, nil)
+
+		mockRepo.EXPECT().
+			GetUserWorkspace(ctx, userID, workspaceID).
+			Return(&domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+			}, nil)
+
+		mockRepo.EXPECT().
+			DeleteInvitation(ctx, invitationID).
+			Return(nil)
+
+		err := service.DeleteInvitation(ctx, invitationID)
+		require.NoError(t, err)
+	})
+
+	t.Run("authentication error", func(t *testing.T) {
+		mockAuthSvc.EXPECT().
+			AuthenticateUserFromContext(ctx).
+			Return(nil, fmt.Errorf("authentication failed"))
+
+		err := service.DeleteInvitation(ctx, invitationID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to authenticate user")
+	})
+
+	t.Run("invitation not found", func(t *testing.T) {
+		mockAuthSvc.EXPECT().
+			AuthenticateUserFromContext(ctx).
+			Return(&domain.User{ID: userID}, nil)
+
+		mockRepo.EXPECT().
+			GetInvitationByID(ctx, invitationID).
+			Return(nil, fmt.Errorf("invitation not found"))
+
+		err := service.DeleteInvitation(ctx, invitationID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invitation not found")
+	})
+
+	t.Run("user not member of workspace", func(t *testing.T) {
+		invitation := &domain.WorkspaceInvitation{
+			ID:          invitationID,
+			WorkspaceID: workspaceID,
+			InviterID:   "inviter1",
+			Email:       "test@example.com",
+			ExpiresAt:   time.Now().Add(24 * time.Hour),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		mockAuthSvc.EXPECT().
+			AuthenticateUserFromContext(ctx).
+			Return(&domain.User{ID: userID}, nil)
+
+		mockRepo.EXPECT().
+			GetInvitationByID(ctx, invitationID).
+			Return(invitation, nil)
+
+		mockRepo.EXPECT().
+			GetUserWorkspace(ctx, userID, workspaceID).
+			Return(nil, fmt.Errorf("user is not a member of the workspace"))
+
+		err := service.DeleteInvitation(ctx, invitationID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "You do not have access to this workspace")
+	})
+
+	t.Run("repository deletion error", func(t *testing.T) {
+		invitation := &domain.WorkspaceInvitation{
+			ID:          invitationID,
+			WorkspaceID: workspaceID,
+			InviterID:   "inviter1",
+			Email:       "test@example.com",
+			ExpiresAt:   time.Now().Add(24 * time.Hour),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		mockAuthSvc.EXPECT().
+			AuthenticateUserFromContext(ctx).
+			Return(&domain.User{ID: userID}, nil)
+
+		mockRepo.EXPECT().
+			GetInvitationByID(ctx, invitationID).
+			Return(invitation, nil)
+
+		mockRepo.EXPECT().
+			GetUserWorkspace(ctx, userID, workspaceID).
+			Return(&domain.UserWorkspace{
+				UserID:      userID,
+				WorkspaceID: workspaceID,
+				Role:        "member",
+			}, nil)
+
+		mockRepo.EXPECT().
+			DeleteInvitation(ctx, invitationID).
+			Return(fmt.Errorf("database error"))
+
+		err := service.DeleteInvitation(ctx, invitationID)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete invitation")
 	})
 }

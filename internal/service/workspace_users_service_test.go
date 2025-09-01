@@ -526,6 +526,11 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail(t *testing.T) {
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 
+	// Mock workspace invitations for all test cases (empty by default)
+	mockRepo.EXPECT().
+		GetWorkspaceInvitations(ctx, workspaceID).
+		Return([]*domain.WorkspaceInvitation{}, nil).AnyTimes()
+
 	t.Run("successful get members with email", func(t *testing.T) {
 		expectedUser := &domain.User{
 			ID: userID,
@@ -553,6 +558,8 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail(t *testing.T) {
 				Email: "user2@example.com",
 			},
 		}
+
+
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
@@ -590,6 +597,8 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail(t *testing.T) {
 		expectedUser := &domain.User{
 			ID: userID,
 		}
+
+
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).

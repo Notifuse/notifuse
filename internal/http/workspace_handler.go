@@ -57,6 +57,7 @@ func (h *WorkspaceHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/workspaces.inviteMember", requireAuth(http.HandlerFunc(h.handleInviteMember)))
 	mux.Handle("/api/workspaces.createAPIKey", requireAuth(http.HandlerFunc(h.handleCreateAPIKey)))
 	mux.Handle("/api/workspaces.removeMember", requireAuth(http.HandlerFunc(h.handleRemoveMember)))
+	mux.Handle("/api/workspaces.deleteInvitation", requireAuth(http.HandlerFunc(h.handleDeleteInvitation)))
 
 	// Public invitation routes (no authentication required)
 	mux.Handle("/api/workspaces.verifyInvitationToken", http.HandlerFunc(h.handleVerifyInvitationToken))
@@ -663,5 +664,42 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 		"token":        authResponse.Token,
 		"user":         authResponse.User,
 		"expires_at":   authResponse.ExpiresAt,
+	})
+}
+
+// handleDeleteInvitation processes the deletion of a workspace invitation
+func (h *WorkspaceHandler) handleDeleteInvitation(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		InvitationID string `json:"invitation_id"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to parse delete invitation request")
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.InvitationID == "" {
+		WriteJSONError(w, "invitation_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Delete the invitation
+	err := h.workspaceService.DeleteInvitation(r.Context(), req.InvitationID)
+	if err != nil {
+		h.logger.WithField("invitation_id", req.InvitationID).WithField("error", err.Error()).Error("Failed to delete invitation")
+		WriteJSONError(w, "Failed to delete invitation", http.StatusInternalServerError)
+		return
+	}
+
+	// Return success response
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status":  "success",
+		"message": "Invitation deleted successfully",
 	})
 }

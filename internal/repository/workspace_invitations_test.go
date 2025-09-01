@@ -46,8 +46,8 @@ func TestWorkspaceRepository_CreateInvitation(t *testing.T) {
 	}
 
 	t.Run("successful creation", func(t *testing.T) {
-		// Set up expectations
-		mock.ExpectExec(`INSERT INTO workspace_invitations`).
+		// Set up expectations for upsert query
+		mock.ExpectExec(`INSERT INTO workspace_invitations .* ON CONFLICT`).
 			WithArgs(invitation.ID, invitation.WorkspaceID, invitation.InviterID,
 				invitation.Email, invitation.ExpiresAt, invitation.CreatedAt, invitation.UpdatedAt).
 			WillReturnResult(sqlmock.NewResult(1, 1))
@@ -61,9 +61,36 @@ func TestWorkspaceRepository_CreateInvitation(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("successful update of existing invitation", func(t *testing.T) {
+		// Create a new invitation with updated details
+		updatedInvitation := &domain.WorkspaceInvitation{
+			ID:          "new-inv-456", // Different ID for new invitation
+			WorkspaceID: invitation.WorkspaceID,
+			InviterID:   "new-inviter-456",                        // Different inviter
+			Email:       invitation.Email,                         // Same email
+			ExpiresAt:   invitation.ExpiresAt.Add(24 * time.Hour), // Extended expiry
+			CreatedAt:   now,
+			UpdatedAt:   now.Add(time.Hour), // Updated timestamp
+		}
+
+		// Set up expectations for upsert query that updates existing invitation
+		mock.ExpectExec(`INSERT INTO workspace_invitations .* ON CONFLICT`).
+			WithArgs(updatedInvitation.ID, updatedInvitation.WorkspaceID, updatedInvitation.InviterID,
+				updatedInvitation.Email, updatedInvitation.ExpiresAt, updatedInvitation.CreatedAt, updatedInvitation.UpdatedAt).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		// Call the method
+		err := repo.CreateInvitation(context.Background(), updatedInvitation)
+		require.NoError(t, err)
+
+		// Verify expectations
+		err = mock.ExpectationsWereMet()
+		require.NoError(t, err)
+	})
+
 	t.Run("database error", func(t *testing.T) {
 		// Set up expectations for error
-		mock.ExpectExec(`INSERT INTO workspace_invitations`).
+		mock.ExpectExec(`INSERT INTO workspace_invitations .* ON CONFLICT`).
 			WithArgs(invitation.ID, invitation.WorkspaceID, invitation.InviterID,
 				invitation.Email, invitation.ExpiresAt, invitation.CreatedAt, invitation.UpdatedAt).
 			WillReturnError(fmt.Errorf("database error"))
@@ -71,6 +98,7 @@ func TestWorkspaceRepository_CreateInvitation(t *testing.T) {
 		// Call the method
 		err := repo.CreateInvitation(context.Background(), invitation)
 		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create or update invitation")
 
 		// Verify expectations
 		err = mock.ExpectationsWereMet()

@@ -124,6 +124,20 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) DeleteIntegration(arg0, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteIntegration", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).DeleteIntegration), arg0, arg1, arg2)
 }
 
+// DeleteInvitation mocks base method.
+func (m *MockWorkspaceServiceInterface) DeleteInvitation(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteInvitation", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteInvitation indicates an expected call of DeleteInvitation.
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) DeleteInvitation(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteInvitation", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).DeleteInvitation), arg0, arg1)
+}
+
 // DeleteWorkspace mocks base method.
 func (m *MockWorkspaceServiceInterface) DeleteWorkspace(arg0 context.Context, arg1 string) error {
 	m.ctrl.T.Helper()

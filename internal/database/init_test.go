@@ -22,6 +22,11 @@ func TestInitializeDatabase(t *testing.T) {
 			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 
+		// Setup expectations for migration statements
+		for range schema.MigrationStatements {
+			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+
 		err = InitializeDatabase(db, "")
 		assert.NoError(t, err)
 		assert.NoError(t, mock.ExpectationsWereMet())
@@ -34,6 +39,11 @@ func TestInitializeDatabase(t *testing.T) {
 
 		// Setup expectations for table creation
 		for range schema.TableDefinitions {
+			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+
+		// Setup expectations for migration statements
+		for range schema.MigrationStatements {
 			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 
@@ -57,6 +67,11 @@ func TestInitializeDatabase(t *testing.T) {
 
 		// Setup expectations for table creation
 		for range schema.TableDefinitions {
+			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+
+		// Setup expectations for migration statements
+		for range schema.MigrationStatements {
 			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 
@@ -94,6 +109,11 @@ func TestInitializeDatabase(t *testing.T) {
 			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 
+		// Setup expectations for migration statements
+		for range schema.MigrationStatements {
+			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+
 		// Query fails
 		mock.ExpectQuery("SELECT EXISTS").
 			WillReturnError(sql.ErrConnDone)
@@ -110,6 +130,11 @@ func TestInitializeDatabase(t *testing.T) {
 
 		// Setup expectations for table creation
 		for range schema.TableDefinitions {
+			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+
+		// Setup expectations for migration statements
+		for range schema.MigrationStatements {
 			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 

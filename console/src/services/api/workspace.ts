@@ -22,7 +22,9 @@ import {
   DeleteIntegrationRequest,
   DeleteIntegrationResponse,
   VerifyInvitationTokenResponse,
-  AcceptInvitationResponse
+  AcceptInvitationResponse,
+  DeleteInvitationRequest,
+  DeleteInvitationResponse
 } from './types'
 
 interface DetectFaviconResponse {
@@ -73,5 +75,8 @@ export const workspaceService = {
     api.post<VerifyInvitationTokenResponse>('/api/workspaces.verifyInvitationToken', { token }),
 
   acceptInvitation: (token: string) =>
-    api.post<AcceptInvitationResponse>('/api/workspaces.acceptInvitation', { token })
+    api.post<AcceptInvitationResponse>('/api/workspaces.acceptInvitation', { token }),
+
+  deleteInvitation: (data: DeleteInvitationRequest) =>
+    api.post<DeleteInvitationResponse>('/api/workspaces.deleteInvitation', data)
 }

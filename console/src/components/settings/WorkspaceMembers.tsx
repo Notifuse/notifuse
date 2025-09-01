@@ -16,6 +16,7 @@ import {
 } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
+import { faRefresh } from '@fortawesome/free-solid-svg-icons'
 import { WorkspaceMember } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { Section } from './Section'
@@ -48,6 +49,7 @@ export function WorkspaceMembers({
   const [creatingApiKey, setCreatingApiKey] = useState(false)
   const [apiKeyToken, setApiKeyToken] = useState('')
   const [removingMember, setRemovingMember] = useState(false)
+  const [resendingInvitation, setResendingInvitation] = useState(false)
 
   const columns = [
     {
@@ -74,9 +76,13 @@ export function WorkspaceMembers({
             </Tag>
           )
         }
+        const roleDisplay = record.invitation_expires_at
+          ? `Invitation sent`
+          : role.charAt(0).toUpperCase() + role.slice(1)
+
         return (
           <Tag bordered={false} color={role === 'owner' ? 'gold' : 'blue'}>
-            {role.charAt(0).toUpperCase() + role.slice(1)}
+            {roleDisplay}
           </Tag>
         )
       }
@@ -100,24 +106,60 @@ export function WorkspaceMembers({
                 return null
               }
 
+              const isInvitation = record.invitation_expires_at
+
               return (
-                <Popconfirm
-                  title="Remove member"
-                  description={`Are you sure you want to remove ${record.email}?${record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''}`}
-                  onConfirm={() => handleRemoveMember(record.user_id)}
-                  okText="Yes"
-                  cancelText="No"
-                  okButtonProps={{ danger: true, loading: removingMember }}
-                >
-                  <Tooltip title="Remove member" placement="left">
-                    <Button
-                      icon={<FontAwesomeIcon icon={faTrashCan} />}
-                      size="small"
-                      type="text"
-                      loading={removingMember}
-                    />
-                  </Tooltip>
-                </Popconfirm>
+                <Space size="small">
+                  {!isInvitation && (
+                    <Popconfirm
+                      title="Remove member"
+                      description={`Are you sure you want to remove ${record.email}?${record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''}`}
+                      onConfirm={() => handleRemoveMember(record.user_id)}
+                      okText="Yes"
+                      cancelText="No"
+                      okButtonProps={{ danger: true, loading: removingMember }}
+                    >
+                      <Tooltip title="Remove member" placement="left">
+                        <Button
+                          icon={<FontAwesomeIcon icon={faTrashCan} />}
+                          size="small"
+                          type="text"
+                          loading={removingMember}
+                        />
+                      </Tooltip>
+                    </Popconfirm>
+                  )}
+                  {isInvitation && (
+                    <>
+                      <Popconfirm
+                        title="Delete invitation"
+                        description={`Are you sure you want to delete the invitation for ${record.email}?`}
+                        onConfirm={() => handleDeleteInvitation(record.invitation_id!)}
+                        okText="Yes"
+                        cancelText="No"
+                        okButtonProps={{ danger: true, loading: removingMember }}
+                      >
+                        <Tooltip title="Delete invitation" placement="left">
+                          <Button
+                            icon={<FontAwesomeIcon icon={faTrashCan} />}
+                            size="small"
+                            type="text"
+                            loading={removingMember}
+                          />
+                        </Tooltip>
+                        <Tooltip title="Resend invitation" placement="left">
+                          <Button
+                            icon={<FontAwesomeIcon icon={faRefresh} />}
+                            size="small"
+                            type="text"
+                            onClick={() => handleResendInvitation(record.email)}
+                            loading={resendingInvitation}
+                          />
+                        </Tooltip>
+                      </Popconfirm>
+                    </>
+                  )}
+                </Space>
               )
             }
           }
@@ -214,6 +256,47 @@ export function WorkspaceMembers({
       message.error('Failed to remove member')
     } finally {
       setRemovingMember(false)
+    }
+  }
+
+  const handleDeleteInvitation = async (invitationId: string) => {
+    if (!invitationId) return
+
+    setRemovingMember(true)
+    try {
+      await workspaceService.deleteInvitation({
+        invitation_id: invitationId
+      })
+
+      message.success('Invitation deleted successfully')
+      onMembersChange()
+    } catch (error) {
+      console.error('Failed to delete invitation', error)
+      message.error('Failed to delete invitation')
+    } finally {
+      setRemovingMember(false)
+    }
+  }
+
+  const handleResendInvitation = async (email: string) => {
+    if (!email) return
+
+    setResendingInvitation(true)
+    try {
+      // Reuse the inviteMember API which will update the existing invitation due to UPSERT logic
+      await workspaceService.inviteMember({
+        workspace_id: workspaceId,
+        email: email,
+        role: 'member' // Always use member role for resending
+      })
+
+      message.success(`Invitation resent to ${email}`)
+      onMembersChange()
+    } catch (error) {
+      console.error('Failed to resend invitation', error)
+      message.error('Failed to resend invitation')
+    } finally {
+      setResendingInvitation(false)
     }
   }
 

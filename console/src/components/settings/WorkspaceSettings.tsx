@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Button, Form, Input, Select, App, Switch } from 'antd'
+import { Button, Form, Input, Select, App, Switch, Descriptions } from 'antd'
+import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { Section } from './Section'
@@ -14,7 +15,11 @@ interface WorkspaceSettingsProps {
   isOwner: boolean
 }
 
-export function WorkspaceSettings({ workspace, onWorkspaceUpdate }: WorkspaceSettingsProps) {
+export function WorkspaceSettings({
+  workspace,
+  onWorkspaceUpdate,
+  isOwner
+}: WorkspaceSettingsProps) {
   const [savingSettings, setSavingSettings] = useState(false)
   const [formTouched, setFormTouched] = useState(false)
   const [form] = Form.useForm()
@@ -70,6 +75,64 @@ export function WorkspaceSettings({ workspace, onWorkspaceUpdate }: WorkspaceSet
 
   const handleFormChange = () => {
     setFormTouched(true)
+  }
+
+  if (!isOwner) {
+    // Render read-only settings for non-owner users
+    return (
+      <>
+        <Section title="General Settings" description="General settings for your workspace">
+          <Descriptions
+            bordered
+            column={1}
+            size="small"
+            labelStyle={{ width: '200px', fontWeight: '500' }}
+          >
+            <Descriptions.Item label="Workspace Name">
+              {workspace?.name || 'Not set'}
+            </Descriptions.Item>
+
+            <Descriptions.Item label="Website URL">
+              {workspace?.settings.website_url || 'Not set'}
+            </Descriptions.Item>
+
+            <Descriptions.Item label="Logo">
+              {workspace?.settings.logo_url ? (
+                <img
+                  src={workspace.settings.logo_url}
+                  alt="Workspace logo"
+                  style={{ height: '24px', width: 'auto', objectFit: 'contain' }}
+                />
+              ) : (
+                'Not set'
+              )}
+            </Descriptions.Item>
+
+            <Descriptions.Item label="Timezone">
+              {workspace?.settings.timezone || 'UTC'}
+            </Descriptions.Item>
+
+            <Descriptions.Item label="Email Opens and Clicks Tracking">
+              {workspace?.settings.email_tracking_enabled ? (
+                <span style={{ color: '#52c41a' }}>
+                  <CheckCircleOutlined style={{ marginRight: '8px' }} />
+                  Enabled
+                </span>
+              ) : (
+                <span style={{ color: '#ff4d4f' }}>
+                  <CloseCircleOutlined style={{ marginRight: '8px' }} />
+                  Disabled
+                </span>
+              )}
+            </Descriptions.Item>
+
+            <Descriptions.Item label="Custom Endpoint URL">
+              <div>{workspace?.settings.custom_endpoint_url || 'Default (API endpoint)'}</div>
+            </Descriptions.Item>
+          </Descriptions>
+        </Section>
+      </>
+    )
   }
 
   return (

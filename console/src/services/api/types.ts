@@ -245,6 +245,8 @@ export interface WorkspaceMember {
   type: 'user' | 'api_key'
   created_at: string
   updated_at: string
+  invitation_expires_at?: string
+  invitation_id?: string
 }
 
 export interface GetWorkspaceMembersResponse {
@@ -652,4 +654,13 @@ export interface AcceptInvitationResponse {
   token: string
   user: User
   expires_at: string
+}
+
+export interface DeleteInvitationRequest {
+  invitation_id: string
+}
+
+export interface DeleteInvitationResponse {
+  status: string
+  message: string
 }

@@ -634,6 +634,38 @@ func (s *WorkspaceService) GetWorkspaceMembersWithEmail(ctx context.Context, id 
 		return nil, err
 	}
 
+	// Get all workspace invitations
+	invitations, err := s.repo.GetWorkspaceInvitations(ctx, id)
+	if err != nil {
+		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to get workspace invitations")
+		return nil, err
+	}
+
+	// Convert invitations to UserWorkspaceWithEmail format
+	now := time.Now().UTC()
+	for _, invitation := range invitations {
+		// Skip expired invitations
+		if invitation.ExpiresAt.Before(now) {
+			continue
+		}
+
+		// Create a UserWorkspaceWithEmail entry for the invitation
+		invitationMember := &domain.UserWorkspaceWithEmail{
+			UserWorkspace: domain.UserWorkspace{
+				UserID:      "", // Empty for invitations as user doesn't exist yet
+				WorkspaceID: invitation.WorkspaceID,
+				Role:        "member", // Invitations are typically for members
+				CreatedAt:   invitation.CreatedAt,
+				UpdatedAt:   invitation.UpdatedAt,
+			},
+			Email:               invitation.Email,
+			Type:                domain.UserTypeUser, // Assume invited users are regular users
+			InvitationExpiresAt: &invitation.ExpiresAt,
+			InvitationID:        invitation.ID,
+		}
+		members = append(members, invitationMember)
+	}
+
 	return members, nil
 }
 
@@ -808,6 +840,38 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 		User:      *user,
 		ExpiresAt: session.ExpiresAt,
 	}, nil
+}
+
+// DeleteInvitation deletes a workspace invitation by its ID
+func (s *WorkspaceService) DeleteInvitation(ctx context.Context, invitationID string) error {
+	// Check if user has access to perform this action
+	user, err := s.authService.AuthenticateUserFromContext(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Get the invitation to verify it exists and get the workspace ID
+	invitation, err := s.repo.GetInvitationByID(ctx, invitationID)
+	if err != nil {
+		s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to get invitation")
+		return fmt.Errorf("invitation not found: %w", err)
+	}
+
+	// Check if the user is a member of the workspace that the invitation belongs to
+	_, err = s.repo.GetUserWorkspace(ctx, user.ID, invitation.WorkspaceID)
+	if err != nil {
+		s.logger.WithField("workspace_id", invitation.WorkspaceID).WithField("user_id", user.ID).WithField("error", err.Error()).Error("User does not have access to this workspace")
+		return &domain.ErrUnauthorized{Message: "You do not have access to this workspace"}
+	}
+
+	// Delete the invitation
+	if err := s.repo.DeleteInvitation(ctx, invitationID); err != nil {
+		s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to delete invitation")
+		return fmt.Errorf("failed to delete invitation: %w", err)
+	}
+
+	s.logger.WithField("invitation_id", invitationID).WithField("email", invitation.Email).Info("Successfully deleted invitation")
+	return nil
 }
 
 // RemoveMember removes a member from a workspace and deletes the user if it's an API key
