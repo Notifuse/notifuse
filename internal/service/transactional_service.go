@@ -536,6 +536,7 @@ func (s *TransactionalNotificationService) SendNotification(
 			WorkspaceSecretKey: workspace.Settings.SecretKey,
 			ContactWithList:    contactWithList,
 			MessageID:          messageID,
+			ProvidedData:       params.Data,
 			TrackingSettings:   notification.TrackingSettings,
 			Broadcast:          nil,
 		}
@@ -544,13 +545,6 @@ func (s *TransactionalNotificationService) SendNotification(
 			tracing.MarkSpanError(childCtx, err)
 			childSpan.End()
 			return "", fmt.Errorf("failed to build template data: %w", err)
-		}
-
-		// Add custom data if provided
-		if params.Data != nil {
-			for key, value := range params.Data {
-				templateData[key] = value
-			}
 		}
 
 		messageData := domain.MessageData{
@@ -720,6 +714,7 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		MessageID:          messageID,
 		TrackingSettings:   trackingSettings,
 		Broadcast:          nil,
+		ProvidedData:       template.TestData,
 	}
 	messageData, err := domain.BuildTemplateData(req)
 

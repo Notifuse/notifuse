@@ -540,6 +540,7 @@ type TemplateDataRequest struct {
 	WorkspaceSecretKey string                         `json:"workspace_secret_key"`
 	ContactWithList    ContactWithList                `json:"contact_with_list"`
 	MessageID          string                         `json:"message_id"`
+	ProvidedData       MapOfAny                       `json:"provided_data,omitempty"`
 	TrackingSettings   notifuse_mjml.TrackingSettings `json:"tracking_settings"`
 	Broadcast          *Broadcast                     `json:"broadcast,omitempty"`
 }
@@ -565,6 +566,13 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 	}
 
 	templateData := MapOfAny{}
+
+	// Add provided data as default data if available
+	if req.ProvidedData != nil {
+		for key, value := range req.ProvidedData {
+			templateData[key] = value
+		}
+	}
 
 	var emailHMAC string
 
