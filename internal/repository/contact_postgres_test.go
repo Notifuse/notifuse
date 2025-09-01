@@ -82,7 +82,7 @@ func TestGetContactByEmail(t *testing.T) {
 		"list1", "active", now, now, nil, "Marketing List",
 	)
 
-	mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1`).
+	mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1 AND l\.deleted_at IS NULL`).
 		WithArgs(email).
 		WillReturnRows(listRows)
 
@@ -153,7 +153,7 @@ func TestGetContactByExternalID(t *testing.T) {
 		"list1", "active", now, now, nil, "Marketing List",
 	)
 
-	mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1`).
+	mock.ExpectQuery(`SELECT cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, cl\.deleted_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email = \$1 AND l\.deleted_at IS NULL`).
 		WithArgs(email).
 		WillReturnRows(listRows)
 
@@ -382,7 +382,7 @@ func TestGetContacts(t *testing.T) {
 			"test@example.com", "list1", "active", time.Now(), time.Now(), "Marketing List",
 		)
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL`).
+		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -451,7 +451,7 @@ func TestGetContacts(t *testing.T) {
 			"test@example.com", "list1", "active", time.Now(), time.Now(), "Marketing List",
 		)
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL`).
+		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -543,7 +543,7 @@ func TestGetContacts(t *testing.T) {
 
 		// Create the expected SQL pattern for the IN query with multiple params
 		// Use this simpler pattern to match the actual SQL generated
-		sqlPattern := `SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10\) AND cl\.deleted_at IS NULL`
+		sqlPattern := `SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`
 
 		listRows := sqlmock.NewRows([]string{
 			"email", "list_id", "status", "created_at", "updated_at", "list_name",
@@ -762,7 +762,7 @@ func TestGetContacts(t *testing.T) {
 			"test@example.com", "list1", "active", time.Now(), time.Now(), "Marketing List",
 		)
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL`).
+		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -869,7 +869,7 @@ func TestGetContacts(t *testing.T) {
 			AddRow("test@example.com", "list123", "active", time.Now(), time.Now(), "Marketing List").
 			AddRow("test@example.com", "list456", "active", time.Now(), time.Now(), "Sales List")
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL`).
+		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -941,7 +941,7 @@ func TestGetContacts(t *testing.T) {
 			AddRow("test@example.com", "list123", "active", time.Now(), time.Now(), "Marketing List").
 			AddRow("test@example.com", "list456", "pending", time.Now(), time.Now(), "Sales List")
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL`).
+		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -1013,7 +1013,7 @@ func TestGetContacts(t *testing.T) {
 			AddRow("test@example.com", "list123", "active", time.Now(), time.Now(), "Marketing List").
 			AddRow("test@example.com", "list456", "pending", time.Now(), time.Now(), "Sales List")
 
-		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL`).
+		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
@@ -1097,8 +1097,8 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				"list2", "Sales List", // Additional values for list filtering
 			)
 
-		// Expect query with JOINS for list filtering and excludeUnsubscribed
-		mock.ExpectQuery(`SELECT c\.\*, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id IN \(\$1,\$2\) AND cl\.status <> \$3 AND cl\.status <> \$4 AND cl\.status <> \$5 ORDER BY c\.created_at ASC LIMIT 10 OFFSET 0`).
+			// Expect query with JOINS for list filtering and excludeUnsubscribed
+		mock.ExpectQuery(`SELECT c\.\*, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id IN \(\$1,\$2\) AND l\.deleted_at IS NULL AND cl\.status <> \$3 AND cl\.status <> \$4 AND cl\.status <> \$5 ORDER BY c\.created_at ASC LIMIT 10 OFFSET 0`).
 			WithArgs("list1", "list2",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1318,7 +1318,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		}
 
 		// Expect query with error
-		mock.ExpectQuery(`SELECT c\.\*, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id IN \(\$1\) AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.created_at ASC LIMIT 10 OFFSET 0`).
+		mock.ExpectQuery(`SELECT c\.\*, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id IN \(\$1\) AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.created_at ASC LIMIT 10 OFFSET 0`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,

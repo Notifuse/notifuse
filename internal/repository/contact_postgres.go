@@ -67,6 +67,7 @@ func (r *contactRepository) fetchContact(ctx context.Context, workspaceID string
 		From("contact_lists cl").
 		Join("lists l ON cl.list_id = l.id").
 		Where(sq.Eq{"cl.email": contact.Email}).
+		Where(sq.Eq{"l.deleted_at": nil}).
 		ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build contact lists query: %w", err)
@@ -261,8 +262,9 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 		listQueryBuilder := psql.Select("cl.email, cl.list_id, cl.status, cl.created_at, cl.updated_at, l.name as list_name").
 			From("contact_lists cl").
 			Join("lists l ON cl.list_id = l.id").
-			Where(sq.Eq{"cl.email": emails}).  // squirrel handles IN clauses automatically
-			Where(sq.Eq{"cl.deleted_at": nil}) // Filter out deleted contact_list entries
+			Where(sq.Eq{"cl.email": emails}).   // squirrel handles IN clauses automatically
+			Where(sq.Eq{"cl.deleted_at": nil}). // Filter out deleted contact_list entries
+			Where(sq.Eq{"l.deleted_at": nil})   // Filter out deleted lists
 
 		// We no longer apply the ListID and ContactListStatus filters here
 		// This way, we show ALL lists for each contact, not just the ones that match the filter
@@ -1037,6 +1039,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 			Join("contact_lists cl ON c.email = cl.email").
 			Join("lists l ON cl.list_id = l.id"). // Join with lists table to get the name
 			Where(sq.Eq{"cl.list_id": audience.Lists}).
+			Where(sq.Eq{"l.deleted_at": nil}). // Filter out deleted lists
 			Limit(uint64(limit)).
 			Offset(uint64(offset))
 
