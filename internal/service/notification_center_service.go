@@ -70,7 +70,7 @@ func (s *NotificationCenterService) GetContactPreferences(ctx context.Context, w
 	} else {
 		// Filter to only include public lists
 		for _, list := range lists {
-			if list.IsPublic {
+			if list.IsPublic && list.DeletedAt == nil {
 				publicLists = append(publicLists, list)
 			}
 		}

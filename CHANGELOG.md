@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v3.11] - 2024-12-22
+
+### Fixed
+
+- Hide deleted list in notification center when user has subscribed
+
 ## [v3.10] - 2024-12-21
 
 ### Added
