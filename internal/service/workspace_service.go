@@ -131,6 +131,12 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 		return nil, err
 	}
 
+	// Only allow root user to create workspaces
+	if user.Email != s.config.RootEmail {
+		s.logger.WithField("user_email", user.Email).WithField("root_email", s.config.RootEmail).Error("Non-root user attempted to create workspace")
+		return nil, &domain.ErrUnauthorized{Message: "only root user can create workspaces"}
+	}
+
 	randomSecretKey, err := GenerateSecureKey(32) // 32 bytes = 256 bits
 	if err != nil {
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to generate secure key")

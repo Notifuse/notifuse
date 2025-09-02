@@ -34,6 +34,11 @@ func (c *APIClient) SetToken(token string) {
 	c.token = token
 }
 
+// GetToken returns the current authentication token
+func (c *APIClient) GetToken() string {
+	return c.token
+}
+
 // SetWorkspaceID sets the default workspace ID for requests
 func (c *APIClient) SetWorkspaceID(workspaceID string) {
 	c.workspaceID = workspaceID

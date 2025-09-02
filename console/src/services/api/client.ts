@@ -2,6 +2,7 @@ declare global {
   interface Window {
     API_ENDPOINT?: string
     VERSION?: string
+    ROOT_EMAIL?: string
   }
 }
 

@@ -3,11 +3,12 @@ import { PlusOutlined } from '@ant-design/icons'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from '@tanstack/react-router'
 import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
+import { isRootUser } from '../services/api/auth'
 
 const { Text } = Typography
 
 export function DashboardPage() {
-  const { workspaces } = useAuth()
+  const { workspaces, user } = useAuth()
   const navigate = useNavigate()
 
   const handleWorkspaceClick = (workspaceId: string) => {
@@ -26,13 +27,15 @@ export function DashboardPage() {
       <MainLayoutSidebar
         title="Select workspace"
         extra={
-          <Button
-            type="primary"
-            ghost
-            icon={<PlusOutlined />}
-            onClick={handleCreateWorkspace}
-            style={{ padding: '4px', lineHeight: 1 }}
-          />
+          isRootUser(user?.email) ? (
+            <Button
+              type="primary"
+              ghost
+              icon={<PlusOutlined />}
+              onClick={handleCreateWorkspace}
+              style={{ padding: '4px', lineHeight: 1 }}
+            />
+          ) : undefined
         }
       >
         {workspaces.length === 0 ? (

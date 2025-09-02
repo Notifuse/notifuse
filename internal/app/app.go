@@ -574,7 +574,7 @@ func (a *App) InitHandlers() error {
 		a.config,
 		a.config.Security.PasetoPublicKey,
 		a.logger)
-	rootHandler := httpHandler.NewRootHandler("console/dist", "notification_center/dist", a.logger, a.config.APIEndpoint, a.config.Version)
+	rootHandler := httpHandler.NewRootHandler("console/dist", "notification_center/dist", a.logger, a.config.APIEndpoint, a.config.Version, a.config.RootEmail)
 	workspaceHandler := httpHandler.NewWorkspaceHandler(
 		a.workspaceService,
 		a.authService,

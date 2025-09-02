@@ -1,7 +1,6 @@
 # TODO
 
-- double opt in template for newsletter
-- welcome template for notifuse newsletter
+- permissions on workspaces
 
 ## Content
 

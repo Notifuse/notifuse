@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.12] - 2025-09-02
+
+### Security
+
+- Only root user can create new workspaces
+- Added server-side validation to restrict workspace creation to the user specified in `ROOT_EMAIL` environment variable
+- Create workspace UI elements are now hidden for non-root users in the console interface
+
 ## [v3.11] - 2024-12-22
 
 ### Fixed

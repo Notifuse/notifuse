@@ -22,9 +22,9 @@ func TestWorkspaceCreateFlow(t *testing.T) {
 
 	client := suite.APIClient
 
-	// First authenticate a user
-	email := "workspace-creator@example.com"
-	token := performCompleteSignInFlow(t, client, email)
+	// First authenticate as root user to create workspaces
+	rootEmail := "test@example.com" // This matches the RootEmail in test config
+	token := performCompleteSignInFlow(t, client, rootEmail)
 	client.SetToken(token)
 
 	t.Run("successful workspace creation", func(t *testing.T) {
@@ -161,8 +161,8 @@ func TestWorkspaceGetFlow(t *testing.T) {
 
 	client := suite.APIClient
 
-	// Create authenticated user and workspace
-	email := "workspace-viewer@example.com"
+	// Create authenticated user and workspace (use root user)
+	email := "test@example.com" // Root user can access workspaces they create
 	token := performCompleteSignInFlow(t, client, email)
 	client.SetToken(token)
 
@@ -217,8 +217,8 @@ func TestWorkspaceListFlow(t *testing.T) {
 
 	client := suite.APIClient
 
-	// Create authenticated user
-	email := "workspace-lister@example.com"
+	// Create authenticated user (use root user)
+	email := "test@example.com" // Root user can list workspaces they create
 	token := performCompleteSignInFlow(t, client, email)
 	client.SetToken(token)
 
@@ -268,8 +268,8 @@ func TestWorkspaceUpdateFlow(t *testing.T) {
 
 	client := suite.APIClient
 
-	// Create authenticated user
-	email := "workspace-updater@example.com"
+	// Create authenticated user (use root user for owner operations)
+	email := "test@example.com" // Root user can perform owner operations
 	token := performCompleteSignInFlow(t, client, email)
 	client.SetToken(token)
 
@@ -338,8 +338,8 @@ func TestWorkspaceDeleteFlow(t *testing.T) {
 
 	client := suite.APIClient
 
-	// Create authenticated user
-	email := "workspace-deleter@example.com"
+	// Create authenticated user (use root user for owner operations)
+	email := "test@example.com" // Root user can perform owner operations
 	token := performCompleteSignInFlow(t, client, email)
 	client.SetToken(token)
 
@@ -403,8 +403,8 @@ func TestWorkspaceMembersFlow(t *testing.T) {
 
 	client := suite.APIClient
 
-	// Create authenticated user (owner)
-	ownerEmail := "workspace-owner@example.com"
+	// Create authenticated user (owner) - use root user for owner operations
+	ownerEmail := "test@example.com" // Root user can perform owner operations
 	token := performCompleteSignInFlow(t, client, ownerEmail)
 	client.SetToken(token)
 
@@ -451,8 +451,8 @@ func TestWorkspaceInviteMemberFlow(t *testing.T) {
 
 	client := suite.APIClient
 
-	// Create authenticated user (owner)
-	ownerEmail := "workspace-owner@example.com"
+	// Create authenticated user (owner) - use root user for owner operations
+	ownerEmail := "test@example.com" // Root user can perform owner operations
 	token := performCompleteSignInFlow(t, client, ownerEmail)
 	client.SetToken(token)
 
@@ -552,8 +552,8 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 
 	client := suite.APIClient
 
-	// Create authenticated user
-	email := "workspace-integrator@example.com"
+	// Create authenticated user (use root user for owner operations)
+	email := "test@example.com" // Root user can perform owner operations
 	token := performCompleteSignInFlow(t, client, email)
 	client.SetToken(token)
 
@@ -645,8 +645,8 @@ func TestWorkspaceAPIKeyFlow(t *testing.T) {
 
 	client := suite.APIClient
 
-	// Create authenticated user (owner)
-	email := "workspace-api-key@example.com"
+	// Create authenticated user (owner) - use root user for owner operations
+	email := "test@example.com" // Root user can perform owner operations
 	token := performCompleteSignInFlow(t, client, email)
 	client.SetToken(token)
 
@@ -703,8 +703,8 @@ func TestWorkspaceRemoveMemberFlow(t *testing.T) {
 
 	client := suite.APIClient
 
-	// Create owner
-	ownerEmail := "workspace-owner@example.com"
+	// Create owner - use root user for owner operations
+	ownerEmail := "test@example.com" // Root user can perform owner operations
 	ownerToken := performCompleteSignInFlow(t, client, ownerEmail)
 	client.SetToken(ownerToken)
 
@@ -784,7 +784,16 @@ func TestWorkspaceRemoveMemberFlow(t *testing.T) {
 }
 
 // Helper function to create test workspace and return its ID
+// This function creates a workspace as the root user
 func createTestWorkspace(t *testing.T, client *testutil.APIClient, name string) string {
+	// Save current token
+	currentToken := client.GetToken()
+
+	// Authenticate as root user to create workspace
+	rootEmail := "test@example.com" // This matches the RootEmail in test config
+	rootToken := performCompleteSignInFlow(t, client, rootEmail)
+	client.SetToken(rootToken)
+
 	workspaceID := "test" + uuid.New().String()[:8]
 	createReq := domain.CreateWorkspaceRequest{
 		ID:   workspaceID,
@@ -799,5 +808,9 @@ func createTestWorkspace(t *testing.T, client *testutil.APIClient, name string) 
 	defer resp.Body.Close()
 
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+	// Restore original token
+	client.SetToken(currentToken)
+
 	return workspaceID
 }

@@ -29,7 +29,7 @@ func TestWorkspaceService_ListWorkspaces(t *testing.T) {
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	mockConfig := &config.Config{}
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockContactListService := mocks.NewMockContactListService(ctrl)
@@ -244,7 +244,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	mockConfig := &config.Config{}
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockContactListService := mocks.NewMockContactListService(ctrl)
@@ -515,7 +515,7 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	mockConfig := &config.Config{}
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockContactListService := mocks.NewMockContactListService(ctrl)
@@ -909,7 +909,7 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	mockConfig := &config.Config{}
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockContactListService := mocks.NewMockContactListService(ctrl)
@@ -1071,7 +1071,7 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	mockConfig := &config.Config{}
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockContactListService := mocks.NewMockContactListService(ctrl)
@@ -1235,7 +1235,7 @@ func TestWorkspaceService_DeleteIntegration(t *testing.T) {
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	mockConfig := &config.Config{}
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockContactListService := mocks.NewMockContactListService(ctrl)
@@ -1473,7 +1473,7 @@ func TestWorkspaceService_RemoveMember(t *testing.T) {
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	mockConfig := &config.Config{}
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockContactListService := mocks.NewMockContactListService(ctrl)
@@ -1723,7 +1723,7 @@ func TestWorkspaceService_GetInvitationByID(t *testing.T) {
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	mockConfig := &config.Config{}
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockContactListService := mocks.NewMockContactListService(ctrl)
@@ -1794,7 +1794,7 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	mockConfig := &config.Config{}
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockContactListService := mocks.NewMockContactListService(ctrl)

@@ -23,6 +23,7 @@ import { useState } from 'react'
 import { FileManagerProvider } from '../components/file_manager/context'
 import { FileManagerSettings } from '../components/file_manager/interfaces'
 import { workspaceService } from '../services/api/workspace'
+import { isRootUser } from '../services/api/auth'
 
 const { Content, Sider } = Layout
 
@@ -220,14 +221,18 @@ export function WorkspaceLayout() {
                       ),
                       value: workspace.id
                     })),
-                    {
-                      label: (
-                        <Space className="text-indigo-500">
-                          <FontAwesomeIcon icon={faPlus} /> New workspace
-                        </Space>
-                      ),
-                      value: 'new-workspace'
-                    }
+                    ...(isRootUser(user?.email)
+                      ? [
+                          {
+                            label: (
+                              <Space className="text-indigo-500">
+                                <FontAwesomeIcon icon={faPlus} /> New workspace
+                              </Space>
+                            ),
+                            value: 'new-workspace'
+                          }
+                        ]
+                      : [])
                   ]}
                 />
               )}
