@@ -25,8 +25,8 @@ func TestTemplateEndpointsExist(t *testing.T) {
 
 	client := suite.APIClient
 
-	// Authenticate user
-	email := "template-tester@example.com"
+	// Authenticate user (use root user for workspace access)
+	email := "test@example.com" // Root user can access workspaces they create
 	token := performCompleteSignInFlow(t, client, email)
 	client.SetToken(token)
 
@@ -170,8 +170,8 @@ func TestTemplateIntegrationBasic(t *testing.T) {
 
 	client := suite.APIClient
 
-	// Authenticate user
-	email := "template-integrator@example.com"
+	// Authenticate user (use root user for workspace access)
+	email := "test@example.com" // Root user can access workspaces they create
 	token := performCompleteSignInFlow(t, client, email)
 	client.SetToken(token)
 
