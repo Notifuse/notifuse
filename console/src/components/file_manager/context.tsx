@@ -121,6 +121,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
         width={900}
         style={{ top: 20 }}
         styles={{ body: { padding: 0 } }}
+        zIndex={1300}
       >
         {currentOptions && (
           <FileManager
