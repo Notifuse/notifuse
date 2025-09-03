@@ -58,8 +58,36 @@ import { List, Workspace } from '../services/api/types'
 
 const { Title, Paragraph, Text } = Typography
 
+// Helper function to calculate remaining test time
+const getRemainingTestTime = (broadcast: Broadcast, testResults?: any) => {
+  if (
+    broadcast.status !== 'testing' ||
+    !broadcast.test_settings.enabled ||
+    !broadcast.test_settings.test_duration_hours
+  ) {
+    return null
+  }
+
+  // Use test_started_at from testResults if available, otherwise use test_sent_at from broadcast
+  const testStartTime = testResults?.test_started_at || broadcast.test_sent_at
+  if (!testStartTime) {
+    return null
+  }
+
+  const startTime = dayjs(testStartTime)
+  const endTime = startTime.add(broadcast.test_settings.test_duration_hours, 'hours')
+  const now = dayjs()
+
+  if (now.isAfter(endTime)) {
+    return null // Don't show anything if expired
+  }
+
+  // Use dayjs .to() method for natural time formatting
+  return now.to(endTime, true) + ' remaining'
+}
+
 // Helper function to get status badge
-const getStatusBadge = (status: BroadcastStatus) => {
+const getStatusBadge = (status: BroadcastStatus, remainingTime?: string | null) => {
   switch (status) {
     case 'draft':
       return <Badge status="default" text="Draft" />
@@ -76,7 +104,16 @@ const getStatusBadge = (status: BroadcastStatus) => {
     case 'failed':
       return <Badge status="error" text="Failed" />
     case 'testing':
-      return <Badge status="processing" text="A/B Testing" />
+      return (
+        <Space size="small">
+          <Badge status="processing" text="A/B Testing" />
+          {remainingTime && (
+            <Text type="secondary" style={{ fontSize: '12px' }}>
+              ({remainingTime})
+            </Text>
+          )}
+        </Space>
+      )
     case 'test_completed':
       return <Badge status="success" text="Test Completed" />
     case 'winner_selected':
@@ -373,6 +410,9 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
     refetchInterval: broadcast.status === 'testing' ? 10000 : false // Refetch every 10 seconds during testing
   })
 
+  // Calculate remaining test time
+  const remainingTestTime = getRemainingTestTime(broadcast, testResults)
+
   // Handler for selecting winner
   const handleSelectWinner = async (templateId: string) => {
     try {
@@ -490,7 +530,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                 trigger="hover"
               >
                 <span className="cursor-help">
-                  {getStatusBadge(broadcast.status)}
+                  {getStatusBadge(broadcast.status, remainingTestTime)}
                   <FontAwesomeIcon
                     icon={faCircleQuestion}
                     style={{ opacity: 0.7 }}
@@ -500,11 +540,11 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               </Popover>
             ) : isTaskLoading ? (
               <span className="text-gray-400">
-                {getStatusBadge(broadcast.status)}
+                {getStatusBadge(broadcast.status, remainingTestTime)}
                 <FontAwesomeIcon icon={faSpinner} spin className="ml-2" />
               </span>
             ) : (
-              getStatusBadge(broadcast.status)
+              getStatusBadge(broadcast.status, remainingTestTime)
             )}
           </div>
         </Space>
