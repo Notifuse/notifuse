@@ -320,6 +320,7 @@ interface BroadcastCardProps {
   onResume: (broadcast: Broadcast) => void
   onCancel: (broadcast: Broadcast) => void
   onSchedule: (broadcast: Broadcast) => void
+  onRefresh: (broadcast: Broadcast) => void
   currentWorkspace: any
   isFirst?: boolean
 }
@@ -333,6 +334,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
   onResume,
   onCancel,
   onSchedule,
+  onRefresh,
   currentWorkspace,
   isFirst = false
 }) => {
@@ -509,6 +511,15 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
       }
       extra={
         <Space>
+          <Tooltip title="Refresh Broadcast">
+            <Button
+              type="text"
+              size="small"
+              icon={<FontAwesomeIcon icon={faRefresh} />}
+              onClick={() => onRefresh(broadcast)}
+              className="opacity-70 hover:opacity-100"
+            />
+          </Tooltip>
           {(broadcast.status === 'draft' || broadcast.status === 'scheduled') && (
             <UpsertBroadcastDrawer
               workspace={currentWorkspace!}
@@ -937,10 +948,14 @@ export function BroadcastsPage() {
     setBroadcastToSchedule(null)
   }
 
-  const handleRefresh = () => {
+  const handleRefreshBroadcast = (broadcast: Broadcast) => {
+    // Refresh specific broadcast data
+    queryClient.invalidateQueries({ queryKey: ['broadcast-stats', workspaceId, broadcast.id] })
+    queryClient.invalidateQueries({ queryKey: ['task', workspaceId, broadcast.id] })
+    queryClient.invalidateQueries({ queryKey: ['testResults', workspaceId, broadcast.id] })
+    // Also refresh the main broadcast data to get updated status
     queryClient.invalidateQueries({ queryKey: ['broadcasts', workspaceId] })
-    queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
-    message.success('Broadcasts refreshed')
+    message.success(`Broadcast "${broadcast.name}" refreshed`)
   }
 
   const hasBroadcasts = !isLoading && data?.broadcasts && data.broadcasts.length > 0
@@ -952,15 +967,6 @@ export function BroadcastsPage() {
         <div className="text-2xl font-medium">Broadcasts</div>
         {currentWorkspace && hasBroadcasts && (
           <Space>
-            <Tooltip title="Refresh">
-              <Button
-                type="text"
-                size="small"
-                icon={<FontAwesomeIcon icon={faRefresh} />}
-                onClick={handleRefresh}
-                className="opacity-70 hover:opacity-100"
-              />
-            </Tooltip>
             <UpsertBroadcastDrawer
               workspace={currentWorkspace}
               lists={lists}
@@ -1006,6 +1012,7 @@ export function BroadcastsPage() {
               onResume={handleResumeBroadcast}
               onCancel={handleCancelBroadcast}
               onSchedule={handleScheduleBroadcast}
+              onRefresh={handleRefreshBroadcast}
               currentWorkspace={currentWorkspace}
               isFirst={index === 0}
             />
