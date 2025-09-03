@@ -1,16 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  Typography,
-  Space,
-  Tooltip,
-  Button,
-  message,
-  Table,
-  Tag,
-  Popconfirm,
-  Modal,
-  Alert
-} from 'antd'
+import { Typography, Space, Tooltip, Button, message, Table, Tag, Popconfirm } from 'antd'
 import { useParams } from '@tanstack/react-router'
 import {
   transactionalNotificationsApi,
@@ -25,7 +14,7 @@ import {
   faPaperPlane,
   faEye
 } from '@fortawesome/free-regular-svg-icons'
-import { faTerminal, faCopy } from '@fortawesome/free-solid-svg-icons'
+import { faTerminal } from '@fortawesome/free-solid-svg-icons'
 import UpsertTransactionalNotificationDrawer from '../components/transactional/UpsertTransactionalNotificationDrawer'
 import React, { useState } from 'react'
 import dayjs from '../lib/dayjs'
@@ -33,8 +22,8 @@ import { useAuth } from '../contexts/AuthContext'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { templatesApi } from '../services/api/template'
-import { Highlight, themes } from 'prism-react-renderer'
 import { Workspace } from '../services/api/types'
+import { ApiCommandModal } from '../components/transactional/ApiCommandModal'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -149,43 +138,6 @@ export function TransactionalNotificationsPage() {
   const handleShowApiModal = (notification: TransactionalNotification) => {
     setCurrentApiNotification(notification)
     setApiModalOpen(true)
-  }
-
-  const handleCopyCommand = () => {
-    if (!currentApiNotification) return
-
-    const curlCommand = `curl -X POST \\
-  "${window.location.origin}/api/transactional.send" \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{
-  "workspace_id": "${workspaceId}",
-  "notification": {
-    "id": "${currentApiNotification.id}",
-    "channels": ["email"],
-    "contact": {
-      "email": "recipient@example.com"
-      // other optional contact fields here
-    },
-    "data": {
-      // Your template variables here
-    },
-    "email_options": {
-      "reply_to": "reply@example.com",
-      "cc": ["cc@example.com"],
-      "bcc": ["bcc@example.com"]
-    }
-  }
-}'`
-
-    navigator.clipboard
-      .writeText(curlCommand)
-      .then(() => {
-        message.success('Curl command copied to clipboard!')
-      })
-      .catch(() => {
-        message.error('Failed to copy to clipboard')
-      })
   }
 
   if (notificationsError) {
@@ -333,99 +285,12 @@ export function TransactionalNotificationsPage() {
       )}
 
       {/* API Command Modal */}
-      <Modal
-        title="API Command"
+      <ApiCommandModal
         open={apiModalOpen}
-        onCancel={() => setApiModalOpen(false)}
-        footer={[
-          <Button
-            key="copy"
-            type="primary"
-            ghost
-            icon={<FontAwesomeIcon icon={faCopy} />}
-            onClick={handleCopyCommand}
-          >
-            Copy
-          </Button>,
-          <Button key="close" onClick={() => setApiModalOpen(false)}>
-            Close
-          </Button>
-        ]}
-        width={800}
-      >
-        {currentApiNotification && (
-          <div>
-            <p className="mb-4">
-              Use this curl command to send a transactional notification via API:
-            </p>
-            <Alert
-              type="info"
-              message="If the contact email doesn't exist in your workspace, it will be automatically
-              created."
-              className="!mb-4"
-            />
-
-            <Highlight
-              theme={themes.github}
-              code={`curl -X POST \\
-  "${window.location.origin}/api/transactional.send" \\
-  -H "Content-Type: application/json" \\
-  -H "Authorization: Bearer YOUR_API_KEY" \\
-  -d '{
-  "workspace_id": "${workspaceId}",
-  "notification": {
-    "id": "${currentApiNotification.id}",
-    "channels": ["email"],
-    "contact": {
-      "email": "recipient@example.com",
-      "first_name": "John",
-      "last_name": "Doe"
-    },
-    "data": {
-      "your_template_variable": "value"
-    },
-    "email_options": {
-      "reply_to": "reply@example.com",
-      "cc": ["cc@example.com"],
-      "bcc": ["bcc@example.com"]
-    }
-  }
-}'`}
-              language="bash"
-            >
-              {({ className, style, tokens, getLineProps, getTokenProps }) => (
-                <pre
-                  className={className}
-                  style={{
-                    ...style,
-                    fontSize: '12px',
-                    margin: 0,
-                    padding: '10px'
-                  }}
-                >
-                  {tokens.map((line, i) => (
-                    <div key={i} {...getLineProps({ line })}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          width: '2em',
-                          userSelect: 'none',
-                          opacity: 0.3
-                        }}
-                      >
-                        {i + 1}
-                      </span>
-                      {line.map((token, key) => (
-                        <span key={key} {...getTokenProps({ token })} />
-                      ))}
-                    </div>
-                  ))}
-                </pre>
-              )}
-            </Highlight>
-          </div>
-        )}
-      </Modal>
+        onClose={() => setApiModalOpen(false)}
+        notification={currentApiNotification}
+        workspaceId={workspaceId as string}
+      />
 
       {/* Use SendTemplateModal for testing */}
       {notificationToTest?.channels?.email?.template_id && (

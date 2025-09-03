@@ -650,6 +650,12 @@
             "description": "ID of the notification to send",
             "example": "welcome_email"
           },
+          "external_id": {
+            "type": "string",
+            "nullable": true,
+            "description": "External ID for idempotency checks",
+            "example": "txn_12345"
+          },
           "contact": {
             "$ref": "#/components/schemas/Contact"
           },
