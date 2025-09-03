@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix z-index for file manager in template editor
 - Improve broadcast UI with remaining test time, refresh button, and variations stats
+- Improve transactional email API command modal with more examples and better documentation
 
 ## [3.12] - 2025-09-02
 
