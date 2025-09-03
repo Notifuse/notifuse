@@ -966,15 +966,15 @@ func (s *BroadcastService) GetTestResults(ctx context.Context, workspaceID, broa
 		// Calculate rates (avoid division by zero)
 		openRate := 0.0
 		clickRate := 0.0
-		if stats.TotalDelivered > 0 {
-			openRate = float64(stats.TotalOpened) / float64(stats.TotalDelivered)
-			clickRate = float64(stats.TotalClicked) / float64(stats.TotalDelivered)
+		if stats.TotalSent > 0 {
+			openRate = float64(stats.TotalOpened) / float64(stats.TotalSent)
+			clickRate = float64(stats.TotalClicked) / float64(stats.TotalSent)
 		}
 
 		variationResults[variation.TemplateID] = &domain.VariationResult{
 			TemplateID:   variation.TemplateID,
 			TemplateName: "Template " + variation.TemplateID, // Could fetch actual template name
-			Recipients:   stats.TotalSent,
+			Recipients:   stats.TotalSent,                    // Use sent as recipients to match rate calculation denominator
 			Delivered:    stats.TotalDelivered,
 			Opens:        stats.TotalOpened,
 			Clicks:       stats.TotalClicked,

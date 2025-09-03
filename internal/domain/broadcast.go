@@ -805,12 +805,12 @@ func (r *GetTestResultsRequest) FromURLParams(values url.Values) error {
 type VariationResult struct {
 	TemplateID   string  `json:"template_id"`
 	TemplateName string  `json:"template_name"`
-	Recipients   int     `json:"recipients"`
-	Delivered    int     `json:"delivered"`
+	Recipients   int     `json:"recipients"` // Total sent emails (used as denominator for rate calculations)
+	Delivered    int     `json:"delivered"`  // Total delivered emails (ESP-dependent, may not be available)
 	Opens        int     `json:"opens"`
 	Clicks       int     `json:"clicks"`
-	OpenRate     float64 `json:"open_rate"`
-	ClickRate    float64 `json:"click_rate"`
+	OpenRate     float64 `json:"open_rate"`  // Opens / Recipients
+	ClickRate    float64 `json:"click_rate"` // Clicks / Recipients
 }
 
 // TestResultsResponse represents the response for A/B test results
