@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.13] - 2025-09-03
+
+- Fix z-index for file manager in template editor
+- Improve broadcast UI with remaining test time, refresh button, and variations stats
+
 ## [3.12] - 2025-09-02
 
 ### Security
