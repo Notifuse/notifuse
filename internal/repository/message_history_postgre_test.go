@@ -1062,7 +1062,7 @@ func TestMessageHistoryRepository_SetStatusesIfNotSet(t *testing.T) {
 			Return(db, nil)
 
 		// Expect batch query for delivered status updates (2 messages)
-		mock.ExpectExec(`UPDATE message_history SET delivered_at = updates\.timestamp, status_info = COALESCE\(updates\.status_info, message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\), \(\$5, \$6::TIMESTAMP WITH TIME ZONE, \$7\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND delivered_at IS NULL`).
+		mock.ExpectExec(`UPDATE message_history SET delivered_at = updates\.timestamp, status_info = COALESCE\(LEFT\(updates\.status_info, 255\), message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\), \(\$5, \$6::TIMESTAMP WITH TIME ZONE, \$7\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND delivered_at IS NULL`).
 			WithArgs(
 				sqlmock.AnyArg(), // updated_at timestamp
 				"msg-123",
@@ -1093,7 +1093,7 @@ func TestMessageHistoryRepository_SetStatusesIfNotSet(t *testing.T) {
 			Return(db, nil)
 
 		// Expect batch query for bounced status updates (1 message)
-		mock.ExpectExec(`UPDATE message_history SET bounced_at = updates\.timestamp, status_info = COALESCE\(updates\.status_info, message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND bounced_at IS NULL`).
+		mock.ExpectExec(`UPDATE message_history SET bounced_at = updates\.timestamp, status_info = COALESCE\(LEFT\(updates\.status_info, 255\), message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND bounced_at IS NULL`).
 			WithArgs(
 				sqlmock.AnyArg(), // updated_at timestamp
 				"msg-789",
@@ -1126,7 +1126,7 @@ func TestMessageHistoryRepository_SetStatusesIfNotSet(t *testing.T) {
 			Return(db, nil)
 
 		// Expect single batch query for opened status updates (2 messages)
-		mock.ExpectExec(`UPDATE message_history SET opened_at = updates\.timestamp, status_info = COALESCE\(updates\.status_info, message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\), \(\$5, \$6::TIMESTAMP WITH TIME ZONE, \$7\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND opened_at IS NULL`).
+		mock.ExpectExec(`UPDATE message_history SET opened_at = updates\.timestamp, status_info = COALESCE\(LEFT\(updates\.status_info, 255\), message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\), \(\$5, \$6::TIMESTAMP WITH TIME ZONE, \$7\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND opened_at IS NULL`).
 			WithArgs(
 				sqlmock.AnyArg(), // updated_at timestamp
 				"msg-123",
@@ -1181,7 +1181,7 @@ func TestMessageHistoryRepository_SetStatusesIfNotSet(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectExec(`UPDATE message_history SET delivered_at = updates\.timestamp, status_info = COALESCE\(updates\.status_info, message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\), \(\$5, \$6::TIMESTAMP WITH TIME ZONE, \$7\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND delivered_at IS NULL`).
+		mock.ExpectExec(`UPDATE message_history SET delivered_at = updates\.timestamp, status_info = COALESCE\(LEFT\(updates\.status_info, 255\), message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\), \(\$5, \$6::TIMESTAMP WITH TIME ZONE, \$7\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND delivered_at IS NULL`).
 			WithArgs(
 				sqlmock.AnyArg(),
 				"msg-123",
@@ -1218,7 +1218,7 @@ func TestMessageHistoryRepository_SetStatusesIfNotSet(t *testing.T) {
 			Return(db, nil)
 
 		// Expect the batch version to be called with a single update
-		mock.ExpectExec(`UPDATE message_history SET delivered_at = updates\.timestamp, status_info = COALESCE\(updates\.status_info, message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND delivered_at IS NULL`).
+		mock.ExpectExec(`UPDATE message_history SET delivered_at = updates\.timestamp, status_info = COALESCE\(LEFT\(updates\.status_info, 255\), message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND delivered_at IS NULL`).
 			WithArgs(
 				sqlmock.AnyArg(),
 				"msg-123",
@@ -1256,7 +1256,7 @@ func TestMessageHistoryRepository_SetStatusesIfNotSet(t *testing.T) {
 			Return(db, nil)
 
 		// Expect batch query for bounced status updates (1 message with status_info)
-		mock.ExpectExec(`UPDATE message_history SET bounced_at = updates\.timestamp, status_info = COALESCE\(updates\.status_info, message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND bounced_at IS NULL`).
+		mock.ExpectExec(`UPDATE message_history SET bounced_at = updates\.timestamp, status_info = COALESCE\(LEFT\(updates\.status_info, 255\), message_history\.status_info\), updated_at = \$1::TIMESTAMP WITH TIME ZONE FROM \(VALUES \(\$2, \$3::TIMESTAMP WITH TIME ZONE, \$4\)\) AS updates\(id, timestamp, status_info\) WHERE message_history\.id = updates\.id AND bounced_at IS NULL`).
 			WithArgs(
 				sqlmock.AnyArg(), // updated_at timestamp
 				"msg-123",

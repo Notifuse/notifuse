@@ -42,7 +42,7 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 			unsubscribed_at, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, 
-			$7, $8, $9, $10, $11, 
+			$7, LEFT($8, 255), $9, $10, $11, 
 			$12, $13, $14, $15, $16, 
 			$17, $18, $19
 		)
@@ -95,7 +95,7 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 			template_id = $5,
 			template_version = $6,
 			channel = $7,
-			status_info = $8,
+			status_info = LEFT($8, 255),
 			message_data = $9,
 			sent_at = $10,
 			delivered_at = $11,
@@ -470,7 +470,7 @@ func (r *MessageHistoryRepository) SetStatusesIfNotSet(ctx context.Context, work
 		query := fmt.Sprintf(`
 			UPDATE message_history 
 			SET %s = updates.timestamp, 
-				status_info = COALESCE(updates.status_info, message_history.status_info), 
+				status_info = COALESCE(LEFT(updates.status_info, 255), message_history.status_info), 
 				updated_at = $1::TIMESTAMP WITH TIME ZONE
 			FROM (VALUES %s) AS updates(id, timestamp, status_info)
 			WHERE message_history.id = updates.id AND %s IS NULL

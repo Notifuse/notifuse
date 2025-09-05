@@ -118,10 +118,18 @@ func (s *WebhookEventService) ProcessWebhook(ctx context.Context, workspaceID st
 			case domain.EmailEventBounce:
 				messageEvent = domain.MessageEventBounced
 				reason := fmt.Sprintf("%s %s %s", event.BounceType, event.BounceCategory, event.BounceDiagnostic)
+				// Truncate to fit VARCHAR(255) constraint
+				if len(reason) > 255 {
+					reason = reason[:255]
+				}
 				statusInfo = &reason
 			case domain.EmailEventComplaint:
 				messageEvent = domain.MessageEventComplained
-				reason := fmt.Sprintf("%s", event.ComplaintFeedbackType)
+				reason := event.ComplaintFeedbackType
+				// Truncate to fit VARCHAR(255) constraint
+				if len(reason) > 255 {
+					reason = reason[:255]
+				}
 				statusInfo = &reason
 			default:
 				// Skip other event types
