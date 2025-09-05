@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.14] - 2025-09-05
+
+- Fix VARCHAR(255) constraint for status_info in message_history table
+
 ## [3.13] - 2025-09-03
 
 - Fix z-index for file manager in template editor
