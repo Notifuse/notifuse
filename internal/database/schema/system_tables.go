@@ -1,10 +1,6 @@
 package schema
 
-import (
-	"fmt"
-
-	"github.com/Notifuse/notifuse/config"
-)
+// Schema definitions - no external imports needed
 
 // TableDefinitions contains all the SQL statements to create the database tables
 // Don't put REFERENCES and don't put CHECK constraints in the CREATE TABLE statements
@@ -37,6 +33,7 @@ var TableDefinitions = []string{
 		user_id UUID NOT NULL,
 		workspace_id VARCHAR(20) NOT NULL,
 		role VARCHAR(20) NOT NULL,
+		permissions JSONB DEFAULT '{}'::jsonb,
 		created_at TIMESTAMP NOT NULL,
 		updated_at TIMESTAMP NOT NULL,
 		PRIMARY KEY (user_id, workspace_id)
@@ -114,11 +111,9 @@ var MigrationStatements = []string{
 	)`,
 }
 
-// GetMigrationStatements returns migration statements with the current version
+// GetMigrationStatements returns migration statements for database schema setup
 func GetMigrationStatements() []string {
-	versionInsert := fmt.Sprintf(`INSERT INTO settings (key, value) VALUES ('db_version', '%s') ON CONFLICT (key) DO UPDATE SET value = '%s', updated_at = CURRENT_TIMESTAMP`, config.VERSION, config.VERSION)
-
-	return append(MigrationStatements, versionInsert)
+	return MigrationStatements
 }
 
 // TableNames returns a list of all table names in creation order
@@ -130,4 +125,5 @@ var TableNames = []string{
 	"workspace_invitations",
 	"broadcasts",
 	"tasks",
+	"settings",
 }

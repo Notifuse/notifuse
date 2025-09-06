@@ -248,7 +248,7 @@ func (a *App) InitDB() error {
 	}
 
 	// Initialize database schema if needed
-	if err := database.InitializeDatabase(db, a.config.RootEmail); err != nil {
+	if err := database.InitializeDatabase(db, a.config.RootEmail, a.config, a.logger); err != nil {
 		db.Close()
 		return fmt.Errorf("failed to initialize database schema: %w", err)
 	}

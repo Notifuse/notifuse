@@ -10,6 +10,7 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	"github.com/Notifuse/notifuse/pkg/logger"
 	_ "github.com/lib/pq"
 )
 
@@ -257,8 +258,16 @@ func (dm *DatabaseManager) Cleanup() error {
 
 // runMigrations runs the database migrations
 func (dm *DatabaseManager) runMigrations() error {
+	// Create test config and logger
+	testConfig := &config.Config{
+		Database: *dm.config,
+		Version:  "3.14",
+		LogLevel: "info",
+	}
+	testLogger := logger.NewLoggerWithLevel("info")
+
 	// Initialize system tables
-	if err := database.InitializeDatabase(dm.db, "test@example.com"); err != nil {
+	if err := database.InitializeDatabase(dm.db, "test@example.com", testConfig, testLogger); err != nil {
 		return fmt.Errorf("failed to initialize system database: %w", err)
 	}
 

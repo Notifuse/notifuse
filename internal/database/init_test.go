@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"testing"
 
+	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database/schema"
+	"github.com/Notifuse/notifuse/pkg/logger"
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
@@ -12,6 +14,12 @@ import (
 )
 
 func TestInitializeDatabase(t *testing.T) {
+	testConfig := &config.Config{
+		Version:  "3.14",
+		LogLevel: "info",
+	}
+	testLogger := logger.NewLoggerWithLevel("info")
+
 	t.Run("creates tables successfully", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
@@ -23,11 +31,20 @@ func TestInitializeDatabase(t *testing.T) {
 		}
 
 		// Setup expectations for migration statements
-		for range schema.MigrationStatements {
+		for range schema.GetMigrationStatements() {
 			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 
-		err = InitializeDatabase(db, "")
+		// Setup expectations for migration manager
+		// Migration manager checks for existing version (first run)
+		mock.ExpectQuery(`SELECT value FROM settings WHERE key = 'db_version'`).
+			WillReturnError(sql.ErrNoRows) // No version exists yet
+
+		// Migration manager initializes version for first run
+		mock.ExpectExec(`INSERT INTO settings`).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		err = InitializeDatabase(db, "", testConfig, testLogger)
 		assert.NoError(t, err)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
@@ -43,9 +60,15 @@ func TestInitializeDatabase(t *testing.T) {
 		}
 
 		// Setup expectations for migration statements
-		for range schema.MigrationStatements {
+		for range schema.GetMigrationStatements() {
 			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
+
+		// Setup expectations for migration manager
+		mock.ExpectQuery(`SELECT value FROM settings WHERE key = 'db_version'`).
+			WillReturnError(sql.ErrNoRows)
+		mock.ExpectExec(`INSERT INTO settings`).
+			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Root user doesn't exist
 		mock.ExpectQuery("SELECT EXISTS").
@@ -55,7 +78,7 @@ func TestInitializeDatabase(t *testing.T) {
 		mock.ExpectExec("INSERT INTO users").
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		err = InitializeDatabase(db, "admin@example.com")
+		err = InitializeDatabase(db, "admin@example.com", testConfig, testLogger)
 		assert.NoError(t, err)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
@@ -71,9 +94,15 @@ func TestInitializeDatabase(t *testing.T) {
 		}
 
 		// Setup expectations for migration statements
-		for range schema.MigrationStatements {
+		for range schema.GetMigrationStatements() {
 			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
+
+		// Setup expectations for migration manager
+		mock.ExpectQuery(`SELECT value FROM settings WHERE key = 'db_version'`).
+			WillReturnError(sql.ErrNoRows)
+		mock.ExpectExec(`INSERT INTO settings`).
+			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Root user already exists
 		mock.ExpectQuery("SELECT EXISTS").
@@ -81,7 +110,7 @@ func TestInitializeDatabase(t *testing.T) {
 
 		// No insert should be made
 
-		err = InitializeDatabase(db, "admin@example.com")
+		err = InitializeDatabase(db, "admin@example.com", testConfig, testLogger)
 		assert.NoError(t, err)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
@@ -94,7 +123,7 @@ func TestInitializeDatabase(t *testing.T) {
 		// First table creation fails
 		mock.ExpectExec("").WillReturnError(sql.ErrConnDone)
 
-		err = InitializeDatabase(db, "admin@example.com")
+		err = InitializeDatabase(db, "admin@example.com", testConfig, testLogger)
 		assert.Error(t, err)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
@@ -110,15 +139,21 @@ func TestInitializeDatabase(t *testing.T) {
 		}
 
 		// Setup expectations for migration statements
-		for range schema.MigrationStatements {
+		for range schema.GetMigrationStatements() {
 			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
+
+		// Setup expectations for migration manager
+		mock.ExpectQuery(`SELECT value FROM settings WHERE key = 'db_version'`).
+			WillReturnError(sql.ErrNoRows)
+		mock.ExpectExec(`INSERT INTO settings`).
+			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Query fails
 		mock.ExpectQuery("SELECT EXISTS").
 			WillReturnError(sql.ErrConnDone)
 
-		err = InitializeDatabase(db, "admin@example.com")
+		err = InitializeDatabase(db, "admin@example.com", testConfig, testLogger)
 		assert.Error(t, err)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
@@ -134,9 +169,15 @@ func TestInitializeDatabase(t *testing.T) {
 		}
 
 		// Setup expectations for migration statements
-		for range schema.MigrationStatements {
+		for range schema.GetMigrationStatements() {
 			mock.ExpectExec("").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
+
+		// Setup expectations for migration manager
+		mock.ExpectQuery(`SELECT value FROM settings WHERE key = 'db_version'`).
+			WillReturnError(sql.ErrNoRows)
+		mock.ExpectExec(`INSERT INTO settings`).
+			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Root user doesn't exist
 		mock.ExpectQuery("SELECT EXISTS").
@@ -146,7 +187,7 @@ func TestInitializeDatabase(t *testing.T) {
 		mock.ExpectExec("INSERT INTO users").
 			WillReturnError(sql.ErrConnDone)
 
-		err = InitializeDatabase(db, "admin@example.com")
+		err = InitializeDatabase(db, "admin@example.com", testConfig, testLogger)
 		assert.Error(t, err)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
