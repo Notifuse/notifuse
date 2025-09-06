@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.0] - 2025-09-06
+
+- Add migrations to the system and workspace databases
+- Add permissions column to the user_workspaces table for future permission management
+- Add UI previsions about broadcast rate limit per hour/day
+
 ## [3.14] - 2025-09-05
 
 - Fix VARCHAR(255) constraint for status_info in message_history table
