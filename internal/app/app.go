@@ -14,6 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	httpHandler "github.com/Notifuse/notifuse/internal/http"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
+	"github.com/Notifuse/notifuse/internal/migrations"
 	"github.com/Notifuse/notifuse/internal/repository"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/internal/service/broadcast"
@@ -102,6 +103,7 @@ type App struct {
 	broadcastService                 *service.BroadcastService
 	taskService                      *service.TaskService
 	transactionalNotificationService *service.TransactionalNotificationService
+	systemNotificationService        *service.SystemNotificationService
 	webhookEventService              *service.WebhookEventService
 	webhookRegistrationService       *service.WebhookRegistrationService
 	messageHistoryService            *service.MessageHistoryService
@@ -248,9 +250,17 @@ func (a *App) InitDB() error {
 	}
 
 	// Initialize database schema if needed
-	if err := database.InitializeDatabase(db, a.config.RootEmail, a.config, a.logger); err != nil {
+	if err := database.InitializeDatabase(db, a.config.RootEmail); err != nil {
 		db.Close()
 		return fmt.Errorf("failed to initialize database schema: %w", err)
+	}
+
+	// Run migrations separately
+	migrationManager := migrations.NewManager(a.logger)
+	ctx := context.Background()
+	if err := migrationManager.RunMigrations(ctx, a.config, db); err != nil {
+		db.Close()
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	// Set connection pool settings based on environment
@@ -504,6 +514,7 @@ func (a *App) InitServices() error {
 		a.logger,
 		broadcastConfig,
 		a.config.APIEndpoint,
+		a.eventBus,
 	)
 
 	// Register the broadcast factory with the task service
@@ -525,6 +536,17 @@ func (a *App) InitServices() error {
 		a.listRepo,
 		a.logger,
 	)
+
+	// Initialize system notification service
+	a.systemNotificationService = service.NewSystemNotificationService(
+		a.workspaceRepo,
+		a.broadcastRepo,
+		a.mailer,
+		a.logger,
+	)
+
+	// Register system notification service with event bus
+	a.systemNotificationService.RegisterWithEventBus(a.eventBus)
 
 	// Initialize demo service
 	a.demoService = service.NewDemoService(

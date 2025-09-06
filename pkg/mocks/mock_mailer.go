@@ -33,6 +33,20 @@ func (m *MockMailer) EXPECT() *MockMailerMockRecorder {
 	return m.recorder
 }
 
+// SendCircuitBreakerAlert mocks base method.
+func (m *MockMailer) SendCircuitBreakerAlert(arg0, arg1, arg2, arg3 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SendCircuitBreakerAlert", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SendCircuitBreakerAlert indicates an expected call of SendCircuitBreakerAlert.
+func (mr *MockMailerMockRecorder) SendCircuitBreakerAlert(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendCircuitBreakerAlert", reflect.TypeOf((*MockMailer)(nil).SendCircuitBreakerAlert), arg0, arg1, arg2, arg3)
+}
+
 // SendMagicCode mocks base method.
 func (m *MockMailer) SendMagicCode(arg0, arg1 string) error {
 	m.ctrl.T.Helper()

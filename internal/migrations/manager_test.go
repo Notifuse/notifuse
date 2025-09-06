@@ -26,6 +26,15 @@ func (m *mockLogger) Warn(msg string)                                        {}
 func (m *mockLogger) Error(msg string)                                       {}
 func (m *mockLogger) Fatal(msg string)                                       {}
 
+// mockWorkspaceConnector implements workspaceConnector interface for testing
+type mockWorkspaceConnector struct {
+	db *sql.DB
+}
+
+func (m *mockWorkspaceConnector) connectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
+	return m.db, nil
+}
+
 func TestNewManager(t *testing.T) {
 	logger := &mockLogger{}
 	manager := NewManager(logger)
@@ -231,7 +240,18 @@ func TestManager_executeMigration_WorkspaceOnly(t *testing.T) {
 	require.NoError(t, err)
 	defer db.Close()
 
+	// Create workspace mock db
+	workspaceDB, workspaceMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer workspaceDB.Close()
+
+	// Create mock connector
+	mockConnector := &mockWorkspaceConnector{
+		db: workspaceDB,
+	}
+
 	manager := NewManager(&mockLogger{})
+	manager.connector = mockConnector // Inject mock connector
 	ctx := context.Background()
 	cfg := &config.Config{}
 
@@ -253,12 +273,17 @@ func TestManager_executeMigration_WorkspaceOnly(t *testing.T) {
 	mock.ExpectQuery("SELECT id, name, settings, integrations, created_at, updated_at FROM workspaces").
 		WillReturnRows(rows)
 
+	// Mock workspace transaction expectations
+	workspaceMock.ExpectBegin()
+	workspaceMock.ExpectCommit()
+
 	mock.ExpectCommit()
 
 	err = manager.executeMigration(ctx, cfg, db, migration)
 
 	assert.NoError(t, err)
 	assert.NoError(t, mock.ExpectationsWereMet())
+	assert.NoError(t, workspaceMock.ExpectationsWereMet())
 }
 
 func TestManager_executeMigration_TransactionError(t *testing.T) {
@@ -382,7 +407,7 @@ func TestManager_RunMigrations_UpToDate(t *testing.T) {
 	cfg := &config.Config{}
 
 	// Mock current version equals code version (up to date)
-	rows := sqlmock.NewRows([]string{"value"}).AddRow("4")
+	rows := sqlmock.NewRows([]string{"value"}).AddRow("5")
 	mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").WillReturnRows(rows)
 
 	err = manager.RunMigrations(ctx, cfg, db)

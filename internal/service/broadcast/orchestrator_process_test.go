@@ -28,6 +28,7 @@ func setupTestEnvironment(t *testing.T) (
 	*domainmocks.MockWorkspaceRepository,
 	*pkgmocks.MockLogger,
 	*mocks.MockTimeProvider,
+	*domainmocks.MockEventBus,
 ) {
 	ctrl := gomock.NewController(t)
 
@@ -46,6 +47,7 @@ func setupTestEnvironment(t *testing.T) (
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
 
 	// Setup common logger expectations
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -56,7 +58,7 @@ func setupTestEnvironment(t *testing.T) (
 	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
 
 	return ctrl, mockMessageSender, mockBroadcastRepository, mockTemplateRepo,
-		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider
+		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider, mockEventBus
 }
 
 // createTestConfig creates a config for testing
@@ -126,7 +128,7 @@ func createTask(
 func TestProcess_HappyPath(t *testing.T) {
 	// Setup
 	ctrl, mockMessageSender, mockBroadcastRepository, mockTemplateRepo,
-		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider := setupTestEnvironment(t)
+		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider, mockEventBus := setupTestEnvironment(t)
 	defer ctrl.Finish()
 
 	// Set fixed times for testing
@@ -199,6 +201,7 @@ func TestProcess_HappyPath(t *testing.T) {
 		config,
 		mockTimeProvider,
 		"https://api.example.com",
+		mockEventBus,
 	)
 
 	ctx := context.Background()
@@ -218,7 +221,7 @@ func TestProcess_HappyPath(t *testing.T) {
 func TestProcess_NilTaskState(t *testing.T) {
 	// Setup
 	ctrl, mockMessageSender, mockBroadcastRepository, mockTemplateRepo,
-		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider := setupTestEnvironment(t)
+		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider, mockEventBus := setupTestEnvironment(t)
 	defer ctrl.Finish()
 
 	// Set fixed times for testing
@@ -288,6 +291,7 @@ func TestProcess_NilTaskState(t *testing.T) {
 		config,
 		mockTimeProvider,
 		"https://api.example.com",
+		mockEventBus,
 	)
 
 	ctx := context.Background()
@@ -310,7 +314,7 @@ func TestProcess_NilTaskState(t *testing.T) {
 func TestProcess_NilSendBroadcastState(t *testing.T) {
 	// Setup
 	ctrl, mockMessageSender, mockBroadcastRepository, mockTemplateRepo,
-		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider := setupTestEnvironment(t)
+		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider, mockEventBus := setupTestEnvironment(t)
 	defer ctrl.Finish()
 
 	// Set fixed times for testing
@@ -385,6 +389,7 @@ func TestProcess_NilSendBroadcastState(t *testing.T) {
 		config,
 		mockTimeProvider,
 		"https://api.example.com",
+		mockEventBus,
 	)
 
 	ctx := context.Background()
@@ -405,7 +410,7 @@ func TestProcess_NilSendBroadcastState(t *testing.T) {
 func TestProcess_MissingBroadcastID(t *testing.T) {
 	// Setup
 	ctrl, mockMessageSender, mockBroadcastRepository, mockTemplateRepo,
-		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider := setupTestEnvironment(t)
+		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider, mockEventBus := setupTestEnvironment(t)
 	defer ctrl.Finish()
 
 	// Set fixed times for testing
@@ -467,6 +472,7 @@ func TestProcess_MissingBroadcastID(t *testing.T) {
 		config,
 		mockTimeProvider,
 		"https://api.example.com",
+		mockEventBus,
 	)
 
 	ctx := context.Background()
@@ -485,7 +491,7 @@ func TestProcess_MissingBroadcastID(t *testing.T) {
 func TestProcess_ZeroRecipients(t *testing.T) {
 	// Setup
 	ctrl, mockMessageSender, mockBroadcastRepository, mockTemplateRepo,
-		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider := setupTestEnvironment(t)
+		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider, mockEventBus := setupTestEnvironment(t)
 	defer ctrl.Finish()
 
 	// Set fixed times for testing
@@ -560,6 +566,7 @@ func TestProcess_ZeroRecipients(t *testing.T) {
 		config,
 		mockTimeProvider,
 		"https://api.example.com",
+		mockEventBus,
 	)
 
 	ctx := context.Background()
@@ -579,7 +586,7 @@ func TestProcess_ZeroRecipients(t *testing.T) {
 func TestProcess_GetTotalRecipientCountError(t *testing.T) {
 	// Setup
 	ctrl, mockMessageSender, mockBroadcastRepository, mockTemplateRepo,
-		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider := setupTestEnvironment(t)
+		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider, mockEventBus := setupTestEnvironment(t)
 	defer ctrl.Finish()
 
 	// Set fixed times for testing
@@ -656,6 +663,7 @@ func TestProcess_GetTotalRecipientCountError(t *testing.T) {
 		config,
 		mockTimeProvider,
 		"https://api.example.com",
+		mockEventBus,
 	)
 
 	ctx := context.Background()
@@ -674,7 +682,7 @@ func TestProcess_GetTotalRecipientCountError(t *testing.T) {
 func TestProcess_LastRetryError(t *testing.T) {
 	// Setup
 	ctrl, mockMessageSender, mockBroadcastRepository, mockTemplateRepo,
-		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider := setupTestEnvironment(t)
+		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider, mockEventBus := setupTestEnvironment(t)
 	defer ctrl.Finish()
 
 	// Set fixed times for testing
@@ -762,6 +770,7 @@ func TestProcess_LastRetryError(t *testing.T) {
 		config,
 		mockTimeProvider,
 		"https://api.example.com",
+		mockEventBus,
 	)
 
 	ctx := context.Background()
@@ -780,7 +789,7 @@ func TestProcess_LastRetryError(t *testing.T) {
 func TestProcess_LoadTemplatesError(t *testing.T) {
 	// Setup
 	ctrl, mockMessageSender, mockBroadcastRepository, mockTemplateRepo,
-		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider := setupTestEnvironment(t)
+		mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider, mockEventBus := setupTestEnvironment(t)
 	defer ctrl.Finish()
 
 	// Set fixed times for testing
@@ -856,6 +865,7 @@ func TestProcess_LoadTemplatesError(t *testing.T) {
 		config,
 		mockTimeProvider,
 		"https://api.example.com",
+		mockEventBus,
 	)
 
 	ctx := context.Background()

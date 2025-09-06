@@ -17,6 +17,7 @@ type Factory struct {
 	logger             logger.Logger
 	config             *Config
 	apiEndpoint        string
+	eventBus           domain.EventBus
 }
 
 // NewFactory creates a new factory for broadcast components
@@ -31,6 +32,7 @@ func NewFactory(
 	logger logger.Logger,
 	config *Config,
 	apiEndpoint string,
+	eventBus domain.EventBus,
 ) *Factory {
 	if config == nil {
 		config = DefaultConfig()
@@ -47,6 +49,7 @@ func NewFactory(
 		logger:             logger,
 		config:             config,
 		apiEndpoint:        apiEndpoint,
+		eventBus:           eventBus,
 	}
 }
 
@@ -87,6 +90,7 @@ func (f *Factory) CreateOrchestrator() BroadcastOrchestratorInterface {
 		f.config,
 		timeProvider,
 		f.apiEndpoint,
+		f.eventBus,
 	)
 }
 

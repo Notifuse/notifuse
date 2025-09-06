@@ -14,12 +14,13 @@ type EventType string
 
 // Define event types
 const (
-	EventBroadcastScheduled EventType = "broadcast.scheduled"
-	EventBroadcastPaused    EventType = "broadcast.paused"
-	EventBroadcastResumed   EventType = "broadcast.resumed"
-	EventBroadcastSent      EventType = "broadcast.sent"
-	EventBroadcastFailed    EventType = "broadcast.failed"
-	EventBroadcastCancelled EventType = "broadcast.cancelled"
+	EventBroadcastScheduled      EventType = "broadcast.scheduled"
+	EventBroadcastPaused         EventType = "broadcast.paused"
+	EventBroadcastResumed        EventType = "broadcast.resumed"
+	EventBroadcastSent           EventType = "broadcast.sent"
+	EventBroadcastFailed         EventType = "broadcast.failed"
+	EventBroadcastCancelled      EventType = "broadcast.cancelled"
+	EventBroadcastCircuitBreaker EventType = "broadcast.circuit_breaker"
 )
 
 // EventPayload represents the data associated with an event

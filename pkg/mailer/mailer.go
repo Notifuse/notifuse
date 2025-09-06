@@ -8,12 +8,16 @@ import (
 	"github.com/wneessen/go-mail"
 )
 
+//go:generate mockgen -destination=../mocks/mock_mailer.go -package=pkgmocks github.com/Notifuse/notifuse/pkg/mailer Mailer
+
 // Mailer is the interface for sending emails
 type Mailer interface {
 	// SendWorkspaceInvitation sends an invitation email with the given token
 	SendWorkspaceInvitation(email, workspaceName, inviterName, token string) error
 	// SendMagicCode sends a magic code for authentication purposes
 	SendMagicCode(email, code string) error
+	// SendCircuitBreakerAlert sends a notification when a broadcast is paused due to circuit breaker
+	SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason string) error
 }
 
 // Config holds the configuration for the mailer
@@ -183,6 +187,110 @@ func (m *SMTPMailer) SendMagicCode(email, code string) error {
 	return nil
 }
 
+// SendCircuitBreakerAlert sends a notification when a broadcast is paused due to circuit breaker
+func (m *SMTPMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason string) error {
+	// Create a new message
+	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())
+
+	// Set sender and recipient
+	if err := msg.FromFormat(m.config.FromName, m.config.FromEmail); err != nil {
+		return fmt.Errorf("failed to set email from address: %w", err)
+	}
+
+	if err := msg.To(email); err != nil {
+		return fmt.Errorf("failed to set email recipient: %w", err)
+	}
+
+	// Set subject
+	subject := fmt.Sprintf("🚨 Broadcast Paused - %s", broadcastName)
+	msg.Subject(subject)
+
+	// Create HTML content
+	htmlBody := fmt.Sprintf(`
+	<html>
+		<body>
+			<h1 style="color: #d32f2f;">🚨 Broadcast Automatically Paused</h1>
+			<p>Hello,</p>
+			<p>Your broadcast <strong>"%s"</strong> in workspace <strong>%s</strong> has been automatically paused due to sending limits being reached.</p>
+			
+			<div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
+				<h3 style="color: #856404; margin-top: 0;">Reason:</h3>
+				<p style="margin-bottom: 0; color: #856404;"><strong>%s</strong></p>
+			</div>
+			
+			<h3>What happened?</h3>
+			<p>Your email service provider has indicated that you've reached your daily sending limits. To protect your sender reputation and prevent further issues, we've automatically paused your broadcast.</p>
+			
+			<h3>What should you do?</h3>
+			<ul>
+				<li>Wait for your daily sending limits to reset (usually at midnight in your provider's timezone)</li>
+				<li>Check your email provider's dashboard for more details about your sending limits</li>
+				<li>Resume the broadcast once your limits have been reset</li>
+				<li>Consider upgrading your email provider plan if you frequently hit these limits</li>
+			</ul>
+			
+			<p>You can resume the broadcast from your Notifuse dashboard once the sending limits have been reset.</p>
+			
+			<p>If you have any questions, please contact our support team.</p>
+			
+			<p>Best regards,<br>The Notifuse Team</p>
+		</body>
+	</html>`, broadcastName, workspaceName, reason)
+
+	// Set alternative body parts
+	plainBody := fmt.Sprintf(`
+🚨 BROADCAST AUTOMATICALLY PAUSED
+
+Hello,
+
+Your broadcast "%s" in workspace %s has been automatically paused due to sending limits being reached.
+
+REASON: %s
+
+What happened?
+Your email service provider has indicated that you've reached your daily sending limits. To protect your sender reputation and prevent further issues, we've automatically paused your broadcast.
+
+What should you do?
+- Wait for your daily sending limits to reset (usually at midnight in your provider's timezone)
+- Check your email provider's dashboard for more details about your sending limits  
+- Resume the broadcast once your limits have been reset
+- Consider upgrading your email provider plan if you frequently hit these limits
+
+You can resume the broadcast from your Notifuse dashboard once the sending limits have been reset.
+
+If you have any questions, please contact our support team.
+
+Best regards,
+The Notifuse Team`, broadcastName, workspaceName, reason)
+
+	msg.SetBodyString(mail.TypeTextHTML, htmlBody)
+	msg.AddAlternativeString(mail.TypeTextPlain, plainBody)
+
+	// Create SMTP client
+	client, err := m.createSMTPClient()
+	if err != nil {
+		return err
+	}
+
+	// For testing - log information if client is nil
+	if client == nil {
+		log.Printf("Sending circuit breaker alert to: %s", email)
+		log.Printf("From: %s <%s>", m.config.FromName, m.config.FromEmail)
+		log.Printf("Subject: %s", subject)
+		log.Printf("Broadcast: %s", broadcastName)
+		log.Printf("Workspace: %s", workspaceName)
+		log.Printf("Reason: %s", reason)
+		return nil
+	}
+
+	// Send the email
+	if err := client.DialAndSend(msg); err != nil {
+		return fmt.Errorf("failed to send circuit breaker alert email: %w", err)
+	}
+
+	return nil
+}
+
 // createSMTPClient creates and configures a new SMTP client
 func (m *SMTPMailer) createSMTPClient() (*mail.Client, error) {
 	// In test mode, return nil client to avoid SMTP connections
@@ -240,6 +348,32 @@ func (m *ConsoleMailer) SendMagicCode(email, code string) error {
 	fmt.Println("Email Content:")
 	fmt.Printf("Hello,\n\n")
 	fmt.Printf("Your authentication code is: %s\n\n", code)
+	fmt.Println("==============================================================")
+
+	return nil
+}
+
+// SendCircuitBreakerAlert logs the circuit breaker alert details to console
+func (m *ConsoleMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason string) error {
+	fmt.Println("==============================================================")
+	fmt.Println("                 CIRCUIT BREAKER ALERT EMAIL                  ")
+	fmt.Println("==============================================================")
+	fmt.Printf("To: %s\n", email)
+	fmt.Printf("Subject: 🚨 Broadcast Paused - %s\n\n", broadcastName)
+	fmt.Println("Email Content:")
+	fmt.Printf("🚨 BROADCAST AUTOMATICALLY PAUSED\n\n")
+	fmt.Printf("Hello,\n\n")
+	fmt.Printf("Your broadcast \"%s\" in workspace %s has been automatically paused due to sending limits being reached.\n\n", broadcastName, workspaceName)
+	fmt.Printf("REASON: %s\n\n", reason)
+	fmt.Printf("What happened?\n")
+	fmt.Printf("Your email service provider has indicated that you've reached your daily sending limits.\n")
+	fmt.Printf("To protect your sender reputation, we've automatically paused your broadcast.\n\n")
+	fmt.Printf("What should you do?\n")
+	fmt.Printf("- Wait for your daily sending limits to reset\n")
+	fmt.Printf("- Check your email provider's dashboard for more details\n")
+	fmt.Printf("- Resume the broadcast once your limits have been reset\n")
+	fmt.Printf("- Consider upgrading your email provider plan if needed\n\n")
+	fmt.Printf("Best regards,\nThe Notifuse Team\n\n")
 	fmt.Println("==============================================================")
 
 	return nil

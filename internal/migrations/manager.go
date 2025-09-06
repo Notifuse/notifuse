@@ -5,21 +5,60 @@ import (
 	"database/sql"
 	"fmt"
 	"strconv"
+	"strings"
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	_ "github.com/lib/pq" // PostgreSQL driver
 )
+
+// workspaceConnector interface for connecting to workspace databases
+type workspaceConnector interface {
+	connectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error)
+}
 
 // Manager implements MigrationManager
 type Manager struct {
-	logger logger.Logger
+	logger    logger.Logger
+	connector workspaceConnector
+}
+
+// defaultConnector implements workspaceConnector
+type defaultConnector struct{}
+
+func (c *defaultConnector) connectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB, error) {
+	// Replace hyphens with underscores for PostgreSQL compatibility
+	safeID := strings.ReplaceAll(workspaceID, "-", "_")
+	dbName := fmt.Sprintf("%s_ws_%s", cfg.Prefix, safeID)
+	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
+		cfg.User,
+		cfg.Password,
+		cfg.Host,
+		cfg.Port,
+		dbName,
+		cfg.SSLMode,
+	)
+
+	db, err := sql.Open("postgres", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("failed to connect to workspace database: %w", err)
+	}
+
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to ping workspace database: %w", err)
+	}
+
+	return db, nil
 }
 
 // NewManager creates a new migration manager
 func NewManager(logger logger.Logger) *Manager {
 	return &Manager{
-		logger: logger,
+		logger:    logger,
+		connector: &defaultConnector{},
 	}
 }
 
@@ -168,9 +207,41 @@ func (m *Manager) executeMigration(ctx context.Context, cfg *config.Config, db *
 				WithField("version", fmt.Sprintf("%.0f", version)).
 				Debug("Executing workspace migration")
 
-			if err := migration.UpdateWorkspace(ctx, cfg, &workspace, tx); err != nil {
-				return fmt.Errorf("workspace migration failed for workspace %s: %w", workspace.ID, err)
+			// Connect to the specific workspace database
+			workspaceDB, err := m.connector.connectToWorkspace(&cfg.Database, workspace.ID)
+			if err != nil {
+				return fmt.Errorf("failed to connect to workspace database %s: %w", workspace.ID, err)
 			}
+
+			// Start transaction for the workspace database
+			workspaceTx, err := workspaceDB.BeginTx(ctx, nil)
+			if err != nil {
+				workspaceDB.Close()
+				return fmt.Errorf("failed to start workspace transaction for %s: %w", workspace.ID, err)
+			}
+
+			// Execute the workspace migration
+			migrationErr := migration.UpdateWorkspace(ctx, cfg, &workspace, workspaceTx)
+
+			if migrationErr != nil {
+				// Rollback workspace transaction and close connection
+				workspaceTx.Rollback()
+				workspaceDB.Close()
+				return fmt.Errorf("workspace migration failed for workspace %s: %w", workspace.ID, migrationErr)
+			}
+
+			// Commit workspace transaction
+			if err := workspaceTx.Commit(); err != nil {
+				workspaceDB.Close()
+				return fmt.Errorf("failed to commit workspace migration for %s: %w", workspace.ID, err)
+			}
+
+			// Close workspace database connection
+			workspaceDB.Close()
+
+			m.logger.WithField("workspace", workspace.ID).
+				WithField("version", fmt.Sprintf("%.0f", version)).
+				Debug("Workspace migration completed successfully")
 		}
 	}
 

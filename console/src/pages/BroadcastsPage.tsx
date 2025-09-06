@@ -87,8 +87,8 @@ const getRemainingTestTime = (broadcast: Broadcast, testResults?: any) => {
 }
 
 // Helper function to get status badge
-const getStatusBadge = (status: BroadcastStatus, remainingTime?: string | null) => {
-  switch (status) {
+const getStatusBadge = (broadcast: Broadcast, remainingTime?: string | null) => {
+  switch (broadcast.status) {
     case 'draft':
       return <Badge status="default" text="Draft" />
     case 'scheduled':
@@ -96,7 +96,20 @@ const getStatusBadge = (status: BroadcastStatus, remainingTime?: string | null) 
     case 'sending':
       return <Badge status="processing" text="Sending" />
     case 'paused':
-      return <Badge status="warning" text="Paused" />
+      return (
+        <Space size="small">
+          <Badge status="warning" text="Paused" />
+          {broadcast.pause_reason && (
+            <Tooltip title={broadcast.pause_reason}>
+              <FontAwesomeIcon
+                icon={faCircleQuestion}
+                className="text-orange-500 cursor-help"
+                style={{ opacity: 0.7 }}
+              />
+            </Tooltip>
+          )}
+        </Space>
+      )
     case 'sent':
       return <Badge status="success" text="Sent" />
     case 'cancelled':
@@ -119,7 +132,7 @@ const getStatusBadge = (status: BroadcastStatus, remainingTime?: string | null) 
     case 'winner_selected':
       return <Badge status="success" text="Winner Selected" />
     default:
-      return <Badge status="default" text={status} />
+      return <Badge status="default" text={broadcast.status} />
   }
 }
 
@@ -530,7 +543,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                 trigger="hover"
               >
                 <span className="cursor-help">
-                  {getStatusBadge(broadcast.status, remainingTestTime)}
+                  {getStatusBadge(broadcast, remainingTestTime)}
                   <FontAwesomeIcon
                     icon={faCircleQuestion}
                     style={{ opacity: 0.7 }}
@@ -540,11 +553,11 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               </Popover>
             ) : isTaskLoading ? (
               <span className="text-gray-400">
-                {getStatusBadge(broadcast.status, remainingTestTime)}
+                {getStatusBadge(broadcast, remainingTestTime)}
                 <FontAwesomeIcon icon={faSpinner} spin className="ml-2" />
               </span>
             ) : (
-              getStatusBadge(broadcast.status, remainingTestTime)
+              getStatusBadge(broadcast, remainingTestTime)
             )}
           </div>
         </Space>
@@ -658,7 +671,14 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
 
                   {broadcast.paused_at && (
                     <Descriptions.Item label="Paused">
-                      {dayjs(broadcast.paused_at).fromNow()}
+                      <Space direction="vertical" size="small">
+                        <div>{dayjs(broadcast.paused_at).fromNow()}</div>
+                        {broadcast.pause_reason && (
+                          <div className="text-orange-600 text-sm">
+                            <strong>Reason:</strong> {broadcast.pause_reason}
+                          </div>
+                        )}
+                      </Space>
                     </Descriptions.Item>
                   )}
 

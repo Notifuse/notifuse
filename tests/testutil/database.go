@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database"
+	"github.com/Notifuse/notifuse/internal/migrations"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	_ "github.com/lib/pq"
@@ -267,8 +269,15 @@ func (dm *DatabaseManager) runMigrations() error {
 	testLogger := logger.NewLoggerWithLevel("info")
 
 	// Initialize system tables
-	if err := database.InitializeDatabase(dm.db, "test@example.com", testConfig, testLogger); err != nil {
+	if err := database.InitializeDatabase(dm.db, "test@example.com"); err != nil {
 		return fmt.Errorf("failed to initialize system database: %w", err)
+	}
+
+	// Run migrations separately
+	migrationManager := migrations.NewManager(testLogger)
+	ctx := context.Background()
+	if err := migrationManager.RunMigrations(ctx, testConfig, dm.db); err != nil {
+		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	// Initialize workspace tables

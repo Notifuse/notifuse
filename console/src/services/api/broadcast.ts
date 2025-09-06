@@ -121,6 +121,7 @@ export interface Broadcast {
   completed_at?: string
   cancelled_at?: string
   paused_at?: string
+  pause_reason?: string
 }
 
 export interface CreateBroadcastRequest {

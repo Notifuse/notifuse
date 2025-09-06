@@ -23,6 +23,7 @@ func TestNewFactory(t *testing.T) {
 	mockTaskRepo := mocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockEventBus := mocks.NewMockEventBus(ctrl)
 	config := DefaultConfig()
 
 	tests := []struct {
@@ -52,6 +53,7 @@ func TestNewFactory(t *testing.T) {
 				mockLogger,
 				tt.config,
 				"https://api.notifuse.com",
+				mockEventBus,
 			)
 
 			assert.NotNil(t, factory)
@@ -86,6 +88,7 @@ func TestFactory_CreateMessageSender(t *testing.T) {
 	mockTaskRepo := mocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockEventBus := mocks.NewMockEventBus(ctrl)
 	config := DefaultConfig()
 
 	factory := NewFactory(
@@ -99,6 +102,7 @@ func TestFactory_CreateMessageSender(t *testing.T) {
 		mockLogger,
 		config,
 		"https://api.notifuse.com",
+		mockEventBus,
 	)
 
 	// Test CreateMessageSender
@@ -124,6 +128,7 @@ func TestFactory_CreateOrchestrator(t *testing.T) {
 	mockTaskRepo := mocks.NewMockTaskRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockEventBus := mocks.NewMockEventBus(ctrl)
 	config := DefaultConfig()
 
 	factory := NewFactory(
@@ -137,6 +142,7 @@ func TestFactory_CreateOrchestrator(t *testing.T) {
 		mockLogger,
 		config,
 		"https://api.notifuse.com",
+		mockEventBus,
 	)
 
 	// Test CreateOrchestrator
@@ -163,6 +169,7 @@ func TestFactory_RegisterWithTaskService(t *testing.T) {
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockEventBus := mocks.NewMockEventBus(ctrl)
 	config := DefaultConfig()
 
 	// Setup expectations
@@ -180,6 +187,7 @@ func TestFactory_RegisterWithTaskService(t *testing.T) {
 		mockLogger,
 		config,
 		"https://api.notifuse.com",
+		mockEventBus,
 	)
 
 	// Test RegisterWithTaskService

@@ -48,6 +48,7 @@ type BroadcastOrchestrator struct {
 	config          *Config
 	timeProvider    TimeProvider
 	apiEndpoint     string
+	eventBus        domain.EventBus
 }
 
 // NewBroadcastOrchestrator creates a new broadcast orchestrator
@@ -63,6 +64,7 @@ func NewBroadcastOrchestrator(
 	config *Config,
 	timeProvider TimeProvider,
 	apiEndpoint string,
+	eventBus domain.EventBus,
 ) BroadcastOrchestratorInterface {
 	if config == nil {
 		config = DefaultConfig()
@@ -84,6 +86,7 @@ func NewBroadcastOrchestrator(
 		config:          config,
 		timeProvider:    timeProvider,
 		apiEndpoint:     apiEndpoint,
+		eventBus:        eventBus,
 	}
 }
 
@@ -891,6 +894,95 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 		// Handle errors during sending
 		if sendErr != nil {
+			// Check if this is a circuit breaker error
+			if broadcastErr, ok := sendErr.(*BroadcastError); ok && broadcastErr.Code == ErrCodeCircuitOpen {
+				// Circuit breaker is open - pause the broadcast
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastState.BroadcastID,
+					"offset":       currentOffset,
+					"error":        sendErr.Error(),
+				}).Warn("Circuit breaker triggered - pausing broadcast")
+
+				// Get the current broadcast
+				currentBroadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastState.BroadcastID)
+				if getBroadcastErr == nil && currentBroadcast != nil {
+					// Update broadcast status to paused with reason
+					currentBroadcast.Status = domain.BroadcastStatusPaused
+					currentBroadcast.PausedAt = &[]time.Time{time.Now().UTC()}[0]
+					currentBroadcast.PauseReason = fmt.Sprintf("Circuit breaker triggered: %v", broadcastErr.Err)
+					currentBroadcast.UpdatedAt = time.Now().UTC()
+
+					// Save the updated broadcast
+					if updateErr := o.broadcastRepo.UpdateBroadcast(ctx, currentBroadcast); updateErr == nil {
+						o.logger.WithFields(map[string]interface{}{
+							"task_id":      task.ID,
+							"broadcast_id": broadcastState.BroadcastID,
+							"pause_reason": currentBroadcast.PauseReason,
+						}).Info("Broadcast paused due to circuit breaker")
+
+						// Publish circuit breaker event for notification handling
+						if o.eventBus != nil {
+							event := domain.EventPayload{
+								Type:        domain.EventBroadcastCircuitBreaker,
+								WorkspaceID: task.WorkspaceID,
+								EntityID:    broadcastState.BroadcastID,
+								Data: map[string]interface{}{
+									"broadcast_id": broadcastState.BroadcastID,
+									"task_id":      task.ID,
+									"reason":       currentBroadcast.PauseReason,
+									"error":        broadcastErr.Err.Error(),
+								},
+							}
+
+							o.eventBus.Publish(context.Background(), event)
+
+							o.logger.WithFields(map[string]interface{}{
+								"task_id":      task.ID,
+								"broadcast_id": broadcastState.BroadcastID,
+								"workspace_id": task.WorkspaceID,
+							}).Info("Published circuit breaker event for notification handling")
+
+							// Also publish broadcast paused event for task management
+							pausedEvent := domain.EventPayload{
+								Type:        domain.EventBroadcastPaused,
+								WorkspaceID: task.WorkspaceID,
+								EntityID:    broadcastState.BroadcastID,
+								Data: map[string]interface{}{
+									"broadcast_id": broadcastState.BroadcastID,
+									"task_id":      task.ID,
+									"reason":       "circuit_breaker",
+								},
+							}
+
+							o.eventBus.Publish(context.Background(), pausedEvent)
+
+							o.logger.WithFields(map[string]interface{}{
+								"task_id":      task.ID,
+								"broadcast_id": broadcastState.BroadcastID,
+								"workspace_id": task.WorkspaceID,
+							}).Info("Published broadcast paused event for task management")
+						} else {
+							o.logger.WithFields(map[string]interface{}{
+								"task_id":      task.ID,
+								"broadcast_id": broadcastState.BroadcastID,
+								"workspace_id": task.WorkspaceID,
+							}).Warn("Cannot publish circuit breaker event - event bus not available")
+						}
+					} else {
+						o.logger.WithFields(map[string]interface{}{
+							"task_id":      task.ID,
+							"broadcast_id": broadcastState.BroadcastID,
+							"error":        updateErr.Error(),
+						}).Error("Failed to update broadcast status to paused")
+					}
+				}
+
+				// Return the circuit breaker error to stop processing
+				err = sendErr
+				return false, err
+			}
+
 			// codecov:ignore:start
 			o.logger.WithFields(map[string]interface{}{
 				"task_id":      task.ID,

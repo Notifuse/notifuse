@@ -1,22 +1,18 @@
 package database
 
 import (
-	"context"
 	"database/sql"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
 
-	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database/schema"
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/migrations"
-	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
 // InitializeDatabase creates all necessary database tables if they don't exist
-func InitializeDatabase(db *sql.DB, rootEmail string, cfg *config.Config, migrationLogger logger.Logger) error {
+func InitializeDatabase(db *sql.DB, rootEmail string) error {
 	// Run all table creation queries
 	for _, query := range schema.TableDefinitions {
 		if _, err := db.Exec(query); err != nil {
@@ -29,14 +25,6 @@ func InitializeDatabase(db *sql.DB, rootEmail string, cfg *config.Config, migrat
 		if _, err := db.Exec(query); err != nil {
 			return fmt.Errorf("failed to run migration: %w", err)
 		}
-	}
-
-	// Run version migrations
-	migrationManager := migrations.NewManager(migrationLogger)
-
-	ctx := context.Background()
-	if err := migrationManager.RunMigrations(ctx, cfg, db); err != nil {
-		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
 	// Create root user if it doesn't exist

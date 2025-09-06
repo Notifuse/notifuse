@@ -70,7 +70,7 @@ func TestGetCurrentCodeVersion(t *testing.T) {
 	version, err := GetCurrentCodeVersion()
 
 	require.NoError(t, err)
-	assert.Equal(t, 4.0, version)
+	assert.Equal(t, 5.0, version)
 }
 
 func TestCompareVersions(t *testing.T) {

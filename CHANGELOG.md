@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.0] - 2025-09-06
+
+- Add pause_reason column to the broadcasts table to store the reason for broadcast pause
+- Pause broadcasts when circuit breaker is triggered
+- Add system notification service to email circuit breaker events
+
 ## [4.0] - 2025-09-06
 
 - Add migrations to the system and workspace databases

@@ -6,6 +6,9 @@ build:
 test-unit:
 	go test -v ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository
 
+test-integration:
+	INTEGRATION_TESTS=true go test -timeout 9m ./tests/integration/ -v
+
 test-domain:
 	go test -v ./internal/domain
 

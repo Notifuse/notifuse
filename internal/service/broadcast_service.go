@@ -518,8 +518,9 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 			s.logger.Info("Broadcast resumed to sending status")
 		}
 
-		// Clear the paused timestamp
+		// Clear the paused timestamp and reason
 		broadcast.PausedAt = nil
+		broadcast.PauseReason = ""
 
 		// Persist the changes
 		err = s.repo.UpdateBroadcastTx(ctx, tx, broadcast)
