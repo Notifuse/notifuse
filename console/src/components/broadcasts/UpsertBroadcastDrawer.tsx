@@ -89,6 +89,7 @@ export function UpsertBroadcastDrawer({
   // Watch campaign name changes using Form.useWatch
   const campaignName = Form.useWatch('name', form)
   const abTestingEnabled = Form.useWatch(['test_settings', 'enabled'], form)
+  const rateLimitPerMinute = Form.useWatch(['audience', 'rate_limit_per_minute'], form)
 
   // Enable tracking when A/B testing is enabled
   useEffect(() => {
@@ -365,6 +366,13 @@ export function UpsertBroadcastDrawer({
                   >
                     <InputNumber min={1} />
                   </Form.Item>
+
+                  {rateLimitPerMinute && rateLimitPerMinute > 0 && (
+                    <div className="text-xs text-gray-600 -mt-4 mb-4">
+                      <div>≈ {(rateLimitPerMinute * 60).toLocaleString()} emails per hour</div>
+                      <div>≈ {(rateLimitPerMinute * 60 * 24).toLocaleString()} emails per day</div>
+                    </div>
+                  )}
 
                   <div className="text-xs mt-12 mb-4 font-bold border-b border-solid border-gray-400 pb-2 text-gray-900">
                     URL Tracking Parameters
