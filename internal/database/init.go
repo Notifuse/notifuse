@@ -21,7 +21,7 @@ func InitializeDatabase(db *sql.DB, rootEmail string) error {
 	}
 
 	// Run migration statements for schema changes
-	for _, query := range schema.MigrationStatements {
+	for _, query := range schema.GetMigrationStatements() {
 		if _, err := db.Exec(query); err != nil {
 			return fmt.Errorf("failed to run migration: %w", err)
 		}

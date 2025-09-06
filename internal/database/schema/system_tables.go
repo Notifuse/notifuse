@@ -1,5 +1,11 @@
 package schema
 
+import (
+	"fmt"
+
+	"github.com/Notifuse/notifuse/config"
+)
+
 // TableDefinitions contains all the SQL statements to create the database tables
 // Don't put REFERENCES and don't put CHECK constraints in the CREATE TABLE statements
 var TableDefinitions = []string{
@@ -65,6 +71,13 @@ var TableDefinitions = []string{
 		retry_interval INTEGER NOT NULL DEFAULT 300,
 		broadcast_id VARCHAR(36)
 	)`,
+	`CREATE TABLE IF NOT EXISTS settings (
+		key VARCHAR(255) PRIMARY KEY,
+		value TEXT NOT NULL,
+		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		UNIQUE (key)
+	)`,
 	`CREATE INDEX IF NOT EXISTS idx_tasks_workspace_id ON tasks (workspace_id)`,
 	`CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks (status)`,
 	`CREATE INDEX IF NOT EXISTS idx_tasks_type ON tasks (type)`,
@@ -92,6 +105,20 @@ var MigrationStatements = []string{
 			-- Constraint already exists, ignore
 			NULL;
 	END $$`,
+	`CREATE TABLE IF NOT EXISTS settings (
+		key VARCHAR(255) PRIMARY KEY,
+		value TEXT NOT NULL,
+		created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		UNIQUE (key)
+	)`,
+}
+
+// GetMigrationStatements returns migration statements with the current version
+func GetMigrationStatements() []string {
+	versionInsert := fmt.Sprintf(`INSERT INTO settings (key, value) VALUES ('db_version', '%s') ON CONFLICT (key) DO UPDATE SET value = '%s', updated_at = CURRENT_TIMESTAMP`, config.VERSION, config.VERSION)
+
+	return append(MigrationStatements, versionInsert)
 }
 
 // TableNames returns a list of all table names in creation order
