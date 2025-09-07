@@ -27,6 +27,7 @@ export interface FileManagerProps {
   settings?: FileManagerSettings
   onUpdateSettings: (settings: FileManagerSettings) => Promise<void>
   settingsInfo?: React.ReactNode
+  readOnly?: boolean
 }
 
 export interface ItemFilter {

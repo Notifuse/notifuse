@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 import { Modal, App, Button } from 'antd'
 import { FileManager } from './fileManager'
 import type { FileManagerSettings, StorageObject } from './interfaces'
@@ -25,6 +25,7 @@ interface FileManagerProviderProps {
   settings?: FileManagerSettings
   onUpdateSettings: (settings: FileManagerSettings) => Promise<void>
   settingsInfo?: React.ReactNode
+  readOnly?: boolean
 }
 
 const FileManagerContext = createContext<FileManagerContextValue | undefined>(undefined)
@@ -33,9 +34,11 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
   children,
   settings,
   onUpdateSettings,
-  settingsInfo
+  settingsInfo,
+  readOnly = false
 }) => {
   const { message } = App.useApp()
+
   const [isModalVisible, setIsModalVisible] = useState(false)
   const [currentOptions, setCurrentOptions] = useState<{
     onSelect: (url: string) => void
@@ -125,6 +128,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
       >
         {currentOptions && (
           <FileManager
+            key={`filemanager-${readOnly}-${!!currentOptions}`}
             settings={settings}
             onUpdateSettings={onUpdateSettings}
             onSelect={handleFileSelect}
@@ -138,6 +142,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
             withSelection={true}
             multiple={false}
             settingsInfo={settingsInfo}
+            readOnly={readOnly}
           />
         )}
       </Modal>

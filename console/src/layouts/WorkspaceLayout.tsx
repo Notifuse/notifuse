@@ -17,9 +17,9 @@ import {
   faBarsStaggered
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
-import { Workspace } from '../services/api/types'
+import { Workspace, WorkspaceMember, UserPermissions } from '../services/api/types'
 import { ContactsCsvUploadProvider } from '../components/contacts/ContactsCsvUploadProvider'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { FileManagerProvider } from '../components/file_manager/context'
 import { FileManagerSettings } from '../components/file_manager/interfaces'
 import { workspaceService } from '../services/api/workspace'
@@ -32,10 +32,81 @@ export function WorkspaceLayout() {
   const { signout, workspaces, user, refreshWorkspaces } = useAuth()
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
+  const [userPermissions, setUserPermissions] = useState<UserPermissions | null>(null)
+  const [loadingPermissions, setLoadingPermissions] = useState(true)
 
   // Use useMatches to determine the current route path
   const matches = useMatches()
   const currentPath = matches[matches.length - 1]?.pathname || ''
+
+  // Fetch user permissions for the current workspace
+  useEffect(() => {
+    const fetchUserPermissions = async () => {
+      if (!user || !workspaceId) {
+        setLoadingPermissions(false)
+        return
+      }
+
+      // If user is root, they have full permissions
+      if (isRootUser(user.email)) {
+        setUserPermissions({
+          contacts: { read: true, write: true },
+          lists: { read: true, write: true },
+          templates: { read: true, write: true },
+          broadcasts: { read: true, write: true },
+          transactional: { read: true, write: true },
+          workspace: { read: true, write: true },
+          message_history: { read: true, write: true }
+        })
+        setLoadingPermissions(false)
+        return
+      }
+
+      try {
+        const response = await workspaceService.getMembers(workspaceId)
+        const currentUserMember = response.members.find((member) => member.user_id === user.id)
+
+        if (currentUserMember) {
+          setUserPermissions(currentUserMember.permissions)
+        } else {
+          // User is not a member of this workspace, set empty permissions
+          setUserPermissions({
+            contacts: { read: false, write: false },
+            lists: { read: false, write: false },
+            templates: { read: false, write: false },
+            broadcasts: { read: false, write: false },
+            transactional: { read: false, write: false },
+            workspace: { read: false, write: false },
+            message_history: { read: false, write: false }
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch user permissions', error)
+        // On error, assume no permissions
+        setUserPermissions({
+          contacts: { read: false, write: false },
+          lists: { read: false, write: false },
+          templates: { read: false, write: false },
+          broadcasts: { read: false, write: false },
+          transactional: { read: false, write: false },
+          workspace: { read: false, write: false },
+          message_history: { read: false, write: false }
+        })
+      } finally {
+        setLoadingPermissions(false)
+      }
+    }
+
+    fetchUserPermissions()
+  }, [workspaceId, user])
+
+  // Helper function to check if user has access to a resource
+  const hasAccess = (resource: keyof UserPermissions): boolean => {
+    if (!userPermissions) return false
+    // User needs at least read or write permission to access the resource
+    const permissions = userPermissions[resource]
+    return permissions.read || permissions.write
+  }
 
   // Determine which key should be selected based on the current path
   let selectedKey = 'broadcasts'
@@ -98,7 +169,7 @@ export function WorkspaceLayout() {
   }
 
   const menuItems = [
-    {
+    hasAccess('contacts') && {
       key: 'contacts',
       icon: <FontAwesomeIcon icon={faUserGroup} size="sm" style={{ opacity: 0.7 }} />,
       label: (
@@ -107,7 +178,7 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    {
+    hasAccess('lists') && {
       key: 'lists',
       icon: <FontAwesomeIcon icon={faFolderOpen} size="sm" style={{ opacity: 0.7 }} />,
       label: (
@@ -116,7 +187,7 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    {
+    hasAccess('templates') && {
       key: 'templates',
       icon: <FontAwesomeIcon icon={faObjectGroup} size="sm" style={{ opacity: 0.7 }} />,
       label: (
@@ -125,7 +196,7 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    {
+    hasAccess('broadcasts') && {
       key: 'broadcasts',
       icon: <FontAwesomeIcon icon={faPaperPlane} size="sm" style={{ opacity: 0.7 }} />,
       label: (
@@ -134,7 +205,7 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    {
+    hasAccess('transactional') && {
       key: 'transactional-notifications',
       icon: <FontAwesomeIcon icon={faTerminal} size="sm" style={{ opacity: 0.7 }} />,
       label: (
@@ -143,7 +214,7 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    {
+    hasAccess('workspace') && {
       key: 'file-manager',
       icon: <FontAwesomeIcon icon={faImage} size="sm" style={{ opacity: 0.7 }} />,
       label: (
@@ -152,7 +223,7 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    {
+    hasAccess('message_history') && {
       key: 'logs',
       icon: <FontAwesomeIcon icon={faBarsStaggered} size="sm" style={{ opacity: 0.7 }} />,
       label: (
@@ -161,7 +232,7 @@ export function WorkspaceLayout() {
         </Link>
       )
     },
-    {
+    hasAccess('workspace') && {
       key: 'settings',
       icon: <FontAwesomeIcon icon={faGear} size="sm" style={{ opacity: 0.7 }} />,
       label: (
@@ -170,7 +241,7 @@ export function WorkspaceLayout() {
         </Link>
       )
     }
-  ]
+  ].filter(Boolean) as any[]
 
   return (
     <ContactsCsvUploadProvider>
@@ -282,7 +353,7 @@ export function WorkspaceLayout() {
               mode="inline"
               selectedKeys={[selectedKey]}
               style={{ height: 'calc(100% - 120px)', borderRight: 0, backgroundColor: '#fdfdfd' }}
-              items={menuItems}
+              items={loadingPermissions ? [] : menuItems}
               theme="light"
             />
             <div
@@ -359,8 +430,10 @@ export function WorkspaceLayout() {
           >
             <Content>
               <FileManagerProvider
+                key={`fm-${workspaceId}-${!userPermissions?.templates?.write}`}
                 settings={workspaces.find((w) => w.id === workspaceId)?.settings.file_manager}
                 onUpdateSettings={handleUpdateWorkspaceSettings}
+                readOnly={!userPermissions?.templates?.write}
               >
                 <Outlet />
               </FileManagerProvider>

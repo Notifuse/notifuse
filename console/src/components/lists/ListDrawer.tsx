@@ -18,6 +18,7 @@ interface CreateListDrawerProps {
     type?: 'primary' | 'default' | 'link' | 'text'
     buttonContent?: React.ReactNode
     size?: 'large' | 'middle' | 'small'
+    disabled?: boolean
   }
 }
 
@@ -164,7 +165,12 @@ export function CreateListDrawer({
 
   return (
     <>
-      <Button type={buttonProps.type || 'primary'} onClick={showDrawer} size={buttonProps.size}>
+      <Button
+        type={buttonProps.type || 'primary'}
+        onClick={showDrawer}
+        size={buttonProps.size}
+        disabled={buttonProps.disabled}
+      >
         {buttonProps.buttonContent || (isEditMode ? 'Edit List' : 'Create List')}
       </Button>
       <Drawer

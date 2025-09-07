@@ -51,7 +51,7 @@ import React, { useState } from 'react'
 import dayjs from '../lib/dayjs'
 import { UpsertBroadcastDrawer } from '../components/broadcasts/UpsertBroadcastDrawer'
 import { SendOrScheduleModal } from '../components/broadcasts/SendOrScheduleModal'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { BroadcastStats } from '../components/broadcasts/BroadcastStats'
 import { List, Workspace } from '../services/api/types'
@@ -145,6 +145,7 @@ interface VariationCardProps {
   broadcast: Broadcast
   onSelectWinner?: (templateId: string) => void
   testResults?: any
+  permissions?: any
 }
 
 const VariationCard: React.FC<VariationCardProps> = ({
@@ -154,7 +155,8 @@ const VariationCard: React.FC<VariationCardProps> = ({
   index,
   broadcast,
   onSelectWinner,
-  testResults
+  testResults,
+  permissions
 }) => {
   const emailProvider = workspace.integrations?.find(
     (i) =>
@@ -201,17 +203,25 @@ const VariationCard: React.FC<VariationCardProps> = ({
               </Button>
             )}
             {canSelectWinner && variation.template_id && onSelectWinner && (
-              <Popconfirm
-                title="Select Winner"
-                description={`Are you sure you want to select "${variation.template?.name || 'this variation'}" as the winner? The broadcast will be sent to the remaining recipients.`}
-                onConfirm={() => onSelectWinner(variation.template_id)}
-                okText="Yes, Select Winner"
-                cancelText="Cancel"
+              <Tooltip
+                title={
+                  !permissions?.broadcasts?.write
+                    ? "You don't have write permission for broadcasts"
+                    : undefined
+                }
               >
-                <Button size="small" type="primary">
-                  Select Winner
-                </Button>
-              </Popconfirm>
+                <Popconfirm
+                  title="Select Winner"
+                  description={`Are you sure you want to select "${variation.template?.name || 'this variation'}" as the winner? The broadcast will be sent to the remaining recipients.`}
+                  onConfirm={() => onSelectWinner(variation.template_id)}
+                  okText="Yes, Select Winner"
+                  cancelText="Cancel"
+                >
+                  <Button size="small" type="primary" disabled={!permissions?.broadcasts?.write}>
+                    Select Winner
+                  </Button>
+                </Popconfirm>
+              </Tooltip>
             )}
           </Space>
         }
@@ -372,6 +382,7 @@ interface BroadcastCardProps {
   onSchedule: (broadcast: Broadcast) => void
   onRefresh: (broadcast: Broadcast) => void
   currentWorkspace: any
+  permissions: any
   isFirst?: boolean
 }
 
@@ -386,6 +397,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
   onSchedule,
   onRefresh,
   currentWorkspace,
+  permissions,
   isFirst = false
 }) => {
   const [showDetails, setShowDetails] = useState(isFirst)
@@ -574,55 +586,120 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
             />
           </Tooltip>
           {(broadcast.status === 'draft' || broadcast.status === 'scheduled') && (
-            <UpsertBroadcastDrawer
-              workspace={currentWorkspace!}
-              broadcast={broadcast}
-              lists={lists}
-              buttonContent={
-                <Tooltip title="Edit Broadcast">
-                  <FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />
-                </Tooltip>
+            <Tooltip
+              title={
+                !permissions?.broadcasts?.write
+                  ? "You don't have write permission for broadcasts"
+                  : 'Edit Broadcast'
               }
-              buttonProps={{ size: 'small', type: 'text' }}
-            />
+            >
+              <div>
+                <UpsertBroadcastDrawer
+                  workspace={currentWorkspace!}
+                  broadcast={broadcast}
+                  lists={lists}
+                  buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
+                  buttonProps={{
+                    size: 'small',
+                    type: 'text',
+                    disabled: !permissions?.broadcasts?.write
+                  }}
+                />
+              </div>
+            </Tooltip>
           )}
           {broadcast.status === 'sending' && (
-            <Button type="text" size="small" onClick={() => onPause(broadcast)}>
-              <Tooltip title="Pause Broadcast">
+            <Tooltip
+              title={
+                !permissions?.broadcasts?.write
+                  ? "You don't have write permission for broadcasts"
+                  : 'Pause Broadcast'
+              }
+            >
+              <Button
+                type="text"
+                size="small"
+                onClick={() => onPause(broadcast)}
+                disabled={!permissions?.broadcasts?.write}
+              >
                 <FontAwesomeIcon icon={faCirclePause} style={{ opacity: 0.7 }} />
-              </Tooltip>
-            </Button>
+              </Button>
+            </Tooltip>
           )}
           {broadcast.status === 'paused' && (
-            <Button type="text" size="small" onClick={() => onResume(broadcast)}>
-              <Tooltip title="Resume Broadcast">
+            <Tooltip
+              title={
+                !permissions?.broadcasts?.write
+                  ? "You don't have write permission for broadcasts"
+                  : 'Resume Broadcast'
+              }
+            >
+              <Button
+                type="text"
+                size="small"
+                onClick={() => onResume(broadcast)}
+                disabled={!permissions?.broadcasts?.write}
+              >
                 <FontAwesomeIcon icon={faCirclePlay} style={{ opacity: 0.7 }} />
-              </Tooltip>
-            </Button>
+              </Button>
+            </Tooltip>
           )}
           {broadcast.status === 'scheduled' && (
-            <Button type="text" size="small" onClick={() => onCancel(broadcast)}>
-              <Tooltip title="Cancel Broadcast">
+            <Tooltip
+              title={
+                !permissions?.broadcasts?.write
+                  ? "You don't have write permission for broadcasts"
+                  : 'Cancel Broadcast'
+              }
+            >
+              <Button
+                type="text"
+                size="small"
+                onClick={() => onCancel(broadcast)}
+                disabled={!permissions?.broadcasts?.write}
+              >
                 <FontAwesomeIcon icon={faBan} style={{ opacity: 0.7 }} />
-              </Tooltip>
-            </Button>
+              </Button>
+            </Tooltip>
           )}
           {broadcast.status === 'draft' && (
             <>
-              <Button type="text" size="small" onClick={() => onDelete(broadcast)}>
-                <Tooltip title="Delete Broadcast">
-                  <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
-                </Tooltip>
-              </Button>
-              <Button
-                type="primary"
-                size="small"
-                ghost
-                disabled={!currentWorkspace?.settings?.marketing_email_provider_id}
-                onClick={() => onSchedule(broadcast)}
+              <Tooltip
+                title={
+                  !permissions?.broadcasts?.write
+                    ? "You don't have write permission for broadcasts"
+                    : 'Delete Broadcast'
+                }
               >
-                Send or Schedule
-              </Button>
+                <Button
+                  type="text"
+                  size="small"
+                  onClick={() => onDelete(broadcast)}
+                  disabled={!permissions?.broadcasts?.write}
+                >
+                  <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
+                </Button>
+              </Tooltip>
+              <Tooltip
+                title={
+                  !permissions?.broadcasts?.write
+                    ? "You don't have write permission for broadcasts"
+                    : undefined
+                }
+              >
+                <Button
+                  type="primary"
+                  size="small"
+                  ghost
+                  disabled={
+                    !permissions?.broadcasts?.write ||
+                    !currentWorkspace?.settings?.marketing_email_provider_id
+                  }
+                  onClick={() => onSchedule(broadcast)}
+                >
+                  Send or Schedule
+                </Button>
+              </Tooltip>
             </>
           )}
         </Space>
@@ -874,6 +951,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                         broadcast={broadcast}
                         onSelectWinner={handleSelectWinner}
                         testResults={testResults}
+                        permissions={permissions}
                       />
                     )
                   })}
@@ -897,6 +975,7 @@ export function BroadcastsPage() {
   const [broadcastToSchedule, setBroadcastToSchedule] = useState<Broadcast | null>(null)
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
+  const { permissions } = useWorkspacePermissions(workspaceId)
   const { message } = App.useApp()
 
   // Find the current workspace from the workspaces array
@@ -1027,11 +1106,24 @@ export function BroadcastsPage() {
         <div className="text-2xl font-medium">Broadcasts</div>
         {currentWorkspace && hasBroadcasts && (
           <Space>
-            <UpsertBroadcastDrawer
-              workspace={currentWorkspace}
-              lists={lists}
-              buttonContent={<>Create Broadcast</>}
-            />
+            <Tooltip
+              title={
+                !permissions?.broadcasts?.write
+                  ? "You don't have write permission for broadcasts"
+                  : undefined
+              }
+            >
+              <div>
+                <UpsertBroadcastDrawer
+                  workspace={currentWorkspace}
+                  lists={lists}
+                  buttonContent={<>Create Broadcast</>}
+                  buttonProps={{
+                    disabled: !permissions?.broadcasts?.write
+                  }}
+                />
+              </div>
+            </Tooltip>
           </Space>
         )}
       </div>
@@ -1074,6 +1166,7 @@ export function BroadcastsPage() {
               onSchedule={handleScheduleBroadcast}
               onRefresh={handleRefreshBroadcast}
               currentWorkspace={currentWorkspace}
+              permissions={permissions}
               isFirst={index === 0}
             />
           ))}
@@ -1086,11 +1179,24 @@ export function BroadcastsPage() {
           <Paragraph type="secondary">Create your first broadcast to get started</Paragraph>
           <div className="mt-4">
             {currentWorkspace && (
-              <UpsertBroadcastDrawer
-                workspace={currentWorkspace}
-                lists={lists}
-                buttonContent="Create Broadcast"
-              />
+              <Tooltip
+                title={
+                  !permissions?.broadcasts?.write
+                    ? "You don't have write permission for broadcasts"
+                    : undefined
+                }
+              >
+                <div>
+                  <UpsertBroadcastDrawer
+                    workspace={currentWorkspace}
+                    lists={lists}
+                    buttonContent="Create Broadcast"
+                    buttonProps={{
+                      disabled: !permissions?.broadcasts?.write
+                    }}
+                  />
+                </div>
+              </Tooltip>
             )}
           </div>
         </div>

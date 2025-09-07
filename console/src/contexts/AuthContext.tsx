@@ -1,6 +1,8 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { authService } from '../services/api/auth'
-import { Workspace } from '../services/api/types'
+import { workspaceService } from '../services/api/workspace'
+import { Workspace, WorkspaceMember, UserPermissions } from '../services/api/types'
+import { isRootUser } from '../services/api/auth'
 
 export interface User {
   id: string
@@ -109,4 +111,73 @@ export function useAuth() {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
+}
+
+// Custom hook to get user permissions for a specific workspace
+export function useWorkspacePermissions(workspaceId: string) {
+  const { user } = useAuth()
+  const [permissions, setPermissions] = useState<UserPermissions | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      if (!user || !workspaceId) {
+        setLoading(false)
+        return
+      }
+
+      // If user is root, they have full permissions
+      if (isRootUser(user.email)) {
+        setPermissions({
+          contacts: { read: true, write: true },
+          lists: { read: true, write: true },
+          templates: { read: true, write: true },
+          broadcasts: { read: true, write: true },
+          transactional: { read: true, write: true },
+          workspace: { read: true, write: true },
+          message_history: { read: true, write: true }
+        })
+        setLoading(false)
+        return
+      }
+
+      try {
+        const response = await workspaceService.getMembers(workspaceId)
+        const currentUserMember = response.members.find((member) => member.user_id === user.id)
+
+        if (currentUserMember) {
+          setPermissions(currentUserMember.permissions)
+        } else {
+          // User is not a member of this workspace, set empty permissions
+          setPermissions({
+            contacts: { read: false, write: false },
+            lists: { read: false, write: false },
+            templates: { read: false, write: false },
+            broadcasts: { read: false, write: false },
+            transactional: { read: false, write: false },
+            workspace: { read: false, write: false },
+            message_history: { read: false, write: false }
+          })
+        }
+      } catch (error) {
+        console.error('Failed to fetch user permissions', error)
+        // On error, assume no permissions
+        setPermissions({
+          contacts: { read: false, write: false },
+          lists: { read: false, write: false },
+          templates: { read: false, write: false },
+          broadcasts: { read: false, write: false },
+          transactional: { read: false, write: false },
+          workspace: { read: false, write: false },
+          message_history: { read: false, write: false }
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchPermissions()
+  }, [workspaceId, user])
+
+  return { permissions, loading }
 }

@@ -19,7 +19,7 @@ import { faCircleCheck, faFaceFrown } from '@fortawesome/free-regular-svg-icons'
 import { faBan, faTriangleExclamation, faRefresh } from '@fortawesome/free-solid-svg-icons'
 import { ContactDetailsDrawer } from '../components/contacts/ContactDetailsDrawer'
 import dayjs from '../lib/dayjs'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 
 const STORAGE_KEY = 'contact_columns_visibility'
 
@@ -62,6 +62,7 @@ export function ContactsPage() {
   const search = useSearch({ from: workspaceContactsRoute.id })
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
+  const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
 
   // Get the current workspace timezone
   const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
@@ -662,13 +663,26 @@ export function ContactsPage() {
       <div className="flex justify-between items-center mb-6">
         <div className="text-2xl font-medium">Contacts</div>
         <Space>
-          <ImportContactsButton lists={listsData?.lists || []} workspaceId={workspaceId} />
-          <ContactUpsertDrawer
-            workspace={currentWorkspace}
-            buttonProps={{
-              buttonContent: 'Create Contact'
-            }}
-          />
+          <Tooltip title={!permissions?.contacts?.write ? "You don't have write permission for contacts" : undefined}>
+            <span>
+              <ImportContactsButton
+                lists={listsData?.lists || []}
+                workspaceId={workspaceId}
+                disabled={!permissions?.contacts?.write}
+              />
+            </span>
+          </Tooltip>
+          <Tooltip title={!permissions?.contacts?.write ? "You don't have write permission for contacts" : undefined}>
+            <div>
+              <ContactUpsertDrawer
+                workspace={currentWorkspace}
+                buttonProps={{
+                  buttonContent: 'Create Contact',
+                  disabled: !permissions?.contacts?.write
+                }}
+              />
+            </div>
+          </Tooltip>
         </Space>
       </div>
 

@@ -12,6 +12,7 @@ interface ImportContactsButtonProps {
   lists?: List[]
   workspaceId: string
   refreshOnClose?: boolean
+  disabled?: boolean
 }
 
 export function ImportContactsButton({
@@ -21,7 +22,8 @@ export function ImportContactsButton({
   size = 'middle',
   lists = [],
   workspaceId,
-  refreshOnClose = true
+  refreshOnClose = true,
+  disabled = false
 }: ImportContactsButtonProps) {
   const { openDrawer } = useContactsCsvUpload()
 
@@ -33,6 +35,7 @@ export function ImportContactsButton({
       className={className}
       style={style}
       size={size}
+      disabled={disabled}
     >
       Import from CSV
     </Button>

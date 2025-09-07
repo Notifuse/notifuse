@@ -25,7 +25,7 @@ import { faRefresh } from '@fortawesome/free-solid-svg-icons'
 import { Check, X } from 'lucide-react'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { CreateTemplateDrawer } from '../components/templates/CreateTemplateDrawer'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ImportContactsToListButton } from '../components/lists/ImportContactsToListButton'
@@ -91,6 +91,7 @@ export function ListsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
+  const { permissions } = useWorkspacePermissions(workspaceId)
   const workspace = workspaces.find((w) => w.id === workspaceId)
 
   const { data, isLoading } = useQuery({
@@ -160,7 +161,16 @@ export function ListsPage() {
                 className="opacity-70 hover:opacity-100"
               />
             </Tooltip>
-            <CreateListDrawer workspaceId={workspaceId} />
+            <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : undefined}>
+              <div>
+                <CreateListDrawer
+                  workspaceId={workspaceId}
+                  buttonProps={{
+                    disabled: !permissions?.lists?.write
+                  }}
+                />
+              </div>
+            </Tooltip>
           </Space>
         )}
       </div>
@@ -184,29 +194,42 @@ export function ListsPage() {
               }
               extra={
                 <Space>
-                  <Button type="text" size="small" onClick={() => openDeleteModal(list)}>
-                    <Tooltip title="Delete List">
+                  <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : "Delete List"}>
+                    <Button
+                      type="text"
+                      size="small"
+                      onClick={() => openDeleteModal(list)}
+                      disabled={!permissions?.lists?.write}
+                    >
                       <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
-                    </Tooltip>
-                  </Button>
-                  <CreateListDrawer
-                    workspaceId={workspaceId}
-                    list={list}
-                    buttonProps={{
-                      type: 'text',
-                      size: 'small',
-                      buttonContent: (
-                        <Tooltip title="Edit List">
-                          <FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />
-                        </Tooltip>
-                      )
-                    }}
-                  />
-                  <ImportContactsToListButton
-                    list={list}
-                    workspaceId={workspaceId}
-                    lists={data.lists}
-                  />
+                    </Button>
+                  </Tooltip>
+                  <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : "Edit List"}>
+                    <div>
+                      <CreateListDrawer
+                        workspaceId={workspaceId}
+                        list={list}
+                        buttonProps={{
+                          type: 'text',
+                          size: 'small',
+                          buttonContent: (
+                            <FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />
+                          ),
+                          disabled: !permissions?.lists?.write
+                        }}
+                      />
+                    </div>
+                  </Tooltip>
+                  <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : undefined}>
+                    <div>
+                      <ImportContactsToListButton
+                        list={list}
+                        workspaceId={workspaceId}
+                        lists={data.lists}
+                        disabled={!permissions?.lists?.write}
+                      />
+                    </div>
+                  </Tooltip>
                 </Space>
               }
               key={list.id}

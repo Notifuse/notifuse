@@ -18,7 +18,7 @@ import { faTerminal } from '@fortawesome/free-solid-svg-icons'
 import UpsertTransactionalNotificationDrawer from '../components/transactional/UpsertTransactionalNotificationDrawer'
 import React, { useState } from 'react'
 import dayjs from '../lib/dayjs'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { templatesApi } from '../services/api/template'
@@ -78,6 +78,7 @@ const ChannelsList: React.FC<{ channels: ChannelTemplates; workspace: Workspace 
 export function TransactionalNotificationsPage() {
   const { workspaceId } = useParams({ strict: false })
   const { workspaces } = useAuth()
+  const { permissions } = useWorkspacePermissions(workspaceId as string)
   const queryClient = useQueryClient()
 
   // Find the current workspace from the workspaces array
@@ -204,27 +205,67 @@ export function TransactionalNotificationsPage() {
       width: 100,
       render: (_: any, record: TransactionalNotification) => (
         <Space>
-          <Tooltip title="Edit">
-            {currentWorkspace && (
-              <UpsertTransactionalNotificationDrawer
-                workspace={currentWorkspace}
-                notification={record}
-                buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
-                buttonProps={{ type: 'text', size: 'small' }}
-              />
-            )}
+          <Tooltip
+            title={
+              !permissions?.transactional?.write
+                ? "You don't have write permission for transactional notifications"
+                : 'Edit'
+            }
+          >
+            <div>
+              {currentWorkspace && (
+                <UpsertTransactionalNotificationDrawer
+                  workspace={currentWorkspace}
+                  notification={record}
+                  buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
+                  buttonProps={{
+                    type: 'text',
+                    size: 'small',
+                    disabled: !permissions?.transactional?.write
+                  }}
+                />
+              )}
+            </div>
           </Tooltip>
-          <Tooltip title="Test">
-            <Button type="text" size="small" onClick={() => handleTestNotification(record)}>
+          <Tooltip
+            title={
+              !permissions?.transactional?.write
+                ? "You don't have write permission for transactional notifications"
+                : 'Test'
+            }
+          >
+            <Button
+              type="text"
+              size="small"
+              onClick={() => handleTestNotification(record)}
+              disabled={!permissions?.transactional?.write}
+            >
               <FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />
             </Button>
           </Tooltip>
-          <Tooltip title="API Command">
-            <Button type="text" size="small" onClick={() => handleShowApiModal(record)}>
+          <Tooltip
+            title={
+              !permissions?.transactional?.write
+                ? "You don't have write permission for transactional notifications"
+                : 'API Command'
+            }
+          >
+            <Button
+              type="text"
+              size="small"
+              onClick={() => handleShowApiModal(record)}
+              disabled={!permissions?.transactional?.write}
+            >
               <FontAwesomeIcon icon={faTerminal} style={{ opacity: 0.7 }} />
             </Button>
           </Tooltip>
-          <Tooltip title="Delete">
+          <Tooltip
+            title={
+              !permissions?.transactional?.write
+                ? "You don't have write permission for transactional notifications"
+                : 'Delete'
+            }
+          >
             <Popconfirm
               title="Delete the notification?"
               description="Are you sure you want to delete this notification? This cannot be undone."
@@ -233,7 +274,7 @@ export function TransactionalNotificationsPage() {
               cancelText="Cancel"
               placement="topRight"
             >
-              <Button type="text" size="small">
+              <Button type="text" size="small" disabled={!permissions?.transactional?.write}>
                 <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
               </Button>
             </Popconfirm>
@@ -248,11 +289,24 @@ export function TransactionalNotificationsPage() {
       <div className="flex justify-between items-center mb-6">
         <div className="text-2xl font-medium">Transactional Notifications</div>
         {currentWorkspace && hasNotifications && (
-          <UpsertTransactionalNotificationDrawer
-            workspace={currentWorkspace}
-            buttonContent={'Create Notification'}
-            buttonProps={{ type: 'primary' }}
-          />
+          <Tooltip
+            title={
+              !permissions?.transactional?.write
+                ? "You don't have write permission for transactional notifications"
+                : undefined
+            }
+          >
+            <div>
+              <UpsertTransactionalNotificationDrawer
+                workspace={currentWorkspace}
+                buttonContent={'Create Notification'}
+                buttonProps={{
+                  type: 'primary',
+                  disabled: !permissions?.transactional?.write
+                }}
+              />
+            </div>
+          </Tooltip>
         )}
       </div>
 
@@ -274,11 +328,24 @@ export function TransactionalNotificationsPage() {
           <Paragraph type="secondary">Create your first notification to get started</Paragraph>
           <div className="mt-4">
             {currentWorkspace && (
-              <UpsertTransactionalNotificationDrawer
-                workspace={currentWorkspace}
-                buttonContent="Create Notification"
-                buttonProps={{ type: 'primary' }}
-              />
+              <Tooltip
+                title={
+                  !permissions?.transactional?.write
+                    ? "You don't have write permission for transactional notifications"
+                    : undefined
+                }
+              >
+                <div>
+                  <UpsertTransactionalNotificationDrawer
+                    workspace={currentWorkspace}
+                    buttonContent="Create Notification"
+                    buttonProps={{
+                      type: 'primary',
+                      disabled: !permissions?.transactional?.write
+                    }}
+                  />
+                </div>
+              </Tooltip>
             )}
           </div>
         </div>

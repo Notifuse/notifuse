@@ -1,6 +1,6 @@
 # TODO
 
-- permissions per feature: embed permissions in paseto token for future verification in middleware
+- permissions per feature in UI
 
 ## Content
 

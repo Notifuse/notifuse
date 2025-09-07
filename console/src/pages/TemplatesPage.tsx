@@ -25,7 +25,7 @@ import {
 } from '@fortawesome/free-regular-svg-icons'
 import { CreateTemplateDrawer } from '../components/templates/CreateTemplateDrawer'
 import { renderCategoryTag } from '../components/templates'
-import { useAuth } from '../contexts/AuthContext'
+import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import dayjs from '../lib/dayjs'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
@@ -44,6 +44,7 @@ export function TemplatesPage() {
   const navigate = useNavigate({ from: '/workspace/$workspaceId/templates' })
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
+  const { permissions } = useWorkspacePermissions(workspaceId)
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   // Derive selectedCategory from search params, default to 'all'
   const selectedCategory = search.category || 'all'
@@ -208,30 +209,38 @@ export function TemplatesPage() {
       render: (_: any, record: Template) => (
         <Space>
           {workspace && (
-            <Tooltip title="Edit Template">
-              <>
+            <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : "Edit Template"}>
+              <div>
                 <CreateTemplateDrawer
                   template={record}
                   workspace={workspace}
                   buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
-                  buttonProps={{ type: 'text', size: 'small' }}
+                  buttonProps={{
+                    type: 'text',
+                    size: 'small',
+                    disabled: !permissions?.templates?.write
+                  }}
                 />
-              </>
+              </div>
             </Tooltip>
           )}
           {workspace && (
-            <Tooltip title="Clone Template">
-              <>
+            <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : "Clone Template"}>
+              <div>
                 <CreateTemplateDrawer
                   fromTemplate={record}
                   workspace={workspace}
                   buttonContent={<FontAwesomeIcon icon={faCopy} style={{ opacity: 0.7 }} />}
-                  buttonProps={{ type: 'text', size: 'small' }}
+                  buttonProps={{
+                    type: 'text',
+                    size: 'small',
+                    disabled: !permissions?.templates?.write
+                  }}
                 />
-              </>
+              </div>
             </Tooltip>
           )}
-          <Tooltip title="Delete Template">
+          <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : "Delete Template"}>
             <Popconfirm
               title="Delete the template?"
               description="Are you sure you want to delete this template? All versions will be deleted."
@@ -244,14 +253,16 @@ export function TemplatesPage() {
                 type="text"
                 icon={<FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />}
                 loading={deleteMutation.isPending}
+                disabled={!permissions?.templates?.write}
               />
             </Popconfirm>
           </Tooltip>
-          <Tooltip title="Send Test Email">
+          <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : "Send Test Email"}>
             <Button
               type="text"
               icon={<FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />}
               onClick={() => handleTestTemplate(record)}
+              disabled={!permissions?.templates?.write}
             />
           </Tooltip>
           <Tooltip title="Preview Template">
@@ -274,7 +285,16 @@ export function TemplatesPage() {
       <div className="flex justify-between items-center mb-6">
         <div className="text-2xl font-medium">Templates</div>
         {workspace && data?.templates && data.templates.length > 0 && (
-          <CreateTemplateDrawer workspace={workspace} />
+          <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : undefined}>
+            <div>
+              <CreateTemplateDrawer
+                workspace={workspace}
+                buttonProps={{
+                  disabled: !permissions?.templates?.write
+                }}
+              />
+            </div>
+          </Tooltip>
         )}
       </div>
 
@@ -308,7 +328,17 @@ export function TemplatesPage() {
               <Paragraph type="secondary">Create your first template to get started</Paragraph>
               <div className="mt-4">
                 {workspace && (
-                  <CreateTemplateDrawer workspace={workspace} buttonProps={{ size: 'large' }} />
+                  <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : undefined}>
+                    <div>
+                      <CreateTemplateDrawer
+                        workspace={workspace}
+                        buttonProps={{
+                          size: 'large',
+                          disabled: !permissions?.templates?.write
+                        }}
+                      />
+                    </div>
+                  </Tooltip>
                 )}
               </div>
             </>

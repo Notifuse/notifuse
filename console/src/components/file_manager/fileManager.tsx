@@ -82,6 +82,9 @@ export const FileManager = (props: FileManagerProps) => {
   const [isUploading, setIsUploading] = useState(false)
   const [form] = Form.useForm()
 
+  // Check if file manager is in read-only mode
+  const isReadOnly = props.readOnly || false
+
   const goToPath = (path: string) => {
     // reset selection on path change
     setSelectedRowKeys([])
@@ -414,7 +417,7 @@ export const FileManager = (props: FileManagerProps) => {
           <div style={{ ...styles.padding, borderBottom: '1px solid rgba(0,0,0,0.1)' }}>
             <div style={styles.pullRight}>
               <Space>
-                {currentPath !== '' && (
+                {currentPath !== '' && !isReadOnly && (
                   <Tooltip title="Delete folder" placement="bottom">
                     <Popconfirm
                       placement="topRight"
@@ -440,6 +443,11 @@ export const FileManager = (props: FileManagerProps) => {
                     </Popconfirm>
                   </Tooltip>
                 )}
+                {currentPath !== '' && isReadOnly && (
+                  <Tooltip title="Delete folder (Read-only mode)" placement="bottom">
+                    <Button size="small" type="text" disabled icon={<Trash2 size={16} />} />
+                  </Tooltip>
+                )}
                 <Tooltip title="Refresh the list">
                   <Button
                     size="small"
@@ -449,36 +457,60 @@ export const FileManager = (props: FileManagerProps) => {
                   />
                 </Tooltip>
 
-                <ButtonFilesSettings
-                  settings={props.settings}
-                  onUpdateSettings={props.onUpdateSettings}
-                  settingsInfo={props.settingsInfo}
-                >
-                  <Tooltip title="Storage settings">
-                    <Button type="text" size="small">
+                {!isReadOnly && (
+                  <ButtonFilesSettings
+                    settings={props.settings}
+                    onUpdateSettings={props.onUpdateSettings}
+                    settingsInfo={props.settingsInfo}
+                  >
+                    <Tooltip title="Storage settings">
+                      <Button type="text" size="small">
+                        <Settings size={16} />
+                      </Button>
+                    </Tooltip>
+                  </ButtonFilesSettings>
+                )}
+                {isReadOnly && (
+                  <Tooltip title="Storage settings (Read-only mode)">
+                    <Button type="text" size="small" disabled>
                       <Settings size={16} />
                     </Button>
                   </Tooltip>
-                </ButtonFilesSettings>
-                <span role="button" onClick={onBrowseFiles}>
-                  <input
-                    type="file"
-                    ref={inputFileRef}
-                    onChange={onFileChange}
-                    hidden
-                    accept={props.acceptFileType}
-                    multiple={false}
-                  />
-                  <Button
-                    type="primary"
-                    // size="small"
-                    style={styles.pullRight}
-                    loading={isUploading}
-                  >
-                    <Plus size={16} />
-                    Upload
-                  </Button>
-                </span>
+                )}
+                {!isReadOnly && (
+                  <span role="button" onClick={onBrowseFiles}>
+                    <input
+                      type="file"
+                      ref={inputFileRef}
+                      onChange={onFileChange}
+                      hidden
+                      accept={props.acceptFileType}
+                      multiple={false}
+                    />
+                    <Button
+                      type="primary"
+                      // size="small"
+                      style={styles.pullRight}
+                      loading={isUploading}
+                    >
+                      <Plus size={16} />
+                      Upload
+                    </Button>
+                  </span>
+                )}
+                {isReadOnly && (
+                  <Tooltip title="Upload file (Read-only mode)">
+                    <Button
+                      type="primary"
+                      // size="small"
+                      style={styles.pullRight}
+                      disabled
+                    >
+                      <Plus size={16} />
+                      Upload
+                    </Button>
+                  </Tooltip>
+                )}
               </Space>
             </div>
 
@@ -508,9 +540,11 @@ export const FileManager = (props: FileManagerProps) => {
                     )
                   })}
               </div>
-              <Button type="primary" ghost onClick={toggleNewFolderModal}>
-                New folder
-              </Button>
+              <Tooltip title={isReadOnly ? 'New folder (Read-only mode)' : 'Create new folder'}>
+                <Button type="primary" ghost onClick={toggleNewFolderModal} disabled={isReadOnly}>
+                  New folder
+                </Button>
+              </Tooltip>
             </Space>
           </div>
           <Table
@@ -640,20 +674,29 @@ export const FileManager = (props: FileManagerProps) => {
                           </Button>
                         </a>
                       </Tooltip>
-                      <Popconfirm
-                        title="Do you want to permanently delete this file from your storage?"
-                        onConfirm={() => deleteObject(item.key, false)}
-                        placement="topRight"
-                        okText="Delete"
-                        cancelText="Cancel"
-                        okButtonProps={{
-                          danger: true
-                        }}
-                      >
-                        <Button type="text" size="small">
-                          <Trash2 size={16} />
-                        </Button>
-                      </Popconfirm>
+                      {!isReadOnly && (
+                        <Popconfirm
+                          title="Do you want to permanently delete this file from your storage?"
+                          onConfirm={() => deleteObject(item.key, false)}
+                          placement="topRight"
+                          okText="Delete"
+                          cancelText="Cancel"
+                          okButtonProps={{
+                            danger: true
+                          }}
+                        >
+                          <Button type="text" size="small">
+                            <Trash2 size={16} />
+                          </Button>
+                        </Popconfirm>
+                      )}
+                      {isReadOnly && (
+                        <Tooltip title="Delete file (Read-only mode)">
+                          <Button type="text" size="small" disabled>
+                            <Trash2 size={16} />
+                          </Button>
+                        </Tooltip>
+                      )}
                     </Space>
                   )
                 }
@@ -666,9 +709,21 @@ export const FileManager = (props: FileManagerProps) => {
         <Modal
           title="Create new folder"
           open={newFolderModalVisible}
-          onOk={onSubmitNewFolder}
           onCancel={toggleNewFolderModal}
-          confirmLoading={newFolderLoading}
+          footer={[
+            <Button key="cancel" onClick={toggleNewFolderModal}>
+              Cancel
+            </Button>,
+            <Button
+              key="create"
+              type="primary"
+              onClick={onSubmitNewFolder}
+              loading={newFolderLoading}
+              disabled={isReadOnly}
+            >
+              Create
+            </Button>
+          ]}
         >
           <Form form={form}>
             <Form.Item

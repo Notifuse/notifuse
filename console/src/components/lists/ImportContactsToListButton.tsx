@@ -13,6 +13,7 @@ interface ImportContactsToListButtonProps {
   type?: 'default' | 'primary' | 'dashed' | 'link' | 'text'
   className?: string
   style?: React.CSSProperties
+  disabled?: boolean
 }
 
 export function ImportContactsToListButton({
@@ -22,7 +23,8 @@ export function ImportContactsToListButton({
   size = 'small',
   type = 'text',
   className,
-  style
+  style,
+  disabled = false
 }: ImportContactsToListButtonProps) {
   const { openDrawerWithSelectedList } = useContactsCsvUpload()
   const queryClient = useQueryClient()
@@ -33,7 +35,7 @@ export function ImportContactsToListButton({
   }
 
   return (
-    <Button type={type} size={size} onClick={handleClick} className={className} style={style}>
+    <Button type={type} size={size} onClick={handleClick} className={className} style={style} disabled={disabled}>
       <Tooltip title="Import Contacts to List">
         <UploadOutlined />
       </Tooltip>
