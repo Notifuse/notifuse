@@ -48,7 +48,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 		require.NoError(t, err)
 
 		// Step 1: Create a test broadcast in the workspace database
-		broadcastID := "cb-test-001-12345678" // Unique ID to avoid conflicts
+		broadcastID := "cb-test-" + testutil.GenerateRandomString(12) // Generate unique ID to avoid conflicts
 		_, err = workspaceDB.Exec(`
 			INSERT INTO broadcasts (
 				id, workspace_id, name, status, audience, schedule, test_settings, 
@@ -195,7 +195,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a test broadcast
-		broadcastID := "cb-test-002-87654321" // Unique ID to avoid conflicts
+		broadcastID := "cb-test-" + testutil.GenerateRandomString(12) // Generate unique ID to avoid conflicts
 		_, err = workspaceDB.Exec(`
 			INSERT INTO broadcasts (
 				id, workspace_id, name, status, audience, schedule, test_settings, 
@@ -284,7 +284,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a test broadcast
-		broadcastID := "cb-test-003-11223344" // Unique ID to avoid conflicts
+		broadcastID := "cb-test-" + testutil.GenerateRandomString(12) // Generate unique ID to avoid conflicts
 		circuitBreakerReason := "Circuit breaker triggered: Email provider error 503"
 
 		_, err = workspaceDB.Exec(`
