@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react'
 import { App } from 'antd'
-import { FileManager, ExtendedFileManagerProps } from '../components/file_manager/fileManager'
+import { FileManager } from '../components/file_manager/fileManager'
+import { FileManagerProps } from '../components/file_manager/interfaces'
 import { StorageObject } from '../components/file_manager/interfaces'
 import { useParams } from '@tanstack/react-router'
 import { useAuth } from '../contexts/AuthContext'
 import { workspaceService } from '../services/api/workspace'
 import { Workspace, FileManagerSettings } from '../services/api/types'
+import { useWorkspacePermissions } from '../contexts/AuthContext'
 
 export function FileManagerPage() {
   const { workspaceId } = useParams({ from: '/workspace/$workspaceId' })
   const { workspaces, refreshWorkspaces } = useAuth()
+  const { permissions } = useWorkspacePermissions(workspaceId)
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null)
   const { message } = App.useApp()
 
@@ -66,7 +69,7 @@ export function FileManagerPage() {
     }
   }
 
-  const fileManagerProps: ExtendedFileManagerProps = {
+  const fileManagerProps: FileManagerProps = {
     currentPath: '',
     onError: handleError,
     onSelect: handleSelect,
@@ -83,7 +86,8 @@ export function FileManagerPage() {
       secret_key: currentWorkspace?.settings?.file_manager?.secret_key || '',
       cdn_endpoint: currentWorkspace?.settings?.file_manager?.cdn_endpoint || ''
     },
-    onUpdateSettings: handleUpdateSettings
+    onUpdateSettings: handleUpdateSettings,
+    readOnly: !permissions?.templates?.write
   }
 
   // console.log('fileManagerProps', fileManagerProps)

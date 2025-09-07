@@ -1,7 +1,5 @@
 # TODO
 
-- permissions per feature in UI
-
 ## Content
 
 - page vs loops.so
