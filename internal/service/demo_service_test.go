@@ -237,7 +237,7 @@ func TestDemoService_CreateSampleLists_Error(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, nil)
+	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, nil, nil)
 	mockListRepo.EXPECT().CreateList(ctx, "demo", gomock.Any()).Return(assert.AnError)
 
 	err := svc.createSampleLists(ctx, "demo")
@@ -268,7 +268,7 @@ func TestDemoService_SubscribeContactsToList_Success(t *testing.T) {
 	ctx := context.Background()
 
 	// GetContacts flow
-	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, nil)
+	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, nil, nil)
 	mockContactRepo.EXPECT().GetContacts(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.GetContactsRequest) (*domain.GetContactsResponse, error) {
 		return &domain.GetContactsResponse{Contacts: []*domain.Contact{{Email: "a@example.com"}, {Email: "b@example.com"}}}, nil
 	})
@@ -306,7 +306,7 @@ func TestDemoService_CreateSampleTemplates_Smoke(t *testing.T) {
 
 	ctx := context.Background()
 	// Authenticate for each template creation (4 templates)
-	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, nil).Times(4)
+	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, nil, nil).Times(4)
 	mockTemplateRepo.EXPECT().CreateTemplate(ctx, "demo", gomock.Any()).Return(nil).Times(4)
 
 	err := svc.createSampleTemplates(ctx, "demo")

@@ -18,7 +18,7 @@ type AuthRepository interface {
 
 type AuthService interface {
 	AuthenticateUserFromContext(ctx context.Context) (*User, error)
-	AuthenticateUserForWorkspace(ctx context.Context, workspaceID string) (context.Context, *User, error)
+	AuthenticateUserForWorkspace(ctx context.Context, workspaceID string) (context.Context, *User, *UserWorkspace, error)
 	VerifyUserSession(ctx context.Context, userID, sessionID string) (*User, error)
 	GenerateUserAuthToken(user *User, sessionID string, expiresAt time.Time) string
 	GenerateAPIAuthToken(user *User) string

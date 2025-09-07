@@ -95,7 +95,7 @@ func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string
 	defer tracing.EndSpan(span, nil)
 
 	// Authenticate user
-	ctx, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		tracing.MarkSpanError(ctx, err)
 		return err

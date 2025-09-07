@@ -151,7 +151,7 @@ func TestMessageHistoryHandler_handleList_AuthenticationError(t *testing.T) {
 	// Mock auth service to return error
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws123").
-		Return(nil, nil, assert.AnError)
+		Return(nil, nil, nil, assert.AnError)
 
 	// Call the handler
 	handler.handleList(w, req)
@@ -189,7 +189,7 @@ func TestMessageHistoryHandler_handleList_ValidationError(t *testing.T) {
 	// Mock auth service to return success
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws123").
-		Return(context.Background(), user, nil)
+		Return(context.Background(), user, nil, nil)
 
 	// Call the handler
 	handler.handleList(w, req)
@@ -260,7 +260,7 @@ func TestMessageHistoryHandler_handleList_Success(t *testing.T) {
 	// Mock auth service to return success
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws123").
-		Return(context.Background(), user, nil)
+		Return(context.Background(), user, nil, nil)
 
 	// Mock message history service
 	mockService.EXPECT().
@@ -346,7 +346,7 @@ func TestMessageHistoryHandler_handleList_ServiceError(t *testing.T) {
 	// Mock auth service to return success
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws123").
-		Return(context.Background(), user, nil)
+		Return(context.Background(), user, nil, nil)
 
 	// Set up logger mock to expect error call
 	mockLogger.EXPECT().Error(gomock.Any()).Times(1)
@@ -392,7 +392,7 @@ func TestMessageHistoryHandler_handleList_InvalidTimeFormat(t *testing.T) {
 	// Mock auth service to return success
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws123").
-		Return(context.Background(), user, nil)
+		Return(context.Background(), user, nil, nil)
 
 	// Call the handler
 	handler.handleList(w, req)
@@ -430,7 +430,7 @@ func TestMessageHistoryHandler_handleList_InvalidBooleanFormat(t *testing.T) {
 	// Mock auth service to return success
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws123").
-		Return(context.Background(), user, nil)
+		Return(context.Background(), user, nil, nil)
 
 	// Call the handler
 	handler.handleList(w, req)
@@ -475,7 +475,7 @@ func TestMessageHistoryHandler_handleList_WithBooleanParameter(t *testing.T) {
 	// Mock auth service to return success
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws123").
-		Return(context.Background(), user, nil)
+		Return(context.Background(), user, nil, nil)
 
 	// Mock message history service
 	mockService.EXPECT().
@@ -548,7 +548,7 @@ func TestMessageHistoryHandler_handleList_NilTracer(t *testing.T) {
 	// Mock auth service to return success
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws123").
-		Return(context.Background(), user, nil)
+		Return(context.Background(), user, nil, nil)
 
 	// Create expected result
 	result := &domain.MessageListResult{
@@ -613,7 +613,7 @@ func TestMessageHistoryHandler_handleList_TracerErrorHandling(t *testing.T) {
 	// Mock auth service to return success
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), "ws123").
-		Return(context.Background(), user, nil)
+		Return(context.Background(), user, nil, nil)
 
 	// Mock logger to expect error log
 	mockLogger.EXPECT().Error(gomock.Any())

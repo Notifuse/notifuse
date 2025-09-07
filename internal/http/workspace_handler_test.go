@@ -976,7 +976,7 @@ func TestWorkspaceHandler_HandleInviteMember(t *testing.T) {
 	mockToken := "invitation-token-123"
 
 	workspaceSvc.EXPECT().
-		InviteMember(gomock.Any(), "testworkspace123", "test@example.com").
+		InviteMember(gomock.Any(), "testworkspace123", "test@example.com", gomock.Any()).
 		Return(mockInvitation, mockToken, nil)
 
 	// Create request
@@ -1018,7 +1018,7 @@ func TestWorkspaceHandler_HandleInviteMember_DirectAdd(t *testing.T) {
 
 	// Mock case where user already exists (direct add)
 	workspaceSvc.EXPECT().
-		InviteMember(gomock.Any(), "testworkspace123", "existing@example.com").
+		InviteMember(gomock.Any(), "testworkspace123", "existing@example.com", gomock.Any()).
 		Return(nil, "", nil) // nil invitation means user was directly added
 
 	// Create request
@@ -1119,7 +1119,7 @@ func TestWorkspaceHandler_HandleInviteMember_ServiceError(t *testing.T) {
 
 	// Mock service error
 	workspaceSvc.EXPECT().
-		InviteMember(gomock.Any(), "testworkspace123", "test@example.com").
+		InviteMember(gomock.Any(), "testworkspace123", "test@example.com", gomock.Any()).
 		Return(nil, "", fmt.Errorf("service error"))
 
 	// Create request
@@ -2457,9 +2457,9 @@ func TestWorkspaceHandler_HandleAcceptInvitation(t *testing.T) {
 			ValidateInvitationToken("valid-token").
 			Return(invitationID, workspaceID, email, nil)
 
-		// Mock invitation retrieval failure
+		// Mock invitation acceptance failure (invitation not found handled in service)
 		workspaceSvc.EXPECT().
-			GetInvitationByID(gomock.Any(), invitationID).
+			AcceptInvitation(gomock.Any(), invitationID, workspaceID, email).
 			Return(nil, errors.New("invitation not found"))
 
 		// Create request
@@ -2476,12 +2476,12 @@ func TestWorkspaceHandler_HandleAcceptInvitation(t *testing.T) {
 		handler.handleAcceptInvitation(w, req)
 
 		// Assert response
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
 
 		var response map[string]string
 		err = json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
-		assert.Equal(t, "Invitation not found", response["error"])
+		assert.Equal(t, "Failed to accept invitation", response["error"])
 	})
 
 	t.Run("invitation acceptance failure", func(t *testing.T) {
@@ -2489,11 +2489,6 @@ func TestWorkspaceHandler_HandleAcceptInvitation(t *testing.T) {
 		authSvc.EXPECT().
 			ValidateInvitationToken("valid-token").
 			Return(invitationID, workspaceID, email, nil)
-
-		// Mock invitation retrieval
-		workspaceSvc.EXPECT().
-			GetInvitationByID(gomock.Any(), invitationID).
-			Return(invitation, nil)
 
 		// Mock invitation acceptance failure
 		workspaceSvc.EXPECT().
@@ -2687,5 +2682,179 @@ func TestWorkspaceHandler_DeleteInvitation(t *testing.T) {
 		err := json.NewDecoder(w.Body).Decode(&response)
 		require.NoError(t, err)
 		assert.Equal(t, "Method not allowed", response["error"])
+	})
+}
+
+func TestWorkspaceHandler_HandleSetUserPermissions(t *testing.T) {
+	_, workspaceSvc, mux, secretKey, _ := setupTest(t)
+
+	t.Run("successful permission update", func(t *testing.T) {
+		// Mock successful permission update
+		workspaceSvc.EXPECT().
+			SetUserPermissions(gomock.Any(), "workspace-123", "user-123", gomock.Any()).
+			Return(nil)
+
+		// Create request
+		reqBody := domain.SetUserPermissionsRequest{
+			WorkspaceID: "workspace-123",
+			UserID:      "user-123",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceContacts: domain.ResourcePermissions{
+					Read:  true,
+					Write: false,
+				},
+				domain.PermissionResourceLists: domain.ResourcePermissions{
+					Read:  true,
+					Write: true,
+				},
+			},
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUserPermissions", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		// Execute request
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		// Assert response
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+
+		assert.Equal(t, "success", response["status"])
+		assert.Equal(t, "User permissions updated successfully", response["message"])
+	})
+
+	t.Run("method not allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/workspaces.setUserPermissions", nil)
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+
+		var response map[string]string
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Method not allowed", response["error"])
+	})
+
+	t.Run("invalid request body", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUserPermissions", strings.NewReader("invalid json"))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		err := json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Invalid request body", response["error"])
+	})
+
+	t.Run("validation error", func(t *testing.T) {
+		// Create request with missing required fields
+		reqBody := domain.SetUserPermissionsRequest{
+			// Missing WorkspaceID
+			UserID: "user-123",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceContacts: domain.ResourcePermissions{
+					Read:  true,
+					Write: false,
+				},
+			},
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUserPermissions", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Contains(t, response["error"], "Missing workspace_id")
+	})
+
+	t.Run("unauthorized error", func(t *testing.T) {
+		// Mock unauthorized error
+		unauthorizedErr := &domain.ErrUnauthorized{Message: "Only workspace owners can manage user permissions"}
+		workspaceSvc.EXPECT().
+			SetUserPermissions(gomock.Any(), "workspace-123", "user-123", gomock.Any()).
+			Return(unauthorizedErr)
+
+		// Create request
+		reqBody := domain.SetUserPermissionsRequest{
+			WorkspaceID: "workspace-123",
+			UserID:      "user-123",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceContacts: domain.ResourcePermissions{
+					Read:  true,
+					Write: false,
+				},
+			},
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUserPermissions", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusForbidden, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Only workspace owners can manage user permissions", response["error"])
+	})
+
+	t.Run("service error", func(t *testing.T) {
+		// Mock service error
+		workspaceSvc.EXPECT().
+			SetUserPermissions(gomock.Any(), "workspace-123", "user-123", gomock.Any()).
+			Return(fmt.Errorf("service error"))
+
+		// Create request
+		reqBody := domain.SetUserPermissionsRequest{
+			WorkspaceID: "workspace-123",
+			UserID:      "user-123",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceContacts: domain.ResourcePermissions{
+					Read:  true,
+					Write: false,
+				},
+			},
+		}
+		body, err := json.Marshal(reqBody)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/workspaces.setUserPermissions", bytes.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+createTestToken(t, secretKey, "test-user"))
+
+		w := httptest.NewRecorder()
+		mux.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(w.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Failed to set user permissions", response["error"])
 	})
 }

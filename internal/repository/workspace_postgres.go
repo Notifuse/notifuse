@@ -365,7 +365,7 @@ func (r *workspaceRepository) RemoveUserFromWorkspace(ctx context.Context, userI
 
 func (r *workspaceRepository) GetUserWorkspaces(ctx context.Context, userID string) ([]*domain.UserWorkspace, error) {
 	query := `
-		SELECT user_id, workspace_id, role, created_at, updated_at
+		SELECT user_id, workspace_id, role, permissions, created_at, updated_at
 		FROM user_workspaces
 		WHERE user_id = $1
 	`
@@ -378,7 +378,7 @@ func (r *workspaceRepository) GetUserWorkspaces(ctx context.Context, userID stri
 	var userWorkspaces []*domain.UserWorkspace
 	for rows.Next() {
 		var uw domain.UserWorkspace
-		err := rows.Scan(&uw.UserID, &uw.WorkspaceID, &uw.Role, &uw.CreatedAt, &uw.UpdatedAt)
+		err := rows.Scan(&uw.UserID, &uw.WorkspaceID, &uw.Role, &uw.Permissions, &uw.CreatedAt, &uw.UpdatedAt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan user workspace: %w", err)
 		}
@@ -389,13 +389,13 @@ func (r *workspaceRepository) GetUserWorkspaces(ctx context.Context, userID stri
 
 func (r *workspaceRepository) GetUserWorkspace(ctx context.Context, userID string, workspaceID string) (*domain.UserWorkspace, error) {
 	query := `
-		SELECT user_id, workspace_id, role, created_at, updated_at
+		SELECT user_id, workspace_id, role, permissions, created_at, updated_at
 		FROM user_workspaces
 		WHERE user_id = $1 AND workspace_id = $2
 	`
 	var uw domain.UserWorkspace
 	err := r.systemDB.QueryRowContext(ctx, query, userID, workspaceID).Scan(
-		&uw.UserID, &uw.WorkspaceID, &uw.Role, &uw.CreatedAt, &uw.UpdatedAt,
+		&uw.UserID, &uw.WorkspaceID, &uw.Role, &uw.Permissions, &uw.CreatedAt, &uw.UpdatedAt,
 	)
 	if err == sql.ErrNoRows {
 		return nil, fmt.Errorf("user is not a member of the workspace")
@@ -406,13 +406,34 @@ func (r *workspaceRepository) GetUserWorkspace(ctx context.Context, userID strin
 	return &uw, nil
 }
 
+// UpdateUserWorkspacePermissions updates the permissions for a user in a workspace
+func (r *workspaceRepository) UpdateUserWorkspacePermissions(ctx context.Context, userWorkspace *domain.UserWorkspace) error {
+	query := `
+		UPDATE user_workspaces 
+		SET permissions = $1, updated_at = $2
+		WHERE user_id = $3 AND workspace_id = $4
+	`
+	_, err := r.systemDB.ExecContext(
+		ctx, query,
+		userWorkspace.Permissions,
+		time.Now(),
+		userWorkspace.UserID,
+		userWorkspace.WorkspaceID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update user workspace permissions: %w", err)
+	}
+	return nil
+}
+
 // CreateInvitation creates a new workspace invitation or updates an existing one
 func (r *workspaceRepository) CreateInvitation(ctx context.Context, invitation *domain.WorkspaceInvitation) error {
 	query := `
-		INSERT INTO workspace_invitations (id, workspace_id, inviter_id, email, expires_at, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO workspace_invitations (id, workspace_id, inviter_id, email, permissions, expires_at, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 		ON CONFLICT (workspace_id, email) DO UPDATE SET
 			inviter_id = EXCLUDED.inviter_id,
+			permissions = EXCLUDED.permissions,
 			expires_at = EXCLUDED.expires_at,
 			updated_at = EXCLUDED.updated_at
 	`
@@ -423,6 +444,7 @@ func (r *workspaceRepository) CreateInvitation(ctx context.Context, invitation *
 		invitation.WorkspaceID,
 		invitation.InviterID,
 		invitation.Email,
+		invitation.Permissions,
 		invitation.ExpiresAt,
 		invitation.CreatedAt,
 		invitation.UpdatedAt,
@@ -436,7 +458,7 @@ func (r *workspaceRepository) CreateInvitation(ctx context.Context, invitation *
 // GetInvitationByID retrieves a workspace invitation by its ID
 func (r *workspaceRepository) GetInvitationByID(ctx context.Context, id string) (*domain.WorkspaceInvitation, error) {
 	query := `
-		SELECT id, workspace_id, inviter_id, email, expires_at, created_at, updated_at
+		SELECT id, workspace_id, inviter_id, email, permissions, expires_at, created_at, updated_at
 		FROM workspace_invitations
 		WHERE id = $1
 	`
@@ -446,6 +468,7 @@ func (r *workspaceRepository) GetInvitationByID(ctx context.Context, id string) 
 		&invitation.WorkspaceID,
 		&invitation.InviterID,
 		&invitation.Email,
+		&invitation.Permissions,
 		&invitation.ExpiresAt,
 		&invitation.CreatedAt,
 		&invitation.UpdatedAt,
@@ -462,7 +485,7 @@ func (r *workspaceRepository) GetInvitationByID(ctx context.Context, id string) 
 // GetInvitationByEmail retrieves a workspace invitation by workspace ID and email
 func (r *workspaceRepository) GetInvitationByEmail(ctx context.Context, workspaceID, email string) (*domain.WorkspaceInvitation, error) {
 	query := `
-		SELECT id, workspace_id, inviter_id, email, expires_at, created_at, updated_at
+		SELECT id, workspace_id, inviter_id, email, permissions, expires_at, created_at, updated_at
 		FROM workspace_invitations
 		WHERE workspace_id = $1 AND email = $2
 		ORDER BY created_at DESC
@@ -474,6 +497,7 @@ func (r *workspaceRepository) GetInvitationByEmail(ctx context.Context, workspac
 		&invitation.WorkspaceID,
 		&invitation.InviterID,
 		&invitation.Email,
+		&invitation.Permissions,
 		&invitation.ExpiresAt,
 		&invitation.CreatedAt,
 		&invitation.UpdatedAt,
@@ -564,7 +588,7 @@ func (r *workspaceRepository) IsUserWorkspaceMember(ctx context.Context, userID,
 // GetWorkspaceUsersWithEmail returns all users for a workspace including email information
 func (r *workspaceRepository) GetWorkspaceUsersWithEmail(ctx context.Context, workspaceID string) ([]*domain.UserWorkspaceWithEmail, error) {
 	query := `
-		SELECT uw.user_id, uw.workspace_id, uw.role, uw.created_at, uw.updated_at, u.email, u.type
+		SELECT uw.user_id, uw.workspace_id, uw.role, uw.permissions, uw.created_at, uw.updated_at, u.email, u.type
 		FROM user_workspaces uw
 		JOIN users u ON uw.user_id = u.id
 		WHERE uw.workspace_id = $1
@@ -582,6 +606,7 @@ func (r *workspaceRepository) GetWorkspaceUsersWithEmail(ctx context.Context, wo
 			&uw.UserID,
 			&uw.WorkspaceID,
 			&uw.Role,
+			&uw.Permissions,
 			&uw.CreatedAt,
 			&uw.UpdatedAt,
 			&uw.Email,

@@ -38,13 +38,14 @@ func (m *MockAuthService) EXPECT() *MockAuthServiceMockRecorder {
 }
 
 // AuthenticateUserForWorkspace mocks base method.
-func (m *MockAuthService) AuthenticateUserForWorkspace(arg0 context.Context, arg1 string) (context.Context, *domain.User, error) {
+func (m *MockAuthService) AuthenticateUserForWorkspace(arg0 context.Context, arg1 string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AuthenticateUserForWorkspace", arg0, arg1)
 	ret0, _ := ret[0].(context.Context)
 	ret1, _ := ret[1].(*domain.User)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
+	ret2, _ := ret[2].(*domain.UserWorkspace)
+	ret3, _ := ret[3].(error)
+	return ret0, ret1, ret2, ret3
 }
 
 // AuthenticateUserForWorkspace indicates an expected call of AuthenticateUserForWorkspace.

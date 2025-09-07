@@ -71,7 +71,7 @@ func (s *TransactionalNotificationService) CreateNotification(
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user for workspace: %w", err)
 	}
@@ -145,7 +145,7 @@ func (s *TransactionalNotificationService) UpdateNotification(
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user for workspace: %w", err)
 	}
@@ -226,7 +226,7 @@ func (s *TransactionalNotificationService) GetNotification(
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user for workspace: %w", err)
 	}
@@ -274,7 +274,7 @@ func (s *TransactionalNotificationService) ListNotifications(
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to authenticate user for workspace: %w", err)
 	}
@@ -341,7 +341,7 @@ func (s *TransactionalNotificationService) DeleteNotification(
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user for workspace: %w", err)
 	}
@@ -385,7 +385,7 @@ func (s *TransactionalNotificationService) SendNotification(
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate user for workspace: %w", err)
 	}
@@ -632,7 +632,7 @@ func (s *TransactionalNotificationService) SendNotification(
 func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, senderID string, recipientEmail string, emailOptions domain.EmailOptions) error {
 	// Authenticate user
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user for workspace: %w", err)
 	}

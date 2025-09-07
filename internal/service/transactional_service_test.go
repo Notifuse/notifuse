@@ -84,7 +84,7 @@ func TestTransactionalNotificationService_CreateNotification(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				// Expect template service to validate the template exists
 				mockTemplateService.EXPECT().
@@ -129,7 +129,7 @@ func TestTransactionalNotificationService_CreateNotification(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				// Expect template service to fail finding the template
 				mockTemplateService.EXPECT().
@@ -154,7 +154,7 @@ func TestTransactionalNotificationService_CreateNotification(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				// Template exists
 				mockTemplateService.EXPECT().
@@ -267,7 +267,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				// Get existing notification
 				mockRepo.EXPECT().
@@ -319,7 +319,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				// Get existing notification
 				mockRepo.EXPECT().
@@ -367,7 +367,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				// Get existing notification fails
 				mockRepo.EXPECT().
@@ -391,7 +391,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				// Get existing notification
 				mockRepo.EXPECT().
@@ -416,7 +416,7 @@ func TestTransactionalNotificationService_UpdateNotification(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				// Get existing notification
 				mockRepo.EXPECT().
@@ -522,7 +522,7 @@ func TestTransactionalNotificationService_GetNotification(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				mockRepo.EXPECT().
 					Get(gomock.Any(), workspace, notificationID).
@@ -538,7 +538,7 @@ func TestTransactionalNotificationService_GetNotification(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				mockRepo.EXPECT().
 					Get(gomock.Any(), workspace, notificationID).
@@ -635,7 +635,7 @@ func TestTransactionalNotificationService_ListNotifications(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				mockRepo.EXPECT().
 					List(gomock.Any(), workspace, gomock.Any(), gomock.Any(), gomock.Any()).
@@ -654,7 +654,7 @@ func TestTransactionalNotificationService_ListNotifications(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				mockRepo.EXPECT().
 					List(gomock.Any(), workspace, gomock.Any(), gomock.Any(), gomock.Any()).
@@ -673,7 +673,7 @@ func TestTransactionalNotificationService_ListNotifications(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				mockRepo.EXPECT().
 					List(gomock.Any(), workspace, gomock.Any(), gomock.Any(), gomock.Any()).
@@ -757,7 +757,7 @@ func TestTransactionalNotificationService_DeleteNotification(t *testing.T) {
 				// Expect auth service to authenticate the user
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				mockRepo.EXPECT().
 					Delete(gomock.Any(), workspace, notificationID).
@@ -771,7 +771,7 @@ func TestTransactionalNotificationService_DeleteNotification(t *testing.T) {
 			mockSetup: func() {
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspace).
-					Return(ctx, &domain.User{ID: "user-123"}, nil)
+					Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 				mockRepo.EXPECT().
 					Delete(gomock.Any(), workspace, notificationID).
@@ -957,7 +957,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 		// Expect auth service to authenticate the user
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspace).
-			Return(ctx, &domain.User{ID: "user-123"}, nil)
+			Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 		// Get the workspace
 		mockWorkspaceRepo.EXPECT().
@@ -1046,7 +1046,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 		// Expect auth service to authenticate the user
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspace).
-			Return(ctx, &domain.User{ID: "user-123"}, nil)
+			Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 		// Get the workspace
 		mockWorkspaceRepo.EXPECT().
@@ -1167,7 +1167,7 @@ func TestTransactionalNotificationService_TestTemplate(t *testing.T) {
 	// Expect authentication
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-		Return(ctx, &domain.User{ID: "user-123"}, nil)
+		Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 	// Expect get template
 	mockTemplateService.EXPECT().

@@ -89,7 +89,7 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		templateToPass := *templateToCreate // Use a copy
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		// Expect CreateTemplate with Version 1 set
 		mockRepo.EXPECT().CreateTemplate(ctx, workspaceID, EqTemplateWithVersion1(&templateToPass)).Return(nil)
 
@@ -108,7 +108,7 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 		authErr := errors.New("auth error")
 		templateToPass := *templateToCreate // Use a copy
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, authErr)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, authErr)
 
 		err := templateService.CreateTemplate(ctx, workspaceID, &templateToPass)
 
@@ -124,7 +124,7 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 		invalidTemplate := *templateToCreate // Copy
 		invalidTemplate.Name = ""            // Make invalid
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 
 		err := templateService.CreateTemplate(ctx, workspaceID, &invalidTemplate)
 
@@ -139,7 +139,7 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 		invalidTemplate := *templateToCreate // Copy
 		invalidTemplate.Email = nil          // Make invalid
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 
 		err := templateService.CreateTemplate(ctx, workspaceID, &invalidTemplate)
 
@@ -154,7 +154,7 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 		repoErr := errors.New("db error")
 		templateToPass := *templateToCreate // Use a copy
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().CreateTemplate(ctx, workspaceID, gomock.Any()).Return(repoErr)
 		mockLogger.EXPECT().WithField("template_id", templateID).Return(mockLogger)
 		mockLogger.EXPECT().Error(fmt.Sprintf("Failed to create template: %v", repoErr)).Return()
@@ -202,7 +202,7 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 		defer ctrl.Finish()
 		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, version).Return(expectedTemplate, nil)
 
 		template, err := templateService.GetTemplateByID(ctx, workspaceID, templateID, version)
@@ -217,7 +217,7 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 		templateService, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		authErr := errors.New("auth error")
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, authErr)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, authErr)
 
 		template, err := templateService.GetTemplateByID(ctx, workspaceID, templateID, version)
 
@@ -250,7 +250,7 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		notFoundErr := &domain.ErrTemplateNotFound{Message: "not found"}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, version).Return(nil, notFoundErr)
 
 		template, err := templateService.GetTemplateByID(ctx, workspaceID, templateID, version)
@@ -266,7 +266,7 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
 		repoErr := errors.New("db error")
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, version).Return(nil, repoErr)
 		mockLogger.EXPECT().WithField("template_id", templateID).Return(mockLogger)
 		mockLogger.EXPECT().Error(fmt.Sprintf("Failed to get template: %v", repoErr)).Return()
@@ -318,7 +318,7 @@ func TestTemplateService_GetTemplates(t *testing.T) {
 		defer ctrl.Finish()
 		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().GetTemplates(ctx, workspaceID, "").Return(expectedTemplates, nil)
 
 		templates, err := templateService.GetTemplates(ctx, workspaceID, "")
@@ -333,7 +333,7 @@ func TestTemplateService_GetTemplates(t *testing.T) {
 		templateService, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		authErr := errors.New("auth error")
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, authErr)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, authErr)
 
 		templates, err := templateService.GetTemplates(ctx, workspaceID, "")
 
@@ -349,7 +349,7 @@ func TestTemplateService_GetTemplates(t *testing.T) {
 		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
 		repoErr := errors.New("db error")
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().GetTemplates(ctx, workspaceID, "").Return(nil, repoErr)
 		mockLogger.EXPECT().Error(fmt.Sprintf("Failed to get templates: %v", repoErr)).Return()
 
@@ -416,7 +416,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		templateToUpdate := *updatedTemplateData // Use a copy
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		// GetByID is called first to check existence and preserve CreatedAt (version 0 means latest)
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingTemplate, nil)
 		// Expect UpdateTemplate call with correct fields preserved/updated
@@ -447,7 +447,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 		authErr := errors.New("auth error")
 		templateToUpdate := *updatedTemplateData // Use a copy
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, authErr)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, authErr)
 
 		err := templateService.UpdateTemplate(ctx, workspaceID, &templateToUpdate)
 
@@ -463,7 +463,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 		notFoundErr := &domain.ErrTemplateNotFound{Message: "not found"}
 		templateToUpdate := *updatedTemplateData // Use a copy
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(nil, notFoundErr)
 
 		err := templateService.UpdateTemplate(ctx, workspaceID, &templateToUpdate)
@@ -479,7 +479,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 		repoErr := errors.New("get db error")
 		templateToUpdate := *updatedTemplateData // Use a copy
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(nil, repoErr)
 		mockLogger.EXPECT().WithField("template_id", templateID).Return(mockLogger)
 		mockLogger.EXPECT().Error(fmt.Sprintf("Failed to check if template exists: %v", repoErr)).Return()
@@ -498,7 +498,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 		invalidTemplate := *updatedTemplateData // Copy
 		invalidTemplate.Name = ""               // Make invalid
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		// Expect GetByID to be called and succeed before validation happens
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingTemplate, nil)
 
@@ -515,7 +515,7 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 		repoErr := errors.New("update db error")
 		templateToUpdate := *updatedTemplateData // Use a copy
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(existingTemplate, nil)
 		mockRepo.EXPECT().UpdateTemplate(ctx, workspaceID, gomock.Any()).Return(repoErr)
 		mockLogger.EXPECT().WithField("template_id", templateID).Return(mockLogger)
@@ -540,7 +540,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 		defer ctrl.Finish()
 		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().DeleteTemplate(ctx, workspaceID, templateID).Return(nil)
 
 		err := templateService.DeleteTemplate(ctx, workspaceID, templateID)
@@ -554,7 +554,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 		templateService, _, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		authErr := errors.New("auth error")
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, authErr)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, authErr)
 
 		err := templateService.DeleteTemplate(ctx, workspaceID, templateID)
 
@@ -569,7 +569,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
 		notFoundErr := &domain.ErrTemplateNotFound{Message: "not found"}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().DeleteTemplate(ctx, workspaceID, templateID).Return(notFoundErr)
 
 		err := templateService.DeleteTemplate(ctx, workspaceID, templateID)
@@ -584,7 +584,7 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
 		repoErr := errors.New("db error")
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 		mockRepo.EXPECT().DeleteTemplate(ctx, workspaceID, templateID).Return(repoErr)
 		mockLogger.EXPECT().WithField("template_id", templateID).Return(mockLogger)
 		mockLogger.EXPECT().Error(fmt.Sprintf("Failed to delete template: %v", repoErr)).Return()
@@ -670,7 +670,7 @@ func TestCompileTemplate_Success(t *testing.T) {
 	testData := notifuse_mjml.MapOfAny{"name": "Tester"}
 
 	// Mock expectations
-	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 
 	// --- Act ---
 	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
@@ -726,7 +726,7 @@ func TestCompileTemplate_TreeToMjmlError(t *testing.T) {
 	badLiquidTree := createValidTestTree(badLiquidBlock) // Embed the bad block in a valid structure
 
 	// Mock Auth
-	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 
 	// --- Act ---
 	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
@@ -764,7 +764,7 @@ func TestCompileTemplate_AuthError(t *testing.T) {
 	authErr := errors.New("authentication failed")
 
 	// Mock expectations
-	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, nil, authErr)
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, nil, nil, authErr)
 
 	// --- Act ---
 	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{
@@ -833,7 +833,7 @@ func TestCompileTemplate_InvalidTreeData(t *testing.T) {
 	}
 
 	// Mock expectations
-	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, nil)
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{ID: userID}, nil, nil)
 
 	// --- Act ---
 	resp, err := svc.CompileTemplate(ctx, domain.CompileTemplateRequest{

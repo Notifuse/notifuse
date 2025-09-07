@@ -33,7 +33,7 @@ func NewContactService(
 
 func (s *ContactService) GetContactByEmail(ctx context.Context, workspaceID string, email string) (*domain.Contact, error) {
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -52,7 +52,7 @@ func (s *ContactService) GetContactByEmail(ctx context.Context, workspaceID stri
 
 func (s *ContactService) GetContactByExternalID(ctx context.Context, externalID string, workspaceID string) (*domain.Contact, error) {
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -71,7 +71,7 @@ func (s *ContactService) GetContactByExternalID(ctx context.Context, externalID 
 
 func (s *ContactService) GetContacts(ctx context.Context, req *domain.GetContactsRequest) (*domain.GetContactsResponse, error) {
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, req.WorkspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, req.WorkspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -87,7 +87,7 @@ func (s *ContactService) GetContacts(ctx context.Context, req *domain.GetContact
 
 func (s *ContactService) DeleteContact(ctx context.Context, email string, workspaceID string) error {
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -106,7 +106,7 @@ func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID st
 	}
 
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		response.Error = fmt.Sprintf("failed to authenticate user: %v", err)
 		return response
@@ -159,7 +159,7 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 	}
 
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		operation.Action = domain.UpsertContactOperationError
 		operation.Error = err.Error()

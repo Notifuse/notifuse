@@ -1,5 +1,7 @@
 # TODO
 
+- permissions per feature: embed permissions in paseto token for future verification in middleware
+
 ## Content
 
 - page vs loops.so
@@ -9,7 +11,6 @@
 
 ## Eventual features
 
-- permissions with roles per workspace
 - better design for system email
 - store last cron timestamp in DB and render an alert if it's not running (only in production)
 - add contact_list reason string

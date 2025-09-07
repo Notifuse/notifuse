@@ -237,11 +237,12 @@ func TestAuthService_AuthenticateUserForWorkspace(t *testing.T) {
 				UpdatedAt:   time.Now(),
 			}, nil)
 
-		newCtx, result, err := service.AuthenticateUserForWorkspace(ctx, workspaceID)
+		newCtx, result, userWorkspace, err := service.AuthenticateUserForWorkspace(ctx, workspaceID)
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.Equal(t, userID, result.ID)
+		require.NotNil(t, userWorkspace)
 
 		// Verify that the user is stored in the context
 		storedUser, ok := newCtx.Value(domain.WorkspaceUserKey(workspaceID)).(*domain.User)
@@ -288,11 +289,12 @@ func TestAuthService_AuthenticateUserForWorkspace(t *testing.T) {
 				UpdatedAt:   time.Now(),
 			}, nil)
 
-		newCtx, result, err := service.AuthenticateUserForWorkspace(ctx, workspaceID)
+		newCtx, result, userWorkspace, err := service.AuthenticateUserForWorkspace(ctx, workspaceID)
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.Equal(t, userID, result.ID)
+		require.NotNil(t, userWorkspace)
 
 		// Verify that the user is stored in the context
 		storedUser, ok := newCtx.Value(domain.WorkspaceUserKey(workspaceID)).(*domain.User)
@@ -306,16 +308,27 @@ func TestAuthService_AuthenticateUserForWorkspace(t *testing.T) {
 			Email: "test@example.com",
 		}
 
-		// Create a context with the user already stored for this workspace
-		ctx := context.WithValue(context.Background(), domain.WorkspaceUserKey(workspaceID), user)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		// Create a context with both user and userWorkspace already stored
+		ctx := context.WithValue(
+			context.WithValue(context.Background(), domain.WorkspaceUserKey(workspaceID), user),
+			domain.UserWorkspaceKey, userWorkspace,
+		)
 
 		// No mock expectations should be called since the user is already in context
 
-		newCtx, result, err := service.AuthenticateUserForWorkspace(ctx, workspaceID)
+		newCtx, result, returnedUserWorkspace, err := service.AuthenticateUserForWorkspace(ctx, workspaceID)
 
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.Equal(t, userID, result.ID)
+		require.NotNil(t, returnedUserWorkspace)
+		require.Equal(t, userWorkspace, returnedUserWorkspace)
 		require.Equal(t, ctx, newCtx) // Context should be unchanged
 	})
 
@@ -362,10 +375,11 @@ func TestAuthService_AuthenticateUserForWorkspace(t *testing.T) {
 			GetUserWorkspace(ctx, userID, workspaceID).
 			Return(nil, errors.New("not found"))
 
-		newCtx, result, err := service.AuthenticateUserForWorkspace(ctx, workspaceID)
+		newCtx, result, userWorkspace, err := service.AuthenticateUserForWorkspace(ctx, workspaceID)
 
 		require.Error(t, err)
 		require.Nil(t, result)
+		require.Nil(t, userWorkspace)
 		require.Equal(t, ctx, newCtx) // Context should be unchanged on error
 	})
 }
@@ -924,7 +938,7 @@ func TestAuthService_ValidateInvitationToken(t *testing.T) {
 	t.Run("token signed with wrong key", func(t *testing.T) {
 		// Create a token signed with a different key
 		wrongPrivateKey := paseto.NewV4AsymmetricSecretKey()
-		
+
 		token := paseto.NewToken()
 		token.SetIssuedAt(time.Now())
 		token.SetNotBefore(time.Now())

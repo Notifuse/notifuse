@@ -58,6 +58,7 @@ func (h *WorkspaceHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.Handle("/api/workspaces.createAPIKey", requireAuth(http.HandlerFunc(h.handleCreateAPIKey)))
 	mux.Handle("/api/workspaces.removeMember", requireAuth(http.HandlerFunc(h.handleRemoveMember)))
 	mux.Handle("/api/workspaces.deleteInvitation", requireAuth(http.HandlerFunc(h.handleDeleteInvitation)))
+	mux.Handle("/api/workspaces.setUserPermissions", requireAuth(http.HandlerFunc(h.handleSetUserPermissions)))
 
 	// Public invitation routes (no authentication required)
 	mux.Handle("/api/workspaces.verifyInvitationToken", http.HandlerFunc(h.handleVerifyInvitationToken))
@@ -290,7 +291,7 @@ func (h *WorkspaceHandler) handleInviteMember(w http.ResponseWriter, r *http.Req
 	}
 
 	// Create the invitation or add the user directly if they already exist
-	invitation, token, err := h.workspaceService.InviteMember(r.Context(), req.WorkspaceID, req.Email)
+	invitation, token, err := h.workspaceService.InviteMember(r.Context(), req.WorkspaceID, req.Email, req.Permissions)
 	if err != nil {
 		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("email", req.Email).WithField("error", err.Error()).Error("Failed to invite member")
 		WriteJSONError(w, "Failed to invite member", http.StatusInternalServerError)
@@ -312,6 +313,52 @@ func (h *WorkspaceHandler) handleInviteMember(w http.ResponseWriter, r *http.Req
 		"message":    "Invitation sent",
 		"invitation": invitation,
 		"token":      token,
+	})
+}
+
+// handleSetUserPermissions handles the request to set permissions for a user
+func (h *WorkspaceHandler) handleSetUserPermissions(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req domain.SetUserPermissionsRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate request
+	if req.WorkspaceID == "" {
+		WriteJSONError(w, "Missing workspace_id", http.StatusBadRequest)
+		return
+	}
+	if req.UserID == "" {
+		WriteJSONError(w, "Missing user_id", http.StatusBadRequest)
+		return
+	}
+	if req.Permissions == nil {
+		WriteJSONError(w, "Missing permissions", http.StatusBadRequest)
+		return
+	}
+
+	// Call service to set user permissions
+	err := h.workspaceService.SetUserPermissions(r.Context(), req.WorkspaceID, req.UserID, req.Permissions)
+	if err != nil {
+		if _, ok := err.(*domain.ErrUnauthorized); ok {
+			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("user_id", req.UserID).WithField("error", err.Error()).Error("Failed to set user permissions")
+		WriteJSONError(w, "Failed to set user permissions", http.StatusInternalServerError)
+		return
+	}
+
+	// Return success response
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status":  "success",
+		"message": "User permissions updated successfully",
 	})
 }
 
@@ -629,21 +676,6 @@ func (h *WorkspaceHandler) handleAcceptInvitation(w http.ResponseWriter, r *http
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to validate invitation token")
 		WriteJSONError(w, "Invalid or expired invitation token", http.StatusUnauthorized)
-		return
-	}
-
-	// Get invitation details from database
-	invitation, err := h.workspaceService.GetInvitationByID(r.Context(), invitationID)
-	if err != nil {
-		h.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to get invitation")
-		WriteJSONError(w, "Invitation not found", http.StatusNotFound)
-		return
-	}
-
-	// Verify that the invitation details match the token
-	if invitation.WorkspaceID != workspaceID || invitation.Email != email {
-		h.logger.WithField("invitation_id", invitationID).Error("Invitation details mismatch")
-		WriteJSONError(w, "Invalid invitation token", http.StatusUnauthorized)
 		return
 	}
 

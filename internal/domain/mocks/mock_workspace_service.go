@@ -51,17 +51,17 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) AcceptInvitation(arg0, arg1
 }
 
 // AddUserToWorkspace mocks base method.
-func (m *MockWorkspaceServiceInterface) AddUserToWorkspace(arg0 context.Context, arg1, arg2, arg3 string) error {
+func (m *MockWorkspaceServiceInterface) AddUserToWorkspace(arg0 context.Context, arg1, arg2, arg3 string, arg4 domain.UserPermissions) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "AddUserToWorkspace", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "AddUserToWorkspace", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // AddUserToWorkspace indicates an expected call of AddUserToWorkspace.
-func (mr *MockWorkspaceServiceInterfaceMockRecorder) AddUserToWorkspace(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) AddUserToWorkspace(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUserToWorkspace", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).AddUserToWorkspace), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddUserToWorkspace", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).AddUserToWorkspace), arg0, arg1, arg2, arg3, arg4)
 }
 
 // CreateAPIKey mocks base method.
@@ -198,9 +198,9 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) GetWorkspaceMembersWithEmai
 }
 
 // InviteMember mocks base method.
-func (m *MockWorkspaceServiceInterface) InviteMember(arg0 context.Context, arg1, arg2 string) (*domain.WorkspaceInvitation, string, error) {
+func (m *MockWorkspaceServiceInterface) InviteMember(arg0 context.Context, arg1, arg2 string, arg3 domain.UserPermissions) (*domain.WorkspaceInvitation, string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "InviteMember", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "InviteMember", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(*domain.WorkspaceInvitation)
 	ret1, _ := ret[1].(string)
 	ret2, _ := ret[2].(error)
@@ -208,9 +208,9 @@ func (m *MockWorkspaceServiceInterface) InviteMember(arg0 context.Context, arg1,
 }
 
 // InviteMember indicates an expected call of InviteMember.
-func (mr *MockWorkspaceServiceInterfaceMockRecorder) InviteMember(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) InviteMember(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InviteMember", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).InviteMember), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InviteMember", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).InviteMember), arg0, arg1, arg2, arg3)
 }
 
 // ListWorkspaces mocks base method.
@@ -254,6 +254,20 @@ func (m *MockWorkspaceServiceInterface) RemoveUserFromWorkspace(arg0 context.Con
 func (mr *MockWorkspaceServiceInterfaceMockRecorder) RemoveUserFromWorkspace(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveUserFromWorkspace", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).RemoveUserFromWorkspace), arg0, arg1, arg2)
+}
+
+// SetUserPermissions mocks base method.
+func (m *MockWorkspaceServiceInterface) SetUserPermissions(arg0 context.Context, arg1, arg2 string, arg3 domain.UserPermissions) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetUserPermissions", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetUserPermissions indicates an expected call of SetUserPermissions.
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) SetUserPermissions(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetUserPermissions", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).SetUserPermissions), arg0, arg1, arg2, arg3)
 }
 
 // TransferOwnership mocks base method.

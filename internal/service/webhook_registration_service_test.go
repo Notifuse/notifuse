@@ -123,12 +123,12 @@ func TestWebhookRegistrationService_RegisterWebhooks(t *testing.T) {
 			if tt.authError != nil {
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-					Return(nil, nil, tt.authError).
+					Return(nil, nil, nil, tt.authError).
 					MaxTimes(1)
 			} else {
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-					Return(ctx, user, nil).
+					Return(ctx, user, nil, nil).
 					MaxTimes(1)
 
 				if tt.workspaceRepoError != nil {
@@ -299,12 +299,12 @@ func TestWebhookRegistrationService_GetWebhookStatus(t *testing.T) {
 			if tt.authError != nil {
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-					Return(nil, nil, tt.authError).
+					Return(nil, nil, nil, tt.authError).
 					MaxTimes(1)
 			} else {
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-					Return(ctx, user, nil).
+					Return(ctx, user, nil, nil).
 					MaxTimes(1)
 
 				if tt.workspaceRepoError != nil {
@@ -454,12 +454,12 @@ func TestWebhookRegistrationService_UnregisterWebhooks(t *testing.T) {
 			if tt.authError != nil {
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-					Return(nil, nil, tt.authError).
+					Return(nil, nil, nil, tt.authError).
 					MaxTimes(1)
 			} else {
 				mockAuthService.EXPECT().
 					AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-					Return(ctx, user, nil).
+					Return(ctx, user, nil, nil).
 					MaxTimes(1)
 
 				if tt.workspaceRepoError != nil {

@@ -60,7 +60,7 @@ func TestContactListService_GetContactListByIDs(t *testing.T) {
 
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil)
+			Return(ctx, &domain.User{}, nil, nil)
 
 		mockRepo.EXPECT().
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
@@ -74,7 +74,7 @@ func TestContactListService_GetContactListByIDs(t *testing.T) {
 	t.Run("authentication error", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, nil, errors.New("auth error"))
+			Return(ctx, nil, nil, errors.New("auth error"))
 
 		result, err := service.GetContactListByIDs(ctx, workspaceID, email, listID)
 		require.Error(t, err)
@@ -84,7 +84,7 @@ func TestContactListService_GetContactListByIDs(t *testing.T) {
 	t.Run("not found error", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil)
+			Return(ctx, &domain.User{}, nil, nil)
 
 		mockRepo.EXPECT().
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
@@ -120,7 +120,7 @@ func TestContactListService_GetContactsByListID(t *testing.T) {
 
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil)
+			Return(ctx, &domain.User{}, nil, nil)
 
 		mockListRepo.EXPECT().
 			GetListByID(gomock.Any(), workspaceID, listID).
@@ -138,7 +138,7 @@ func TestContactListService_GetContactsByListID(t *testing.T) {
 	t.Run("authentication error", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, nil, errors.New("auth error"))
+			Return(ctx, nil, nil, errors.New("auth error"))
 
 		result, err := service.GetContactsByListID(ctx, workspaceID, listID)
 		require.Error(t, err)
@@ -148,7 +148,7 @@ func TestContactListService_GetContactsByListID(t *testing.T) {
 	t.Run("list not found", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil)
+			Return(ctx, &domain.User{}, nil, nil)
 
 		mockListRepo.EXPECT().
 			GetListByID(gomock.Any(), workspaceID, listID).
@@ -184,7 +184,7 @@ func TestContactListService_GetListsByEmail(t *testing.T) {
 
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil)
+			Return(ctx, &domain.User{}, nil, nil)
 
 		mockContactRepo.EXPECT().
 			GetContactByEmail(gomock.Any(), workspaceID, email).
@@ -202,7 +202,7 @@ func TestContactListService_GetListsByEmail(t *testing.T) {
 	t.Run("authentication error", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, nil, errors.New("auth error"))
+			Return(ctx, nil, nil, errors.New("auth error"))
 
 		result, err := service.GetListsByEmail(ctx, workspaceID, email)
 		require.Error(t, err)
@@ -212,7 +212,7 @@ func TestContactListService_GetListsByEmail(t *testing.T) {
 	t.Run("contact not found", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil)
+			Return(ctx, &domain.User{}, nil, nil)
 
 		mockContactRepo.EXPECT().
 			GetContactByEmail(gomock.Any(), workspaceID, email).
@@ -237,7 +237,7 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 	t.Run("successful update", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil)
+			Return(ctx, &domain.User{}, nil, nil)
 
 		mockRepo.EXPECT().
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
@@ -258,7 +258,7 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 	t.Run("authentication error", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, nil, errors.New("auth error"))
+			Return(ctx, nil, nil, errors.New("auth error"))
 
 		err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
 		require.Error(t, err)
@@ -267,7 +267,7 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 	t.Run("contact list not found", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil)
+			Return(ctx, &domain.User{}, nil, nil)
 
 		mockRepo.EXPECT().
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
@@ -280,7 +280,7 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 	t.Run("update error", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil)
+			Return(ctx, &domain.User{}, nil, nil)
 
 		mockRepo.EXPECT().
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
@@ -311,7 +311,7 @@ func TestContactListService_RemoveContactFromList(t *testing.T) {
 	t.Run("successful removal", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil)
+			Return(ctx, &domain.User{}, nil, nil)
 
 		mockRepo.EXPECT().
 			RemoveContactFromList(gomock.Any(), workspaceID, email, listID).
@@ -324,7 +324,7 @@ func TestContactListService_RemoveContactFromList(t *testing.T) {
 	t.Run("authentication error", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, nil, errors.New("auth error"))
+			Return(ctx, nil, nil, errors.New("auth error"))
 
 		err := service.RemoveContactFromList(ctx, workspaceID, email, listID)
 		require.Error(t, err)
@@ -333,7 +333,7 @@ func TestContactListService_RemoveContactFromList(t *testing.T) {
 	t.Run("not found error", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
-			Return(ctx, &domain.User{}, nil)
+			Return(ctx, &domain.User{}, nil, nil)
 
 		mockRepo.EXPECT().
 			RemoveContactFromList(gomock.Any(), workspaceID, email, listID).

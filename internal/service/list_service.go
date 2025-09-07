@@ -38,7 +38,7 @@ func NewListService(repo domain.ListRepository, workspaceRepo domain.WorkspaceRe
 
 func (s *ListService) CreateList(ctx context.Context, workspaceID string, list *domain.List) error {
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -61,7 +61,7 @@ func (s *ListService) CreateList(ctx context.Context, workspaceID string, list *
 
 func (s *ListService) GetListByID(ctx context.Context, workspaceID string, id string) (*domain.List, error) {
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -80,7 +80,7 @@ func (s *ListService) GetListByID(ctx context.Context, workspaceID string, id st
 
 func (s *ListService) GetLists(ctx context.Context, workspaceID string) ([]*domain.List, error) {
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -96,7 +96,7 @@ func (s *ListService) GetLists(ctx context.Context, workspaceID string) ([]*doma
 
 func (s *ListService) UpdateList(ctx context.Context, workspaceID string, list *domain.List) error {
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -117,7 +117,7 @@ func (s *ListService) UpdateList(ctx context.Context, workspaceID string, list *
 
 func (s *ListService) DeleteList(ctx context.Context, workspaceID string, id string) error {
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -132,7 +132,7 @@ func (s *ListService) DeleteList(ctx context.Context, workspaceID string, id str
 
 func (s *ListService) GetListStats(ctx context.Context, workspaceID string, id string) (*domain.ListStats, error) {
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -167,7 +167,7 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 	isAuthenticated := false
 
 	if hasBearerToken {
-		ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
+		ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
 		if err != nil {
 			return fmt.Errorf("failed to authenticate user: %w", err)
 		}
@@ -373,7 +373,7 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 	}
 
 	if hasBearerToken {
-		ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
+		ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
 		if err != nil {
 			return fmt.Errorf("failed to authenticate user: %w", err)
 		}

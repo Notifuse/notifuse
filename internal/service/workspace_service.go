@@ -103,7 +103,7 @@ func (s *WorkspaceService) GetWorkspace(ctx context.Context, id string) (*domain
 		// Validate user is a member of the workspace
 		var user *domain.User
 		var err error
-		ctx, user, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
+		ctx, user, _, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
 		if err != nil {
 			return nil, fmt.Errorf("failed to authenticate user: %w", err)
 		}
@@ -180,11 +180,22 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 		return nil, err
 	}
 
+	fullPermissions := domain.UserPermissions{
+		domain.PermissionResourceContacts:       domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceLists:          domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceTemplates:      domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceBroadcasts:     domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceTransactional:  domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceWorkspace:      domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceMessageHistory: domain.ResourcePermissions{Read: true, Write: true},
+	}
+
 	// Add the creator as owner
 	userWorkspace := &domain.UserWorkspace{
 		UserID:      user.ID,
 		WorkspaceID: id,
 		Role:        "owner",
+		Permissions: fullPermissions,
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
@@ -262,7 +273,7 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	// Check if user can access this workspace
 	var user *domain.User
 	var err error
-	ctx, user, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
+	ctx, user, _, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -332,7 +343,7 @@ func (s *WorkspaceService) DeleteWorkspace(ctx context.Context, id string) error
 	// Check if user can access this workspace and is the owner
 	var user *domain.User
 	var err error
-	ctx, user, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
+	ctx, user, _, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -373,10 +384,10 @@ func (s *WorkspaceService) DeleteWorkspace(ctx context.Context, id string) error
 }
 
 // AddUserToWorkspace adds a user to a workspace if the requester is an owner
-func (s *WorkspaceService) AddUserToWorkspace(ctx context.Context, workspaceID string, userID string, role string) error {
+func (s *WorkspaceService) AddUserToWorkspace(ctx context.Context, workspaceID string, userID string, role string, permissions domain.UserPermissions) error {
 	var user *domain.User
 	var err error
-	ctx, user, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, user, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -393,10 +404,13 @@ func (s *WorkspaceService) AddUserToWorkspace(ctx context.Context, workspaceID s
 		return &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
 	}
 
+	// Use the permissions passed as parameter
+
 	userWorkspace := &domain.UserWorkspace{
 		UserID:      userID,
 		WorkspaceID: workspaceID,
 		Role:        role,
+		Permissions: permissions,
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
@@ -419,7 +433,7 @@ func (s *WorkspaceService) RemoveUserFromWorkspace(ctx context.Context, workspac
 	// Check if requester is an owner
 	var owner *domain.User
 	var err error
-	ctx, owner, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, owner, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -453,7 +467,7 @@ func (s *WorkspaceService) RemoveUserFromWorkspace(ctx context.Context, workspac
 func (s *WorkspaceService) TransferOwnership(ctx context.Context, workspaceID string, newOwnerID string, currentOwnerID string) error {
 	// Authenticate the user
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -502,10 +516,10 @@ func (s *WorkspaceService) TransferOwnership(ctx context.Context, workspaceID st
 }
 
 // InviteMember creates an invitation for a user to join a workspace
-func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email string) (*domain.WorkspaceInvitation, string, error) {
+func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email string, permissions domain.UserPermissions) (*domain.WorkspaceInvitation, string, error) {
 	var inviter *domain.User
 	var err error
-	ctx, inviter, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, inviter, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -564,6 +578,7 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 			UserID:      existingUser.ID,
 			WorkspaceID: workspaceID,
 			Role:        "member", // Always set invited users as members
+			Permissions: permissions,
 			CreatedAt:   time.Now().UTC(),
 			UpdatedAt:   time.Now().UTC(),
 		}
@@ -587,6 +602,7 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 		WorkspaceID: workspaceID,
 		InviterID:   inviter.ID,
 		Email:       email,
+		Permissions: permissions,
 		ExpiresAt:   expiresAt,
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
@@ -617,12 +633,77 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 	return invitation, token, nil
 }
 
+// SetUserPermissions sets the permissions for a user in a workspace
+func (s *WorkspaceService) SetUserPermissions(ctx context.Context, workspaceID, userID string, permissions domain.UserPermissions) error {
+	var currentUser *domain.User
+	var err error
+	ctx, currentUser, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check if the current user is the owner of the workspace
+	userWorkspace, err := s.repo.GetUserWorkspace(ctx, currentUser.ID, workspaceID)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", currentUser.ID).WithField("error", err.Error()).Error("Failed to get user workspace for permission check")
+		return fmt.Errorf("failed to verify workspace membership: %w", err)
+	}
+
+	if userWorkspace.Role != "owner" {
+		return fmt.Errorf("only workspace owners can manage user permissions")
+	}
+
+	// Check if the target user exists in the workspace
+	targetUserWorkspace, err := s.repo.GetUserWorkspace(ctx, userID, workspaceID)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("target_user_id", userID).WithField("error", err.Error()).Error("Failed to get target user workspace")
+		return fmt.Errorf("user is not a member of the workspace")
+	}
+
+	// Prevent owners from modifying their own permissions or other owners' permissions
+	if targetUserWorkspace.Role == "owner" {
+		return fmt.Errorf("cannot modify permissions for workspace owners")
+	}
+
+	// Update the user's permissions
+	targetUserWorkspace.SetPermissions(permissions)
+	targetUserWorkspace.UpdatedAt = time.Now().UTC()
+
+	err = s.repo.UpdateUserWorkspacePermissions(ctx, targetUserWorkspace)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspaceID).WithField("target_user_id", userID).WithField("error", err.Error()).Error("Failed to update user permissions")
+		return fmt.Errorf("failed to update user permissions: %w", err)
+	}
+
+	// Invalidate all sessions for the user whose permissions were changed
+	// This ensures they can't continue using old sessions with outdated permissions
+	sessions, err := s.userRepo.GetSessionsByUserID(ctx, userID)
+	if err != nil {
+		s.logger.WithField("target_user_id", userID).WithField("error", err.Error()).Warn("Failed to get user sessions for invalidation")
+		// Don't fail the entire operation if we can't get sessions
+	} else {
+		for _, session := range sessions {
+			err = s.userRepo.DeleteSession(ctx, session.ID)
+			if err != nil {
+				s.logger.WithField("target_user_id", userID).WithField("session_id", session.ID).WithField("error", err.Error()).Warn("Failed to delete user session")
+				// Continue with other sessions even if one fails
+			}
+		}
+
+		if len(sessions) > 0 {
+			s.logger.WithField("target_user_id", userID).WithField("sessions_invalidated", len(sessions)).Info("Invalidated user sessions after permission change")
+		}
+	}
+
+	return nil
+}
+
 // GetWorkspaceMembersWithEmail returns all users with emails for a workspace, verifying the requester has access
 func (s *WorkspaceService) GetWorkspaceMembersWithEmail(ctx context.Context, id string) ([]*domain.UserWorkspaceWithEmail, error) {
 	// Check if user has access to the workspace
 	var user *domain.User
 	var err error
-	ctx, user, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
+	ctx, user, _, err = s.authService.AuthenticateUserForWorkspace(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -660,7 +741,8 @@ func (s *WorkspaceService) GetWorkspaceMembersWithEmail(ctx context.Context, id 
 			UserWorkspace: domain.UserWorkspace{
 				UserID:      "", // Empty for invitations as user doesn't exist yet
 				WorkspaceID: invitation.WorkspaceID,
-				Role:        "member", // Invitations are typically for members
+				Role:        "member",               // Invitations are typically for members
+				Permissions: invitation.Permissions, // Include permissions from invitation
 				CreatedAt:   invitation.CreatedAt,
 				UpdatedAt:   invitation.UpdatedAt,
 			},
@@ -680,7 +762,7 @@ func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string,
 	// Validate user is a member of the workspace and has owner role
 	var user *domain.User
 	var err error
-	ctx, user, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, user, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -731,10 +813,22 @@ func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string,
 		return "", "", err
 	}
 
+	// Create full permissions for API key
+	fullPermissions := domain.UserPermissions{
+		domain.PermissionResourceContacts:       domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceLists:          domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceTemplates:      domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceBroadcasts:     domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceTransactional:  domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceWorkspace:      domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceMessageHistory: domain.ResourcePermissions{Read: true, Write: true},
+	}
+
 	newUserWorkspace := &domain.UserWorkspace{
 		UserID:      apiUser.ID,
 		WorkspaceID: workspaceID,
 		Role:        "member",
+		Permissions: fullPermissions,
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
@@ -757,6 +851,13 @@ func (s *WorkspaceService) GetInvitationByID(ctx context.Context, invitationID s
 
 // AcceptInvitation processes an invitation acceptance by creating a user if needed and adding them to the workspace
 func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, workspaceID, email string) (*domain.AuthResponse, error) {
+	// Get the invitation to retrieve permissions
+	invitation, err := s.repo.GetInvitationByID(ctx, invitationID)
+	if err != nil {
+		s.logger.WithField("invitation_id", invitationID).WithField("error", err.Error()).Error("Failed to get invitation")
+		return nil, fmt.Errorf("invitation not found: %w", err)
+	}
+
 	// Check if user already exists
 	existingUser, err := s.userService.GetUserByEmail(ctx, email)
 	var user *domain.User
@@ -799,11 +900,12 @@ func (s *WorkspaceService) AcceptInvitation(ctx context.Context, invitationID, w
 		}
 	}
 
-	// Add user to workspace as a member
+	// Add user to workspace as a member with permissions from invitation
 	userWorkspace := &domain.UserWorkspace{
 		UserID:      user.ID,
 		WorkspaceID: workspaceID,
-		Role:        "member", // Always set invited users as members
+		Role:        "member",               // Always set invited users as members
+		Permissions: invitation.Permissions, // Use permissions from invitation
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
@@ -885,7 +987,7 @@ func (s *WorkspaceService) RemoveMember(ctx context.Context, workspaceID string,
 	// Authenticate the user making the request
 	var requester *domain.User
 	var err error
-	ctx, requester, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, requester, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -937,7 +1039,7 @@ func (s *WorkspaceService) RemoveMember(ctx context.Context, workspaceID string,
 // CreateIntegration creates a new integration for a workspace
 func (s *WorkspaceService) CreateIntegration(ctx context.Context, workspaceID, name string, integrationType domain.IntegrationType, provider domain.EmailProvider) (string, error) {
 	// Authenticate user and verify they are an owner of the workspace
-	ctx, user, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, user, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -1020,7 +1122,7 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, workspaceID, n
 // UpdateIntegration updates an existing integration in a workspace
 func (s *WorkspaceService) UpdateIntegration(ctx context.Context, workspaceID, integrationID, name string, provider domain.EmailProvider) error {
 	// Authenticate user and verify they are an owner of the workspace
-	ctx, user, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, user, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -1082,7 +1184,7 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, workspaceID, i
 // DeleteIntegration deletes an integration from a workspace
 func (s *WorkspaceService) DeleteIntegration(ctx context.Context, workspaceID, integrationID string) error {
 	// Authenticate user and verify they are an owner of the workspace
-	ctx, user, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, user, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}

@@ -12,9 +12,10 @@ import (
 type contextKey string
 
 const (
-	UserIDKey    contextKey = "user_id"
-	SessionIDKey contextKey = "session_id"
-	UserTypeKey  contextKey = "type"
+	UserIDKey        contextKey = "user_id"
+	SessionIDKey     contextKey = "session_id"
+	UserTypeKey      contextKey = "type"
+	UserWorkspaceKey contextKey = "user_workspace"
 )
 
 type UserType string

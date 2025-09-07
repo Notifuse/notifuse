@@ -40,16 +40,19 @@ func TestWorkspaceRepository_CreateInvitation(t *testing.T) {
 		WorkspaceID: "ws-123",
 		InviterID:   "user-123",
 		Email:       "test@example.com",
-		ExpiresAt:   expiresAt,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceContacts: domain.ResourcePermissions{Read: true, Write: true},
+		},
+		ExpiresAt: expiresAt,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 
 	t.Run("successful creation", func(t *testing.T) {
 		// Set up expectations for upsert query
 		mock.ExpectExec(`INSERT INTO workspace_invitations .* ON CONFLICT`).
 			WithArgs(invitation.ID, invitation.WorkspaceID, invitation.InviterID,
-				invitation.Email, invitation.ExpiresAt, invitation.CreatedAt, invitation.UpdatedAt).
+				invitation.Email, invitation.Permissions, invitation.ExpiresAt, invitation.CreatedAt, invitation.UpdatedAt).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Call the method
@@ -66,17 +69,20 @@ func TestWorkspaceRepository_CreateInvitation(t *testing.T) {
 		updatedInvitation := &domain.WorkspaceInvitation{
 			ID:          "new-inv-456", // Different ID for new invitation
 			WorkspaceID: invitation.WorkspaceID,
-			InviterID:   "new-inviter-456",                        // Different inviter
-			Email:       invitation.Email,                         // Same email
-			ExpiresAt:   invitation.ExpiresAt.Add(24 * time.Hour), // Extended expiry
-			CreatedAt:   now,
-			UpdatedAt:   now.Add(time.Hour), // Updated timestamp
+			InviterID:   "new-inviter-456", // Different inviter
+			Email:       invitation.Email,  // Same email
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceContacts: domain.ResourcePermissions{Read: true, Write: false},
+			},
+			ExpiresAt: invitation.ExpiresAt.Add(24 * time.Hour), // Extended expiry
+			CreatedAt: now,
+			UpdatedAt: now.Add(time.Hour), // Updated timestamp
 		}
 
 		// Set up expectations for upsert query that updates existing invitation
 		mock.ExpectExec(`INSERT INTO workspace_invitations .* ON CONFLICT`).
 			WithArgs(updatedInvitation.ID, updatedInvitation.WorkspaceID, updatedInvitation.InviterID,
-				updatedInvitation.Email, updatedInvitation.ExpiresAt, updatedInvitation.CreatedAt, updatedInvitation.UpdatedAt).
+				updatedInvitation.Email, updatedInvitation.Permissions, updatedInvitation.ExpiresAt, updatedInvitation.CreatedAt, updatedInvitation.UpdatedAt).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
 		// Call the method
@@ -92,7 +98,7 @@ func TestWorkspaceRepository_CreateInvitation(t *testing.T) {
 		// Set up expectations for error
 		mock.ExpectExec(`INSERT INTO workspace_invitations .* ON CONFLICT`).
 			WithArgs(invitation.ID, invitation.WorkspaceID, invitation.InviterID,
-				invitation.Email, invitation.ExpiresAt, invitation.CreatedAt, invitation.UpdatedAt).
+				invitation.Email, invitation.Permissions, invitation.ExpiresAt, invitation.CreatedAt, invitation.UpdatedAt).
 			WillReturnError(fmt.Errorf("database error"))
 
 		// Call the method
@@ -125,10 +131,13 @@ func TestWorkspaceRepository_GetInvitationByID(t *testing.T) {
 	expiresAt := now.Add(24 * time.Hour).Truncate(time.Second)
 
 	t.Run("invitation found", func(t *testing.T) {
-		rows := sqlmock.NewRows([]string{"id", "workspace_id", "inviter_id", "email", "expires_at", "created_at", "updated_at"}).
-			AddRow(invitationID, workspaceID, inviterID, email, expiresAt, now, now)
+		permissions := domain.UserPermissions{
+			domain.PermissionResourceContacts: domain.ResourcePermissions{Read: true, Write: true},
+		}
+		rows := sqlmock.NewRows([]string{"id", "workspace_id", "inviter_id", "email", "permissions", "expires_at", "created_at", "updated_at"}).
+			AddRow(invitationID, workspaceID, inviterID, email, permissions, expiresAt, now, now)
 
-		mock.ExpectQuery(`SELECT id, workspace_id, inviter_id, email, expires_at, created_at, updated_at FROM workspace_invitations WHERE id = \$1`).
+		mock.ExpectQuery(`SELECT id, workspace_id, inviter_id, email, permissions, expires_at, created_at, updated_at FROM workspace_invitations WHERE id = \$1`).
 			WithArgs(invitationID).
 			WillReturnRows(rows)
 
@@ -192,10 +201,13 @@ func TestWorkspaceRepository_GetInvitationByEmail(t *testing.T) {
 	expiresAt := now.Add(24 * time.Hour).Truncate(time.Second)
 
 	t.Run("invitation found", func(t *testing.T) {
-		rows := sqlmock.NewRows([]string{"id", "workspace_id", "inviter_id", "email", "expires_at", "created_at", "updated_at"}).
-			AddRow(invitationID, workspaceID, inviterID, email, expiresAt, now, now)
+		permissions := domain.UserPermissions{
+			domain.PermissionResourceContacts: domain.ResourcePermissions{Read: true, Write: true},
+		}
+		rows := sqlmock.NewRows([]string{"id", "workspace_id", "inviter_id", "email", "permissions", "expires_at", "created_at", "updated_at"}).
+			AddRow(invitationID, workspaceID, inviterID, email, permissions, expiresAt, now, now)
 
-		mock.ExpectQuery(`SELECT .+ FROM workspace_invitations WHERE workspace_id = \$1 AND email = \$2 ORDER BY created_at DESC LIMIT 1`).
+		mock.ExpectQuery(`SELECT id, workspace_id, inviter_id, email, permissions, expires_at, created_at, updated_at FROM workspace_invitations WHERE workspace_id = \$1 AND email = \$2 ORDER BY created_at DESC LIMIT 1`).
 			WithArgs(workspaceID, email).
 			WillReturnRows(rows)
 

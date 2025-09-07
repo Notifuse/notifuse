@@ -70,7 +70,7 @@ func NewTemplateService(repo domain.TemplateRepository, authService domain.AuthS
 func (s *TemplateService) CreateTemplate(ctx context.Context, workspaceID string, template *domain.Template) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -103,7 +103,7 @@ func (s *TemplateService) GetTemplateByID(ctx context.Context, workspaceID strin
 	if ctx.Value("system_call") == nil {
 		// Authenticate user for workspace for regular calls
 		var err error
-		ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+		ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to authenticate user: %w", err)
 		}
@@ -125,7 +125,7 @@ func (s *TemplateService) GetTemplateByID(ctx context.Context, workspaceID strin
 func (s *TemplateService) GetTemplates(ctx context.Context, workspaceID string, category string) ([]*domain.Template, error) {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -143,7 +143,7 @@ func (s *TemplateService) GetTemplates(ctx context.Context, workspaceID string, 
 func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string, template *domain.Template) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -185,7 +185,7 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 func (s *TemplateService) DeleteTemplate(ctx context.Context, workspaceID string, id string) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -210,7 +210,7 @@ func (s *TemplateService) CompileTemplate(ctx context.Context, payload domain.Co
 			// Authenticate user for workspace
 			var user *domain.User
 			var err error
-			ctx, user, err = s.authService.AuthenticateUserForWorkspace(ctx, payload.WorkspaceID)
+			ctx, user, _, err = s.authService.AuthenticateUserForWorkspace(ctx, payload.WorkspaceID)
 			if err != nil {
 				// Return standard Go error for non-compilation issues
 				return nil, fmt.Errorf("failed to authenticate user: %w", err)

@@ -15,6 +15,60 @@ import (
 	"github.com/asaskevich/govalidator"
 )
 
+// PermissionResource defines the different resources that can have permissions
+type PermissionResource string
+
+const (
+	PermissionResourceContacts       PermissionResource = "contacts"
+	PermissionResourceLists          PermissionResource = "lists"
+	PermissionResourceTemplates      PermissionResource = "templates"
+	PermissionResourceBroadcasts     PermissionResource = "broadcasts"
+	PermissionResourceTransactional  PermissionResource = "transactional"
+	PermissionResourceWorkspace      PermissionResource = "workspace"
+	PermissionResourceMessageHistory PermissionResource = "message_history"
+)
+
+// PermissionType defines the types of permissions (read/write)
+type PermissionType string
+
+const (
+	PermissionTypeRead  PermissionType = "read"
+	PermissionTypeWrite PermissionType = "write"
+)
+
+// ResourcePermissions defines read/write permissions for a specific resource
+type ResourcePermissions struct {
+	Read  bool `json:"read"`
+	Write bool `json:"write"`
+}
+
+// UserPermissions maps resources to their permission settings
+type UserPermissions map[PermissionResource]ResourcePermissions
+
+// Value implements the driver.Valuer interface for database serialization
+func (up UserPermissions) Value() (driver.Value, error) {
+	if len(up) == 0 {
+		return nil, nil
+	}
+	return json.Marshal(up)
+}
+
+// Scan implements the sql.Scanner interface for database deserialization
+func (up *UserPermissions) Scan(value interface{}) error {
+	if value == nil {
+		*up = make(UserPermissions)
+		return nil
+	}
+
+	v, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
+	}
+
+	cloned := bytes.Clone(v)
+	return json.Unmarshal(cloned, up)
+}
+
 //go:generate mockgen -destination mocks/mock_workspace_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain WorkspaceRepository
 //go:generate mockgen -destination mocks/mock_workspace_service.go -package mocks github.com/Notifuse/notifuse/internal/domain WorkspaceServiceInterface
 
@@ -603,11 +657,12 @@ func ScanWorkspace(scanner interface {
 
 // UserWorkspace represents the relationship between a user and a workspace
 type UserWorkspace struct {
-	UserID      string    `json:"user_id" db:"user_id"`
-	WorkspaceID string    `json:"workspace_id" db:"workspace_id"`
-	Role        string    `json:"role" db:"role"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	UserID      string          `json:"user_id" db:"user_id"`
+	WorkspaceID string          `json:"workspace_id" db:"workspace_id"`
+	Role        string          `json:"role" db:"role"`
+	Permissions UserPermissions `json:"permissions,omitempty" db:"permissions"`
+	CreatedAt   time.Time       `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at" db:"updated_at"`
 }
 
 // UserWorkspaceWithEmail extends UserWorkspace to include user email
@@ -637,15 +692,46 @@ func (uw *UserWorkspace) Validate() error {
 	return nil
 }
 
+// HasPermission checks if the user has a specific permission for a resource
+func (uw *UserWorkspace) HasPermission(resource PermissionResource, permissionType PermissionType) bool {
+	if uw.Role == "owner" {
+		return true // Owners have all permissions
+	}
+
+	if uw.Permissions == nil {
+		return false
+	}
+
+	resourcePerms, exists := uw.Permissions[resource]
+	if !exists {
+		return false
+	}
+
+	switch permissionType {
+	case PermissionTypeRead:
+		return resourcePerms.Read
+	case PermissionTypeWrite:
+		return resourcePerms.Write
+	default:
+		return false
+	}
+}
+
+// SetPermissions replaces all permissions for the user
+func (uw *UserWorkspace) SetPermissions(permissions UserPermissions) {
+	uw.Permissions = permissions
+}
+
 // WorkspaceInvitation represents an invitation to a workspace
 type WorkspaceInvitation struct {
-	ID          string    `json:"id"`
-	WorkspaceID string    `json:"workspace_id"`
-	InviterID   string    `json:"inviter_id"`
-	Email       string    `json:"email"`
-	ExpiresAt   time.Time `json:"expires_at"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          string          `json:"id"`
+	WorkspaceID string          `json:"workspace_id"`
+	InviterID   string          `json:"inviter_id"`
+	Email       string          `json:"email"`
+	Permissions UserPermissions `json:"permissions,omitempty"`
+	ExpiresAt   time.Time       `json:"expires_at"`
+	CreatedAt   time.Time       `json:"created_at"`
+	UpdatedAt   time.Time       `json:"updated_at"`
 }
 
 type WorkspaceRepository interface {
@@ -661,6 +747,9 @@ type WorkspaceRepository interface {
 	GetUserWorkspaces(ctx context.Context, userID string) ([]*UserWorkspace, error)
 	GetWorkspaceUsersWithEmail(ctx context.Context, workspaceID string) ([]*UserWorkspaceWithEmail, error)
 	GetUserWorkspace(ctx context.Context, userID string, workspaceID string) (*UserWorkspace, error)
+
+	// User permission management
+	UpdateUserWorkspacePermissions(ctx context.Context, userWorkspace *UserWorkspace) error
 
 	// Workspace invitation management
 	CreateInvitation(ctx context.Context, invitation *WorkspaceInvitation) error
@@ -706,8 +795,8 @@ type WorkspaceServiceInterface interface {
 	UpdateWorkspace(ctx context.Context, id, name string, settings WorkspaceSettings) (*Workspace, error)
 	DeleteWorkspace(ctx context.Context, id string) error
 	GetWorkspaceMembersWithEmail(ctx context.Context, id string) ([]*UserWorkspaceWithEmail, error)
-	InviteMember(ctx context.Context, workspaceID, email string) (*WorkspaceInvitation, string, error)
-	AddUserToWorkspace(ctx context.Context, workspaceID string, userID string, role string) error
+	InviteMember(ctx context.Context, workspaceID, email string, permissions UserPermissions) (*WorkspaceInvitation, string, error)
+	AddUserToWorkspace(ctx context.Context, workspaceID string, userID string, role string, permissions UserPermissions) error
 	RemoveUserFromWorkspace(ctx context.Context, workspaceID string, userID string) error
 	TransferOwnership(ctx context.Context, workspaceID string, newOwnerID string, currentOwnerID string) error
 	CreateAPIKey(ctx context.Context, workspaceID string, emailPrefix string) (string, string, error)
@@ -722,6 +811,9 @@ type WorkspaceServiceInterface interface {
 	CreateIntegration(ctx context.Context, workspaceID, name string, integrationType IntegrationType, provider EmailProvider) (string, error)
 	UpdateIntegration(ctx context.Context, workspaceID, integrationID, name string, provider EmailProvider) error
 	DeleteIntegration(ctx context.Context, workspaceID, integrationID string) error
+
+	// Permission management
+	SetUserPermissions(ctx context.Context, workspaceID, userID string, permissions UserPermissions) error
 }
 
 // Request/Response types
@@ -910,8 +1002,36 @@ func (r *DeleteWorkspaceRequest) Validate() error {
 }
 
 type InviteMemberRequest struct {
-	WorkspaceID string `json:"workspace_id"`
-	Email       string `json:"email"`
+	WorkspaceID string          `json:"workspace_id"`
+	Email       string          `json:"email"`
+	Permissions UserPermissions `json:"permissions,omitempty"`
+}
+
+// SetUserPermissionsRequest defines the request structure for setting user permissions
+type SetUserPermissionsRequest struct {
+	WorkspaceID string          `json:"workspace_id"`
+	UserID      string          `json:"user_id"`
+	Permissions UserPermissions `json:"permissions"`
+}
+
+// Validate validates the set user permissions request
+func (r *SetUserPermissionsRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+	if !govalidator.IsAlphanumeric(r.WorkspaceID) {
+		return fmt.Errorf("workspace_id must be alphanumeric")
+	}
+	if len(r.WorkspaceID) > 32 {
+		return fmt.Errorf("workspace_id length must be between 1 and 32")
+	}
+	if r.UserID == "" {
+		return fmt.Errorf("user_id is required")
+	}
+	if r.Permissions == nil {
+		return fmt.Errorf("permissions is required")
+	}
+	return nil
 }
 
 func (r *InviteMemberRequest) Validate() error {

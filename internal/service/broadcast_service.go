@@ -69,7 +69,7 @@ func (s *BroadcastService) SetTaskService(taskService domain.TaskService) {
 func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.CreateBroadcastRequest) (*domain.Broadcast, error) {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
 	if err != nil {
 		s.logger.Error("Failed to authenticate user for workspace")
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
@@ -121,7 +121,7 @@ func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.
 func (s *BroadcastService) GetBroadcast(ctx context.Context, workspaceID, broadcastID string) (*domain.Broadcast, error) {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		s.logger.WithField("broadcast_id", broadcastID).Error("Failed to authenticate user for workspace")
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
@@ -135,7 +135,7 @@ func (s *BroadcastService) GetBroadcast(ctx context.Context, workspaceID, broadc
 func (s *BroadcastService) UpdateBroadcast(ctx context.Context, request *domain.UpdateBroadcastRequest) (*domain.Broadcast, error) {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
 	if err != nil {
 		s.logger.WithField("broadcast_id", request.ID).Error("Failed to authenticate user for workspace")
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
@@ -174,7 +174,7 @@ func (s *BroadcastService) UpdateBroadcast(ctx context.Context, request *domain.
 func (s *BroadcastService) ListBroadcasts(ctx context.Context, params domain.ListBroadcastsParams) (*domain.BroadcastListResponse, error) {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, params.WorkspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, params.WorkspaceID)
 	if err != nil {
 		s.logger.Error("Failed to authenticate user for workspace")
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
@@ -226,7 +226,7 @@ func (s *BroadcastService) ListBroadcasts(ctx context.Context, params domain.Lis
 func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domain.ScheduleBroadcastRequest) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
 	if err != nil {
 		s.logger.WithField("broadcast_id", request.ID).Error("Failed to authenticate user for workspace")
 		return fmt.Errorf("failed to authenticate user: %w", err)
@@ -355,7 +355,7 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 func (s *BroadcastService) PauseBroadcast(ctx context.Context, request *domain.PauseBroadcastRequest) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
 	if err != nil {
 		s.logger.WithField("broadcast_id", request.ID).Error("Failed to authenticate user for workspace")
 		return fmt.Errorf("failed to authenticate user: %w", err)
@@ -453,7 +453,7 @@ func (s *BroadcastService) PauseBroadcast(ctx context.Context, request *domain.P
 func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.ResumeBroadcastRequest) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
 	if err != nil {
 		s.logger.WithField("broadcast_id", request.ID).Error("Failed to authenticate user for workspace")
 		return fmt.Errorf("failed to authenticate user: %w", err)
@@ -584,7 +584,7 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 func (s *BroadcastService) CancelBroadcast(ctx context.Context, request *domain.CancelBroadcastRequest) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
 	if err != nil {
 		s.logger.WithField("broadcast_id", request.ID).Error("Failed to authenticate user for workspace")
 		return fmt.Errorf("failed to authenticate user: %w", err)
@@ -682,7 +682,7 @@ func (s *BroadcastService) CancelBroadcast(ctx context.Context, request *domain.
 func (s *BroadcastService) DeleteBroadcast(ctx context.Context, request *domain.DeleteBroadcastRequest) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
 	if err != nil {
 		s.logger.WithField("broadcast_id", request.ID).Error("Failed to authenticate user for workspace")
 		return fmt.Errorf("failed to authenticate user: %w", err)
@@ -724,7 +724,7 @@ func (s *BroadcastService) DeleteBroadcast(ctx context.Context, request *domain.
 func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain.SendToIndividualRequest) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
 	if err != nil {
 		s.logger.WithField("broadcast_id", request.BroadcastID).Error("Failed to authenticate user for workspace")
 		return fmt.Errorf("failed to authenticate user: %w", err)
@@ -928,7 +928,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 // GetTestResults retrieves A/B test results for a broadcast
 func (s *BroadcastService) GetTestResults(ctx context.Context, workspaceID, broadcastID string) (*domain.TestResultsResponse, error) {
 	// Authenticate user
-	ctx, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, err
 	}
@@ -1008,7 +1008,7 @@ func (s *BroadcastService) GetTestResults(ctx context.Context, workspaceID, broa
 // SelectWinner manually selects the winning variation for an A/B test
 func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadcastID, templateID string) error {
 	// Authenticate user
-	ctx, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return err
 	}

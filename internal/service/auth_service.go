@@ -82,32 +82,36 @@ func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.
 }
 
 // AuthenticateUserForWorkspace checks if the user exists and the session is valid for a specific workspace
-func (s *AuthService) AuthenticateUserForWorkspace(ctx context.Context, workspaceID string) (context.Context, *domain.User, error) {
+func (s *AuthService) AuthenticateUserForWorkspace(ctx context.Context, workspaceID string) (context.Context, *domain.User, *domain.UserWorkspace, error) {
 	// Check if user is already set in context for this workspace
 	if workspaceUser, ok := ctx.Value(domain.WorkspaceUserKey(workspaceID)).(*domain.User); ok && workspaceUser != nil {
-		return ctx, workspaceUser, nil
+		// Also check if we have the userWorkspace in context
+		if userWorkspace, ok := ctx.Value(domain.UserWorkspaceKey).(*domain.UserWorkspace); ok && userWorkspace != nil {
+			return ctx, workspaceUser, userWorkspace, nil
+		}
 	}
 
 	user, err := s.AuthenticateUserFromContext(ctx)
 	if err != nil {
-		return ctx, nil, err
+		return ctx, nil, nil, err
 	}
 
 	// First check if the workspace exists - this will return ErrWorkspaceNotFound if it doesn't exist
 	_, err = s.workspaceRepo.GetByID(ctx, workspaceID)
 	if err != nil {
-		return ctx, nil, err
+		return ctx, nil, nil, err
 	}
 
 	// Then check if the user is a member of the workspace
-	_, err = s.workspaceRepo.GetUserWorkspace(ctx, user.ID, workspaceID)
+	userWorkspace, err := s.workspaceRepo.GetUserWorkspace(ctx, user.ID, workspaceID)
 	if err != nil {
-		return ctx, nil, err
+		return ctx, nil, nil, err
 	}
 
-	// Store user in context for future calls - return the new context to the caller
+	// Store user and user workspace in context for future calls - return the new context to the caller
 	newCtx := context.WithValue(ctx, domain.WorkspaceUserKey(workspaceID), user)
-	return newCtx, user, nil
+	newCtx = context.WithValue(newCtx, domain.UserWorkspaceKey, userWorkspace)
+	return newCtx, user, userWorkspace, nil
 }
 
 // VerifyUserSession checks if the user exists and the session is valid

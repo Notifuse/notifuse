@@ -89,7 +89,7 @@ func (h *MessageHistoryHandler) handleList(w http.ResponseWriter, r *http.Reques
 
 	// Authenticate user for the workspace
 	var err error
-	ctx, _, err = h.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err = h.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		// codecov:ignore:start
 		h.logger.Error(err.Error())

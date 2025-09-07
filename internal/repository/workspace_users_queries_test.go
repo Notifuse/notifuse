@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/repository/testutil"
 )
 
@@ -29,11 +30,14 @@ func TestWorkspaceRepository_GetUserWorkspaces(t *testing.T) {
 	// Test success case
 	now := time.Now().Truncate(time.Second)
 
-	rows := sqlmock.NewRows([]string{"user_id", "workspace_id", "role", "created_at", "updated_at"}).
-		AddRow(userID, "workspace1", "owner", now, now).
-		AddRow(userID, "workspace2", "member", now, now)
+	permissions := domain.UserPermissions{
+		domain.PermissionResourceContacts: domain.ResourcePermissions{Read: true, Write: true},
+	}
+	rows := sqlmock.NewRows([]string{"user_id", "workspace_id", "role", "permissions", "created_at", "updated_at"}).
+		AddRow(userID, "workspace1", "owner", permissions, now, now).
+		AddRow(userID, "workspace2", "member", permissions, now, now)
 
-	mock.ExpectQuery(`SELECT user_id, workspace_id, role, created_at, updated_at FROM user_workspaces WHERE user_id = \$1`).
+	mock.ExpectQuery(`SELECT user_id, workspace_id, role, permissions, created_at, updated_at FROM user_workspaces WHERE user_id = \$1`).
 		WithArgs(userID).
 		WillReturnRows(rows)
 
@@ -46,7 +50,7 @@ func TestWorkspaceRepository_GetUserWorkspaces(t *testing.T) {
 	assert.Equal(t, "member", userWorkspaces[1].Role)
 
 	// Test database query error
-	mock.ExpectQuery(`SELECT user_id, workspace_id, role, created_at, updated_at FROM user_workspaces WHERE user_id = \$1`).
+	mock.ExpectQuery(`SELECT user_id, workspace_id, role, permissions, created_at, updated_at FROM user_workspaces WHERE user_id = \$1`).
 		WithArgs(userID).
 		WillReturnError(fmt.Errorf("database error"))
 
@@ -55,8 +59,8 @@ func TestWorkspaceRepository_GetUserWorkspaces(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to get user workspaces")
 
 	// Test empty result
-	emptyRows := sqlmock.NewRows([]string{"user_id", "workspace_id", "role", "created_at", "updated_at"})
-	mock.ExpectQuery(`SELECT user_id, workspace_id, role, created_at, updated_at FROM user_workspaces WHERE user_id = \$1`).
+	emptyRows := sqlmock.NewRows([]string{"user_id", "workspace_id", "role", "permissions", "created_at", "updated_at"})
+	mock.ExpectQuery(`SELECT user_id, workspace_id, role, permissions, created_at, updated_at FROM user_workspaces WHERE user_id = \$1`).
 		WithArgs(userID).
 		WillReturnRows(emptyRows)
 
@@ -80,10 +84,13 @@ func TestWorkspaceRepository_GetUserWorkspace(t *testing.T) {
 	// Test success case
 	now := time.Now().Truncate(time.Second)
 
-	rows := sqlmock.NewRows([]string{"user_id", "workspace_id", "role", "created_at", "updated_at"}).
-		AddRow(userID, workspaceID, "owner", now, now)
+	permissions := domain.UserPermissions{
+		domain.PermissionResourceLists: domain.ResourcePermissions{Read: true, Write: true},
+	}
+	rows := sqlmock.NewRows([]string{"user_id", "workspace_id", "role", "permissions", "created_at", "updated_at"}).
+		AddRow(userID, workspaceID, "owner", permissions, now, now)
 
-	mock.ExpectQuery(`SELECT user_id, workspace_id, role, created_at, updated_at FROM user_workspaces WHERE user_id = \$1 AND workspace_id = \$2`).
+	mock.ExpectQuery(`SELECT user_id, workspace_id, role, permissions, created_at, updated_at FROM user_workspaces WHERE user_id = \$1 AND workspace_id = \$2`).
 		WithArgs(userID, workspaceID).
 		WillReturnRows(rows)
 

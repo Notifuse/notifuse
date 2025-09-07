@@ -1497,7 +1497,7 @@ func TestListEvents(t *testing.T) {
 
 		// Setup mocks for authentication and repository
 		authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(
-			context.Background(), user, nil)
+			context.Background(), user, nil, nil)
 		repo.EXPECT().ListEvents(gomock.Any(), workspaceID, params).Return(expectedResult, nil)
 
 		// Call method
@@ -1520,7 +1520,7 @@ func TestListEvents(t *testing.T) {
 		// Setup mock for failed authentication
 		authErr := &domain.ErrUnauthorized{Message: "User not authorized for workspace"}
 		authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(
-			context.Background(), nil, authErr)
+			context.Background(), nil, nil, authErr)
 
 		// Call method
 		result, err := service.ListEvents(context.Background(), workspaceID, params)
@@ -1540,7 +1540,7 @@ func TestListEvents(t *testing.T) {
 
 		// Setup mock for successful authentication but failed validation
 		authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(
-			context.Background(), user, nil)
+			context.Background(), user, nil, nil)
 
 		// Call method
 		result, err := service.ListEvents(context.Background(), workspaceID, params)
@@ -1559,7 +1559,7 @@ func TestListEvents(t *testing.T) {
 
 		// Setup mocks for successful authentication but repository error
 		authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(
-			context.Background(), user, nil)
+			context.Background(), user, nil, nil)
 
 		repoErr := errors.New("database error")
 		repo.EXPECT().ListEvents(gomock.Any(), workspaceID, params).Return(nil, repoErr)
@@ -1581,7 +1581,7 @@ func TestListEvents(t *testing.T) {
 
 		// Setup mocks for successful authentication with empty result
 		authService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(
-			context.Background(), user, nil)
+			context.Background(), user, nil, nil)
 
 		emptyResult := &domain.WebhookEventListResult{
 			Events:     []*domain.WebhookEvent{},

@@ -337,7 +337,7 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 		// Set up authentication mock
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-			Return(ctx, &domain.User{ID: "user-123"}, nil)
+			Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 		// Provider should send an email - use gomock's Any matcher to be flexible
 		mockSESService.EXPECT().
@@ -371,7 +371,7 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-			Return(ctx, nil, assert.AnError)
+			Return(ctx, nil, nil, assert.AnError)
 
 		// Call method under test
 		err := emailService.TestEmailProvider(ctx, workspaceID, provider, toEmail)
@@ -394,7 +394,7 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-			Return(ctx, &domain.User{ID: "user-123"}, nil)
+			Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 		// Call method under test
 		err := emailService.TestEmailProvider(ctx, workspaceID, provider, toEmail)
@@ -422,7 +422,7 @@ func TestEmailService_TestEmailProvider(t *testing.T) {
 
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
-			Return(ctx, &domain.User{ID: "user-123"}, nil)
+			Return(ctx, &domain.User{ID: "user-123"}, nil, nil)
 
 		mockSESService.EXPECT().
 			SendEmail(

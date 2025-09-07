@@ -126,6 +126,11 @@ func (m *MockWorkspaceRepository) IsUserWorkspaceMember(ctx context.Context, use
 	return args.Bool(0), args.Error(1)
 }
 
+func (m *MockWorkspaceRepository) UpdateUserWorkspacePermissions(ctx context.Context, userWorkspace *domain.UserWorkspace) error {
+	args := m.Called(ctx, userWorkspace)
+	return args.Error(0)
+}
+
 func (m *MockWorkspaceRepository) CreateDatabase(ctx context.Context, workspaceID string) error {
 	args := m.Called(ctx, workspaceID)
 	return args.Error(0)

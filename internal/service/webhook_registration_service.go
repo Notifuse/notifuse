@@ -70,7 +70,7 @@ func (s *WebhookRegistrationService) RegisterWebhooks(
 	config *domain.WebhookRegistrationConfig,
 ) (*domain.WebhookRegistrationStatus, error) {
 	// Authenticate the user for this workspace
-	ctx, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -101,7 +101,7 @@ func (s *WebhookRegistrationService) GetWebhookStatus(
 	integrationID string,
 ) (*domain.WebhookRegistrationStatus, error) {
 	// Authenticate the user for this workspace
-	ctx, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -129,7 +129,7 @@ func (s *WebhookRegistrationService) UnregisterWebhooks(
 	integrationID string,
 ) error {
 	// Authenticate the user for this workspace
-	ctx, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}

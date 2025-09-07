@@ -327,6 +327,20 @@ func (mr *MockWorkspaceRepositoryMockRecorder) Update(arg0, arg1 interface{}) *g
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Update", reflect.TypeOf((*MockWorkspaceRepository)(nil).Update), arg0, arg1)
 }
 
+// UpdateUserWorkspacePermissions mocks base method.
+func (m *MockWorkspaceRepository) UpdateUserWorkspacePermissions(arg0 context.Context, arg1 *domain.UserWorkspace) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateUserWorkspacePermissions", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateUserWorkspacePermissions indicates an expected call of UpdateUserWorkspacePermissions.
+func (mr *MockWorkspaceRepositoryMockRecorder) UpdateUserWorkspacePermissions(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateUserWorkspacePermissions", reflect.TypeOf((*MockWorkspaceRepository)(nil).UpdateUserWorkspacePermissions), arg0, arg1)
+}
+
 // WithWorkspaceTransaction mocks base method.
 func (m *MockWorkspaceRepository) WithWorkspaceTransaction(arg0 context.Context, arg1 string, arg2 func(*sql.Tx) error) error {
 	m.ctrl.T.Helper()

@@ -247,6 +247,7 @@ export interface WorkspaceMember {
   updated_at: string
   invitation_expires_at?: string
   invitation_id?: string
+  permissions: UserPermissions
 }
 
 export interface GetWorkspaceMembersResponse {
@@ -257,10 +258,38 @@ export interface GetWorkspaceMembersResponse {
 export interface InviteMemberRequest {
   workspace_id: string
   email: string
-  role: string
+  permissions: UserPermissions
 }
 
 export interface InviteMemberResponse {
+  status: string
+  message: string
+}
+
+// Permission types
+export interface ResourcePermissions {
+  read: boolean
+  write: boolean
+}
+
+export interface UserPermissions {
+  contacts: ResourcePermissions
+  lists: ResourcePermissions
+  templates: ResourcePermissions
+  broadcasts: ResourcePermissions
+  transactional: ResourcePermissions
+  workspace: ResourcePermissions
+  message_history: ResourcePermissions
+}
+
+// Set User Permissions types
+export interface SetUserPermissionsRequest {
+  workspace_id: string
+  user_id: string
+  permissions: UserPermissions
+}
+
+export interface SetUserPermissionsResponse {
   status: string
   message: string
 }

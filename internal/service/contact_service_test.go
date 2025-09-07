@@ -37,7 +37,7 @@ func TestContactService_GetContactByEmail(t *testing.T) {
 	}
 
 	t.Run("successful retrieval", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().GetContactByEmail(ctx, workspaceID, email).Return(contact, nil)
 
 		result, err := service.GetContactByEmail(ctx, workspaceID, email)
@@ -46,7 +46,7 @@ func TestContactService_GetContactByEmail(t *testing.T) {
 	})
 
 	t.Run("authentication error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, errors.New("auth error"))
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, errors.New("auth error"))
 
 		result, err := service.GetContactByEmail(ctx, workspaceID, email)
 		assert.Error(t, err)
@@ -54,7 +54,7 @@ func TestContactService_GetContactByEmail(t *testing.T) {
 	})
 
 	t.Run("contact not found", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().GetContactByEmail(ctx, workspaceID, email).Return(nil, fmt.Errorf("contact not found"))
 
 		result, err := service.GetContactByEmail(ctx, workspaceID, email)
@@ -63,7 +63,7 @@ func TestContactService_GetContactByEmail(t *testing.T) {
 	})
 
 	t.Run("repository error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().GetContactByEmail(ctx, workspaceID, email).Return(nil, errors.New("repo error"))
 		mockLogger.EXPECT().WithField("email", email).Return(mockLogger)
 		mockLogger.EXPECT().Error("Failed to get contact by email: repo error")
@@ -98,7 +98,7 @@ func TestContactService_GetContactByExternalID(t *testing.T) {
 	}
 
 	t.Run("successful retrieval", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().GetContactByExternalID(ctx, externalID, workspaceID).Return(contact, nil)
 
 		result, err := service.GetContactByExternalID(ctx, externalID, workspaceID)
@@ -107,7 +107,7 @@ func TestContactService_GetContactByExternalID(t *testing.T) {
 	})
 
 	t.Run("authentication error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, errors.New("auth error"))
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, errors.New("auth error"))
 
 		result, err := service.GetContactByExternalID(ctx, externalID, workspaceID)
 		assert.Error(t, err)
@@ -115,7 +115,7 @@ func TestContactService_GetContactByExternalID(t *testing.T) {
 	})
 
 	t.Run("contact not found", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().GetContactByExternalID(ctx, externalID, workspaceID).Return(nil, fmt.Errorf("contact not found"))
 
 		result, err := service.GetContactByExternalID(ctx, externalID, workspaceID)
@@ -124,7 +124,7 @@ func TestContactService_GetContactByExternalID(t *testing.T) {
 	})
 
 	t.Run("repository error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().GetContactByExternalID(ctx, externalID, workspaceID).Return(nil, errors.New("repo error"))
 		mockLogger.EXPECT().WithField("external_id", externalID).Return(mockLogger)
 		mockLogger.EXPECT().Error("Failed to get contact by external ID: repo error")
@@ -164,7 +164,7 @@ func TestContactService_GetContacts(t *testing.T) {
 	}
 
 	t.Run("successful retrieval", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().GetContacts(ctx, req).Return(response, nil)
 
 		result, err := service.GetContacts(ctx, req)
@@ -173,7 +173,7 @@ func TestContactService_GetContacts(t *testing.T) {
 	})
 
 	t.Run("authentication error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, errors.New("auth error"))
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, errors.New("auth error"))
 
 		result, err := service.GetContacts(ctx, req)
 		assert.Error(t, err)
@@ -181,7 +181,7 @@ func TestContactService_GetContacts(t *testing.T) {
 	})
 
 	t.Run("repository error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().GetContacts(ctx, req).Return(nil, errors.New("repo error"))
 		mockLogger.EXPECT().Error("Failed to get contacts: repo error")
 
@@ -212,7 +212,7 @@ func TestContactService_DeleteContact(t *testing.T) {
 	email := "test@example.com"
 
 	t.Run("successful deletion", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockContactRepo.EXPECT().DeleteContact(ctx, email, workspaceID).Return(nil)
 
 		err := service.DeleteContact(ctx, email, workspaceID)
@@ -220,7 +220,7 @@ func TestContactService_DeleteContact(t *testing.T) {
 	})
 
 	t.Run("authentication error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, fmt.Errorf("auth error"))
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, fmt.Errorf("auth error"))
 
 		err := service.DeleteContact(ctx, email, workspaceID)
 		assert.Error(t, err)
@@ -228,7 +228,7 @@ func TestContactService_DeleteContact(t *testing.T) {
 	})
 
 	t.Run("contact not found", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockLogger.EXPECT().WithField("email", email).Return(mockLogger)
 		mockContactRepo.EXPECT().DeleteContact(ctx, email, workspaceID).Return(fmt.Errorf("contact not found"))
 		mockLogger.EXPECT().Error(fmt.Sprintf("Failed to delete contact: %v", fmt.Errorf("contact not found")))
@@ -262,7 +262,7 @@ func TestContactService_UpsertContact(t *testing.T) {
 	}
 
 	t.Run("successful create", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, contact).Return(true, nil)
 
 		result := service.UpsertContact(ctx, workspaceID, contact)
@@ -271,7 +271,7 @@ func TestContactService_UpsertContact(t *testing.T) {
 	})
 
 	t.Run("successful update", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, contact).Return(false, nil)
 
 		result := service.UpsertContact(ctx, workspaceID, contact)
@@ -280,7 +280,7 @@ func TestContactService_UpsertContact(t *testing.T) {
 	})
 
 	t.Run("authentication error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, errors.New("auth error"))
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, errors.New("auth error"))
 		mockLogger.EXPECT().WithField("email", contact.Email).Return(mockLogger)
 		mockLogger.EXPECT().Error("Failed to authenticate user: auth error")
 
@@ -290,7 +290,7 @@ func TestContactService_UpsertContact(t *testing.T) {
 	})
 
 	t.Run("repository error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, contact).Return(false, errors.New("repo error"))
 		mockLogger.EXPECT().WithField("email", contact.Email).Return(mockLogger)
 		mockLogger.EXPECT().Error("Failed to upsert contact: repo error")
@@ -305,7 +305,7 @@ func TestContactService_UpsertContact(t *testing.T) {
 			Email: "", // Empty email should fail validation
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockLogger.EXPECT().WithField("email", invalidContact.Email).Return(mockLogger)
 		mockLogger.EXPECT().Error(gomock.Any()) // Any validation error message
 
@@ -340,7 +340,7 @@ func TestContactService_UpsertContactWithPartialUpdates(t *testing.T) {
 			Email: "minimal@example.com",
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).DoAndReturn(
 			func(ctx context.Context, workspaceID string, contact *domain.Contact) (bool, error) {
 				// Verify that contact has CreatedAt and UpdatedAt set
@@ -363,7 +363,7 @@ func TestContactService_UpsertContactWithPartialUpdates(t *testing.T) {
 			LastName:  &domain.NullableString{String: "Smith", IsNull: false},
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).DoAndReturn(
 			func(ctx context.Context, workspaceID string, contact *domain.Contact) (bool, error) {
 				// Verify that only the specified fields are set
@@ -397,7 +397,7 @@ func TestContactService_UpsertContactWithPartialUpdates(t *testing.T) {
 			CustomJSON1: &domain.NullableJSON{Data: jsonData, IsNull: false},
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).DoAndReturn(
 			func(ctx context.Context, workspaceID string, contact *domain.Contact) (bool, error) {
 				// Verify that JSON field is properly set
@@ -426,7 +426,7 @@ func TestContactService_UpsertContactWithPartialUpdates(t *testing.T) {
 			CustomJSON1: &domain.NullableJSON{Data: nil, IsNull: true},
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).DoAndReturn(
 			func(ctx context.Context, workspaceID string, contact *domain.Contact) (bool, error) {
 				// Verify that null fields are properly set
@@ -473,7 +473,7 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 			{Email: "contact1@example.com"},
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, errors.New("auth error"))
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, errors.New("auth error"))
 
 		response := service.BatchImportContacts(ctx, workspaceID, contacts)
 		assert.NotNil(t, response)
@@ -485,7 +485,7 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 			{Email: ""}, // Invalid email
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 
 		response := service.BatchImportContacts(ctx, workspaceID, contacts)
 		assert.NotNil(t, response)
@@ -508,7 +508,7 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 			{Email: "valid@example.com"},
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).Return(false, errors.New("repo error"))
 
 		response := service.BatchImportContacts(ctx, workspaceID, contacts)
@@ -533,7 +533,7 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 			{Email: "existing@example.com"},
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil)
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, nil, nil)
 
 		// First contact is new
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).DoAndReturn(

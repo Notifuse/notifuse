@@ -407,7 +407,7 @@ func TestManager_RunMigrations_UpToDate(t *testing.T) {
 	cfg := &config.Config{}
 
 	// Mock current version equals code version (up to date)
-	rows := sqlmock.NewRows([]string{"value"}).AddRow("5")
+	rows := sqlmock.NewRows([]string{"value"}).AddRow("6")
 	mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").WillReturnRows(rows)
 
 	err = manager.RunMigrations(ctx, cfg, db)

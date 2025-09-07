@@ -12,14 +12,17 @@ import {
   Alert,
   Space,
   Popconfirm,
-  Tooltip
+  Tooltip,
+  Switch,
+  Popover
 } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
-import { faRefresh } from '@fortawesome/free-solid-svg-icons'
-import { WorkspaceMember } from '../../services/api/types'
+import { faRefresh, faUserCog } from '@fortawesome/free-solid-svg-icons'
+import { WorkspaceMember, UserPermissions } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { Section } from './Section'
+import { EditPermissionsModal } from './EditPermissionsModal'
 
 const { Text } = Typography
 
@@ -41,6 +44,15 @@ export function WorkspaceMembers({
   const [inviteModalVisible, setInviteModalVisible] = useState(false)
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviting, setInviting] = useState(false)
+  const [invitePermissions, setInvitePermissions] = useState<UserPermissions>({
+    contacts: { read: true, write: true },
+    lists: { read: true, write: true },
+    templates: { read: true, write: true },
+    broadcasts: { read: true, write: true },
+    transactional: { read: true, write: true },
+    workspace: { read: true, write: true },
+    message_history: { read: true, write: true }
+  })
   const { message } = App.useApp()
 
   // API Key Modal states
@@ -50,6 +62,10 @@ export function WorkspaceMembers({
   const [apiKeyToken, setApiKeyToken] = useState('')
   const [removingMember, setRemovingMember] = useState(false)
   const [resendingInvitation, setResendingInvitation] = useState(false)
+
+  // Permissions Modal states
+  const [permissionsModalVisible, setPermissionsModalVisible] = useState(false)
+  const [editingMember, setEditingMember] = useState<WorkspaceMember | null>(null)
 
   const columns = [
     {
@@ -88,6 +104,53 @@ export function WorkspaceMembers({
       }
     },
     {
+      title: 'Permissions',
+      key: 'permissions',
+      render: (record: WorkspaceMember) => {
+        if (record.type === 'api_key') {
+          return <Tag color="purple">Full Access</Tag>
+        }
+        if (record.invitation_expires_at) {
+          return <Tag color="orange">Pending</Tag>
+        }
+
+        // Count permissions
+        const totalPermissions = Object.keys(record.permissions).length * 2 // read + write for each resource
+        const activePermissions = Object.values(record.permissions).reduce(
+          (count, perm) => count + (perm.read ? 1 : 0) + (perm.write ? 1 : 0),
+          0
+        )
+
+        if (activePermissions === 0) {
+          return (
+            <Popover
+              content={createPermissionsPopoverContent(record.permissions)}
+              title="Permission Details"
+              trigger="hover"
+            >
+              <Tag color="red" className="cursor-pointer">
+                No Access
+              </Tag>
+            </Popover>
+          )
+        }
+        if (activePermissions === totalPermissions) {
+          return <Tag color="green">Full Access</Tag>
+        }
+        return (
+          <Popover
+            content={createPermissionsPopoverContent(record.permissions)}
+            title="Permission Details"
+            trigger="hover"
+          >
+            <Tag color="blue" className="cursor-pointer">
+              {activePermissions}/{totalPermissions}
+            </Tag>
+          </Popover>
+        )
+      }
+    },
+    {
       title: 'Since',
       dataIndex: 'created_at',
       key: 'created_at',
@@ -110,6 +173,16 @@ export function WorkspaceMembers({
 
               return (
                 <Space size="small">
+                  {!isInvitation && record.type !== 'api_key' && record.role !== 'owner' && (
+                    <Tooltip title="Edit permissions" placement="left">
+                      <Button
+                        icon={<FontAwesomeIcon icon={faUserCog} />}
+                        size="small"
+                        type="text"
+                        onClick={() => handleEditPermissions(record)}
+                      />
+                    </Tooltip>
+                  )}
                   {!isInvitation && (
                     <Popconfirm
                       title="Remove member"
@@ -175,11 +248,11 @@ export function WorkspaceMembers({
 
     setInviting(true)
     try {
-      // Call the API to invite the user - always with role "member"
+      // Call the API to invite the user with permissions
       await workspaceService.inviteMember({
         workspace_id: workspaceId,
         email: inviteEmail,
-        role: 'member' // Always set to member
+        permissions: invitePermissions
       })
 
       message.success(`Invitation sent to ${inviteEmail}`)
@@ -284,10 +357,21 @@ export function WorkspaceMembers({
     setResendingInvitation(true)
     try {
       // Reuse the inviteMember API which will update the existing invitation due to UPSERT logic
+      // Use default permissions for resending
+      const defaultPermissions: UserPermissions = {
+        contacts: { read: true, write: true },
+        lists: { read: true, write: true },
+        templates: { read: true, write: true },
+        broadcasts: { read: true, write: true },
+        transactional: { read: true, write: true },
+        workspace: { read: true, write: true },
+        message_history: { read: true, write: true }
+      }
+
       await workspaceService.inviteMember({
         workspace_id: workspaceId,
         email: email,
-        role: 'member' // Always use member role for resending
+        permissions: defaultPermissions
       })
 
       message.success(`Invitation resent to ${email}`)
@@ -299,6 +383,121 @@ export function WorkspaceMembers({
       setResendingInvitation(false)
     }
   }
+
+  const handleEditPermissions = (member: WorkspaceMember) => {
+    setEditingMember(member)
+    setPermissionsModalVisible(true)
+  }
+
+  const handlePermissionsModalClose = () => {
+    setPermissionsModalVisible(false)
+    setEditingMember(null)
+  }
+
+  const handlePermissionsSuccess = () => {
+    onMembersChange()
+  }
+
+  // Helper function to create permissions popover content
+  const createPermissionsPopoverContent = (permissions: UserPermissions) => {
+    const dataSource = Object.entries(permissions).map(([resource, perms]) => ({
+      key: resource,
+      resource: resource.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+      read: perms.read,
+      write: perms.write
+    }))
+
+    const columns = [
+      {
+        dataIndex: 'resource',
+        key: 'resource',
+        width: 120
+      },
+      {
+        dataIndex: 'read',
+        key: 'read',
+        width: 60,
+        render: (value: boolean) => (
+          <Tag color={value ? 'green' : 'red'}>{value ? 'Read' : 'No'}</Tag>
+        )
+      },
+      {
+        dataIndex: 'write',
+        key: 'write',
+        width: 60,
+        render: (value: boolean) => (
+          <Tag color={value ? 'green' : 'red'}>{value ? 'Write' : 'No'}</Tag>
+        )
+      }
+    ]
+
+    return (
+      <Table
+        dataSource={dataSource}
+        columns={columns}
+        pagination={false}
+        showHeader={false}
+        size="small"
+        className="min-w-64"
+      />
+    )
+  }
+
+  const updateInvitePermission = (resource: string, type: 'read' | 'write', value: boolean) => {
+    setInvitePermissions((prev) => ({
+      ...prev,
+      [resource]: {
+        ...(prev as any)[resource],
+        [type]: value
+      }
+    }))
+  }
+
+  // Helper function to create permissions table data for invite modal
+  const createInvitePermissionsTableData = (permissions: UserPermissions) => {
+    return Object.entries(permissions).map(([resource, perms]) => ({
+      key: resource,
+      resource: resource.replace('_', ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
+      read: perms.read,
+      write: perms.write
+    }))
+  }
+
+  // Permissions table columns for invite modal
+  const invitePermissionsColumns = [
+    {
+      title: 'Resource',
+      dataIndex: 'resource',
+      key: 'resource',
+      width: '40%'
+    },
+    {
+      title: 'Read',
+      dataIndex: 'read',
+      key: 'read',
+      width: '30%',
+      render: (value: boolean, record: any) => (
+        <Switch
+          checked={value}
+          onChange={(checked) => updateInvitePermission(record.key, 'read', checked)}
+          size="small"
+        />
+      )
+    },
+    {
+      title: 'Write',
+      dataIndex: 'write',
+      key: 'write',
+      width: '30%',
+      render: (value: boolean, record: any) => (
+        <Switch
+          checked={value}
+          onChange={(checked) => updateInvitePermission(record.key, 'write', checked)}
+          size="small"
+        />
+      )
+    }
+  ]
 
   return (
     <>
@@ -336,6 +535,7 @@ export function WorkspaceMembers({
         title="Invite Member"
         open={inviteModalVisible}
         onCancel={() => setInviteModalVisible(false)}
+        width={600}
         footer={[
           <Button key="cancel" onClick={() => setInviteModalVisible(false)}>
             Cancel
@@ -355,6 +555,16 @@ export function WorkspaceMembers({
               placeholder="Enter email address"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
+            />
+          </Form.Item>
+
+          <Form.Item label="Permissions">
+            <Table
+              dataSource={createInvitePermissionsTableData(invitePermissions)}
+              columns={invitePermissionsColumns}
+              pagination={false}
+              size="small"
+              className="border border-gray-200 rounded-md"
             />
           </Form.Item>
         </Form>
@@ -428,6 +638,14 @@ export function WorkspaceMembers({
           </>
         )}
       </Modal>
+
+      <EditPermissionsModal
+        visible={permissionsModalVisible}
+        member={editingMember}
+        workspaceId={workspaceId}
+        onClose={handlePermissionsModalClose}
+        onSuccess={handlePermissionsSuccess}
+      />
     </>
   )
 }

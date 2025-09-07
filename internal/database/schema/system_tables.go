@@ -43,6 +43,7 @@ var TableDefinitions = []string{
 		workspace_id VARCHAR(20) NOT NULL,
 		inviter_id UUID NOT NULL,
 		email VARCHAR(255) NOT NULL,
+		permissions JSONB DEFAULT '{}'::jsonb,
 		expires_at TIMESTAMP NOT NULL,
 		created_at TIMESTAMP NOT NULL,
 		updated_at TIMESTAMP NOT NULL,

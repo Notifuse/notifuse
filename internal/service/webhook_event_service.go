@@ -850,7 +850,7 @@ func (s *WebhookEventService) ListEvents(ctx context.Context, workspaceID string
 	// codecov:ignore:end
 
 	// Authenticate user for workspace
-	ctx, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		// codecov:ignore:start
 		tracing.MarkSpanError(ctx, err)
