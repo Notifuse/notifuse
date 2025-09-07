@@ -496,6 +496,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	lastSaveTime := o.timeProvider.Now()
 	lastLogTime := o.timeProvider.Now()
 
+	// Track if circuit breaker was triggered during this processing cycle
+	circuitBreakerTriggered := false
+
 	// Phase 1: Get recipient count if not already set
 	if broadcastState.TotalRecipients == 0 {
 		count, countErr := o.GetTotalRecipientCount(ctx, task.WorkspaceID, broadcastState.BroadcastID)
@@ -896,7 +899,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		if sendErr != nil {
 			// Check if this is a circuit breaker error
 			if broadcastErr, ok := sendErr.(*BroadcastError); ok && broadcastErr.Code == ErrCodeCircuitOpen {
-				// Circuit breaker is open - pause the broadcast
+				// Circuit breaker is open - pause the broadcast immediately
 				o.logger.WithFields(map[string]interface{}{
 					"task_id":      task.ID,
 					"broadcast_id": broadcastState.BroadcastID,
@@ -977,6 +980,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 						}).Error("Failed to update broadcast status to paused")
 					}
 				}
+
+				// Mark that circuit breaker was triggered
+				circuitBreakerTriggered = true
 
 				// Return the circuit breaker error to stop processing
 				err = sendErr
@@ -1068,6 +1074,15 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 	// If the task is complete, update the broadcast status appropriately
 	if allDone {
+		// Don't mark as sent if circuit breaker was triggered during processing
+		if circuitBreakerTriggered {
+			o.logger.WithFields(map[string]interface{}{
+				"task_id":      task.ID,
+				"broadcast_id": broadcastState.BroadcastID,
+			}).Warn("Circuit breaker was triggered - not marking broadcast as sent despite completion")
+			return false, fmt.Errorf("circuit breaker triggered during processing")
+		}
+
 		var statusMessage string
 
 		switch broadcastState.Phase {
