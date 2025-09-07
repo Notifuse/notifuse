@@ -237,7 +237,15 @@ func TestDemoService_CreateSampleLists_Error(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, nil, nil)
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "u1",
+		WorkspaceID: "demo",
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceLists: {Read: true, Write: true},
+		},
+	}
+	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, userWorkspace, nil)
 	mockListRepo.EXPECT().CreateList(ctx, "demo", gomock.Any()).Return(assert.AnError)
 
 	err := svc.createSampleLists(ctx, "demo")
@@ -267,8 +275,18 @@ func TestDemoService_SubscribeContactsToList_Success(t *testing.T) {
 
 	ctx := context.Background()
 
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "u1",
+		WorkspaceID: "demo",
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceContacts: {Read: true, Write: true},
+			domain.PermissionResourceLists:    {Read: true, Write: true},
+		},
+	}
+
 	// GetContacts flow
-	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, nil, nil)
+	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, userWorkspace, nil)
 	mockContactRepo.EXPECT().GetContacts(ctx, gomock.Any()).DoAndReturn(func(_ context.Context, req *domain.GetContactsRequest) (*domain.GetContactsResponse, error) {
 		return &domain.GetContactsResponse{Contacts: []*domain.Contact{{Email: "a@example.com"}, {Email: "b@example.com"}}}, nil
 	})
@@ -305,8 +323,18 @@ func TestDemoService_CreateSampleTemplates_Smoke(t *testing.T) {
 	}
 
 	ctx := context.Background()
+
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "u1",
+		WorkspaceID: "demo",
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceTemplates: {Read: true, Write: true},
+		},
+	}
+
 	// Authenticate for each template creation (4 templates)
-	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, nil, nil).Times(4)
+	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, userWorkspace, nil).Times(4)
 	mockTemplateRepo.EXPECT().CreateTemplate(ctx, "demo", gomock.Any()).Return(nil).Times(4)
 
 	err := svc.createSampleTemplates(ctx, "demo")

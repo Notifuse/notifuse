@@ -69,10 +69,19 @@ func (s *BroadcastService) SetTaskService(taskService domain.TaskService) {
 func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.CreateBroadcastRequest) (*domain.Broadcast, error) {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, request.WorkspaceID)
 	if err != nil {
 		s.logger.Error("Failed to authenticate user for workspace")
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing broadcasts
+	if !userWorkspace.HasPermission(domain.PermissionResourceBroadcasts, domain.PermissionTypeWrite) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBroadcasts,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to broadcasts required",
+		)
 	}
 
 	// Validate the request
@@ -121,10 +130,19 @@ func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.
 func (s *BroadcastService) GetBroadcast(ctx context.Context, workspaceID, broadcastID string) (*domain.Broadcast, error) {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		s.logger.WithField("broadcast_id", broadcastID).Error("Failed to authenticate user for workspace")
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading broadcasts
+	if !userWorkspace.HasPermission(domain.PermissionResourceBroadcasts, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBroadcasts,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to broadcasts required",
+		)
 	}
 
 	// Fetch the broadcast from the repository

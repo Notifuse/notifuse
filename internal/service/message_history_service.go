@@ -36,9 +36,18 @@ func (s *MessageHistoryService) ListMessages(ctx context.Context, workspaceID st
 	// codecov:ignore:end
 
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading message history
+	if !userWorkspace.HasPermission(domain.PermissionResourceMessageHistory, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceMessageHistory,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to message history required",
+		)
 	}
 
 	// Call repository method with pagination and filtering parameters
@@ -61,9 +70,18 @@ func (s *MessageHistoryService) ListMessages(ctx context.Context, workspaceID st
 
 func (s *MessageHistoryService) GetBroadcastStats(ctx context.Context, workspaceID string, id string) (*domain.MessageHistoryStatusSum, error) {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading message history
+	if !userWorkspace.HasPermission(domain.PermissionResourceMessageHistory, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceMessageHistory,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to message history required",
+		)
 	}
 
 	stats, err := s.repo.GetBroadcastStats(ctx, workspaceID, id)
@@ -77,9 +95,18 @@ func (s *MessageHistoryService) GetBroadcastStats(ctx context.Context, workspace
 // GetBroadcastVariationStats retrieves statistics for a specific variation of a broadcast
 func (s *MessageHistoryService) GetBroadcastVariationStats(ctx context.Context, workspaceID, broadcastID, templateID string) (*domain.MessageHistoryStatusSum, error) {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading message history
+	if !userWorkspace.HasPermission(domain.PermissionResourceMessageHistory, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceMessageHistory,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to message history required",
+		)
 	}
 
 	// Validate input parameters

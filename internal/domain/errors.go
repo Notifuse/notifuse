@@ -57,3 +57,31 @@ func NewValidationError(message string) error {
 		Message: message,
 	}
 }
+
+// PermissionError represents insufficient permissions for an operation
+type PermissionError struct {
+	Resource   PermissionResource `json:"resource"`
+	Permission PermissionType     `json:"permission"`
+	Message    string             `json:"message"`
+}
+
+// Error implements the error interface
+func (e *PermissionError) Error() string {
+	return e.Message
+}
+
+// NewPermissionError creates a new permission error
+func NewPermissionError(resource PermissionResource, permission PermissionType, message string) *PermissionError {
+	return &PermissionError{
+		Resource:   resource,
+		Permission: permission,
+		Message:    message,
+	}
+}
+
+// ErrInsufficientPermissions is the default insufficient permissions error
+var ErrInsufficientPermissions = NewPermissionError(
+	PermissionResourceWorkspace,
+	PermissionTypeRead,
+	"Insufficient permissions",
+)

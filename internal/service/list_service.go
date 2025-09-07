@@ -38,9 +38,18 @@ func NewListService(repo domain.ListRepository, workspaceRepo domain.WorkspaceRe
 
 func (s *ListService) CreateList(ctx context.Context, workspaceID string, list *domain.List) error {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing lists
+	if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to lists required",
+		)
 	}
 
 	now := time.Now().UTC()
@@ -61,9 +70,18 @@ func (s *ListService) CreateList(ctx context.Context, workspaceID string, list *
 
 func (s *ListService) GetListByID(ctx context.Context, workspaceID string, id string) (*domain.List, error) {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading lists
+	if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to lists required",
+		)
 	}
 
 	list, err := s.repo.GetListByID(ctx, workspaceID, id)
@@ -80,9 +98,18 @@ func (s *ListService) GetListByID(ctx context.Context, workspaceID string, id st
 
 func (s *ListService) GetLists(ctx context.Context, workspaceID string) ([]*domain.List, error) {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading lists
+	if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to lists required",
+		)
 	}
 
 	lists, err := s.repo.GetLists(ctx, workspaceID)
@@ -96,9 +123,18 @@ func (s *ListService) GetLists(ctx context.Context, workspaceID string) ([]*doma
 
 func (s *ListService) UpdateList(ctx context.Context, workspaceID string, list *domain.List) error {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing lists
+	if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to lists required",
+		)
 	}
 
 	list.UpdatedAt = time.Now().UTC()
@@ -117,9 +153,18 @@ func (s *ListService) UpdateList(ctx context.Context, workspaceID string, list *
 
 func (s *ListService) DeleteList(ctx context.Context, workspaceID string, id string) error {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing lists
+	if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to lists required",
+		)
 	}
 
 	if err := s.repo.DeleteList(ctx, workspaceID, id); err != nil {
@@ -132,9 +177,18 @@ func (s *ListService) DeleteList(ctx context.Context, workspaceID string, id str
 
 func (s *ListService) GetListStats(ctx context.Context, workspaceID string, id string) (*domain.ListStats, error) {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading lists
+	if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceLists,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to lists required",
+		)
 	}
 
 	stats, err := s.repo.GetListStats(ctx, workspaceID, id)
@@ -166,11 +220,23 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 
 	isAuthenticated := false
 
+	var userWorkspace *domain.UserWorkspace
+
 	if hasBearerToken {
-		ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
+		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
 		if err != nil {
 			return fmt.Errorf("failed to authenticate user: %w", err)
 		}
+
+		// Check permission for writing lists
+		if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeWrite) {
+			return domain.NewPermissionError(
+				domain.PermissionResourceLists,
+				domain.PermissionTypeWrite,
+				"Insufficient permissions: write access to lists required",
+			)
+		}
+
 		isAuthenticated = true
 	} else if payload.Contact.EmailHMAC != "" {
 
@@ -372,10 +438,20 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 		return fmt.Errorf("failed to get workspace: %w", err)
 	}
 
+	var userWorkspace *domain.UserWorkspace
 	if hasBearerToken {
-		ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
+		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace.ID)
 		if err != nil {
 			return fmt.Errorf("failed to authenticate user: %w", err)
+		}
+
+		// Check permission for writing lists
+		if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeWrite) {
+			return domain.NewPermissionError(
+				domain.PermissionResourceLists,
+				domain.PermissionTypeWrite,
+				"Insufficient permissions: write access to lists required",
+			)
 		}
 	} else {
 		// verify contact hmac

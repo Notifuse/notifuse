@@ -33,9 +33,18 @@ func NewContactService(
 
 func (s *ContactService) GetContactByEmail(ctx context.Context, workspaceID string, email string) (*domain.Contact, error) {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading contacts
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to contacts required",
+		)
 	}
 
 	contact, err := s.repo.GetContactByEmail(ctx, workspaceID, email)
@@ -52,9 +61,18 @@ func (s *ContactService) GetContactByEmail(ctx context.Context, workspaceID stri
 
 func (s *ContactService) GetContactByExternalID(ctx context.Context, externalID string, workspaceID string) (*domain.Contact, error) {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading contacts
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to contacts required",
+		)
 	}
 
 	contact, err := s.repo.GetContactByExternalID(ctx, externalID, workspaceID)
@@ -71,9 +89,18 @@ func (s *ContactService) GetContactByExternalID(ctx context.Context, externalID 
 
 func (s *ContactService) GetContacts(ctx context.Context, req *domain.GetContactsRequest) (*domain.GetContactsResponse, error) {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, req.WorkspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, req.WorkspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading contacts
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to contacts required",
+		)
 	}
 
 	response, err := s.repo.GetContacts(ctx, req)
@@ -87,9 +114,18 @@ func (s *ContactService) GetContacts(ctx context.Context, req *domain.GetContact
 
 func (s *ContactService) DeleteContact(ctx context.Context, email string, workspaceID string) error {
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing contacts
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to contacts required",
+		)
 	}
 
 	if err := s.repo.DeleteContact(ctx, email, workspaceID); err != nil {
@@ -106,9 +142,15 @@ func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID st
 	}
 
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		response.Error = fmt.Sprintf("failed to authenticate user: %v", err)
+		return response
+	}
+
+	// Check permission for writing contacts
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite) {
+		response.Error = "Insufficient permissions: write access to contacts required"
 		return response
 	}
 
@@ -159,11 +201,19 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 	}
 
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		operation.Action = domain.UpsertContactOperationError
 		operation.Error = err.Error()
 		s.logger.WithField("email", contact.Email).Error(fmt.Sprintf("Failed to authenticate user: %v", err))
+		return operation
+	}
+
+	// Check permission for writing contacts
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite) {
+		operation.Action = domain.UpsertContactOperationError
+		operation.Error = "Insufficient permissions: write access to contacts required"
+		s.logger.WithField("email", contact.Email).Error("Insufficient permissions: write access to contacts required")
 		return operation
 	}
 

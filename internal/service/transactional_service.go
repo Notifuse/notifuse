@@ -71,9 +71,18 @@ func (s *TransactionalNotificationService) CreateNotification(
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user for workspace: %w", err)
+	}
+
+	// Check permission for writing transactional notifications
+	if !userWorkspace.HasPermission(domain.PermissionResourceTransactional, domain.PermissionTypeWrite) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceTransactional,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to transactional notifications required",
+		)
 	}
 
 	s.logger.WithFields(map[string]interface{}{
@@ -226,9 +235,18 @@ func (s *TransactionalNotificationService) GetNotification(
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspace)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspace)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user for workspace: %w", err)
+	}
+
+	// Check permission for reading transactional notifications
+	if !userWorkspace.HasPermission(domain.PermissionResourceTransactional, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceTransactional,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to transactional notifications required",
+		)
 	}
 
 	span.AddAttributes(

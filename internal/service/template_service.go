@@ -70,9 +70,18 @@ func NewTemplateService(repo domain.TemplateRepository, authService domain.AuthS
 func (s *TemplateService) CreateTemplate(ctx context.Context, workspaceID string, template *domain.Template) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing templates
+	if !userWorkspace.HasPermission(domain.PermissionResourceTemplates, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceTemplates,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to templates required",
+		)
 	}
 
 	// Set initial version and timestamps
@@ -100,12 +109,22 @@ func (s *TemplateService) CreateTemplate(ctx context.Context, workspaceID string
 
 func (s *TemplateService) GetTemplateByID(ctx context.Context, workspaceID string, id string, version int64) (*domain.Template, error) {
 	// Check if this is a system call that should bypass authentication
+	var userWorkspace *domain.UserWorkspace
 	if ctx.Value("system_call") == nil {
 		// Authenticate user for workspace for regular calls
 		var err error
-		ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to authenticate user: %w", err)
+		}
+
+		// Check permission for reading templates
+		if !userWorkspace.HasPermission(domain.PermissionResourceTemplates, domain.PermissionTypeRead) {
+			return nil, domain.NewPermissionError(
+				domain.PermissionResourceTemplates,
+				domain.PermissionTypeRead,
+				"Insufficient permissions: read access to templates required",
+			)
 		}
 	}
 
@@ -125,9 +144,18 @@ func (s *TemplateService) GetTemplateByID(ctx context.Context, workspaceID strin
 func (s *TemplateService) GetTemplates(ctx context.Context, workspaceID string, category string) ([]*domain.Template, error) {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading templates
+	if !userWorkspace.HasPermission(domain.PermissionResourceTemplates, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceTemplates,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to templates required",
+		)
 	}
 
 	// Get templates
@@ -143,9 +171,18 @@ func (s *TemplateService) GetTemplates(ctx context.Context, workspaceID string, 
 func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string, template *domain.Template) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing templates
+	if !userWorkspace.HasPermission(domain.PermissionResourceTemplates, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceTemplates,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to templates required",
+		)
 	}
 
 	// Check if template exists
@@ -185,9 +222,18 @@ func (s *TemplateService) UpdateTemplate(ctx context.Context, workspaceID string
 func (s *TemplateService) DeleteTemplate(ctx context.Context, workspaceID string, id string) error {
 	// Authenticate user for workspace
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing templates
+	if !userWorkspace.HasPermission(domain.PermissionResourceTemplates, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceTemplates,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to templates required",
+		)
 	}
 
 	// Delete template
@@ -209,11 +255,21 @@ func (s *TemplateService) CompileTemplate(ctx context.Context, payload domain.Co
 		if user := ctx.Value("authenticated_user"); user == nil {
 			// Authenticate user for workspace
 			var user *domain.User
+			var userWorkspace *domain.UserWorkspace
 			var err error
-			ctx, user, _, err = s.authService.AuthenticateUserForWorkspace(ctx, payload.WorkspaceID)
+			ctx, user, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, payload.WorkspaceID)
 			if err != nil {
 				// Return standard Go error for non-compilation issues
 				return nil, fmt.Errorf("failed to authenticate user: %w", err)
+			}
+
+			// Check permission for reading templates
+			if !userWorkspace.HasPermission(domain.PermissionResourceTemplates, domain.PermissionTypeRead) {
+				return nil, domain.NewPermissionError(
+					domain.PermissionResourceTemplates,
+					domain.PermissionTypeRead,
+					"Insufficient permissions: read access to templates required",
+				)
 			}
 
 			// Store user in context for future use

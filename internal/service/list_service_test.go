@@ -36,7 +36,15 @@ func TestListService_CreateList(t *testing.T) {
 	}
 
 	t.Run("successful create", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().CreateList(ctx, workspaceID, gomock.Any()).Return(nil)
 		mockLogger.EXPECT().WithField("list_id", list.ID).Return(mockLogger).Times(0)
 		mockLogger.EXPECT().Error(gomock.Any()).Times(0)
@@ -66,7 +74,16 @@ func TestListService_CreateList(t *testing.T) {
 			},
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().CreateList(ctx, workspaceID, gomock.Any()).DoAndReturn(
 			func(ctx context.Context, wsID string, l *domain.List) error {
 				assert.Equal(t, "list123", l.ID)
@@ -93,7 +110,15 @@ func TestListService_CreateList(t *testing.T) {
 
 	t.Run("validation failure", func(t *testing.T) {
 		invalidList := &domain.List{} // Missing required fields
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 
 		err := service.CreateList(ctx, workspaceID, invalidList)
 		assert.Error(t, err)
@@ -101,7 +126,15 @@ func TestListService_CreateList(t *testing.T) {
 	})
 
 	t.Run("repository failure", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().CreateList(ctx, workspaceID, gomock.Any()).Return(errors.New("db error"))
 		mockLogger.EXPECT().WithField("list_id", list.ID).Return(mockLogger)
 		mockLogger.EXPECT().Error(gomock.Any())
@@ -136,7 +169,15 @@ func TestListService_GetListByID(t *testing.T) {
 	}
 
 	t.Run("successful retrieval", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetListByID(ctx, workspaceID, listID).Return(expectedList, nil)
 		mockLogger.EXPECT().WithField("list_id", listID).Return(mockLogger).Times(0)
 		mockLogger.EXPECT().Error(gomock.Any()).Times(0)
@@ -156,7 +197,15 @@ func TestListService_GetListByID(t *testing.T) {
 	})
 
 	t.Run("list not found", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetListByID(ctx, workspaceID, listID).Return(nil, &domain.ErrListNotFound{})
 		mockLogger.EXPECT().WithField("list_id", listID).Return(mockLogger).Times(0)
 
@@ -168,7 +217,15 @@ func TestListService_GetListByID(t *testing.T) {
 	})
 
 	t.Run("repository error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetListByID(ctx, workspaceID, listID).Return(nil, errors.New("db error"))
 		mockLogger.EXPECT().WithField("list_id", listID).Return(mockLogger)
 		mockLogger.EXPECT().Error(gomock.Any())
@@ -203,7 +260,15 @@ func TestListService_GetLists(t *testing.T) {
 	}
 
 	t.Run("successful retrieval", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetLists(ctx, workspaceID).Return(expectedLists, nil)
 		mockLogger.EXPECT().Error(gomock.Any()).Times(0)
 
@@ -222,7 +287,15 @@ func TestListService_GetLists(t *testing.T) {
 	})
 
 	t.Run("repository error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetLists(ctx, workspaceID).Return(nil, errors.New("db error"))
 		mockLogger.EXPECT().Error(gomock.Any())
 
@@ -256,7 +329,15 @@ func TestListService_UpdateList(t *testing.T) {
 	}
 
 	t.Run("successful update", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().UpdateList(ctx, workspaceID, gomock.Any()).Return(nil)
 		mockLogger.EXPECT().WithField("list_id", list.ID).Return(mockLogger).Times(0)
 		mockLogger.EXPECT().Error(gomock.Any()).Times(0)
@@ -285,7 +366,15 @@ func TestListService_UpdateList(t *testing.T) {
 			},
 		}
 
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().UpdateList(ctx, workspaceID, gomock.Any()).DoAndReturn(
 			func(ctx context.Context, wsID string, l *domain.List) error {
 				assert.Equal(t, "list123", l.ID)
@@ -312,7 +401,15 @@ func TestListService_UpdateList(t *testing.T) {
 
 	t.Run("validation failure", func(t *testing.T) {
 		invalidList := &domain.List{} // Missing required fields
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 
 		err := service.UpdateList(ctx, workspaceID, invalidList)
 		assert.Error(t, err)
@@ -320,7 +417,15 @@ func TestListService_UpdateList(t *testing.T) {
 	})
 
 	t.Run("repository failure", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().UpdateList(ctx, workspaceID, gomock.Any()).Return(errors.New("db error"))
 		mockLogger.EXPECT().WithField("list_id", list.ID).Return(mockLogger)
 		mockLogger.EXPECT().Error(gomock.Any())
@@ -351,7 +456,15 @@ func TestListService_DeleteList(t *testing.T) {
 	listID := "list123"
 
 	t.Run("successful deletion", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().DeleteList(ctx, workspaceID, listID).Return(nil)
 		mockLogger.EXPECT().WithField("list_id", listID).Return(mockLogger).Times(0)
 		mockLogger.EXPECT().Error(gomock.Any()).Times(0)
@@ -369,7 +482,15 @@ func TestListService_DeleteList(t *testing.T) {
 	})
 
 	t.Run("repository failure", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().DeleteList(ctx, workspaceID, listID).Return(errors.New("db error"))
 		mockLogger.EXPECT().WithField("list_id", listID).Return(mockLogger)
 		mockLogger.EXPECT().Error(gomock.Any())
@@ -407,7 +528,15 @@ func TestListService_GetListStats(t *testing.T) {
 	}
 
 	t.Run("successful retrieval", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetListStats(ctx, workspaceID, listID).Return(expectedStats, nil)
 
 		stats, err := service.GetListStats(ctx, workspaceID, listID)
@@ -425,7 +554,15 @@ func TestListService_GetListStats(t *testing.T) {
 	})
 
 	t.Run("repository error", func(t *testing.T) {
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetListStats(ctx, workspaceID, listID).Return(nil, errors.New("db error"))
 
 		stats, err := service.GetListStats(ctx, workspaceID, listID)
@@ -473,7 +610,15 @@ func TestListService_SubscribeToLists(t *testing.T) {
 
 	t.Run("subscribe with API authentication", func(t *testing.T) {
 		// Set up expectations
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
 		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{
@@ -587,7 +732,15 @@ func TestListService_SubscribeToLists(t *testing.T) {
 
 		// Setup with API authentication so we aren't testing HMAC verification
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(specialWorkspace, nil)
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 
 		// Mock upsert
 		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
@@ -831,7 +984,15 @@ func TestListService_UnsubscribeFromLists(t *testing.T) {
 
 	t.Run("unsubscribe with API authentication", func(t *testing.T) {
 		// Set up expectations
-		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+		userWorkspace := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceLists: {Read: true, Write: true},
+			},
+		}
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
 		mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, email).Return(contact, nil)
 		mockWorkspace := workspace
@@ -1256,7 +1417,15 @@ func TestListService_SubscribeToLists_WelcomeEmailSent(t *testing.T) {
 		UpdatedAt:       time.Now(),
 	}
 
-	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "user123",
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceLists: {Read: true, Write: true},
+		},
+	}
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
 	mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 	mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{list}, nil)
@@ -1395,7 +1564,15 @@ func TestListService_SubscribeToLists_WelcomeEmailFailure(t *testing.T) {
 		UpdatedAt:       time.Now(),
 	}
 
-	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "user123",
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceLists: {Read: true, Write: true},
+		},
+	}
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
 	mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 	mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{list}, nil)
@@ -1450,7 +1627,15 @@ func TestListService_SubscribeToLists_GetEmailProviderError(t *testing.T) {
 		UpdatedAt: time.Now(),
 	}
 
-	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, nil, nil)
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "user123",
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceLists: {Read: true, Write: true},
+		},
+	}
+	mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
 	mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 	mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{list}, nil)

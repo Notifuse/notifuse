@@ -105,7 +105,15 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 }
 
 func authOK(auth *domainmocks.MockAuthService, ctx context.Context, workspaceID string) {
-	auth.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: "user1"}, nil, nil)
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "user1",
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceBroadcasts: {Read: true, Write: true},
+		},
+	}
+	auth.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: "user1"}, userWorkspace, nil)
 }
 
 func TestBroadcastService_CreateBroadcast_Success(t *testing.T) {
