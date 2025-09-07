@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.1] - 2025-09-07
+
+- hide menu items in console when user doesn't have access to the resource
+- disabled create/update buttons in console when user doesn't have write permissions
+
 ## [6.0] - 2025-09-07
 
 - Add permissions with roles per workspace
