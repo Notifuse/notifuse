@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.0] - 2025-09-07
+
+- Add permissions with roles per workspace
+
 ## [5.0] - 2025-09-06
 
 - Add pause_reason column to the broadcasts table to store the reason for broadcast pause
