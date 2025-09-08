@@ -41,10 +41,17 @@ type BroadcastError struct {
 
 // Error implements the error interface
 func (e *BroadcastError) Error() string {
-	if e.TaskID != "" {
-		return fmt.Sprintf("[%s] %s (task: %s): %v", e.Code, e.Message, e.TaskID, e.Err)
+	if e.Err != nil {
+		if e.TaskID != "" {
+			return fmt.Sprintf("[%s] %s (task: %s): %v", e.Code, e.Message, e.TaskID, e.Err)
+		}
+		return fmt.Sprintf("[%s] %s: %v", e.Code, e.Message, e.Err)
 	}
-	return fmt.Sprintf("[%s] %s: %v", e.Code, e.Message, e.Err)
+	// Fallback when Err is nil
+	if e.TaskID != "" {
+		return fmt.Sprintf("[%s] %s (task: %s)", e.Code, e.Message, e.TaskID)
+	}
+	return fmt.Sprintf("[%s] %s", e.Code, e.Message)
 }
 
 // Unwrap returns the underlying error

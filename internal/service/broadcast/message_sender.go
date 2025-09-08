@@ -210,7 +210,7 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 			logFields["last_error"] = lastError.Error()
 		}
 		s.logger.WithFields(logFields).Warn("Circuit breaker open, skipping send")
-		return NewBroadcastError(ErrCodeCircuitOpen, fmt.Sprintf("circuit breaker is open: %v", lastError), true, nil)
+		return NewBroadcastError(ErrCodeCircuitOpen, "circuit breaker is open", true, lastError)
 	}
 
 	// Apply rate limiting
@@ -395,7 +395,7 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 			logFields["last_error"] = lastError.Error()
 		}
 		s.logger.WithFields(logFields).Warn("Circuit breaker open, skipping batch")
-		return 0, 0, NewBroadcastError(ErrCodeCircuitOpen, fmt.Sprintf("circuit breaker is open: %v", lastError), true, nil)
+		return 0, 0, NewBroadcastError(ErrCodeCircuitOpen, "circuit breaker is open", true, lastError)
 	}
 
 	// Get the broadcast to determine variations and templates
