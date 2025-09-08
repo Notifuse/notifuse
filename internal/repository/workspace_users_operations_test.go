@@ -28,6 +28,7 @@ func TestWorkspaceRepository_AddUserToWorkspace(t *testing.T) {
 		UserID:      "user123",
 		WorkspaceID: "workspace123",
 		Role:        "member",
+		Permissions: domain.FullPermissions,
 	}
 
 	// Test success case
@@ -36,6 +37,7 @@ func TestWorkspaceRepository_AddUserToWorkspace(t *testing.T) {
 			userWorkspace.UserID,
 			userWorkspace.WorkspaceID,
 			userWorkspace.Role,
+			userWorkspace.Permissions,
 			sqlmock.AnyArg(), // created_at
 			sqlmock.AnyArg(), // updated_at
 		).
@@ -50,8 +52,9 @@ func TestWorkspaceRepository_AddUserToWorkspace(t *testing.T) {
 			userWorkspace.UserID,
 			userWorkspace.WorkspaceID,
 			userWorkspace.Role,
-			sqlmock.AnyArg(),
-			sqlmock.AnyArg(),
+			userWorkspace.Permissions,
+			sqlmock.AnyArg(), // created_at
+			sqlmock.AnyArg(), // updated_at
 		).
 		WillReturnError(fmt.Errorf("database error"))
 

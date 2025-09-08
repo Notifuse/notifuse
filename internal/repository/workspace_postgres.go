@@ -329,15 +329,16 @@ func (r *workspaceRepository) DeleteDatabase(ctx context.Context, workspaceID st
 
 func (r *workspaceRepository) AddUserToWorkspace(ctx context.Context, userWorkspace *domain.UserWorkspace) error {
 	query := `
-		INSERT INTO user_workspaces (user_id, workspace_id, role, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5)
+		INSERT INTO user_workspaces (user_id, workspace_id, role, permissions, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
 		ON CONFLICT (user_id, workspace_id) DO UPDATE
-		SET role = $3, updated_at = $5
+		SET role = $3, permissions = $4, updated_at = $6
 	`
 	_, err := r.systemDB.ExecContext(ctx, query,
 		userWorkspace.UserID,
 		userWorkspace.WorkspaceID,
 		userWorkspace.Role,
+		userWorkspace.Permissions,
 		userWorkspace.CreatedAt,
 		userWorkspace.UpdatedAt,
 	)
@@ -514,7 +515,7 @@ func (r *workspaceRepository) GetInvitationByEmail(ctx context.Context, workspac
 // GetWorkspaceInvitations retrieves all workspace invitations for a specific workspace
 func (r *workspaceRepository) GetWorkspaceInvitations(ctx context.Context, workspaceID string) ([]*domain.WorkspaceInvitation, error) {
 	query := `
-		SELECT id, workspace_id, inviter_id, email, expires_at, created_at, updated_at
+		SELECT id, workspace_id, inviter_id, email, permissions, expires_at, created_at, updated_at
 		FROM workspace_invitations
 		WHERE workspace_id = $1
 		ORDER BY created_at DESC
@@ -533,6 +534,7 @@ func (r *workspaceRepository) GetWorkspaceInvitations(ctx context.Context, works
 			&invitation.WorkspaceID,
 			&invitation.InviterID,
 			&invitation.Email,
+			&invitation.Permissions,
 			&invitation.ExpiresAt,
 			&invitation.CreatedAt,
 			&invitation.UpdatedAt,

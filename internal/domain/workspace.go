@@ -36,6 +36,16 @@ const (
 	PermissionTypeWrite PermissionType = "write"
 )
 
+var FullPermissions = UserPermissions{
+	PermissionResourceContacts:       ResourcePermissions{Read: true, Write: true},
+	PermissionResourceLists:          ResourcePermissions{Read: true, Write: true},
+	PermissionResourceTemplates:      ResourcePermissions{Read: true, Write: true},
+	PermissionResourceBroadcasts:     ResourcePermissions{Read: true, Write: true},
+	PermissionResourceTransactional:  ResourcePermissions{Read: true, Write: true},
+	PermissionResourceWorkspace:      ResourcePermissions{Read: true, Write: true},
+	PermissionResourceMessageHistory: ResourcePermissions{Read: true, Write: true},
+}
+
 // ResourcePermissions defines read/write permissions for a specific resource
 type ResourcePermissions struct {
 	Read  bool `json:"read"`

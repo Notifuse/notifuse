@@ -180,22 +180,12 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 		return nil, err
 	}
 
-	fullPermissions := domain.UserPermissions{
-		domain.PermissionResourceContacts:       domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceLists:          domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceTemplates:      domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceBroadcasts:     domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceTransactional:  domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceWorkspace:      domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceMessageHistory: domain.ResourcePermissions{Read: true, Write: true},
-	}
-
 	// Add the creator as owner
 	userWorkspace := &domain.UserWorkspace{
 		UserID:      user.ID,
 		WorkspaceID: id,
 		Role:        "owner",
-		Permissions: fullPermissions,
+		Permissions: domain.FullPermissions,
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
@@ -498,7 +488,9 @@ func (s *WorkspaceService) TransferOwnership(ctx context.Context, workspaceID st
 
 	// Update new owner's role to owner
 	newOwnerWorkspace.Role = "owner"
+	newOwnerWorkspace.Permissions = domain.FullPermissions
 	newOwnerWorkspace.UpdatedAt = time.Now().UTC()
+
 	if err := s.repo.AddUserToWorkspace(ctx, newOwnerWorkspace); err != nil {
 		s.logger.WithField("workspace_id", workspaceID).WithField("new_owner_id", newOwnerID).WithField("error", err.Error()).Error("Failed to update new owner's role")
 		return err
@@ -721,6 +713,13 @@ func (s *WorkspaceService) GetWorkspaceMembersWithEmail(ctx context.Context, id 
 		return nil, err
 	}
 
+	// force all permissions to owners
+	for _, member := range members {
+		if member.Role == "owner" {
+			member.Permissions = domain.FullPermissions
+		}
+	}
+
 	// Get all workspace invitations
 	invitations, err := s.repo.GetWorkspaceInvitations(ctx, id)
 	if err != nil {
@@ -814,21 +813,12 @@ func (s *WorkspaceService) CreateAPIKey(ctx context.Context, workspaceID string,
 	}
 
 	// Create full permissions for API key
-	fullPermissions := domain.UserPermissions{
-		domain.PermissionResourceContacts:       domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceLists:          domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceTemplates:      domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceBroadcasts:     domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceTransactional:  domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceWorkspace:      domain.ResourcePermissions{Read: true, Write: true},
-		domain.PermissionResourceMessageHistory: domain.ResourcePermissions{Read: true, Write: true},
-	}
 
 	newUserWorkspace := &domain.UserWorkspace{
 		UserID:      apiUser.ID,
 		WorkspaceID: workspaceID,
 		Role:        "member",
-		Permissions: fullPermissions,
+		Permissions: domain.FullPermissions,
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}

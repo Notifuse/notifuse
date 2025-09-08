@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.3] - 2025-09-08
+
+- Fix set permissions on root user
+- Force all permissions to owners
+
 ## [6.2] - 2025-09-08
 
 - Fix circuit breaker error message in broadcast pause reason
