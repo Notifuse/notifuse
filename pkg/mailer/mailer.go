@@ -211,28 +211,13 @@ func (m *SMTPMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName
 		<body>
 			<h1 style="color: #d32f2f;">🚨 Broadcast Automatically Paused</h1>
 			<p>Hello,</p>
-			<p>Your broadcast <strong>"%s"</strong> in workspace <strong>%s</strong> has been automatically paused due to sending limits being reached.</p>
-			
+			<p>Your broadcast <strong>"%s"</strong> in workspace <strong>%s</strong> has been automatically paused.</p>
+
 			<div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px; margin: 20px 0;">
 				<h3 style="color: #856404; margin-top: 0;">Reason:</h3>
 				<p style="margin-bottom: 0; color: #856404;"><strong>%s</strong></p>
 			</div>
-			
-			<h3>What happened?</h3>
-			<p>Your email service provider has indicated that you've reached your daily sending limits. To protect your sender reputation and prevent further issues, we've automatically paused your broadcast.</p>
-			
-			<h3>What should you do?</h3>
-			<ul>
-				<li>Wait for your daily sending limits to reset (usually at midnight in your provider's timezone)</li>
-				<li>Check your email provider's dashboard for more details about your sending limits</li>
-				<li>Resume the broadcast once your limits have been reset</li>
-				<li>Consider upgrading your email provider plan if you frequently hit these limits</li>
-			</ul>
-			
-			<p>You can resume the broadcast from your Notifuse dashboard once the sending limits have been reset.</p>
-			
-			<p>If you have any questions, please contact our support team.</p>
-			
+
 			<p>Best regards,<br>The Notifuse Team</p>
 		</body>
 	</html>`, broadcastName, workspaceName, reason)
@@ -243,22 +228,9 @@ func (m *SMTPMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName
 
 Hello,
 
-Your broadcast "%s" in workspace %s has been automatically paused due to sending limits being reached.
+Your broadcast "%s" in workspace %s has been automatically paused.
 
 REASON: %s
-
-What happened?
-Your email service provider has indicated that you've reached your daily sending limits. To protect your sender reputation and prevent further issues, we've automatically paused your broadcast.
-
-What should you do?
-- Wait for your daily sending limits to reset (usually at midnight in your provider's timezone)
-- Check your email provider's dashboard for more details about your sending limits  
-- Resume the broadcast once your limits have been reset
-- Consider upgrading your email provider plan if you frequently hit these limits
-
-You can resume the broadcast from your Notifuse dashboard once the sending limits have been reset.
-
-If you have any questions, please contact our support team.
 
 Best regards,
 The Notifuse Team`, broadcastName, workspaceName, reason)

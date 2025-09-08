@@ -395,6 +395,18 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// Defer function to mark broadcast as failed if we're returning an error on the last retry
 	defer func() {
 		if err != nil && isLastRetry && broadcastID != "" {
+			// Check if the error is a circuit breaker error - don't mark as failed in that case
+			if broadcastErr, ok := err.(*BroadcastError); ok && broadcastErr.Code == ErrCodeCircuitOpen {
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastID,
+					"retry_count":  task.RetryCount,
+					"max_retries":  task.MaxRetries,
+					"error":        err.Error(),
+				}).Info("Task failed due to circuit breaker - broadcast already paused, not marking as failed")
+				return
+			}
+
 			o.logger.WithFields(map[string]interface{}{
 				"task_id":      task.ID,
 				"broadcast_id": broadcastID,

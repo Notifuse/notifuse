@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.2] - 2025-09-08
+
+- Fix circuit breaker error message in broadcast pause reason
+- Simplify broadcast circuit breaker notification email
+
 ## [6.1] - 2025-09-07
 
 - hide menu items in console when user doesn't have access to the resource
