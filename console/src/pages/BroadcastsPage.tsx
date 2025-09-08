@@ -488,6 +488,27 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
           <div>{getTaskStatusBadge(task.status)}</div>
         </div>
 
+        {task.next_run_after && (
+          <div className="mb-2">
+            <div className="font-medium text-gray-500">Next Run</div>
+            <div className="text-sm">
+              {task.status === 'paused' ? (
+                <Tooltip title={dayjs(task.next_run_after).format('lll')}>
+                  <span className="text-orange-600">{dayjs(task.next_run_after).fromNow()}</span>
+                </Tooltip>
+              ) : task.status === 'pending' ? (
+                <Tooltip title={dayjs(task.next_run_after).format('lll')}>
+                  <span className="text-blue-600">{dayjs(task.next_run_after).fromNow()}</span>
+                </Tooltip>
+              ) : (
+                <Tooltip title={dayjs(task.next_run_after).format('lll')}>
+                  <span>{dayjs(task.next_run_after).fromNow()}</span>
+                </Tooltip>
+              )}
+            </div>
+          </div>
+        )}
+
         {(task.progress > 0 || task.state?.send_broadcast) && (
           <div className="mb-2">
             <div className="font-medium text-gray-500">Progress</div>
