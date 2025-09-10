@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.5] - 2025-09-10
+
+- Add delete contact functionality to console
+- Redact email addresses in message history and webhook events when deleting a contact
+
 ## [6.4] - 2025-09-10
 
 - Add test email functionality to broadcast variations
