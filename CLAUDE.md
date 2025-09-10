@@ -26,8 +26,91 @@ The application follows **Clean Architecture** principles with distinct layers:
 
 - **Primary Database**: PostgreSQL 17
 - **Query Builder**: Squirrel for type-safe SQL queries
-- **Migrations**: Custom migration system
+- **Migrations**: Custom migration system with version-based schema management
 - **Connection Pooling**: Built-in database/sql with OpenCensus integration
+
+### Database Migration System
+
+Notifuse uses a custom migration system that manages database schema changes across both the system database and individual workspace databases. The migration system is designed to handle schema evolution safely and consistently.
+
+#### Version Format
+
+- **Tag Format**: `vMAJOR.minor` (e.g., `v6.5`, `v4.0`)
+- **Major Version**: Incremented when database schemas change
+- **Minor Version**: Incremented for non-schema changes (features, bug fixes)
+- **Code Version**: Stored in `config/config.go` as `VERSION = "6.5"`
+
+#### Migration Types
+
+The system supports two types of migrations:
+
+1. **System Migrations**: Changes to the main system database schema
+
+   - User management tables
+   - Workspace management tables
+   - System configuration tables
+   - Global settings and permissions
+
+2. **Workspace Migrations**: Changes to individual workspace database schemas
+   - Contact management tables
+   - Template and broadcast tables
+   - Message history tables
+   - Workspace-specific settings
+
+#### Migration Structure
+
+Each migration implements the `MajorMigrationInterface`:
+
+```go
+type MajorMigrationInterface interface {
+    GetMajorVersion() float64                    // Returns major version (e.g., 6.0)
+    HasSystemUpdate() bool                       // Indicates system database changes
+    HasWorkspaceUpdate() bool                    // Indicates workspace database changes
+    UpdateSystem(ctx, config, db) error          // Executes system migrations
+    UpdateWorkspace(ctx, config, workspace, db) error // Executes workspace migrations
+}
+```
+
+#### Migration Execution
+
+1. **Version Comparison**: System compares current database version with code version
+2. **Migration Selection**: Identifies migrations that need to be executed
+3. **System Updates**: Executes system migrations in a transaction
+4. **Workspace Updates**: For each workspace, connects to its database and executes workspace migrations
+5. **Version Update**: Updates database version after successful completion
+
+#### Migration Safety
+
+- **Idempotent**: Migrations can be run multiple times safely using `IF NOT EXISTS` clauses
+- **Transactional**: Each migration runs in a database transaction
+- **Rollback**: Failed migrations are automatically rolled back
+- **Backward Compatibility**: Existing data is preserved with default values
+
+#### Example Migration
+
+```go
+// V6Migration adds permissions system
+type V6Migration struct{}
+
+func (m *V6Migration) GetMajorVersion() float64 { return 6.0 }
+func (m *V6Migration) HasSystemUpdate() bool { return true }
+func (m *V6Migration) HasWorkspaceUpdate() bool { return false }
+
+func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
+    // Add permissions column to user_workspaces table
+    _, err := db.ExecContext(ctx, `
+        ALTER TABLE user_workspaces
+        ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '{}'::jsonb
+    `)
+    return err
+}
+```
+
+#### Changelog Integration
+
+- **CHANGELOG.md**: Updated with each version release
+- **Version History**: Tracks all schema changes and their impact
+- **Breaking Changes**: Clearly documented for upgrade planning
 
 ### Authentication & Security
 
@@ -182,8 +265,8 @@ notifuse/
 │   ├── service/          # Business logic implementation
 │   ├── repository/       # Data access layer
 │   ├── http/             # HTTP handlers and middleware
-│   ├── database/         # Database configuration
-│   └── migrations/       # Database migrations
+│   ├── database/         # Database configuration and schema
+│   └── migrations/       # Database migration system
 ├── console/              # React admin interface
 │   ├── src/
 │   │   ├── components/   # Reusable UI components
@@ -209,6 +292,7 @@ notifuse/
 - **Testing**: Comprehensive test suite with mocks
 - **Database**: Automatic migrations on startup
 - **Debugging**: Structured logging with multiple levels
+- **Migrations**: Version-based schema management with automatic execution
 
 ### Frontend Development
 
@@ -513,6 +597,64 @@ make run              # Run from source
 # Clean build artifacts
 make clean            # Remove build files and coverage reports
 ```
+
+#### Creating Database Migrations
+
+When database schema changes are needed, follow this process:
+
+1. **Update Version**: Increment the major version in `config/config.go`
+2. **Create Migration File**: Create a new file in `internal/migrations/` (e.g., `v7.go`)
+3. **Implement Interface**: Create a struct that implements `MajorMigrationInterface`
+4. **Write Migration Logic**: Implement system and/or workspace update methods
+5. **Update Changelog**: Document changes in `CHANGELOG.md`
+6. **Test Migration**: Run tests to ensure migration works correctly
+
+```go
+// Example: internal/migrations/v7.go
+package migrations
+
+import (
+    "context"
+    "fmt"
+    "github.com/Notifuse/notifuse/config"
+    "github.com/Notifuse/notifuse/internal/domain"
+)
+
+type V7Migration struct{}
+
+func (m *V7Migration) GetMajorVersion() float64 { return 7.0 }
+func (m *V7Migration) HasSystemUpdate() bool { return true }
+func (m *V7Migration) HasWorkspaceUpdate() bool { return false }
+
+func (m *V7Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
+    // Add new system table or column
+    _, err := db.ExecContext(ctx, `
+        CREATE TABLE IF NOT EXISTS new_feature (
+            id VARCHAR(32) PRIMARY KEY,
+            name VARCHAR(255) NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+        )
+    `)
+    return err
+}
+
+func (m *V7Migration) UpdateWorkspace(ctx context.Context, config *config.Config, workspace *domain.Workspace, db DBExecutor) error {
+    // No workspace changes for this migration
+    return nil
+}
+
+func init() {
+    Register(&V7Migration{})
+}
+```
+
+**Migration Best Practices**:
+
+- Use `IF NOT EXISTS` for table/column creation to make migrations idempotent
+- Provide default values for new columns to maintain backward compatibility
+- Test migrations on a copy of production data
+- Document breaking changes in the changelog
+- Keep migrations focused on a single schema change
 
 #### Frontend Development
 
