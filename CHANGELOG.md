@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.4] - 2025-09-10
+
+- Add test email functionality to broadcast variations
+- Fix permissions for test emails to require read template and write contact permissions
+
 ## [6.3] - 2025-09-08
 
 - Fix set permissions on root user
