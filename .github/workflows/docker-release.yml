@@ -22,6 +22,16 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Fetch all history for tags
+
+      - name: Get git commit info
+        id: git-info
+        run: |
+          echo "commit-sha=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
+          echo "commit-short-sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "tag-name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "commit-message=$(git log -1 --pretty=%B | tr '\n' ' ' | sed 's/[[:space:]]*$//')" >> $GITHUB_OUTPUT
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -40,6 +50,14 @@ jobs:
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ github.ref_name == 'latest' }}
+          labels: |
+            org.opencontainers.image.revision=${{ steps.git-info.outputs.commit-sha }}
+            org.opencontainers.image.version=${{ steps.git-info.outputs.tag-name }}
+            notifuse.git.commit=${{ steps.git-info.outputs.commit-sha }}
+            notifuse.git.commit.short=${{ steps.git-info.outputs.commit-short-sha }}
+            notifuse.git.tag=${{ steps.git-info.outputs.tag-name }}
+            notifuse.build.date=${{ github.run_id }}
+            notifuse.build.url=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Build and push Docker image
         id: build
@@ -53,9 +71,22 @@ jobs:
           platforms: linux/amd64,linux/arm64
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            GIT_COMMIT=${{ steps.git-info.outputs.commit-sha }}
+            GIT_COMMIT_SHORT=${{ steps.git-info.outputs.commit-short-sha }}
+            GIT_TAG=${{ steps.git-info.outputs.tag-name }}
+            BUILD_DATE=${{ github.run_id }}
+            BUILD_URL=${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
 
       - name: Debug outputs
         run: |
+          echo "=== Git Information ==="
+          echo "Git Commit SHA: '${{ steps.git-info.outputs.commit-sha }}'"
+          echo "Git Commit Short SHA: '${{ steps.git-info.outputs.commit-short-sha }}'"
+          echo "Git Tag: '${{ steps.git-info.outputs.tag-name }}'"
+          echo "Commit Message: '${{ steps.git-info.outputs.commit-message }}'"
+          echo ""
+          echo "=== Build Information ==="
           echo "Build Digest: '${{ steps.build.outputs.digest }}'"
           echo "Build ImageID: '${{ steps.build.outputs.imageid }}'"
           echo "Build Metadata: '${{ steps.build.outputs.metadata }}'"
@@ -77,9 +108,12 @@ jobs:
           echo "Tags: ${{ steps.meta.outputs.tags }}"
           echo "Digest: ${{ steps.build.outputs.digest }}"
           echo "Triggered by tag: ${{ github.ref_name }}"
+          echo "Git Commit: ${{ steps.git-info.outputs.commit-sha }}"
           echo ""
           echo "🚀 Docker image successfully built and pushed!"
           echo "📦 Registry: ${{ env.REGISTRY }}"
           echo "🏷️  Image: ${{ env.IMAGE_NAME }}"
           echo "🔖 Tags: ${{ steps.meta.outputs.tags }}"
-          echo "🏷️  Triggered by: ${{ github.ref_name }}"
+          echo "🏷️  Triggered by tag: ${{ steps.git-info.outputs.tag-name }}"
+          echo "📝 Git commit: ${{ steps.git-info.outputs.commit-short-sha }}"
+          echo "🔗 Build URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
