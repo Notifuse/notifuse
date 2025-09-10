@@ -37,7 +37,8 @@ import {
   faCirclePlay,
   faCopy,
   faEye,
-  faCircleQuestion
+  faCircleQuestion,
+  faPaperPlane
 } from '@fortawesome/free-regular-svg-icons'
 import {
   faArrowPointer,
@@ -55,6 +56,8 @@ import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { BroadcastStats } from '../components/broadcasts/BroadcastStats'
 import { List, Workspace } from '../services/api/types'
+import SendTemplateModal from '../components/templates/SendTemplateModal'
+import { Template } from '../services/api/types'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -146,6 +149,7 @@ interface VariationCardProps {
   onSelectWinner?: (templateId: string) => void
   testResults?: any
   permissions?: any
+  onTestTemplate?: (template: Template) => void
 }
 
 const VariationCard: React.FC<VariationCardProps> = ({
@@ -156,7 +160,8 @@ const VariationCard: React.FC<VariationCardProps> = ({
   broadcast,
   onSelectWinner,
   testResults,
-  permissions
+  permissions,
+  onTestTemplate
 }) => {
   const emailProvider = workspace.integrations?.find(
     (i) =>
@@ -201,6 +206,23 @@ const VariationCard: React.FC<VariationCardProps> = ({
               <Button size="small" type="primary" ghost disabled>
                 Preview
               </Button>
+            )}
+            {variation.template && onTestTemplate && (
+              <Tooltip
+                title={
+                  !(permissions?.templates?.read && permissions?.contacts?.write)
+                    ? "You need read template and write contact permissions to send test emails"
+                    : "Send Test Email"
+                }
+              >
+                <Button
+                  size="small"
+                  type="text"
+                  icon={<FontAwesomeIcon icon={faPaperPlane} />}
+                  onClick={() => onTestTemplate(variation.template as Template)}
+                  disabled={!(permissions?.templates?.read && permissions?.contacts?.write)}
+                />
+              </Tooltip>
             )}
             {canSelectWinner && variation.template_id && onSelectWinner && (
               <Tooltip
@@ -403,6 +425,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
   const [showDetails, setShowDetails] = useState(isFirst)
   const queryClient = useQueryClient()
   const { message } = App.useApp()
+  const [testModalOpen, setTestModalOpen] = useState(false)
+  const [templateToTest, setTemplateToTest] = useState<Template | null>(null)
 
   // Fetch task associated with this broadcast
   const { data: task, isLoading: isTaskLoading } = useQuery({
@@ -455,6 +479,12 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
       message.error('Failed to select winner')
       console.error(error)
     }
+  }
+
+  // Handler for testing a template
+  const handleTestTemplate = (template: Template) => {
+    setTemplateToTest(template)
+    setTestModalOpen(true)
   }
 
   // Helper function to render task status badge
@@ -973,6 +1003,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                         onSelectWinner={handleSelectWinner}
                         testResults={testResults}
                         permissions={permissions}
+                        onTestTemplate={handleTestTemplate}
                       />
                     )
                   })}
@@ -982,6 +1013,14 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Test Template Modal */}
+      <SendTemplateModal
+        isOpen={testModalOpen}
+        onClose={() => setTestModalOpen(false)}
+        template={templateToTest}
+        workspace={currentWorkspace}
+      />
     </Card>
   )
 }

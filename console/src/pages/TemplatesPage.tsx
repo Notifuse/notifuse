@@ -257,12 +257,12 @@ export function TemplatesPage() {
               />
             </Popconfirm>
           </Tooltip>
-          <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : "Send Test Email"}>
+          <Tooltip title={!(permissions?.templates?.read && permissions?.contacts?.write) ? "You need read template and write contact permissions to send test emails" : "Send Test Email"}>
             <Button
               type="text"
               icon={<FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />}
               onClick={() => handleTestTemplate(record)}
-              disabled={!permissions?.templates?.write}
+              disabled={!(permissions?.templates?.read && permissions?.contacts?.write)}
             />
           </Tooltip>
           <Tooltip title="Preview Template">
