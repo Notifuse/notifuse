@@ -42,6 +42,7 @@ jobs:
             type=raw,value=latest,enable=${{ github.ref_name == 'latest' }}
 
       - name: Build and push Docker image
+        id: build
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -53,18 +54,28 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
+      - name: Debug outputs
+        run: |
+          echo "Build Digest: '${{ steps.build.outputs.digest }}'"
+          echo "Build ImageID: '${{ steps.build.outputs.imageid }}'"
+          echo "Build Metadata: '${{ steps.build.outputs.metadata }}'"
+          echo "Meta Digest: '${{ steps.meta.outputs.digest }}'"
+          echo "Tags: '${{ steps.meta.outputs.tags }}'"
+          echo "Image Name: '${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}'"
+
       - name: Generate artifact attestation
+        if: steps.build.outputs.digest != ''
         uses: actions/attest-build-provenance@v1
         with:
           subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          subject-digest: ${{ steps.meta.outputs.digest }}
+          subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
 
       - name: Output image details
         run: |
           echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}"
           echo "Tags: ${{ steps.meta.outputs.tags }}"
-          echo "Digest: ${{ steps.meta.outputs.digest }}"
+          echo "Digest: ${{ steps.build.outputs.digest }}"
           echo "Triggered by tag: ${{ github.ref_name }}"
           echo ""
           echo "🚀 Docker image successfully built and pushed!"
