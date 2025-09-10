@@ -89,6 +89,10 @@ export interface UpsertContactOperation {
   error?: string
 }
 
+export interface DeleteContactResponse {
+  success: boolean
+}
+
 export const contactsApi = {
   list: async (params: ListContactsRequest): Promise<ListContactsResponse> => {
     const searchParams = new URLSearchParams()
@@ -121,6 +125,16 @@ export const contactsApi = {
     return api.post('/api/contacts.upsert', {
       workspace_id: params.workspace_id,
       contact: params.contact
+    })
+  },
+
+  delete: async (params: {
+    workspace_id: string
+    email: string
+  }): Promise<DeleteContactResponse> => {
+    return api.post('/api/contacts.delete', {
+      workspace_id: params.workspace_id,
+      email: params.email
     })
   }
 }

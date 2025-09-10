@@ -1,5 +1,5 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Table, Tag, Button, Space, Tooltip } from 'antd'
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
+import { Table, Tag, Button, Space, Tooltip, message } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { useParams, useSearch } from '@tanstack/react-router'
 import { contactsApi, type Contact, type ListContactsRequest } from '../services/api/contacts'
@@ -15,9 +15,10 @@ import { FilterField } from '../components/filters/types'
 import { ContactColumnsSelector, JsonViewer } from '../components/contacts/ContactColumnsSelector'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEye, faHourglass } from '@fortawesome/free-regular-svg-icons'
-import { faCircleCheck, faFaceFrown } from '@fortawesome/free-regular-svg-icons'
+import { faCircleCheck, faFaceFrown, faTrashAlt } from '@fortawesome/free-regular-svg-icons'
 import { faBan, faTriangleExclamation, faRefresh } from '@fortawesome/free-solid-svg-icons'
 import { ContactDetailsDrawer } from '../components/contacts/ContactDetailsDrawer'
+import { DeleteContactModal } from '../components/contacts/DeleteContactModal'
 import dayjs from '../lib/dayjs'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 
@@ -62,7 +63,7 @@ export function ContactsPage() {
   const search = useSearch({ from: workspaceContactsRoute.id })
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
-  const { permissions, loading: permissionsLoading } = useWorkspacePermissions(workspaceId)
+  const { permissions } = useWorkspacePermissions(workspaceId)
 
   // Get the current workspace timezone
   const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
@@ -75,12 +76,54 @@ export function ContactsPage() {
   const [allContacts, setAllContacts] = React.useState<Contact[]>([])
   // Track cursor state internally instead of in URL
   const [currentCursor, setCurrentCursor] = React.useState<string | undefined>(undefined)
+  // Delete modal state
+  const [deleteModalVisible, setDeleteModalVisible] = React.useState(false)
+  const [contactToDelete, setContactToDelete] = React.useState<string | null>(null)
 
   // Fetch lists for the current workspace
   const { data: listsData } = useQuery({
     queryKey: ['lists', workspaceId],
     queryFn: () => listsApi.list({ workspace_id: workspaceId })
   })
+
+  // Delete contact mutation
+  const deleteContactMutation = useMutation({
+    mutationFn: (email: string) =>
+      contactsApi.delete({
+        workspace_id: workspaceId,
+        email: email
+      }),
+    onSuccess: (_, deletedEmail) => {
+      message.success('Contact deleted successfully')
+      // Remove the deleted contact from the local state
+      setAllContacts((prev) => prev.filter((contact) => contact.email !== deletedEmail))
+      // Invalidate and refetch the contacts query to ensure data consistency
+      queryClient.invalidateQueries({ queryKey: ['contacts', workspaceId] })
+      // Close modal and reset state
+      setDeleteModalVisible(false)
+      setContactToDelete(null)
+    },
+    onError: (error: any) => {
+      message.error(error?.message || 'Failed to delete contact')
+    }
+  })
+
+  // Delete modal handlers
+  const handleDeleteClick = (email: string) => {
+    setContactToDelete(email)
+    setDeleteModalVisible(true)
+  }
+
+  const handleDeleteCancel = () => {
+    setDeleteModalVisible(false)
+    setContactToDelete(null)
+  }
+
+  const handleDeleteConfirm = () => {
+    if (contactToDelete) {
+      deleteContactMutation.mutate(contactToDelete)
+    }
+  }
 
   const filterFields: FilterField[] = [
     { key: 'email', label: 'Email', type: 'string' as const },
@@ -615,13 +658,27 @@ export function ContactsPage() {
         </Space>
       ),
       key: 'actions',
-      width: 80,
+      width: 120,
       fixed: 'right' as const,
       onHeaderCell: () => ({
         className: '!bg-white'
       }),
       render: (_: unknown, record: Contact) => (
         <Space size="small">
+          <Tooltip
+            title={
+              !permissions?.contacts?.write
+                ? "You don't have write permission for contacts"
+                : 'Delete contact'
+            }
+          >
+            <Button
+              type="text"
+              icon={<FontAwesomeIcon icon={faTrashAlt} />}
+              disabled={!permissions?.contacts?.write}
+              onClick={() => handleDeleteClick(record.email)}
+            />
+          </Tooltip>
           <ContactDetailsDrawer
             workspace={currentWorkspace}
             contactEmail={record.email}
@@ -663,7 +720,13 @@ export function ContactsPage() {
       <div className="flex justify-between items-center mb-6">
         <div className="text-2xl font-medium">Contacts</div>
         <Space>
-          <Tooltip title={!permissions?.contacts?.write ? "You don't have write permission for contacts" : undefined}>
+          <Tooltip
+            title={
+              !permissions?.contacts?.write
+                ? "You don't have write permission for contacts"
+                : undefined
+            }
+          >
             <span>
               <ImportContactsButton
                 lists={listsData?.lists || []}
@@ -672,7 +735,13 @@ export function ContactsPage() {
               />
             </span>
           </Tooltip>
-          <Tooltip title={!permissions?.contacts?.write ? "You don't have write permission for contacts" : undefined}>
+          <Tooltip
+            title={
+              !permissions?.contacts?.write
+                ? "You don't have write permission for contacts"
+                : undefined
+            }
+          >
             <div>
               <ContactUpsertDrawer
                 workspace={currentWorkspace}
@@ -713,6 +782,15 @@ export function ContactsPage() {
           </Button>
         </div>
       )}
+
+      <DeleteContactModal
+        visible={deleteModalVisible}
+        onCancel={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        contactEmail={contactToDelete || ''}
+        loading={deleteContactMutation.isPending}
+        disabled={!permissions?.contacts?.write}
+      />
     </div>
   )
 }

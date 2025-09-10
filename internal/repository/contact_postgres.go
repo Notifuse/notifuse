@@ -31,7 +31,7 @@ func (r *contactRepository) GetContactByEmail(ctx context.Context, workspaceID, 
 	return r.fetchContact(ctx, workspaceID, filter)
 }
 
-func (r *contactRepository) GetContactByExternalID(ctx context.Context, externalID, workspaceID string) (*domain.Contact, error) {
+func (r *contactRepository) GetContactByExternalID(ctx context.Context, workspaceID string, externalID string) (*domain.Contact, error) {
 	filter := sq.Eq{"c.external_id": externalID}
 	return r.fetchContact(ctx, workspaceID, filter)
 }
@@ -314,7 +314,7 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 	}, nil
 }
 
-func (r *contactRepository) DeleteContact(ctx context.Context, email string, workspaceID string) error {
+func (r *contactRepository) DeleteContact(ctx context.Context, workspaceID string, email string) error {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {

@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -11,23 +12,32 @@ import (
 )
 
 type ContactService struct {
-	repo          domain.ContactRepository
-	workspaceRepo domain.WorkspaceRepository
-	authService   domain.AuthService
-	logger        logger.Logger
+	repo               domain.ContactRepository
+	workspaceRepo      domain.WorkspaceRepository
+	authService        domain.AuthService
+	messageHistoryRepo domain.MessageHistoryRepository
+	webhookEventRepo   domain.WebhookEventRepository
+	contactListRepo    domain.ContactListRepository
+	logger             logger.Logger
 }
 
 func NewContactService(
 	repo domain.ContactRepository,
 	workspaceRepo domain.WorkspaceRepository,
 	authService domain.AuthService,
+	messageHistoryRepo domain.MessageHistoryRepository,
+	webhookEventRepo domain.WebhookEventRepository,
+	contactListRepo domain.ContactListRepository,
 	logger logger.Logger,
 ) *ContactService {
 	return &ContactService{
-		repo:          repo,
-		workspaceRepo: workspaceRepo,
-		authService:   authService,
-		logger:        logger,
+		repo:               repo,
+		workspaceRepo:      workspaceRepo,
+		authService:        authService,
+		messageHistoryRepo: messageHistoryRepo,
+		webhookEventRepo:   webhookEventRepo,
+		contactListRepo:    contactListRepo,
+		logger:             logger,
 	}
 }
 
@@ -59,7 +69,7 @@ func (s *ContactService) GetContactByEmail(ctx context.Context, workspaceID stri
 	return contact, nil
 }
 
-func (s *ContactService) GetContactByExternalID(ctx context.Context, externalID string, workspaceID string) (*domain.Contact, error) {
+func (s *ContactService) GetContactByExternalID(ctx context.Context, workspaceID string, externalID string) (*domain.Contact, error) {
 	var err error
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
@@ -75,7 +85,7 @@ func (s *ContactService) GetContactByExternalID(ctx context.Context, externalID 
 		)
 	}
 
-	contact, err := s.repo.GetContactByExternalID(ctx, externalID, workspaceID)
+	contact, err := s.repo.GetContactByExternalID(ctx, workspaceID, externalID)
 	if err != nil {
 		if strings.Contains(err.Error(), "contact not found") {
 			return nil, err
@@ -112,8 +122,9 @@ func (s *ContactService) GetContacts(ctx context.Context, req *domain.GetContact
 	return response, nil
 }
 
-func (s *ContactService) DeleteContact(ctx context.Context, email string, workspaceID string) error {
+func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, email string) error {
 	var err error
+	log.Println("DeleteContact", email, workspaceID)
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
@@ -128,7 +139,24 @@ func (s *ContactService) DeleteContact(ctx context.Context, email string, worksp
 		)
 	}
 
-	if err := s.repo.DeleteContact(ctx, email, workspaceID); err != nil {
+	// Delete related data first
+	if err := s.messageHistoryRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
+		s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete message history: %v", err))
+		return fmt.Errorf("failed to delete message history: %w", err)
+	}
+
+	if err := s.webhookEventRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
+		s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete webhook events: %v", err))
+		return fmt.Errorf("failed to delete webhook events: %w", err)
+	}
+
+	if err := s.contactListRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
+		s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete contact list relationships: %v", err))
+		return fmt.Errorf("failed to delete contact list relationships: %w", err)
+	}
+
+	// Finally delete the contact
+	if err := s.repo.DeleteContact(ctx, workspaceID, email); err != nil {
 		s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete contact: %v", err))
 		return fmt.Errorf("failed to delete contact: %w", err)
 	}

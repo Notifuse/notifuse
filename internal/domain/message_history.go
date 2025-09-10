@@ -142,6 +142,9 @@ type MessageHistoryRepository interface {
 
 	// GetBroadcastVariationStats retrieves statistics for a specific variation of a broadcast
 	GetBroadcastVariationStats(ctx context.Context, workspaceID, broadcastID, templateID string) (*MessageHistoryStatusSum, error)
+
+	// DeleteForEmail deletes all message history records for a specific email
+	DeleteForEmail(ctx context.Context, workspaceID, email string) error
 }
 
 // MessageHistoryService defines methods for interacting with message history

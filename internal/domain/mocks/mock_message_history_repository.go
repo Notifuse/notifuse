@@ -50,6 +50,20 @@ func (mr *MockMessageHistoryRepositoryMockRecorder) Create(arg0, arg1, arg2 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockMessageHistoryRepository)(nil).Create), arg0, arg1, arg2)
 }
 
+// DeleteForEmail mocks base method.
+func (m *MockMessageHistoryRepository) DeleteForEmail(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteForEmail", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteForEmail indicates an expected call of DeleteForEmail.
+func (mr *MockMessageHistoryRepositoryMockRecorder) DeleteForEmail(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteForEmail", reflect.TypeOf((*MockMessageHistoryRepository)(nil).DeleteForEmail), arg0, arg1, arg2)
+}
+
 // Get mocks base method.
 func (m *MockMessageHistoryRepository) Get(arg0 context.Context, arg1, arg2 string) (*domain.MessageHistory, error) {
 	m.ctrl.T.Helper()

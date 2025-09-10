@@ -157,7 +157,7 @@ func TestGetContactByExternalID(t *testing.T) {
 		WithArgs(email).
 		WillReturnRows(listRows)
 
-	contact, err := repo.GetContactByExternalID(context.Background(), externalID, "workspace123")
+	contact, err := repo.GetContactByExternalID(context.Background(), "workspace123", externalID)
 	require.NoError(t, err)
 	assert.Equal(t, email, contact.Email)
 	assert.Equal(t, externalID, contact.ExternalID.String)
@@ -170,7 +170,7 @@ func TestGetContactByExternalID(t *testing.T) {
 		WithArgs("nonexistent-ext-id").
 		WillReturnError(sql.ErrNoRows)
 
-	_, err = repo.GetContactByExternalID(context.Background(), "nonexistent-ext-id", "workspace123")
+	_, err = repo.GetContactByExternalID(context.Background(), "workspace123", "nonexistent-ext-id")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "contact not found")
 
@@ -211,7 +211,7 @@ func TestGetContactByExternalID(t *testing.T) {
 			WillReturnRows(listRows)
 
 		// Act
-		contact, err := repo.GetContactByExternalID(context.Background(), externalID, "workspace123")
+		contact, err := repo.GetContactByExternalID(context.Background(), "workspace123", externalID)
 
 		// Assert
 		require.NoError(t, err)
@@ -1603,7 +1603,7 @@ func TestDeleteContact(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 1)) // 1 row affected
 
 		// Call the method being tested
-		err := repo.DeleteContact(context.Background(), email, "workspace123")
+		err := repo.DeleteContact(context.Background(), "workspace123", email)
 
 		// Assertions
 		require.NoError(t, err)
@@ -1631,7 +1631,7 @@ func TestDeleteContact(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0)) // 0 rows affected
 
 		// Call the method being tested
-		err := repo.DeleteContact(context.Background(), email, "workspace123")
+		err := repo.DeleteContact(context.Background(), "workspace123", email)
 
 		// Assertions
 		require.Error(t, err)
@@ -1652,7 +1652,7 @@ func TestDeleteContact(t *testing.T) {
 		email := "test@example.com"
 
 		// Call the method being tested
-		err := repo.DeleteContact(context.Background(), email, "workspace123")
+		err := repo.DeleteContact(context.Background(), "workspace123", email)
 
 		// Assertions
 		require.Error(t, err)
@@ -1681,7 +1681,7 @@ func TestDeleteContact(t *testing.T) {
 			WillReturnError(fmt.Errorf("database execution error"))
 
 		// Call the method being tested
-		err := repo.DeleteContact(context.Background(), email, "workspace123")
+		err := repo.DeleteContact(context.Background(), "workspace123", email)
 
 		// Assertions
 		require.Error(t, err)
@@ -1713,7 +1713,7 @@ func TestDeleteContact(t *testing.T) {
 			WillReturnResult(mockResult)
 
 		// Call the method being tested
-		err := repo.DeleteContact(context.Background(), email, "workspace123")
+		err := repo.DeleteContact(context.Background(), "workspace123", email)
 
 		// Assertions
 		require.Error(t, err)
@@ -1742,7 +1742,7 @@ func TestDeleteContact(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0)) // 0 rows affected
 
 		// Call the method being tested
-		err := repo.DeleteContact(context.Background(), email, "workspace123")
+		err := repo.DeleteContact(context.Background(), "workspace123", email)
 
 		// Assertions
 		require.Error(t, err)
@@ -1775,7 +1775,7 @@ func TestDeleteContact(t *testing.T) {
 			WillReturnError(context.Canceled)
 
 		// Call the method being tested
-		err := repo.DeleteContact(ctx, email, "workspace123")
+		err := repo.DeleteContact(ctx, "workspace123", email)
 
 		// Assertions
 		require.Error(t, err)

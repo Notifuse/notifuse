@@ -600,13 +600,13 @@ type ContactRepository interface {
 	GetContactByEmail(ctx context.Context, workspaceID, email string) (*Contact, error)
 
 	// GetContactByExternalID retrieves a contact by external ID
-	GetContactByExternalID(ctx context.Context, externalID, workspaceID string) (*Contact, error)
+	GetContactByExternalID(ctx context.Context, workspaceID string, externalID string) (*Contact, error)
 
 	// GetContacts retrieves contacts with filtering and pagination
 	GetContacts(ctx context.Context, req *GetContactsRequest) (*GetContactsResponse, error)
 
 	// DeleteContact deletes a contact
-	DeleteContact(ctx context.Context, email string, workspaceID string) error
+	DeleteContact(ctx context.Context, workspaceID string, email string) error
 
 	// UpsertContact creates or updates a contact
 	UpsertContact(ctx context.Context, workspaceID string, contact *Contact) (bool, error)

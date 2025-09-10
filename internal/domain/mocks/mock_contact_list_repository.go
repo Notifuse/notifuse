@@ -49,6 +49,20 @@ func (mr *MockContactListRepositoryMockRecorder) AddContactToList(arg0, arg1, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddContactToList", reflect.TypeOf((*MockContactListRepository)(nil).AddContactToList), arg0, arg1, arg2)
 }
 
+// DeleteForEmail mocks base method.
+func (m *MockContactListRepository) DeleteForEmail(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteForEmail", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteForEmail indicates an expected call of DeleteForEmail.
+func (mr *MockContactListRepositoryMockRecorder) DeleteForEmail(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteForEmail", reflect.TypeOf((*MockContactListRepository)(nil).DeleteForEmail), arg0, arg1, arg2)
+}
+
 // GetContactListByIDs mocks base method.
 func (m *MockContactListRepository) GetContactListByIDs(arg0 context.Context, arg1, arg2, arg3 string) (*domain.ContactList, error) {
 	m.ctrl.T.Helper()

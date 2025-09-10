@@ -1029,3 +1029,30 @@ func (r *MessageHistoryRepository) GetBroadcastVariationStats(ctx context.Contex
 
 	return stats, nil
 }
+
+// DeleteForEmail redacts the email address in all message history records for a specific email
+func (r *MessageHistoryRepository) DeleteForEmail(ctx context.Context, workspaceID, email string) error {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// Redact the email address by replacing it with a generic redacted identifier
+	redactedEmail := "DELETED_EMAIL"
+	query := `UPDATE message_history SET contact_email = $1 WHERE contact_email = $2`
+
+	result, err := workspaceDB.ExecContext(ctx, query, redactedEmail, email)
+	if err != nil {
+		return fmt.Errorf("failed to redact email in message history: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	// Note: We don't return an error if no rows were affected since the contact might not have any message history
+	_ = rows
+
+	return nil
+}

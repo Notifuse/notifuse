@@ -315,3 +315,30 @@ func (r *webhookEventRepository) ListEvents(ctx context.Context, workspaceID str
 		HasMore:    hasMore,
 	}, nil
 }
+
+// DeleteForEmail redacts the email address in all webhook events for a specific email
+func (r *webhookEventRepository) DeleteForEmail(ctx context.Context, workspaceID, email string) error {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// Redact the email address by replacing it with a generic redacted identifier
+	redactedEmail := "DELETED_EMAIL"
+	query := `UPDATE webhook_events SET recipient_email = $1 WHERE recipient_email = $2`
+
+	result, err := workspaceDB.ExecContext(ctx, query, redactedEmail, email)
+	if err != nil {
+		return fmt.Errorf("failed to redact email in webhook events: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	// Note: We don't return an error if no rows were affected since the contact might not have any webhook events
+	_ = rows
+
+	return nil
+}

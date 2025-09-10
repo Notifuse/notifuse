@@ -35,6 +35,20 @@ func (m *MockWebhookEventRepository) EXPECT() *MockWebhookEventRepositoryMockRec
 	return m.recorder
 }
 
+// DeleteForEmail mocks base method.
+func (m *MockWebhookEventRepository) DeleteForEmail(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteForEmail", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteForEmail indicates an expected call of DeleteForEmail.
+func (mr *MockWebhookEventRepositoryMockRecorder) DeleteForEmail(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteForEmail", reflect.TypeOf((*MockWebhookEventRepository)(nil).DeleteForEmail), arg0, arg1, arg2)
+}
+
 // ListEvents mocks base method.
 func (m *MockWebhookEventRepository) ListEvents(arg0 context.Context, arg1 string, arg2 domain.WebhookEventListParams) (*domain.WebhookEventListResult, error) {
 	m.ctrl.T.Helper()

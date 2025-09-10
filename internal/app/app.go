@@ -372,6 +372,9 @@ func (a *App) InitServices() error {
 		a.contactRepo,
 		a.workspaceRepo,
 		a.authService,
+		a.messageHistoryRepo,
+		a.webhookEventRepo,
+		a.contactListRepo,
 		a.logger,
 	)
 

@@ -218,3 +218,28 @@ func (r *contactListRepository) RemoveContactFromList(ctx context.Context, works
 
 	return nil
 }
+
+// DeleteForEmail deletes all contact list relationships for a specific email
+func (r *contactListRepository) DeleteForEmail(ctx context.Context, workspaceID, email string) error {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `DELETE FROM contact_lists WHERE email = $1`
+
+	result, err := workspaceDB.ExecContext(ctx, query, email)
+	if err != nil {
+		return fmt.Errorf("failed to delete contact list relationships: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get affected rows: %w", err)
+	}
+
+	// Note: We don't return an error if no rows were affected since the contact might not have been in any lists
+	_ = rows
+
+	return nil
+}

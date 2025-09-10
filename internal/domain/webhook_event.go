@@ -208,4 +208,7 @@ type WebhookEventRepository interface {
 
 	// ListEvents retrieves all webhook events for a workspace
 	ListEvents(ctx context.Context, workspaceID string, params WebhookEventListParams) (*WebhookEventListResult, error)
+
+	// DeleteForEmail deletes all webhook events for a specific email
+	DeleteForEmail(ctx context.Context, workspaceID, email string) error
 }

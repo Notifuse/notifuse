@@ -353,6 +353,9 @@ type ContactListRepository interface {
 
 	// RemoveContactFromList removes a contact from a list
 	RemoveContactFromList(ctx context.Context, workspaceID string, email, listID string) error
+
+	// DeleteForEmail deletes all contact list relationships for a specific email
+	DeleteForEmail(ctx context.Context, workspaceID, email string) error
 }
 
 // ErrContactListNotFound is returned when a contact list is not found
