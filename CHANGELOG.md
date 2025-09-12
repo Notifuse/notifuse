@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.6] - 2025-09-12
+
+- Bulk update contacts functionality to console
+
 ## [6.5] - 2025-09-10
 
 - Add delete contact functionality to console
