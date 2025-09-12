@@ -103,27 +103,42 @@ func (s *ContactListService) GetListsByEmail(ctx context.Context, workspaceID st
 	return contactLists, nil
 }
 
-func (s *ContactListService) UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status domain.ContactListStatus) error {
+func (s *ContactListService) UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status domain.ContactListStatus) (*domain.UpdateContactListStatusResult, error) {
 	// Verify contact list exists
 	var err error
 	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
-		return fmt.Errorf("failed to authenticate user: %w", err)
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
 	}
 
 	_, err = s.repo.GetContactListByIDs(ctx, workspaceID, email, listID)
 	if err != nil {
-		return fmt.Errorf("contact list not found: %w", err)
+		// If contact is not in the list, return success with message
+		if _, ok := err.(*domain.ErrContactListNotFound); ok {
+			s.logger.WithField("email", email).
+				WithField("list_id", listID).
+				Info("Contact not in list, treating as successful operation")
+			return &domain.UpdateContactListStatusResult{
+				Success: true,
+				Message: "contact not in list",
+				Found:   false,
+			}, nil
+		}
+		return nil, fmt.Errorf("contact list not found: %w", err)
 	}
 
 	if err := s.repo.UpdateContactListStatus(ctx, workspaceID, email, listID, status); err != nil {
 		s.logger.WithField("email", email).
 			WithField("list_id", listID).
 			Error(fmt.Sprintf("Failed to update contact list status: %v", err))
-		return fmt.Errorf("failed to update contact list status: %w", err)
+		return nil, fmt.Errorf("failed to update contact list status: %w", err)
 	}
 
-	return nil
+	return &domain.UpdateContactListStatusResult{
+		Success: true,
+		Message: "status updated successfully",
+		Found:   true,
+	}, nil
 }
 
 func (s *ContactListService) RemoveContactFromList(ctx context.Context, workspaceID string, email, listID string) error {

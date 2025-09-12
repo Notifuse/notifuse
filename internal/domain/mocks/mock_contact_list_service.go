@@ -95,11 +95,12 @@ func (mr *MockContactListServiceMockRecorder) RemoveContactFromList(arg0, arg1, 
 }
 
 // UpdateContactListStatus mocks base method.
-func (m *MockContactListService) UpdateContactListStatus(arg0 context.Context, arg1, arg2, arg3 string, arg4 domain.ContactListStatus) error {
+func (m *MockContactListService) UpdateContactListStatus(arg0 context.Context, arg1, arg2, arg3 string, arg4 domain.ContactListStatus) (*domain.UpdateContactListStatusResult, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UpdateContactListStatus", arg0, arg1, arg2, arg3, arg4)
-	ret0, _ := ret[0].(error)
-	return ret0
+	ret0, _ := ret[0].(*domain.UpdateContactListStatusResult)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
 }
 
 // UpdateContactListStatus indicates an expected call of UpdateContactListStatus.

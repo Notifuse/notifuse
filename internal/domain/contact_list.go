@@ -329,7 +329,7 @@ type ContactListService interface {
 	GetListsByEmail(ctx context.Context, workspaceID string, email string) ([]*ContactList, error)
 
 	// UpdateContactListStatus updates the status of a contact on a list
-	UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status ContactListStatus) error
+	UpdateContactListStatus(ctx context.Context, workspaceID string, email, listID string, status ContactListStatus) (*UpdateContactListStatusResult, error)
 
 	// RemoveContactFromList removes a contact from a list
 	RemoveContactFromList(ctx context.Context, workspaceID string, email, listID string) error
@@ -365,4 +365,11 @@ type ErrContactListNotFound struct {
 
 func (e *ErrContactListNotFound) Error() string {
 	return e.Message
+}
+
+// UpdateContactListStatusResult represents the result of updating a contact list status
+type UpdateContactListStatusResult struct {
+	Success bool   `json:"success"`
+	Message string `json:"message"`
+	Found   bool   `json:"found"` // Whether the contact was found in the list
 }

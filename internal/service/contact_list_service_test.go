@@ -251,8 +251,12 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 			UpdateContactListStatus(gomock.Any(), workspaceID, email, listID, newStatus).
 			Return(nil)
 
-		err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
+		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
 		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.True(t, result.Success)
+		require.Equal(t, "status updated successfully", result.Message)
+		require.True(t, result.Found)
 	})
 
 	t.Run("authentication error", func(t *testing.T) {
@@ -260,11 +264,12 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 			AuthenticateUserForWorkspace(ctx, workspaceID).
 			Return(ctx, nil, nil, errors.New("auth error"))
 
-		err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
+		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
 		require.Error(t, err)
+		require.Nil(t, result)
 	})
 
-	t.Run("contact list not found", func(t *testing.T) {
+	t.Run("contact list not found - returns success with message", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
 			Return(ctx, &domain.User{}, nil, nil)
@@ -273,8 +278,12 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 			GetContactListByIDs(gomock.Any(), workspaceID, email, listID).
 			Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
 
-		err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
-		require.Error(t, err)
+		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.True(t, result.Success)
+		require.Equal(t, "contact not in list", result.Message)
+		require.False(t, result.Found)
 	})
 
 	t.Run("update error", func(t *testing.T) {
@@ -294,8 +303,9 @@ func TestContactListService_UpdateContactListStatus(t *testing.T) {
 			UpdateContactListStatus(gomock.Any(), workspaceID, email, listID, newStatus).
 			Return(errors.New("update error"))
 
-		err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
+		result, err := service.UpdateContactListStatus(ctx, workspaceID, email, listID, newStatus)
 		require.Error(t, err)
+		require.Nil(t, result)
 	})
 }
 

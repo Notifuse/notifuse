@@ -137,7 +137,7 @@ func (h *ContactListHandler) handleUpdateStatus(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	err = h.service.UpdateContactListStatus(r.Context(), workspaceID, contactList.Email, contactList.ListID, contactList.Status)
+	result, err := h.service.UpdateContactListStatus(r.Context(), workspaceID, contactList.Email, contactList.ListID, contactList.Status)
 	if err != nil {
 		if _, ok := err.(*domain.ErrContactListNotFound); ok {
 			WriteJSONError(w, err.Error(), http.StatusNotFound)
@@ -148,9 +148,7 @@ func (h *ContactListHandler) handleUpdateStatus(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"success": true,
-	})
+	writeJSON(w, http.StatusOK, result)
 }
 
 func (h *ContactListHandler) handleRemoveContact(w http.ResponseWriter, r *http.Request) {

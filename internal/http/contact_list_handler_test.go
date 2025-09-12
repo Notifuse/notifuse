@@ -328,7 +328,11 @@ func TestContactListHandler_HandleUpdateStatus(t *testing.T) {
 				Status:      "unsubscribed",
 			},
 			setupMock: func(m *mocks.MockContactListService) {
-				m.EXPECT().UpdateContactListStatus(gomock.Any(), "workspace123", "test@example.com", "list123", domain.ContactListStatusUnsubscribed).Return(nil)
+				m.EXPECT().UpdateContactListStatus(gomock.Any(), "workspace123", "test@example.com", "list123", domain.ContactListStatusUnsubscribed).Return(&domain.UpdateContactListStatusResult{
+					Success: true,
+					Message: "status updated successfully",
+					Found:   true,
+				}, nil)
 			},
 			expectedStatus: http.StatusOK,
 		},
@@ -365,7 +369,7 @@ func TestContactListHandler_HandleUpdateStatus(t *testing.T) {
 				Status:      "unsubscribed",
 			},
 			setupMock: func(m *mocks.MockContactListService) {
-				m.EXPECT().UpdateContactListStatus(gomock.Any(), "workspace123", "test@example.com", "list123", domain.ContactListStatusUnsubscribed).Return(errors.New("service error"))
+				m.EXPECT().UpdateContactListStatus(gomock.Any(), "workspace123", "test@example.com", "list123", domain.ContactListStatusUnsubscribed).Return(nil, errors.New("service error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 		},
@@ -392,10 +396,11 @@ func TestContactListHandler_HandleUpdateStatus(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, rr.Code)
 
 			if tt.expectedStatus == http.StatusOK {
-				var response map[string]interface{}
+				var response domain.UpdateContactListStatusResult
 				err := json.NewDecoder(rr.Body).Decode(&response)
 				assert.NoError(t, err)
-				assert.True(t, response["success"].(bool))
+				assert.True(t, response.Success)
+				assert.NotEmpty(t, response.Message)
 			}
 		})
 	}

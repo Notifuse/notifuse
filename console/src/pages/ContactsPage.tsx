@@ -9,6 +9,7 @@ import { workspaceContactsRoute } from '../router'
 import { Filter } from '../components/filters/Filter'
 import { ContactUpsertDrawer } from '../components/contacts/ContactUpsertDrawer'
 import { ImportContactsButton } from '../components/contacts/ImportContactsButton'
+import { BulkUpdateDrawer } from '../components/contacts/BulkUpdateDrawer'
 import { CountriesFormOptions } from '../components/utils/countries_timezones'
 import { Languages } from '../components/utils/languages'
 import { FilterField } from '../components/filters/types'
@@ -728,6 +729,25 @@ export function ContactsPage() {
             }
           >
             <span>
+              <BulkUpdateDrawer
+                workspaceId={workspaceId}
+                lists={listsData?.lists || []}
+                buttonProps={{
+                  type: 'default',
+                  buttonContent: 'Bulk Update',
+                  disabled: !permissions?.contacts?.write
+                }}
+              />
+            </span>
+          </Tooltip>
+          <Tooltip
+            title={
+              !permissions?.contacts?.write
+                ? "You don't have write permission for contacts"
+                : undefined
+            }
+          >
+            <span>
               <ImportContactsButton
                 lists={listsData?.lists || []}
                 workspaceId={workspaceId}
@@ -746,7 +766,7 @@ export function ContactsPage() {
               <ContactUpsertDrawer
                 workspace={currentWorkspace}
                 buttonProps={{
-                  buttonContent: 'Create Contact',
+                  buttonContent: 'Create',
                   disabled: !permissions?.contacts?.write
                 }}
               />
