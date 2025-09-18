@@ -90,6 +90,7 @@ type App struct {
 	messageHistoryRepo            domain.MessageHistoryRepository
 	webhookEventRepo              domain.WebhookEventRepository
 	telemetryRepo                 domain.TelemetryRepository
+	analyticsRepo                 domain.AnalyticsRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -110,6 +111,7 @@ type App struct {
 	notificationCenterService        *service.NotificationCenterService
 	demoService                      *service.DemoService
 	telemetryService                 *service.TelemetryService
+	analyticsService                 *service.AnalyticsService
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -320,6 +322,7 @@ func (a *App) InitRepositories() error {
 	a.messageHistoryRepo = repository.NewMessageHistoryRepository(a.workspaceRepo)
 	a.webhookEventRepo = repository.NewWebhookEventRepository(a.workspaceRepo)
 	a.telemetryRepo = repository.NewTelemetryRepository(a.workspaceRepo)
+	a.analyticsRepo = repository.NewAnalyticsRepository(a.workspaceRepo, a.logger)
 
 	return nil
 }
@@ -584,6 +587,13 @@ func (a *App) InitServices() error {
 	}
 	a.telemetryService = service.NewTelemetryService(telemetryConfig)
 
+	// Initialize analytics service
+	a.analyticsService = service.NewAnalyticsService(
+		a.analyticsRepo,
+		a.authService,
+		a.logger,
+	)
+
 	return nil
 }
 
@@ -634,6 +644,11 @@ func (a *App) InitHandlers() error {
 		a.listService,
 		a.logger,
 	)
+	analyticsHandler := httpHandler.NewAnalyticsHandler(
+		a.analyticsService,
+		a.config.Security.PasetoPublicKey,
+		a.logger,
+	)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -655,6 +670,7 @@ func (a *App) InitHandlers() error {
 	webhookRegistrationHandler.RegisterRoutes(a.mux)
 	messageHistoryHandler.RegisterRoutes(a.mux)
 	notificationCenterHandler.RegisterRoutes(a.mux)
+	analyticsHandler.RegisterRoutes(a.mux)
 	a.mux.HandleFunc("/api/detect-favicon", faviconHandler.DetectFavicon)
 
 	return nil

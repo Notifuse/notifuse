@@ -2,7 +2,8 @@
 
 ## Content
 
-- page vs loops.so
+- page vs phplist
+- page vs sendy
 - page vs listmonk
 - page vs mailerlite
 - page vs mautic
