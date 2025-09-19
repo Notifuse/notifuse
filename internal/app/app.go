@@ -574,6 +574,7 @@ func (a *App) InitServices() error {
 		a.notificationCenterService,
 		a.workspaceRepo,
 		a.taskRepo,
+		a.messageHistoryRepo,
 	)
 
 	// Initialize telemetry service

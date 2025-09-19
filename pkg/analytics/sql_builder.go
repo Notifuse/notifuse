@@ -1,8 +1,10 @@
 package analytics
 
 import (
+	"database/sql"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Masterminds/squirrel"
 )
@@ -242,6 +244,31 @@ func (sb *SQLBuilder) buildFilterCondition(memberSQL string, filter Filter) (squ
 			return nil, fmt.Errorf("contains operator requires exactly one value")
 		}
 		return squirrel.Like{memberSQL: fmt.Sprintf("%%%s%%", filter.Values[0])}, nil
+	case "notContains":
+		if len(filter.Values) != 1 {
+			return nil, fmt.Errorf("notContains operator requires exactly one value")
+		}
+		return squirrel.NotLike{memberSQL: fmt.Sprintf("%%%s%%", filter.Values[0])}, nil
+	case "startsWith":
+		if len(filter.Values) != 1 {
+			return nil, fmt.Errorf("startsWith operator requires exactly one value")
+		}
+		return squirrel.Like{memberSQL: fmt.Sprintf("%s%%", filter.Values[0])}, nil
+	case "notStartsWith":
+		if len(filter.Values) != 1 {
+			return nil, fmt.Errorf("notStartsWith operator requires exactly one value")
+		}
+		return squirrel.NotLike{memberSQL: fmt.Sprintf("%s%%", filter.Values[0])}, nil
+	case "endsWith":
+		if len(filter.Values) != 1 {
+			return nil, fmt.Errorf("endsWith operator requires exactly one value")
+		}
+		return squirrel.Like{memberSQL: fmt.Sprintf("%%%s", filter.Values[0])}, nil
+	case "notEndsWith":
+		if len(filter.Values) != 1 {
+			return nil, fmt.Errorf("notEndsWith operator requires exactly one value")
+		}
+		return squirrel.NotLike{memberSQL: fmt.Sprintf("%%%s", filter.Values[0])}, nil
 	case "gt":
 		if len(filter.Values) != 1 {
 			return nil, fmt.Errorf("gt operator requires exactly one value")
@@ -266,6 +293,38 @@ func (sb *SQLBuilder) buildFilterCondition(memberSQL string, filter Filter) (squ
 		return squirrel.Eq{memberSQL: filter.Values}, nil
 	case "notIn":
 		return squirrel.NotEq{memberSQL: filter.Values}, nil
+	case "set":
+		// Check if field is not null
+		return squirrel.NotEq{memberSQL: nil}, nil
+	case "notSet":
+		// Check if field is null
+		return squirrel.Eq{memberSQL: nil}, nil
+	case "inDateRange":
+		if len(filter.Values) != 2 {
+			return nil, fmt.Errorf("inDateRange operator requires exactly two values")
+		}
+		return squirrel.And{
+			squirrel.GtOrEq{memberSQL: filter.Values[0]},
+			squirrel.LtOrEq{memberSQL: filter.Values[1]},
+		}, nil
+	case "notInDateRange":
+		if len(filter.Values) != 2 {
+			return nil, fmt.Errorf("notInDateRange operator requires exactly two values")
+		}
+		return squirrel.Or{
+			squirrel.Lt{memberSQL: filter.Values[0]},
+			squirrel.Gt{memberSQL: filter.Values[1]},
+		}, nil
+	case "beforeDate":
+		if len(filter.Values) != 1 {
+			return nil, fmt.Errorf("beforeDate operator requires exactly one value")
+		}
+		return squirrel.Lt{memberSQL: filter.Values[0]}, nil
+	case "afterDate":
+		if len(filter.Values) != 1 {
+			return nil, fmt.Errorf("afterDate operator requires exactly one value")
+		}
+		return squirrel.Gt{memberSQL: filter.Values[0]}, nil
 	default:
 		return nil, fmt.Errorf("unsupported operator: %s", filter.Operator)
 	}
@@ -376,6 +435,274 @@ func (sb *SQLBuilder) sanitizeTimezone(timezone string) string {
 	}
 
 	return timezone
+}
+
+// ScanRows scans SQL rows and converts them to a slice of maps for JSON serialization
+func ScanRows(rows *sql.Rows) ([]map[string]interface{}, error) {
+	// Get column information
+	columns, err := rows.Columns()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get columns: %w", err)
+	}
+
+	// Parse results
+	var data []map[string]interface{}
+	for rows.Next() {
+		// Create a slice of interface{} to hold the values
+		values := make([]interface{}, len(columns))
+		valuePtrs := make([]interface{}, len(columns))
+		for i := range values {
+			valuePtrs[i] = &values[i]
+		}
+
+		// Scan the row
+		if err := rows.Scan(valuePtrs...); err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		// Convert to map
+		row := make(map[string]interface{})
+		for i, col := range columns {
+			val := values[i]
+			// Convert []byte to string for better JSON serialization
+			if b, ok := val.([]byte); ok {
+				val = string(b)
+			}
+			// Convert time.Time to string for date dimensions
+			if t, ok := val.(time.Time); ok {
+				val = t.Format(time.RFC3339)
+			}
+			row[col] = val
+		}
+		data = append(data, row)
+	}
+
+	// Check for iteration errors
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error during result iteration: %w", err)
+	}
+
+	return data, nil
+}
+
+// ProcessRows scans SQL rows and fills time series gaps if the query has time dimensions
+func ProcessRows(rows *sql.Rows, query Query) ([]map[string]interface{}, error) {
+	// First scan the rows normally
+	data, err := ScanRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if this is a time series query that needs gap filling
+	if !query.HasTimeDimensions() {
+		// For non-time series queries, generate zero values if data is empty
+		if len(data) == 0 {
+			return generateZeroValueRow(query), nil
+		}
+		return data, nil
+	}
+
+	// For time series queries, fill gaps with zero values
+	return fillTimeSeriesGaps(data, query)
+}
+
+// generateZeroValueRow creates a single row with zero values for all measures
+func generateZeroValueRow(query Query) []map[string]interface{} {
+	row := make(map[string]interface{})
+
+	// Set all measures to zero
+	for _, measure := range query.Measures {
+		row[measure] = 0
+	}
+
+	// Add dimensions with empty/zero values
+	for _, dimension := range query.Dimensions {
+		row[dimension] = ""
+	}
+
+	return []map[string]interface{}{row}
+}
+
+// fillTimeSeriesGaps fills missing time periods with zero values
+func fillTimeSeriesGaps(data []map[string]interface{}, query Query) ([]map[string]interface{}, error) {
+	if len(query.TimeDimensions) == 0 {
+		return data, nil
+	}
+
+	// For now, handle single time dimension (most common case)
+	timeDim := query.TimeDimensions[0]
+
+	// If no date range specified, return data as-is
+	if timeDim.DateRange == nil {
+		return data, nil
+	}
+
+	// Create time dimension column name
+	timeDimColumn := fmt.Sprintf("%s_%s", timeDim.Dimension, timeDim.Granularity)
+
+	// Determine time range strategy based on granularity and data
+	var timeRange []string
+	startTime, err := time.Parse("2006-01-02", timeDim.DateRange[0])
+	if err != nil {
+		return data, fmt.Errorf("failed to parse start date: %w", err)
+	}
+
+	endTime, err := time.Parse("2006-01-02", timeDim.DateRange[1])
+	if err != nil {
+		return data, fmt.Errorf("failed to parse end date: %w", err)
+	}
+
+	// For hour granularity with same-day range and existing data, use data-driven approach
+	if timeDim.Granularity == "hour" && startTime.Equal(endTime) && len(data) > 0 {
+		timeRange = generateTimeRangeFromData(data, timeDimColumn, timeDim)
+	} else {
+		// For other cases, use the full date range
+		timeRange = generateTimeRange(startTime, endTime, timeDim.Granularity)
+	}
+
+	if len(timeRange) == 0 {
+		return data, nil
+	}
+
+	// Create a map of existing data by time dimension
+	existingData := make(map[string]map[string]interface{})
+	for _, row := range data {
+		if timeVal, exists := row[timeDimColumn]; exists {
+			if timeStr, ok := timeVal.(string); ok {
+				existingData[timeStr] = row
+			}
+		}
+	}
+
+	// Fill gaps
+	result := make([]map[string]interface{}, 0, len(timeRange))
+	for _, timeStr := range timeRange {
+		if existingRow, exists := existingData[timeStr]; exists {
+			// Use existing data
+			result = append(result, existingRow)
+		} else {
+			// Create zero-value row
+			zeroRow := make(map[string]interface{})
+
+			// Set time dimension
+			zeroRow[timeDimColumn] = timeStr
+
+			// Set all measures to zero
+			for _, measure := range query.Measures {
+				zeroRow[measure] = 0
+			}
+
+			// Set dimensions to empty strings or copy from first existing row
+			for _, dimension := range query.Dimensions {
+				zeroRow[dimension] = ""
+			}
+
+			result = append(result, zeroRow)
+		}
+	}
+
+	return result, nil
+}
+
+// generateTimeRange generates a slice of time strings based on start, end, and granularity
+func generateTimeRange(start, end time.Time, granularity string) []string {
+	var times []string
+	current := start
+
+	// Ensure we're working with UTC and truncated times
+	current = current.UTC()
+	end = end.UTC()
+
+	switch granularity {
+	case "hour":
+		current = time.Date(current.Year(), current.Month(), current.Day(), current.Hour(), 0, 0, 0, time.UTC)
+		end = time.Date(end.Year(), end.Month(), end.Day(), end.Hour(), 0, 0, 0, time.UTC)
+		for current.Before(end) || current.Equal(end) {
+			times = append(times, current.Format(time.RFC3339))
+			current = current.Add(time.Hour)
+		}
+	case "day":
+		current = time.Date(current.Year(), current.Month(), current.Day(), 0, 0, 0, 0, time.UTC)
+		end = time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, time.UTC)
+		for current.Before(end) || current.Equal(end) {
+			times = append(times, current.Format(time.RFC3339))
+			current = current.AddDate(0, 0, 1)
+		}
+	case "week":
+		// Start from beginning of week (Monday)
+		weekday := current.Weekday()
+		if weekday == time.Sunday {
+			weekday = 7
+		}
+		current = current.AddDate(0, 0, -int(weekday-time.Monday))
+		current = time.Date(current.Year(), current.Month(), current.Day(), 0, 0, 0, 0, time.UTC)
+
+		endWeekday := end.Weekday()
+		if endWeekday == time.Sunday {
+			endWeekday = 7
+		}
+		end = end.AddDate(0, 0, -int(endWeekday-time.Monday))
+		end = time.Date(end.Year(), end.Month(), end.Day(), 0, 0, 0, 0, time.UTC)
+
+		for current.Before(end) || current.Equal(end) {
+			times = append(times, current.Format(time.RFC3339))
+			current = current.AddDate(0, 0, 7)
+		}
+	case "month":
+		current = time.Date(current.Year(), current.Month(), 1, 0, 0, 0, 0, time.UTC)
+		end = time.Date(end.Year(), end.Month(), 1, 0, 0, 0, 0, time.UTC)
+		for current.Before(end) || current.Equal(end) {
+			times = append(times, current.Format(time.RFC3339))
+			current = current.AddDate(0, 1, 0)
+		}
+	case "year":
+		current = time.Date(current.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
+		end = time.Date(end.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
+		for current.Before(end) || current.Equal(end) {
+			times = append(times, current.Format(time.RFC3339))
+			current = current.AddDate(1, 0, 0)
+		}
+	}
+
+	return times
+}
+
+// generateTimeRangeFromData generates a time range based on existing data points
+func generateTimeRangeFromData(data []map[string]interface{}, timeDimColumn string, timeDim TimeDimension) []string {
+	if len(data) == 0 {
+		return nil
+	}
+
+	// Extract all time values from existing data
+	var existingTimes []time.Time
+	for _, row := range data {
+		if timeVal, exists := row[timeDimColumn]; exists {
+			if timeStr, ok := timeVal.(string); ok {
+				if t, err := time.Parse(time.RFC3339, timeStr); err == nil {
+					existingTimes = append(existingTimes, t)
+				}
+			}
+		}
+	}
+
+	if len(existingTimes) == 0 {
+		return nil
+	}
+
+	// Find min and max times
+	minTime := existingTimes[0]
+	maxTime := existingTimes[0]
+	for _, t := range existingTimes {
+		if t.Before(minTime) {
+			minTime = t
+		}
+		if t.After(maxTime) {
+			maxTime = t
+		}
+	}
+
+	// Generate time range from min to max
+	return generateTimeRange(minTime, maxTime, timeDim.Granularity)
 }
 
 // ToSQL is a convenience method on Query to build SQL using the default builder

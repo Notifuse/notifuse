@@ -61,7 +61,8 @@ export function CreateWorkspacePage() {
           website_url: values.website_url || '',
           logo_url: logoUrl,
           cover_url: coverUrl,
-          timezone: timezone
+          timezone: timezone,
+          email_tracking_enabled: true
         }
       })
 
@@ -72,7 +73,7 @@ export function CreateWorkspacePage() {
       // wait for the refreshWorkspaces to propagate the new workspaces list to the root layout
       window.setTimeout(() => {
         navigate({
-          to: '/workspace/$workspaceId/contacts',
+          to: '/workspace/$workspaceId',
           params: { workspaceId: values.id }
         })
       }, 100)

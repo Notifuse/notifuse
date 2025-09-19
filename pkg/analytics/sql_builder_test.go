@@ -1,12 +1,24 @@
 package analytics
 
 import (
+	"database/sql/driver"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// Helper functions for sql_builder_test.go
+func stringPtr(s string) *string {
+	return &s
+}
+
+func intPtr(i int) *int {
+	return &i
+}
 
 func TestSQLBuilder_BuildSQL(t *testing.T) {
 	builder := NewSQLBuilder()
@@ -236,6 +248,114 @@ func TestSQLBuilder_BuildSQL(t *testing.T) {
 				}},
 			},
 			expectedError: true,
+		},
+		{
+			name: "query with set filter (not null)",
+			query: Query{
+				Schema:   "message_history",
+				Measures: []string{"count"},
+				Filters: []Filter{{
+					Member:   "broadcast_id",
+					Operator: "set",
+					Values:   []string{},
+				}},
+			},
+			expectedSQL: "SELECT (COUNT(*)) AS count FROM message_history WHERE broadcast_id IS NOT NULL",
+		},
+		{
+			name: "query with notSet filter (is null)",
+			query: Query{
+				Schema:   "message_history",
+				Measures: []string{"count"},
+				Filters: []Filter{{
+					Member:   "broadcast_id",
+					Operator: "notSet",
+					Values:   []string{},
+				}},
+			},
+			expectedSQL: "SELECT (COUNT(*)) AS count FROM message_history WHERE broadcast_id IS NULL",
+		},
+		{
+			name: "query with startsWith filter",
+			query: Query{
+				Schema:   "message_history",
+				Measures: []string{"count"},
+				Filters: []Filter{{
+					Member:   "contact_email",
+					Operator: "startsWith",
+					Values:   []string{"admin"},
+				}},
+			},
+			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE contact_email LIKE $1",
+			expectedArgs: []interface{}{"admin%"},
+		},
+		{
+			name: "query with endsWith filter",
+			query: Query{
+				Schema:   "message_history",
+				Measures: []string{"count"},
+				Filters: []Filter{{
+					Member:   "contact_email",
+					Operator: "endsWith",
+					Values:   []string{".gov"},
+				}},
+			},
+			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE contact_email LIKE $1",
+			expectedArgs: []interface{}{"%.gov"},
+		},
+		{
+			name: "query with inDateRange filter",
+			query: Query{
+				Schema:   "message_history",
+				Measures: []string{"count"},
+				Filters: []Filter{{
+					Member:   "created_at",
+					Operator: "inDateRange",
+					Values:   []string{"2024-01-01", "2024-03-31"},
+				}},
+			},
+			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE (created_at >= $1 AND created_at <= $2)",
+			expectedArgs: []interface{}{"2024-01-01", "2024-03-31"},
+		},
+		{
+			name: "query with beforeDate filter",
+			query: Query{
+				Schema:   "message_history",
+				Measures: []string{"count"},
+				Filters: []Filter{{
+					Member:   "created_at",
+					Operator: "beforeDate",
+					Values:   []string{"2024-01-01"},
+				}},
+			},
+			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE created_at < $1",
+			expectedArgs: []interface{}{"2024-01-01"},
+		},
+		{
+			name: "query with multiple new operators",
+			query: Query{
+				Schema:   "message_history",
+				Measures: []string{"count"},
+				Filters: []Filter{
+					{
+						Member:   "broadcast_id",
+						Operator: "set",
+						Values:   []string{},
+					},
+					{
+						Member:   "contact_email",
+						Operator: "endsWith",
+						Values:   []string{".com"},
+					},
+					{
+						Member:   "created_at",
+						Operator: "afterDate",
+						Values:   []string{"2024-01-01"},
+					},
+				},
+			},
+			expectedSQL:  "SELECT (COUNT(*)) AS count FROM message_history WHERE broadcast_id IS NOT NULL AND contact_email LIKE $1 AND created_at > $2",
+			expectedArgs: []interface{}{"%.com", "2024-01-01"},
 		},
 	}
 
@@ -487,6 +607,150 @@ func TestSQLBuilder_buildFilterCondition(t *testing.T) {
 			},
 			expectedError: true,
 		},
+		{
+			name:      "not contains",
+			memberSQL: "contact_email",
+			filter: Filter{
+				Operator: "notContains",
+				Values:   []string{"spam"},
+			},
+			expectedSQL:  "contact_email NOT LIKE ?",
+			expectedArgs: []interface{}{"%spam%"},
+		},
+		{
+			name:      "starts with",
+			memberSQL: "contact_email",
+			filter: Filter{
+				Operator: "startsWith",
+				Values:   []string{"admin"},
+			},
+			expectedSQL:  "contact_email LIKE ?",
+			expectedArgs: []interface{}{"admin%"},
+		},
+		{
+			name:      "not starts with",
+			memberSQL: "contact_email",
+			filter: Filter{
+				Operator: "notStartsWith",
+				Values:   []string{"test"},
+			},
+			expectedSQL:  "contact_email NOT LIKE ?",
+			expectedArgs: []interface{}{"test%"},
+		},
+		{
+			name:      "ends with",
+			memberSQL: "contact_email",
+			filter: Filter{
+				Operator: "endsWith",
+				Values:   []string{".com"},
+			},
+			expectedSQL:  "contact_email LIKE ?",
+			expectedArgs: []interface{}{"%.com"},
+		},
+		{
+			name:      "not ends with",
+			memberSQL: "contact_email",
+			filter: Filter{
+				Operator: "notEndsWith",
+				Values:   []string{".spam"},
+			},
+			expectedSQL:  "contact_email NOT LIKE ?",
+			expectedArgs: []interface{}{"%.spam"},
+		},
+		{
+			name:      "set (not null)",
+			memberSQL: "optional_field",
+			filter: Filter{
+				Operator: "set",
+				Values:   []string{},
+			},
+			expectedSQL: "optional_field IS NOT NULL",
+		},
+		{
+			name:      "not set (is null)",
+			memberSQL: "optional_field",
+			filter: Filter{
+				Operator: "notSet",
+				Values:   []string{},
+			},
+			expectedSQL: "optional_field IS NULL",
+		},
+		{
+			name:      "in date range",
+			memberSQL: "created_at",
+			filter: Filter{
+				Operator: "inDateRange",
+				Values:   []string{"2024-01-01", "2024-12-31"},
+			},
+			expectedSQL:  "(created_at >= ? AND created_at <= ?)",
+			expectedArgs: []interface{}{"2024-01-01", "2024-12-31"},
+		},
+		{
+			name:      "not in date range",
+			memberSQL: "created_at",
+			filter: Filter{
+				Operator: "notInDateRange",
+				Values:   []string{"2024-06-01", "2024-06-30"},
+			},
+			expectedSQL:  "(created_at < ? OR created_at > ?)",
+			expectedArgs: []interface{}{"2024-06-01", "2024-06-30"},
+		},
+		{
+			name:      "before date",
+			memberSQL: "created_at",
+			filter: Filter{
+				Operator: "beforeDate",
+				Values:   []string{"2024-01-01"},
+			},
+			expectedSQL:  "created_at < ?",
+			expectedArgs: []interface{}{"2024-01-01"},
+		},
+		{
+			name:      "after date",
+			memberSQL: "created_at",
+			filter: Filter{
+				Operator: "afterDate",
+				Values:   []string{"2024-12-31"},
+			},
+			expectedSQL:  "created_at > ?",
+			expectedArgs: []interface{}{"2024-12-31"},
+		},
+		{
+			name:      "not contains with multiple values",
+			memberSQL: "field",
+			filter: Filter{
+				Operator: "notContains",
+				Values:   []string{"value1", "value2"},
+			},
+			expectedError: true,
+		},
+		{
+			name:      "starts with with multiple values",
+			memberSQL: "field",
+			filter: Filter{
+				Operator: "startsWith",
+				Values:   []string{"value1", "value2"},
+			},
+			expectedError: true,
+		},
+		{
+			name:      "in date range with wrong number of values",
+			memberSQL: "field",
+			filter: Filter{
+				Operator: "inDateRange",
+				Values:   []string{"2024-01-01"},
+			},
+			expectedError: true,
+		},
+		{
+			name:      "before date with multiple values",
+			memberSQL: "field",
+			filter: Filter{
+				Operator: "beforeDate",
+				Values:   []string{"2024-01-01", "2024-12-31"},
+			},
+			expectedError: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -507,6 +771,9 @@ func TestSQLBuilder_buildFilterCondition(t *testing.T) {
 			assert.Equal(t, tt.expectedSQL, sql)
 			if tt.expectedArgs != nil {
 				assert.Equal(t, tt.expectedArgs, args)
+			} else {
+				// If no expected args specified, args should be empty or nil
+				assert.True(t, len(args) == 0, "Expected no arguments but got %v", args)
 			}
 		})
 	}
@@ -1430,4 +1697,306 @@ func TestQuery_ToSQL(t *testing.T) {
 	assert.Contains(t, sql, "COUNT(*)")
 	assert.Contains(t, sql, "DATE_TRUNC")
 	assert.Empty(t, args)
+}
+
+func TestScanRows(t *testing.T) {
+	// Create mock database
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	tests := []struct {
+		name         string
+		columns      []string
+		rows         [][]driver.Value
+		expectedData []map[string]interface{}
+		description  string
+	}{
+		{
+			name:    "simple string and number data",
+			columns: []string{"name", "count", "active"},
+			rows: [][]driver.Value{
+				{"Alice", int64(10), true},
+				{"Bob", int64(5), false},
+			},
+			expectedData: []map[string]interface{}{
+				{"name": "Alice", "count": int64(10), "active": true},
+				{"name": "Bob", "count": int64(5), "active": false},
+			},
+			description: "Should scan basic data types correctly",
+		},
+		{
+			name:    "byte array conversion",
+			columns: []string{"id", "data"},
+			rows: [][]driver.Value{
+				{int64(1), []byte("test data")},
+				{int64(2), []byte("more data")},
+			},
+			expectedData: []map[string]interface{}{
+				{"id": int64(1), "data": "test data"},
+				{"id": int64(2), "data": "more data"},
+			},
+			description: "Should convert []byte to string",
+		},
+		{
+			name:    "timestamp data",
+			columns: []string{"id", "created_at"},
+			rows: [][]driver.Value{
+				{int64(1), time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC)},
+			},
+			expectedData: []map[string]interface{}{
+				{"id": int64(1), "created_at": "2024-01-01T12:00:00Z"},
+			},
+			description: "Should handle timestamp data and convert time.Time to string",
+		},
+		{
+			name:         "empty result set",
+			columns:      []string{"id", "name"},
+			rows:         [][]driver.Value{},
+			expectedData: []map[string]interface{}{},
+			description:  "Should handle empty result set",
+		},
+		{
+			name:    "null values",
+			columns: []string{"id", "name", "optional_field"},
+			rows: [][]driver.Value{
+				{int64(1), "Alice", "value"},
+				{int64(2), "Bob", nil},
+			},
+			expectedData: []map[string]interface{}{
+				{"id": int64(1), "name": "Alice", "optional_field": "value"},
+				{"id": int64(2), "name": "Bob", "optional_field": nil},
+			},
+			description: "Should handle null values correctly",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set up mock rows
+			mockRows := sqlmock.NewRows(tt.columns)
+			for _, row := range tt.rows {
+				mockRows = mockRows.AddRow(row...)
+			}
+
+			mock.ExpectQuery("SELECT (.+)").WillReturnRows(mockRows)
+
+			// Execute query to get rows
+			rows, err := db.Query("SELECT * FROM test")
+			require.NoError(t, err)
+			defer rows.Close()
+
+			// Test ScanRows function
+			data, err := ScanRows(rows)
+			require.NoError(t, err, tt.description)
+
+			// Verify results
+			assert.Equal(t, len(tt.expectedData), len(data), "Data length should match")
+			for i, expected := range tt.expectedData {
+				if i < len(data) {
+					for key, expectedValue := range expected {
+						actualValue := data[i][key]
+						assert.Equal(t, expectedValue, actualValue,
+							"Data[%d][%s] should match: expected %v, got %v", i, key, expectedValue, actualValue)
+					}
+				}
+			}
+
+			// Verify all expectations were met
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestProcessRows(t *testing.T) {
+	// Create mock database
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	tests := []struct {
+		name         string
+		query        Query
+		columns      []string
+		rows         [][]driver.Value
+		expectedData []map[string]interface{}
+		description  string
+	}{
+		{
+			name: "non-time series query",
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+			},
+			columns: []string{"count"},
+			rows: [][]driver.Value{
+				{int64(42)},
+			},
+			expectedData: []map[string]interface{}{
+				{"count": int64(42)},
+			},
+			description: "Should process non-time series data without modification",
+		},
+		{
+			name: "empty non-time series query",
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count", "sum_amount"},
+			},
+			columns: []string{"count", "sum_amount"},
+			rows:    [][]driver.Value{},
+			expectedData: []map[string]interface{}{
+				{"count": 0, "sum_amount": 0},
+			},
+			description: "Should generate zero values for empty non-time series query",
+		},
+		{
+			name: "time series query with gap filling",
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+				TimeDimensions: []TimeDimension{{
+					Dimension:   "created_at",
+					Granularity: "day",
+					DateRange:   &[2]string{"2024-01-01", "2024-01-03"},
+				}},
+			},
+			columns: []string{"count", "created_at_day"},
+			rows: [][]driver.Value{
+				{int64(10), time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)},
+				{int64(5), time.Date(2024, 1, 3, 0, 0, 0, 0, time.UTC)},
+			},
+			expectedData: []map[string]interface{}{
+				{"count": int64(10), "created_at_day": "2024-01-01T00:00:00Z"},
+				{"count": 0, "created_at_day": "2024-01-02T00:00:00Z"},
+				{"count": int64(5), "created_at_day": "2024-01-03T00:00:00Z"},
+			},
+			description: "Should fill gaps in time series data",
+		},
+		{
+			name: "empty time series query",
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+				TimeDimensions: []TimeDimension{{
+					Dimension:   "created_at",
+					Granularity: "day",
+					DateRange:   &[2]string{"2024-01-01", "2024-01-02"},
+				}},
+			},
+			columns: []string{"count", "created_at_day"},
+			rows:    [][]driver.Value{},
+			expectedData: []map[string]interface{}{
+				{"count": 0, "created_at_day": "2024-01-01T00:00:00Z"},
+				{"count": 0, "created_at_day": "2024-01-02T00:00:00Z"},
+			},
+			description: "Should generate zero values for empty time series query",
+		},
+		{
+			name: "time series with different granularity",
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+				TimeDimensions: []TimeDimension{{
+					Dimension:   "created_at",
+					Granularity: "hour",
+					DateRange:   &[2]string{"2024-01-01", "2024-01-01"},
+				}},
+			},
+			columns: []string{"count", "created_at_hour"},
+			rows: [][]driver.Value{
+				{int64(1), time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC)},
+				{int64(3), time.Date(2024, 1, 1, 2, 0, 0, 0, time.UTC)},
+			},
+			expectedData: []map[string]interface{}{
+				{"count": int64(1), "created_at_hour": "2024-01-01T00:00:00Z"},
+				{"count": 0, "created_at_hour": "2024-01-01T01:00:00Z"},
+				{"count": int64(3), "created_at_hour": "2024-01-01T02:00:00Z"},
+			},
+			description: "Should handle different time granularities",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Set up mock rows
+			mockRows := sqlmock.NewRows(tt.columns)
+			for _, row := range tt.rows {
+				mockRows = mockRows.AddRow(row...)
+			}
+
+			mock.ExpectQuery("SELECT (.+)").WillReturnRows(mockRows)
+
+			// Execute query to get rows
+			rows, err := db.Query("SELECT * FROM test")
+			require.NoError(t, err)
+			defer rows.Close()
+
+			// Test ProcessRows function
+			data, err := ProcessRows(rows, tt.query)
+			require.NoError(t, err, tt.description)
+
+			// Verify results
+			assert.Equal(t, len(tt.expectedData), len(data), "Data length should match for %s", tt.description)
+			for i, expected := range tt.expectedData {
+				if i < len(data) {
+					for key, expectedValue := range expected {
+						actualValue := data[i][key]
+						assert.Equal(t, expectedValue, actualValue,
+							"Data[%d][%s] should match: expected %v, got %v for %s", i, key, expectedValue, actualValue, tt.description)
+					}
+				}
+			}
+
+			// Verify all expectations were met
+			assert.NoError(t, mock.ExpectationsWereMet())
+		})
+	}
+}
+
+func TestProcessRows_ErrorHandling(t *testing.T) {
+	// Create mock database
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	query := Query{
+		Schema:   "test_table",
+		Measures: []string{"count"},
+	}
+
+	// Mock a column scanning error
+	mock.ExpectQuery("SELECT (.+)").WillReturnError(assert.AnError)
+
+	// Execute query
+	_, err = db.Query("SELECT * FROM test")
+	require.Error(t, err)
+
+	// ProcessRows should handle the error gracefully
+	// Since we can't get rows due to query error, we'll test with a different approach
+	// Let's test with rows that fail during scanning
+
+	// Create a successful query but with problematic rows
+	mockRows := sqlmock.NewRows([]string{"count"}).
+		AddRow("invalid_int") // This should cause a scanning error
+
+	mock.ExpectQuery("SELECT (.+)").WillReturnRows(mockRows)
+
+	rows2, err := db.Query("SELECT * FROM test")
+	require.NoError(t, err)
+	defer rows2.Close()
+
+	// This should handle the scanning error
+	data, err := ProcessRows(rows2, query)
+	// The error handling depends on the driver, but we expect either an error or empty data
+	if err == nil {
+		// If no error, data should be handled gracefully
+		assert.NotNil(t, data)
+	} else {
+		// If error, it should be properly propagated
+		assert.Error(t, err)
+	}
+
+	// Verify all expectations were met
+	assert.NoError(t, mock.ExpectationsWereMet())
 }

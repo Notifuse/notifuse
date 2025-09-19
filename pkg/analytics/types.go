@@ -1,6 +1,8 @@
 package analytics
 
 import (
+	"context"
+	"database/sql"
 	"errors"
 	"time"
 )
@@ -37,8 +39,8 @@ type TimeDimension struct {
 // Filter represents a query filter
 type Filter struct {
 	Member   string   `json:"member" valid:"required"`
-	Operator string   `json:"operator" valid:"required,in(equals|notEquals|contains|gt|gte|lt|lte|in|notIn)"`
-	Values   []string `json:"values" valid:"required"`
+	Operator string   `json:"operator" valid:"required,in(equals|notEquals|contains|notContains|startsWith|notStartsWith|endsWith|notEndsWith|gt|gte|lt|lte|in|notIn|set|notSet|inDateRange|notInDateRange|beforeDate|afterDate)"`
+	Values   []string `json:"values"`
 }
 
 // Response represents the response from an analytics query
@@ -70,6 +72,7 @@ type MeasureFilter struct {
 // MeasureDefinition defines an analytics measure
 type MeasureDefinition struct {
 	Type        string          `json:"type" valid:"in(count|sum|avg|min|max)"`
+	Title       string          `json:"title"`
 	SQL         string          `json:"sql,omitempty"`
 	Description string          `json:"description"`
 	Filters     []MeasureFilter `json:"filters,omitempty"`
@@ -78,6 +81,7 @@ type MeasureDefinition struct {
 // DimensionDefinition defines an analytics dimension
 type DimensionDefinition struct {
 	Type        string `json:"type" valid:"in(string|number|time)"`
+	Title       string `json:"title"`
 	SQL         string `json:"sql,omitempty"`
 	Description string `json:"description"`
 }
@@ -109,4 +113,50 @@ func (q *Query) GetOffset() int {
 		return *q.Offset
 	}
 	return 0
+}
+
+// Query executes the analytics query against the database and returns an analytics response
+func (q *Query) Query(ctx context.Context, db *sql.DB, schema SchemaDefinition) (*Response, error) {
+	// Validate that the query schema name matches the provided schema
+	if q.Schema != schema.Name {
+		return nil, ErrInvalidSchema
+	}
+
+	// Validate the query against the schema
+	schemas := map[string]SchemaDefinition{q.Schema: schema}
+	if err := DefaultValidate(*q, schemas); err != nil {
+		return nil, err
+	}
+
+	// Build SQL using the SQL builder
+	sqlBuilder := NewSQLBuilder()
+	sqlQuery, args, err := sqlBuilder.BuildSQL(*q, schema)
+	if err != nil {
+		return nil, err
+	}
+
+	// Execute the query
+	rows, err := db.QueryContext(ctx, sqlQuery, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	// Process rows with time series gap filling
+	data, err := ProcessRows(rows, *q)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create response with debug information
+	response := &Response{
+		Data: data,
+		Meta: Meta{
+			Query:  sqlQuery,
+			Params: args,
+			Total:  len(data),
+		},
+	}
+
+	return response, nil
 }

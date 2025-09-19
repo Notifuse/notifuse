@@ -14,6 +14,7 @@ import { TemplatesPage } from './pages/TemplatesPage'
 import { BroadcastsPage } from './pages/BroadcastsPage'
 import { TransactionalNotificationsPage } from './pages/TransactionalNotificationsPage'
 import { LogsPage } from './pages/LogsPage'
+import { AnalyticsPage } from './pages/AnalyticsPage'
 import { createRouter } from '@tanstack/react-router'
 
 export interface ContactsSearch {
@@ -91,6 +92,13 @@ const workspaceRoute = createRoute({
   component: WorkspaceLayout
 })
 
+// Create the default workspace route (redirects to analytics/dashboard)
+const workspaceIndexRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/',
+  component: AnalyticsPage
+})
+
 // Create workspace child routes
 const workspaceBroadcastsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
@@ -153,6 +161,12 @@ const workspaceTemplatesRoute = createRoute({
   component: TemplatesPage
 })
 
+const workspaceAnalyticsRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/analytics',
+  component: AnalyticsPage
+})
+
 // Create the router
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -161,6 +175,7 @@ const routeTree = rootRoute.addChildren([
   acceptInvitationRoute,
   workspaceCreateRoute,
   workspaceRoute.addChildren([
+    workspaceIndexRoute,
     workspaceBroadcastsRoute,
     workspaceContactsRoute,
     workspaceListsRoute,
@@ -168,7 +183,8 @@ const routeTree = rootRoute.addChildren([
     workspaceLogsRoute,
     workspaceFileManagerRoute,
     workspaceSettingsRoute,
-    workspaceTemplatesRoute
+    workspaceTemplatesRoute,
+    workspaceAnalyticsRoute
   ])
 ])
 

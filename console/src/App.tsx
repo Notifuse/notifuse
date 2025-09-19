@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider } from '@tanstack/react-router'
 import { router } from './router'
 import { AuthProvider } from './contexts/AuthContext'
+import { initializeAnalytics } from './utils/analytics-config'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -45,6 +46,10 @@ const theme: ThemeConfig = {
     }
   }
 }
+
+// Initialize analytics service
+initializeAnalytics()
+
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>

@@ -58,16 +58,18 @@ func DefaultValidate(query Query, schemas map[string]SchemaDefinition) error {
 
 		// Check operator
 		validOperators := map[string]bool{
-			"equals": true, "notEquals": true, "contains": true,
+			"equals": true, "notEquals": true, "contains": true, "notContains": true,
+			"startsWith": true, "notStartsWith": true, "endsWith": true, "notEndsWith": true,
 			"gt": true, "gte": true, "lt": true, "lte": true,
-			"in": true, "notIn": true,
+			"in": true, "notIn": true, "set": true, "notSet": true,
+			"inDateRange": true, "notInDateRange": true, "beforeDate": true, "afterDate": true,
 		}
 		if !validOperators[filter.Operator] {
 			return ErrUnsupportedOperator
 		}
 
-		// Check values
-		if len(filter.Values) == 0 {
+		// Check values (allow empty values for set/notSet operators)
+		if len(filter.Values) == 0 && filter.Operator != "set" && filter.Operator != "notSet" {
 			return errors.New("filter values cannot be empty")
 		}
 	}

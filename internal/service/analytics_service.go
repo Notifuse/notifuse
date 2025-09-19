@@ -70,6 +70,8 @@ func (s *AnalyticsService) Query(ctx context.Context, workspaceID string, query 
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
 
+	// Time series gap filling is now handled in the analytics package during row scanning
+
 	return response, nil
 }
 

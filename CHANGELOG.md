@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.7] - 2025-09-19
+
+- Add new workspace dashboard
+
 ## [6.6] - 2025-09-12
 
 - Bulk update contacts functionality to console

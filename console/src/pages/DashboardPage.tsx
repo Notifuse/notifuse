@@ -1,4 +1,4 @@
-import { Card, Row, Col, Typography, Button, Empty } from 'antd'
+import { Card, Typography, Button, Empty } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate } from '@tanstack/react-router'
@@ -13,7 +13,7 @@ export function DashboardPage() {
 
   const handleWorkspaceClick = (workspaceId: string) => {
     navigate({
-      to: '/workspace/$workspaceId/contacts',
+      to: '/workspace/$workspaceId',
       params: { workspaceId }
     })
   }

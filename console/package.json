@@ -37,6 +37,8 @@
     "@types/uuid": "^10.0.0",
     "antd": "^5.14.0",
     "dayjs": "^1.11.13",
+    "echarts": "^5.6.0",
+    "echarts-for-react": "^3.0.2",
     "emoji-mart": "^5.6.0",
     "filesize": "^10.1.6",
     "html2canvas": "^1.4.1",

@@ -37,6 +37,7 @@ const DEFAULT_VISIBLE_COLUMNS = {
   lifetime_value: false,
   orders_count: false,
   last_order_at: false,
+  created_at: false,
   custom_string_1: false,
   custom_string_2: false,
   custom_string_3: false,
@@ -192,6 +193,7 @@ export function ContactsPage() {
     { key: 'lifetime_value', title: 'Lifetime Value' },
     { key: 'orders_count', title: 'Orders Count' },
     { key: 'last_order_at', title: 'Last Order' },
+    { key: 'created_at', title: 'Created At' },
     { key: 'custom_string_1', title: 'Custom String 1' },
     { key: 'custom_string_2', title: 'Custom String 2' },
     { key: 'custom_string_3', title: 'Custom String 3' },
@@ -491,6 +493,16 @@ export function ContactsPage() {
       render: (_: unknown, record: Contact) =>
         record.last_order_at ? new Date(record.last_order_at).toLocaleDateString() : '-',
       hidden: !visibleColumns.last_order_at
+    },
+    {
+      title: 'Created At',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      render: (_: unknown, record: Contact) =>
+        record.created_at
+          ? dayjs(record.created_at).tz(workspaceTimezone).format('LL - HH:mm')
+          : '-',
+      hidden: !visibleColumns.created_at
     },
     {
       title: 'Custom String 1',

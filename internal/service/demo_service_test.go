@@ -149,6 +149,7 @@ func TestNewDemoService_Constructs(t *testing.T) {
 		nil, // notificationCenterService
 		nil, // workspaceRepo
 		nil, // taskRepo
+		nil, // messageHistoryRepo
 	)
 	assert.NotNil(t, svc)
 }

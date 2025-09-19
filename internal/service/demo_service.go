@@ -34,6 +34,7 @@ type DemoService struct {
 	notificationCenterService        *NotificationCenterService
 	workspaceRepo                    domain.WorkspaceRepository
 	taskRepo                         domain.TaskRepository
+	messageHistoryRepo               domain.MessageHistoryRepository
 }
 
 // Sample data arrays for contact generation
@@ -103,6 +104,7 @@ func NewDemoService(
 	notificationCenterService *NotificationCenterService,
 	workspaceRepo domain.WorkspaceRepository,
 	taskRepo domain.TaskRepository,
+	messageHistoryRepo domain.MessageHistoryRepository,
 ) *DemoService {
 	return &DemoService{
 		logger:                           logger,
@@ -123,6 +125,7 @@ func NewDemoService(
 		notificationCenterService:        notificationCenterService,
 		workspaceRepo:                    workspaceRepo,
 		taskRepo:                         taskRepo,
+		messageHistoryRepo:               messageHistoryRepo,
 	}
 }
 
@@ -287,6 +290,12 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 	// Step 6: Create sample transactional notifications
 	if err := s.createSampleTransactionalNotifications(ctx, workspaceID); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to create sample transactional notifications")
+		return err
+	}
+
+	// Step 7: Generate sample message history with realistic engagement rates
+	if err := s.generateSampleMessageHistory(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to generate sample message history")
 		return err
 	}
 
@@ -1761,4 +1770,523 @@ func (s *DemoService) createSampleTransactionalNotifications(ctx context.Context
 
 	s.logger.WithField("workspace_id", workspaceID).Info("Sample transactional notifications created successfully")
 	return nil
+}
+
+// generateSampleMessageHistory creates realistic message history with specified engagement rates:
+// 90% delivered, 5% failed, 5% bounce, 20% opened, 10% click, 1% unsubscribed
+func (s *DemoService) generateSampleMessageHistory(ctx context.Context, workspaceID string) error {
+	s.logger.WithField("workspace_id", workspaceID).Info("Generating sample message history with realistic engagement rates - newsletters first, then transactional")
+
+	// Get all contacts to create message history for
+	contactsReq := &domain.GetContactsRequest{
+		WorkspaceID: workspaceID,
+		Limit:       1000,
+	}
+
+	contactsResp, err := s.contactService.GetContacts(ctx, contactsReq)
+	if err != nil {
+		return fmt.Errorf("failed to get contacts for message history: %w", err)
+	}
+
+	if len(contactsResp.Contacts) == 0 {
+		s.logger.WithField("workspace_id", workspaceID).Info("No contacts found, skipping message history generation")
+		return nil
+	}
+
+	// Step 1: Generate newsletter/broadcast campaigns first
+	s.logger.WithField("workspace_id", workspaceID).Info("Generating newsletter campaigns...")
+	newsletterMessages, err := s.generateNewsletterCampaigns(ctx, workspaceID, contactsResp.Contacts)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to generate newsletter campaigns")
+		return err
+	}
+
+	// Step 2: Generate transactional emails separately after newsletters
+	s.logger.WithField("workspace_id", workspaceID).Info("Generating transactional messages...")
+	transactionalMessages, err := s.generateTransactionalMessages(ctx, workspaceID, contactsResp.Contacts)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to generate transactional messages")
+		return err
+	}
+
+	totalMessages := newsletterMessages + transactionalMessages
+	s.logger.WithField("workspace_id", workspaceID).WithField("newsletter_messages", newsletterMessages).WithField("transactional_messages", transactionalMessages).WithField("total_messages", totalMessages).Info("Sample message history generation completed")
+	return nil
+}
+
+// generateNewsletterCampaigns creates newsletter/broadcast message history for the last 30 days
+func (s *DemoService) generateNewsletterCampaigns(ctx context.Context, workspaceID string, contacts []*domain.Contact) (int, error) {
+	s.logger.WithField("workspace_id", workspaceID).Info("Generating newsletter campaigns")
+
+	// Newsletter campaigns for the last 30 days
+	newsletterCampaigns := []struct {
+		templateID      string
+		templateVersion int64
+		broadcastID     string
+		campaignName    string
+		daysAgo         int
+	}{}
+
+	// Generate newsletter campaigns for the last 30 days
+	for day := 0; day < 30; day++ {
+		// Newsletter on specific days (Monday/Thursday pattern)
+		if day%7 == 0 || day%7 == 3 {
+			templateID := "newsletter-weekly"
+			templateVersion := int64(1)
+			if day%14 == 7 { // Alternate with v2 template every other week
+				templateID = "newsletter-weekly-v2"
+				templateVersion = 2
+			}
+
+			newsletterCampaigns = append(newsletterCampaigns, struct {
+				templateID      string
+				templateVersion int64
+				broadcastID     string
+				campaignName    string
+				daysAgo         int
+			}{
+				templateID:      templateID,
+				templateVersion: templateVersion,
+				broadcastID:     fmt.Sprintf("newsletter-broadcast-%d", day+1),
+				campaignName:    fmt.Sprintf("Weekly Newsletter Day %d", day+1),
+				daysAgo:         day,
+			})
+		}
+	}
+
+	totalNewsletterMessages := 0
+
+	for _, campaign := range newsletterCampaigns {
+		// Newsletter campaigns go to most subscribers (70-100% of contacts)
+		contactPercentage := 0.7 + rand.Float64()*0.3
+		numContacts := int(float64(len(contacts)) * contactPercentage)
+
+		// Randomize which contacts get the message
+		selectedContacts := make([]*domain.Contact, numContacts)
+		selectedIndexes := rand.Perm(len(contacts))[:numContacts]
+		for i, idx := range selectedIndexes {
+			selectedContacts[i] = contacts[idx]
+		}
+
+		campaignMessages, err := s.generateCampaignMessageHistory(ctx, workspaceID, campaign.templateID, campaign.templateVersion, campaign.broadcastID, selectedContacts, campaign.daysAgo)
+		if err != nil {
+			s.logger.WithField("campaign", campaign.campaignName).WithField("error", err.Error()).Warn("Failed to generate newsletter campaign message history")
+			continue
+		}
+
+		totalNewsletterMessages += campaignMessages
+		s.logger.WithField("campaign", campaign.campaignName).WithField("messages", campaignMessages).Info("Generated newsletter campaign message history")
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).WithField("total_newsletter_messages", totalNewsletterMessages).Info("Newsletter campaigns generation completed")
+	return totalNewsletterMessages, nil
+}
+
+// generateTransactionalMessages creates transactional message history (welcome emails, password resets)
+func (s *DemoService) generateTransactionalMessages(ctx context.Context, workspaceID string, contacts []*domain.Contact) (int, error) {
+	s.logger.WithField("workspace_id", workspaceID).Info("Generating transactional messages")
+
+	// Transactional message patterns for the last 30 days
+	transactionalCampaigns := []struct {
+		templateID      string
+		templateVersion int64
+		messageType     string // Used for identification, not as broadcast ID
+		campaignName    string
+		daysAgo         int
+	}{}
+
+	// Generate transactional messages for the last 30 days
+	for day := 0; day < 30; day++ {
+		// Welcome emails - every few days
+		if day%3 == 1 {
+			transactionalCampaigns = append(transactionalCampaigns, struct {
+				templateID      string
+				templateVersion int64
+				messageType     string
+				campaignName    string
+				daysAgo         int
+			}{
+				templateID:      "welcome-email",
+				templateVersion: 1,
+				messageType:     "welcome",
+				campaignName:    fmt.Sprintf("Welcome Emails Day %d", day+1),
+				daysAgo:         day,
+			})
+		}
+
+		// Password reset emails - every few days with different pattern
+		if day%4 == 2 {
+			transactionalCampaigns = append(transactionalCampaigns, struct {
+				templateID      string
+				templateVersion int64
+				messageType     string
+				campaignName    string
+				daysAgo         int
+			}{
+				templateID:      "password-reset",
+				templateVersion: 1,
+				messageType:     "password-reset",
+				campaignName:    fmt.Sprintf("Password Reset Requests Day %d", day+1),
+				daysAgo:         day,
+			})
+		}
+
+		// Ensure we have at least some transactional activity every day by adding minimal welcome messages
+		hasTransactionalActivity := false
+		for _, existingCampaign := range transactionalCampaigns {
+			if existingCampaign.daysAgo == day {
+				hasTransactionalActivity = true
+				break
+			}
+		}
+
+		if !hasTransactionalActivity {
+			// Add a small welcome email activity to ensure every day has some transactional data
+			transactionalCampaigns = append(transactionalCampaigns, struct {
+				templateID      string
+				templateVersion int64
+				messageType     string
+				campaignName    string
+				daysAgo         int
+			}{
+				templateID:      "welcome-email",
+				templateVersion: 1,
+				messageType:     "welcome-daily",
+				campaignName:    fmt.Sprintf("Daily Welcome Activity Day %d", day+1),
+				daysAgo:         day,
+			})
+		}
+	}
+
+	totalTransactionalMessages := 0
+
+	for _, campaign := range transactionalCampaigns {
+		// Transactional messages go to fewer people (5-20% of contacts)
+		contactPercentage := 0.05 + rand.Float64()*0.15
+		numContacts := int(float64(len(contacts)) * contactPercentage)
+
+		// Randomize which contacts get the message
+		selectedContacts := make([]*domain.Contact, numContacts)
+		selectedIndexes := rand.Perm(len(contacts))[:numContacts]
+		for i, idx := range selectedIndexes {
+			selectedContacts[i] = contacts[idx]
+		}
+
+		// For transactional messages, we pass empty string as broadcastID (will be set to nil)
+		campaignMessages, err := s.generateTransactionalMessageHistory(ctx, workspaceID, campaign.templateID, campaign.templateVersion, campaign.messageType, selectedContacts, campaign.daysAgo)
+		if err != nil {
+			s.logger.WithField("campaign", campaign.campaignName).WithField("error", err.Error()).Warn("Failed to generate transactional message history")
+			continue
+		}
+
+		totalTransactionalMessages += campaignMessages
+		s.logger.WithField("campaign", campaign.campaignName).WithField("messages", campaignMessages).Info("Generated transactional message history")
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).WithField("total_transactional_messages", totalTransactionalMessages).Info("Transactional messages generation completed")
+	return totalTransactionalMessages, nil
+}
+
+// generateCampaignMessageHistory creates message history for a specific campaign
+func (s *DemoService) generateCampaignMessageHistory(ctx context.Context, workspaceID, templateID string, templateVersion int64, broadcastID string, contacts []*domain.Contact, daysAgo int) (int, error) {
+	if len(contacts) == 0 {
+		return 0, nil
+	}
+
+	// Base time for this campaign
+	campaignTime := time.Now().AddDate(0, 0, -daysAgo)
+
+	messagesCreated := 0
+	batchSize := 50 // Process in smaller batches to avoid overwhelming the system
+
+	for i := 0; i < len(contacts); i += batchSize {
+		end := i + batchSize
+		if end > len(contacts) {
+			end = len(contacts)
+		}
+		batch := contacts[i:end]
+
+		for _, contact := range batch {
+			message := s.generateMessageHistoryForContact(contact, templateID, templateVersion, broadcastID, campaignTime)
+
+			// Create the message history record directly through the repository
+			// since the service requires authentication which we don't have in demo context
+			if err := s.messageHistoryRepo.Create(ctx, workspaceID, message); err != nil {
+				s.logger.WithField("contact_email", contact.Email).WithField("error", err.Error()).Debug("Failed to create message history record")
+				continue
+			}
+			messagesCreated++
+		}
+
+		// Small delay between batches to avoid overwhelming the database
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	return messagesCreated, nil
+}
+
+// generateTransactionalMessageHistory creates message history for transactional messages (no broadcast ID)
+func (s *DemoService) generateTransactionalMessageHistory(ctx context.Context, workspaceID, templateID string, templateVersion int64, messageType string, contacts []*domain.Contact, daysAgo int) (int, error) {
+	if len(contacts) == 0 {
+		return 0, nil
+	}
+
+	// Base time for this transactional message batch
+	messageTime := time.Now().AddDate(0, 0, -daysAgo)
+
+	messagesCreated := 0
+	batchSize := 50 // Process in smaller batches to avoid overwhelming the system
+
+	for i := 0; i < len(contacts); i += batchSize {
+		end := i + batchSize
+		if end > len(contacts) {
+			end = len(contacts)
+		}
+		batch := contacts[i:end]
+
+		for _, contact := range batch {
+			// Generate transactional message with nil broadcast ID
+			message := s.generateTransactionalMessageHistoryForContact(contact, templateID, templateVersion, messageType, messageTime)
+
+			// Create the message history record directly through the repository
+			if err := s.messageHistoryRepo.Create(ctx, workspaceID, message); err != nil {
+				s.logger.WithField("contact_email", contact.Email).WithField("error", err.Error()).Debug("Failed to create transactional message history record")
+				continue
+			}
+			messagesCreated++
+		}
+
+		// Small delay between batches to avoid overwhelming the database
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	return messagesCreated, nil
+}
+
+// generateTransactionalMessageHistoryForContact creates a realistic transactional message history record for a contact
+// Transactional messages have no broadcast ID and different engagement patterns
+func (s *DemoService) generateTransactionalMessageHistoryForContact(contact *domain.Contact, templateID string, templateVersion int64, messageType string, baseTime time.Time) *domain.MessageHistory {
+	messageID := fmt.Sprintf("demo_%s_%s_%d", contact.Email, messageType, baseTime.Unix())
+
+	// Create message data for transactional message
+	messageData := domain.MessageData{
+		Data: map[string]interface{}{
+			"contact": map[string]interface{}{
+				"email":      contact.Email,
+				"first_name": getStringValue(contact.FirstName),
+				"last_name":  getStringValue(contact.LastName),
+			},
+		},
+		Metadata: map[string]interface{}{
+			"demo_generated":   true,
+			"message_type":     messageType,
+			"is_transactional": true,
+		},
+	}
+
+	// Add specific data for password reset messages
+	if messageType == "password-reset" {
+		messageData.Data["reset_url"] = "https://demo.notifuse.com/reset-password?token=demo_token_123"
+	}
+
+	// Base transactional message with sent status
+	sentTime := baseTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Random time within first hour
+	message := &domain.MessageHistory{
+		ID:              messageID,
+		ContactEmail:    contact.Email,
+		BroadcastID:     nil, // Transactional messages have no broadcast ID
+		TemplateID:      templateID,
+		TemplateVersion: templateVersion,
+		Channel:         "email",
+		MessageData:     messageData,
+		SentAt:          sentTime,
+		CreatedAt:       sentTime,
+		UpdatedAt:       sentTime,
+	}
+
+	// Determine delivery status based on rates (transactional messages have better delivery rates)
+	randValue := rand.Float64()
+
+	if randValue < 0.02 { // 2% failed (better than marketing emails)
+		failedTime := sentTime.Add(time.Duration(rand.Intn(300)) * time.Second) // Within 5 minutes
+		message.FailedAt = &failedTime
+		message.StatusInfo = getRandomPointer([]string{
+			"SMTP connection timeout",
+			"Invalid recipient address",
+			"Recipient server rejected message",
+		})
+		message.UpdatedAt = failedTime
+		return message
+	} else if randValue < 0.04 { // 2% bounced (better than marketing emails)
+		deliveredTime := sentTime.Add(time.Duration(rand.Intn(1800)) * time.Second)    // Within 30 minutes
+		bouncedTime := deliveredTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Within 1 hour after delivery
+
+		message.DeliveredAt = &deliveredTime
+		message.BouncedAt = &bouncedTime
+		message.StatusInfo = getRandomPointer([]string{
+			"Mailbox full",
+			"Invalid email address",
+			"Domain not found",
+		})
+		message.UpdatedAt = bouncedTime
+		return message
+	} else { // 96% delivered successfully
+		deliveredTime := sentTime.Add(time.Duration(rand.Intn(1800)) * time.Second) // Within 30 minutes
+		message.DeliveredAt = &deliveredTime
+		message.UpdatedAt = deliveredTime
+
+		// For delivered transactional messages, apply higher engagement rates
+		// Transactional messages have higher open rates (60% vs 20% for marketing)
+		if rand.Float64() < 0.60 {
+			openedTime := deliveredTime.Add(time.Duration(rand.Intn(24*3600)) * time.Second) // Within 24 hours
+			message.OpenedAt = &openedTime
+			message.UpdatedAt = openedTime
+
+			// Higher click rates for transactional messages (30% of opened vs 10% for marketing)
+			if rand.Float64() < 0.30 {
+				clickedTime := openedTime.Add(time.Duration(rand.Intn(1800)) * time.Second) // Within 30 minutes of opening
+				message.ClickedAt = &clickedTime
+				message.UpdatedAt = clickedTime
+			}
+
+			// Very low unsubscribe rates for transactional messages (0.1% vs 1% for marketing)
+			if rand.Float64() < 0.001 {
+				unsubscribeTime := openedTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Within 1 hour of opening
+				message.UnsubscribedAt = &unsubscribeTime
+				message.UpdatedAt = unsubscribeTime
+			}
+		}
+	}
+
+	return message
+}
+
+// generateMessageHistoryForContact creates a realistic message history record for a contact
+// with the specified engagement rates: 90% delivered, 5% failed, 5% bounce, 20% opened, 10% click, 1% unsubscribed
+func (s *DemoService) generateMessageHistoryForContact(contact *domain.Contact, templateID string, templateVersion int64, broadcastID string, baseTime time.Time) *domain.MessageHistory {
+	messageID := fmt.Sprintf("demo_%s_%s_%d", contact.Email, broadcastID, baseTime.Unix())
+
+	// Determine campaign type based on broadcastID
+	var campaignType string
+	var utmMedium string = "email"
+
+	if strings.Contains(broadcastID, "transactional") {
+		campaignType = "transactional"
+		if templateID == "password-reset" {
+			campaignType = "password_reset"
+		} else if templateID == "welcome-email" {
+			campaignType = "welcome"
+		}
+	} else {
+		campaignType = "newsletter"
+	}
+
+	// Create base message data
+	messageData := domain.MessageData{
+		Data: map[string]interface{}{
+			"contact": map[string]interface{}{
+				"email":      contact.Email,
+				"first_name": getStringValue(contact.FirstName),
+				"last_name":  getStringValue(contact.LastName),
+			},
+			"utm_source":   "demo.notifuse.com",
+			"utm_medium":   utmMedium,
+			"utm_campaign": broadcastID,
+		},
+		Metadata: map[string]interface{}{
+			"demo_generated": true,
+			"campaign_type":  campaignType,
+		},
+	}
+
+	// Base message with sent status
+	sentTime := baseTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Random time within first hour
+	message := &domain.MessageHistory{
+		ID:              messageID,
+		ContactEmail:    contact.Email,
+		BroadcastID:     &broadcastID,
+		TemplateID:      templateID,
+		TemplateVersion: templateVersion,
+		Channel:         "email",
+		MessageData:     messageData,
+		SentAt:          sentTime,
+		CreatedAt:       sentTime,
+		UpdatedAt:       sentTime,
+	}
+
+	// Determine delivery status based on rates
+	randValue := rand.Float64()
+
+	if randValue < 0.05 { // 5% failed
+		failedTime := sentTime.Add(time.Duration(rand.Intn(300)) * time.Second) // Within 5 minutes
+		message.FailedAt = &failedTime
+		message.StatusInfo = getRandomPointer([]string{
+			"SMTP connection timeout",
+			"Invalid recipient address",
+			"Recipient server rejected message",
+			"Rate limit exceeded",
+		})
+		message.UpdatedAt = failedTime
+		return message
+	} else if randValue < 0.10 { // 5% bounced (after 5% failed)
+		// Bounced messages are typically delivered first, then bounce
+		deliveredTime := sentTime.Add(time.Duration(rand.Intn(1800)) * time.Second)    // Within 30 minutes
+		bouncedTime := deliveredTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Within 1 hour after delivery
+
+		message.DeliveredAt = &deliveredTime
+		message.BouncedAt = &bouncedTime
+		message.StatusInfo = getRandomPointer([]string{
+			"Mailbox full",
+			"Invalid email address",
+			"Domain not found",
+			"Recipient server unavailable",
+		})
+		message.UpdatedAt = bouncedTime
+		return message
+	} else { // 90% delivered successfully
+		deliveredTime := sentTime.Add(time.Duration(rand.Intn(1800)) * time.Second) // Within 30 minutes
+		message.DeliveredAt = &deliveredTime
+		message.UpdatedAt = deliveredTime
+
+		// For delivered messages, apply engagement rates
+		// 20% opened (of all messages, not just delivered)
+		if rand.Float64() < 0.20/0.90 { // Adjust for delivered subset
+			openedTime := deliveredTime.Add(time.Duration(rand.Intn(7*24*3600)) * time.Second) // Within 7 days
+			message.OpenedAt = &openedTime
+			message.UpdatedAt = openedTime
+
+			// 10% clicked (of all messages, not just opened)
+			if rand.Float64() < 0.10/0.20 { // Adjust for opened subset
+				clickedTime := openedTime.Add(time.Duration(rand.Intn(3600)) * time.Second) // Within 1 hour of opening
+				message.ClickedAt = &clickedTime
+				message.UpdatedAt = clickedTime
+			}
+
+			// 1% unsubscribed (of all messages, not just opened)
+			if rand.Float64() < 0.01/0.20 { // Adjust for opened subset
+				unsubscribeTime := openedTime.Add(time.Duration(rand.Intn(1800)) * time.Second) // Within 30 minutes of opening
+				message.UnsubscribedAt = &unsubscribeTime
+				message.UpdatedAt = unsubscribeTime
+			}
+		}
+	}
+
+	return message
+}
+
+// Helper function to get string value from NullableString
+func getStringValue(ns *domain.NullableString) string {
+	if ns != nil && !ns.IsNull {
+		return ns.String
+	}
+	return ""
+}
+
+// Helper function to get a random pointer to string from slice
+func getRandomPointer(slice []string) *string {
+	if len(slice) == 0 {
+		return nil
+	}
+	value := slice[rand.Intn(len(slice))]
+	return &value
 }

@@ -14,7 +14,8 @@ import {
   faRightFromBracket,
   faTerminal,
   faUserGroup,
-  faBarsStaggered
+  faBarsStaggered,
+  faChartLine
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
 import { Workspace, WorkspaceMember, UserPermissions } from '../services/api/types'
@@ -109,7 +110,7 @@ export function WorkspaceLayout() {
   }
 
   // Determine which key should be selected based on the current path
-  let selectedKey = 'broadcasts'
+  let selectedKey = 'analytics' // Default to analytics/dashboard
   if (currentPath.includes('/settings')) {
     selectedKey = 'settings'
   } else if (currentPath.includes('/lists')) {
@@ -124,6 +125,8 @@ export function WorkspaceLayout() {
     selectedKey = 'transactional-notifications'
   } else if (currentPath.includes('/logs')) {
     selectedKey = 'logs'
+  } else if (currentPath.includes('/broadcasts')) {
+    selectedKey = 'broadcasts'
   }
 
   const handleWorkspaceChange = (workspaceId: string) => {
@@ -134,7 +137,7 @@ export function WorkspaceLayout() {
     }
 
     navigate({
-      to: '/workspace/$workspaceId/contacts',
+      to: '/workspace/$workspaceId',
       params: { workspaceId }
     })
   }
@@ -169,6 +172,15 @@ export function WorkspaceLayout() {
   }
 
   const menuItems = [
+    hasAccess('message_history') && {
+      key: 'analytics',
+      icon: <FontAwesomeIcon icon={faChartLine} size="sm" style={{ opacity: 0.7 }} />,
+      label: (
+        <Link to="/workspace/$workspaceId" params={{ workspaceId }}>
+          Dashboard
+        </Link>
+      )
+    },
     hasAccess('contacts') && {
       key: 'contacts',
       icon: <FontAwesomeIcon icon={faUserGroup} size="sm" style={{ opacity: 0.7 }} />,
