@@ -333,8 +333,16 @@ func TestGetDefaultAttributes(t *testing.T) {
 		{MJMLComponentMjDivider, "borderColor", "#000000", true},
 		{MJMLComponentMjDivider, "borderStyle", "solid", true},
 		{MJMLComponentMjSpacer, "height", "20px", true},
-		{MJMLComponentMjSection, "padding", "20px 0", true},
-		{MJMLComponentMjColumn, "padding", "0", true},
+		// {MJMLComponentMjSection, "padding", "20px 0", true},
+		{MJMLComponentMjSection, "paddingTop", "20px", true},
+		{MJMLComponentMjSection, "paddingRight", "0px", true},
+		{MJMLComponentMjSection, "paddingBottom", "20px", true},
+		{MJMLComponentMjSection, "paddingLeft", "0px", true},
+		// {MJMLComponentMjColumn, "padding", "0", true},
+		{MJMLComponentMjColumn, "paddingTop", "0px", true},
+		{MJMLComponentMjColumn, "paddingRight", "0px", true},
+		{MJMLComponentMjColumn, "paddingBottom", "0px", true},
+		{MJMLComponentMjColumn, "paddingLeft", "0px", true},
 		{MJMLComponentMjWrapper, "", "", false}, // No defaults for wrapper
 	}
 

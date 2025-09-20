@@ -1350,7 +1350,11 @@ func GetDefaultAttributes(componentType MJMLComponentType) map[string]interface{
 		defaults["fontSize"] = "13px"
 		defaults["fontWeight"] = "bold"
 		defaults["borderRadius"] = "3px"
-		defaults["padding"] = "10px 25px"
+		// defaults["padding"] = "10px 25px"
+		defaults["paddingTop"] = "10px"
+		defaults["paddingRight"] = "25px"
+		defaults["paddingBottom"] = "10px"
+		defaults["paddingLeft"] = "25px"
 	case MJMLComponentMjImage:
 		defaults["align"] = "center"
 		defaults["fluidOnMobile"] = "true"
@@ -1362,9 +1366,17 @@ func GetDefaultAttributes(componentType MJMLComponentType) map[string]interface{
 	case MJMLComponentMjSpacer:
 		defaults["height"] = "20px"
 	case MJMLComponentMjSection:
-		defaults["padding"] = "20px 0"
+		// defaults["padding"] = "20px 0"
+		defaults["paddingTop"] = "20px"
+		defaults["paddingRight"] = "0px"
+		defaults["paddingBottom"] = "20px"
+		defaults["paddingLeft"] = "0px"
 	case MJMLComponentMjColumn:
-		defaults["padding"] = "0"
+		// defaults["padding"] = "0"
+		defaults["paddingTop"] = "0px"
+		defaults["paddingRight"] = "0px"
+		defaults["paddingBottom"] = "0px"
+		defaults["paddingLeft"] = "0px"
 	}
 
 	return defaults
