@@ -1742,6 +1742,7 @@ func TestTaskService_HandleBroadcastScheduledExtended(t *testing.T) {
 
 	mockRepo := mocks.NewMockTaskRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockBroadcastService := mocks.NewMockBroadcastService(ctrl)
 	var mockAuthService *AuthService = nil
 	apiEndpoint := "http://localhost:8080"
 
@@ -1752,7 +1753,7 @@ func TestTaskService_HandleBroadcastScheduledExtended(t *testing.T) {
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 
-	taskService := NewTaskService(mockRepo, mockLogger, mockAuthService, nil, apiEndpoint)
+	taskService := NewTaskService(mockRepo, mockLogger, mockAuthService, mockBroadcastService, apiEndpoint)
 	taskService.SetAutoExecuteImmediate(false) // Disable for testing
 
 	t.Run("Updates existing task when found for immediate sending", func(t *testing.T) {
@@ -1840,6 +1841,22 @@ func TestTaskService_HandleBroadcastScheduledExtended(t *testing.T) {
 			GetTaskByBroadcastID(gomock.Any(), workspaceID, broadcastID).
 			Return(nil, errors.New("not found"))
 
+		// Mock broadcast service to return a broadcast with schedule information
+		scheduledTime := time.Now().Add(1 * time.Hour)
+		mockBroadcast := &domain.Broadcast{
+			ID:          broadcastID,
+			WorkspaceID: workspaceID,
+			Schedule: domain.ScheduleSettings{
+				IsScheduled:   true,
+				ScheduledDate: scheduledTime.Format("2006-01-02"),
+				ScheduledTime: scheduledTime.Format("15:04"),
+				Timezone:      "UTC",
+			},
+		}
+		mockBroadcastService.EXPECT().
+			GetBroadcast(gomock.Any(), workspaceID, broadcastID).
+			Return(mockBroadcast, nil)
+
 		// Expect task creation
 		mockRepo.EXPECT().
 			Create(gomock.Any(), workspaceID, gomock.Any()).
@@ -1849,7 +1866,7 @@ func TestTaskService_HandleBroadcastScheduledExtended(t *testing.T) {
 				assert.Equal(t, "send_broadcast", task.Type)
 				assert.Equal(t, domain.TaskStatusPending, task.Status)
 				assert.Equal(t, broadcastID, *task.BroadcastID)
-				assert.Equal(t, 50, task.MaxRuntime) // 10 minutes
+				assert.Equal(t, 50, task.MaxRuntime) // 50 seconds
 				assert.Equal(t, 3, task.MaxRetries)
 				assert.Equal(t, 300, task.RetryInterval) // 5 minutes
 				assert.NotNil(t, task.NextRunAfter)      // Should have a future execution time
@@ -2010,9 +2027,9 @@ func TestTaskService_HandleBroadcastScheduled_ScheduledTime(t *testing.T) {
 			WorkspaceID: workspaceID,
 			EntityID:    broadcastID,
 			Data: map[string]interface{}{
-				"send_now":        false,
-				"status":          string(domain.BroadcastStatusScheduled),
-				"scheduled_time":  scheduledTime,
+				"send_now":       false,
+				"status":         string(domain.BroadcastStatusScheduled),
+				"scheduled_time": scheduledTime,
 			},
 		}
 
@@ -2049,7 +2066,7 @@ func TestTaskService_HandleBroadcastScheduled_ScheduledTime(t *testing.T) {
 		ctx := context.Background()
 		workspaceID := "workspace1"
 		broadcastID := "broadcast456"
-		scheduledTime := time.Now().Add(3 * time.Hour)
+		scheduledTime := time.Now().UTC().Add(3 * time.Hour)
 
 		// Create mock broadcast with schedule
 		mockBroadcast := &domain.Broadcast{
@@ -2098,9 +2115,11 @@ func TestTaskService_HandleBroadcastScheduled_ScheduledTime(t *testing.T) {
 			DoAndReturn(func(_ context.Context, _ string, newTask *domain.Task) error {
 				// Verify task uses the time parsed from broadcast schedule
 				assert.NotNil(t, newTask.NextRunAfter)
-				// Should be approximately the scheduled time (within reasonable tolerance due to parsing)
-				assert.True(t, newTask.NextRunAfter.Sub(scheduledTime) < 5*time.Second)
-				assert.True(t, newTask.NextRunAfter.Sub(scheduledTime) > -5*time.Second)
+				// The ParseScheduledDateTime method only preserves date, hour, minute and parses as UTC
+				// So we compare only the significant parts (year, month, day, hour, minute) in UTC
+				expected := scheduledTime.UTC().Truncate(time.Minute)
+				actual := newTask.NextRunAfter.UTC().Truncate(time.Minute)
+				assert.Equal(t, expected, actual, "Task NextRunAfter should match scheduled time (ignoring seconds and timezone)")
 				return nil
 			})
 

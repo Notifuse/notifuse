@@ -10,6 +10,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/service/broadcast"
 	"github.com/Notifuse/notifuse/internal/service/broadcast/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -66,13 +67,13 @@ func TestBroadcastOrchestrator_Process_CancelledBroadcast(t *testing.T) {
 			Progress: 0,
 			Message:  "Starting broadcast",
 			SendBroadcast: &domain.SendBroadcastState{
-				BroadcastID:      broadcastID,
-				TotalRecipients:  100,
-				SentCount:        0,
-				FailedCount:      0,
-				RecipientOffset:  0,
-				Phase:            "single",
-				ChannelType:      "email",
+				BroadcastID:     broadcastID,
+				TotalRecipients: 100,
+				SentCount:       0,
+				FailedCount:     0,
+				RecipientOffset: 0,
+				Phase:           "single",
+				ChannelType:     "email",
 			},
 		},
 	}
@@ -81,12 +82,30 @@ func TestBroadcastOrchestrator_Process_CancelledBroadcast(t *testing.T) {
 	workspace := &domain.Workspace{
 		ID: workspaceID,
 		Settings: domain.WorkspaceSettings{
-			EmailTrackingEnabled: true,
+			EmailTrackingEnabled:         true,
+			MarketingEmailProviderID:     "ses-integration-1",
+			TransactionalEmailProviderID: "ses-integration-1",
 		},
 	}
-	workspace.AddEmailProvider("ses", map[string]interface{}{
-		"region": "us-east-1",
-	})
+	// Add an SES integration
+	sesIntegration := domain.Integration{
+		ID:   "ses-integration-1",
+		Name: "SES Provider",
+		Type: domain.IntegrationTypeEmail,
+		EmailProvider: domain.EmailProvider{
+			Kind: domain.EmailProviderKindSES,
+			SES: &domain.AmazonSESSettings{
+				Region: "us-east-1",
+			},
+			Senders: []domain.EmailSender{
+				{
+					Name:  "Test Sender",
+					Email: "test@example.com",
+				},
+			},
+		},
+	}
+	workspace.AddIntegration(sesIntegration)
 
 	// Mock cancelled broadcast
 	cancelledBroadcast := &domain.Broadcast{
@@ -108,8 +127,14 @@ func TestBroadcastOrchestrator_Process_CancelledBroadcast(t *testing.T) {
 
 	// GetBroadcast will be called multiple times - first for the main process, then for batch fetch
 	mockBroadcastRepository.EXPECT().
-		GetByID(ctx, workspaceID).
-		Return(workspace, nil).
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(cancelledBroadcast, nil).
+		AnyTimes()
+
+	// Mock UpdateBroadcast - the orchestrator may try to update broadcast status
+	mockBroadcastRepository.EXPECT().
+		UpdateBroadcast(ctx, gomock.Any()).
+		Return(nil).
 		AnyTimes()
 
 	mockWorkspaceRepo.EXPECT().
@@ -117,9 +142,31 @@ func TestBroadcastOrchestrator_Process_CancelledBroadcast(t *testing.T) {
 		Return(workspace, nil).
 		AnyTimes()
 
-	mockBroadcastRepository.EXPECT().
-		GetBroadcast(ctx, workspaceID, broadcastID).
-		Return(cancelledBroadcast, nil).
+	// Mock template repository - the orchestrator will try to load templates before detecting cancellation
+	mockTemplate := &domain.Template{
+		ID:   "template-1",
+		Name: "Test Template",
+		Email: &domain.EmailTemplate{
+			Subject: "Test Subject",
+			VisualEditorTree: &notifuse_mjml.MJMLBlock{
+				BaseBlock: notifuse_mjml.BaseBlock{
+					ID:   "mjml-root",
+					Type: notifuse_mjml.MJMLComponentMjml,
+					Children: []interface{}{
+						&notifuse_mjml.MJBodyBlock{
+							BaseBlock: notifuse_mjml.BaseBlock{
+								ID:   "body-1",
+								Type: notifuse_mjml.MJMLComponentMjBody,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	mockTemplateRepo.EXPECT().
+		GetTemplateByID(gomock.Any(), workspaceID, "template-1", int64(0)).
+		Return(mockTemplate, nil).
 		AnyTimes()
 
 	// When FetchBatch is called (indirectly through Process), it should detect cancellation
