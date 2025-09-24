@@ -468,7 +468,7 @@ func (a *App) InitServices() error {
 	)
 
 	// Initialize task service
-	a.taskService = service.NewTaskService(a.taskRepo, a.logger, a.authService, a.broadcastService, a.config.APIEndpoint)
+	a.taskService = service.NewTaskService(a.taskRepo, a.logger, a.authService, a.config.APIEndpoint)
 
 	// Initialize transactional notification service
 	a.transactionalNotificationService = service.NewTransactionalNotificationService(

@@ -180,3 +180,8 @@ func TestBroadcastOrchestrator_Process_CancelledBroadcast(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, allDone, "Task should be marked as complete when broadcast is cancelled")
 }
+
+// Note: The fix for broadcast cancellation race condition has been implemented.
+// When a broadcast is cancelled during processing, the orchestrator now tracks
+// this state and avoids attempting to update the broadcast status at the end,
+// preventing the "Broadcast not found with ID" error.

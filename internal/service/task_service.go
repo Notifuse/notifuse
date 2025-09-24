@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -22,13 +23,12 @@ const defaultMaxTaskRuntime = 50 // 50 seconds
 
 // TaskService manages task execution and state
 type TaskService struct {
-	repo             domain.TaskRepository
-	logger           logger.Logger
-	authService      *AuthService
-	broadcastService domain.BroadcastService
-	processors       map[string]domain.TaskProcessor
-	lock             sync.RWMutex
-	apiEndpoint      string
+	repo        domain.TaskRepository
+	logger      logger.Logger
+	authService *AuthService
+	processors  map[string]domain.TaskProcessor
+	lock        sync.RWMutex
+	apiEndpoint string
 	// autoExecuteImmediate controls whether tasks are automatically executed when set to immediate
 	// This is mainly used to disable auto-execution during testing
 	autoExecuteImmediate bool
@@ -48,13 +48,12 @@ func (s *TaskService) WithTransaction(ctx context.Context, fn func(*sql.Tx) erro
 }
 
 // NewTaskService creates a new task service instance
-func NewTaskService(repository domain.TaskRepository, logger logger.Logger, authService *AuthService, broadcastService domain.BroadcastService, apiEndpoint string) *TaskService {
+func NewTaskService(repository domain.TaskRepository, logger logger.Logger, authService *AuthService, apiEndpoint string) *TaskService {
 
 	return &TaskService{
 		repo:                 repository,
 		logger:               logger,
 		authService:          authService,
-		broadcastService:     broadcastService,
 		processors:           make(map[string]domain.TaskProcessor),
 		apiEndpoint:          apiEndpoint,
 		autoExecuteImmediate: true, // Enable auto-execution by default
@@ -764,40 +763,18 @@ func (s *TaskService) handleBroadcastScheduled(ctx context.Context, payload doma
 		// If the broadcast is set to send immediately, we don't need to set NextRunAfter
 		// If it's scheduled for the future, we should set NextRunAfter based on the schedule
 		if !sendNow && status == string(domain.BroadcastStatusScheduled) {
+			log.Printf("payload: %+v", payload)
 			// Get broadcast schedule info from payload
-			if scheduledTime, hasTime := payload.Data["scheduled_time"].(time.Time); hasTime {
-				// Use the actual scheduled time from the broadcast
-				task.NextRunAfter = &scheduledTime
-				tracing.AddAttribute(txCtx, "next_run_after", scheduledTime.Format(time.RFC3339))
-				tracing.AddAttribute(txCtx, "scheduled_time_source", "payload")
-			} else {
-				// Fallback: fetch broadcast to get schedule information
-				broadcast, err := s.broadcastService.GetBroadcast(txCtx, payload.WorkspaceID, broadcastID)
-				if err != nil {
-					s.logger.WithFields(map[string]interface{}{
-						"broadcast_id": broadcastID,
-						"error":        err.Error(),
-					}).Error("Failed to fetch broadcast for schedule information")
-					// Fallback to near-immediate execution if we can't get schedule
-					nextRunAfter := time.Now().Add(1 * time.Minute)
-					task.NextRunAfter = &nextRunAfter
+			if scheduledTimeStr, hasTime := payload.Data["scheduled_time"].(string); hasTime {
+				log.Printf("scheduledTimeStr: %+v", scheduledTimeStr)
+				// Parse the scheduled time string
+				if scheduledTime, parseErr := time.Parse(time.RFC3339, scheduledTimeStr); parseErr == nil {
+					// Use the actual scheduled time from the broadcast
+					task.NextRunAfter = &scheduledTime
+					tracing.AddAttribute(txCtx, "next_run_after", scheduledTime.Format(time.RFC3339))
+					tracing.AddAttribute(txCtx, "scheduled_time_source", "payload")
 				} else {
-					// Parse the scheduled date and time from broadcast schedule
-					scheduledDateTime, parseErr := broadcast.Schedule.ParseScheduledDateTime()
-					if parseErr != nil || scheduledDateTime.IsZero() {
-						s.logger.WithFields(map[string]interface{}{
-							"broadcast_id": broadcastID,
-							"error":        parseErr,
-						}).Error("Failed to parse broadcast scheduled time")
-						// Fallback to near-immediate execution if parsing fails
-						nextRunAfter := time.Now().Add(1 * time.Minute)
-						task.NextRunAfter = &nextRunAfter
-					} else {
-						// Use the actual scheduled time
-						task.NextRunAfter = &scheduledDateTime
-						tracing.AddAttribute(txCtx, "scheduled_time_source", "broadcast_fetch")
-					}
-					tracing.AddAttribute(txCtx, "next_run_after", task.NextRunAfter.Format(time.RFC3339))
+					log.Printf("Failed to parse scheduled_time: %v", parseErr)
 				}
 			}
 		}

@@ -516,6 +516,9 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// Track if circuit breaker was triggered during this processing cycle
 	circuitBreakerTriggered := false
 
+	// Track if broadcast was cancelled during processing
+	broadcastCancelledDuringProcessing := false
+
 	// Phase 1: Get recipient count if not already set
 	if broadcastState.TotalRecipients == 0 {
 		count, countErr := o.GetTotalRecipientCount(ctx, task.WorkspaceID, broadcastState.BroadcastID)
@@ -769,6 +772,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					"task_id":      task.ID,
 				}).Info("Broadcast cancelled during processing - stopping task")
 				// Task should stop processing as broadcast is cancelled
+				broadcastCancelledDuringProcessing = true
 				allDone = true
 				break
 			}
@@ -871,6 +875,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					"broadcast_id": broadcastState.BroadcastID,
 				}).Info("Broadcast cancelled - stopping task execution")
 				// Return true (task complete) with nil error to avoid marking as failed
+				broadcastCancelledDuringProcessing = true
 				allDone = true
 				err = nil
 				return allDone, err
@@ -1115,6 +1120,15 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 	// If the task is complete, update the broadcast status appropriately
 	if allDone {
+		// Don't update status if broadcast was cancelled during processing
+		if broadcastCancelledDuringProcessing {
+			o.logger.WithFields(map[string]interface{}{
+				"task_id":      task.ID,
+				"broadcast_id": broadcastState.BroadcastID,
+			}).Info("Broadcast was cancelled during processing - task completed without status update")
+			return true, nil
+		}
+
 		// Don't mark as sent if circuit breaker was triggered during processing
 		if circuitBreakerTriggered {
 			o.logger.WithFields(map[string]interface{}{

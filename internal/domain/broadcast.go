@@ -193,11 +193,6 @@ func (s *ScheduleSettings) ParseScheduledDateTime() (time.Time, error) {
 		return time.Time{}, nil
 	}
 
-	// Extract current time to preserve seconds and nanoseconds
-	now := time.Now().UTC()
-	seconds := now.Second()
-	nanoseconds := now.Nanosecond()
-
 	datetime := fmt.Sprintf("%s %s", s.ScheduledDate, s.ScheduledTime)
 	var t time.Time
 	var err error
@@ -219,8 +214,7 @@ func (s *ScheduleSettings) ParseScheduledDateTime() (time.Time, error) {
 		}
 	}
 
-	// Add seconds and nanoseconds to preserve current time precision
-	return t.Add(time.Duration(seconds)*time.Second + time.Duration(nanoseconds)*time.Nanosecond), nil
+	return t, nil
 }
 
 // SetScheduledDateTime formats a time.Time as ScheduledDate and ScheduledTime strings

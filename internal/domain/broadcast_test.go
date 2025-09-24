@@ -1011,9 +1011,11 @@ func TestScheduleSettings_ParseScheduledDateTime(t *testing.T) {
 					assert.Equal(t, tt.settings.ScheduledTime[3:], got.Format("04"))
 				}
 
-				// Verify that seconds are not zero in the parsed time
-				assert.NotEqual(t, 0, got.Second()+got.Nanosecond(),
-					"Expected non-zero seconds or nanoseconds in parsed time")
+				// Verify that seconds and nanoseconds are zero since we only parse HH:MM format
+				assert.Equal(t, 0, got.Second(),
+					"Expected zero seconds in parsed time since we only parse HH:MM format")
+				assert.Equal(t, 0, got.Nanosecond(),
+					"Expected zero nanoseconds in parsed time since we only parse HH:MM format")
 			}
 		})
 	}
@@ -1754,10 +1756,11 @@ func TestScheduleSettings_ParseScheduledDateTime_AdditionalCases(t *testing.T) {
 	assert.Equal(t, 15, parsed.Hour())
 	assert.Equal(t, 30, parsed.Minute())
 
-	// Make sure seconds and nanoseconds are preserved
-	// (the implementation adds current seconds and nanoseconds)
-	assert.NotEqual(t, 0, parsed.Second()+parsed.Nanosecond(),
-		"Expected seconds or nanoseconds to be preserved")
+	// Make sure seconds and nanoseconds are zero since we only parse HH:MM format
+	assert.Equal(t, 0, parsed.Second(),
+		"Expected zero seconds since we only parse HH:MM format")
+	assert.Equal(t, 0, parsed.Nanosecond(),
+		"Expected zero nanoseconds since we only parse HH:MM format")
 
 	// Test partially empty values
 	partialSettings := domain.ScheduleSettings{

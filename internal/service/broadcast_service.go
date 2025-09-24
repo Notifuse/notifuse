@@ -330,7 +330,7 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 		if !request.SendNow && broadcast.Schedule.IsScheduled {
 			scheduledTime, parseErr := broadcast.Schedule.ParseScheduledDateTime()
 			if parseErr == nil && !scheduledTime.IsZero() {
-				payloadData["scheduled_time"] = scheduledTime
+				payloadData["scheduled_time"] = scheduledTime.Format(time.RFC3339)
 			}
 		}
 
