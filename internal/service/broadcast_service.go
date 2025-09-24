@@ -319,16 +319,26 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 			return err
 		}
 
-		// Create event payload
+		// Create event payload with schedule information
+		payloadData := map[string]interface{}{
+			"broadcast_id": request.ID,
+			"send_now":     request.SendNow,
+			"status":       string(broadcast.Status),
+		}
+
+		// Include actual scheduled time if broadcast is scheduled
+		if !request.SendNow && broadcast.Schedule.IsScheduled {
+			scheduledTime, parseErr := broadcast.Schedule.ParseScheduledDateTime()
+			if parseErr == nil && !scheduledTime.IsZero() {
+				payloadData["scheduled_time"] = scheduledTime
+			}
+		}
+
 		eventPayload := domain.EventPayload{
 			Type:        domain.EventBroadcastScheduled,
 			WorkspaceID: request.WorkspaceID,
 			EntityID:    request.ID,
-			Data: map[string]interface{}{
-				"broadcast_id": request.ID,
-				"send_now":     request.SendNow,
-				"status":       string(broadcast.Status),
-			},
+			Data:        payloadData,
 		}
 
 		// Publish the event with callback within the transaction

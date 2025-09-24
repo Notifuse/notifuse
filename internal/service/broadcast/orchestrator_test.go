@@ -686,7 +686,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					{Contact: &domain.Contact{Email: "user1@example.com"}, ListID: "list-1"},
 					{Contact: &domain.Contact{Email: "user2@example.com"}, ListID: "list-1"},
 				}
-				// Expect batch size of 2 because remainingInPhase (2) < FetchBatchSize (100)
+				// Expect batch size of 2 because remainingInPhase (2) < FetchBatchSize (50)
 				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 2, 0).Return(recipients, nil)
 
 				// Mock message sending
@@ -823,7 +823,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 				recipients := []*domain.ContactWithList{
 					{Contact: &domain.Contact{Email: "user1@example.com"}, ListID: "list-1"},
 				}
-				// Expect batch size of 1 because remainingInPhase (1) < FetchBatchSize (100)
+				// Expect batch size of 1 because remainingInPhase (1) < FetchBatchSize (50)
 				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 1, 0).Return(recipients, nil)
 
 				// Mock message sending
@@ -1151,7 +1151,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 				}
 				mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "template-1", int64(0)).Return(template, nil)
 
-				// Recipient fetch failure - expect batch size of 2 because remainingInPhase (2) < FetchBatchSize (100)
+				// Recipient fetch failure - expect batch size of 2 because remainingInPhase (2) < FetchBatchSize (50)
 				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 2, 0).Return(nil, fmt.Errorf("database error"))
 
 				return mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider
@@ -1276,7 +1276,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 				recipients := []*domain.ContactWithList{
 					{Contact: &domain.Contact{Email: "user1@example.com"}, ListID: "list-1"},
 				}
-				// Expect batch size of 1 because remainingInPhase (1) < FetchBatchSize (100)
+				// Expect batch size of 1 because remainingInPhase (1) < FetchBatchSize (50)
 				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 1, 0).Return(recipients, nil)
 
 				// Mock message sending
@@ -1450,7 +1450,7 @@ func TestBroadcastOrchestrator_Process_ABTestStartSetsTestingAndCompletesTestPha
 	// Save state
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "workspace-123", "task-123", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	config := &broadcast.Config{FetchBatchSize: 100, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
+	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
 	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
@@ -1509,7 +1509,7 @@ func TestBroadcastOrchestrator_Process_WinnerPhaseMissingTemplate_Error(t *testi
 	// Expect the UpdateBroadcast call when the error occurs and status is set to failed
 	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	config := &broadcast.Config{FetchBatchSize: 100, MaxProcessTime: 30 * time.Second}
+	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second}
 	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
@@ -1565,7 +1565,7 @@ func TestBroadcastOrchestrator_Process_ValidateTemplatesFailure(t *testing.T) {
 	badTpl := &domain.Template{ID: "tpl1", Email: &domain.EmailTemplate{SenderID: "s", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.BaseBlock{ID: "root", Type: notifuse_mjml.MJMLComponentMjml}}}}
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "tpl1", int64(0)).Return(badTpl, nil)
 
-	config := &broadcast.Config{FetchBatchSize: 100, MaxProcessTime: 30 * time.Second}
+	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second}
 	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
@@ -1663,7 +1663,7 @@ func TestBroadcastOrchestrator_Process_EmptyRecipientsTriggersTestCompletion(t *
 
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "w", "t", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	config := &broadcast.Config{FetchBatchSize: 100, MaxProcessTime: 30 * time.Second}
+	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second}
 	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, nil, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()
@@ -1765,7 +1765,7 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 	// Final broadcast update to Sent
 	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil)
 
-	config := &broadcast.Config{FetchBatchSize: 100, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
+	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second, ProgressLogInterval: 5 * time.Second}
 	orchestrator := broadcast.NewBroadcastOrchestrator(mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, abEval, mockLogger, config, mockTimeProvider, "https://api.example.com", mockEventBus)
 
 	ctx := context.Background()

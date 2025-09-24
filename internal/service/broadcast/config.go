@@ -33,7 +33,7 @@ func DefaultConfig() *Config {
 	return &Config{
 		MaxParallelism:          10,
 		MaxProcessTime:          50 * time.Second,
-		FetchBatchSize:          100,
+		FetchBatchSize:          50,
 		ProcessBatchSize:        25,
 		ProgressLogInterval:     5 * time.Second,
 		EnableCircuitBreaker:    true,

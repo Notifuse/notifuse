@@ -246,6 +246,17 @@ func (o *BroadcastOrchestrator) FetchBatch(ctx context.Context, workspaceID, bro
 		return nil, NewBroadcastError(ErrCodeBroadcastNotFound, "broadcast not found", false, err)
 	}
 
+	// Check if broadcast has been cancelled before fetching recipients
+	if broadcast.Status == domain.BroadcastStatusCancelled {
+		// codecov:ignore:start
+		o.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcastID,
+			"workspace_id": workspaceID,
+		}).Info("Broadcast is cancelled, returning empty batch")
+		// codecov:ignore:end
+		return []*domain.ContactWithList{}, nil
+	}
+
 	// Apply the actual batch limit from config if not specified
 	if limit <= 0 {
 		limit = o.config.FetchBatchSize
@@ -753,9 +764,21 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 
 	// Process until timeout or completion
 	for {
-		// Refresh broadcast each iteration to observe external changes (e.g., manual winner selection)
+		// Refresh broadcast each iteration to observe external changes (e.g., manual winner selection, cancellation)
 		if refreshed, refreshErr := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastState.BroadcastID); refreshErr == nil && refreshed != nil {
 			broadcast = refreshed
+
+			// Check if broadcast has been cancelled
+			if broadcast.Status == domain.BroadcastStatusCancelled {
+				o.logger.WithFields(map[string]interface{}{
+					"broadcast_id": broadcast.ID,
+					"task_id":      task.ID,
+				}).Info("Broadcast cancelled during processing - stopping task")
+				// Task should stop processing as broadcast is cancelled
+				allDone = true
+				break
+			}
+
 			// If currently in test phase and a winner was selected meanwhile, transition to winner phase
 			if broadcastState.Phase == "test" && (broadcast.WinningTemplate != "" || broadcast.Status == domain.BroadcastStatusWinnerSelected) {
 				broadcastState.Phase = "winner"

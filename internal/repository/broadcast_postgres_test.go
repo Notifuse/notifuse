@@ -812,6 +812,55 @@ func TestBroadcastRepository_UpdateBroadcast_RowsAffectedError(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+// TestBroadcastRepository_UpdateBroadcast_CancelledBroadcast tests that the repository
+// prevents updating a broadcast that is already cancelled due to the WHERE clause restriction.
+func TestBroadcastRepository_UpdateBroadcast_CancelledBroadcast(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBroadcastRepository(mockWorkspaceRepo)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	ctx := context.Background()
+	workspaceID := "ws123"
+
+	// Create a test broadcast that is cancelled
+	testBroadcast := &domain.Broadcast{
+		ID:          "cancelled-broadcast",
+		WorkspaceID: workspaceID,
+		Status:      domain.BroadcastStatusCancelled,
+		Name:        "Test Cancelled Broadcast",
+	}
+
+	mockWorkspaceRepo.EXPECT().
+		GetConnection(gomock.Any(), workspaceID).
+		Return(db, nil)
+
+	// Expect transaction begin
+	mock.ExpectBegin()
+
+	// Expect UPDATE query with WHERE clause restrictions - should return 0 rows affected
+	// because the broadcast is cancelled and the WHERE clause prevents updating cancelled broadcasts
+	mock.ExpectExec("UPDATE broadcasts SET").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
+	// Expect rollback since no rows were affected (treated as not found)
+	mock.ExpectRollback()
+
+	err = repo.UpdateBroadcast(ctx, testBroadcast)
+	assert.Error(t, err)
+
+	// Should return ErrBroadcastNotFound because no rows were affected due to WHERE clause restriction
+	var notFoundErr *domain.ErrBroadcastNotFound
+	assert.ErrorAs(t, err, &notFoundErr)
+	assert.Equal(t, "cancelled-broadcast", notFoundErr.ID)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
 // TestBroadcastRepository_ListBroadcasts_DataError tests handling data fetch errors
 func TestBroadcastRepository_ListBroadcasts_DataError(t *testing.T) {
 	ctrl := gomock.NewController(t)

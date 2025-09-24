@@ -228,6 +228,8 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			completed_at = $15,
 			cancelled_at = $16
 		WHERE id = $1 AND workspace_id = $2
+			AND status != 'cancelled'
+			AND status != 'sent'
 	`
 
 	result, err := tx.ExecContext(ctx, query,

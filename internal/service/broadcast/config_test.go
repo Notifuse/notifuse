@@ -16,7 +16,7 @@ func TestDefaultConfig(t *testing.T) {
 	assert.NotNil(t, config)
 	assert.Equal(t, 10, config.MaxParallelism)
 	assert.Equal(t, 50*time.Second, config.MaxProcessTime)
-	assert.Equal(t, 100, config.FetchBatchSize)
+	assert.Equal(t, 50, config.FetchBatchSize)
 	assert.Equal(t, 25, config.ProcessBatchSize)
 	assert.Equal(t, 5*time.Second, config.ProgressLogInterval)
 	assert.Equal(t, true, config.EnableCircuitBreaker)
