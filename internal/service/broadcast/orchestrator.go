@@ -246,6 +246,11 @@ func (o *BroadcastOrchestrator) FetchBatch(ctx context.Context, workspaceID, bro
 		return nil, NewBroadcastError(ErrCodeBroadcastNotFound, "broadcast not found", false, err)
 	}
 
+	// Check if broadcast is cancelled and return specific error
+	if broadcast.Status == domain.BroadcastStatusCancelled {
+		return nil, NewBroadcastError(ErrCodeBroadcastCancelled, "broadcast has been cancelled", false, nil)
+	}
+
 	// Apply the actual batch limit from config if not specified
 	if limit <= 0 {
 		limit = o.config.FetchBatchSize
@@ -847,6 +852,18 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			batchSize,
 		)
 		if batchErr != nil {
+			// Check for cancellation error specifically
+			if broadcastErr, ok := batchErr.(*BroadcastError); ok && broadcastErr.Code == ErrCodeBroadcastCancelled {
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastState.BroadcastID,
+				}).Info("Broadcast cancelled - stopping task execution")
+				// Return true (task complete) with nil error to avoid marking as failed
+				allDone = true
+				err = nil
+				return allDone, err
+			}
+
 			err = batchErr
 			return false, err
 		}

@@ -396,6 +396,7 @@ func TestBroadcastOrchestrator_FetchBatch(t *testing.T) {
 
 	// Mock broadcast
 	testBroadcast := &domain.Broadcast{
+		Status: domain.BroadcastStatusSending,
 		Audience: domain.AudienceSettings{
 			Lists: []string{"list-1"},
 		},
@@ -422,6 +423,80 @@ func TestBroadcastOrchestrator_FetchBatch(t *testing.T) {
 	// Verify
 	require.NoError(t, err)
 	assert.Equal(t, expectedContacts, contacts)
+}
+
+func TestBroadcastOrchestrator_FetchBatch_CancelledBroadcast(t *testing.T) {
+	// Setup
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepository := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepository,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil, // abTestEvaluator not needed for tests,
+		mockLogger,
+		nil, // Use default config
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	offset := 0
+	limit := 50
+
+	// Mock cancelled broadcast
+	cancelledBroadcast := &domain.Broadcast{
+		Status: domain.BroadcastStatusCancelled,
+		Audience: domain.AudienceSettings{
+			Lists: []string{"list-1"},
+		},
+	}
+
+	// Setup expectations - should return cancelled broadcast
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(cancelledBroadcast, nil)
+
+	// Should NOT call GetContactsForBroadcast since broadcast is cancelled
+
+	// Execute
+	contacts, err := orchestrator.FetchBatch(ctx, workspaceID, broadcastID, offset, limit)
+
+	// Verify
+	require.Error(t, err)
+	assert.Nil(t, contacts)
+
+	// Check that it's the specific broadcast cancelled error
+	broadcastErr, ok := err.(*broadcast.BroadcastError)
+	require.True(t, ok, "Expected BroadcastError")
+	assert.Equal(t, broadcast.ErrCodeBroadcastCancelled, broadcastErr.Code)
+	assert.Equal(t, "broadcast has been cancelled", broadcastErr.Message)
+	assert.False(t, broadcastErr.Retryable)
 }
 
 func TestFormatDuration(t *testing.T) {

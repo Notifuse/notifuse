@@ -113,6 +113,16 @@ func TestIsRetryable(t *testing.T) {
 			},
 			expected: false,
 		},
+		{
+			name: "Broadcast cancelled error",
+			err: &BroadcastError{
+				Code:      ErrCodeBroadcastCancelled,
+				Message:   "Broadcast cancelled",
+				Retryable: false,
+				Err:       nil,
+			},
+			expected: false,
+		},
 	}
 
 	for _, tc := range testCases {

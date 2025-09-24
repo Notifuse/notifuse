@@ -28,6 +28,7 @@ const (
 	// Task related errors
 	ErrCodeTaskStateInvalid ErrorCode = "TASK_STATE_INVALID"
 	ErrCodeTaskTimeout      ErrorCode = "TASK_TIMEOUT"
+	ErrCodeBroadcastCancelled ErrorCode = "BROADCAST_CANCELLED"
 )
 
 // BroadcastError represents an error in the broadcast system with context
