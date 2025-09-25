@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.8] - 2025-09-24
+
+- Fix scheduled broadcast time handling to use string format instead of time.Time
+- Remove broadcast service dependency from task service tests
+- Update ParseScheduledDateTime tests to match implementation behavior
+
 ## [6.7] - 2025-09-19
 
 - Add new workspace dashboard
