@@ -23,9 +23,9 @@ test-http:
 
 # Comprehensive test coverage command
 coverage:
-	@echo "Running API tests and generating coverage report..."
-	@go test -coverprofile=coverage.out ./internal/...
-	@echo "\n=== API Test Coverage Summary ==="
+	@echo "Running comprehensive tests and generating coverage report..."
+	@go test -race -coverprofile=coverage.out -covermode=atomic $$(go list ./... | grep -v '/tests/integration') -v
+	@echo "\n=== Comprehensive Test Coverage Summary ==="
 	@go tool cover -func=coverage.out | grep total
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Detailed HTML coverage report generated: coverage.html"

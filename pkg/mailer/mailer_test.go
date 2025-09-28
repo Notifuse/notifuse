@@ -67,6 +67,13 @@ func (m *MockMailer) SendMagicCode(email, code string) error {
 	return nil
 }
 
+func (m *MockMailer) SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason string) error {
+	if m.shouldFail {
+		return errors.New("mock mailer error")
+	}
+	return nil
+}
+
 // ValidatingMailer is a mock implementation that validates inputs
 type ValidatingMailer struct {
 	config *Config
@@ -550,4 +557,251 @@ func TestSMTPMailer_SendMagicCode(t *testing.T) {
 			t.Errorf("Expected log to contain '%s', but it didn't. Log: %s", expected, logOutput)
 		}
 	}
+}
+
+func TestMockMailer_SendCircuitBreakerAlert(t *testing.T) {
+	t.Run("success", func(t *testing.T) {
+		mailer := NewMockMailer(false)
+		err := mailer.SendCircuitBreakerAlert("test@example.com", "Test Workspace", "Test Broadcast", "Rate limit exceeded")
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+	})
+
+	t.Run("failure", func(t *testing.T) {
+		mailer := NewMockMailer(true)
+		err := mailer.SendCircuitBreakerAlert("test@example.com", "Test Workspace", "Test Broadcast", "Rate limit exceeded")
+		if err == nil {
+			t.Error("Expected error, got nil")
+		}
+		if err.Error() != "mock mailer error" {
+			t.Errorf("Expected 'mock mailer error', got '%s'", err.Error())
+		}
+	})
+}
+
+func TestConsoleMailer_SendCircuitBreakerAlert(t *testing.T) {
+	// Setup test data
+	email := "test@example.com"
+	workspaceName := "Test Workspace"
+	broadcastName := "Test Broadcast"
+	reason := "Rate limit exceeded"
+
+	// Create the mailer
+	mailer := NewConsoleMailer()
+
+	// Capture output
+	output := captureOutput(func() {
+		err := mailer.SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason)
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+	})
+
+	// Verify the output contains the expected information
+	expectedStrings := []string{
+		"CIRCUIT BREAKER ALERT EMAIL",
+		"To: " + email,
+		"Subject: 🚨 Broadcast Paused - " + broadcastName,
+		"🚨 BROADCAST AUTOMATICALLY PAUSED",
+		"Your broadcast \"" + broadcastName + "\" in workspace " + workspaceName,
+		"REASON: " + reason,
+		"What happened?",
+		"What should you do?",
+		"Best regards,\nThe Notifuse Team",
+	}
+
+	for _, expected := range expectedStrings {
+		if !strings.Contains(output, expected) {
+			t.Errorf("Expected output to contain '%s', but it didn't. Output: %s", expected, output)
+		}
+	}
+}
+
+func TestSMTPMailer_SendCircuitBreakerAlert(t *testing.T) {
+	// Setup test data
+	email := "test@example.com"
+	workspaceName := "Test Workspace"
+	broadcastName := "Test Broadcast"
+	reason := "Rate limit exceeded"
+
+	// Create the config and mailer
+	config := &Config{
+		SMTPHost:     "smtp.example.com",
+		SMTPPort:     587,
+		SMTPUsername: "username",
+		SMTPPassword: "password",
+		FromEmail:    "noreply@example.com",
+		FromName:     "Notifuse",
+		APIEndpoint:  "https://notifuse.example.com",
+	}
+
+	// Create a test mode mailer
+	mailer := NewTestSMTPMailer(config)
+
+	// Capture log output
+	logOutput := captureLog(func() {
+		err := mailer.SendCircuitBreakerAlert(email, workspaceName, broadcastName, reason)
+		if err != nil {
+			t.Fatalf("Expected no error, got %v", err)
+		}
+	})
+
+	// Verify log output contains expected information
+	expectedLogLines := []string{
+		"Sending circuit breaker alert to: " + email,
+		"From: " + config.FromName + " <" + config.FromEmail + ">",
+		"Subject: 🚨 Broadcast Paused - " + broadcastName,
+		"Broadcast: " + broadcastName,
+		"Workspace: " + workspaceName,
+		"Reason: " + reason,
+	}
+
+	for _, expected := range expectedLogLines {
+		if !strings.Contains(logOutput, expected) {
+			t.Errorf("Expected log to contain '%s', but it didn't. Log: %s", expected, logOutput)
+		}
+	}
+}
+
+func TestSMTPMailer_SendCircuitBreakerAlert_EdgeCases(t *testing.T) {
+	testCases := []struct {
+		name          string
+		email         string
+		workspaceName string
+		broadcastName string
+		reason        string
+		expectError   bool
+	}{
+		{
+			name:          "all fields empty",
+			email:         "",
+			workspaceName: "",
+			broadcastName: "",
+			reason:        "",
+			expectError:   true, // empty email should cause error
+		},
+		{
+			name:          "special characters in broadcast name",
+			email:         "user@example.com",
+			workspaceName: "Test Workspace",
+			broadcastName: "Test & Broadcast <script>alert('xss')</script>",
+			reason:        "Rate limit exceeded",
+			expectError:   false,
+		},
+		{
+			name:          "very long reason",
+			email:         "user@example.com",
+			workspaceName: "Test Workspace",
+			broadcastName: "Test Broadcast",
+			reason:        strings.Repeat("Very long reason text. ", 50),
+			expectError:   false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			config := &Config{
+				SMTPHost:     "smtp.example.com",
+				SMTPPort:     587,
+				SMTPUsername: "username",
+				SMTPPassword: "password",
+				FromEmail:    "noreply@example.com",
+				FromName:     "Notifuse",
+				APIEndpoint:  "https://example.com",
+			}
+
+			// Use test mode mailer
+			mailer := NewTestSMTPMailer(config)
+
+			logOutput := captureLog(func() {
+				err := mailer.SendCircuitBreakerAlert(tc.email, tc.workspaceName, tc.broadcastName, tc.reason)
+				if tc.expectError && err == nil {
+					t.Error("Expected error but got nil")
+				}
+				if !tc.expectError && err != nil {
+					t.Errorf("Did not expect error but got: %v", err)
+				}
+			})
+
+			// For non-empty email cases, verify log contains info
+			if tc.email != "" && !tc.expectError {
+				if !strings.Contains(logOutput, "Sending circuit breaker alert to: "+tc.email) {
+					t.Errorf("Expected log to contain email '%s', but it didn't. Log: %s", tc.email, logOutput)
+				}
+			}
+		})
+	}
+}
+
+func TestSMTPMailer_createSMTPClient(t *testing.T) {
+	t.Run("test mode returns nil client", func(t *testing.T) {
+		config := &Config{
+			SMTPHost:     "smtp.example.com",
+			SMTPPort:     587,
+			SMTPUsername: "username",
+			SMTPPassword: "password",
+			FromEmail:    "noreply@example.com",
+			FromName:     "Notifuse",
+			APIEndpoint:  "https://example.com",
+		}
+
+		mailer := NewTestSMTPMailer(config)
+		client, err := mailer.createSMTPClient()
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if client != nil {
+			t.Error("Expected nil client in test mode, got non-nil")
+		}
+	})
+
+	t.Run("production mode creates client", func(t *testing.T) {
+		config := &Config{
+			SMTPHost:     "smtp.example.com",
+			SMTPPort:     587,
+			SMTPUsername: "username",
+			SMTPPassword: "password",
+			FromEmail:    "noreply@example.com",
+			FromName:     "Notifuse",
+			APIEndpoint:  "https://example.com",
+		}
+
+		mailer := NewSMTPMailer(config)
+
+		// This will attempt to create a real client, which should succeed with valid config
+		// but might fail due to network issues. We're mainly testing the code path.
+		client, err := mailer.createSMTPClient()
+
+		// We expect either a client or an error, but not both nil/non-nil
+		if client == nil && err == nil {
+			t.Error("Expected either client or error, got both nil")
+		}
+		if client != nil && err != nil {
+			t.Error("Expected either client or error, got both non-nil")
+		}
+	})
+
+	t.Run("invalid config causes error", func(t *testing.T) {
+		config := &Config{
+			SMTPHost:     "", // Invalid empty host
+			SMTPPort:     587,
+			SMTPUsername: "username",
+			SMTPPassword: "password",
+			FromEmail:    "noreply@example.com",
+			FromName:     "Notifuse",
+			APIEndpoint:  "https://example.com",
+		}
+
+		mailer := NewSMTPMailer(config)
+		client, err := mailer.createSMTPClient()
+
+		if err == nil {
+			t.Error("Expected error with invalid config, got nil")
+		}
+		if client != nil {
+			t.Error("Expected nil client with invalid config, got non-nil")
+		}
+	})
 }

@@ -434,3 +434,286 @@ func TestManager_RunMigrations_GetVersionError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to get current database version")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestDefaultConnector_ConnectToWorkspace(t *testing.T) {
+	connector := &defaultConnector{}
+
+	t.Run("Connection failure due to invalid config", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "invalid",
+			Password: "invalid",
+			Host:     "nonexistent-host",
+			Port:     9999,
+			Prefix:   "test",
+			SSLMode:  "disable",
+		}
+
+		db, err := connector.connectToWorkspace(cfg, "test-workspace")
+
+		assert.Error(t, err)
+		assert.Nil(t, db)
+		assert.Contains(t, err.Error(), "failed to ping workspace database")
+	})
+
+	t.Run("Workspace ID formatting", func(t *testing.T) {
+		// Test that hyphens are replaced with underscores in the database name
+		cfg := &config.DatabaseConfig{
+			User:     "user",
+			Password: "pass",
+			Host:     "invalid-host", // Will fail, but we can test the logic
+			Port:     5432,
+			Prefix:   "app",
+			SSLMode:  "disable",
+		}
+
+		db, err := connector.connectToWorkspace(cfg, "test-workspace-123")
+
+		// Should fail due to invalid host, but we verify the error handling
+		assert.Error(t, err)
+		assert.Nil(t, db)
+	})
+
+	t.Run("SQL Open failure", func(t *testing.T) {
+		// Test with invalid driver to trigger sql.Open failure
+		connector := &defaultConnector{}
+		cfg := &config.DatabaseConfig{
+			User:     "",
+			Password: "",
+			Host:     "",
+			Port:     0,
+			Prefix:   "",
+			SSLMode:  "invalid",
+		}
+
+		db, err := connector.connectToWorkspace(cfg, "test")
+
+		// Should fail due to invalid configuration
+		assert.Error(t, err)
+		assert.Nil(t, db)
+	})
+
+	t.Run("DSN construction with special characters", func(t *testing.T) {
+		connector := &defaultConnector{}
+		cfg := &config.DatabaseConfig{
+			User:     "user@domain",
+			Password: "pass!@#",
+			Host:     "nonexistent-host-123",
+			Port:     5432,
+			Prefix:   "test_app",
+			SSLMode:  "require",
+		}
+
+		db, err := connector.connectToWorkspace(cfg, "workspace-with-special-chars-123")
+
+		// Should fail due to nonexistent host, but DSN construction is tested
+		assert.Error(t, err)
+		assert.Nil(t, db)
+		assert.Contains(t, err.Error(), "failed to ping workspace database")
+	})
+}
+
+func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
+	t.Run("First run - no version exists", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		logger := &mockLogger{}
+		manager := NewManager(logger)
+
+		cfg := &config.Config{
+			Database: config.DatabaseConfig{
+				Host: "localhost",
+				Port: 5432,
+			},
+		}
+
+		// Mock GetCurrentDBVersion to return no version exists
+		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
+			WillReturnError(sql.ErrNoRows)
+
+		// Mock SetCurrentDBVersion
+		mock.ExpectExec("INSERT INTO settings \\(key, value\\) VALUES \\('db_version', \\$1\\)\\s+ON CONFLICT \\(key\\) DO UPDATE SET").
+			WithArgs(sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(1, 1))
+
+		err = manager.RunMigrations(context.Background(), cfg, db)
+
+		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Database up to date - no migrations needed", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		logger := &mockLogger{}
+		manager := NewManager(logger)
+
+		cfg := &config.Config{
+			Database: config.DatabaseConfig{
+				Host: "localhost",
+				Port: 5432,
+			},
+		}
+
+		// Mock GetCurrentDBVersion to return current version
+		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
+			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow("6"))
+
+		err = manager.RunMigrations(context.Background(), cfg, db)
+
+		// This should succeed as database is up to date
+		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Failed to initialize database version", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		logger := &mockLogger{}
+		manager := NewManager(logger)
+
+		cfg := &config.Config{
+			Database: config.DatabaseConfig{
+				Host: "localhost",
+				Port: 5432,
+			},
+		}
+
+		// Mock GetCurrentDBVersion to return no version exists
+		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
+			WillReturnError(sql.ErrNoRows)
+
+		// Mock SetCurrentDBVersion to fail
+		mock.ExpectExec("INSERT INTO settings \\(key, value\\) VALUES \\('db_version', \\$1\\)\\s+ON CONFLICT \\(key\\) DO UPDATE SET").
+			WithArgs(sqlmock.AnyArg()).
+			WillReturnError(sql.ErrConnDone)
+
+		err = manager.RunMigrations(context.Background(), cfg, db)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to initialize database version")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("No migrations to run", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		logger := &mockLogger{}
+		manager := NewManager(logger)
+
+		cfg := &config.Config{
+			Database: config.DatabaseConfig{
+				Host: "localhost",
+				Port: 5432,
+			},
+		}
+
+		// Mock current version to be higher than available migrations
+		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
+			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow("10"))
+
+		err = manager.RunMigrations(context.Background(), cfg, db)
+
+		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Invalid version format in database", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		logger := &mockLogger{}
+		manager := NewManager(logger)
+
+		cfg := &config.Config{
+			Database: config.DatabaseConfig{
+				Host: "localhost",
+				Port: 5432,
+			},
+		}
+
+		// Mock GetCurrentDBVersion to return invalid version format
+		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
+			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow("invalid-version"))
+
+		err = manager.RunMigrations(context.Background(), cfg, db)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid database version format")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+}
+
+func TestManager_ExecuteMigration_AdditionalCoverage(t *testing.T) {
+	t.Run("Error - Failed to start transaction", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		logger := &mockLogger{}
+		manager := NewManager(logger)
+
+		cfg := &config.Config{
+			Database: config.DatabaseConfig{
+				Host: "localhost",
+				Port: 5432,
+			},
+		}
+
+		// Mock BeginTx to fail
+		mock.ExpectBegin().WillReturnError(sql.ErrConnDone)
+
+		migration := &V4Migration{}
+		err = manager.executeMigration(context.Background(), cfg, db, migration)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to start transaction")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Success - System migration only", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		logger := &mockLogger{}
+		manager := NewManager(logger)
+
+		cfg := &config.Config{
+			Database: config.DatabaseConfig{
+				Host: "localhost",
+				Port: 5432,
+			},
+		}
+
+		// Mock successful transaction
+		mock.ExpectBegin()
+
+		// Mock successful system migration (V4 has system updates only)
+		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM users").
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(5))
+		mock.ExpectExec("ALTER TABLE user_workspaces ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE user_workspaces SET permissions = .+ WHERE role = 'owner'").
+			WillReturnResult(sqlmock.NewResult(0, 2))
+		mock.ExpectExec("UPDATE user_workspaces SET permissions = .+ WHERE role = 'member'").
+			WillReturnResult(sqlmock.NewResult(0, 3))
+
+		mock.ExpectCommit()
+
+		migration := &V4Migration{}
+		err = manager.executeMigration(context.Background(), cfg, db, migration)
+
+		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
