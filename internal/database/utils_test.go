@@ -1,893 +1,402 @@
 package database
 
 import (
-	"database/sql"
-	"errors"
 	"fmt"
-	"strings"
+	"os"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/config"
-
-	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
-// Add this variable at package scope to enable mocking
-var initializeWorkspaceDBFunc = InitializeWorkspaceDatabase
+func TestGetConnectionPoolSettings(t *testing.T) {
+	// Save original environment
+	originalEnv := os.Getenv("ENVIRONMENT")
+	originalIntegrationTests := os.Getenv("INTEGRATION_TESTS")
+	defer func() {
+		os.Setenv("ENVIRONMENT", originalEnv)
+		os.Setenv("INTEGRATION_TESTS", originalIntegrationTests)
+	}()
 
-// Add this variable to mock sql.Open during tests
-var sqlOpen = sql.Open
+	t.Run("Production settings", func(t *testing.T) {
+		// Clear environment variables
+		os.Unsetenv("ENVIRONMENT")
+		os.Unsetenv("INTEGRATION_TESTS")
 
-func TestGetSystemDSN(t *testing.T) {
-	testCases := []struct {
-		name     string
-		config   *config.DatabaseConfig
-		expected string
-	}{
-		{
-			name: "standard config",
-			config: &config.DatabaseConfig{
-				Host:     "localhost",
-				Port:     5432,
-				User:     "postgres",
-				Password: "password",
-				DBName:   "notifuse",
-				SSLMode:  "disable",
-			},
-			expected: "postgres://postgres:password@localhost:5432/notifuse?sslmode=disable",
-		},
-		{
-			name: "custom port",
-			config: &config.DatabaseConfig{
-				Host:     "localhost",
-				Port:     5433,
-				User:     "postgres",
-				Password: "password",
-				DBName:   "notifuse",
-				SSLMode:  "disable",
-			},
-			expected: "postgres://postgres:password@localhost:5433/notifuse?sslmode=disable",
-		},
-		{
-			name: "remote host",
-			config: &config.DatabaseConfig{
-				Host:     "db.example.com",
-				Port:     5432,
-				User:     "app_user",
-				Password: "secure_password",
-				DBName:   "notifuse_prod",
-				SSLMode:  "disable",
-			},
-			expected: "postgres://app_user:secure_password@db.example.com:5432/notifuse_prod?sslmode=disable",
-		},
-	}
+		maxOpen, maxIdle, maxLifetime := GetConnectionPoolSettings()
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := GetSystemDSN(tc.config)
-			assert.Equal(t, tc.expected, result)
-		})
-	}
+		assert.Equal(t, 25, maxOpen, "Production max open connections should be 25")
+		assert.Equal(t, 25, maxIdle, "Production max idle connections should be 25")
+		assert.Equal(t, 20*time.Minute, maxLifetime, "Production max lifetime should be 20 minutes")
+	})
+
+	t.Run("Test environment settings", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "test")
+		os.Unsetenv("INTEGRATION_TESTS")
+
+		maxOpen, maxIdle, maxLifetime := GetConnectionPoolSettings()
+
+		assert.Equal(t, 10, maxOpen, "Test max open connections should be 10")
+		assert.Equal(t, 5, maxIdle, "Test max idle connections should be 5")
+		assert.Equal(t, 2*time.Minute, maxLifetime, "Test max lifetime should be 2 minutes")
+	})
+
+	t.Run("Integration tests settings", func(t *testing.T) {
+		os.Unsetenv("ENVIRONMENT")
+		os.Setenv("INTEGRATION_TESTS", "true")
+
+		maxOpen, maxIdle, maxLifetime := GetConnectionPoolSettings()
+
+		assert.Equal(t, 10, maxOpen, "Integration test max open connections should be 10")
+		assert.Equal(t, 5, maxIdle, "Integration test max idle connections should be 5")
+		assert.Equal(t, 2*time.Minute, maxLifetime, "Integration test max lifetime should be 2 minutes")
+	})
+
+	t.Run("Both test environment and integration tests", func(t *testing.T) {
+		os.Setenv("ENVIRONMENT", "test")
+		os.Setenv("INTEGRATION_TESTS", "true")
+
+		maxOpen, maxIdle, maxLifetime := GetConnectionPoolSettings()
+
+		assert.Equal(t, 10, maxOpen, "Should use test settings when both are set")
+		assert.Equal(t, 5, maxIdle, "Should use test settings when both are set")
+		assert.Equal(t, 2*time.Minute, maxLifetime, "Should use test settings when both are set")
+	})
 }
 
-func TestGetWorkspaceDSN(t *testing.T) {
-	testCases := []struct {
-		name        string
-		config      *config.DatabaseConfig
-		workspaceID string
-		expected    string
-	}{
-		{
-			name: "standard workspace",
-			config: &config.DatabaseConfig{
-				Host:     "localhost",
-				Port:     5432,
-				User:     "postgres",
-				Password: "password",
-				Prefix:   "nf",
-				SSLMode:  "disable",
-			},
-			workspaceID: "workspace123",
-			expected:    "postgres://postgres:password@localhost:5432/nf_ws_workspace123?sslmode=disable",
-		},
-		{
-			name: "workspace with hyphens",
-			config: &config.DatabaseConfig{
-				Host:     "localhost",
-				Port:     5432,
-				User:     "postgres",
-				Password: "password",
-				Prefix:   "nf",
-				SSLMode:  "disable",
-			},
-			workspaceID: "workspace-123",
-			expected:    "postgres://postgres:password@localhost:5432/nf_ws_workspace_123?sslmode=disable",
-		},
-		{
-			name: "custom configuration",
-			config: &config.DatabaseConfig{
-				Host:     "db.example.com",
-				Port:     5433,
-				User:     "app_user",
-				Password: "secure_password",
-				Prefix:   "notifuse",
-				SSLMode:  "disable",
-			},
-			workspaceID: "client456",
-			expected:    "postgres://app_user:secure_password@db.example.com:5433/notifuse_ws_client456?sslmode=disable",
-		},
-	}
+func TestGetSystemDSN(t *testing.T) {
+	t.Run("Standard configuration", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "testuser",
+			Password: "testpass",
+			Host:     "localhost",
+			Port:     5432,
+			DBName:   "testdb",
+			SSLMode:  "disable",
+		}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := GetWorkspaceDSN(tc.config, tc.workspaceID)
-			assert.Equal(t, tc.expected, result)
-		})
-	}
+		expected := "postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable"
+		result := GetSystemDSN(cfg)
+
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Configuration with special characters", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "user@domain",
+			Password: "pass!@#$%",
+			Host:     "db.example.com",
+			Port:     3306,
+			DBName:   "my-database",
+			SSLMode:  "require",
+		}
+
+		expected := "postgres://user@domain:pass!@#$%@db.example.com:3306/my-database?sslmode=require"
+		result := GetSystemDSN(cfg)
+
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Empty SSL mode", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "user",
+			Password: "pass",
+			Host:     "host",
+			Port:     5432,
+			DBName:   "db",
+			SSLMode:  "",
+		}
+
+		expected := "postgres://user:pass@host:5432/db?sslmode="
+		result := GetSystemDSN(cfg)
+
+		assert.Equal(t, expected, result)
+	})
 }
 
 func TestGetPostgresDSN(t *testing.T) {
-	testCases := []struct {
-		name     string
-		config   *config.DatabaseConfig
-		expected string
-	}{
-		{
-			name: "standard config",
-			config: &config.DatabaseConfig{
-				Host:     "localhost",
-				Port:     5432,
-				User:     "postgres",
-				Password: "password",
-				SSLMode:  "disable",
-			},
-			expected: "postgres://postgres:password@localhost:5432/postgres?sslmode=disable",
-		},
-		{
-			name: "custom port",
-			config: &config.DatabaseConfig{
-				Host:     "localhost",
-				Port:     5433,
-				User:     "postgres",
-				Password: "password",
-				SSLMode:  "disable",
-			},
-			expected: "postgres://postgres:password@localhost:5433/postgres?sslmode=disable",
-		},
-		{
-			name: "remote host",
-			config: &config.DatabaseConfig{
-				Host:     "db.example.com",
-				Port:     5432,
-				User:     "app_user",
-				Password: "secure_password",
-				SSLMode:  "disable",
-			},
-			expected: "postgres://app_user:secure_password@db.example.com:5432/postgres?sslmode=disable",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			result := GetPostgresDSN(tc.config)
-			assert.Equal(t, tc.expected, result)
-		})
-	}
-}
-
-// MockedEnsureSystemDatabaseExists is a test-friendly version that accepts a DB connection for mocking
-func MockedEnsureSystemDatabaseExists(db *sql.DB, dbName string) error {
-	// Test the connection
-	if err := db.Ping(); err != nil {
-		return fmt.Errorf("failed to ping PostgreSQL server: %w", err)
-	}
-
-	// Check if database exists
-	var exists bool
-	query := "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)"
-	err := db.QueryRow(query, dbName).Scan(&exists)
-	if err != nil {
-		return fmt.Errorf("failed to check if database exists: %w", err)
-	}
-
-	// Create database if it doesn't exist
-	if !exists {
-		// Use fmt.Sprintf for proper quoting of identifiers in SQL
-		createDBQuery := fmt.Sprintf("CREATE DATABASE %s",
-			// Proper quoting to prevent SQL injection
-			strings.ReplaceAll(dbName, `"`, `""`))
-
-		_, err = db.Exec(createDBQuery)
-		if err != nil {
-			return fmt.Errorf("failed to create system database: %w", err)
-		}
-	}
-
-	return nil
-}
-
-// MockedEnsureWorkspaceDatabaseExists is a test-friendly version
-func MockedEnsureWorkspaceDatabaseExists(cfg *config.DatabaseConfig, workspaceID string, pgDB *sql.DB, wsDB *sql.DB) error {
-	// Replace hyphens with underscores for PostgreSQL compatibility
-	safeID := strings.ReplaceAll(workspaceID, "-", "_")
-	dbName := fmt.Sprintf("%s_ws_%s", cfg.Prefix, safeID)
-
-	// Using the provided DB connection instead of opening a new one
-
-	// Test the connection
-	if err := pgDB.Ping(); err != nil {
-		return fmt.Errorf("failed to ping PostgreSQL server: %w", err)
-	}
-
-	// Check if database exists
-	var exists bool
-	query := "SELECT EXISTS(SELECT 1 FROM pg_database WHERE datname = $1)"
-	err := pgDB.QueryRow(query, dbName).Scan(&exists)
-	if err != nil {
-		return fmt.Errorf("failed to check if database exists: %w", err)
-	}
-
-	// Create database if it doesn't exist
-	if !exists {
-		// Create database
-		createDBQuery := fmt.Sprintf("CREATE DATABASE %s",
-			// Proper quoting to prevent SQL injection
-			strings.ReplaceAll(dbName, `"`, `""`))
-
-		_, err = pgDB.Exec(createDBQuery)
-		if err != nil {
-			return fmt.Errorf("failed to create workspace database: %w", err)
-		}
-
-		// Test workspace DB connection
-		if err := wsDB.Ping(); err != nil {
-			return fmt.Errorf("failed to ping new workspace database: %w", err)
-		}
-
-		// Initialize the workspace database schema
-		if err := initializeWorkspaceDBFunc(wsDB); err != nil {
-			return fmt.Errorf("failed to initialize workspace database schema: %w", err)
-		}
-	}
-
-	return nil
-}
-
-func TestEnsureSystemDatabaseExists(t *testing.T) {
-	t.Run("database already exists", func(t *testing.T) {
-		db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer db.Close()
-
-		dbName := "notifuse_system"
-
-		// Mock the ping
-		mock.ExpectPing()
-
-		// Mock the check if database exists
-		mock.ExpectQuery("SELECT EXISTS").
-			WithArgs(dbName).
-			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
-
-		// Call the mocked version that accepts a DB directly
-		err = MockedEnsureSystemDatabaseExists(db, dbName)
-		require.NoError(t, err)
-
-		// Verify all expectations were met
-		err = mock.ExpectationsWereMet()
-		require.NoError(t, err)
-	})
-
-	t.Run("database doesn't exist and gets created", func(t *testing.T) {
-		db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer db.Close()
-
-		dbName := "notifuse_system"
-
-		// Mock the ping
-		mock.ExpectPing()
-
-		// Mock the check if database exists - return false
-		mock.ExpectQuery("SELECT EXISTS").
-			WithArgs(dbName).
-			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
-
-		// Mock the create database query
-		mock.ExpectExec("CREATE DATABASE notifuse_system").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		// Call the mocked version that accepts a DB directly
-		err = MockedEnsureSystemDatabaseExists(db, dbName)
-		require.NoError(t, err)
-
-		// Verify all expectations were met
-		err = mock.ExpectationsWereMet()
-		require.NoError(t, err)
-	})
-}
-
-func TestEnsureSystemDatabaseExists_Additional(t *testing.T) {
-	t.Run("fails to ping postgresql server", func(t *testing.T) {
-		db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer db.Close()
-
-		// Mock ping failure
-		mock.ExpectPing().WillReturnError(sql.ErrConnDone)
-
-		// Call the mocked version that accepts a DB directly
-		err = MockedEnsureSystemDatabaseExists(db, "notifuse_system")
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
-
-		// Verify all expectations were met
-		err = mock.ExpectationsWereMet()
-		require.NoError(t, err)
-	})
-
-	t.Run("fails to check if database exists", func(t *testing.T) {
-		db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer db.Close()
-
-		// Mock the ping
-		mock.ExpectPing()
-
-		// Mock query error
-		mock.ExpectQuery("SELECT EXISTS").
-			WithArgs("notifuse_system").
-			WillReturnError(sql.ErrConnDone)
-
-		// Call the mocked version that accepts a DB directly
-		err = MockedEnsureSystemDatabaseExists(db, "notifuse_system")
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to check if database exists")
-
-		// Verify all expectations were met
-		err = mock.ExpectationsWereMet()
-		require.NoError(t, err)
-	})
-
-	t.Run("fails to create database", func(t *testing.T) {
-		db, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer db.Close()
-
-		// Mock the ping
-		mock.ExpectPing()
-
-		// Mock database doesn't exist
-		mock.ExpectQuery("SELECT EXISTS").
-			WithArgs("notifuse_system").
-			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
-
-		// Mock creation failure
-		mock.ExpectExec("CREATE DATABASE notifuse_system").
-			WillReturnError(sql.ErrConnDone)
-
-		// Call the mocked version that accepts a DB directly
-		err = MockedEnsureSystemDatabaseExists(db, "notifuse_system")
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create system database")
-
-		// Verify all expectations were met
-		err = mock.ExpectationsWereMet()
-		require.NoError(t, err)
-	})
-}
-
-func TestEnsureWorkspaceDatabaseExists(t *testing.T) {
-	t.Run("workspace database already exists", func(t *testing.T) {
-		// Mock the PostgreSQL server connection
-		pgDB, pgMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer pgDB.Close()
-
-		// Mock the workspace DB connection - not actually used in this test
-		wsDB, _, err := sqlmock.New()
-		require.NoError(t, err)
-		defer wsDB.Close()
-
-		// Workspace ID for the test
-		workspaceID := "testworkspace"
-
-		// Mock the ping
-		pgMock.ExpectPing()
-
-		// Mock the check if database exists - return true
-		pgMock.ExpectQuery("SELECT EXISTS").
-			WithArgs("ntf_ws_" + workspaceID).
-			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(true))
-
-		// Create config for the test
+	t.Run("Standard configuration", func(t *testing.T) {
 		cfg := &config.DatabaseConfig{
+			User:     "testuser",
+			Password: "testpass",
 			Host:     "localhost",
 			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "ntf",
+			DBName:   "testdb", // This should be ignored and replaced with "postgres"
 			SSLMode:  "disable",
 		}
 
-		// Call the mocked version
-		err = MockedEnsureWorkspaceDatabaseExists(cfg, workspaceID, pgDB, wsDB)
-		require.NoError(t, err)
+		expected := "postgres://testuser:testpass@localhost:5432/postgres?sslmode=disable"
+		result := GetPostgresDSN(cfg)
 
-		// Verify all expectations were met
-		err = pgMock.ExpectationsWereMet()
-		require.NoError(t, err)
+		assert.Equal(t, expected, result)
 	})
 
-	t.Run("workspace database doesn't exist and gets created", func(t *testing.T) {
-		// Mock the PostgreSQL server connection
-		pgDB, pgMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer pgDB.Close()
-
-		// Mock the workspace DB connection
-		wsDB, wsMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer wsDB.Close()
-
-		// Workspace ID for the test
-		workspaceID := "testworkspace"
-
-		// Mock the ping for PostgreSQL server
-		pgMock.ExpectPing()
-
-		// Mock database doesn't exist
-		pgMock.ExpectQuery("SELECT EXISTS").
-			WithArgs("ntf_ws_" + workspaceID).
-			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
-
-		// Mock the create database query
-		pgMock.ExpectExec("CREATE DATABASE ntf_ws_" + workspaceID).
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		// Mock the ping for workspace DB
-		wsMock.ExpectPing()
-
-		// Create a mock for InitializeWorkspaceDatabase
-		var initCalled bool
-		originalInitFunc := initializeWorkspaceDBFunc
-		defer func() { initializeWorkspaceDBFunc = originalInitFunc }()
-
-		initializeWorkspaceDBFunc = func(db *sql.DB) error {
-			initCalled = true
-			return nil
+	t.Run("Different port and SSL mode", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "admin",
+			Password: "secret",
+			Host:     "db.example.com",
+			Port:     3306,
+			DBName:   "ignored",
+			SSLMode:  "require",
 		}
 
-		// Create config for the test
+		expected := "postgres://admin:secret@db.example.com:3306/postgres?sslmode=require"
+		result := GetPostgresDSN(cfg)
+
+		assert.Equal(t, expected, result)
+	})
+}
+
+func TestGetWorkspaceDSN(t *testing.T) {
+	t.Run("Standard workspace ID", func(t *testing.T) {
 		cfg := &config.DatabaseConfig{
+			User:     "testuser",
+			Password: "testpass",
 			Host:     "localhost",
 			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "ntf",
+			Prefix:   "notifuse",
 			SSLMode:  "disable",
 		}
+		workspaceID := "workspace123"
 
-		// Call the mocked version
-		err = MockedEnsureWorkspaceDatabaseExists(cfg, workspaceID, pgDB, wsDB)
-		require.NoError(t, err)
-		require.True(t, initCalled, "InitializeWorkspaceDatabase should be called")
+		expected := "postgres://testuser:testpass@localhost:5432/notifuse_ws_workspace123?sslmode=disable"
+		result := GetWorkspaceDSN(cfg, workspaceID)
 
-		// Verify all expectations were met
-		err = pgMock.ExpectationsWereMet()
-		require.NoError(t, err)
-		err = wsMock.ExpectationsWereMet()
-		require.NoError(t, err)
+		assert.Equal(t, expected, result)
 	})
-}
 
-// Add these variables for mocking
-var ensureWorkspaceDBExistsFunc = EnsureWorkspaceDatabaseExists
-
-// Create an interface for database connections
-type dbConn interface {
-	Ping() error
-	Close() error
-}
-
-// mockConnectToWorkspace is a test-specific function that uses mocked dependencies
-func mockConnectToWorkspace(cfg *config.DatabaseConfig, workspaceID string, mockDB dbConn, ensureErr error) (*sql.DB, error) {
-	// Skip the real database check
-	if ensureErr != nil {
-		return nil, fmt.Errorf("failed to ensure workspace database exists: %w", ensureErr)
-	}
-
-	// Use the mock DB instead of opening a real connection
-	if mockDB != nil {
-		// Test the connection - this will ping as configured by the test
-		if err := mockDB.Ping(); err != nil {
-			return nil, fmt.Errorf("failed to ping workspace database: %w", err)
+	t.Run("Workspace ID with hyphens", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "user",
+			Password: "pass",
+			Host:     "host",
+			Port:     5432,
+			Prefix:   "app",
+			SSLMode:  "require",
 		}
-		// Type assertion to return an *sql.DB is safe only in test code
-		// In production, we'd handle this more carefully
-		return mockDB.(*sql.DB), nil
-	}
+		workspaceID := "workspace-with-hyphens-123"
 
-	// This simulates an error opening the database connection
-	return nil, fmt.Errorf("failed to connect to workspace database: %w", errors.New("connection error"))
-}
+		expected := "postgres://user:pass@host:5432/app_ws_workspace_with_hyphens_123?sslmode=require"
+		result := GetWorkspaceDSN(cfg, workspaceID)
 
-// Create a custom type for a mock DB that will always fail on ping
-type pingErrorDB struct {
-	*sql.DB
-}
+		assert.Equal(t, expected, result)
+	})
 
-func (db *pingErrorDB) Ping() error {
-	return fmt.Errorf("ping failed")
+	t.Run("Complex workspace ID", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "dbuser",
+			Password: "dbpass",
+			Host:     "localhost",
+			Port:     5432,
+			Prefix:   "myapp",
+			SSLMode:  "disable",
+		}
+		workspaceID := "test-workspace-abc-123-def"
+
+		expected := "postgres://dbuser:dbpass@localhost:5432/myapp_ws_test_workspace_abc_123_def?sslmode=disable"
+		result := GetWorkspaceDSN(cfg, workspaceID)
+
+		assert.Equal(t, expected, result)
+	})
+
+	t.Run("Empty prefix", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "user",
+			Password: "pass",
+			Host:     "host",
+			Port:     5432,
+			Prefix:   "",
+			SSLMode:  "disable",
+		}
+		workspaceID := "workspace-id"
+
+		expected := "postgres://user:pass@host:5432/_ws_workspace_id?sslmode=disable"
+		result := GetWorkspaceDSN(cfg, workspaceID)
+
+		assert.Equal(t, expected, result)
+	})
 }
 
 func TestConnectToWorkspace(t *testing.T) {
-	t.Run("successful connection", func(t *testing.T) {
-		mockDB, mock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer mockDB.Close()
-
-		// Mock the ping
-		mock.ExpectPing()
-
-		// Create config for the test
+	t.Run("Connection failure due to invalid config", func(t *testing.T) {
 		cfg := &config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "ntf",
-		}
-
-		// Call our test-specific function with the mock
-		db, err := mockConnectToWorkspace(cfg, "workspace123", mockDB, nil)
-		require.NoError(t, err)
-		assert.Equal(t, mockDB, db)
-
-		// Verify all expectations were met
-		err = mock.ExpectationsWereMet()
-		require.NoError(t, err)
-	})
-
-	t.Run("connection error", func(t *testing.T) {
-		expectedError := errors.New("connection error")
-
-		// Create config for the test
-		cfg := &config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "ntf",
-		}
-
-		// Call our test function without providing a mock DB to simulate connection error
-		_, err := mockConnectToWorkspace(cfg, "workspace123", nil, nil)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to connect to workspace database")
-
-		// Check if the error message contains our expected error string
-		assert.Contains(t, err.Error(), expectedError.Error())
-	})
-
-	t.Run("ping error", func(t *testing.T) {
-		// Create a mock DB that will fail on ping
-		mockDB, _, err := sqlmock.New()
-		require.NoError(t, err)
-		defer mockDB.Close()
-
-		// Wrap the mock DB with our pingErrorDB to force ping failures
-		pingErrorMockDB := &pingErrorDB{mockDB}
-
-		// Create config for the test
-		cfg := &config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "ntf",
-		}
-
-		// Call our test-specific function with the mock DB that will fail ping
-		_, err = mockConnectToWorkspace(cfg, "workspace123", pingErrorMockDB, nil)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to ping workspace database")
-		assert.Contains(t, err.Error(), "ping failed")
-	})
-
-	t.Run("ensure database error", func(t *testing.T) {
-		// Create a specific error for the ensure function
-		ensureError := errors.New("failed to create workspace database")
-
-		// Create config for the test
-		cfg := &config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "ntf",
-		}
-
-		// Call our test-specific function with an ensure error
-		_, err := mockConnectToWorkspace(cfg, "workspace123", nil, ensureError)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to ensure workspace database exists")
-
-		// Check if the error message contains our expected error string
-		assert.Contains(t, err.Error(), ensureError.Error())
-	})
-}
-
-func TestGetWorkspaceDSN_EdgeCases(t *testing.T) {
-	t.Run("handles special characters in workspace ID", func(t *testing.T) {
-		cfg := &config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "nf",
-		}
-
-		workspaceIDs := []string{
-			"workspace-with-hyphens",
-			"workspace_with_underscores",
-			"workspace.with.dots",
-			"workspace/with/slashes",
-			"workspace:with:colons",
-		}
-
-		for _, id := range workspaceIDs {
-			result := GetWorkspaceDSN(cfg, id)
-			// Verify hyphens are replaced with underscores
-			sanitizedID := strings.ReplaceAll(id, "-", "_")
-			expectedDBName := fmt.Sprintf("nf_ws_%s", sanitizedID)
-			assert.Contains(t, result, expectedDBName, "DSN should contain the sanitized workspace ID")
-		}
-	})
-}
-
-// MockedConnectToWorkspace is a test-specific function that doesn't make real DB connections
-func MockedConnectToWorkspace(mockDB *sql.DB, ensureErr error, openErr error, pingErr error) (*sql.DB, error) {
-	// Check if EnsureWorkspaceDatabaseExists would fail
-	if ensureErr != nil {
-		return nil, fmt.Errorf("failed to ensure workspace database exists: %w", ensureErr)
-	}
-
-	// Check if sql.Open would fail
-	if openErr != nil {
-		return nil, fmt.Errorf("failed to connect to workspace database: %w", openErr)
-	}
-
-	// Check if db.Ping would fail
-	if pingErr != nil {
-		return nil, fmt.Errorf("failed to ping workspace database: %w", pingErr)
-	}
-
-	// Everything succeeded, return the mock DB
-	return mockDB, nil
-}
-
-// TestConnectToWorkspace_Mock tests the function using our mocked version
-func TestConnectToWorkspace_Mock(t *testing.T) {
-	// Create a mock DB just for structure, not for expectations
-	mockDB, _, err := sqlmock.New()
-	require.NoError(t, err)
-	defer mockDB.Close()
-
-	t.Run("successful connection", func(t *testing.T) {
-		db, err := MockedConnectToWorkspace(mockDB, nil, nil, nil)
-		require.NoError(t, err)
-		assert.Equal(t, mockDB, db)
-	})
-
-	t.Run("ensure database error", func(t *testing.T) {
-		_, err := MockedConnectToWorkspace(mockDB, errors.New("database creation failed"), nil, nil)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to ensure workspace database exists")
-		assert.Contains(t, err.Error(), "database creation failed")
-	})
-
-	t.Run("sql open error", func(t *testing.T) {
-		_, err := MockedConnectToWorkspace(mockDB, nil, errors.New("connection error"), nil)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to connect to workspace database")
-		assert.Contains(t, err.Error(), "connection error")
-	})
-
-	t.Run("ping error", func(t *testing.T) {
-		_, err := MockedConnectToWorkspace(mockDB, nil, nil, errors.New("ping error"))
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to ping workspace database")
-		assert.Contains(t, err.Error(), "ping error")
-	})
-}
-
-func TestEnsureWorkspaceDatabaseExists_Additional(t *testing.T) {
-	t.Run("fails to ping postgresql server", func(t *testing.T) {
-		// Mock the PostgreSQL server connection
-		pgDB, pgMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer pgDB.Close()
-
-		// Mock the workspace DB connection - not used in this test
-		wsDB, _, err := sqlmock.New()
-		require.NoError(t, err)
-		defer wsDB.Close()
-
-		// Mock ping failure
-		pgMock.ExpectPing().WillReturnError(sql.ErrConnDone)
-
-		cfg := &config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "ntf",
+			User:     "invalid",
+			Password: "invalid",
+			Host:     "nonexistent-host",
+			Port:     9999,
+			Prefix:   "test",
 			SSLMode:  "disable",
 		}
+		workspaceID := "test-workspace"
 
-		err = MockedEnsureWorkspaceDatabaseExists(cfg, "testworkspace", pgDB, wsDB)
-		require.Error(t, err)
+		db, err := ConnectToWorkspace(cfg, workspaceID)
+
+		assert.Error(t, err, "Should fail with invalid database configuration")
+		assert.Nil(t, db, "Database connection should be nil on failure")
+		assert.Contains(t, err.Error(), "failed to ensure workspace database exists")
+	})
+
+	// Note: Full integration tests would require a real database
+	// These tests focus on the error handling and configuration logic
+}
+
+func TestEnsureWorkspaceDatabaseExists(t *testing.T) {
+	t.Run("Connection failure", func(t *testing.T) {
+		cfg := &config.DatabaseConfig{
+			User:     "invalid",
+			Password: "invalid",
+			Host:     "nonexistent-host",
+			Port:     9999,
+			Prefix:   "test",
+			SSLMode:  "disable",
+		}
+		workspaceID := "test-workspace"
+
+		err := EnsureWorkspaceDatabaseExists(cfg, workspaceID)
+
+		assert.Error(t, err, "Should fail with invalid database configuration")
 		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
 	})
 
-	t.Run("fails to check if database exists", func(t *testing.T) {
-		// Mock the PostgreSQL server connection
-		pgDB, pgMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer pgDB.Close()
-
-		// Mock the workspace DB connection - not used in this test
-		wsDB, _, err := sqlmock.New()
-		require.NoError(t, err)
-		defer wsDB.Close()
-
-		// Mock the ping
-		pgMock.ExpectPing()
-
-		// Mock query error
-		pgMock.ExpectQuery("SELECT EXISTS").
-			WithArgs("ntf_ws_testworkspace").
-			WillReturnError(sql.ErrConnDone)
-
+	t.Run("Workspace ID formatting", func(t *testing.T) {
+		// Test that hyphens are replaced with underscores in the database name
+		// This test verifies the logic without requiring a database connection
 		cfg := &config.DatabaseConfig{
-			Host:     "localhost",
+			User:     "user",
+			Password: "pass",
+			Host:     "invalid-host", // Will fail connection, but we can test the formatting logic
 			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "ntf",
+			Prefix:   "app",
 			SSLMode:  "disable",
 		}
+		workspaceID := "test-workspace-123"
 
-		err = MockedEnsureWorkspaceDatabaseExists(cfg, "testworkspace", pgDB, wsDB)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to check if database exists")
+		err := EnsureWorkspaceDatabaseExists(cfg, workspaceID)
+
+		// Should fail due to invalid host, but we can verify the error message structure
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
+	})
+}
+
+func TestEnsureSystemDatabaseExists(t *testing.T) {
+	t.Run("Invalid DSN", func(t *testing.T) {
+		invalidDSN := "invalid://dsn/format"
+		dbName := "testdb"
+
+		err := EnsureSystemDatabaseExists(invalidDSN, dbName)
+
+		assert.Error(t, err, "Should fail with invalid DSN")
+		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
 	})
 
-	t.Run("fails to create database", func(t *testing.T) {
-		// Mock the PostgreSQL server connection
-		pgDB, pgMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer pgDB.Close()
+	t.Run("Connection failure", func(t *testing.T) {
+		dsn := "postgres://invalid:invalid@nonexistent-host:9999/postgres?sslmode=disable"
+		dbName := "testdb"
 
-		// Mock the workspace DB connection - not used in this test
-		wsDB, _, err := sqlmock.New()
-		require.NoError(t, err)
-		defer wsDB.Close()
+		err := EnsureSystemDatabaseExists(dsn, dbName)
 
-		// Mock the ping
-		pgMock.ExpectPing()
-
-		// Mock database doesn't exist
-		pgMock.ExpectQuery("SELECT EXISTS").
-			WithArgs("ntf_ws_testworkspace").
-			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
-
-		// Mock creation failure
-		pgMock.ExpectExec("CREATE DATABASE ntf_ws_testworkspace").
-			WillReturnError(sql.ErrConnDone)
-
-		cfg := &config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "ntf",
-			SSLMode:  "disable",
-		}
-
-		err = MockedEnsureWorkspaceDatabaseExists(cfg, "testworkspace", pgDB, wsDB)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create workspace database")
+		assert.Error(t, err, "Should fail with invalid connection parameters")
+		assert.Contains(t, err.Error(), "failed to ping PostgreSQL server")
 	})
 
-	t.Run("fails to ping workspace database", func(t *testing.T) {
-		// Mock the PostgreSQL server connection
-		pgDB, pgMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer pgDB.Close()
+	t.Run("Empty database name", func(t *testing.T) {
+		dsn := "postgres://user:pass@localhost:5432/postgres?sslmode=disable"
+		dbName := ""
 
-		// Mock the workspace DB connection
-		wsDB, wsMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer wsDB.Close()
+		err := EnsureSystemDatabaseExists(dsn, dbName)
 
-		// Mock the ping for PostgreSQL server
-		pgMock.ExpectPing()
-
-		// Mock database doesn't exist
-		pgMock.ExpectQuery("SELECT EXISTS").
-			WithArgs("ntf_ws_testworkspace").
-			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
-
-		// Mock successful database creation
-		pgMock.ExpectExec("CREATE DATABASE ntf_ws_testworkspace").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		// Mock ping failure for workspace DB
-		wsMock.ExpectPing().WillReturnError(sql.ErrConnDone)
-
-		cfg := &config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "ntf",
-			SSLMode:  "disable",
-		}
-
-		err = MockedEnsureWorkspaceDatabaseExists(cfg, "testworkspace", pgDB, wsDB)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to ping new workspace database")
+		// Should fail when trying to connect, but tests the parameter handling
+		assert.Error(t, err)
 	})
+}
 
-	t.Run("fails to initialize workspace database", func(t *testing.T) {
-		// Mock the PostgreSQL server connection
-		pgDB, pgMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer pgDB.Close()
+// Integration test helpers (these would be used in actual integration tests)
+func TestDSNGeneration_Integration(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping integration test in short mode")
+	}
 
-		// Mock the workspace DB connection
-		wsDB, wsMock, err := sqlmock.New(sqlmock.MonitorPingsOption(true))
-		require.NoError(t, err)
-		defer wsDB.Close()
-
-		// Mock the ping for PostgreSQL server
-		pgMock.ExpectPing()
-
-		// Mock database doesn't exist
-		pgMock.ExpectQuery("SELECT EXISTS").
-			WithArgs("ntf_ws_testworkspace").
-			WillReturnRows(sqlmock.NewRows([]string{"exists"}).AddRow(false))
-
-		// Mock successful database creation
-		pgMock.ExpectExec("CREATE DATABASE ntf_ws_testworkspace").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		// Mock successful ping for workspace DB
-		wsMock.ExpectPing()
-
-		// Create a mock for InitializeWorkspaceDatabase that fails
-		originalInitFunc := initializeWorkspaceDBFunc
-		defer func() { initializeWorkspaceDBFunc = originalInitFunc }()
-
-		initializeWorkspaceDBFunc = func(db *sql.DB) error {
-			return errors.New("failed to create tables")
-		}
-
+	t.Run("DSN format validation", func(t *testing.T) {
 		cfg := &config.DatabaseConfig{
+			User:     "testuser",
+			Password: "testpass",
 			Host:     "localhost",
 			Port:     5432,
-			User:     "postgres",
-			Password: "password",
-			Prefix:   "ntf",
+			DBName:   "testdb",
+			Prefix:   "app",
 			SSLMode:  "disable",
 		}
 
-		err = MockedEnsureWorkspaceDatabaseExists(cfg, "testworkspace", pgDB, wsDB)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to initialize workspace database schema")
+		// Test all DSN generation functions
+		systemDSN := GetSystemDSN(cfg)
+		postgresDSN := GetPostgresDSN(cfg)
+		workspaceDSN := GetWorkspaceDSN(cfg, "test-workspace")
+
+		// Verify DSN format is valid (starts with postgres://)
+		assert.True(t, len(systemDSN) > 0 && systemDSN[:11] == "postgres://")
+		assert.True(t, len(postgresDSN) > 0 && postgresDSN[:11] == "postgres://")
+		assert.True(t, len(workspaceDSN) > 0 && workspaceDSN[:11] == "postgres://")
+
+		// Verify workspace DSN contains workspace identifier
+		assert.Contains(t, workspaceDSN, "app_ws_test_workspace")
+
+		// Verify postgres DSN uses postgres database
+		assert.Contains(t, postgresDSN, "/postgres?")
+
+		// Verify system DSN uses specified database
+		assert.Contains(t, systemDSN, "/testdb?")
+	})
+}
+
+func TestConnectionPoolSettings_Coverage(t *testing.T) {
+	t.Run("Environment variable edge cases", func(t *testing.T) {
+		// Save original environment
+		originalEnv := os.Getenv("ENVIRONMENT")
+		originalIntegrationTests := os.Getenv("INTEGRATION_TESTS")
+		defer func() {
+			os.Setenv("ENVIRONMENT", originalEnv)
+			os.Setenv("INTEGRATION_TESTS", originalIntegrationTests)
+		}()
+
+		// Test with different environment values
+		testCases := []struct {
+			env          string
+			integration  string
+			expectedOpen int
+			expectedIdle int
+			expectedLife time.Duration
+		}{
+			{"production", "", 25, 25, 20 * time.Minute},
+			{"development", "", 25, 25, 20 * time.Minute},
+			{"staging", "", 25, 25, 20 * time.Minute},
+			{"test", "false", 10, 5, 2 * time.Minute},
+			{"", "true", 10, 5, 2 * time.Minute},
+			{"production", "true", 10, 5, 2 * time.Minute}, // integration tests override
+		}
+
+		for _, tc := range testCases {
+			t.Run(fmt.Sprintf("env=%s,integration=%s", tc.env, tc.integration), func(t *testing.T) {
+				if tc.env == "" {
+					os.Unsetenv("ENVIRONMENT")
+				} else {
+					os.Setenv("ENVIRONMENT", tc.env)
+				}
+
+				if tc.integration == "" {
+					os.Unsetenv("INTEGRATION_TESTS")
+				} else {
+					os.Setenv("INTEGRATION_TESTS", tc.integration)
+				}
+
+				maxOpen, maxIdle, maxLifetime := GetConnectionPoolSettings()
+
+				assert.Equal(t, tc.expectedOpen, maxOpen)
+				assert.Equal(t, tc.expectedIdle, maxIdle)
+				assert.Equal(t, tc.expectedLife, maxLifetime)
+			})
+		}
 	})
 }

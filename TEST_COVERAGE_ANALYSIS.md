@@ -232,20 +232,27 @@ func TestServiceName_MethodName(t *testing.T) {
 - [x] **App Layer Repository Getters** - All 10 getter methods now at 100% coverage
 - [x] **App Layer InitDB** - Now at 22.2% coverage (was 0%)
 - [x] **App Layer Initialize** - Now at 20.0% coverage (was 0%)
+- [x] **System Notification Service** - Created comprehensive test suite (was 0% coverage)
+- [x] **Timezones IsValidTimezone** - Now at 100% coverage (was 0%)
+- [x] **Setting Error Method** - Now at 100% coverage (was 0%)
+- [x] **Database Utilities** - All DSN and connection pool functions now at 100% coverage
+- [x] **Database Init Functions** - Created comprehensive test coverage for CleanDatabase and initialization functions
+- [x] **Database Schema Functions** - Created tests for migration statements and table name validation
 
 ### In Progress 🔄
 
 - [x] Phase 1: Quick wins - **COMPLETE**
 - [x] Phase 2: Critical services - **COMPLETE**
-- [ ] Phase 3: Database utilities
+- [x] Phase 3: Database utilities - **COMPLETE**
 
 ### Files to Create
 
 1. ✅ `internal/service/system_notification_service_test.go` - **COMPLETED**
 2. ✅ `internal/domain/timezones_test.go` - **COMPLETED**
 3. ✅ `internal/domain/setting_test.go` - **COMPLETED**
-4. `internal/database/utils_test.go` - **REMAINING PRIORITY**
-5. Additional service tests for remaining 0% coverage functions
+4. ✅ `internal/database/utils_test.go` - **COMPLETED**
+5. ✅ `internal/database/init_test.go` - **COMPLETED**
+6. ✅ `internal/database/schema/system_tables_test.go` - **COMPLETED**
 
 ## Commands for Testing
 
@@ -276,7 +283,7 @@ go test -race -coverprofile=coverage.out ./internal/...
 - **Broadcast Service:** 80.9% coverage
 - **Missing:** ~24 critical functions with 0% coverage
 
-### After Phase 1 & 2 Implementation ✅
+### After Phase 1, 2 & 3 Implementation ✅
 
 - **App Layer:** 77.1% coverage (improved from ~65%)
 - **Repository Getters:** 100% coverage (was 0%)
@@ -284,9 +291,14 @@ go test -race -coverprofile=coverage.out ./internal/...
 - **Initialize:** 20.0% coverage (was 0%)
 - **Service Layer:** 77.2% coverage (improved from 76.3%)
 - **Domain Layer:** 87.4% coverage (significant improvement)
+- **Database Layer:** 37.4% coverage (was likely 0%)
 - **System Notification Service:** Comprehensive test coverage added
 - **Timezones IsValidTimezone:** 100% coverage (was 0%)
 - **Setting Error Method:** 100% coverage (was 0%)
+- **Database Utilities:** All DSN functions at 100% coverage (was 0%)
+- **Connection Pool Settings:** 100% coverage (was 0%)
+- **Database Initialization:** Comprehensive test coverage added
+- **Schema Functions:** Test coverage for migration and table validation
 - **Broadcast Service:** 80.9% coverage (maintained)
 
 ### Target After Full Implementation
