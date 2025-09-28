@@ -254,6 +254,14 @@ func TestServiceName_MethodName(t *testing.T) {
 5. ✅ `internal/database/init_test.go` - **COMPLETED**
 6. ✅ `internal/database/schema/system_tables_test.go` - **COMPLETED**
 
+## CI Compatibility Notes
+
+All database tests have been designed to be CI-friendly:
+
+- **Flexible Mock Expectations:** Tests use error-path testing instead of rigid mock sequences
+- **Order-Independent:** Database cleanup tests don't depend on specific table drop order
+- **Robust Error Handling:** Tests focus on exercising error paths rather than exact execution flows
+
 ## Commands for Testing
 
 ```bash
