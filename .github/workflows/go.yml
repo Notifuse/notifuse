@@ -42,7 +42,7 @@ jobs:
           cp coverage-unit.txt ../
 
       - name: Upload unit test coverage to Codecov
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: Notifuse/notifuse
