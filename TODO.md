@@ -11,5 +11,4 @@
 ## Eventual features
 
 - better design for system email
-- store last cron timestamp in DB and render an alert if it's not running (only in production)
 - add contact_list reason string
