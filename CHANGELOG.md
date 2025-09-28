@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.0] - 2025-09-28
+
+- Add cron status monitoring endpoint `/api/cron.status`
+- Add SettingRepository for managing application settings
+- Add automatic cron health checking in frontend console
+- Add visual banner with setup instructions when cron is not running
+- Update TaskService to track last cron execution timestamp
+
 ## [6.8] - 2025-09-24
 
 - Fix scheduled broadcast time handling to use string format instead of time.Time

@@ -18,7 +18,7 @@ import {
   faChartLine
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
-import { Workspace, WorkspaceMember, UserPermissions } from '../services/api/types'
+import { Workspace, UserPermissions } from '../services/api/types'
 import { ContactsCsvUploadProvider } from '../components/contacts/ContactsCsvUploadProvider'
 import { useState, useEffect } from 'react'
 import { FileManagerProvider } from '../components/file_manager/context'
