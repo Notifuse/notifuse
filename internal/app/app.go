@@ -80,6 +80,7 @@ type App struct {
 	userRepo                      domain.UserRepository
 	workspaceRepo                 domain.WorkspaceRepository
 	authRepo                      domain.AuthRepository
+	settingRepo                   domain.SettingRepository
 	contactRepo                   domain.ContactRepository
 	listRepo                      domain.ListRepository
 	contactListRepo               domain.ContactListRepository
@@ -312,6 +313,7 @@ func (a *App) InitRepositories() error {
 	a.userRepo = repository.NewUserRepository(a.db)
 	a.taskRepo = repository.NewTaskRepository(a.db)
 	a.authRepo = repository.NewSQLAuthRepository(a.db)
+	a.settingRepo = repository.NewSQLSettingRepository(a.db)
 	a.workspaceRepo = repository.NewWorkspaceRepository(a.db, &a.config.Database, a.config.Security.SecretKey)
 	a.contactRepo = repository.NewContactRepository(a.workspaceRepo)
 	a.listRepo = repository.NewListRepository(a.workspaceRepo)
@@ -468,7 +470,7 @@ func (a *App) InitServices() error {
 	)
 
 	// Initialize task service
-	a.taskService = service.NewTaskService(a.taskRepo, a.logger, a.authService, a.config.APIEndpoint)
+	a.taskService = service.NewTaskService(a.taskRepo, a.settingRepo, a.logger, a.authService, a.config.APIEndpoint)
 
 	// Initialize transactional notification service
 	a.transactionalNotificationService = service.NewTransactionalNotificationService(

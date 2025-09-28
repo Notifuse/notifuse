@@ -14,6 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/Notifuse/notifuse/pkg/testkeys"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
@@ -808,4 +809,172 @@ func TestTaskHandler_ExecutePendingTasks(t *testing.T) {
 		// Verify response
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	})
+}
+
+func TestTaskHandler_GetCronStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Configure logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	// Get test keys
+	publicKeyBytes, _, _ := testkeys.GetTestKeysBytes()
+	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromBytes(publicKeyBytes[:32])
+	if err != nil {
+		t.Fatalf("Failed to create public key: %v", err)
+	}
+
+	handler := NewTaskHandler(
+		mockTaskService,
+		publicKey,
+		mockLogger,
+		"test-secret",
+	)
+
+	t.Run("Returns last cron run when available", func(t *testing.T) {
+		// Setup
+		lastRun := time.Now().Add(-30 * time.Minute).UTC()
+
+		mockTaskService.EXPECT().
+			GetLastCronRun(gomock.Any()).
+			Return(&lastRun, nil)
+
+		// Create request
+		req := httptest.NewRequest(http.MethodGet, "/api/cron.status", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler
+		handler.GetCronStatus(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		// Check response contains expected fields
+		body := w.Body.String()
+		assert.Contains(t, body, `"success":true`)
+		assert.Contains(t, body, `"last_run"`)
+		assert.Contains(t, body, `"last_run_unix"`)
+		assert.Contains(t, body, `"time_since_last_run"`)
+		assert.Contains(t, body, `"time_since_last_run_seconds"`)
+		assert.Contains(t, body, lastRun.Format(time.RFC3339))
+	})
+
+	t.Run("Returns null when no cron run recorded", func(t *testing.T) {
+		// Setup
+		mockTaskService.EXPECT().
+			GetLastCronRun(gomock.Any()).
+			Return(nil, nil)
+
+		// Create request
+		req := httptest.NewRequest(http.MethodGet, "/api/cron.status", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler
+		handler.GetCronStatus(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		// Check response
+		body := w.Body.String()
+		assert.Contains(t, body, `"success":true`)
+		assert.Contains(t, body, `"last_run":null`)
+		assert.Contains(t, body, `"last_run_unix":null`)
+		assert.Contains(t, body, `"time_since_last_run":null`)
+		assert.Contains(t, body, `"time_since_last_run_seconds":null`)
+		assert.Contains(t, body, `"No cron run recorded yet"`)
+	})
+
+	t.Run("Handles service error", func(t *testing.T) {
+		// Setup
+		mockTaskService.EXPECT().
+			GetLastCronRun(gomock.Any()).
+			Return(nil, assert.AnError)
+
+		// Create request
+		req := httptest.NewRequest(http.MethodGet, "/api/cron.status", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler
+		handler.GetCronStatus(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+		// Check error response
+		body := w.Body.String()
+		assert.Contains(t, body, `"error"`)
+		assert.Contains(t, body, `"Failed to get cron status"`)
+	})
+
+	t.Run("Rejects non-GET methods", func(t *testing.T) {
+		// Create POST request
+		req := httptest.NewRequest(http.MethodPost, "/api/cron.status", nil)
+		w := httptest.NewRecorder()
+
+		// Call handler
+		handler.GetCronStatus(w, req)
+
+		// Assert
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+
+		// Check error response
+		body := w.Body.String()
+		assert.Contains(t, body, `"Method not allowed"`)
+	})
+}
+
+func TestTaskHandler_GetCronStatus_Integration(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockTaskService := mocks.NewMockTaskService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Configure logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+
+	// Get test keys
+	publicKeyBytes, _, _ := testkeys.GetTestKeysBytes()
+	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromBytes(publicKeyBytes[:32])
+	if err != nil {
+		t.Fatalf("Failed to create public key: %v", err)
+	}
+
+	handler := NewTaskHandler(
+		mockTaskService,
+		publicKey,
+		mockLogger,
+		"test-secret",
+	)
+
+	// Test the endpoint is properly registered
+	mux := http.NewServeMux()
+	handler.RegisterRoutes(mux)
+
+	// Setup mock
+	lastRun := time.Now().Add(-1 * time.Hour).UTC()
+	mockTaskService.EXPECT().
+		GetLastCronRun(gomock.Any()).
+		Return(&lastRun, nil)
+
+	// Create request
+	req := httptest.NewRequest(http.MethodGet, "/api/cron.status", nil)
+	w := httptest.NewRecorder()
+
+	// Call through mux
+	mux.ServeHTTP(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	// Check response contains expected timestamp
+	body := w.Body.String()
+	assert.Contains(t, body, `"success":true`)
+	assert.Contains(t, body, lastRun.Format(time.RFC3339))
 }

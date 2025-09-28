@@ -49,6 +49,7 @@ func (h *TaskHandler) RegisterRoutes(mux *http.ServeMux) {
 	// public routes for external systems to trigger task execution
 	mux.Handle("/api/tasks.execute", http.HandlerFunc(h.ExecuteTask))
 	mux.Handle("/api/cron", http.HandlerFunc(h.ExecutePendingTasks))
+	mux.Handle("/api/cron.status", http.HandlerFunc(h.GetCronStatus))
 }
 
 // CreateTask handles creation of a new task
@@ -260,4 +261,41 @@ func (h *TaskHandler) ExecuteTask(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 		"message": "Task execution initiated",
 	})
+}
+
+// GetCronStatus returns the last cron run timestamp from settings
+func (h *TaskHandler) GetCronStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	lastRun, err := h.taskService.GetLastCronRun(r.Context())
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to get last cron run")
+		WriteJSONError(w, "Failed to get cron status", http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]interface{}{
+		"success": true,
+	}
+
+	if lastRun != nil {
+		response["last_run"] = lastRun.Format(time.RFC3339)
+		response["last_run_unix"] = lastRun.Unix()
+
+		// Calculate time since last run
+		timeSince := time.Since(*lastRun)
+		response["time_since_last_run"] = timeSince.String()
+		response["time_since_last_run_seconds"] = int64(timeSince.Seconds())
+	} else {
+		response["last_run"] = nil
+		response["last_run_unix"] = nil
+		response["time_since_last_run"] = nil
+		response["time_since_last_run_seconds"] = nil
+		response["message"] = "No cron run recorded yet"
+	}
+
+	writeJSON(w, http.StatusOK, response)
 }

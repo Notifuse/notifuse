@@ -110,6 +110,7 @@ type TaskService interface {
 	DeleteTask(ctx context.Context, workspace, id string) error
 	ExecutePendingTasks(ctx context.Context, maxTasks int) error
 	ExecuteTask(ctx context.Context, workspace, taskID string, timeoutAt time.Time) error
+	GetLastCronRun(ctx context.Context) (*time.Time, error)
 	SubscribeToBroadcastEvents(eventBus EventBus)
 }
 

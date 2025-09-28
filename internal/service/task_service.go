@@ -24,6 +24,7 @@ const defaultMaxTaskRuntime = 50 // 50 seconds
 // TaskService manages task execution and state
 type TaskService struct {
 	repo        domain.TaskRepository
+	settingRepo domain.SettingRepository
 	logger      logger.Logger
 	authService *AuthService
 	processors  map[string]domain.TaskProcessor
@@ -48,10 +49,11 @@ func (s *TaskService) WithTransaction(ctx context.Context, fn func(*sql.Tx) erro
 }
 
 // NewTaskService creates a new task service instance
-func NewTaskService(repository domain.TaskRepository, logger logger.Logger, authService *AuthService, apiEndpoint string) *TaskService {
+func NewTaskService(repository domain.TaskRepository, settingRepo domain.SettingRepository, logger logger.Logger, authService *AuthService, apiEndpoint string) *TaskService {
 
 	return &TaskService{
 		repo:                 repository,
+		settingRepo:          settingRepo,
 		logger:               logger,
 		authService:          authService,
 		processors:           make(map[string]domain.TaskProcessor),
@@ -205,6 +207,15 @@ func (s *TaskService) DeleteTask(ctx context.Context, workspace, id string) erro
 func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) error {
 	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "ExecutePendingTasks")
 	defer tracing.EndSpan(span, nil)
+
+	// Set the last cron run timestamp before processing tasks
+	if err := s.settingRepo.SetLastCronRun(ctx); err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithField("error", err.Error()).Error("Failed to set last cron run timestamp")
+		// Continue processing tasks even if setting update fails
+	} else {
+		s.logger.Debug("Updated last cron run timestamp")
+	}
 
 	// Get the next batch of tasks
 	if maxTasks <= 0 {
@@ -621,6 +632,25 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 	}
 
 	return nil
+}
+
+// GetLastCronRun retrieves the last cron execution timestamp
+func (s *TaskService) GetLastCronRun(ctx context.Context) (*time.Time, error) {
+	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "GetLastCronRun")
+	defer tracing.EndSpan(span, nil)
+
+	lastRun, err := s.settingRepo.GetLastCronRun(ctx)
+	if err != nil {
+		tracing.MarkSpanError(ctx, err)
+		s.logger.WithField("error", err.Error()).Error("Failed to get last cron run")
+		return nil, err
+	}
+
+	if lastRun != nil {
+		tracing.AddAttribute(ctx, "last_run", lastRun.Format(time.RFC3339))
+	}
+
+	return lastRun, nil
 }
 
 // SubscribeToBroadcastEvents registers handlers for broadcast-related events

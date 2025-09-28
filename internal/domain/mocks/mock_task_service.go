@@ -92,6 +92,21 @@ func (mr *MockTaskServiceMockRecorder) ExecuteTask(arg0, arg1, arg2, arg3 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ExecuteTask", reflect.TypeOf((*MockTaskService)(nil).ExecuteTask), arg0, arg1, arg2, arg3)
 }
 
+// GetLastCronRun mocks base method.
+func (m *MockTaskService) GetLastCronRun(arg0 context.Context) (*time.Time, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetLastCronRun", arg0)
+	ret0, _ := ret[0].(*time.Time)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetLastCronRun indicates an expected call of GetLastCronRun.
+func (mr *MockTaskServiceMockRecorder) GetLastCronRun(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLastCronRun", reflect.TypeOf((*MockTaskService)(nil).GetLastCronRun), arg0)
+}
+
 // GetProcessor mocks base method.
 func (m *MockTaskService) GetProcessor(arg0 string) (domain.TaskProcessor, error) {
 	m.ctrl.T.Helper()
