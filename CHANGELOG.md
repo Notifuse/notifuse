@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [7.0] - 2025-09-28
+## [6.9] - 2025-09-28
 
 - Add cron status monitoring endpoint `/api/cron.status`
 - Add SettingRepository for managing application settings
