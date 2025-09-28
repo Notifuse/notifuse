@@ -1746,3 +1746,860 @@ func TestSparkPostService_directUpdateWebhook_ThroughRegisterWebhooks(t *testing
 		assert.Contains(t, err.Error(), "failed to update SparkPost webhook")
 	})
 }
+
+// Additional tests for better coverage
+func TestSparkPostService_CreateWebhook_ErrorCases(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHTTPClient := mocks.NewMockHTTPClient(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+
+	sparkPostService := service.NewSparkPostService(mockHTTPClient, mockAuthService, mockLogger)
+
+	config := domain.SparkPostSettings{
+		Endpoint: "https://api.sparkpost.test",
+		APIKey:   "test-api-key",
+	}
+
+	webhook := domain.SparkPostWebhook{
+		Name:     "Test Webhook",
+		Target:   "https://example.com/webhook",
+		Events:   []string{"delivery", "bounce"},
+		Active:   true,
+		AuthType: "none",
+	}
+
+	t.Run("Marshal Error", func(t *testing.T) {
+		// This test is tricky since json.Marshal rarely fails with normal structs
+		// We'll test with HTTP error instead
+		ctx := context.Background()
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(nil, errors.New("connection timeout"))
+
+		result, err := sparkPostService.CreateWebhook(ctx, config, webhook)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to execute request")
+	})
+
+	t.Run("Status Created Success", func(t *testing.T) {
+		ctx := context.Background()
+
+		webhookResponse := domain.SparkPostWebhookResponse{
+			Results: domain.SparkPostWebhook{
+				ID:     "webhook-123",
+				Name:   webhook.Name,
+				Target: webhook.Target,
+				Events: webhook.Events,
+				Active: webhook.Active,
+			},
+		}
+		responseJSON, _ := json.Marshal(webhookResponse)
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(mockHTTPResponse(http.StatusCreated, string(responseJSON)), nil)
+
+		result, err := sparkPostService.CreateWebhook(ctx, config, webhook)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Equal(t, "webhook-123", result.Results.ID)
+	})
+}
+
+func TestSparkPostService_directListWebhooks_ErrorCases(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHTTPClient := mocks.NewMockHTTPClient(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+
+	sparkPostService := service.NewSparkPostService(mockHTTPClient, mockAuthService, mockLogger)
+
+	settings := &domain.SparkPostSettings{
+		Endpoint: "https://api.sparkpost.test",
+		APIKey:   "test-api-key",
+	}
+
+	t.Run("HTTP Error", func(t *testing.T) {
+		ctx := context.Background()
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(nil, errors.New("network error"))
+
+		// Use RegisterWebhooks to trigger directListWebhooks
+		providerConfig := &domain.EmailProvider{SparkPost: settings}
+		result, err := sparkPostService.RegisterWebhooks(ctx, "workspace", "integration", "https://example.com", []domain.EmailEventType{domain.EmailEventDelivered}, providerConfig)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to list SparkPost webhooks")
+	})
+
+	t.Run("Non-OK Status", func(t *testing.T) {
+		ctx := context.Background()
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(mockHTTPResponse(http.StatusUnauthorized, `{"errors":[{"message":"Unauthorized"}]}`), nil)
+
+		providerConfig := &domain.EmailProvider{SparkPost: settings}
+		result, err := sparkPostService.RegisterWebhooks(ctx, "workspace", "integration", "https://example.com", []domain.EmailEventType{domain.EmailEventDelivered}, providerConfig)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to list SparkPost webhooks")
+	})
+
+	t.Run("Invalid JSON Response", func(t *testing.T) {
+		ctx := context.Background()
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(mockHTTPResponse(http.StatusOK, `invalid json`), nil)
+
+		providerConfig := &domain.EmailProvider{SparkPost: settings}
+		result, err := sparkPostService.RegisterWebhooks(ctx, "workspace", "integration", "https://example.com", []domain.EmailEventType{domain.EmailEventDelivered}, providerConfig)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to list SparkPost webhooks")
+	})
+}
+
+func TestSparkPostService_directCreateWebhook_ErrorCases(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHTTPClient := mocks.NewMockHTTPClient(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+
+	sparkPostService := service.NewSparkPostService(mockHTTPClient, mockAuthService, mockLogger)
+
+	settings := &domain.SparkPostSettings{
+		Endpoint: "https://api.sparkpost.test",
+		APIKey:   "test-api-key",
+	}
+
+	t.Run("HTTP Error", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Mock list webhooks to return empty result (to trigger create)
+		listResponse := domain.SparkPostWebhookListResponse{Results: []domain.SparkPostWebhook{}}
+		listResponseJSON, _ := json.Marshal(listResponse)
+
+		// Then mock create to fail
+		gomock.InOrder(
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusOK, string(listResponseJSON)), nil),
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(nil, errors.New("connection error")),
+		)
+
+		providerConfig := &domain.EmailProvider{SparkPost: settings}
+		result, err := sparkPostService.RegisterWebhooks(ctx, "workspace", "integration", "https://example.com", []domain.EmailEventType{domain.EmailEventDelivered}, providerConfig)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to create SparkPost webhook")
+	})
+
+	t.Run("Non-OK Status", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Mock list webhooks to return empty result
+		listResponse := domain.SparkPostWebhookListResponse{Results: []domain.SparkPostWebhook{}}
+		listResponseJSON, _ := json.Marshal(listResponse)
+
+		// Then mock create to return error status
+		gomock.InOrder(
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusOK, string(listResponseJSON)), nil),
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusBadRequest, `{"errors":[{"message":"Invalid webhook"}]}`), nil),
+		)
+
+		providerConfig := &domain.EmailProvider{SparkPost: settings}
+		result, err := sparkPostService.RegisterWebhooks(ctx, "workspace", "integration", "https://example.com", []domain.EmailEventType{domain.EmailEventDelivered}, providerConfig)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to create SparkPost webhook")
+	})
+
+	t.Run("Invalid JSON Response", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Mock list webhooks to return empty result
+		listResponse := domain.SparkPostWebhookListResponse{Results: []domain.SparkPostWebhook{}}
+		listResponseJSON, _ := json.Marshal(listResponse)
+
+		// Then mock create to return invalid JSON
+		gomock.InOrder(
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusOK, string(listResponseJSON)), nil),
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusOK, `invalid json`), nil),
+		)
+
+		providerConfig := &domain.EmailProvider{SparkPost: settings}
+		result, err := sparkPostService.RegisterWebhooks(ctx, "workspace", "integration", "https://example.com", []domain.EmailEventType{domain.EmailEventDelivered}, providerConfig)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to create SparkPost webhook")
+	})
+}
+
+func TestSparkPostService_TestWebhook_ErrorCases(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHTTPClient := mocks.NewMockHTTPClient(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+
+	sparkPostService := service.NewSparkPostService(mockHTTPClient, mockAuthService, mockLogger)
+
+	config := domain.SparkPostSettings{
+		Endpoint: "https://api.sparkpost.test",
+		APIKey:   "test-api-key",
+	}
+	webhookID := "webhook-123"
+
+	t.Run("HTTP Error", func(t *testing.T) {
+		ctx := context.Background()
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(nil, errors.New("network error"))
+
+		err := sparkPostService.TestWebhook(ctx, config, webhookID)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to execute request")
+	})
+
+	t.Run("Non-OK Status", func(t *testing.T) {
+		ctx := context.Background()
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(mockHTTPResponse(http.StatusBadRequest, `{"errors":[{"message":"Invalid webhook"}]}`), nil)
+
+		err := sparkPostService.TestWebhook(ctx, config, webhookID)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "API returned non-OK status code 400")
+	})
+}
+
+func TestSparkPostService_directDeleteWebhook_ErrorCases(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHTTPClient := mocks.NewMockHTTPClient(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+
+	sparkPostService := service.NewSparkPostService(mockHTTPClient, mockAuthService, mockLogger)
+
+	settings := &domain.SparkPostSettings{
+		Endpoint: "https://api.sparkpost.test",
+		APIKey:   "test-api-key",
+	}
+
+	t.Run("HTTP Error", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Mock list webhooks to return a webhook that matches our criteria
+		webhook := domain.SparkPostWebhook{
+			ID:     "webhook-123",
+			Target: "https://example.com/webhook?workspace_id=workspace&integration_id=integration",
+		}
+		listResponse := domain.SparkPostWebhookListResponse{Results: []domain.SparkPostWebhook{webhook}}
+		listResponseJSON, _ := json.Marshal(listResponse)
+
+		// Then mock delete to fail
+		gomock.InOrder(
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusOK, string(listResponseJSON)), nil),
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(nil, errors.New("connection error")),
+		)
+
+		providerConfig := &domain.EmailProvider{SparkPost: settings}
+		err := sparkPostService.UnregisterWebhooks(ctx, "workspace", "integration", providerConfig)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete one or more SparkPost webhooks")
+	})
+
+	t.Run("Non-OK Status", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Mock list webhooks to return a webhook that matches our criteria
+		webhook := domain.SparkPostWebhook{
+			ID:     "webhook-123",
+			Target: "https://example.com/webhook?workspace_id=workspace&integration_id=integration",
+		}
+		listResponse := domain.SparkPostWebhookListResponse{Results: []domain.SparkPostWebhook{webhook}}
+		listResponseJSON, _ := json.Marshal(listResponse)
+
+		// Then mock delete to return error status
+		gomock.InOrder(
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusOK, string(listResponseJSON)), nil),
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusBadRequest, `{"errors":[{"message":"Cannot delete webhook"}]}`), nil),
+		)
+
+		providerConfig := &domain.EmailProvider{SparkPost: settings}
+		err := sparkPostService.UnregisterWebhooks(ctx, "workspace", "integration", providerConfig)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete one or more SparkPost webhooks")
+	})
+
+	t.Run("Success with NoContent Status", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Mock list webhooks to return a webhook that matches our criteria
+		webhook := domain.SparkPostWebhook{
+			ID:     "webhook-123",
+			Target: "https://example.com/webhook?workspace_id=workspace&integration_id=integration",
+		}
+		listResponse := domain.SparkPostWebhookListResponse{Results: []domain.SparkPostWebhook{webhook}}
+		listResponseJSON, _ := json.Marshal(listResponse)
+
+		// Then mock delete to return NoContent status (which should succeed)
+		gomock.InOrder(
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusOK, string(listResponseJSON)), nil),
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusNoContent, ""), nil),
+		)
+
+		providerConfig := &domain.EmailProvider{SparkPost: settings}
+		err := sparkPostService.UnregisterWebhooks(ctx, "workspace", "integration", providerConfig)
+
+		assert.NoError(t, err)
+	})
+}
+
+func TestSparkPostService_ValidateWebhook_ErrorCases(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHTTPClient := mocks.NewMockHTTPClient(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+
+	sparkPostService := service.NewSparkPostService(mockHTTPClient, mockAuthService, mockLogger)
+
+	config := domain.SparkPostSettings{
+		Endpoint: "https://api.sparkpost.test",
+		APIKey:   "test-api-key",
+	}
+	webhook := domain.SparkPostWebhook{
+		Target: "https://example.com/webhook",
+	}
+
+	t.Run("HTTP Error", func(t *testing.T) {
+		ctx := context.Background()
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(nil, errors.New("network error"))
+
+		isValid, err := sparkPostService.ValidateWebhook(ctx, config, webhook)
+
+		assert.Error(t, err)
+		assert.False(t, isValid)
+		assert.Contains(t, err.Error(), "failed to execute request")
+	})
+}
+
+func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHTTPClient := mocks.NewMockHTTPClient(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+
+	sparkPostService := service.NewSparkPostService(mockHTTPClient, mockAuthService, mockLogger)
+
+	t.Run("With CC and BCC", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify CC and BCC recipients are included
+				body, _ := io.ReadAll(req.Body)
+				var emailReq map[string]interface{}
+				json.Unmarshal(body, &emailReq)
+
+				recipients := emailReq["recipients"].([]interface{})
+				assert.Len(t, recipients, 3) // to + cc + bcc
+
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				CC:      []string{"cc@example.com"},
+				BCC:     []string{"bcc@example.com"},
+				ReplyTo: "reply@example.com",
+			},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("Default Endpoint", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				// No endpoint specified - should use default
+				APIKey: "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify default endpoint is used
+				assert.Equal(t, "https://api.sparkpost.com/api/v1/transmissions", req.URL.String())
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions:  domain.EmailOptions{},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("Request Validation Error", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		// Create invalid request (missing required fields)
+		request := domain.SendEmailProviderRequest{
+			// Missing required fields to trigger validation error
+			Provider: provider,
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid request")
+	})
+
+	t.Run("Empty CC and BCC", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify empty CC/BCC are handled correctly
+				body, _ := io.ReadAll(req.Body)
+				var emailReq map[string]interface{}
+				json.Unmarshal(body, &emailReq)
+
+				recipients := emailReq["recipients"].([]interface{})
+				assert.Len(t, recipients, 1) // Only the main recipient
+
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				CC:  []string{""}, // Empty CC
+				BCC: []string{""}, // Empty BCC
+			},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
+}
+
+// Test additional edge cases for better coverage
+func TestSparkPostService_EdgeCases(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHTTPClient := mocks.NewMockHTTPClient(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+
+	sparkPostService := service.NewSparkPostService(mockHTTPClient, mockAuthService, mockLogger)
+
+	t.Run("RegisterWebhooks with EmailEventComplaint", func(t *testing.T) {
+		ctx := context.Background()
+
+		providerConfig := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		// Mock empty list to trigger create
+		listResponse := domain.SparkPostWebhookListResponse{Results: []domain.SparkPostWebhook{}}
+		listResponseJSON, _ := json.Marshal(listResponse)
+
+		// Mock create response with spam_complaint event
+		createResponse := domain.SparkPostWebhookResponse{
+			Results: domain.SparkPostWebhook{
+				ID:     "webhook-123",
+				Name:   "Test Webhook",
+				Events: []string{"spam_complaint"},
+				Active: true,
+			},
+		}
+		createResponseJSON, _ := json.Marshal(createResponse)
+
+		gomock.InOrder(
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusOK, string(listResponseJSON)), nil),
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				DoAndReturn(func(req *http.Request) (*http.Response, error) {
+					// Verify spam_complaint event is mapped correctly
+					body, _ := io.ReadAll(req.Body)
+					var webhook domain.SparkPostWebhook
+					json.Unmarshal(body, &webhook)
+					assert.Contains(t, webhook.Events, "spam_complaint")
+					return mockHTTPResponse(http.StatusOK, string(createResponseJSON)), nil
+				}),
+		)
+
+		result, err := sparkPostService.RegisterWebhooks(ctx, "workspace", "integration", "https://example.com", []domain.EmailEventType{domain.EmailEventComplaint}, providerConfig)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.True(t, result.IsRegistered)
+	})
+
+	t.Run("RegisterWebhooks with long integration ID", func(t *testing.T) {
+		ctx := context.Background()
+
+		providerConfig := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		// Mock empty list to trigger create
+		listResponse := domain.SparkPostWebhookListResponse{Results: []domain.SparkPostWebhook{}}
+		listResponseJSON, _ := json.Marshal(listResponse)
+
+		// Mock create response
+		createResponse := domain.SparkPostWebhookResponse{
+			Results: domain.SparkPostWebhook{
+				ID:     "webhook-123",
+				Name:   "Test Webhook",
+				Events: []string{"delivery"},
+				Active: true,
+			},
+		}
+		createResponseJSON, _ := json.Marshal(createResponse)
+
+		gomock.InOrder(
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusOK, string(listResponseJSON)), nil),
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				DoAndReturn(func(req *http.Request) (*http.Response, error) {
+					// Verify webhook name uses full integration ID (no truncation)
+					body, _ := io.ReadAll(req.Body)
+					var webhook domain.SparkPostWebhook
+					json.Unmarshal(body, &webhook)
+					assert.Equal(t, "Notifuse-very-long-integration-id-that-exceeds-limit", webhook.Name)
+					return mockHTTPResponse(http.StatusOK, string(createResponseJSON)), nil
+				}),
+		)
+
+		longIntegrationID := "very-long-integration-id-that-exceeds-limit"
+		result, err := sparkPostService.RegisterWebhooks(ctx, "workspace", longIntegrationID, "https://example.com", []domain.EmailEventType{domain.EmailEventDelivered}, providerConfig)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.True(t, result.IsRegistered)
+	})
+
+	t.Run("RegisterWebhooks with short integration ID", func(t *testing.T) {
+		ctx := context.Background()
+
+		providerConfig := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		// Mock empty list to trigger create
+		listResponse := domain.SparkPostWebhookListResponse{Results: []domain.SparkPostWebhook{}}
+		listResponseJSON, _ := json.Marshal(listResponse)
+
+		// Mock create response
+		createResponse := domain.SparkPostWebhookResponse{
+			Results: domain.SparkPostWebhook{
+				ID:     "webhook-123",
+				Name:   "Test Webhook",
+				Events: []string{"delivery"},
+				Active: true,
+			},
+		}
+		createResponseJSON, _ := json.Marshal(createResponse)
+
+		gomock.InOrder(
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				Return(mockHTTPResponse(http.StatusOK, string(listResponseJSON)), nil),
+			mockHTTPClient.EXPECT().
+				Do(gomock.Any()).
+				DoAndReturn(func(req *http.Request) (*http.Response, error) {
+					// Verify webhook name uses full short integration ID
+					body, _ := io.ReadAll(req.Body)
+					var webhook domain.SparkPostWebhook
+					json.Unmarshal(body, &webhook)
+					assert.Equal(t, "Notifuse-integration", webhook.Name)
+					return mockHTTPResponse(http.StatusOK, string(createResponseJSON)), nil
+				}),
+		)
+
+		shortIntegrationID := "integration"
+		result, err := sparkPostService.RegisterWebhooks(ctx, "workspace", shortIntegrationID, "https://example.com", []domain.EmailEventType{domain.EmailEventDelivered}, providerConfig)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.True(t, result.IsRegistered)
+	})
+
+	t.Run("GetWebhookStatus list error", func(t *testing.T) {
+		ctx := context.Background()
+
+		providerConfig := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(nil, errors.New("network error"))
+
+		result, err := sparkPostService.GetWebhookStatus(ctx, "workspace", "integration", providerConfig)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to list SparkPost webhooks")
+	})
+
+	t.Run("UnregisterWebhooks list error", func(t *testing.T) {
+		ctx := context.Background()
+
+		providerConfig := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(nil, errors.New("network error"))
+
+		err := sparkPostService.UnregisterWebhooks(ctx, "workspace", "integration", providerConfig)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to list SparkPost webhooks")
+	})
+}
+
+// Test missing configuration scenarios
+func TestSparkPostService_MissingConfig(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockHTTPClient := mocks.NewMockHTTPClient(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+
+	sparkPostService := service.NewSparkPostService(mockHTTPClient, mockAuthService, mockLogger)
+
+	ctx := context.Background()
+
+	t.Run("GetWebhookStatus missing config", func(t *testing.T) {
+		result, err := sparkPostService.GetWebhookStatus(ctx, "workspace", "integration", nil)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "configuration is missing or invalid")
+	})
+
+	t.Run("GetWebhookStatus missing SparkPost config", func(t *testing.T) {
+		providerConfig := &domain.EmailProvider{}
+
+		result, err := sparkPostService.GetWebhookStatus(ctx, "workspace", "integration", providerConfig)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "configuration is missing or invalid")
+	})
+
+	t.Run("GetWebhookStatus missing API key", func(t *testing.T) {
+		providerConfig := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				// Missing API key
+			},
+		}
+
+		result, err := sparkPostService.GetWebhookStatus(ctx, "workspace", "integration", providerConfig)
+
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "configuration is missing or invalid")
+	})
+
+	t.Run("UnregisterWebhooks missing config", func(t *testing.T) {
+		err := sparkPostService.UnregisterWebhooks(ctx, "workspace", "integration", nil)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "configuration is missing or invalid")
+	})
+
+	t.Run("UnregisterWebhooks missing SparkPost config", func(t *testing.T) {
+		providerConfig := &domain.EmailProvider{}
+
+		err := sparkPostService.UnregisterWebhooks(ctx, "workspace", "integration", providerConfig)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "configuration is missing or invalid")
+	})
+
+	t.Run("UnregisterWebhooks missing API key", func(t *testing.T) {
+		providerConfig := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				// Missing API key
+			},
+		}
+
+		err := sparkPostService.UnregisterWebhooks(ctx, "workspace", "integration", providerConfig)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "configuration is missing or invalid")
+	})
+}

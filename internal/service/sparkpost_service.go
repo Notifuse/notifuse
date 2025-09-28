@@ -411,9 +411,9 @@ func (s *SparkPostService) RegisterWebhooks(
 			return nil, fmt.Errorf("failed to update SparkPost webhook: %w", err)
 		}
 	} else {
-		// Create a new webhook - use a short name (max 24 chars)
+		// Create a new webhook
 		newWebhook := domain.SparkPostWebhook{
-			Name:     fmt.Sprintf("Notifuse-%s", integrationID[:15]),
+			Name:     fmt.Sprintf("Notifuse-%s", integrationID),
 			Target:   webhookURL,
 			Events:   sparkpostEvents,
 			Active:   true,
