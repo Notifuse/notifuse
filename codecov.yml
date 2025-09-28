@@ -2,9 +2,10 @@ coverage:
   status:
     project:
       default:
-        target: auto
+        target: 70%
+        threshold: 10%
     patch: yes
-
+  range: '60...80'
   # Exclude mock files from coverage calculation
   ignore:
     - '**/mocks/**'
