@@ -351,6 +351,115 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 	})
 }
 
+func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	externalID := "ext-123"
+	message := createSampleMessageHistory()
+
+	// Convert the MessageData to JSON for proper DB response mocking
+	messageDataJSON, _ := json.Marshal(message.MessageData)
+
+	t.Run("successful retrieval", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		}).AddRow(
+			message.ID,
+			message.ExternalID,
+			message.ContactEmail,
+			message.BroadcastID,
+			message.TemplateID,
+			message.TemplateVersion,
+			message.Channel,
+			message.StatusInfo,
+			messageDataJSON, // Use the actual JSON bytes
+			message.SentAt,
+			message.DeliveredAt,
+			message.FailedAt,
+			message.OpenedAt,
+			message.ClickedAt,
+			message.BouncedAt,
+			message.ComplainedAt,
+			message.UnsubscribedAt,
+			message.CreatedAt,
+			message.UpdatedAt,
+		)
+
+		mock.ExpectQuery(`SELECT .* FROM message_history WHERE external_id = \$1`).
+			WithArgs(externalID).
+			WillReturnRows(rows)
+
+		result, err := repo.GetByExternalID(ctx, workspaceID, externalID)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, message.ID, result.ID)
+		assert.Equal(t, message.ContactEmail, result.ContactEmail)
+		assert.Equal(t, *message.ExternalID, *result.ExternalID)
+	})
+
+	t.Run("not found", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		mock.ExpectQuery(`SELECT .* FROM message_history WHERE external_id = \$1`).
+			WithArgs(externalID).
+			WillReturnError(sql.ErrNoRows)
+
+		result, err := repo.GetByExternalID(ctx, workspaceID, externalID)
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.Contains(t, err.Error(), "message history with external_id ext-123 not found")
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(nil, errors.New("connection error"))
+
+		result, err := repo.GetByExternalID(ctx, workspaceID, externalID)
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("scan error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+		}).AddRow(
+			message.ID,
+			message.ExternalID,
+			message.ContactEmail,
+			message.BroadcastID,
+			message.TemplateID,
+			message.TemplateVersion,
+		) // Incomplete row to cause scan error
+
+		mock.ExpectQuery(`SELECT .* FROM message_history WHERE external_id = \$1`).
+			WithArgs(externalID).
+			WillReturnRows(rows)
+
+		result, err := repo.GetByExternalID(ctx, workspaceID, externalID)
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.Contains(t, err.Error(), "failed to get message history by external_id")
+	})
+}
+
 func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
 	defer cleanup()
@@ -659,6 +768,81 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 		require.Nil(t, results)
 		require.Zero(t, count)
 		require.Contains(t, err.Error(), "failed to query message history")
+	})
+
+	t.Run("scan error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		// Set up count query
+		countRows := sqlmock.NewRows([]string{"count"}).AddRow(1)
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM message_history WHERE broadcast_id = \$1`).
+			WithArgs(broadcastID).
+			WillReturnRows(countRows)
+
+		// Return incomplete row to cause scan error
+		dataRows := sqlmock.NewRows([]string{"id", "contact_email"}).
+			AddRow("msg-123", "contact-123")
+
+		mock.ExpectQuery(`SELECT .* FROM message_history WHERE broadcast_id = \$1 ORDER BY sent_at DESC LIMIT \$2 OFFSET \$3`).
+			WithArgs(broadcastID, limit, offset).
+			WillReturnRows(dataRows)
+
+		results, count, err := repo.GetByBroadcast(ctx, workspaceID, broadcastID, limit, offset)
+		require.Error(t, err)
+		require.Nil(t, results)
+		require.Zero(t, count)
+		require.Contains(t, err.Error(), "failed to scan message history")
+	})
+
+	t.Run("default limit and offset", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		// Set up count query
+		countRows := sqlmock.NewRows([]string{"count"}).AddRow(1)
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM message_history WHERE broadcast_id = \$1`).
+			WithArgs(broadcastID).
+			WillReturnRows(countRows)
+
+		// Should use default limit of 50 and offset of 0
+		mock.ExpectQuery(`SELECT .* FROM message_history WHERE broadcast_id = \$1 ORDER BY sent_at DESC LIMIT \$2 OFFSET \$3`).
+			WithArgs(broadcastID, 50, 0).
+			WillReturnRows(sqlmock.NewRows([]string{
+				"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+				"channel", "status_info", "message_data", "sent_at", "delivered_at",
+				"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+				"unsubscribed_at", "created_at", "updated_at",
+			}).AddRow(
+				message.ID,
+				message.ExternalID,
+				message.ContactEmail,
+				message.BroadcastID,
+				message.TemplateID,
+				message.TemplateVersion,
+				message.Channel,
+				message.StatusInfo,
+				messageDataJSON, // Use the actual JSON bytes
+				message.SentAt,
+				message.DeliveredAt,
+				message.FailedAt,
+				message.OpenedAt,
+				message.ClickedAt,
+				message.BouncedAt,
+				message.ComplainedAt,
+				message.UnsubscribedAt,
+				message.CreatedAt,
+				message.UpdatedAt,
+			))
+
+		// Call with negative limit and offset
+		results, count, err := repo.GetByBroadcast(ctx, workspaceID, broadcastID, -5, -10)
+		require.NoError(t, err)
+		require.NotNil(t, results)
+		require.Equal(t, 1, count)
+		require.Len(t, results, 1)
 	})
 }
 
@@ -1858,6 +2042,258 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		assert.Equal(t, "", nextCursor)
 	})
 
+	t.Run("successful listing with IsSent filter", func(t *testing.T) {
+		isSent := true
+		params := domain.MessageListParams{
+			Limit:  10,
+			IsSent: &isSent,
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		messageData1JSON, _ := json.Marshal(message1.MessageData)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		}).
+			AddRow(
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.Channel, message1.StatusInfo, messageData1JSON, message1.SentAt, message1.DeliveredAt,
+				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
+				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
+			)
+
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE sent_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+			WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 1)
+		assert.Equal(t, "", nextCursor)
+	})
+
+	t.Run("successful listing with IsSent false filter", func(t *testing.T) {
+		isSent := false
+		params := domain.MessageListParams{
+			Limit:  10,
+			IsSent: &isSent,
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		})
+
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE sent_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+			WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 0)
+		assert.Equal(t, "", nextCursor)
+	})
+
+	t.Run("successful listing with IsFailed filter", func(t *testing.T) {
+		isFailed := true
+		params := domain.MessageListParams{
+			Limit:    10,
+			IsFailed: &isFailed,
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		})
+
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE failed_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+			WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 0)
+		assert.Equal(t, "", nextCursor)
+	})
+
+	t.Run("successful listing with IsClicked filter", func(t *testing.T) {
+		isClicked := false
+		params := domain.MessageListParams{
+			Limit:     10,
+			IsClicked: &isClicked,
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		messageData1JSON, _ := json.Marshal(message1.MessageData)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		}).
+			AddRow(
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.Channel, message1.StatusInfo, messageData1JSON, message1.SentAt, message1.DeliveredAt,
+				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
+				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
+			)
+
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE clicked_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+			WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 1)
+		assert.Equal(t, "", nextCursor)
+	})
+
+	t.Run("successful listing with IsBounced filter", func(t *testing.T) {
+		isBounced := true
+		params := domain.MessageListParams{
+			Limit:     10,
+			IsBounced: &isBounced,
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		})
+
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE bounced_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+			WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 0)
+		assert.Equal(t, "", nextCursor)
+	})
+
+	t.Run("successful listing with IsComplained filter", func(t *testing.T) {
+		isComplained := false
+		params := domain.MessageListParams{
+			Limit:        10,
+			IsComplained: &isComplained,
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		messageData1JSON, _ := json.Marshal(message1.MessageData)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		}).
+			AddRow(
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.Channel, message1.StatusInfo, messageData1JSON, message1.SentAt, message1.DeliveredAt,
+				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
+				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
+			)
+
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE complained_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+			WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 1)
+		assert.Equal(t, "", nextCursor)
+	})
+
+	t.Run("successful listing with IsUnsubscribed filter", func(t *testing.T) {
+		isUnsubscribed := true
+		params := domain.MessageListParams{
+			Limit:          10,
+			IsUnsubscribed: &isUnsubscribed,
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		})
+
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE unsubscribed_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+			WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 0)
+		assert.Equal(t, "", nextCursor)
+	})
+
+	t.Run("successful listing with UpdatedAfter and UpdatedBefore filters", func(t *testing.T) {
+		updatedAfter := twoHoursAgo.Add(-30 * time.Minute)
+		updatedBefore := now.Add(-30 * time.Minute)
+
+		params := domain.MessageListParams{
+			Limit:         10,
+			UpdatedAfter:  &updatedAfter,
+			UpdatedBefore: &updatedBefore,
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		messageData1JSON, _ := json.Marshal(message1.MessageData)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		}).
+			AddRow(
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.Channel, message1.StatusInfo, messageData1JSON, message1.SentAt, message1.DeliveredAt,
+				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
+				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
+			)
+
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE updated_at >= \$1 AND updated_at <= \$2 ORDER BY created_at DESC, id DESC LIMIT 11`).
+			WithArgs(updatedAfter, updatedBefore).
+			WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 1)
+		assert.Equal(t, "", nextCursor)
+	})
+
 	t.Run("multiple filters combined", func(t *testing.T) {
 		isDelivered := true
 
@@ -1900,6 +2336,81 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
 		assert.Equal(t, "email", messages[0].Channel)
+	})
+}
+
+func TestMessageHistoryRepository_DeleteForEmail(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupMessageHistoryTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	email := "test@example.com"
+
+	t.Run("successful deletion", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1 WHERE contact_email = \$2`).
+			WithArgs("DELETED_EMAIL", email).
+			WillReturnResult(sqlmock.NewResult(0, 3)) // 3 rows affected
+
+		err := repo.DeleteForEmail(ctx, workspaceID, email)
+		require.NoError(t, err)
+	})
+
+	t.Run("no rows affected", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1 WHERE contact_email = \$2`).
+			WithArgs("DELETED_EMAIL", email).
+			WillReturnResult(sqlmock.NewResult(0, 0)) // 0 rows affected
+
+		err := repo.DeleteForEmail(ctx, workspaceID, email)
+		require.NoError(t, err) // Should not error even if no rows affected
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(nil, errors.New("connection error"))
+
+		err := repo.DeleteForEmail(ctx, workspaceID, email)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("execution error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1 WHERE contact_email = \$2`).
+			WithArgs("DELETED_EMAIL", email).
+			WillReturnError(errors.New("execution error"))
+
+		err := repo.DeleteForEmail(ctx, workspaceID, email)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to redact email in message history")
+	})
+
+	t.Run("rows affected error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		// Create a result that will error when RowsAffected is called
+		result := sqlmock.NewErrorResult(errors.New("rows affected error"))
+		mock.ExpectExec(`UPDATE message_history SET contact_email = \$1 WHERE contact_email = \$2`).
+			WithArgs("DELETED_EMAIL", email).
+			WillReturnResult(result)
+
+		err := repo.DeleteForEmail(ctx, workspaceID, email)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to get affected rows")
 	})
 }
 

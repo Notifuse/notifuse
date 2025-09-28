@@ -481,3 +481,76 @@ func TestContactListRepository_RemoveContactFromList(t *testing.T) {
 		require.Contains(t, err.Error(), "failed to get affected rows")
 	})
 }
+
+func TestContactListRepository_DeleteForEmail(t *testing.T) {
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupContactListTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	email := "test@example.com"
+
+	t.Run("successful deletion", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`DELETE FROM contact_lists WHERE email = \$1`).
+			WithArgs(email).
+			WillReturnResult(sqlmock.NewResult(0, 2))
+
+		err := repo.DeleteForEmail(ctx, workspaceID, email)
+		require.NoError(t, err)
+	})
+
+	t.Run("successful deletion with no rows affected", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`DELETE FROM contact_lists WHERE email = \$1`).
+			WithArgs(email).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		err := repo.DeleteForEmail(ctx, workspaceID, email)
+		require.NoError(t, err)
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(nil, errors.New("connection error"))
+
+		err := repo.DeleteForEmail(ctx, workspaceID, email)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("execution error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`DELETE FROM contact_lists WHERE email = \$1`).
+			WithArgs(email).
+			WillReturnError(errors.New("execution error"))
+
+		err := repo.DeleteForEmail(ctx, workspaceID, email)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to delete contact list relationships")
+	})
+
+	t.Run("rows affected error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`DELETE FROM contact_lists WHERE email = \$1`).
+			WithArgs(email).
+			WillReturnResult(sqlmock.NewErrorResult(errors.New("rows affected error")))
+
+		err := repo.DeleteForEmail(ctx, workspaceID, email)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to get affected rows")
+	})
+}

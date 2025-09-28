@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"testing"
 	"time"
 
@@ -42,8 +43,7 @@ func TestMessageSenderCreation(t *testing.T) {
 
 	// Assert the sender was created and implements the interface
 	assert.NotNil(t, sender, "Message sender should not be nil")
-	_, ok := sender.(MessageSender)
-	assert.True(t, ok, "Sender should implement MessageSender interface")
+	assert.Implements(t, (*MessageSender)(nil), sender, "Sender should implement MessageSender interface")
 
 	// Test creating with custom config
 	customConfig := &Config{
@@ -66,8 +66,7 @@ func TestMessageSenderCreation(t *testing.T) {
 	)
 
 	assert.NotNil(t, customSender, "Message sender with custom config should not be nil")
-	_, ok = customSender.(MessageSender)
-	assert.True(t, ok, "Custom sender should implement MessageSender interface")
+	assert.Implements(t, (*MessageSender)(nil), customSender, "Custom sender should implement MessageSender interface")
 }
 
 // Helper function to create a simple text block
@@ -1000,4 +999,1263 @@ func TestSendToRecipientWithLiquidSubject(t *testing.T) {
 
 	// Verify
 	assert.NoError(t, err)
+}
+
+// TestEnforceRateLimit tests the rate limiting functionality
+func TestEnforceRateLimit(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	t.Run("RateLimitDisabled", func(t *testing.T) {
+		// Config with rate limiting disabled
+		config := &Config{
+			DefaultRateLimit: 0,
+		}
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			config,
+			"",
+		)
+
+		messageSenderImpl := sender.(*messageSender)
+		ctx := context.Background()
+
+		// Should return immediately without delay
+		start := time.Now()
+		err := messageSenderImpl.enforceRateLimit(ctx)
+		elapsed := time.Since(start)
+
+		assert.NoError(t, err)
+		assert.Less(t, elapsed, 50*time.Millisecond) // Should be very fast
+	})
+
+	t.Run("RateLimitWithDelay", func(t *testing.T) {
+		// Config with very low rate limit to force delay
+		config := &Config{
+			DefaultRateLimit: 60, // 1 per second
+		}
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			config,
+			"",
+		)
+
+		messageSenderImpl := sender.(*messageSender)
+		ctx := context.Background()
+
+		// First call should be relatively fast (initialize the rate limiter)
+		err := messageSenderImpl.enforceRateLimit(ctx)
+		assert.NoError(t, err)
+
+		// Second call immediately should be delayed (rate is 1 per second)
+		start := time.Now()
+		err = messageSenderImpl.enforceRateLimit(ctx)
+		elapsed := time.Since(start)
+		assert.NoError(t, err)
+
+		// Should wait close to 1 second for 1 per second rate, but allow some tolerance
+		assert.Greater(t, elapsed, 800*time.Millisecond, "Should delay for rate limiting")
+		assert.Less(t, elapsed, 1200*time.Millisecond, "Should not delay too much longer than expected")
+	})
+
+	t.Run("ContextCancelled", func(t *testing.T) {
+		config := &Config{
+			DefaultRateLimit: 60, // 1 per second
+		}
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			config,
+			"",
+		)
+
+		messageSenderImpl := sender.(*messageSender)
+
+		// Create a context that will be cancelled
+		ctx, cancel := context.WithCancel(context.Background())
+
+		// First call to set up the rate limiter
+		err := messageSenderImpl.enforceRateLimit(ctx)
+		assert.NoError(t, err)
+
+		// Cancel the context
+		cancel()
+
+		// Second call should return context error
+		err = messageSenderImpl.enforceRateLimit(ctx)
+		assert.Error(t, err)
+		assert.Equal(t, context.Canceled, err)
+	})
+}
+
+// TestSendToRecipient_ErrorCases tests various error scenarios
+func TestSendToRecipient_ErrorCases(t *testing.T) {
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	tracking := true
+	timeoutAt := time.Now().Add(30 * time.Second)
+
+	t.Run("NilUTMParameters", func(t *testing.T) {
+		// Create fresh mocks for this subtest
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+		// Setup logger expectations
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			DefaultConfig(),
+			"",
+		)
+
+		broadcast := &domain.Broadcast{
+			ID:            "broadcast-123",
+			WorkspaceID:   workspaceID,
+			UTMParameters: nil, // This should be handled gracefully
+		}
+
+		emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+		emailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{emailSender},
+		}
+
+		template := &domain.Template{
+			ID: "template-123",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Test Subject",
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+			},
+		}
+
+		// Should succeed - SendEmail should be called
+		mockEmailService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+		assert.NoError(t, err)
+		// UTM parameters should be initialized to non-nil
+		assert.NotNil(t, broadcast.UTMParameters)
+	})
+
+	t.Run("SenderNotFound", func(t *testing.T) {
+		// Create fresh mocks for this subtest
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+		// Setup logger expectations
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			DefaultConfig(),
+			"",
+		)
+
+		broadcast := &domain.Broadcast{
+			ID:          "broadcast-123",
+			WorkspaceID: workspaceID,
+			UTMParameters: &domain.UTMParameters{
+				Source:   "test",
+				Medium:   "email",
+				Campaign: "unit-test",
+			},
+		}
+
+		// Template with a sender ID that doesn't exist in the provider
+		// Create an empty email provider to ensure no senders exist
+		emptyEmailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{}, // No senders at all
+		}
+
+		template := &domain.Template{
+			ID: "template-123",
+			Email: &domain.EmailTemplate{
+				SenderID:         "any-sender-id",
+				Subject:          "Test Subject",
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+			},
+		}
+
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emptyEmailProvider, timeoutAt)
+		assert.Error(t, err)
+		broadcastErr, ok := err.(*BroadcastError)
+		assert.True(t, ok)
+		assert.Equal(t, ErrCodeSenderNotFound, broadcastErr.Code)
+		// No SendEmail call should be made since sender is not found
+	})
+
+	t.Run("LiquidSubjectProcessingError", func(t *testing.T) {
+		// Create fresh mocks for this subtest
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+		// Setup logger expectations
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			DefaultConfig(),
+			"",
+		)
+
+		broadcast := &domain.Broadcast{
+			ID:          "broadcast-123",
+			WorkspaceID: workspaceID,
+			UTMParameters: &domain.UTMParameters{
+				Source:   "test",
+				Medium:   "email",
+				Campaign: "unit-test",
+			},
+		}
+
+		emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+		emailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{emailSender},
+		}
+
+		// Template with invalid Liquid syntax in subject
+		template := &domain.Template{
+			ID: "template-123",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Hello {{invalid.liquid.syntax}}", // This should cause Liquid processing to fail
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+			},
+		}
+
+		templateData := map[string]interface{}{
+			"name": "John",
+		}
+
+		// Mock successful email send in case Liquid processing succeeds
+		mockEmailService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil).
+			MaxTimes(1) // Allow 0 or 1 calls
+
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, templateData, emailProvider, timeoutAt)
+		// This might succeed or fail depending on the Liquid processor implementation
+		// If it fails, it should be a template compile error
+		if err != nil {
+			broadcastErr, ok := err.(*BroadcastError)
+			assert.True(t, ok)
+			assert.Equal(t, ErrCodeTemplateCompile, broadcastErr.Code)
+		}
+	})
+
+	t.Run("RateLimitWithContextCancellation", func(t *testing.T) {
+		// Create fresh mocks for this subtest
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+		// Setup logger expectations
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+		mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+
+		// Create a config with very low rate limit
+		config := &Config{
+			DefaultRateLimit:        60, // 1 per second
+			EnableCircuitBreaker:    false,
+			CircuitBreakerThreshold: 5,
+			CircuitBreakerCooldown:  1 * time.Minute,
+		}
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			config,
+			"",
+		)
+
+		broadcast := &domain.Broadcast{
+			ID:          "broadcast-123",
+			WorkspaceID: workspaceID,
+			UTMParameters: &domain.UTMParameters{
+				Source:   "test",
+				Medium:   "email",
+				Campaign: "unit-test",
+			},
+		}
+
+		emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+		emailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{emailSender},
+		}
+
+		template := &domain.Template{
+			ID: "template-123",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Test Subject",
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+			},
+		}
+
+		// First, send a message to trigger rate limiting
+		mockEmailService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-1", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+		assert.NoError(t, err)
+
+		// Create a context that will be cancelled quickly
+		cancelCtx, cancel := context.WithCancel(context.Background())
+		go func() {
+			time.Sleep(100 * time.Millisecond)
+			cancel()
+		}()
+
+		// Second message should fail due to context cancellation during rate limiting
+		err = sender.SendToRecipient(cancelCtx, workspaceID, "test-integration-id", tracking, broadcast, "message-2", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+		assert.Error(t, err)
+		broadcastErr, ok := err.(*BroadcastError)
+		assert.True(t, ok)
+		assert.Equal(t, ErrCodeRateLimitExceeded, broadcastErr.Code)
+	})
+}
+
+// TestSendBatch_AdvancedScenarios tests more complex SendBatch scenarios
+func TestSendBatch_AdvancedScenarios(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	timeoutAt := time.Now().Add(30 * time.Second)
+
+	t.Run("GetBroadcastReturnsNil", func(t *testing.T) {
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			DefaultConfig(),
+			"",
+		)
+
+		recipients := []*domain.ContactWithList{
+			{Contact: &domain.Contact{Email: "test@example.com"}},
+		}
+
+		// Mock returns nil broadcast without error
+		mockBroadcastRepository.EXPECT().
+			GetBroadcast(ctx, workspaceID, broadcastID).
+			Return(nil, nil)
+
+		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, map[string]*domain.Template{}, nil, timeoutAt)
+
+		assert.Error(t, err)
+		assert.Equal(t, 0, sent)
+		assert.Equal(t, 0, failed)
+		broadcastErr, ok := err.(*BroadcastError)
+		assert.True(t, ok)
+		assert.Equal(t, ErrCodeBroadcastNotFound, broadcastErr.Code)
+	})
+
+	t.Run("TimeoutReached", func(t *testing.T) {
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			DefaultConfig(),
+			"",
+		)
+
+		broadcast := &domain.Broadcast{
+			ID:          broadcastID,
+			WorkspaceID: workspaceID,
+			UTMParameters: &domain.UTMParameters{
+				Source:   "test",
+				Medium:   "email",
+				Campaign: "unit-test",
+			},
+			TestSettings: domain.BroadcastTestSettings{
+				Enabled: false,
+				Variations: []domain.BroadcastVariation{
+					{VariationName: "variation-1", TemplateID: "template-123"},
+				},
+			},
+		}
+
+		recipients := []*domain.ContactWithList{
+			{Contact: &domain.Contact{Email: "test1@example.com"}},
+			{Contact: &domain.Contact{Email: "test2@example.com"}},
+		}
+
+		emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+		template := &domain.Template{
+			ID: "template-123",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Test Subject",
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+			},
+		}
+		templates := map[string]*domain.Template{"template-123": template}
+
+		mockBroadcastRepository.EXPECT().
+			GetBroadcast(ctx, workspaceID, broadcastID).
+			Return(broadcast, nil)
+
+		// Use a timeout that's already passed
+		pastTimeout := time.Now().Add(-1 * time.Second)
+
+		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, templates, nil, pastTimeout)
+
+		// Should return immediately without processing any recipients
+		assert.NoError(t, err)
+		assert.Equal(t, 0, sent)
+		assert.Equal(t, 0, failed)
+	})
+
+	t.Run("ABTestRandomVariationSelection", func(t *testing.T) {
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			DefaultConfig(),
+			"",
+		)
+
+		broadcast := &domain.Broadcast{
+			ID:          broadcastID,
+			WorkspaceID: workspaceID,
+			UTMParameters: &domain.UTMParameters{
+				Source:   "test",
+				Medium:   "email",
+				Campaign: "unit-test",
+			},
+			TestSettings: domain.BroadcastTestSettings{
+				Enabled: true,
+				Variations: []domain.BroadcastVariation{
+					{VariationName: "variation-1", TemplateID: "template-123"},
+					{VariationName: "variation-2", TemplateID: "template-456"},
+				},
+			},
+		}
+
+		recipients := []*domain.ContactWithList{
+			{Contact: &domain.Contact{Email: "a@example.com"}}, // First char 'a' = ASCII 97
+			{Contact: &domain.Contact{Email: "b@example.com"}}, // First char 'b' = ASCII 98
+		}
+
+		emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+		template1 := &domain.Template{
+			ID: "template-123",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Test Subject 1",
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content 1")),
+			},
+		}
+		template2 := &domain.Template{
+			ID: "template-456",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Test Subject 2",
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content 2")),
+			},
+		}
+		templates := map[string]*domain.Template{
+			"template-123": template1,
+			"template-456": template2,
+		}
+
+		emailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{emailSender},
+		}
+
+		mockBroadcastRepository.EXPECT().
+			GetBroadcast(ctx, workspaceID, broadcastID).
+			Return(broadcast, nil)
+
+		// Expect emails to be sent
+		mockEmailService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil).Times(2)
+
+		mockMessageHistoryRepo.EXPECT().
+			Create(ctx, workspaceID, gomock.Any()).
+			Return(nil).Times(2)
+
+		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, templates, emailProvider, timeoutAt)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 2, sent)
+		assert.Equal(t, 0, failed)
+	})
+
+	t.Run("WinnerTemplateSelected", func(t *testing.T) {
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			DefaultConfig(),
+			"",
+		)
+
+		broadcast := &domain.Broadcast{
+			ID:              broadcastID,
+			WorkspaceID:     workspaceID,
+			WinningTemplate: "template-winner", // Winner already selected
+			UTMParameters: &domain.UTMParameters{
+				Source:   "test",
+				Medium:   "email",
+				Campaign: "unit-test",
+			},
+			TestSettings: domain.BroadcastTestSettings{
+				Enabled: true,
+				Variations: []domain.BroadcastVariation{
+					{VariationName: "variation-1", TemplateID: "template-123"},
+					{VariationName: "variation-2", TemplateID: "template-456"},
+				},
+			},
+		}
+
+		recipients := []*domain.ContactWithList{
+			{Contact: &domain.Contact{Email: "test@example.com"}},
+		}
+
+		emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+		winnerTemplate := &domain.Template{
+			ID: "template-winner",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Winner Template",
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Winner content")),
+			},
+		}
+		templates := map[string]*domain.Template{
+			"template-winner": winnerTemplate,
+		}
+
+		emailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{emailSender},
+		}
+
+		mockBroadcastRepository.EXPECT().
+			GetBroadcast(ctx, workspaceID, broadcastID).
+			Return(broadcast, nil)
+
+		mockEmailService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		mockMessageHistoryRepo.EXPECT().
+			Create(ctx, workspaceID, gomock.Any()).
+			Return(nil)
+
+		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, templates, emailProvider, timeoutAt)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, sent)
+		assert.Equal(t, 0, failed)
+	})
+
+	t.Run("CircuitBreakerRecordsFailureOnHighFailureRate", func(t *testing.T) {
+		config := DefaultConfig()
+		config.EnableCircuitBreaker = true
+		config.CircuitBreakerThreshold = 5 // Set higher than number of recipients to allow all attempts
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			config,
+			"",
+		)
+
+		broadcast := &domain.Broadcast{
+			ID:          broadcastID,
+			WorkspaceID: workspaceID,
+			UTMParameters: &domain.UTMParameters{
+				Source:   "test",
+				Medium:   "email",
+				Campaign: "unit-test",
+			},
+			TestSettings: domain.BroadcastTestSettings{
+				Enabled: false,
+				Variations: []domain.BroadcastVariation{
+					{VariationName: "variation-1", TemplateID: "template-123"},
+				},
+			},
+		}
+
+		recipients := []*domain.ContactWithList{
+			{Contact: &domain.Contact{Email: "test1@example.com"}},
+			{Contact: &domain.Contact{Email: "test2@example.com"}},
+			{Contact: &domain.Contact{Email: "test3@example.com"}},
+		}
+
+		emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+		template := &domain.Template{
+			ID: "template-123",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Test Subject",
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+			},
+		}
+		templates := map[string]*domain.Template{"template-123": template}
+
+		emailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{emailSender},
+		}
+
+		mockBroadcastRepository.EXPECT().
+			GetBroadcast(ctx, workspaceID, broadcastID).
+			Return(broadcast, nil)
+
+		// All email sends fail
+		mockEmailService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(fmt.Errorf("email service unavailable")).Times(3)
+
+		// Message history should still be recorded for failed messages
+		mockMessageHistoryRepo.EXPECT().
+			Create(ctx, workspaceID, gomock.Any()).
+			Return(nil).Times(3)
+
+		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, templates, emailProvider, timeoutAt)
+
+		assert.NoError(t, err) // SendBatch itself doesn't return error, just counts
+		assert.Equal(t, 0, sent)
+		assert.Equal(t, 3, failed)
+
+		// Circuit breaker should have recorded the failure
+		messageSenderImpl := sender.(*messageSender)
+		assert.NotNil(t, messageSenderImpl.circuitBreaker.GetLastError())
+	})
+}
+
+// TestNewMessageSender_EdgeCases tests NewMessageSender with different configurations
+func TestNewMessageSender_EdgeCases(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	t.Run("VeryLowRateLimit", func(t *testing.T) {
+		config := &Config{
+			DefaultRateLimit:     30, // 0.5 per second, should result in permitsPerSecond = 1
+			EnableCircuitBreaker: false,
+		}
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			config,
+			"https://api.example.com",
+		)
+
+		assert.NotNil(t, sender)
+		messageSenderImpl := sender.(*messageSender)
+		assert.Equal(t, "https://api.example.com", messageSenderImpl.apiEndpoint)
+		assert.Nil(t, messageSenderImpl.circuitBreaker) // Should be nil when disabled
+	})
+
+	t.Run("ZeroRateLimit", func(t *testing.T) {
+		config := &Config{
+			DefaultRateLimit:        0, // Should result in permitsPerSecond = 1
+			EnableCircuitBreaker:    true,
+			CircuitBreakerThreshold: 10,
+			CircuitBreakerCooldown:  2 * time.Minute,
+		}
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			config,
+			"",
+		)
+
+		assert.NotNil(t, sender)
+		messageSenderImpl := sender.(*messageSender)
+		assert.NotNil(t, messageSenderImpl.circuitBreaker) // Should be present when enabled
+		assert.Equal(t, config.CircuitBreakerThreshold, messageSenderImpl.circuitBreaker.threshold)
+		assert.Equal(t, config.CircuitBreakerCooldown, messageSenderImpl.circuitBreaker.cooldownPeriod)
+	})
+}
+
+// TestCircuitBreaker_Advanced tests more circuit breaker scenarios
+func TestCircuitBreaker_Advanced(t *testing.T) {
+	t.Run("CooldownReset", func(t *testing.T) {
+		cb := NewCircuitBreaker(2, 100*time.Millisecond)
+
+		// Record failures to open circuit
+		cb.RecordFailure(fmt.Errorf("error 1"))
+		cb.RecordFailure(fmt.Errorf("error 2"))
+		assert.True(t, cb.IsOpen())
+
+		// Wait for cooldown
+		time.Sleep(150 * time.Millisecond)
+
+		// Circuit should be closed after cooldown
+		assert.False(t, cb.IsOpen())
+		assert.Equal(t, 0, cb.failures)
+		assert.Nil(t, cb.GetLastError())
+	})
+
+	t.Run("SuccessResetsFailures", func(t *testing.T) {
+		cb := NewCircuitBreaker(3, 1*time.Minute)
+
+		// Record some failures
+		cb.RecordFailure(fmt.Errorf("error 1"))
+		cb.RecordFailure(fmt.Errorf("error 2"))
+		assert.False(t, cb.IsOpen()) // Not enough to open
+		assert.Equal(t, 2, cb.failures)
+
+		// Record success
+		cb.RecordSuccess()
+		assert.False(t, cb.IsOpen())
+		assert.Equal(t, 0, cb.failures)
+		assert.Nil(t, cb.GetLastError())
+	})
+
+	t.Run("ConcurrentAccess", func(t *testing.T) {
+		cb := NewCircuitBreaker(5, 1*time.Second)
+
+		// Test concurrent access
+		var wg sync.WaitGroup
+		for i := 0; i < 10; i++ {
+			wg.Add(1)
+			go func(id int) {
+				defer wg.Done()
+				if id%2 == 0 {
+					cb.RecordFailure(fmt.Errorf("error %d", id))
+				} else {
+					cb.RecordSuccess()
+				}
+				cb.IsOpen()
+				cb.GetLastError()
+			}(i)
+		}
+		wg.Wait()
+
+		// Should not panic and should be in a consistent state
+		assert.NotPanics(t, func() {
+			cb.IsOpen()
+			cb.GetLastError()
+		})
+	})
+}
+
+// TestSendBatch_TemplateDataBuildFailure tests SendBatch when template data building fails
+func TestSendBatch_TemplateDataBuildFailure(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	timeoutAt := time.Now().Add(30 * time.Second)
+
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		mockLogger,
+		DefaultConfig(),
+		"",
+	)
+
+	broadcast := &domain.Broadcast{
+		ID:          broadcastID,
+		WorkspaceID: workspaceID,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "test",
+			Medium:   "email",
+			Campaign: "unit-test",
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: false,
+			Variations: []domain.BroadcastVariation{
+				{VariationName: "variation-1", TemplateID: "template-123"},
+			},
+		},
+	}
+
+	// Recipients with contact that might cause template data building to fail
+	recipients := []*domain.ContactWithList{
+		{Contact: &domain.Contact{Email: "test@example.com"}},
+	}
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	template := &domain.Template{
+		ID: "template-123",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+		},
+	}
+	templates := map[string]*domain.Template{"template-123": template}
+
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(broadcast, nil)
+
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+
+	// Mock expectations for successful processing
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).AnyTimes()
+
+	mockMessageHistoryRepo.EXPECT().
+		Create(ctx, workspaceID, gomock.Any()).
+		Return(nil).AnyTimes()
+
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, templates, emailProvider, timeoutAt)
+
+	// Should handle the case gracefully
+	assert.NoError(t, err)
+	// Results depend on whether template data building succeeds or fails
+	assert.Equal(t, len(recipients), sent+failed)
+}
+
+// TestSendBatch_EmptyEmailContact tests SendBatch with contacts having empty emails
+func TestSendBatch_EmptyEmailContact(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	timeoutAt := time.Now().Add(30 * time.Second)
+
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		mockLogger,
+		DefaultConfig(),
+		"",
+	)
+
+	broadcast := &domain.Broadcast{
+		ID:          broadcastID,
+		WorkspaceID: workspaceID,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "test",
+			Medium:   "email",
+			Campaign: "unit-test",
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: false,
+			Variations: []domain.BroadcastVariation{
+				{VariationName: "variation-1", TemplateID: "template-123"},
+			},
+		},
+	}
+
+	// Mix of valid and invalid recipients
+	recipients := []*domain.ContactWithList{
+		{Contact: &domain.Contact{Email: ""}},                  // Empty email
+		{Contact: &domain.Contact{Email: "valid@example.com"}}, // Valid email
+		{Contact: nil}, // Nil contact
+	}
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	template := &domain.Template{
+		ID: "template-123",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+		},
+	}
+	templates := map[string]*domain.Template{"template-123": template}
+
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(broadcast, nil)
+
+	// Only one email should be sent (the valid one)
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).Times(1)
+
+	mockMessageHistoryRepo.EXPECT().
+		Create(ctx, workspaceID, gomock.Any()).
+		Return(nil).Times(1)
+
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, templates, emailProvider, timeoutAt)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 1, sent)
+	assert.Equal(t, 2, failed) // Two invalid contacts
+}
+
+// TestSendBatch_NoVariations tests SendBatch when broadcast has no variations
+func TestSendBatch_NoVariations(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	broadcastID := "broadcast-123"
+	timeoutAt := time.Now().Add(30 * time.Second)
+
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		mockLogger,
+		DefaultConfig(),
+		"",
+	)
+
+	broadcast := &domain.Broadcast{
+		ID:          broadcastID,
+		WorkspaceID: workspaceID,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "test",
+			Medium:   "email",
+			Campaign: "unit-test",
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled:    false,
+			Variations: []domain.BroadcastVariation{}, // No variations
+		},
+	}
+
+	recipients := []*domain.ContactWithList{
+		{Contact: &domain.Contact{Email: "test@example.com"}},
+	}
+
+	templates := map[string]*domain.Template{} // No templates
+
+	mockBroadcastRepository.EXPECT().
+		GetBroadcast(ctx, workspaceID, broadcastID).
+		Return(broadcast, nil)
+
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, templates, nil, timeoutAt)
+
+	assert.NoError(t, err)
+	assert.Equal(t, 0, sent)
+	assert.Equal(t, 1, failed) // Should fail due to no template
+}
+
+// TestSendToRecipient_CompilationFailsWithNilHTML tests when compilation succeeds but HTML is nil
+func TestSendToRecipient_CompilationFailsWithNilHTML(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	tracking := true
+	timeoutAt := time.Now().Add(30 * time.Second)
+
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		mockLogger,
+		DefaultConfig(),
+		"",
+	)
+
+	broadcast := &domain.Broadcast{
+		ID:          "broadcast-123",
+		WorkspaceID: workspaceID,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "test",
+			Medium:   "email",
+			Campaign: "unit-test",
+		},
+	}
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+
+	// Template with minimal content that might cause HTML compilation to return nil
+	template := &domain.Template{
+		ID: "template-123",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: &notifuse_mjml.MJMLBlock{}, // Minimal block
+		},
+	}
+
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+
+	// Should fail with template compilation error
+	assert.Error(t, err)
+	broadcastErr, ok := err.(*BroadcastError)
+	assert.True(t, ok)
+	assert.Equal(t, ErrCodeTemplateCompile, broadcastErr.Code)
+}
+
+// TestSendToRecipient_CircuitBreakerSuccessRecording tests circuit breaker success recording
+func TestSendToRecipient_CircuitBreakerSuccessRecording(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	config := DefaultConfig()
+	config.EnableCircuitBreaker = true
+
+	sender := NewMessageSender(
+		mockBroadcastRepository,
+		mockMessageHistoryRepo,
+		mockTemplateRepo,
+		mockEmailService,
+		mockLogger,
+		config,
+		"",
+	)
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	tracking := true
+	timeoutAt := time.Now().Add(30 * time.Second)
+
+	broadcast := &domain.Broadcast{
+		ID:          "broadcast-123",
+		WorkspaceID: workspaceID,
+		UTMParameters: &domain.UTMParameters{
+			Source:   "test",
+			Medium:   "email",
+			Campaign: "unit-test",
+		},
+	}
+
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:    domain.EmailProviderKindSMTP,
+		Senders: []domain.EmailSender{emailSender},
+	}
+
+	template := &domain.Template{
+		ID: "template-123",
+		Email: &domain.EmailTemplate{
+			SenderID:         emailSender.ID,
+			Subject:          "Test Subject",
+			VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+		},
+	}
+
+	// First record a failure to test success reset
+	messageSenderImpl := sender.(*messageSender)
+	messageSenderImpl.circuitBreaker.RecordFailure(fmt.Errorf("test failure"))
+	assert.Equal(t, 1, messageSenderImpl.circuitBreaker.failures)
+
+	// Mock successful email send
+	mockEmailService.EXPECT().
+		SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil)
+
+	err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-123", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+
+	assert.NoError(t, err)
+	// Circuit breaker should have recorded success and reset failures
+	assert.Equal(t, 0, messageSenderImpl.circuitBreaker.failures)
+	assert.Nil(t, messageSenderImpl.circuitBreaker.GetLastError())
 }

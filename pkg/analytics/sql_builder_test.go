@@ -2000,3 +2000,702 @@ func TestProcessRows_ErrorHandling(t *testing.T) {
 	// Verify all expectations were met
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestGenerateTimeRange(t *testing.T) {
+	tests := []struct {
+		name        string
+		start       time.Time
+		end         time.Time
+		granularity string
+		expected    []string
+		description string
+	}{
+		// Hour granularity tests
+		{
+			name:        "hour granularity - same day",
+			start:       time.Date(2024, 1, 1, 10, 30, 0, 0, time.UTC),
+			end:         time.Date(2024, 1, 1, 12, 45, 0, 0, time.UTC),
+			granularity: "hour",
+			expected: []string{
+				"2024-01-01T10:00:00Z",
+				"2024-01-01T11:00:00Z",
+				"2024-01-01T12:00:00Z",
+			},
+			description: "Should generate hourly intervals truncated to hour boundaries",
+		},
+		{
+			name:        "hour granularity - cross day",
+			start:       time.Date(2024, 1, 1, 23, 0, 0, 0, time.UTC),
+			end:         time.Date(2024, 1, 2, 1, 0, 0, 0, time.UTC),
+			granularity: "hour",
+			expected: []string{
+				"2024-01-01T23:00:00Z",
+				"2024-01-02T00:00:00Z",
+				"2024-01-02T01:00:00Z",
+			},
+			description: "Should handle hour ranges crossing day boundaries",
+		},
+		{
+			name:        "hour granularity - single hour",
+			start:       time.Date(2024, 1, 1, 15, 0, 0, 0, time.UTC),
+			end:         time.Date(2024, 1, 1, 15, 59, 59, 0, time.UTC),
+			granularity: "hour",
+			expected: []string{
+				"2024-01-01T15:00:00Z",
+			},
+			description: "Should handle single hour range",
+		},
+
+		// Day granularity tests
+		{
+			name:        "day granularity - multiple days",
+			start:       time.Date(2024, 1, 1, 15, 30, 0, 0, time.UTC),
+			end:         time.Date(2024, 1, 3, 10, 0, 0, 0, time.UTC),
+			granularity: "day",
+			expected: []string{
+				"2024-01-01T00:00:00Z",
+				"2024-01-02T00:00:00Z",
+				"2024-01-03T00:00:00Z",
+			},
+			description: "Should generate daily intervals truncated to day boundaries",
+		},
+		{
+			name:        "day granularity - same day",
+			start:       time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC),
+			end:         time.Date(2024, 1, 1, 23, 59, 59, 0, time.UTC),
+			granularity: "day",
+			expected: []string{
+				"2024-01-01T00:00:00Z",
+			},
+			description: "Should handle single day range",
+		},
+		{
+			name:        "day granularity - cross month",
+			start:       time.Date(2024, 1, 30, 0, 0, 0, 0, time.UTC),
+			end:         time.Date(2024, 2, 2, 0, 0, 0, 0, time.UTC),
+			granularity: "day",
+			expected: []string{
+				"2024-01-30T00:00:00Z",
+				"2024-01-31T00:00:00Z",
+				"2024-02-01T00:00:00Z",
+				"2024-02-02T00:00:00Z",
+			},
+			description: "Should handle day ranges crossing month boundaries",
+		},
+
+		// Week granularity tests
+		{
+			name:        "week granularity - Monday to Sunday",
+			start:       time.Date(2024, 1, 1, 10, 0, 0, 0, time.UTC), // Monday
+			end:         time.Date(2024, 1, 7, 15, 0, 0, 0, time.UTC), // Sunday
+			granularity: "week",
+			expected: []string{
+				"2024-01-01T00:00:00Z", // Monday start of week
+			},
+			description: "Should generate weekly intervals starting from Monday",
+		},
+		{
+			name:        "week granularity - Wednesday to next Wednesday",
+			start:       time.Date(2024, 1, 3, 10, 0, 0, 0, time.UTC),  // Wednesday
+			end:         time.Date(2024, 1, 10, 15, 0, 0, 0, time.UTC), // Next Wednesday
+			granularity: "week",
+			expected: []string{
+				"2024-01-01T00:00:00Z", // Monday of first week
+				"2024-01-08T00:00:00Z", // Monday of second week
+			},
+			description: "Should align weeks to Monday regardless of start day",
+		},
+		{
+			name:        "week granularity - Sunday start",
+			start:       time.Date(2024, 1, 7, 10, 0, 0, 0, time.UTC),  // Sunday
+			end:         time.Date(2024, 1, 14, 15, 0, 0, 0, time.UTC), // Next Sunday
+			granularity: "week",
+			expected: []string{
+				"2024-01-01T00:00:00Z", // Monday of first week (Jan 1 is Monday)
+				"2024-01-08T00:00:00Z", // Monday of second week
+			},
+			description: "Should handle Sunday as day 7 and align to Monday",
+		},
+		{
+			name:        "week granularity - multiple weeks",
+			start:       time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),  // Monday
+			end:         time.Date(2024, 1, 22, 0, 0, 0, 0, time.UTC), // Monday (3 weeks later)
+			granularity: "week",
+			expected: []string{
+				"2024-01-01T00:00:00Z",
+				"2024-01-08T00:00:00Z",
+				"2024-01-15T00:00:00Z",
+				"2024-01-22T00:00:00Z",
+			},
+			description: "Should generate multiple weekly intervals",
+		},
+		{
+			name:        "week granularity - cross month",
+			start:       time.Date(2024, 1, 29, 0, 0, 0, 0, time.UTC), // Monday
+			end:         time.Date(2024, 2, 12, 0, 0, 0, 0, time.UTC), // Monday (2 weeks later)
+			granularity: "week",
+			expected: []string{
+				"2024-01-29T00:00:00Z",
+				"2024-02-05T00:00:00Z",
+				"2024-02-12T00:00:00Z",
+			},
+			description: "Should handle weekly ranges crossing month boundaries",
+		},
+
+		// Month granularity tests
+		{
+			name:        "month granularity - same month",
+			start:       time.Date(2024, 1, 15, 10, 0, 0, 0, time.UTC),
+			end:         time.Date(2024, 1, 25, 15, 0, 0, 0, time.UTC),
+			granularity: "month",
+			expected: []string{
+				"2024-01-01T00:00:00Z",
+			},
+			description: "Should generate single month interval truncated to month start",
+		},
+		{
+			name:        "month granularity - multiple months",
+			start:       time.Date(2024, 1, 15, 0, 0, 0, 0, time.UTC),
+			end:         time.Date(2024, 4, 10, 0, 0, 0, 0, time.UTC),
+			granularity: "month",
+			expected: []string{
+				"2024-01-01T00:00:00Z",
+				"2024-02-01T00:00:00Z",
+				"2024-03-01T00:00:00Z",
+				"2024-04-01T00:00:00Z",
+			},
+			description: "Should generate multiple monthly intervals",
+		},
+		{
+			name:        "month granularity - cross year",
+			start:       time.Date(2023, 11, 15, 0, 0, 0, 0, time.UTC),
+			end:         time.Date(2024, 2, 10, 0, 0, 0, 0, time.UTC),
+			granularity: "month",
+			expected: []string{
+				"2023-11-01T00:00:00Z",
+				"2023-12-01T00:00:00Z",
+				"2024-01-01T00:00:00Z",
+				"2024-02-01T00:00:00Z",
+			},
+			description: "Should handle monthly ranges crossing year boundaries",
+		},
+		{
+			name:        "month granularity - february leap year",
+			start:       time.Date(2024, 1, 31, 0, 0, 0, 0, time.UTC), // Leap year
+			end:         time.Date(2024, 3, 31, 0, 0, 0, 0, time.UTC),
+			granularity: "month",
+			expected: []string{
+				"2024-01-01T00:00:00Z",
+				"2024-02-01T00:00:00Z",
+				"2024-03-01T00:00:00Z",
+			},
+			description: "Should handle leap year February correctly",
+		},
+
+		// Year granularity tests
+		{
+			name:        "year granularity - same year",
+			start:       time.Date(2024, 6, 15, 10, 0, 0, 0, time.UTC),
+			end:         time.Date(2024, 8, 25, 15, 0, 0, 0, time.UTC),
+			granularity: "year",
+			expected: []string{
+				"2024-01-01T00:00:00Z",
+			},
+			description: "Should generate single year interval truncated to year start",
+		},
+		{
+			name:        "year granularity - multiple years",
+			start:       time.Date(2022, 6, 15, 0, 0, 0, 0, time.UTC),
+			end:         time.Date(2025, 3, 10, 0, 0, 0, 0, time.UTC),
+			granularity: "year",
+			expected: []string{
+				"2022-01-01T00:00:00Z",
+				"2023-01-01T00:00:00Z",
+				"2024-01-01T00:00:00Z",
+				"2025-01-01T00:00:00Z",
+			},
+			description: "Should generate multiple yearly intervals",
+		},
+		{
+			name:        "year granularity - decade span",
+			start:       time.Date(2019, 12, 31, 23, 59, 59, 0, time.UTC),
+			end:         time.Date(2021, 1, 1, 0, 0, 1, 0, time.UTC),
+			granularity: "year",
+			expected: []string{
+				"2019-01-01T00:00:00Z",
+				"2020-01-01T00:00:00Z",
+				"2021-01-01T00:00:00Z",
+			},
+			description: "Should handle year ranges crossing decade boundaries",
+		},
+
+		// Edge cases
+		{
+			name:        "empty range - start equals end",
+			start:       time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
+			end:         time.Date(2024, 1, 1, 12, 0, 0, 0, time.UTC),
+			granularity: "hour",
+			expected: []string{
+				"2024-01-01T12:00:00Z",
+			},
+			description: "Should handle case where start equals end",
+		},
+		{
+			name:        "unsupported granularity",
+			start:       time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			end:         time.Date(2024, 1, 2, 0, 0, 0, 0, time.UTC),
+			granularity: "minute",
+			expected:    nil,
+			description: "Should return nil for unsupported granularity",
+		},
+		{
+			name:        "timezone handling - non-UTC input",
+			start:       time.Date(2024, 1, 1, 12, 0, 0, 0, time.FixedZone("EST", -5*3600)),
+			end:         time.Date(2024, 1, 1, 14, 0, 0, 0, time.FixedZone("EST", -5*3600)),
+			granularity: "hour",
+			expected: []string{
+				"2024-01-01T17:00:00Z", // Converted to UTC
+				"2024-01-01T18:00:00Z",
+				"2024-01-01T19:00:00Z",
+			},
+			description: "Should convert non-UTC times to UTC",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := generateTimeRange(tt.start, tt.end, tt.granularity)
+			assert.Equal(t, tt.expected, result, tt.description)
+		})
+	}
+}
+
+func TestGenerateTimeRangeFromData(t *testing.T) {
+	tests := []struct {
+		name          string
+		data          []map[string]interface{}
+		timeDimColumn string
+		timeDim       TimeDimension
+		expected      []string
+		description   string
+	}{
+		{
+			name:          "empty data",
+			data:          []map[string]interface{}{},
+			timeDimColumn: "created_at_hour",
+			timeDim: TimeDimension{
+				Dimension:   "created_at",
+				Granularity: "hour",
+			},
+			expected:    nil,
+			description: "Should return nil for empty data",
+		},
+		{
+			name: "single data point",
+			data: []map[string]interface{}{
+				{"count": 10, "created_at_hour": "2024-01-01T12:00:00Z"},
+			},
+			timeDimColumn: "created_at_hour",
+			timeDim: TimeDimension{
+				Dimension:   "created_at",
+				Granularity: "hour",
+			},
+			expected: []string{
+				"2024-01-01T12:00:00Z",
+			},
+			description: "Should handle single data point",
+		},
+		{
+			name: "multiple data points with gaps",
+			data: []map[string]interface{}{
+				{"count": 10, "created_at_hour": "2024-01-01T10:00:00Z"},
+				{"count": 5, "created_at_hour": "2024-01-01T12:00:00Z"},
+				{"count": 15, "created_at_hour": "2024-01-01T14:00:00Z"},
+			},
+			timeDimColumn: "created_at_hour",
+			timeDim: TimeDimension{
+				Dimension:   "created_at",
+				Granularity: "hour",
+			},
+			expected: []string{
+				"2024-01-01T10:00:00Z",
+				"2024-01-01T11:00:00Z",
+				"2024-01-01T12:00:00Z",
+				"2024-01-01T13:00:00Z",
+				"2024-01-01T14:00:00Z",
+			},
+			description: "Should generate range from min to max time with gaps filled",
+		},
+		{
+			name: "invalid time format",
+			data: []map[string]interface{}{
+				{"count": 10, "created_at_hour": "invalid-time"},
+				{"count": 5, "created_at_hour": "2024-01-01T12:00:00Z"},
+			},
+			timeDimColumn: "created_at_hour",
+			timeDim: TimeDimension{
+				Dimension:   "created_at",
+				Granularity: "hour",
+			},
+			expected: []string{
+				"2024-01-01T12:00:00Z",
+			},
+			description: "Should handle invalid time formats gracefully",
+		},
+		{
+			name: "missing time dimension column",
+			data: []map[string]interface{}{
+				{"count": 10, "other_column": "value"},
+			},
+			timeDimColumn: "created_at_hour",
+			timeDim: TimeDimension{
+				Dimension:   "created_at",
+				Granularity: "hour",
+			},
+			expected:    nil,
+			description: "Should return nil when time dimension column is missing",
+		},
+		{
+			name: "daily granularity",
+			data: []map[string]interface{}{
+				{"count": 10, "created_at_day": "2024-01-01T00:00:00Z"},
+				{"count": 5, "created_at_day": "2024-01-03T00:00:00Z"},
+			},
+			timeDimColumn: "created_at_day",
+			timeDim: TimeDimension{
+				Dimension:   "created_at",
+				Granularity: "day",
+			},
+			expected: []string{
+				"2024-01-01T00:00:00Z",
+				"2024-01-02T00:00:00Z",
+				"2024-01-03T00:00:00Z",
+			},
+			description: "Should handle daily granularity",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := generateTimeRangeFromData(tt.data, tt.timeDimColumn, tt.timeDim)
+			assert.Equal(t, tt.expected, result, tt.description)
+		})
+	}
+}
+
+func TestFillTimeSeriesGaps(t *testing.T) {
+	tests := []struct {
+		name         string
+		data         []map[string]interface{}
+		query        Query
+		expectedData []map[string]interface{}
+		description  string
+	}{
+		{
+			name: "no time dimensions",
+			data: []map[string]interface{}{
+				{"count": 10, "category": "A"},
+			},
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+			},
+			expectedData: []map[string]interface{}{
+				{"count": 10, "category": "A"},
+			},
+			description: "Should return data unchanged when no time dimensions",
+		},
+		{
+			name: "no date range specified",
+			data: []map[string]interface{}{
+				{"count": 10, "created_at_day": "2024-01-01T00:00:00Z"},
+			},
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+				TimeDimensions: []TimeDimension{{
+					Dimension:   "created_at",
+					Granularity: "day",
+					// No DateRange
+				}},
+			},
+			expectedData: []map[string]interface{}{
+				{"count": 10, "created_at_day": "2024-01-01T00:00:00Z"},
+			},
+			description: "Should return data unchanged when no date range",
+		},
+		{
+			name: "invalid start date",
+			data: []map[string]interface{}{
+				{"count": 10, "created_at_day": "2024-01-01T00:00:00Z"},
+			},
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+				TimeDimensions: []TimeDimension{{
+					Dimension:   "created_at",
+					Granularity: "day",
+					DateRange:   &[2]string{"invalid-date", "2024-01-02"},
+				}},
+			},
+			expectedData: nil,
+			description:  "Should handle invalid start date",
+		},
+		{
+			name: "invalid end date",
+			data: []map[string]interface{}{
+				{"count": 10, "created_at_day": "2024-01-01T00:00:00Z"},
+			},
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+				TimeDimensions: []TimeDimension{{
+					Dimension:   "created_at",
+					Granularity: "day",
+					DateRange:   &[2]string{"2024-01-01", "invalid-date"},
+				}},
+			},
+			expectedData: nil,
+			description:  "Should handle invalid end date",
+		},
+		{
+			name: "data with gaps",
+			data: []map[string]interface{}{
+				{"count": 10, "created_at_day": "2024-01-01T00:00:00Z"},
+				{"count": 15, "created_at_day": "2024-01-03T00:00:00Z"},
+			},
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+				TimeDimensions: []TimeDimension{{
+					Dimension:   "created_at",
+					Granularity: "day",
+					DateRange:   &[2]string{"2024-01-01", "2024-01-03"},
+				}},
+			},
+			expectedData: []map[string]interface{}{
+				{"count": 10, "created_at_day": "2024-01-01T00:00:00Z"},
+				{"count": 0, "created_at_day": "2024-01-02T00:00:00Z"},
+				{"count": 15, "created_at_day": "2024-01-03T00:00:00Z"},
+			},
+			description: "Should fill gaps with zero values",
+		},
+		{
+			name: "hourly data with same day range",
+			data: []map[string]interface{}{
+				{"count": 5, "created_at_hour": "2024-01-01T10:00:00Z"},
+				{"count": 8, "created_at_hour": "2024-01-01T12:00:00Z"},
+			},
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+				TimeDimensions: []TimeDimension{{
+					Dimension:   "created_at",
+					Granularity: "hour",
+					DateRange:   &[2]string{"2024-01-01", "2024-01-01"},
+				}},
+			},
+			expectedData: []map[string]interface{}{
+				{"count": 5, "created_at_hour": "2024-01-01T10:00:00Z"},
+				{"count": 0, "created_at_hour": "2024-01-01T11:00:00Z"},
+				{"count": 8, "created_at_hour": "2024-01-01T12:00:00Z"},
+			},
+			description: "Should use data-driven approach for hourly same-day ranges",
+		},
+		{
+			name: "empty data with time range",
+			data: []map[string]interface{}{},
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count"},
+				TimeDimensions: []TimeDimension{{
+					Dimension:   "created_at",
+					Granularity: "day",
+					DateRange:   &[2]string{"2024-01-01", "2024-01-02"},
+				}},
+			},
+			expectedData: []map[string]interface{}{
+				{"count": 0, "created_at_day": "2024-01-01T00:00:00Z"},
+				{"count": 0, "created_at_day": "2024-01-02T00:00:00Z"},
+			},
+			description: "Should generate zero values for empty data with time range",
+		},
+		{
+			name: "data with dimensions",
+			data: []map[string]interface{}{
+				{"count": 10, "category": "A", "created_at_day": "2024-01-01T00:00:00Z"},
+			},
+			query: Query{
+				Schema:     "test_table",
+				Measures:   []string{"count"},
+				Dimensions: []string{"category"},
+				TimeDimensions: []TimeDimension{{
+					Dimension:   "created_at",
+					Granularity: "day",
+					DateRange:   &[2]string{"2024-01-01", "2024-01-02"},
+				}},
+			},
+			expectedData: []map[string]interface{}{
+				{"count": 10, "category": "A", "created_at_day": "2024-01-01T00:00:00Z"},
+				{"count": 0, "category": "", "created_at_day": "2024-01-02T00:00:00Z"},
+			},
+			description: "Should handle dimensions in gap filling",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := fillTimeSeriesGaps(tt.data, tt.query)
+
+			if tt.expectedData == nil {
+				assert.Error(t, err, tt.description)
+				return
+			}
+
+			require.NoError(t, err, tt.description)
+			assert.Equal(t, len(tt.expectedData), len(result), "Length should match for %s", tt.description)
+
+			for i, expected := range tt.expectedData {
+				if i < len(result) {
+					for key, expectedValue := range expected {
+						actualValue := result[i][key]
+						assert.Equal(t, expectedValue, actualValue,
+							"Result[%d][%s] should match: expected %v, got %v for %s", i, key, expectedValue, actualValue, tt.description)
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestGenerateZeroValueRow(t *testing.T) {
+	tests := []struct {
+		name        string
+		query       Query
+		expected    []map[string]interface{}
+		description string
+	}{
+		{
+			name: "query with measures only",
+			query: Query{
+				Schema:   "test_table",
+				Measures: []string{"count", "sum_amount"},
+			},
+			expected: []map[string]interface{}{
+				{"count": 0, "sum_amount": 0},
+			},
+			description: "Should generate zero values for all measures",
+		},
+		{
+			name: "query with measures and dimensions",
+			query: Query{
+				Schema:     "test_table",
+				Measures:   []string{"count"},
+				Dimensions: []string{"category", "status"},
+			},
+			expected: []map[string]interface{}{
+				{"count": 0, "category": "", "status": ""},
+			},
+			description: "Should generate zero values for measures and empty strings for dimensions",
+		},
+		{
+			name: "empty query",
+			query: Query{
+				Schema: "test_table",
+			},
+			expected: []map[string]interface{}{
+				{},
+			},
+			description: "Should handle empty query",
+		},
+		{
+			name: "query with only dimensions",
+			query: Query{
+				Schema:     "test_table",
+				Dimensions: []string{"category"},
+			},
+			expected: []map[string]interface{}{
+				{"category": ""},
+			},
+			description: "Should handle query with only dimensions",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := generateZeroValueRow(tt.query)
+			assert.Equal(t, tt.expected, result, tt.description)
+		})
+	}
+}
+
+func TestBuildMeasureSQL_EdgeCases(t *testing.T) {
+	builder := NewSQLBuilder()
+
+	tests := []struct {
+		name        string
+		measureType string
+		sql         string
+		filters     []MeasureFilter
+		expected    string
+		description string
+	}{
+		{
+			name:        "count_distinct_approx measure type",
+			measureType: "count_distinct_approx",
+			sql:         "user_id",
+			filters:     []MeasureFilter{},
+			expected:    "COUNT(DISTINCT user_id)",
+			description: "Should handle count_distinct_approx as COUNT DISTINCT",
+		},
+		{
+			name:        "unknown measure type",
+			measureType: "custom_type",
+			sql:         "custom_expression",
+			filters:     []MeasureFilter{},
+			expected:    "custom_expression",
+			description: "Should return SQL as-is for unknown measure types",
+		},
+		{
+			name:        "count with non-standard column",
+			measureType: "count",
+			sql:         "id",
+			filters:     []MeasureFilter{},
+			expected:    "COUNT(id)",
+			description: "Should wrap non-COUNT expressions with COUNT()",
+		},
+		{
+			name:        "count with existing COUNT",
+			measureType: "count",
+			sql:         "COUNT(DISTINCT user_id)",
+			filters:     []MeasureFilter{},
+			expected:    "COUNT(DISTINCT user_id)",
+			description: "Should not double-wrap existing COUNT expressions",
+		},
+		{
+			name:        "measure with FILTER already present",
+			measureType: "count",
+			sql:         "COUNT(*) FILTER (WHERE existing_condition = true)",
+			filters: []MeasureFilter{
+				{SQL: "additional_condition = 'yes'"},
+			},
+			expected:    "COUNT(*) FILTER (WHERE existing_condition = true) FILTER (WHERE additional_condition = 'yes')",
+			description: "Should add additional filters to existing FILTER clause",
+		},
+		{
+			name:        "complex expression with parentheses",
+			measureType: "sum",
+			sql:         "COALESCE(amount, 0)",
+			filters:     []MeasureFilter{},
+			expected:    "SUM(COALESCE(amount, 0))",
+			description: "Should wrap complex expressions properly",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := builder.buildMeasureSQL(tt.measureType, tt.sql, tt.filters)
+			assert.Equal(t, tt.expected, result, tt.description)
+		})
+	}
+}

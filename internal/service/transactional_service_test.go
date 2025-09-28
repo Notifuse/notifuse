@@ -190,6 +190,43 @@ func TestTransactionalNotificationService_CreateNotification(t *testing.T) {
 			expectedError:  true,
 			expectedResult: nil,
 		},
+		{
+			name: "Error_AuthenticationFailed",
+			input: domain.TransactionalNotificationCreateParams{
+				ID:   uuid.New().String(),
+				Name: "Test Notification",
+			},
+			mockSetup: func() {
+				// Auth service fails
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, nil, nil, errors.New("authentication failed"))
+			},
+			expectedError:  true,
+			expectedResult: nil,
+		},
+		{
+			name: "Error_InsufficientPermissions",
+			input: domain.TransactionalNotificationCreateParams{
+				ID:   uuid.New().String(),
+				Name: "Test Notification",
+			},
+			mockSetup: func() {
+				// Auth succeeds but user has no write permissions
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+						UserID:      "user-123",
+						WorkspaceID: workspace,
+						Role:        "viewer",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceTransactional: {Read: true, Write: false},
+						},
+					}, nil)
+			},
+			expectedError:  true,
+			expectedResult: nil,
+		},
 	}
 
 	for _, tc := range tests {
@@ -613,6 +650,37 @@ func TestTransactionalNotificationService_GetNotification(t *testing.T) {
 				mockRepo.EXPECT().
 					Get(gomock.Any(), workspace, notificationID).
 					Return(nil, errors.New("notification not found"))
+			},
+			expectedError:  true,
+			expectedResult: nil,
+		},
+		{
+			name: "Error_AuthenticationFailed",
+			id:   notificationID,
+			mockSetup: func() {
+				// Auth service fails
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, nil, nil, errors.New("authentication failed"))
+			},
+			expectedError:  true,
+			expectedResult: nil,
+		},
+		{
+			name: "Error_InsufficientPermissions",
+			id:   notificationID,
+			mockSetup: func() {
+				// Auth succeeds but user has no read permissions
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+						UserID:      "user-123",
+						WorkspaceID: workspace,
+						Role:        "viewer",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceTransactional: {Read: false, Write: false},
+						},
+					}, nil)
 			},
 			expectedError:  true,
 			expectedResult: nil,
@@ -1186,7 +1254,525 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 		assert.Contains(t, err.Error(), "notification not found")
 	})
 
-	// Add more test cases following the same pattern
+	t.Run("Error_ContactRequired", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+		mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateService := mocks.NewMockTemplateService(ctrl)
+		mockContactService := mocks.NewMockContactService(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+
+		// Create a stub logger that simply returns itself for chaining calls
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		service := &TransactionalNotificationService{
+			transactionalRepo:  mockRepo,
+			messageHistoryRepo: mockMsgHistoryRepo,
+			templateService:    mockTemplateService,
+			contactService:     mockContactService,
+			emailService:       mockEmailService,
+			logger:             mockLogger,
+			workspaceRepo:      mockWorkspaceRepo,
+			apiEndpoint:        "https://api.example.com",
+			authService:        mockAuthService,
+		}
+
+		params := domain.TransactionalNotificationSendParams{
+			ID:      notificationID,
+			Contact: nil, // No contact provided
+		}
+
+		// Expect auth service to authenticate the user
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspace).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspace,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
+			}, nil)
+
+		// Get the workspace
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspace).
+			Return(workspaceObj, nil)
+
+		// Get the notification
+		mockRepo.EXPECT().
+			Get(gomock.Any(), workspace, notificationID).
+			Return(notification, nil)
+
+		// Call the method
+		messageID, err := service.SendNotification(ctx, workspace, params)
+
+		// Assertions
+		require.Error(t, err)
+		require.Empty(t, messageID)
+		assert.Contains(t, err.Error(), "contact is required")
+	})
+
+	t.Run("Error_WorkspaceNotFound", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+		mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateService := mocks.NewMockTemplateService(ctrl)
+		mockContactService := mocks.NewMockContactService(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+
+		// Create a stub logger that simply returns itself for chaining calls
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		service := &TransactionalNotificationService{
+			transactionalRepo:  mockRepo,
+			messageHistoryRepo: mockMsgHistoryRepo,
+			templateService:    mockTemplateService,
+			contactService:     mockContactService,
+			emailService:       mockEmailService,
+			logger:             mockLogger,
+			workspaceRepo:      mockWorkspaceRepo,
+			apiEndpoint:        "https://api.example.com",
+			authService:        mockAuthService,
+		}
+
+		params := domain.TransactionalNotificationSendParams{
+			ID:      notificationID,
+			Contact: contact,
+		}
+
+		// Expect auth service to authenticate the user
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspace).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspace,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
+			}, nil)
+
+		// Workspace not found
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspace).
+			Return(nil, errors.New("workspace not found"))
+
+		// Call the method
+		messageID, err := service.SendNotification(ctx, workspace, params)
+
+		// Assertions
+		require.Error(t, err)
+		require.Empty(t, messageID)
+		assert.Contains(t, err.Error(), "failed to get workspace")
+	})
+
+	t.Run("Success_IdempotentRequest", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+		mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateService := mocks.NewMockTemplateService(ctrl)
+		mockContactService := mocks.NewMockContactService(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+
+		// Create a stub logger that simply returns itself for chaining calls
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		service := &TransactionalNotificationService{
+			transactionalRepo:  mockRepo,
+			messageHistoryRepo: mockMsgHistoryRepo,
+			templateService:    mockTemplateService,
+			contactService:     mockContactService,
+			emailService:       mockEmailService,
+			logger:             mockLogger,
+			workspaceRepo:      mockWorkspaceRepo,
+			apiEndpoint:        "https://api.example.com",
+			authService:        mockAuthService,
+		}
+
+		externalID := "ext-123"
+		existingMessageID := "existing-msg-123"
+		params := domain.TransactionalNotificationSendParams{
+			ID:         notificationID,
+			Contact:    contact,
+			ExternalID: &externalID,
+		}
+
+		// Expect auth service to authenticate the user
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspace).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspace,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
+			}, nil)
+
+		// Get the workspace
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspace).
+			Return(workspaceObj, nil)
+
+		// Get the notification
+		mockRepo.EXPECT().
+			Get(gomock.Any(), workspace, notificationID).
+			Return(notification, nil)
+
+		// Contact upsert succeeds
+		mockContactService.EXPECT().
+			UpsertContact(gomock.Any(), workspace, contact).
+			Return(domain.UpsertContactOperation{
+				Email:  contact.Email,
+				Action: domain.UpsertContactOperationUpdate,
+			})
+
+		// Get contact succeeds
+		mockContactService.EXPECT().
+			GetContactByEmail(gomock.Any(), workspace, contact.Email).
+			Return(contact, nil)
+
+		// Message with external ID already exists
+		existingMessage := &domain.MessageHistory{
+			ID:         existingMessageID,
+			ExternalID: &externalID,
+		}
+		mockMsgHistoryRepo.EXPECT().
+			GetByExternalID(gomock.Any(), workspace, externalID).
+			Return(existingMessage, nil)
+
+		// Call the method
+		messageID, err := service.SendNotification(ctx, workspace, params)
+
+		// Assertions
+		require.NoError(t, err)
+		require.Equal(t, existingMessageID, messageID)
+	})
+
+	t.Run("Error_ContactUpsertFailed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+		mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateService := mocks.NewMockTemplateService(ctrl)
+		mockContactService := mocks.NewMockContactService(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+
+		// Create a stub logger that simply returns itself for chaining calls
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		service := &TransactionalNotificationService{
+			transactionalRepo:  mockRepo,
+			messageHistoryRepo: mockMsgHistoryRepo,
+			templateService:    mockTemplateService,
+			contactService:     mockContactService,
+			emailService:       mockEmailService,
+			logger:             mockLogger,
+			workspaceRepo:      mockWorkspaceRepo,
+			apiEndpoint:        "https://api.example.com",
+			authService:        mockAuthService,
+		}
+
+		params := domain.TransactionalNotificationSendParams{
+			ID:      notificationID,
+			Contact: contact,
+		}
+
+		// Expect auth service to authenticate the user
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspace).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspace,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
+			}, nil)
+
+		// Get the workspace
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspace).
+			Return(workspaceObj, nil)
+
+		// Get the notification
+		mockRepo.EXPECT().
+			Get(gomock.Any(), workspace, notificationID).
+			Return(notification, nil)
+
+		// Contact upsert fails
+		mockContactService.EXPECT().
+			UpsertContact(gomock.Any(), workspace, contact).
+			Return(domain.UpsertContactOperation{
+				Email:  contact.Email,
+				Action: domain.UpsertContactOperationError,
+				Error:  "database error",
+			})
+
+		// Call the method
+		messageID, err := service.SendNotification(ctx, workspace, params)
+
+		// Assertions
+		require.Error(t, err)
+		require.Empty(t, messageID)
+		assert.Contains(t, err.Error(), "failed to upsert contact")
+	})
+
+	t.Run("Error_ContactNotFoundAfterUpsert", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+		mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateService := mocks.NewMockTemplateService(ctrl)
+		mockContactService := mocks.NewMockContactService(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+
+		// Create a stub logger that simply returns itself for chaining calls
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		service := &TransactionalNotificationService{
+			transactionalRepo:  mockRepo,
+			messageHistoryRepo: mockMsgHistoryRepo,
+			templateService:    mockTemplateService,
+			contactService:     mockContactService,
+			emailService:       mockEmailService,
+			logger:             mockLogger,
+			workspaceRepo:      mockWorkspaceRepo,
+			apiEndpoint:        "https://api.example.com",
+			authService:        mockAuthService,
+		}
+
+		params := domain.TransactionalNotificationSendParams{
+			ID:      notificationID,
+			Contact: contact,
+		}
+
+		// Expect auth service to authenticate the user
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspace).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspace,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
+			}, nil)
+
+		// Get the workspace
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspace).
+			Return(workspaceObj, nil)
+
+		// Get the notification
+		mockRepo.EXPECT().
+			Get(gomock.Any(), workspace, notificationID).
+			Return(notification, nil)
+
+		// Contact upsert succeeds
+		mockContactService.EXPECT().
+			UpsertContact(gomock.Any(), workspace, contact).
+			Return(domain.UpsertContactOperation{
+				Email:  contact.Email,
+				Action: domain.UpsertContactOperationUpdate,
+			})
+
+		// But getting contact fails
+		mockContactService.EXPECT().
+			GetContactByEmail(gomock.Any(), workspace, contact.Email).
+			Return(nil, errors.New("contact not found"))
+
+		// Call the method
+		messageID, err := service.SendNotification(ctx, workspace, params)
+
+		// Assertions
+		require.Error(t, err)
+		require.Empty(t, messageID)
+		assert.Contains(t, err.Error(), "contact not found after upsert")
+	})
+
+	t.Run("Error_AuthenticationFailed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+		mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateService := mocks.NewMockTemplateService(ctrl)
+		mockContactService := mocks.NewMockContactService(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+
+		// Create a stub logger that simply returns itself for chaining calls
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		service := &TransactionalNotificationService{
+			transactionalRepo:  mockRepo,
+			messageHistoryRepo: mockMsgHistoryRepo,
+			templateService:    mockTemplateService,
+			contactService:     mockContactService,
+			emailService:       mockEmailService,
+			logger:             mockLogger,
+			workspaceRepo:      mockWorkspaceRepo,
+			apiEndpoint:        "https://api.example.com",
+			authService:        mockAuthService,
+		}
+
+		params := domain.TransactionalNotificationSendParams{
+			ID:      notificationID,
+			Contact: contact,
+		}
+
+		// Auth fails
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspace).
+			Return(ctx, nil, nil, errors.New("authentication failed"))
+
+		// Call the method
+		messageID, err := service.SendNotification(ctx, workspace, params)
+
+		// Assertions
+		require.Error(t, err)
+		require.Empty(t, messageID)
+		assert.Contains(t, err.Error(), "failed to authenticate user for workspace")
+	})
+
+	t.Run("Error_ExternalIDCheckFailed", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+		mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateService := mocks.NewMockTemplateService(ctrl)
+		mockContactService := mocks.NewMockContactService(ctrl)
+		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		mockAuthService := mocks.NewMockAuthService(ctrl)
+
+		// Create a stub logger that simply returns itself for chaining calls
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		service := &TransactionalNotificationService{
+			transactionalRepo:  mockRepo,
+			messageHistoryRepo: mockMsgHistoryRepo,
+			templateService:    mockTemplateService,
+			contactService:     mockContactService,
+			emailService:       mockEmailService,
+			logger:             mockLogger,
+			workspaceRepo:      mockWorkspaceRepo,
+			apiEndpoint:        "https://api.example.com",
+			authService:        mockAuthService,
+		}
+
+		externalID := "ext-123"
+		params := domain.TransactionalNotificationSendParams{
+			ID:         notificationID,
+			Contact:    contact,
+			ExternalID: &externalID,
+		}
+
+		// Expect auth service to authenticate the user
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspace).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspace,
+				Role:        "member",
+				Permissions: domain.UserPermissions{
+					domain.PermissionResourceTransactional: {Read: true, Write: true},
+				},
+			}, nil)
+
+		// Get the workspace
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspace).
+			Return(workspaceObj, nil)
+
+		// Get the notification
+		mockRepo.EXPECT().
+			Get(gomock.Any(), workspace, notificationID).
+			Return(notification, nil)
+
+		// Contact upsert succeeds
+		mockContactService.EXPECT().
+			UpsertContact(gomock.Any(), workspace, contact).
+			Return(domain.UpsertContactOperation{
+				Email:  contact.Email,
+				Action: domain.UpsertContactOperationUpdate,
+			})
+
+		// Get contact succeeds
+		mockContactService.EXPECT().
+			GetContactByEmail(gomock.Any(), workspace, contact.Email).
+			Return(contact, nil)
+
+		// External ID check fails with a real database error (not "not found")
+		mockMsgHistoryRepo.EXPECT().
+			GetByExternalID(gomock.Any(), workspace, externalID).
+			Return(nil, errors.New("database connection failed"))
+
+		// Call the method
+		messageID, err := service.SendNotification(ctx, workspace, params)
+
+		// Assertions
+		require.Error(t, err)
+		require.Empty(t, messageID)
+		assert.Contains(t, err.Error(), "failed to check for existing message")
+	})
 }
 
 func TestTransactionalNotificationService_TestTemplate(t *testing.T) {
@@ -1336,4 +1922,278 @@ func TestTransactionalNotificationService_TestTemplate(t *testing.T) {
 
 	// Assertions
 	require.NoError(t, err)
+}
+
+func TestTransactionalNotificationService_TestTemplate_ErrorCases(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+	mockMsgHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+
+	// Create a stub logger that simply returns itself for chaining calls
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "test-workspace"
+	templateID := uuid.New().String()
+	integrationID := "integration-1"
+	senderID := "sender-1"
+	recipientEmail := "test@example.com"
+
+	service := &TransactionalNotificationService{
+		transactionalRepo:  mockRepo,
+		messageHistoryRepo: mockMsgHistoryRepo,
+		templateService:    mockTemplateService,
+		contactService:     mockContactService,
+		emailService:       mockEmailService,
+		logger:             mockLogger,
+		workspaceRepo:      mockWorkspaceRepo,
+		apiEndpoint:        "https://api.example.com",
+		authService:        mockAuthService,
+	}
+
+	t.Run("Error_AuthenticationFailed", func(t *testing.T) {
+		// Auth fails
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, nil, nil, errors.New("authentication failed"))
+
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, domain.EmailOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to authenticate user for workspace")
+	})
+
+	t.Run("Error_TemplateNotFound", func(t *testing.T) {
+		// Auth succeeds
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspaceID,
+				Role:        "member",
+			}, nil)
+
+		// Template not found
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+			Return(nil, errors.New("template not found"))
+
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, domain.EmailOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to retrieve template")
+	})
+
+	t.Run("Error_TemplateHasNoEmailContent", func(t *testing.T) {
+		// Auth succeeds
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspaceID,
+				Role:        "member",
+			}, nil)
+
+		// Template exists but has no email content
+		template := &domain.Template{
+			ID:    templateID,
+			Name:  "Test Template",
+			Email: nil, // No email content
+		}
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+			Return(template, nil)
+
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, domain.EmailOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "template does not contain email content")
+	})
+
+	t.Run("Error_WorkspaceNotFound", func(t *testing.T) {
+		// Auth succeeds
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspaceID,
+				Role:        "member",
+			}, nil)
+
+		// Template exists with email content
+		template := &domain.Template{
+			ID:   templateID,
+			Name: "Test Template",
+			Email: &domain.EmailTemplate{
+				Subject: "Test Subject",
+			},
+		}
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+			Return(template, nil)
+
+		// Workspace not found
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(nil, errors.New("workspace not found"))
+
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, domain.EmailOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get workspace")
+	})
+
+	t.Run("Error_IntegrationNotFound", func(t *testing.T) {
+		// Auth succeeds
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspaceID,
+				Role:        "member",
+			}, nil)
+
+		// Template exists with email content
+		template := &domain.Template{
+			ID:   templateID,
+			Name: "Test Template",
+			Email: &domain.EmailTemplate{
+				Subject: "Test Subject",
+			},
+		}
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+			Return(template, nil)
+
+		// Workspace exists but integration not found
+		workspace := &domain.Workspace{
+			ID:           workspaceID,
+			Name:         "Test Workspace",
+			Integrations: []domain.Integration{}, // No integrations
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
+		err := service.TestTemplate(ctx, workspaceID, templateID, "nonexistent-integration", senderID, recipientEmail, domain.EmailOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "integration not found")
+	})
+
+	t.Run("Error_SenderNotFound", func(t *testing.T) {
+		// Auth succeeds
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspaceID,
+				Role:        "member",
+			}, nil)
+
+		// Template exists with email content
+		template := &domain.Template{
+			ID:   templateID,
+			Name: "Test Template",
+			Email: &domain.EmailTemplate{
+				Subject: "Test Subject",
+			},
+		}
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+			Return(template, nil)
+
+		// Workspace exists with integration but sender not found
+		workspace := &domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test Workspace",
+			Integrations: []domain.Integration{
+				{
+					ID:   integrationID,
+					Name: "Test Integration",
+					Type: "email",
+					EmailProvider: domain.EmailProvider{
+						Kind:    domain.EmailProviderKindSparkPost,
+						Senders: []domain.EmailSender{}, // No senders
+					},
+				},
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, "nonexistent-sender", recipientEmail, domain.EmailOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "sender not found")
+	})
+
+	t.Run("Error_ContactUpsertFailed", func(t *testing.T) {
+		// Auth succeeds
+		mockAuthService.EXPECT().
+			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+			Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+				UserID:      "user-123",
+				WorkspaceID: workspaceID,
+				Role:        "member",
+			}, nil)
+
+		// Template exists with email content
+		template := &domain.Template{
+			ID:   templateID,
+			Name: "Test Template",
+			Email: &domain.EmailTemplate{
+				Subject: "Test Subject",
+			},
+		}
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateID, int64(0)).
+			Return(template, nil)
+
+		// Workspace exists with integration and sender
+		workspace := &domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test Workspace",
+			Integrations: []domain.Integration{
+				{
+					ID:   integrationID,
+					Name: "Test Integration",
+					Type: "email",
+					EmailProvider: domain.EmailProvider{
+						Kind: domain.EmailProviderKindSparkPost,
+						Senders: []domain.EmailSender{
+							{
+								ID:    senderID,
+								Email: "sender@example.com",
+								Name:  "Test Sender",
+							},
+						},
+					},
+				},
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
+		// Contact upsert fails
+		mockContactService.EXPECT().
+			UpsertContact(gomock.Any(), workspaceID, gomock.Any()).
+			Return(domain.UpsertContactOperation{
+				Email:  recipientEmail,
+				Action: domain.UpsertContactOperationError,
+				Error:  "database error",
+			})
+
+		err := service.TestTemplate(ctx, workspaceID, templateID, integrationID, senderID, recipientEmail, domain.EmailOptions{})
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to upsert contact")
+	})
 }

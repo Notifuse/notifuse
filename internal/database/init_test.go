@@ -180,3 +180,62 @@ func TestDatabaseSchema_Coverage(t *testing.T) {
 		}, "CleanDatabase should panic with nil database")
 	})
 }
+
+func TestInitializeDatabase_Comprehensive(t *testing.T) {
+	t.Run("Initialize database without root email - simple success", func(t *testing.T) {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+		require.NoError(t, err)
+		defer db.Close()
+
+		// Mock all SQL statements to succeed - tables and migrations
+		for i := 0; i < 50; i++ {
+			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+
+		// Test with empty email - no user creation queries expected
+		err = InitializeDatabase(db, "")
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error during table creation", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		// Mock first SQL statement to fail
+		mock.ExpectExec(".+").WillReturnError(sql.ErrConnDone)
+
+		err = InitializeDatabase(db, "")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create table")
+	})
+}
+
+func TestInitializeWorkspaceDatabase_Comprehensive(t *testing.T) {
+	t.Run("Successfully initialize workspace database", func(t *testing.T) {
+		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
+		require.NoError(t, err)
+		defer db.Close()
+
+		// Mock all SQL statements - both CREATE TABLE and CREATE INDEX
+		for i := 0; i < 50; i++ { // Allow for many SQL statements
+			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
+		}
+
+		err = InitializeWorkspaceDatabase(db)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error creating workspace table", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		// Mock first CREATE TABLE to fail
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contacts").WillReturnError(sql.ErrConnDone)
+
+		err = InitializeWorkspaceDatabase(db)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create workspace table")
+	})
+}

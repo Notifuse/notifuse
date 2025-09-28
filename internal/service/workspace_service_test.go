@@ -15,7 +15,6 @@ import (
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
-	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 )
 
@@ -2235,9 +2234,9 @@ func TestWorkspaceService_DeleteInvitation(t *testing.T) {
 	mockMailer := pkgmocks.NewMockMailer(ctrl)
 	mockContactService := mocks.NewMockContactService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
-	mockContactListService := domainmocks.NewMockContactListService(ctrl)
-	mockTemplateService := domainmocks.NewMockTemplateService(ctrl)
-	mockWebhookRegService := domainmocks.NewMockWebhookRegistrationService(ctrl)
+	mockContactListService := mocks.NewMockContactListService(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
 	cfg := &config.Config{}
 
 	service := NewWorkspaceService(
@@ -2388,5 +2387,171 @@ func TestWorkspaceService_DeleteInvitation(t *testing.T) {
 		err := service.DeleteInvitation(ctx, invitationID)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete invitation")
+	})
+}
+
+func TestWorkspaceService_SetUserPermissions(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockMailer := pkgmocks.NewMockMailer(ctrl)
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockContactListService := mocks.NewMockContactListService(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
+
+	service := NewWorkspaceService(
+		mockRepo,
+		mockUserRepo,
+		mockLogger,
+		mockUserService,
+		mockAuthService,
+		mockMailer,
+		mockConfig,
+		mockContactService,
+		mockListService,
+		mockContactListService,
+		mockTemplateService,
+		mockWebhookRegService,
+		"secret_key",
+	)
+
+	// Setup common logger expectations
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	ctx := context.Background()
+	workspaceID := "testworkspace"
+	ownerID := "owner123"
+	targetUserID := "user123"
+	permissions := domain.UserPermissions{
+		domain.PermissionResourceContacts: {Read: true, Write: true},
+	}
+
+	t.Run("successful set permissions", func(t *testing.T) {
+		owner := &domain.User{ID: ownerID}
+		ownerWorkspace := &domain.UserWorkspace{
+			UserID:      ownerID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+		targetUserWorkspace := &domain.UserWorkspace{
+			UserID:      targetUserID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, owner, nil, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, ownerID, workspaceID).Return(ownerWorkspace, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, targetUserID, workspaceID).Return(targetUserWorkspace, nil)
+		mockRepo.EXPECT().UpdateUserWorkspacePermissions(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, userWorkspace *domain.UserWorkspace) error {
+			assert.Equal(t, targetUserID, userWorkspace.UserID)
+			assert.Equal(t, workspaceID, userWorkspace.WorkspaceID)
+			return nil
+		})
+		mockUserRepo.EXPECT().GetSessionsByUserID(ctx, targetUserID).Return([]*domain.Session{
+			{ID: "session1", UserID: targetUserID},
+			{ID: "session2", UserID: targetUserID},
+		}, nil)
+		mockUserRepo.EXPECT().DeleteSession(ctx, "session1").Return(nil)
+		mockUserRepo.EXPECT().DeleteSession(ctx, "session2").Return(nil)
+
+		err := service.SetUserPermissions(ctx, workspaceID, targetUserID, permissions)
+		require.NoError(t, err)
+	})
+
+	t.Run("authentication error", func(t *testing.T) {
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, errors.New("auth error"))
+
+		err := service.SetUserPermissions(ctx, workspaceID, targetUserID, permissions)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to authenticate user")
+	})
+
+	t.Run("current user not owner", func(t *testing.T) {
+		member := &domain.User{ID: "member123"}
+		memberWorkspace := &domain.UserWorkspace{
+			UserID:      "member123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, member, nil, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, "member123", workspaceID).Return(memberWorkspace, nil)
+
+		err := service.SetUserPermissions(ctx, workspaceID, targetUserID, permissions)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "only workspace owners can manage user permissions")
+	})
+
+	t.Run("target user not member", func(t *testing.T) {
+		owner := &domain.User{ID: ownerID}
+		ownerWorkspace := &domain.UserWorkspace{
+			UserID:      ownerID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, owner, nil, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, ownerID, workspaceID).Return(ownerWorkspace, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, targetUserID, workspaceID).Return(nil, errors.New("user not found"))
+
+		err := service.SetUserPermissions(ctx, workspaceID, targetUserID, permissions)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "user is not a member of the workspace")
+	})
+
+	t.Run("cannot modify owner permissions", func(t *testing.T) {
+		owner := &domain.User{ID: ownerID}
+		ownerWorkspace := &domain.UserWorkspace{
+			UserID:      ownerID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+		targetOwnerWorkspace := &domain.UserWorkspace{
+			UserID:      targetUserID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, owner, nil, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, ownerID, workspaceID).Return(ownerWorkspace, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, targetUserID, workspaceID).Return(targetOwnerWorkspace, nil)
+
+		err := service.SetUserPermissions(ctx, workspaceID, targetUserID, permissions)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot modify permissions for workspace owners")
+	})
+
+	t.Run("session invalidation fails but operation succeeds", func(t *testing.T) {
+		owner := &domain.User{ID: ownerID}
+		ownerWorkspace := &domain.UserWorkspace{
+			UserID:      ownerID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+		targetUserWorkspace := &domain.UserWorkspace{
+			UserID:      targetUserID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, owner, nil, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, ownerID, workspaceID).Return(ownerWorkspace, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, targetUserID, workspaceID).Return(targetUserWorkspace, nil)
+		mockRepo.EXPECT().UpdateUserWorkspacePermissions(ctx, gomock.Any()).Return(nil)
+		mockUserRepo.EXPECT().GetSessionsByUserID(ctx, targetUserID).Return(nil, errors.New("session error"))
+
+		err := service.SetUserPermissions(ctx, workspaceID, targetUserID, permissions)
+		require.NoError(t, err) // Should still succeed despite session error
 	})
 }

@@ -3184,3 +3184,96 @@ func TestWorkspace_AfterLoad_MissingEncryptedSecretKey(t *testing.T) {
 	err := ws.AfterLoad("pass")
 	assert.Error(t, err)
 }
+
+func TestSetUserPermissionsRequest_Validate(t *testing.T) {
+	testCases := []struct {
+		name    string
+		request SetUserPermissionsRequest
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid request",
+			request: SetUserPermissionsRequest{
+				WorkspaceID: "workspace123",
+				UserID:      "user123",
+				Permissions: UserPermissions{
+					PermissionResourceBroadcasts: ResourcePermissions{Read: true, Write: true},
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing workspace ID",
+			request: SetUserPermissionsRequest{
+				WorkspaceID: "",
+				UserID:      "user123",
+				Permissions: UserPermissions{
+					PermissionResourceBroadcasts: ResourcePermissions{Read: true},
+				},
+			},
+			wantErr: true,
+			errMsg:  "workspace_id is required",
+		},
+		{
+			name: "non-alphanumeric workspace ID",
+			request: SetUserPermissionsRequest{
+				WorkspaceID: "workspace-123",
+				UserID:      "user123",
+				Permissions: UserPermissions{
+					PermissionResourceBroadcasts: ResourcePermissions{Read: true},
+				},
+			},
+			wantErr: true,
+			errMsg:  "workspace_id must be alphanumeric",
+		},
+		{
+			name: "workspace ID too long",
+			request: SetUserPermissionsRequest{
+				WorkspaceID: strings.Repeat("a", 33), // 33 characters
+				UserID:      "user123",
+				Permissions: UserPermissions{
+					PermissionResourceBroadcasts: ResourcePermissions{Read: true},
+				},
+			},
+			wantErr: true,
+			errMsg:  "workspace_id length must be between 1 and 32",
+		},
+		{
+			name: "missing user ID",
+			request: SetUserPermissionsRequest{
+				WorkspaceID: "workspace123",
+				UserID:      "",
+				Permissions: UserPermissions{
+					PermissionResourceBroadcasts: ResourcePermissions{Read: true},
+				},
+			},
+			wantErr: true,
+			errMsg:  "user_id is required",
+		},
+		{
+			name: "missing permissions",
+			request: SetUserPermissionsRequest{
+				WorkspaceID: "workspace123",
+				UserID:      "user123",
+				Permissions: nil,
+			},
+			wantErr: true,
+			errMsg:  "permissions is required",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.request.Validate()
+			if tc.wantErr {
+				assert.Error(t, err)
+				if tc.errMsg != "" {
+					assert.Contains(t, err.Error(), tc.errMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

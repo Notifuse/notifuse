@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"testing"
 	"time"
 
@@ -51,6 +52,17 @@ func TestSettingRepository_Get(t *testing.T) {
 	assert.Nil(t, result)
 	assert.IsType(t, &domain.ErrSettingNotFound{}, err)
 
+	// Test case 3: Database error
+	dbError := errors.New("database connection error")
+	mock.ExpectQuery(`SELECT key, value, created_at, updated_at FROM settings WHERE key = \$1`).
+		WithArgs("error_key").
+		WillReturnError(dbError)
+
+	result, err = repo.Get(context.Background(), "error_key")
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, dbError, err)
+
 	// Verify all expectations were met
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -70,6 +82,16 @@ func TestSettingRepository_Set(t *testing.T) {
 
 	err := repo.Set(context.Background(), key, value)
 	require.NoError(t, err)
+
+	// Test case 2: Database error
+	dbError := errors.New("database connection error")
+	mock.ExpectExec(`INSERT INTO settings \(key, value, created_at, updated_at\) VALUES \(\$1, \$2, \$3, \$4\) ON CONFLICT \(key\) DO UPDATE SET value = EXCLUDED\.value, updated_at = EXCLUDED\.updated_at`).
+		WithArgs("error_key", "error_value", sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnError(dbError)
+
+	err = repo.Set(context.Background(), "error_key", "error_value")
+	require.Error(t, err)
+	assert.Equal(t, dbError, err)
 
 	// Verify all expectations were met
 	assert.NoError(t, mock.ExpectationsWereMet())
@@ -123,6 +145,31 @@ func TestSettingRepository_GetLastCronRun(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, result)
 
+	// Test case 3: Database error (not ErrSettingNotFound)
+	dbError := errors.New("database connection error")
+	mock.ExpectQuery(`SELECT key, value, created_at, updated_at FROM settings WHERE key = \$1`).
+		WithArgs(LastCronRunKey).
+		WillReturnError(dbError)
+
+	result, err = repo.GetLastCronRun(context.Background())
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, dbError, err)
+
+	// Test case 4: Invalid timestamp format
+	invalidTimestamp := "invalid-timestamp"
+	rows = sqlmock.NewRows([]string{"key", "value", "created_at", "updated_at"}).
+		AddRow(LastCronRunKey, invalidTimestamp, timestamp, timestamp)
+
+	mock.ExpectQuery(`SELECT key, value, created_at, updated_at FROM settings WHERE key = \$1`).
+		WithArgs(LastCronRunKey).
+		WillReturnRows(rows)
+
+	result, err = repo.GetLastCronRun(context.Background())
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "parsing time")
+
 	// Verify all expectations were met
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -152,6 +199,25 @@ func TestSettingRepository_Delete(t *testing.T) {
 	require.Error(t, err)
 	assert.IsType(t, &domain.ErrSettingNotFound{}, err)
 
+	// Test case 3: Database error on exec
+	dbError := errors.New("database connection error")
+	mock.ExpectExec(`DELETE FROM settings WHERE key = \$1`).
+		WithArgs("error_key").
+		WillReturnError(dbError)
+
+	err = repo.Delete(context.Background(), "error_key")
+	require.Error(t, err)
+	assert.Equal(t, dbError, err)
+
+	// Test case 4: Error getting rows affected
+	mock.ExpectExec(`DELETE FROM settings WHERE key = \$1`).
+		WithArgs("rows_error_key").
+		WillReturnResult(sqlmock.NewErrorResult(errors.New("rows affected error")))
+
+	err = repo.Delete(context.Background(), "rows_error_key")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "rows affected error")
+
 	// Verify all expectations were met
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -178,6 +244,29 @@ func TestSettingRepository_List(t *testing.T) {
 	assert.Equal(t, "value1", result[0].Value)
 	assert.Equal(t, "key2", result[1].Key)
 	assert.Equal(t, "value2", result[1].Value)
+
+	// Test case 2: Database query error
+	dbError := errors.New("database query error")
+	mock.ExpectQuery(`SELECT key, value, created_at, updated_at FROM settings ORDER BY key`).
+		WillReturnError(dbError)
+
+	result, err = repo.List(context.Background())
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Equal(t, dbError, err)
+
+	// Test case 3: Rows.Err() error
+	rowsWithRowsError := sqlmock.NewRows([]string{"key", "value", "created_at", "updated_at"}).
+		AddRow("key1", "value1", timestamp, timestamp).
+		RowError(0, errors.New("rows iteration error"))
+
+	mock.ExpectQuery(`SELECT key, value, created_at, updated_at FROM settings ORDER BY key`).
+		WillReturnRows(rowsWithRowsError)
+
+	result, err = repo.List(context.Background())
+	require.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "rows iteration error")
 
 	// Verify all expectations were met
 	assert.NoError(t, mock.ExpectationsWereMet())

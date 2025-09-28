@@ -3,6 +3,7 @@ package broadcast_test
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -2057,4 +2058,518 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 // Helper function to create string pointer
 func stringPtr(s string) *string {
 	return &s
+}
+
+// TestNewBroadcastOrchestrator_DefaultConfig tests that NewBroadcastOrchestrator properly handles nil config
+func TestNewBroadcastOrchestrator_DefaultConfig(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Test with nil config - should use default config
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil,
+		mockLogger,
+		nil, // nil config
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	assert.NotNil(t, orchestrator)
+}
+
+// TestNewBroadcastOrchestrator_DefaultTimeProvider tests that NewBroadcastOrchestrator properly handles nil timeProvider
+func TestNewBroadcastOrchestrator_DefaultTimeProvider(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	config := &broadcast.Config{
+		FetchBatchSize:      100,
+		MaxProcessTime:      30 * time.Second,
+		ProgressLogInterval: 5 * time.Second,
+	}
+
+	// Test with nil timeProvider - should use default time provider
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil,
+		mockLogger,
+		config,
+		nil, // nil timeProvider
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	assert.NotNil(t, orchestrator)
+}
+
+// TestBroadcastOrchestrator_ValidateTemplates_EmptyTemplates tests ValidateTemplates with empty template map
+func TestBroadcastOrchestrator_ValidateTemplates_EmptyTemplates(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	config := &broadcast.Config{
+		FetchBatchSize:      100,
+		MaxProcessTime:      30 * time.Second,
+		ProgressLogInterval: 5 * time.Second,
+	}
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil,
+		mockLogger,
+		config,
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	// Test with empty templates map
+	err := orchestrator.ValidateTemplates(map[string]*domain.Template{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "no templates provided for validation")
+}
+
+// TestBroadcastOrchestrator_ValidateTemplates_NilTemplate tests ValidateTemplates with nil template
+func TestBroadcastOrchestrator_ValidateTemplates_NilTemplate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	config := &broadcast.Config{
+		FetchBatchSize:      100,
+		MaxProcessTime:      30 * time.Second,
+		ProgressLogInterval: 5 * time.Second,
+	}
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil,
+		mockLogger,
+		config,
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	// Test with nil template
+	templates := map[string]*domain.Template{
+		"template-1": nil,
+	}
+	err := orchestrator.ValidateTemplates(templates)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "template is nil")
+}
+
+// TestBroadcastOrchestrator_ValidateTemplates_MissingEmailConfig tests ValidateTemplates with missing email config
+func TestBroadcastOrchestrator_ValidateTemplates_MissingEmailConfig(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Setup logger expectations for error logging
+	mockLogger.EXPECT().WithField("template_id", "template-1").Return(mockLogger)
+	mockLogger.EXPECT().Error("Template missing email configuration")
+
+	config := &broadcast.Config{
+		FetchBatchSize:      100,
+		MaxProcessTime:      30 * time.Second,
+		ProgressLogInterval: 5 * time.Second,
+	}
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil,
+		mockLogger,
+		config,
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	// Test with template missing email config
+	templates := map[string]*domain.Template{
+		"template-1": {
+			ID:    "template-1",
+			Email: nil, // Missing email config
+		},
+	}
+	err := orchestrator.ValidateTemplates(templates)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "template missing email configuration")
+}
+
+// TestBroadcastOrchestrator_ValidateTemplates_MissingContent tests ValidateTemplates with missing content
+func TestBroadcastOrchestrator_ValidateTemplates_MissingContent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Setup logger expectations for error logging
+	mockLogger.EXPECT().WithField("template_id", "template-1").Return(mockLogger)
+	mockLogger.EXPECT().Error("Template missing content")
+
+	config := &broadcast.Config{
+		FetchBatchSize:      100,
+		MaxProcessTime:      30 * time.Second,
+		ProgressLogInterval: 5 * time.Second,
+	}
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil,
+		mockLogger,
+		config,
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	// Test with template missing content
+	templates := map[string]*domain.Template{
+		"template-1": {
+			ID: "template-1",
+			Email: &domain.EmailTemplate{
+				Subject:  "Test Subject",
+				SenderID: "sender-1",
+				VisualEditorTree: &notifuse_mjml.MJMLBlock{
+					BaseBlock: notifuse_mjml.BaseBlock{
+						Type: "", // Missing content type
+					},
+				},
+			},
+		},
+	}
+	err := orchestrator.ValidateTemplates(templates)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "template missing content")
+}
+
+// TestBroadcastOrchestrator_FetchBatch_BroadcastNotFound tests FetchBatch when broadcast is not found
+func TestBroadcastOrchestrator_FetchBatch_BroadcastNotFound(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Setup logger expectations for error logging
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+	config := &broadcast.Config{
+		FetchBatchSize:      100,
+		MaxProcessTime:      30 * time.Second,
+		ProgressLogInterval: 5 * time.Second,
+	}
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil,
+		mockLogger,
+		config,
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	// Mock GetBroadcast to return an error
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(nil, errors.New("broadcast not found"))
+
+	// Execute
+	ctx := context.Background()
+	contacts, err := orchestrator.FetchBatch(ctx, "workspace-123", "broadcast-123", 0, 10)
+
+	// Verify
+	assert.Nil(t, contacts)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "broadcast not found")
+}
+
+// TestBroadcastOrchestrator_FetchBatch_BroadcastCancelled tests FetchBatch when broadcast is cancelled
+func TestBroadcastOrchestrator_FetchBatch_BroadcastCancelled(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Setup logger expectations for debug logging
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+	config := &broadcast.Config{
+		FetchBatchSize:      100,
+		MaxProcessTime:      30 * time.Second,
+		ProgressLogInterval: 5 * time.Second,
+	}
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil,
+		mockLogger,
+		config,
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	// Mock GetBroadcast to return a cancelled broadcast
+	cancelledBroadcast := &domain.Broadcast{
+		ID:          "broadcast-123",
+		WorkspaceID: "workspace-123",
+		Status:      domain.BroadcastStatusCancelled,
+		Audience:    domain.AudienceSettings{},
+	}
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(cancelledBroadcast, nil)
+
+	// Execute
+	ctx := context.Background()
+	contacts, err := orchestrator.FetchBatch(ctx, "workspace-123", "broadcast-123", 0, 10)
+
+	// Verify
+	assert.Nil(t, contacts)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "broadcast has been cancelled")
+}
+
+// TestBroadcastOrchestrator_FetchBatch_ContactRepoError tests FetchBatch when contact repo returns error
+func TestBroadcastOrchestrator_FetchBatch_ContactRepoError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Setup logger expectations for error and debug logging
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+	config := &broadcast.Config{
+		FetchBatchSize:      100,
+		MaxProcessTime:      30 * time.Second,
+		ProgressLogInterval: 5 * time.Second,
+	}
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil,
+		mockLogger,
+		config,
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	// Mock GetBroadcast to return a valid broadcast
+	broadcast := &domain.Broadcast{
+		ID:          "broadcast-123",
+		WorkspaceID: "workspace-123",
+		Status:      domain.BroadcastStatusSending,
+		Audience:    domain.AudienceSettings{},
+	}
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(broadcast, nil)
+
+	// Mock GetContactsForBroadcast to return an error
+	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 10, 0).Return(nil, errors.New("database connection error"))
+
+	// Execute
+	ctx := context.Background()
+	contacts, err := orchestrator.FetchBatch(ctx, "workspace-123", "broadcast-123", 0, 10)
+
+	// Verify
+	assert.Nil(t, contacts)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to fetch recipients")
+}
+
+// TestBroadcastOrchestrator_SaveProgressState_SaveStateError tests SaveProgressState when SaveState fails
+func TestBroadcastOrchestrator_SaveProgressState_SaveStateError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Setup logger expectations for error logging
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	// Setup time provider
+	testTime := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
+	mockTimeProvider.EXPECT().Now().Return(testTime)
+
+	config := &broadcast.Config{
+		FetchBatchSize:      100,
+		MaxProcessTime:      30 * time.Second,
+		ProgressLogInterval: 5 * time.Second,
+	}
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil,
+		mockLogger,
+		config,
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	// Mock SaveState to return an error
+	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "workspace-123", "task-123", gomock.Any(), gomock.Any()).Return(errors.New("database error"))
+
+	// Execute
+	ctx := context.Background()
+	broadcastState := &domain.SendBroadcastState{
+		BroadcastID:     "broadcast-123",
+		TotalRecipients: 100,
+		SentCount:       0,
+		FailedCount:     0,
+	}
+	lastSaveTime := time.Date(2023, 1, 1, 11, 59, 0, 0, time.UTC)
+	startTime := time.Date(2023, 1, 1, 11, 58, 0, 0, time.UTC)
+
+	newSaveTime, err := orchestrator.SaveProgressState(ctx, "workspace-123", "task-123", broadcastState, 10, 2, 12, lastSaveTime, startTime)
+
+	// Verify
+	assert.Equal(t, lastSaveTime, newSaveTime) // Should return original lastSaveTime on error
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to save task state")
 }
