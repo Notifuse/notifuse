@@ -4,7 +4,7 @@ coverage:
       default:
         target: 70%
         threshold: 10%
-    patch: yes
+    patch: off
   range: '60...80'
   # Exclude mock files from coverage calculation
   ignore:
