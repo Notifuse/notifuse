@@ -1,8 +1,6 @@
 module github.com/Notifuse/notifuse
 
-go 1.23.0
-
-toolchain go1.23.7
+go 1.24.0
 
 require (
 	aidanwoods.dev/go-paseto v1.5.4
@@ -28,10 +26,10 @@ require (
 	github.com/spf13/viper v1.19.0
 	github.com/stretchr/testify v1.9.0
 	github.com/tidwall/gjson v1.18.0
-	github.com/wneessen/go-mail v0.6.2
+	github.com/wneessen/go-mail v0.7.1
 	go.opencensus.io v0.24.0
 	golang.org/x/crypto v0.36.0
-	golang.org/x/sync v0.12.0
+	golang.org/x/sync v0.17.0
 )
 
 require (
@@ -101,7 +99,7 @@ require (
 	golang.org/x/net v0.38.0 // indirect
 	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
-	golang.org/x/text v0.23.0 // indirect
+	golang.org/x/text v0.29.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
 	google.golang.org/api v0.171.0 // indirect
 	google.golang.org/genproto v0.0.0-20240213162025-012b6fc9bca9 // indirect

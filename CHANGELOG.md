@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.10] - 2025-09-29
+
+- Upgrade github.com/wneessen/go-mail from v0.6.2 to v0.7.1
+
 ## [6.9] - 2025-09-28
 
 - Add cron status monitoring endpoint `/api/cron.status`
