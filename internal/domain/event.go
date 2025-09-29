@@ -114,7 +114,7 @@ func (b *InMemoryEventBus) PublishWithAck(ctx context.Context, event EventPayloa
 					defer func() {
 						if r := recover(); r != nil {
 							errMsg := fmt.Sprintf("panic in event handler: %v", r)
-							errCh <- fmt.Errorf(errMsg)
+							errCh <- fmt.Errorf("%s", errMsg)
 						}
 					}()
 
@@ -151,7 +151,7 @@ func (b *InMemoryEventBus) PublishWithAck(ctx context.Context, event EventPayloa
 				for i, err := range allErrors {
 					errMsg += fmt.Sprintf("\n  %d: %v", i+1, err)
 				}
-				callback(fmt.Errorf(errMsg))
+				callback(fmt.Errorf("%s", errMsg))
 			} else {
 				callback(nil)
 			}

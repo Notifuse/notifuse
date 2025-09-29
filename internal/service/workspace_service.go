@@ -223,7 +223,7 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 	operation := s.contactService.UpsertContact(ctx, id, contact)
 	if operation.Action == domain.UpsertContactOperationError {
 		s.logger.WithField("workspace_id", id).WithField("user_id", user.ID).WithField("error", operation.Error).Error("Failed to create contact for owner")
-		return nil, fmt.Errorf(operation.Error)
+		return nil, fmt.Errorf("%s", operation.Error)
 	}
 
 	// create a default list for the workspace
