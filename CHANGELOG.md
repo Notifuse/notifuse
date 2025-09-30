@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [6.11] - 2025-09-30
+
+- Implement per-broadcast rate limiting functionality
+- Add support for broadcast-specific rate limits that override system defaults
+- Make rate limit field required in broadcast form with default value of 25 emails/minute
+- Add comprehensive test coverage for per-broadcast rate limiting
+
 ## [6.10] - 2025-09-29
 
 - Upgrade github.com/wneessen/go-mail from v0.6.2 to v0.7.1

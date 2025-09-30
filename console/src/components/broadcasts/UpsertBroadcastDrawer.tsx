@@ -168,7 +168,8 @@ export function UpsertBroadcastDrawer({
           lists: [],
           segments: [],
           exclude_unsubscribed: true,
-          skip_duplicate_emails: true
+          skip_duplicate_emails: true,
+          rate_limit_per_minute: 25
         },
         test_settings: {
           enabled: false,
@@ -363,14 +364,23 @@ export function UpsertBroadcastDrawer({
                   <Form.Item
                     name={['audience', 'rate_limit_per_minute']}
                     label="Rate limit (emails per minute)"
+                    rules={[
+                      { required: true, message: 'Please enter a rate limit' },
+                      { type: 'number', min: 1, message: 'Rate limit must be at least 1' }
+                    ]}
+                    initialValue={25}
                   >
-                    <InputNumber min={1} />
+                    <InputNumber min={1} placeholder="25" />
                   </Form.Item>
 
-                  {rateLimitPerMinute && rateLimitPerMinute > 0 && (
+                  {(rateLimitPerMinute || 25) > 0 && (
                     <div className="text-xs text-gray-600 -mt-4 mb-4">
-                      <div>≈ {(rateLimitPerMinute * 60).toLocaleString()} emails per hour</div>
-                      <div>≈ {(rateLimitPerMinute * 60 * 24).toLocaleString()} emails per day</div>
+                      <div>
+                        ≈ {((rateLimitPerMinute || 25) * 60).toLocaleString()} emails per hour
+                      </div>
+                      <div>
+                        ≈ {((rateLimitPerMinute || 25) * 60 * 24).toLocaleString()} emails per day
+                      </div>
                     </div>
                   )}
 

@@ -1041,7 +1041,7 @@ func TestEnforceRateLimit(t *testing.T) {
 
 		// Should return immediately without delay
 		start := time.Now()
-		err := messageSenderImpl.enforceRateLimit(ctx)
+		err := messageSenderImpl.enforceRateLimit(ctx, 0) // 0 rate limit should use default (also 0)
 		elapsed := time.Since(start)
 
 		assert.NoError(t, err)
@@ -1068,12 +1068,12 @@ func TestEnforceRateLimit(t *testing.T) {
 		ctx := context.Background()
 
 		// First call should be relatively fast (initialize the rate limiter)
-		err := messageSenderImpl.enforceRateLimit(ctx)
+		err := messageSenderImpl.enforceRateLimit(ctx, 0) // 0 means use default (60)
 		assert.NoError(t, err)
 
 		// Second call immediately should be delayed (rate is 1 per second)
 		start := time.Now()
-		err = messageSenderImpl.enforceRateLimit(ctx)
+		err = messageSenderImpl.enforceRateLimit(ctx, 0) // 0 means use default (60)
 		elapsed := time.Since(start)
 		assert.NoError(t, err)
 
@@ -1103,14 +1103,14 @@ func TestEnforceRateLimit(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
 
 		// First call to set up the rate limiter
-		err := messageSenderImpl.enforceRateLimit(ctx)
+		err := messageSenderImpl.enforceRateLimit(ctx, 0) // 0 means use default (60)
 		assert.NoError(t, err)
 
 		// Cancel the context
 		cancel()
 
 		// Second call should return context error
-		err = messageSenderImpl.enforceRateLimit(ctx)
+		err = messageSenderImpl.enforceRateLimit(ctx, 0) // 0 means use default (60)
 		assert.Error(t, err)
 		assert.Equal(t, context.Canceled, err)
 	})
@@ -2258,4 +2258,191 @@ func TestSendToRecipient_CircuitBreakerSuccessRecording(t *testing.T) {
 	// Circuit breaker should have recorded success and reset failures
 	assert.Equal(t, 0, messageSenderImpl.circuitBreaker.failures)
 	assert.Nil(t, messageSenderImpl.circuitBreaker.GetLastError())
+}
+
+// TestPerBroadcastRateLimit tests per-broadcast rate limiting functionality
+func TestPerBroadcastRateLimit(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockBroadcastRepository := mocks.NewMockBroadcastRepository(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Allow logging calls
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
+
+	t.Run("UseBroadcastSpecificRateLimit", func(t *testing.T) {
+		// Config with default rate limit
+		config := &Config{
+			DefaultRateLimit: 600, // 10 per second default
+		}
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			config,
+			"http://api.example.com",
+		)
+
+		messageSenderImpl := sender.(*messageSender)
+		ctx := context.Background()
+
+		// Test with broadcast-specific rate limit of 60 (1 per second)
+		err := messageSenderImpl.enforceRateLimit(ctx, 60)
+		assert.NoError(t, err)
+
+		// Second call should be delayed due to broadcast rate limit
+		start := time.Now()
+		err = messageSenderImpl.enforceRateLimit(ctx, 60)
+		elapsed := time.Since(start)
+		assert.NoError(t, err)
+
+		// Should wait close to 1 second for 1 per second rate
+		assert.Greater(t, elapsed, 800*time.Millisecond, "Should delay for broadcast rate limiting")
+		assert.Less(t, elapsed, 1200*time.Millisecond, "Should not delay too much longer than expected")
+	})
+
+	t.Run("FallbackToDefaultRateLimit", func(t *testing.T) {
+		// Config with default rate limit
+		config := &Config{
+			DefaultRateLimit: 60, // 1 per second default
+		}
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			config,
+			"http://api.example.com",
+		)
+
+		messageSenderImpl := sender.(*messageSender)
+		ctx := context.Background()
+
+		// Test with broadcast rate limit of 0 (should fall back to default)
+		err := messageSenderImpl.enforceRateLimit(ctx, 0)
+		assert.NoError(t, err)
+
+		// Second call should be delayed due to default rate limit
+		start := time.Now()
+		err = messageSenderImpl.enforceRateLimit(ctx, 0)
+		elapsed := time.Since(start)
+		assert.NoError(t, err)
+
+		// Should wait close to 1 second for 1 per second rate
+		assert.Greater(t, elapsed, 800*time.Millisecond, "Should delay using default rate limiting")
+		assert.Less(t, elapsed, 1200*time.Millisecond, "Should not delay too much longer than expected")
+	})
+
+	t.Run("DisabledWhenBothRateLimitsAreZero", func(t *testing.T) {
+		// Config with disabled rate limit
+		config := &Config{
+			DefaultRateLimit: 0, // Disabled
+		}
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			config,
+			"http://api.example.com",
+		)
+
+		messageSenderImpl := sender.(*messageSender)
+		ctx := context.Background()
+
+		// Test with broadcast rate limit of 0 and default rate limit of 0
+		start := time.Now()
+		err := messageSenderImpl.enforceRateLimit(ctx, 0)
+		elapsed := time.Since(start)
+		assert.NoError(t, err)
+
+		// Should return immediately without delay
+		assert.Less(t, elapsed, 50*time.Millisecond, "Should not delay when rate limiting is disabled")
+	})
+
+	t.Run("SendToRecipientUsesBroadcastRateLimit", func(t *testing.T) {
+		// Config with high default rate limit
+		config := &Config{
+			DefaultRateLimit:     600, // 10 per second default
+			EnableCircuitBreaker: false,
+		}
+
+		sender := NewMessageSender(
+			mockBroadcastRepository,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockEmailService,
+			mockLogger,
+			config,
+			"http://api.example.com",
+		)
+
+		ctx := context.Background()
+		workspaceID := "workspace-123"
+		tracking := true
+		timeoutAt := time.Now().Add(30 * time.Second)
+
+		// Broadcast with low rate limit (1 per second)
+		broadcast := &domain.Broadcast{
+			ID:          "broadcast-123",
+			WorkspaceID: workspaceID,
+			Audience: domain.AudienceSettings{
+				RateLimitPerMinute: 60, // 1 per second
+			},
+			UTMParameters: &domain.UTMParameters{
+				Source:   "test",
+				Medium:   "email",
+				Campaign: "unit-test",
+			},
+		}
+
+		emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+		emailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{emailSender},
+		}
+
+		template := &domain.Template{
+			ID: "template-123",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Test Subject",
+				VisualEditorTree: createValidTestTree(createTestTextBlock("txt1", "Test content")),
+			},
+		}
+
+		// Mock successful email sends
+		mockEmailService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(nil).Times(2)
+
+		// First send should be fast
+		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-1", "test1@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+		assert.NoError(t, err)
+
+		// Second send should be delayed due to broadcast rate limit
+		start := time.Now()
+		err = sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-2", "test2@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
+		elapsed := time.Since(start)
+		assert.NoError(t, err)
+
+		// Should wait close to 1 second due to broadcast rate limit
+		assert.Greater(t, elapsed, 800*time.Millisecond, "Should delay for broadcast rate limiting")
+		assert.Less(t, elapsed, 1200*time.Millisecond, "Should not delay too much longer than expected")
+	})
 }

@@ -21,7 +21,7 @@ type Config struct {
 	CircuitBreakerCooldown  time.Duration `json:"circuit_breaker_cooldown"`
 
 	// Rate limiting
-	DefaultRateLimit int `json:"default_rate_limit"` // Emails per minute
+	DefaultRateLimit int `json:"default_rate_limit"` // Emails per minute (fallback when broadcast doesn't specify rate limit)
 
 	// Retry settings
 	MaxRetries    int           `json:"max_retries"`

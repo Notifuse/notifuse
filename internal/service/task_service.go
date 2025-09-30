@@ -793,10 +793,10 @@ func (s *TaskService) handleBroadcastScheduled(ctx context.Context, payload doma
 		// If the broadcast is set to send immediately, we don't need to set NextRunAfter
 		// If it's scheduled for the future, we should set NextRunAfter based on the schedule
 		if !sendNow && status == string(domain.BroadcastStatusScheduled) {
-			log.Printf("payload: %+v", payload)
+
 			// Get broadcast schedule info from payload
 			if scheduledTimeStr, hasTime := payload.Data["scheduled_time"].(string); hasTime {
-				log.Printf("scheduledTimeStr: %+v", scheduledTimeStr)
+
 				// Parse the scheduled time string
 				if scheduledTime, parseErr := time.Parse(time.RFC3339, scheduledTimeStr); parseErr == nil {
 					// Use the actual scheduled time from the broadcast
