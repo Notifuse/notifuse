@@ -16,7 +16,8 @@ import {
   Progress,
   Popover,
   Alert,
-  Popconfirm
+  Popconfirm,
+  Pagination
 } from 'antd'
 import { useParams } from '@tanstack/react-router'
 import {
@@ -211,8 +212,8 @@ const VariationCard: React.FC<VariationCardProps> = ({
               <Tooltip
                 title={
                   !(permissions?.templates?.read && permissions?.contacts?.write)
-                    ? "You need read template and write contact permissions to send test emails"
-                    : "Send Test Email"
+                    ? 'You need read template and write contact permissions to send test emails'
+                    : 'Send Test Email'
                 }
               >
                 <Button
@@ -406,6 +407,8 @@ interface BroadcastCardProps {
   currentWorkspace: any
   permissions: any
   isFirst?: boolean
+  currentPage: number
+  pageSize: number
 }
 
 const BroadcastCard: React.FC<BroadcastCardProps> = ({
@@ -420,7 +423,9 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
   onRefresh,
   currentWorkspace,
   permissions,
-  isFirst = false
+  isFirst = false,
+  currentPage,
+  pageSize
 }) => {
   const [showDetails, setShowDetails] = useState(isFirst)
   const queryClient = useQueryClient()
@@ -473,7 +478,9 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
       message.success(
         'Winner selected successfully! The broadcast will be sent to remaining recipients.'
       )
-      queryClient.invalidateQueries({ queryKey: ['broadcasts', workspaceId] })
+      queryClient.invalidateQueries({
+        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
+      })
       queryClient.invalidateQueries({ queryKey: ['testResults', workspaceId, broadcast.id] })
     } catch (error) {
       message.error('Failed to select winner')
@@ -1033,6 +1040,8 @@ export function BroadcastsPage() {
   const [isDeleting, setIsDeleting] = useState(false)
   const [isScheduleModalVisible, setIsScheduleModalVisible] = useState(false)
   const [broadcastToSchedule, setBroadcastToSchedule] = useState<Broadcast | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize] = useState(5)
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId)
@@ -1042,11 +1051,13 @@ export function BroadcastsPage() {
   const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
 
   const { data, isLoading } = useQuery({
-    queryKey: ['broadcasts', workspaceId],
+    queryKey: ['broadcasts', workspaceId, currentPage, pageSize],
     queryFn: () => {
       return broadcastApi.list({
         workspace_id: workspaceId,
-        with_templates: true
+        with_templates: true,
+        limit: pageSize,
+        offset: (currentPage - 1) * pageSize
       })
     }
   })
@@ -1072,7 +1083,14 @@ export function BroadcastsPage() {
       })
 
       message.success(`Broadcast "${broadcastToDelete.name}" deleted successfully`)
-      queryClient.invalidateQueries({ queryKey: ['broadcasts', workspaceId] })
+      queryClient.invalidateQueries({
+        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
+      })
+
+      // If we're on a page > 1 and this was the last item on the page, go to previous page
+      if (currentPage > 1 && data?.broadcasts.length === 1) {
+        setCurrentPage(currentPage - 1)
+      }
       setDeleteModalVisible(false)
       setBroadcastToDelete(null)
       setConfirmationInput('')
@@ -1091,7 +1109,9 @@ export function BroadcastsPage() {
         id: broadcast.id
       })
       message.success(`Broadcast "${broadcast.name}" paused successfully`)
-      queryClient.invalidateQueries({ queryKey: ['broadcasts', workspaceId] })
+      queryClient.invalidateQueries({
+        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
+      })
     } catch (error) {
       message.error('Failed to pause broadcast')
       console.error(error)
@@ -1105,7 +1125,9 @@ export function BroadcastsPage() {
         id: broadcast.id
       })
       message.success(`Broadcast "${broadcast.name}" resumed successfully`)
-      queryClient.invalidateQueries({ queryKey: ['broadcasts', workspaceId] })
+      queryClient.invalidateQueries({
+        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
+      })
     } catch (error) {
       message.error('Failed to resume broadcast')
       console.error(error)
@@ -1119,7 +1141,9 @@ export function BroadcastsPage() {
         id: broadcast.id
       })
       message.success(`Broadcast "${broadcast.name}" cancelled successfully`)
-      queryClient.invalidateQueries({ queryKey: ['broadcasts', workspaceId] })
+      queryClient.invalidateQueries({
+        queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
+      })
     } catch (error) {
       message.error('Failed to cancel broadcast')
       console.error(error)
@@ -1153,8 +1177,14 @@ export function BroadcastsPage() {
     queryClient.invalidateQueries({ queryKey: ['task', workspaceId, broadcast.id] })
     queryClient.invalidateQueries({ queryKey: ['testResults', workspaceId, broadcast.id] })
     // Also refresh the main broadcast data to get updated status
-    queryClient.invalidateQueries({ queryKey: ['broadcasts', workspaceId] })
+    queryClient.invalidateQueries({ queryKey: ['broadcasts', workspaceId, currentPage, pageSize] })
     message.success(`Broadcast "${broadcast.name}" refreshed`)
+  }
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    // Scroll to top when page changes
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const hasBroadcasts = !isLoading && data?.broadcasts && data.broadcasts.length > 0
@@ -1228,8 +1258,25 @@ export function BroadcastsPage() {
               currentWorkspace={currentWorkspace}
               permissions={permissions}
               isFirst={index === 0}
+              currentPage={currentPage}
+              pageSize={pageSize}
             />
           ))}
+
+          {/* Pagination */}
+          {data && data.total_count > pageSize && (
+            <div className="flex justify-center mt-8">
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={data.total_count}
+                onChange={handlePageChange}
+                showSizeChanger={false}
+                showQuickJumper={false}
+                showTotal={(total, range) => `${range[0]}-${range[1]} of ${total} broadcasts`}
+              />
+            </div>
+          )}
         </div>
       ) : (
         <div className="text-center py-12">
@@ -1269,7 +1316,9 @@ export function BroadcastsPage() {
         workspaceId={workspaceId}
         workspace={currentWorkspace}
         onSuccess={() => {
-          queryClient.invalidateQueries({ queryKey: ['broadcasts', workspaceId] })
+          queryClient.invalidateQueries({
+            queryKey: ['broadcasts', workspaceId, currentPage, pageSize]
+          })
         }}
       />
 
