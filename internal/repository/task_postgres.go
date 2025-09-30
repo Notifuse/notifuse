@@ -85,6 +85,26 @@ func (r *TaskRepository) CreateTx(ctx context.Context, tx *sql.Tx, workspace str
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
 
+	// make sure dates are in UTC
+	if task.NextRunAfter != nil {
+		nextRunAfter := task.NextRunAfter.UTC()
+		task.NextRunAfter = &nextRunAfter
+	}
+	if task.TimeoutAfter != nil {
+		timeoutAfter := task.TimeoutAfter.UTC()
+		task.TimeoutAfter = &timeoutAfter
+	}
+
+	if task.LastRunAt != nil {
+		lastRunAt := task.LastRunAt.UTC()
+		task.LastRunAt = &lastRunAt
+	}
+
+	if task.CompletedAt != nil {
+		completedAt := task.CompletedAt.UTC()
+		task.CompletedAt = &completedAt
+	}
+
 	// Insert the task
 	query := `
 		INSERT INTO tasks (
