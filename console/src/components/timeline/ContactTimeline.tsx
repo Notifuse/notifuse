@@ -206,6 +206,8 @@ export function ContactTimeline({
 
   // Render entity-specific details based on entity type
   const renderEntityDetails = (entry: ContactTimelineEntry) => {
+    let tagColor = 'blue'
+
     switch (entry.entity_type) {
       case 'contact':
         if (entry.operation === 'insert') {
@@ -297,21 +299,39 @@ export function ContactTimeline({
 
       case 'message_history':
         const messageData = entry.entity_data as MessageHistoryEntityData | undefined
-        let title = 'Email'
+        let tag = (
+          <Tag bordered={false} color="blue">
+            sent
+          </Tag>
+        )
         if (entry.changes.delivered_at) {
-          title = 'Email delivered'
+          tag = (
+            <Tag bordered={false} color="green">
+              delivered
+            </Tag>
+          )
         } else if (entry.changes.opened_at) {
-          title = 'Email opened'
+          tag = (
+            <Tag bordered={false} color="cyan">
+              opened
+            </Tag>
+          )
         } else if (entry.changes.clicked_at) {
-          title = 'Email clicked'
+          tag = (
+            <Tag bordered={false} color="geekblue">
+              clicked
+            </Tag>
+          )
         }
-        if (entry.operation === 'insert') {
-          title = 'Email sent'
-        }
-
         return (
           <div>
-            {renderTitleWithDate(entry, <Text strong>{title}</Text>)}
+            {renderTitleWithDate(
+              entry,
+              <>
+                <Text strong>Email</Text>
+                {tag}
+              </>
+            )}
             {messageData && (
               <div className="mb-2 space-y-1">
                 {messageData.template_id && (
@@ -371,21 +391,14 @@ export function ContactTimeline({
         const bounceCategory = webhookEventData?.bounce_category
         const bounceDiagnostic = webhookEventData?.bounce_diagnostic
         const complaintType = webhookEventData?.complaint_feedback_type
-        const messageId = webhookEventData?.message_id
         const webhookTemplateId = webhookEventData?.template_id
         const webhookTemplateVersion = webhookEventData?.template_version
 
-        let webhookTitle = 'Webhook Event'
-        let tagColor = 'blue'
-
         if (eventType === 'bounce') {
-          webhookTitle = 'Email Bounced'
           tagColor = 'volcano'
         } else if (eventType === 'complaint') {
-          webhookTitle = 'Spam Complaint'
           tagColor = 'magenta'
         } else if (eventType === 'delivered') {
-          webhookTitle = 'Email Delivered'
           tagColor = 'green'
         }
 
@@ -394,7 +407,7 @@ export function ContactTimeline({
             {renderTitleWithDate(
               entry,
               <>
-                <Text strong>{webhookTitle}</Text>
+                <Text strong>Email</Text>
                 {eventType && (
                   <Tag color={tagColor} bordered={false}>
                     {eventType}
@@ -419,16 +432,6 @@ export function ContactTimeline({
                       </Text>
                     )}
                     {webhookTemplateVersion && ` (v${webhookTemplateVersion})`}
-                  </Text>
-                </div>
-              )}
-              {messageId && (
-                <div>
-                  <Text type="secondary" className="text-xs">
-                    Message ID:{' '}
-                    <Text code className="text-xs">
-                      {messageId}
-                    </Text>
                   </Text>
                 </div>
               )}
