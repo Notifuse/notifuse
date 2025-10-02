@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { Table, Tag, Button, Space, Tooltip, message } from 'antd'
+import { Table, Tag, Button, Space, Tooltip, message, Dropdown } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
+import type { MenuProps } from 'antd'
 import { useParams, useSearch } from '@tanstack/react-router'
 import { contactsApi, type Contact, type ListContactsRequest } from '../services/api/contacts'
 import { listsApi } from '../services/api/list'
@@ -17,7 +18,13 @@ import { ContactColumnsSelector, JsonViewer } from '../components/contacts/Conta
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEye, faHourglass } from '@fortawesome/free-regular-svg-icons'
 import { faCircleCheck, faFaceFrown, faTrashAlt } from '@fortawesome/free-regular-svg-icons'
-import { faBan, faTriangleExclamation, faRefresh } from '@fortawesome/free-solid-svg-icons'
+import {
+  faBan,
+  faTriangleExclamation,
+  faRefresh,
+  faPenToSquare,
+  faEllipsisV
+} from '@fortawesome/free-solid-svg-icons'
 import { ContactDetailsDrawer } from '../components/contacts/ContactDetailsDrawer'
 import { DeleteContactModal } from '../components/contacts/DeleteContactModal'
 import dayjs from '../lib/dayjs'
@@ -81,6 +88,9 @@ export function ContactsPage() {
   // Delete modal state
   const [deleteModalVisible, setDeleteModalVisible] = React.useState(false)
   const [contactToDelete, setContactToDelete] = React.useState<string | null>(null)
+  // Edit drawer state
+  const [editDrawerVisible, setEditDrawerVisible] = React.useState(false)
+  const [contactToEdit, setContactToEdit] = React.useState<Contact | null>(null)
 
   // Fetch lists for the current workspace
   const { data: listsData } = useQuery({
@@ -125,6 +135,25 @@ export function ContactsPage() {
     if (contactToDelete) {
       deleteContactMutation.mutate(contactToDelete)
     }
+  }
+
+  // Edit drawer handlers
+  const handleEditClick = (contact: Contact) => {
+    setContactToEdit(contact)
+    setEditDrawerVisible(true)
+  }
+
+  const handleEditClose = () => {
+    setEditDrawerVisible(false)
+    setContactToEdit(null)
+  }
+
+  const handleContactUpdate = (updatedContact: Contact) => {
+    // Update the contact in the allContacts array
+    setAllContacts((prev) =>
+      prev.map((contact) => (contact.email === updatedContact.email ? updatedContact : contact))
+    )
+    handleEditClose()
   }
 
   const filterFields: FilterField[] = [
@@ -676,42 +705,48 @@ export function ContactsPage() {
       onHeaderCell: () => ({
         className: '!bg-white'
       }),
-      render: (_: unknown, record: Contact) => (
-        <Space size="small">
-          <Tooltip
-            title={
-              !permissions?.contacts?.write
-                ? "You don't have write permission for contacts"
-                : 'Delete contact'
-            }
-          >
-            <Button
-              type="text"
-              icon={<FontAwesomeIcon icon={faTrashAlt} />}
-              disabled={!permissions?.contacts?.write}
-              onClick={() => handleDeleteClick(record.email)}
-            />
-          </Tooltip>
-          <ContactDetailsDrawer
-            workspace={currentWorkspace}
-            contactEmail={record.email}
-            lists={listsData?.lists || []}
-            key={record.email}
-            onContactUpdate={(updatedContact) => {
-              // Update the contact in the allContacts array
-              setAllContacts((prev) =>
-                prev.map((contact) =>
-                  contact.email === updatedContact.email ? updatedContact : contact
+      render: (_: unknown, record: Contact) => {
+        const menuItems: MenuProps['items'] = [
+          {
+            key: 'edit',
+            label: 'Edit',
+            disabled: !permissions?.contacts?.write,
+            onClick: () => handleEditClick(record)
+          },
+          {
+            key: 'delete',
+            label: 'Delete',
+            disabled: !permissions?.contacts?.write,
+            onClick: () => handleDeleteClick(record.email)
+          }
+        ]
+
+        return (
+          <Space size="small">
+            <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+              <Button type="text" icon={<FontAwesomeIcon icon={faEllipsisV} />} />
+            </Dropdown>
+            <ContactDetailsDrawer
+              workspace={currentWorkspace}
+              contactEmail={record.email}
+              lists={listsData?.lists || []}
+              key={record.email}
+              onContactUpdate={(updatedContact) => {
+                // Update the contact in the allContacts array
+                setAllContacts((prev) =>
+                  prev.map((contact) =>
+                    contact.email === updatedContact.email ? updatedContact : contact
+                  )
                 )
-              )
-            }}
-            buttonProps={{
-              icon: <FontAwesomeIcon icon={faEye} />,
-              type: 'text'
-            }}
-          />
-        </Space>
-      )
+              }}
+              buttonProps={{
+                icon: <FontAwesomeIcon icon={faEye} />,
+                type: 'text'
+              }}
+            />
+          </Space>
+        )
+      }
     }
   ].filter((col) => !col.hidden)
 
@@ -823,6 +858,16 @@ export function ContactsPage() {
         loading={deleteContactMutation.isPending}
         disabled={!permissions?.contacts?.write}
       />
+
+      {contactToEdit && (
+        <ContactUpsertDrawer
+          workspace={currentWorkspace}
+          contact={contactToEdit}
+          open={editDrawerVisible}
+          onClose={handleEditClose}
+          onContactUpdate={handleContactUpdate}
+        />
+      )}
     </div>
   )
 }

@@ -1,5 +1,8 @@
 # TODO
 
+- contact events timeline
+- add message, opens and clicks to contact events timeline
+
 ## Content
 
 - page vs phplist
@@ -12,3 +15,8 @@
 
 - better design for system email
 - add contact_list reason string
+
+## Roadmap
+
+- segments with async recompute on changes
+- automations with async triggers

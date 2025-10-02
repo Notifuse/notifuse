@@ -163,6 +163,9 @@ interface ContactUpsertDrawerProps {
   workspace: Workspace
   contact?: Contact
   onSuccess?: (updatedContact: Contact) => void
+  onContactUpdate?: (updatedContact: Contact) => void
+  open?: boolean
+  onClose?: () => void
   buttonProps?: {
     type?: 'primary' | 'default' | 'dashed' | 'link' | 'text'
     icon?: React.ReactNode
@@ -182,14 +185,21 @@ export function ContactUpsertDrawer({
   workspace,
   contact,
   onSuccess,
+  onContactUpdate,
+  open: externalOpen,
+  onClose: externalOnClose,
   buttonProps
 }: ContactUpsertDrawerProps) {
-  const [drawerVisible, setDrawerVisible] = React.useState(false)
+  const [internalDrawerVisible, setInternalDrawerVisible] = React.useState(false)
   const [selectedFields, setSelectedFields] = React.useState<string[]>([])
   const [selectedFieldToAdd, setSelectedFieldToAdd] = React.useState<string | null>(null)
   const [form] = Form.useForm()
   const [loading, setLoading] = React.useState(false)
   const { message } = App.useApp()
+
+  // Use external open state if provided, otherwise use internal state
+  const isControlled = externalOpen !== undefined
+  const drawerVisible = isControlled ? externalOpen : internalDrawerVisible
 
   React.useEffect(() => {
     if (drawerVisible && contact) {
@@ -281,21 +291,35 @@ export function ContactUpsertDrawer({
           : 'Contact updated successfully'
 
       message.success(actionMessage)
-      setDrawerVisible(false)
+
+      // Close drawer based on controlled/uncontrolled state
+      if (isControlled && externalOnClose) {
+        externalOnClose()
+      } else {
+        setInternalDrawerVisible(false)
+      }
+
       form.resetFields()
       setSelectedFields([])
-      if (onSuccess) {
+
+      // Fetch updated contact data
+      if (onSuccess || onContactUpdate) {
         // After successful addition, fetch the latest contact data to pass to the parent
         contactsApi
           .list({
             workspace_id: workspace.id,
-            email: contact?.email,
+            email: contactData.email,
             with_contact_lists: true,
             limit: 1
           })
           .then((response) => {
-            if (response.contacts && response.contacts.length > 0 && onSuccess) {
-              onSuccess(response.contacts[0])
+            if (response.contacts && response.contacts.length > 0) {
+              if (onSuccess) {
+                onSuccess(response.contacts[0])
+              }
+              if (onContactUpdate) {
+                onContactUpdate(response.contacts[0])
+              }
             }
           })
       }
@@ -308,7 +332,11 @@ export function ContactUpsertDrawer({
   }
 
   const handleClose = () => {
-    setDrawerVisible(false)
+    if (isControlled && externalOnClose) {
+      externalOnClose()
+    } else {
+      setInternalDrawerVisible(false)
+    }
     form.resetFields()
     setSelectedFields([])
   }
@@ -410,9 +438,15 @@ export function ContactUpsertDrawer({
 
   return (
     <>
-      <Button onClick={() => setDrawerVisible(true)} {...defaultButtonProps} loading={loading}>
-        {buttonContent || (buttonProps?.icon ? '' : contact ? 'Update Contact' : 'Add Contact')}
-      </Button>
+      {!isControlled && (
+        <Button
+          onClick={() => setInternalDrawerVisible(true)}
+          {...defaultButtonProps}
+          loading={loading}
+        >
+          {buttonContent || (buttonProps?.icon ? '' : contact ? 'Update Contact' : 'Add Contact')}
+        </Button>
+      )}
 
       <Drawer
         title={contact ? 'Update Contact' : 'Add Contact'}

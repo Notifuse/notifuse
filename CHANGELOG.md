@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.0] - 2025-10-02
+
+- Contact timeline feature to track all contact and contact_list mutations
+- New `contact_timeline` table with JSONB diff storage for before/after values
+
 ## [6.11] - 2025-09-30
 
 - Implement per-broadcast rate limiting functionality
