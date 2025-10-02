@@ -12,13 +12,14 @@ import (
 )
 
 type ContactService struct {
-	repo               domain.ContactRepository
-	workspaceRepo      domain.WorkspaceRepository
-	authService        domain.AuthService
-	messageHistoryRepo domain.MessageHistoryRepository
-	webhookEventRepo   domain.WebhookEventRepository
-	contactListRepo    domain.ContactListRepository
-	logger             logger.Logger
+	repo                domain.ContactRepository
+	workspaceRepo       domain.WorkspaceRepository
+	authService         domain.AuthService
+	messageHistoryRepo  domain.MessageHistoryRepository
+	webhookEventRepo    domain.WebhookEventRepository
+	contactListRepo     domain.ContactListRepository
+	contactTimelineRepo domain.ContactTimelineRepository
+	logger              logger.Logger
 }
 
 func NewContactService(
@@ -28,16 +29,18 @@ func NewContactService(
 	messageHistoryRepo domain.MessageHistoryRepository,
 	webhookEventRepo domain.WebhookEventRepository,
 	contactListRepo domain.ContactListRepository,
+	contactTimelineRepo domain.ContactTimelineRepository,
 	logger logger.Logger,
 ) *ContactService {
 	return &ContactService{
-		repo:               repo,
-		workspaceRepo:      workspaceRepo,
-		authService:        authService,
-		messageHistoryRepo: messageHistoryRepo,
-		webhookEventRepo:   webhookEventRepo,
-		contactListRepo:    contactListRepo,
-		logger:             logger,
+		repo:                repo,
+		workspaceRepo:       workspaceRepo,
+		authService:         authService,
+		messageHistoryRepo:  messageHistoryRepo,
+		webhookEventRepo:    webhookEventRepo,
+		contactListRepo:     contactListRepo,
+		contactTimelineRepo: contactTimelineRepo,
+		logger:              logger,
 	}
 }
 
@@ -153,6 +156,11 @@ func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, 
 	if err := s.contactListRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
 		s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete contact list relationships: %v", err))
 		return fmt.Errorf("failed to delete contact list relationships: %w", err)
+	}
+
+	if err := s.contactTimelineRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
+		s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete contact timeline: %v", err))
+		return fmt.Errorf("failed to delete contact timeline: %w", err)
 	}
 
 	// Finally delete the contact

@@ -52,20 +52,15 @@ func (m *V7Migration) UpdateWorkspace(ctx context.Context, config *config.Config
 	}
 
 	// Create indexes
+	// Composite index for efficient timeline queries (email + created_at DESC + id DESC for cursor pagination)
 	_, err = db.ExecContext(ctx, `
-		CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline(email)
+		CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline(email, created_at DESC, id DESC)
 	`)
 	if err != nil {
-		return fmt.Errorf("failed to create email index: %w", err)
+		return fmt.Errorf("failed to create email_created_at composite index: %w", err)
 	}
 
-	_, err = db.ExecContext(ctx, `
-		CREATE INDEX IF NOT EXISTS idx_contact_timeline_created_at ON contact_timeline(created_at DESC)
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to create created_at index: %w", err)
-	}
-
+	// Partial index for entity_id queries
 	_, err = db.ExecContext(ctx, `
 		CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline(entity_id) WHERE entity_id IS NOT NULL
 	`)
@@ -355,6 +350,53 @@ func (m *V7Migration) UpdateWorkspace(ctx context.Context, config *config.Config
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create message_history_changes_trigger: %w", err)
+	}
+
+	// Create trigger function for webhook_events table
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION track_webhook_event_changes()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			changes_json JSONB := '{}'::jsonb;
+		BEGIN
+			changes_json := jsonb_build_object(
+				'type', jsonb_build_object('new', NEW.type),
+				'email_provider_kind', jsonb_build_object('new', NEW.email_provider_kind)
+			);
+			
+			IF NEW.bounce_type IS NOT NULL THEN
+				changes_json := changes_json || jsonb_build_object('bounce_type', jsonb_build_object('new', NEW.bounce_type));
+			END IF;
+			IF NEW.bounce_category IS NOT NULL THEN
+				changes_json := changes_json || jsonb_build_object('bounce_category', jsonb_build_object('new', NEW.bounce_category));
+			END IF;
+			IF NEW.bounce_diagnostic IS NOT NULL THEN
+				changes_json := changes_json || jsonb_build_object('bounce_diagnostic', jsonb_build_object('new', NEW.bounce_diagnostic));
+			END IF;
+			IF NEW.complaint_feedback_type IS NOT NULL THEN
+				changes_json := changes_json || jsonb_build_object('complaint_feedback_type', jsonb_build_object('new', NEW.complaint_feedback_type));
+			END IF;
+
+			INSERT INTO contact_timeline (email, operation, entity_type, entity_id, changes)
+			VALUES (NEW.recipient_email, 'insert', 'webhook_event', NEW.message_id, changes_json);
+
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create track_webhook_event_changes function: %w", err)
+	}
+
+	// Create trigger for webhook_events table
+	_, err = db.ExecContext(ctx, `
+		DROP TRIGGER IF EXISTS webhook_event_changes_trigger ON webhook_events;
+		CREATE TRIGGER webhook_event_changes_trigger
+		AFTER INSERT ON webhook_events
+		FOR EACH ROW EXECUTE FUNCTION track_webhook_event_changes();
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create webhook_event_changes_trigger: %w", err)
 	}
 
 	return nil

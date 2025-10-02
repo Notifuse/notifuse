@@ -92,6 +92,7 @@ type App struct {
 	webhookEventRepo              domain.WebhookEventRepository
 	telemetryRepo                 domain.TelemetryRepository
 	analyticsRepo                 domain.AnalyticsRepository
+	contactTimelineRepo           domain.ContactTimelineRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -113,6 +114,7 @@ type App struct {
 	demoService                      *service.DemoService
 	telemetryService                 *service.TelemetryService
 	analyticsService                 *service.AnalyticsService
+	contactTimelineService           domain.ContactTimelineService
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -325,6 +327,7 @@ func (a *App) InitRepositories() error {
 	a.webhookEventRepo = repository.NewWebhookEventRepository(a.workspaceRepo)
 	a.telemetryRepo = repository.NewTelemetryRepository(a.workspaceRepo)
 	a.analyticsRepo = repository.NewAnalyticsRepository(a.workspaceRepo, a.logger)
+	a.contactTimelineRepo = repository.NewContactTimelineRepository(a.workspaceRepo)
 
 	return nil
 }
@@ -380,6 +383,7 @@ func (a *App) InitServices() error {
 		a.messageHistoryRepo,
 		a.webhookEventRepo,
 		a.contactListRepo,
+		a.contactTimelineRepo,
 		a.logger,
 	)
 
@@ -597,6 +601,9 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 
+	// Initialize contact timeline service
+	a.contactTimelineService = service.NewContactTimelineService(a.contactTimelineRepo)
+
 	return nil
 }
 
@@ -652,6 +659,12 @@ func (a *App) InitHandlers() error {
 		a.config.Security.PasetoPublicKey,
 		a.logger,
 	)
+	contactTimelineHandler := httpHandler.NewContactTimelineHandler(
+		a.contactTimelineService,
+		a.authService,
+		a.config.Security.PasetoPublicKey,
+		a.logger,
+	)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -674,6 +687,7 @@ func (a *App) InitHandlers() error {
 	messageHistoryHandler.RegisterRoutes(a.mux)
 	notificationCenterHandler.RegisterRoutes(a.mux)
 	analyticsHandler.RegisterRoutes(a.mux)
+	contactTimelineHandler.RegisterRoutes(a.mux)
 	a.mux.HandleFunc("/api/detect-favicon", faviconHandler.DetectFavicon)
 
 	return nil

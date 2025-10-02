@@ -5,7 +5,6 @@ import {
   Tag,
   Typography,
   Table,
-  Badge,
   Spin,
   Empty,
   Tooltip,
@@ -14,7 +13,10 @@ import {
   Select,
   Form,
   Popover,
-  App
+  App,
+  Statistic,
+  Avatar,
+  Tabs
 } from 'antd'
 import { Contact } from '../../services/api/contacts'
 import { List, Workspace } from '../../services/api/types'
@@ -22,13 +24,7 @@ import dayjs from '../../lib/dayjs'
 import numbro from 'numbro'
 import { ContactUpsertDrawer } from './ContactUpsertDrawer'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import {
-  faCalendar,
-  faShoppingCart,
-  faMoneyBillWave,
-  faPlus,
-  faEllipsis
-} from '@fortawesome/free-solid-svg-icons'
+import { faPlus, faEllipsis, faRotate } from '@fortawesome/free-solid-svg-icons'
 import { faPenToSquare } from '@fortawesome/free-regular-svg-icons'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { listMessages, MessageHistory } from '../../services/api/messages_history'
@@ -37,6 +33,8 @@ import { contactListApi, UpdateContactListStatusRequest } from '../../services/a
 import { listsApi } from '../../services/api/list'
 import { SubscribeToListsRequest } from '../../services/api/types'
 import { MessageHistoryTable } from '../messages/MessageHistoryTable'
+import { ContactTimeline } from '../timeline'
+import { contactTimelineApi, ContactTimelineEntry } from '../../services/api/contact_timeline'
 
 const { Title, Text } = Typography
 
@@ -70,6 +68,17 @@ interface ContactListWithName {
   created_at?: string
 }
 
+// Helper function to generate Gravatar URL using SHA-256
+const getGravatarUrl = async (email: string, size: number = 80) => {
+  const trimmedEmail = email.toLowerCase().trim()
+  const encoder = new TextEncoder()
+  const data = encoder.encode(trimmedEmail)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  const hashArray = Array.from(new Uint8Array(hashBuffer))
+  const hashHex = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
+  return `https://www.gravatar.com/avatar/${hashHex}?s=${size}&d=mp`
+}
+
 export function ContactDetailsDrawer({
   workspace,
   contactEmail,
@@ -83,10 +92,18 @@ export function ContactDetailsDrawer({
 
   // Internal drawer visibility state
   const [internalVisible, setInternalVisible] = React.useState(false)
+  const [gravatarUrl, setGravatarUrl] = React.useState<string>('')
   const { message: messageApi } = App.useApp()
 
   // Determine if drawer is visible (either controlled externally or internally)
   const isVisible = externalVisible !== undefined ? externalVisible : internalVisible
+
+  // Generate Gravatar URL
+  React.useEffect(() => {
+    if (contactEmail) {
+      getGravatarUrl(contactEmail, 80).then(setGravatarUrl)
+    }
+  }, [contactEmail])
 
   // Handle drawer close
   const handleClose = () => {
@@ -114,14 +131,40 @@ export function ContactDetailsDrawer({
   const [allMessages, setAllMessages] = React.useState<MessageHistory[]>([])
   const [isLoadingMore, setIsLoadingMore] = React.useState(false)
 
+  // State for timeline pagination
+  const [timelineCursor, setTimelineCursor] = React.useState<string | undefined>(undefined)
+  const [allTimelineEntries, setAllTimelineEntries] = React.useState<ContactTimelineEntry[]>([])
+  const [isLoadingMoreTimeline, setIsLoadingMoreTimeline] = React.useState(false)
+
   // Load message history for this contact
-  const { data: messageHistory, isLoading: loadingMessages } = useQuery({
+  const {
+    data: messageHistory,
+    isLoading: loadingMessages,
+    refetch: refetchMessages
+  } = useQuery({
     queryKey: ['message_history', workspace.id, contactEmail, currentCursor],
     queryFn: () =>
       listMessages(workspace.id, {
         contact_email: contactEmail,
         limit: 5,
         cursor: currentCursor
+      }),
+    enabled: isVisible && !!contactEmail
+  })
+
+  // Load timeline for this contact
+  const {
+    data: timelineData,
+    isLoading: loadingTimeline,
+    refetch: refetchTimeline
+  } = useQuery({
+    queryKey: ['contact_timeline', workspace.id, contactEmail, timelineCursor],
+    queryFn: () =>
+      contactTimelineApi.list({
+        workspace_id: workspace.id,
+        email: contactEmail,
+        limit: 10,
+        cursor: timelineCursor
       }),
     enabled: isVisible && !!contactEmail
   })
@@ -145,6 +188,24 @@ export function ContactDetailsDrawer({
     setIsLoadingMore(false)
   }, [messageHistory, currentCursor, loadingMessages])
 
+  // Update timeline entries when data changes
+  React.useEffect(() => {
+    if (loadingTimeline || !timelineData) return
+
+    if (timelineData.timeline) {
+      if (!timelineCursor) {
+        // Initial load - replace all entries
+        setAllTimelineEntries(timelineData.timeline)
+      } else if (timelineData.timeline.length > 0) {
+        // If we have a cursor and new entries, append them
+        setAllTimelineEntries((prev) => [...prev, ...timelineData.timeline])
+      }
+    }
+
+    // Reset loading more flag
+    setIsLoadingMoreTimeline(false)
+  }, [timelineData, timelineCursor, loadingTimeline])
+
   // Load more messages
   const handleLoadMore = () => {
     if (messageHistory?.next_cursor) {
@@ -153,8 +214,32 @@ export function ContactDetailsDrawer({
     }
   }
 
+  // Load more timeline entries
+  const handleLoadMoreTimeline = () => {
+    if (timelineData?.next_cursor) {
+      setIsLoadingMoreTimeline(true)
+      setTimelineCursor(timelineData.next_cursor)
+    }
+  }
+
+  // Refresh all drawer data from the beginning
+  const handleRefreshAll = () => {
+    // Reset pagination cursors
+    setTimelineCursor(undefined)
+    setCurrentCursor(undefined)
+
+    // Refetch all queries
+    refetchContact()
+    refetchTimeline()
+    refetchMessages()
+  }
+
   // Fetch the single contact to ensure we have the latest data
-  const { data: contact, isLoading: isLoadingContact } = useQuery({
+  const {
+    data: contact,
+    isLoading: isLoadingContact,
+    refetch: refetchContact
+  } = useQuery({
     queryKey: ['contact_details', workspace.id, contactEmail],
     queryFn: async () => {
       const response = await contactsApi.list({
@@ -178,6 +263,8 @@ export function ContactDetailsDrawer({
       queryClient.invalidateQueries({ queryKey: ['contacts', workspace.id] })
       setStatusModalVisible(false)
       statusForm.resetFields()
+      // Refresh timeline to show the subscription status update event
+      refetchTimeline()
 
       // After successful update, fetch the latest contact data to pass to the parent
       contactsApi
@@ -206,6 +293,8 @@ export function ContactDetailsDrawer({
       queryClient.invalidateQueries({ queryKey: ['contact_details', workspace.id, contactEmail] })
       setSubscribeModalVisible(false)
       subscribeForm.resetFields()
+      // Refresh timeline to show the subscription event
+      refetchTimeline()
 
       // After successful addition, fetch the latest contact data to pass to the parent
       contactsApi
@@ -231,6 +320,8 @@ export function ContactDetailsDrawer({
     await queryClient.invalidateQueries({
       queryKey: ['contact_details', workspace.id, contactEmail]
     })
+    // Refresh timeline to show the contact update event
+    refetchTimeline()
     // Call the onContactUpdate prop if it exists and we have the contact data
     if (onContactUpdate && updatedContact) {
       onContactUpdate(updatedContact)
@@ -638,34 +729,100 @@ export function ContactDetailsDrawer({
 
       <Drawer
         title="Contact Details"
-        width="90%"
+        width={1200}
         placement="right"
         className="drawer-body-no-padding"
         onClose={handleClose}
         open={internalVisible}
         extra={
-          <ContactUpsertDrawer
-            workspace={workspace}
-            contact={contact}
-            onSuccess={handleContactUpdated}
-            buttonProps={{
-              icon: <FontAwesomeIcon icon={faPenToSquare} />,
-              type: 'primary',
-              ghost: true,
-              buttonContent: 'Update'
-            }}
-          />
+          <Space>
+            <Tooltip title="Refresh">
+              <Button
+                type="text"
+                icon={<FontAwesomeIcon icon={faRotate} />}
+                onClick={handleRefreshAll}
+                loading={isLoadingContact || loadingTimeline || loadingMessages}
+              />
+            </Tooltip>
+            <ContactUpsertDrawer
+              workspace={workspace}
+              contact={contact}
+              onSuccess={handleContactUpdated}
+              buttonProps={{
+                icon: <FontAwesomeIcon icon={faPenToSquare} />,
+                type: 'primary',
+                ghost: true,
+                buttonContent: 'Update'
+              }}
+            />
+          </Space>
         }
       >
         <div className="flex h-full">
-          {/* Left column - Contact Details (1/4 width) */}
-          <div className="w-1/3 bg-gray-50 overflow-y-auto h-full">
+          {/* Left column - Contact Details (400px fixed width) */}
+          <div
+            className="bg-gray-50 overflow-y-auto h-full"
+            style={{ width: '400px', minWidth: '400px', maxWidth: '400px' }}
+          >
             {/* Contact info at the top */}
-            <div className="p-6 pb-4 border-b border-gray-200 flex flex-col items-center text-center">
-              <Title level={4} style={{ margin: 0, marginBottom: '4px' }}>
-                {fullName}
-              </Title>
-              <Text type="secondary">{contact?.email}</Text>
+            <div className="p-6 pb-4 border-b border-gray-200 flex items-center gap-3">
+              <Avatar src={gravatarUrl} size={64} />
+              <div className="flex flex-col">
+                <Title level={4} style={{ margin: 0, marginBottom: '4px' }}>
+                  {fullName}
+                </Title>
+                <Text type="secondary">{contact?.email}</Text>
+              </div>
+            </div>
+
+            {/* E-commerce Stats */}
+            <div className="px-6 py-3 border-b border-gray-200">
+              <div className="grid grid-cols-3 gap-4">
+                {/* Lifetime Value */}
+                <Tooltip
+                  title={
+                    contact?.lifetime_value ? formatCurrency(contact?.lifetime_value) : '$0.00'
+                  }
+                >
+                  <div className="cursor-help">
+                    <Statistic
+                      title={<span className="text-[10px]">LTV</span>}
+                      value={formatAverage(contact?.lifetime_value || 0)}
+                      valueStyle={{ fontSize: '14px', fontWeight: 600 }}
+                    />
+                  </div>
+                </Tooltip>
+
+                {/* Orders Count */}
+                <Tooltip title={`${formatNumber(contact?.orders_count || 0)} orders`}>
+                  <div className="cursor-help">
+                    <Statistic
+                      title={<span className="text-[10px]">Orders</span>}
+                      value={formatAverage(contact?.orders_count || 0)}
+                      valueStyle={{ fontSize: '14px', fontWeight: 600 }}
+                    />
+                  </div>
+                </Tooltip>
+
+                {/* Last Order */}
+                <Tooltip
+                  title={
+                    contact?.last_order_at
+                      ? `${dayjs(contact?.last_order_at).format('LLLL')} in ${workspace.settings.timezone}`
+                      : 'No orders yet'
+                  }
+                >
+                  <div className="cursor-help">
+                    <Statistic
+                      title={<span className="text-[10px]">Last Order</span>}
+                      value={
+                        contact?.last_order_at ? dayjs(contact?.last_order_at).fromNow() : 'Never'
+                      }
+                      valueStyle={{ fontSize: '12px', fontWeight: 600 }}
+                    />
+                  </div>
+                </Tooltip>
+              </div>
             </div>
 
             <div className="contact-details">
@@ -725,64 +882,8 @@ export function ContactDetailsDrawer({
             </div>
           </div>
 
-          {/* Right column - Message History (3/4 width) */}
-          <div className="w-2/3 p-6 overflow-y-auto h-full">
-            {/* E-commerce Stats (3-column grid) */}
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              {/* Lifetime Value */}
-              <Tooltip
-                title={contact?.lifetime_value ? formatCurrency(contact?.lifetime_value) : '$0.00'}
-              >
-                <div className="bg-white rounded-lg border border-gray-200 p-4 h-24 flex flex-col justify-between">
-                  <div className="text-sm text-gray-500 mb-2">
-                    <span className="flex items-center cursor-help">
-                      <FontAwesomeIcon icon={faMoneyBillWave} className="mr-2" />
-                      Lifetime Value
-                    </span>
-                  </div>
-                  <div className="text-2xl font-semibold">
-                    {formatAverage(contact?.lifetime_value || 0)}
-                  </div>
-                </div>
-              </Tooltip>
-
-              {/* Orders Count */}
-              <Tooltip title={`${formatNumber(contact?.orders_count || 0)} orders`}>
-                <div className="bg-white rounded-lg border border-gray-200 p-4 h-24 flex flex-col justify-between">
-                  <div className="text-sm text-gray-500 mb-2">
-                    <span className="flex items-center cursor-help">
-                      <FontAwesomeIcon icon={faShoppingCart} className="mr-2" />
-                      Orders Count
-                    </span>
-                  </div>
-                  <div className="text-2xl font-semibold">
-                    {formatAverage(contact?.orders_count || 0)}
-                  </div>
-                </div>
-              </Tooltip>
-
-              {/* Last Order */}
-              <Tooltip
-                title={
-                  contact?.last_order_at
-                    ? `${dayjs(contact?.last_order_at).format('LLLL')} in ${workspace.settings.timezone}`
-                    : 'No orders yet'
-                }
-              >
-                <div className="bg-white rounded-lg border border-gray-200 p-4 h-24 flex flex-col justify-between">
-                  <div className="text-sm text-gray-500 mb-2">
-                    <span className="flex items-center cursor-help">
-                      <FontAwesomeIcon icon={faCalendar} className="mr-2" />
-                      Last Order
-                    </span>
-                  </div>
-                  <div className="text-lg font-semibold">
-                    {contact?.last_order_at ? dayjs(contact?.last_order_at).fromNow() : 'Never'}
-                  </div>
-                </div>
-              </Tooltip>
-            </div>
-
+          {/* Right column - Timeline and Message History (remaining space) */}
+          <div className="flex-1 p-8 overflow-y-auto h-full">
             {/* List subscriptions with action buttons */}
             <div className="flex justify-between items-center mb-3">
               <Title level={5} style={{ margin: 0 }}>
@@ -882,23 +983,49 @@ export function ContactDetailsDrawer({
             )}
 
             <div className="mt-6">
-              <div className="my-4">
-                <Space>
-                  <Title level={5} style={{ margin: 0 }}>
-                    Message History
-                  </Title>
-                </Space>
-              </div>
+              <Title level={5} style={{ margin: 0, marginBottom: '16px' }}>
+                Activity
+              </Title>
 
-              <MessageHistoryTable
-                messages={allMessages}
-                loading={loadingMessages}
-                isLoadingMore={isLoadingMore}
-                workspace={workspace}
-                nextCursor={messageHistory?.next_cursor}
-                onLoadMore={handleLoadMore}
-                show_email={false} // Hide email since we're in contact details
-                size="small"
+              <Tabs
+                defaultActiveKey="timeline"
+                items={[
+                  {
+                    key: 'timeline',
+                    label: 'Timeline',
+                    children: (
+                      <div className="pt-4">
+                        <ContactTimeline
+                          entries={allTimelineEntries}
+                          loading={loadingTimeline}
+                          timezone={contact?.timezone || workspace.settings.timezone}
+                          workspace={workspace}
+                          onLoadMore={handleLoadMoreTimeline}
+                          hasMore={!!timelineData?.next_cursor}
+                          isLoadingMore={isLoadingMoreTimeline}
+                        />
+                      </div>
+                    )
+                  },
+                  {
+                    key: 'messages',
+                    label: 'Messages',
+                    children: (
+                      <div className="pt-4">
+                        <MessageHistoryTable
+                          messages={allMessages}
+                          loading={loadingMessages}
+                          isLoadingMore={isLoadingMore}
+                          workspace={workspace}
+                          nextCursor={messageHistory?.next_cursor}
+                          onLoadMore={handleLoadMore}
+                          show_email={false} // Hide email since we're in contact details
+                          size="small"
+                        />
+                      </div>
+                    )
+                  }
+                ]}
               />
             </div>
           </div>

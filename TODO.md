@@ -1,8 +1,5 @@
 # TODO
 
-- contact events timeline
-- add message_history to contact events timeline
-
 ## Content
 
 - page vs phplist

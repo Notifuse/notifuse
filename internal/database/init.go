@@ -239,8 +239,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			entity_id VARCHAR(255),
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
-		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline(email)`,
-		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_created_at ON contact_timeline(created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline(email, created_at DESC, id DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline(entity_id) WHERE entity_id IS NOT NULL`,
 	}
 
@@ -352,6 +351,21 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
+		// Webhook event changes trigger function
+		`CREATE OR REPLACE FUNCTION track_webhook_event_changes()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			changes_json JSONB := '{}'::jsonb;
+		BEGIN
+			changes_json := jsonb_build_object('type', jsonb_build_object('new', NEW.type), 'email_provider_kind', jsonb_build_object('new', NEW.email_provider_kind));
+			IF NEW.bounce_type IS NOT NULL THEN changes_json := changes_json || jsonb_build_object('bounce_type', jsonb_build_object('new', NEW.bounce_type)); END IF;
+			IF NEW.bounce_category IS NOT NULL THEN changes_json := changes_json || jsonb_build_object('bounce_category', jsonb_build_object('new', NEW.bounce_category)); END IF;
+			IF NEW.bounce_diagnostic IS NOT NULL THEN changes_json := changes_json || jsonb_build_object('bounce_diagnostic', jsonb_build_object('new', NEW.bounce_diagnostic)); END IF;
+			IF NEW.complaint_feedback_type IS NOT NULL THEN changes_json := changes_json || jsonb_build_object('complaint_feedback_type', jsonb_build_object('new', NEW.complaint_feedback_type)); END IF;
+			INSERT INTO contact_timeline (email, operation, entity_type, entity_id, changes) VALUES (NEW.recipient_email, 'insert', 'webhook_event', NEW.message_id, changes_json);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;`,
 		// Create triggers
 		`DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts`,
 		`CREATE TRIGGER contact_changes_trigger AFTER INSERT OR UPDATE ON contacts FOR EACH ROW EXECUTE FUNCTION track_contact_changes()`,
@@ -359,6 +373,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TRIGGER contact_list_changes_trigger AFTER INSERT OR UPDATE ON contact_lists FOR EACH ROW EXECUTE FUNCTION track_contact_list_changes()`,
 		`DROP TRIGGER IF EXISTS message_history_changes_trigger ON message_history`,
 		`CREATE TRIGGER message_history_changes_trigger AFTER INSERT OR UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION track_message_history_changes()`,
+		`DROP TRIGGER IF EXISTS webhook_event_changes_trigger ON webhook_events`,
+		`CREATE TRIGGER webhook_event_changes_trigger AFTER INSERT ON webhook_events FOR EACH ROW EXECUTE FUNCTION track_webhook_event_changes()`,
 	}
 
 	for _, query := range triggerQueries {

@@ -66,11 +66,11 @@ func TestParseVersion(t *testing.T) {
 }
 
 func TestGetCurrentCodeVersion(t *testing.T) {
-	// This test assumes VERSION is set to "4.0" in config
+	// This test assumes VERSION is set to "7.0" in config
 	version, err := GetCurrentCodeVersion()
 
 	require.NoError(t, err)
-	assert.Equal(t, 6.0, version)
+	assert.Equal(t, 7.0, version)
 }
 
 func TestCompareVersions(t *testing.T) {

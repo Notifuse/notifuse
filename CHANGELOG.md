@@ -4,9 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [7.0] - 2025-10-02
 
-- Contact timeline feature to track all contact, contact_list, and message_history mutations
-- New `contact_timeline` table with JSONB diff storage for before/after values
-- Automatic tracking of message events (sent, delivered, opened, clicked, bounced, complained, unsubscribed, failed)
+- New feature: contact events timeline (messages, webhook events, profile mutations etc...). It's the backbone of the upcoming automations feature.
 
 ## [6.11] - 2025-09-30
 

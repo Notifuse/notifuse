@@ -60,12 +60,8 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		// Mock CREATE INDEX for email
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		// Mock CREATE INDEX for created_at
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_created_at ON contact_timeline").
+		// Mock CREATE INDEX for composite email_created_at index
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		// Mock CREATE INDEX for entity_id
@@ -120,36 +116,19 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to create contact_timeline table")
 	})
 
-	t.Run("Error - CREATE INDEX for email fails", func(t *testing.T) {
+	t.Run("Error - CREATE INDEX for email_created_at fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer db.Close()
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline").
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline").
 			WillReturnError(sql.ErrConnDone)
 
 		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create email index")
-	})
-
-	t.Run("Error - CREATE INDEX for created_at fails", func(t *testing.T) {
-		db, mock, err := sqlmock.New()
-		require.NoError(t, err)
-		defer db.Close()
-
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_created_at ON contact_timeline").
-			WillReturnError(sql.ErrConnDone)
-
-		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create created_at index")
+		assert.Contains(t, err.Error(), "failed to create email_created_at composite index")
 	})
 
 	t.Run("Error - CREATE INDEX for entity_id fails", func(t *testing.T) {
@@ -159,9 +138,7 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_created_at ON contact_timeline").
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline").
 			WillReturnError(sql.ErrConnDone)
@@ -178,9 +155,7 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_created_at ON contact_timeline").
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -199,9 +174,7 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_created_at ON contact_timeline").
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -222,9 +195,7 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_created_at ON contact_timeline").
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -249,9 +220,7 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_created_at ON contact_timeline").
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -278,9 +247,7 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_created_at ON contact_timeline").
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -311,9 +278,7 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email ON contact_timeline").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_created_at ON contact_timeline").
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline").
 			WillReturnResult(sqlmock.NewResult(0, 0))

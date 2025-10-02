@@ -14,13 +14,14 @@ import (
 )
 
 // createContactServiceWithMocks creates a ContactService with all required mocks
-func createContactServiceWithMocks(ctrl *gomock.Controller) (*ContactService, *mocks.MockContactRepository, *mocks.MockWorkspaceRepository, *mocks.MockAuthService, *mocks.MockMessageHistoryRepository, *mocks.MockWebhookEventRepository, *mocks.MockContactListRepository, *pkgmocks.MockLogger) {
+func createContactServiceWithMocks(ctrl *gomock.Controller) (*ContactService, *mocks.MockContactRepository, *mocks.MockWorkspaceRepository, *mocks.MockAuthService, *mocks.MockMessageHistoryRepository, *mocks.MockWebhookEventRepository, *mocks.MockContactListRepository, *mocks.MockContactTimelineRepository, *pkgmocks.MockLogger) {
 	mockRepo := mocks.NewMockContactRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	mockWebhookEventRepo := mocks.NewMockWebhookEventRepository(ctrl)
 	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+	mockContactTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	service := NewContactService(
@@ -30,17 +31,18 @@ func createContactServiceWithMocks(ctrl *gomock.Controller) (*ContactService, *m
 		mockMessageHistoryRepo,
 		mockWebhookEventRepo,
 		mockContactListRepo,
+		mockContactTimelineRepo,
 		mockLogger,
 	)
 
-	return service, mockRepo, mockWorkspaceRepo, mockAuthService, mockMessageHistoryRepo, mockWebhookEventRepo, mockContactListRepo, mockLogger
+	return service, mockRepo, mockWorkspaceRepo, mockAuthService, mockMessageHistoryRepo, mockWebhookEventRepo, mockContactListRepo, mockContactTimelineRepo, mockLogger
 }
 
 func TestContactService_GetContactByEmail(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	service, mockRepo, _, mockAuthService, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
+	service, mockRepo, _, mockAuthService, _, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
 
 	ctx := context.Background()
 	workspaceID := "workspace123"
@@ -118,7 +120,7 @@ func TestContactService_GetContactByExternalID(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	service, mockRepo, _, mockAuthService, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
+	service, mockRepo, _, mockAuthService, _, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
 
 	ctx := context.Background()
 	workspaceID := "workspace123"
@@ -178,7 +180,7 @@ func TestContactService_GetContacts(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	service, mockRepo, _, mockAuthService, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
+	service, mockRepo, _, mockAuthService, _, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
 
 	ctx := context.Background()
 	workspaceID := "workspace123"
@@ -233,7 +235,7 @@ func TestContactService_DeleteContact(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	service, mockContactRepo, _, mockAuthService, mockMessageHistoryRepo, mockWebhookEventRepo, mockContactListRepo, mockLogger := createContactServiceWithMocks(ctrl)
+	service, mockContactRepo, _, mockAuthService, mockMessageHistoryRepo, mockWebhookEventRepo, mockContactListRepo, mockContactTimelineRepo, mockLogger := createContactServiceWithMocks(ctrl)
 
 	ctx := context.Background()
 	workspaceID := "test-workspace"
@@ -253,6 +255,7 @@ func TestContactService_DeleteContact(t *testing.T) {
 		mockMessageHistoryRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil)
 		mockWebhookEventRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil)
 		mockContactListRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil)
+		mockContactTimelineRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil)
 		mockContactRepo.EXPECT().DeleteContact(ctx, workspaceID, email).Return(nil)
 
 		err := service.DeleteContact(ctx, workspaceID, email)
@@ -272,6 +275,7 @@ func TestContactService_DeleteContact(t *testing.T) {
 		mockMessageHistoryRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil)
 		mockWebhookEventRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil)
 		mockContactListRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil)
+		mockContactTimelineRepo.EXPECT().DeleteForEmail(ctx, workspaceID, email).Return(nil)
 		mockLogger.EXPECT().WithField("email", email).Return(mockLogger)
 		mockContactRepo.EXPECT().DeleteContact(ctx, workspaceID, email).Return(fmt.Errorf("contact not found"))
 		mockLogger.EXPECT().Error(fmt.Sprintf("Failed to delete contact: %v", fmt.Errorf("contact not found")))
@@ -286,7 +290,7 @@ func TestContactService_UpsertContact(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	service, mockRepo, _, mockAuthService, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
+	service, mockRepo, _, mockAuthService, _, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
 
 	ctx := context.Background()
 	workspaceID := "workspace123"
@@ -361,7 +365,7 @@ func TestContactService_UpsertContactWithPartialUpdates(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	service, mockRepo, _, mockAuthService, _, _, _, _ := createContactServiceWithMocks(ctrl)
+	service, mockRepo, _, mockAuthService, _, _, _, _, _ := createContactServiceWithMocks(ctrl)
 
 	ctx := context.Background()
 	workspaceID := "workspace123"
@@ -494,7 +498,7 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	service, mockRepo, _, mockAuthService, _, _, _, _ := createContactServiceWithMocks(ctrl)
+	service, mockRepo, _, mockAuthService, _, _, _, _, _ := createContactServiceWithMocks(ctrl)
 
 	ctx := context.Background()
 	workspaceID := "workspace123"
