@@ -326,11 +326,39 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
+		// Message history changes trigger function
+		`CREATE OR REPLACE FUNCTION track_message_history_changes()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			changes_json JSONB := '{}'::jsonb;
+			op VARCHAR(20);
+		BEGIN
+			IF TG_OP = 'INSERT' THEN
+				op := 'insert';
+				changes_json := jsonb_build_object('template_id', jsonb_build_object('new', NEW.template_id), 'template_version', jsonb_build_object('new', NEW.template_version), 'channel', jsonb_build_object('new', NEW.channel), 'broadcast_id', jsonb_build_object('new', NEW.broadcast_id), 'sent_at', jsonb_build_object('new', NEW.sent_at));
+			ELSIF TG_OP = 'UPDATE' THEN
+				op := 'update';
+				IF OLD.delivered_at IS DISTINCT FROM NEW.delivered_at THEN changes_json := changes_json || jsonb_build_object('delivered_at', jsonb_build_object('old', OLD.delivered_at, 'new', NEW.delivered_at)); END IF;
+				IF OLD.failed_at IS DISTINCT FROM NEW.failed_at THEN changes_json := changes_json || jsonb_build_object('failed_at', jsonb_build_object('old', OLD.failed_at, 'new', NEW.failed_at)); END IF;
+				IF OLD.opened_at IS DISTINCT FROM NEW.opened_at THEN changes_json := changes_json || jsonb_build_object('opened_at', jsonb_build_object('old', OLD.opened_at, 'new', NEW.opened_at)); END IF;
+				IF OLD.clicked_at IS DISTINCT FROM NEW.clicked_at THEN changes_json := changes_json || jsonb_build_object('clicked_at', jsonb_build_object('old', OLD.clicked_at, 'new', NEW.clicked_at)); END IF;
+				IF OLD.bounced_at IS DISTINCT FROM NEW.bounced_at THEN changes_json := changes_json || jsonb_build_object('bounced_at', jsonb_build_object('old', OLD.bounced_at, 'new', NEW.bounced_at)); END IF;
+				IF OLD.complained_at IS DISTINCT FROM NEW.complained_at THEN changes_json := changes_json || jsonb_build_object('complained_at', jsonb_build_object('old', OLD.complained_at, 'new', NEW.complained_at)); END IF;
+				IF OLD.unsubscribed_at IS DISTINCT FROM NEW.unsubscribed_at THEN changes_json := changes_json || jsonb_build_object('unsubscribed_at', jsonb_build_object('old', OLD.unsubscribed_at, 'new', NEW.unsubscribed_at)); END IF;
+				IF OLD.status_info IS DISTINCT FROM NEW.status_info THEN changes_json := changes_json || jsonb_build_object('status_info', jsonb_build_object('old', OLD.status_info, 'new', NEW.status_info)); END IF;
+				IF changes_json = '{}'::jsonb THEN RETURN NEW; END IF;
+			END IF;
+			INSERT INTO contact_timeline (email, operation, entity_type, entity_id, changes) VALUES (NEW.contact_email, op, 'message_history', NEW.id, changes_json);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;`,
 		// Create triggers
 		`DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts`,
 		`CREATE TRIGGER contact_changes_trigger AFTER INSERT OR UPDATE ON contacts FOR EACH ROW EXECUTE FUNCTION track_contact_changes()`,
 		`DROP TRIGGER IF EXISTS contact_list_changes_trigger ON contact_lists`,
 		`CREATE TRIGGER contact_list_changes_trigger AFTER INSERT OR UPDATE ON contact_lists FOR EACH ROW EXECUTE FUNCTION track_contact_list_changes()`,
+		`DROP TRIGGER IF EXISTS message_history_changes_trigger ON message_history`,
+		`CREATE TRIGGER message_history_changes_trigger AFTER INSERT OR UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION track_message_history_changes()`,
 	}
 
 	for _, query := range triggerQueries {

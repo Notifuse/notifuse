@@ -1,7 +1,7 @@
 # TODO
 
 - contact events timeline
-- add message, opens and clicks to contact events timeline
+- add message_history to contact events timeline
 
 ## Content
 
