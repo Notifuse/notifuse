@@ -72,30 +72,32 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		// Mock DROP and CREATE TRIGGER for contacts
-		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TRIGGER contact_changes_trigger").
+		// Mock DROP and CREATE TRIGGER for contacts (in single statement)
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		// Mock CREATE FUNCTION for track_contact_list_changes
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_list_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		// Mock DROP and CREATE TRIGGER for contact_lists
-		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_list_changes_trigger ON contact_lists").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TRIGGER contact_list_changes_trigger").
+		// Mock DROP and CREATE TRIGGER for contact_lists (in single statement)
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_list_changes_trigger").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		// Mock CREATE FUNCTION for track_message_history_changes
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_message_history_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		// Mock DROP and CREATE TRIGGER for message_history
-		mock.ExpectExec("DROP TRIGGER IF EXISTS message_history_changes_trigger ON message_history").
+		// Mock DROP and CREATE TRIGGER for message_history (in single statement)
+		mock.ExpectExec("DROP TRIGGER IF EXISTS message_history_changes_trigger").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TRIGGER message_history_changes_trigger").
+
+		// Mock CREATE FUNCTION for track_webhook_event_changes
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// Mock DROP and CREATE TRIGGER for webhook_events (in single statement)
+		mock.ExpectExec("DROP TRIGGER IF EXISTS webhook_event_changes_trigger").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
@@ -180,7 +182,7 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts").
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger").
 			WillReturnError(sql.ErrConnDone)
 
 		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
@@ -201,9 +203,7 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TRIGGER contact_changes_trigger").
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_list_changes").
 			WillReturnError(sql.ErrConnDone)
@@ -226,13 +226,11 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TRIGGER contact_changes_trigger").
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_list_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_list_changes_trigger ON contact_lists").
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_list_changes_trigger").
 			WillReturnError(sql.ErrConnDone)
 
 		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
@@ -253,15 +251,11 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TRIGGER contact_changes_trigger").
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_list_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_list_changes_trigger ON contact_lists").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TRIGGER contact_list_changes_trigger").
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_list_changes_trigger").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_message_history_changes").
 			WillReturnError(sql.ErrConnDone)
@@ -284,24 +278,84 @@ func TestV7Migration_UpdateWorkspace(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TRIGGER contact_changes_trigger").
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_list_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_list_changes_trigger ON contact_lists").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TRIGGER contact_list_changes_trigger").
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_list_changes_trigger").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_message_history_changes").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("DROP TRIGGER IF EXISTS message_history_changes_trigger ON message_history").
+		mock.ExpectExec("DROP TRIGGER IF EXISTS message_history_changes_trigger").
 			WillReturnError(sql.ErrConnDone)
 
 		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to create message_history_changes_trigger")
+	})
+
+	t.Run("Error - CREATE FUNCTION for track_webhook_event_changes fails", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_list_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_list_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_message_history_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS message_history_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_webhook_event_changes").
+			WillReturnError(sql.ErrConnDone)
+
+		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create track_webhook_event_changes function")
+	})
+
+	t.Run("Error - CREATE TRIGGER for webhook_events fails", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer db.Close()
+
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_list_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS contact_list_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_message_history_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS message_history_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TRIGGER IF EXISTS webhook_event_changes_trigger").
+			WillReturnError(sql.ErrConnDone)
+
+		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create webhook_event_changes_trigger")
 	})
 }
 

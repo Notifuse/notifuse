@@ -557,7 +557,7 @@ func (s *DemoService) createSampleTemplates(ctx context.Context, workspaceID str
 	newsletterV2Template := &domain.Template{
 		ID:       "newsletter-weekly-v2",
 		Name:     "Weekly Newsletter v2",
-		Version:  2,
+		Version:  1,
 		Channel:  "email",
 		Category: string(domain.TemplateCategoryMarketing),
 		Email: &domain.EmailTemplate{
@@ -1835,7 +1835,7 @@ func (s *DemoService) generateNewsletterCampaigns(ctx context.Context, workspace
 			templateVersion := int64(1)
 			if day%14 == 7 { // Alternate with v2 template every other week
 				templateID = "newsletter-weekly-v2"
-				templateVersion = 2
+				templateVersion = 1
 			}
 
 			newsletterCampaigns = append(newsletterCampaigns, struct {

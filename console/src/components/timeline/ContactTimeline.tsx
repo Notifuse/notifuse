@@ -1,5 +1,5 @@
 import React from 'react'
-import { Timeline, Empty, Spin, Button, Tag, Tooltip, Typography } from 'antd'
+import { Timeline, Empty, Spin, Button, Tag, Tooltip, Typography, Popover } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCheck,
@@ -513,9 +513,20 @@ export function ContactTimeline({
         items={entries.map((entry) => ({
           //   color: getOperationColor(entry.operation),
           dot: (
-            <div>
-              <FontAwesomeIcon icon={getEntityIcon(entry)} />
-            </div>
+            <Popover
+              content={
+                <pre className="text-xs max-w-lg max-h-96 overflow-auto bg-gray-50 p-2 rounded">
+                  {JSON.stringify(entry, null, 2)}
+                </pre>
+              }
+              title="Raw Entry Data"
+              trigger="hover"
+              placement="right"
+            >
+              <div className="cursor-pointer">
+                <FontAwesomeIcon icon={getEntityIcon(entry)} />
+              </div>
+            </Popover>
           ),
           children: renderEntityDetails(entry)
         }))}
