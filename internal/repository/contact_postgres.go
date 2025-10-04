@@ -386,7 +386,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		isNew = true
 
 		// Set DB timestamps
-		now := time.Now()
+		now := time.Now().UTC()
 		contact.DBCreatedAt = now
 		contact.DBUpdatedAt = now
 
@@ -691,7 +691,6 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 				"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 				"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 				"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-				"created_at", "updated_at",
 			).
 			Values(
 				contact.Email, externalIDSQL, timezoneSQL, languageSQL,
@@ -702,8 +701,18 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 				customNumber1SQL, customNumber2SQL, customNumber3SQL, customNumber4SQL, customNumber5SQL,
 				customDatetime1SQL, customDatetime2SQL, customDatetime3SQL, customDatetime4SQL, customDatetime5SQL,
 				customJSON1SQL, customJSON2SQL, customJSON3SQL, customJSON4SQL, customJSON5SQL,
-				contact.DBCreatedAt, contact.DBUpdatedAt, // Use DB timestamps
 			)
+
+		// Add created_at if provided (not zero), otherwise let DB use default
+		if !contact.CreatedAt.IsZero() {
+			insertBuilder = insertBuilder.Columns("created_at").Values(contact.CreatedAt.UTC())
+		}
+		// Add updated_at if provided (not zero), otherwise let DB use default
+		if !contact.UpdatedAt.IsZero() {
+			insertBuilder = insertBuilder.Columns("updated_at").Values(contact.UpdatedAt.UTC())
+		}
+		// Always set db_created_at and db_updated_at
+		insertBuilder = insertBuilder.Columns("db_created_at", "db_updated_at").Values(contact.DBCreatedAt, contact.DBUpdatedAt)
 
 		insertQuery, insertArgs, err := insertBuilder.ToSql()
 		if err != nil {
@@ -722,7 +731,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		isNew = false
 
 		// Update DB timestamps
-		existingContact.DBUpdatedAt = time.Now()
+		existingContact.DBUpdatedAt = time.Now().UTC()
 
 		// Merge changes from the input 'contact' into the 'existingContact'
 		existingContact.Merge(contact)
@@ -950,45 +959,52 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		}
 
 		// Build update query using squirrel
+		updateMap := sq.Eq{
+			"external_id":       externalIDSQL,
+			"timezone":          timezoneSQL,
+			"language":          languageSQL,
+			"first_name":        firstNameSQL,
+			"last_name":         lastNameSQL,
+			"phone":             phoneSQL,
+			"address_line_1":    addressLine1SQL,
+			"address_line_2":    addressLine2SQL,
+			"country":           countrySQL,
+			"postcode":          postcodeSQL,
+			"state":             stateSQL,
+			"job_title":         jobTitleSQL,
+			"lifetime_value":    lifetimeValueSQL,
+			"orders_count":      ordersCountSQL,
+			"last_order_at":     lastOrderAtSQL,
+			"custom_string_1":   customString1SQL,
+			"custom_string_2":   customString2SQL,
+			"custom_string_3":   customString3SQL,
+			"custom_string_4":   customString4SQL,
+			"custom_string_5":   customString5SQL,
+			"custom_number_1":   customNumber1SQL,
+			"custom_number_2":   customNumber2SQL,
+			"custom_number_3":   customNumber3SQL,
+			"custom_number_4":   customNumber4SQL,
+			"custom_number_5":   customNumber5SQL,
+			"custom_datetime_1": customDatetime1SQL,
+			"custom_datetime_2": customDatetime2SQL,
+			"custom_datetime_3": customDatetime3SQL,
+			"custom_datetime_4": customDatetime4SQL,
+			"custom_datetime_5": customDatetime5SQL,
+			"custom_json_1":     customJSON1SQL,
+			"custom_json_2":     customJSON2SQL,
+			"custom_json_3":     customJSON3SQL,
+			"custom_json_4":     customJSON4SQL,
+			"custom_json_5":     customJSON5SQL,
+			"db_updated_at":     existingContact.DBUpdatedAt,
+		}
+
+		// Only update updated_at if provided (not zero)
+		if !existingContact.UpdatedAt.IsZero() {
+			updateMap["updated_at"] = existingContact.UpdatedAt.UTC()
+		}
+
 		updateBuilder := psql.Update("contacts").
-			SetMap(sq.Eq{
-				"external_id":       externalIDSQL,
-				"timezone":          timezoneSQL,
-				"language":          languageSQL,
-				"first_name":        firstNameSQL,
-				"last_name":         lastNameSQL,
-				"phone":             phoneSQL,
-				"address_line_1":    addressLine1SQL,
-				"address_line_2":    addressLine2SQL,
-				"country":           countrySQL,
-				"postcode":          postcodeSQL,
-				"state":             stateSQL,
-				"job_title":         jobTitleSQL,
-				"lifetime_value":    lifetimeValueSQL,
-				"orders_count":      ordersCountSQL,
-				"last_order_at":     lastOrderAtSQL,
-				"custom_string_1":   customString1SQL,
-				"custom_string_2":   customString2SQL,
-				"custom_string_3":   customString3SQL,
-				"custom_string_4":   customString4SQL,
-				"custom_string_5":   customString5SQL,
-				"custom_number_1":   customNumber1SQL,
-				"custom_number_2":   customNumber2SQL,
-				"custom_number_3":   customNumber3SQL,
-				"custom_number_4":   customNumber4SQL,
-				"custom_number_5":   customNumber5SQL,
-				"custom_datetime_1": customDatetime1SQL,
-				"custom_datetime_2": customDatetime2SQL,
-				"custom_datetime_3": customDatetime3SQL,
-				"custom_datetime_4": customDatetime4SQL,
-				"custom_datetime_5": customDatetime5SQL,
-				"custom_json_1":     customJSON1SQL,
-				"custom_json_2":     customJSON2SQL,
-				"custom_json_3":     customJSON3SQL,
-				"custom_json_4":     customJSON4SQL,
-				"custom_json_5":     customJSON5SQL,
-				"updated_at":        existingContact.DBUpdatedAt, // Use DB timestamps
-			}).
+			SetMap(updateMap).
 			Where(sq.Eq{"email": existingContact.Email})
 
 		updateQuery, updateArgs, err := updateBuilder.ToSql()

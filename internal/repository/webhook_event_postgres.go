@@ -57,7 +57,7 @@ func (r *webhookEventRepository) StoreEvents(ctx context.Context, workspaceID st
 
 	// Generate placeholders for all events
 	placeholders := make([]string, len(events))
-	now := time.Now()
+	now := time.Now().UTC()
 
 	// Batch size limit to avoid hitting Postgres parameter limits (max 65535 parameters)
 	const batchSize = 1000 // Each event uses 13 parameters, so ~5000 events would hit the limit

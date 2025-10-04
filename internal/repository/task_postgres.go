@@ -503,7 +503,7 @@ func (r *TaskRepository) List(ctx context.Context, workspace string, filter doma
 
 // GetNextBatch retrieves tasks that are ready to be processed
 func (r *TaskRepository) GetNextBatch(ctx context.Context, limit int) ([]*domain.Task, error) {
-	now := time.Now()
+	now := time.Now().UTC()
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	// We want tasks that are:

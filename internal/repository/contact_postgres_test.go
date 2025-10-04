@@ -57,7 +57,7 @@ func TestGetContactByEmail(t *testing.T) {
 		"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 		"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 		"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-		"created_at", "updated_at",
+		"created_at", "updated_at", "db_created_at", "db_updated_at",
 	}).
 		AddRow(
 			email, "ext123", "Europe/Paris", "en-US",
@@ -68,7 +68,7 @@ func TestGetContactByEmail(t *testing.T) {
 			42.0, 43.0, 44.0, 45.0, 46.0,
 			now, now, now, now, now,
 			[]byte(`{"key": "value1"}`), []byte(`{"key": "value2"}`), []byte(`{"key": "value3"}`), []byte(`{"key": "value4"}`), []byte(`{"key": "value5"}`),
-			now, now,
+			now, now, now, now,
 		)
 
 	mock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c.email = \$1`).
@@ -128,7 +128,7 @@ func TestGetContactByExternalID(t *testing.T) {
 		"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 		"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 		"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-		"created_at", "updated_at",
+		"created_at", "updated_at", "db_created_at", "db_updated_at",
 	}).
 		AddRow(
 			email, externalID, "Europe/Paris", "en-US",
@@ -139,7 +139,7 @@ func TestGetContactByExternalID(t *testing.T) {
 			42.0, 43.0, 44.0, 45.0, 46.0,
 			now, now, now, now, now,
 			[]byte(`{"key": "value1"}`), []byte(`{"key": "value2"}`), []byte(`{"key": "value3"}`), []byte(`{"key": "value4"}`), []byte(`{"key": "value5"}`),
-			now, now,
+			now, now, now, now,
 		)
 
 	mock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c.external_id = \$1`).
@@ -189,12 +189,12 @@ func TestGetContactByExternalID(t *testing.T) {
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).AddRow(
 			email, "e-123", "Europe/Paris", "en-US", "John", "Doe", "", "", "", "", "", "", "", 0, 0, time.Time{},
 			"", "", "", "", "", 0, 0, 0, 0, 0, time.Time{}, time.Time{}, time.Time{}, time.Time{}, time.Time{},
 			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
-			time.Now(), time.Now(),
+			time.Now(), time.Now(), time.Now(), time.Now(),
 		)
 
 		mock.ExpectQuery("SELECT c\\.\\* FROM contacts c WHERE c.external_id = \\$1").
@@ -249,7 +249,7 @@ func TestFetchContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				email, "ext123", "Europe/Paris", "en-US",
@@ -260,7 +260,7 @@ func TestFetchContact(t *testing.T) {
 				42.0, 43.0, 44.0, 45.0, 46.0,
 				now, now, now, now, now,
 				[]byte(`{"key": "value1"}`), []byte(`{"key": "value2"}`), []byte(`{"key": "value3"}`), []byte(`{"key": "value4"}`), []byte(`{"key": "value5"}`),
-				now, now,
+				now, now, now, now,
 			)
 
 		phone := "+1234567890"
@@ -303,7 +303,7 @@ func TestFetchContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				email, "ext123", "Europe/Paris", "en-US",
@@ -314,7 +314,7 @@ func TestFetchContact(t *testing.T) {
 				42.0, 43.0, 44.0, 45.0, 46.0,
 				now, now, now, now, now,
 				[]byte(`{"key": "value1"}`), []byte(`{"key": "value2"}`), []byte(`{"key": "value3"}`), []byte(`{"key": "value4"}`), []byte(`{"key": "value5"}`),
-				now, now,
+				now, now, now, now,
 			)
 
 		mock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c.email = \$1`).
@@ -358,7 +358,7 @@ func TestGetContacts(t *testing.T) {
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
-			"custom_json_5", "created_at", "updated_at",
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).AddRow(
 			"test@example.com", "ext123", "UTC", "en", "John", "Doe",
 			"+1234567890", "123 Main St", "Apt 4B", "US", "12345", "CA",
@@ -368,7 +368,7 @@ func TestGetContacts(t *testing.T) {
 			time.Now(), time.Now(), time.Now(), time.Now(), time.Now(),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
-			time.Now(), time.Now(),
+			time.Now(), time.Now(), time.Now(), time.Now(),
 		)
 
 		mock.ExpectQuery(`SELECT c\.\* FROM contacts c ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
@@ -427,7 +427,7 @@ func TestGetContacts(t *testing.T) {
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
-			"custom_json_5", "created_at", "updated_at",
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).AddRow(
 			"test@example.com", "ext123", "UTC", "en", "John", "Doe",
 			"+1234567890", "123 Main St", "Apt 4B", "US", "12345", "CA",
@@ -437,7 +437,7 @@ func TestGetContacts(t *testing.T) {
 			time.Now(), time.Now(), time.Now(), time.Now(), time.Now(),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
-			time.Now(), time.Now(),
+			time.Now(), time.Now(), time.Now(), time.Now(),
 		)
 
 		mock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email ILIKE \$1 AND c\.first_name ILIKE \$2 AND c\.country ILIKE \$3 ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
@@ -501,7 +501,7 @@ func TestGetContacts(t *testing.T) {
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
-			"custom_json_5", "created_at", "updated_at",
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
 		})
 
 		// Add multiple contacts to ensure pagination works
@@ -516,7 +516,7 @@ func TestGetContacts(t *testing.T) {
 				now, now, now, now, now,
 				[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
 				[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
-				now.Add(time.Duration(-i)*time.Hour), now, // Use decreasing created_at times
+				now.Add(time.Duration(-i)*time.Hour), now, now.Add(time.Duration(-i)*time.Hour), now, // Use decreasing created_at times
 			)
 		}
 
@@ -738,7 +738,7 @@ func TestGetContacts(t *testing.T) {
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
-			"custom_json_5", "created_at", "updated_at",
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).AddRow(
 			"test@example.com", "ext123", "UTC", "en", "John", "Doe",
 			"+1234567890", "123 Main St", "Apt 4B", "US", "12345", "CA",
@@ -748,7 +748,7 @@ func TestGetContacts(t *testing.T) {
 			time.Now(), time.Now(), time.Now(), time.Now(), time.Now(),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
-			time.Now(), time.Now(),
+			time.Now(), time.Now(), time.Now(), time.Now(),
 		)
 
 		mock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email ILIKE \$1 AND c\.external_id ILIKE \$2 AND c\.first_name ILIKE \$3 AND c\.last_name ILIKE \$4 AND c\.phone ILIKE \$5 AND c\.country ILIKE \$6 ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
@@ -844,7 +844,7 @@ func TestGetContacts(t *testing.T) {
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
-			"custom_json_5", "created_at", "updated_at",
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).AddRow(
 			"test@example.com", "ext123", "UTC", "en", "John", "Doe",
 			"+1234567890", "123 Main St", "Apt 4B", "US", "12345", "CA",
@@ -854,7 +854,7 @@ func TestGetContacts(t *testing.T) {
 			time.Now(), time.Now(), time.Now(), time.Now(), time.Now(),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
-			time.Now(), time.Now(),
+			time.Now(), time.Now(), time.Now(), time.Now(),
 		)
 
 		// Match the query using a regex pattern that includes the EXISTS subquery
@@ -916,7 +916,7 @@ func TestGetContacts(t *testing.T) {
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
-			"custom_json_5", "created_at", "updated_at",
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).AddRow(
 			"test@example.com", "ext123", "UTC", "en", "John", "Doe",
 			"+1234567890", "123 Main St", "Apt 4B", "US", "12345", "CA",
@@ -926,7 +926,7 @@ func TestGetContacts(t *testing.T) {
 			time.Now(), time.Now(), time.Now(), time.Now(), time.Now(),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
-			time.Now(), time.Now(),
+			time.Now(), time.Now(), time.Now(), time.Now(),
 		)
 
 		// Match the query using a regex pattern that includes the EXISTS subquery
@@ -988,7 +988,7 @@ func TestGetContacts(t *testing.T) {
 			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
 			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
-			"custom_json_5", "created_at", "updated_at",
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).AddRow(
 			"test@example.com", "ext123", "UTC", "en", "John", "Doe",
 			"+1234567890", "123 Main St", "Apt 4B", "US", "12345", "CA",
@@ -998,7 +998,7 @@ func TestGetContacts(t *testing.T) {
 			time.Now(), time.Now(), time.Now(), time.Now(), time.Now(),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
 			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
-			time.Now(), time.Now(),
+			time.Now(), time.Now(), time.Now(), time.Now(),
 		)
 
 		// Match the query using a regex pattern that includes the EXISTS subquery with both list_id and status filters
@@ -1222,7 +1222,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
-			"custom_json_5", "created_at", "updated_at",
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				"test1@example.com", "ext123", "Europe/Paris", "en-US",
@@ -1233,7 +1233,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				42.0, 43.0, 44.0, 45.0, 46.0,
 				now, now, now, now, now,
 				[]byte(`{"key": "value1"}`), []byte(`{"key": "value2"}`), []byte(`{"key": "value3"}`), []byte(`{"key": "value4"}`), []byte(`{"key": "value5"}`),
-				now, now,
+				now, now, now, now,
 			).
 			AddRow(
 				"test2@example.com", "ext456", "America/New_York", "en-US",
@@ -1244,7 +1244,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				52.0, 53.0, 54.0, 55.0, 56.0,
 				now, now, now, now, now,
 				[]byte(`{"key": "value1-2"}`), []byte(`{"key": "value2-2"}`), []byte(`{"key": "value3-2"}`), []byte(`{"key": "value4-2"}`), []byte(`{"key": "value5-2"}`),
-				now, now,
+				now, now, now, now,
 			)
 
 		// Expect query without JOINS for all contacts

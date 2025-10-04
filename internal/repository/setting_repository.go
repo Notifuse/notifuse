@@ -44,7 +44,7 @@ func (r *SQLSettingRepository) Get(ctx context.Context, key string) (*domain.Set
 
 // Set creates or updates a setting
 func (r *SQLSettingRepository) Set(ctx context.Context, key, value string) error {
-	now := time.Now()
+	now := time.Now().UTC()
 
 	_, err := r.systemDB.ExecContext(ctx, `
 		INSERT INTO settings (key, value, created_at, updated_at) 
@@ -109,7 +109,7 @@ func (r *SQLSettingRepository) List(ctx context.Context) ([]*domain.Setting, err
 
 // SetLastCronRun updates the last cron execution timestamp to NOW()
 func (r *SQLSettingRepository) SetLastCronRun(ctx context.Context) error {
-	now := time.Now()
+	now := time.Now().UTC()
 	return r.Set(ctx, LastCronRunKey, now.Format(time.RFC3339))
 }
 

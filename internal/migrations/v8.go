@@ -1,264 +1,129 @@
-package database
+package migrations
 
 import (
-	"database/sql"
+	"context"
 	"fmt"
-	"time"
 
-	"github.com/google/uuid"
-
-	"github.com/Notifuse/notifuse/internal/database/schema"
+	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 )
 
-// InitializeDatabase creates all necessary database tables if they don't exist
-func InitializeDatabase(db *sql.DB, rootEmail string) error {
-	// Run all table creation queries
-	for _, query := range schema.TableDefinitions {
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to create table: %w", err)
-		}
-	}
+// V8Migration implements the migration from version 7.x to 8.0
+// Adds kind and db_created_at columns to contact_timeline table
+// Removes default from created_at to support historical data imports
+type V8Migration struct{}
 
-	// Run migration statements for schema changes
-	for _, query := range schema.GetMigrationStatements() {
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to run migration: %w", err)
-		}
-	}
+// GetMajorVersion returns the major version this migration handles
+func (m *V8Migration) GetMajorVersion() float64 {
+	return 8.0
+}
 
-	// Create root user if it doesn't exist
-	if rootEmail != "" {
-		// Check if root user exists
-		var exists bool
-		err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)", rootEmail).Scan(&exists)
-		if err != nil {
-			return fmt.Errorf("failed to check root user existence: %w", err)
-		}
+// HasSystemUpdate indicates if this migration has system-level changes
+func (m *V8Migration) HasSystemUpdate() bool {
+	return false
+}
 
-		if !exists {
-			// Create root user
-			rootUser := &domain.User{
-				ID:        uuid.New().String(),
-				Email:     rootEmail,
-				Name:      "Root User",
-				Type:      domain.UserTypeUser,
-				CreatedAt: time.Now().UTC(),
-				UpdatedAt: time.Now().UTC(),
-			}
+// HasWorkspaceUpdate indicates if this migration has workspace-level changes
+func (m *V8Migration) HasWorkspaceUpdate() bool {
+	return true
+}
 
-			query := `
-				INSERT INTO users (id, email, name, type, created_at, updated_at)
-				VALUES ($1, $2, $3, $4, $5, $6)
-			`
-			_, err = db.Exec(query,
-				rootUser.ID,
-				rootUser.Email,
-				rootUser.Name,
-				rootUser.Type,
-				rootUser.CreatedAt,
-				rootUser.UpdatedAt,
-			)
-			if err != nil {
-				return fmt.Errorf("failed to create root user: %w", err)
-			}
-		}
-	}
-
+// UpdateSystem executes system-level migration changes
+func (m *V8Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
+	// No system-level changes for v8
 	return nil
 }
 
-// InitializeWorkspaceDatabase creates the necessary tables for a workspace database
-func InitializeWorkspaceDatabase(db *sql.DB) error {
-	// Create workspace tables
-	queries := []string{
-		`CREATE TABLE IF NOT EXISTS contacts (
-			email VARCHAR(255) PRIMARY KEY,
-			external_id VARCHAR(255),
-			timezone VARCHAR(50),
-			language VARCHAR(50),
-			first_name VARCHAR(255),
-			last_name VARCHAR(255),
-			phone VARCHAR(50),
-			address_line_1 VARCHAR(255),
-			address_line_2 VARCHAR(255),
-			country VARCHAR(100),
-			postcode VARCHAR(20),
-			state VARCHAR(100),
-			job_title VARCHAR(255),
-			lifetime_value DECIMAL,
-			orders_count INTEGER,
-			last_order_at TIMESTAMP WITH TIME ZONE,
-			custom_string_1 VARCHAR(255),
-			custom_string_2 VARCHAR(255),
-			custom_string_3 VARCHAR(255),
-			custom_string_4 VARCHAR(255),
-			custom_string_5 VARCHAR(255),
-			custom_number_1 DECIMAL,
-			custom_number_2 DECIMAL,
-			custom_number_3 DECIMAL,
-			custom_number_4 DECIMAL,
-			custom_number_5 DECIMAL,
-			custom_datetime_1 TIMESTAMP WITH TIME ZONE,
-			custom_datetime_2 TIMESTAMP WITH TIME ZONE,
-			custom_datetime_3 TIMESTAMP WITH TIME ZONE,
-			custom_datetime_4 TIMESTAMP WITH TIME ZONE,
-			custom_datetime_5 TIMESTAMP WITH TIME ZONE,
-			custom_json_1 JSONB,
-			custom_json_2 JSONB,
-			custom_json_3 JSONB,
-			custom_json_4 JSONB,
-			custom_json_5 JSONB,
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			db_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)`,
-		`CREATE INDEX IF NOT EXISTS idx_contacts_external_id ON contacts(external_id)`,
-		`CREATE TABLE IF NOT EXISTS lists (
-			id VARCHAR(32) PRIMARY KEY,
-			name VARCHAR(255) NOT NULL,
-			is_double_optin BOOLEAN NOT NULL DEFAULT FALSE,
-			is_public BOOLEAN NOT NULL DEFAULT FALSE,
-			description TEXT,
-			double_optin_template JSONB,
-			welcome_template JSONB,
-			unsubscribe_template JSONB,
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			deleted_at TIMESTAMP WITH TIME ZONE
-		)`,
-		`CREATE TABLE IF NOT EXISTS contact_lists (
-			email VARCHAR(255) NOT NULL,
-			list_id VARCHAR(32) NOT NULL,
-			status VARCHAR(20) NOT NULL,
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			deleted_at TIMESTAMP WITH TIME ZONE,
-			PRIMARY KEY (email, list_id)
-		)`,
-		`CREATE TABLE IF NOT EXISTS templates (
-			id VARCHAR(32) NOT NULL,
-			name VARCHAR(255) NOT NULL,
-			version INTEGER NOT NULL,
-			channel VARCHAR(20) NOT NULL,
-			email JSONB NOT NULL,
-			category VARCHAR(20) NOT NULL,
-			template_macro_id VARCHAR(32),
-			test_data JSONB,
-			settings JSONB,
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			deleted_at TIMESTAMP WITH TIME ZONE,
-			PRIMARY KEY (id, version)
-		)`,
-		`CREATE TABLE IF NOT EXISTS broadcasts (
-			id VARCHAR(255) NOT NULL,
-			workspace_id VARCHAR(32) NOT NULL,
-			name VARCHAR(255) NOT NULL,
-			status VARCHAR(20) NOT NULL,
-			audience JSONB NOT NULL,
-			schedule JSONB NOT NULL,
-			test_settings JSONB NOT NULL,
-			utm_parameters JSONB,
-			metadata JSONB,
-			winning_template VARCHAR(32),
-			test_sent_at TIMESTAMP WITH TIME ZONE,
-			winner_sent_at TIMESTAMP WITH TIME ZONE,
-			test_phase_recipient_count INTEGER DEFAULT 0,
-			winner_phase_recipient_count INTEGER DEFAULT 0,
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-			updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
-			started_at TIMESTAMP WITH TIME ZONE,
-			completed_at TIMESTAMP WITH TIME ZONE,
-			cancelled_at TIMESTAMP WITH TIME ZONE,
-			paused_at TIMESTAMP WITH TIME ZONE,
-			PRIMARY KEY (id)
-		)`,
-		`CREATE TABLE IF NOT EXISTS message_history (
-			id VARCHAR(255) NOT NULL PRIMARY KEY,
-			contact_email VARCHAR(255) NOT NULL,
-			external_id VARCHAR(255),
-			broadcast_id VARCHAR(255),
-			template_id VARCHAR(32) NOT NULL,
-			template_version INTEGER NOT NULL,
-			channel VARCHAR(20) NOT NULL,
-			status_info VARCHAR(255),
-			message_data JSONB NOT NULL,
-			sent_at TIMESTAMP WITH TIME ZONE NOT NULL,
-			delivered_at TIMESTAMP WITH TIME ZONE,
-			failed_at TIMESTAMP WITH TIME ZONE,
-			opened_at TIMESTAMP WITH TIME ZONE,
-			clicked_at TIMESTAMP WITH TIME ZONE,
-			bounced_at TIMESTAMP WITH TIME ZONE,
-			complained_at TIMESTAMP WITH TIME ZONE,
-			unsubscribed_at TIMESTAMP WITH TIME ZONE,
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`CREATE INDEX IF NOT EXISTS idx_message_history_contact_email ON message_history(contact_email)`,
-		`CREATE INDEX IF NOT EXISTS idx_message_history_broadcast_id ON message_history(broadcast_id)`,
-		`CREATE INDEX IF NOT EXISTS idx_message_history_template_id ON message_history(template_id, template_version)`,
-		`CREATE INDEX IF NOT EXISTS idx_message_history_created_at_id ON message_history(created_at DESC, id DESC)`,
-		`CREATE TABLE IF NOT EXISTS transactional_notifications (
-			id VARCHAR(32) NOT NULL PRIMARY KEY,
-			name VARCHAR(255) NOT NULL,
-			description TEXT,
-			channels JSONB NOT NULL,
-			tracking_settings JSONB,
-			metadata JSONB,
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			deleted_at TIMESTAMP WITH TIME ZONE
-		)`,
-		`CREATE TABLE IF NOT EXISTS webhook_events (
-			id UUID PRIMARY KEY,
-			type VARCHAR(50) NOT NULL,
-			email_provider_kind VARCHAR(50) NOT NULL,
-			integration_id VARCHAR(255) NOT NULL,
-			recipient_email VARCHAR(255) NOT NULL,
-			message_id VARCHAR(255) NOT NULL,
-			timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
-			raw_payload TEXT NOT NULL,
-			bounce_type VARCHAR(100),
-			bounce_category VARCHAR(100),
-			bounce_diagnostic TEXT,
-			complaint_feedback_type VARCHAR(100),
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL
-		)`,
-		`CREATE INDEX IF NOT EXISTS webhook_events_message_id_idx ON webhook_events (message_id)`,
-		`CREATE INDEX IF NOT EXISTS webhook_events_type_idx ON webhook_events (type)`,
-		`CREATE INDEX IF NOT EXISTS webhook_events_timestamp_idx ON webhook_events (timestamp DESC)`,
-		`CREATE INDEX IF NOT EXISTS webhook_events_recipient_email_idx ON webhook_events (recipient_email)`,
-		`CREATE INDEX IF NOT EXISTS idx_broadcasts_status_testing ON broadcasts(status) WHERE status IN ('testing', 'test_completed', 'winner_selected')`,
-		`CREATE TABLE IF NOT EXISTS contact_timeline (
-			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-			email VARCHAR(255) NOT NULL,
-			operation VARCHAR(20) NOT NULL,
-			entity_type VARCHAR(20) NOT NULL,
-			kind VARCHAR(50) NOT NULL DEFAULT '',
-			changes JSONB,
-			entity_id VARCHAR(255),
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
-			db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-		)`,
-		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline(email, created_at DESC, id DESC)`,
-		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_kind ON contact_timeline(kind)`,
-		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline(entity_id) WHERE entity_id IS NOT NULL`,
+// UpdateWorkspace executes workspace-level migration changes
+func (m *V8Migration) UpdateWorkspace(ctx context.Context, config *config.Config, workspace *domain.Workspace, db DBExecutor) error {
+	// Add kind column (operation_entityType)
+	_, err := db.ExecContext(ctx, `
+		ALTER TABLE contact_timeline
+		ADD COLUMN IF NOT EXISTS kind VARCHAR(50) NOT NULL DEFAULT ''
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add kind column to contact_timeline table for workspace %s: %w", workspace.ID, err)
 	}
 
-	// Run all table creation queries
-	for _, query := range queries {
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to create workspace table: %w", err)
-		}
+	// Add db_created_at column
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE contact_timeline
+		ADD COLUMN IF NOT EXISTS db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add db_created_at column to contact_timeline table for workspace %s: %w", workspace.ID, err)
 	}
 
-	// Create trigger functions and triggers for contact timeline
-	triggerQueries := []string{
-		// Contact changes trigger function
-		`CREATE OR REPLACE FUNCTION track_contact_changes()
+	// Update existing rows to populate kind based on operation and entity_type
+	// Handle message_history engagement events specially
+	// Note: ct.changes is JSONB, using ? operator to check if key exists
+	_, err = db.ExecContext(ctx, `
+		UPDATE contact_timeline ct
+		SET kind = CASE
+			-- Message history engagement events with channel (using JSONB ? operator to check key existence)
+			WHEN ct.entity_type = 'message_history' AND ct.operation = 'update' AND ct.changes ? 'opened_at' 
+				THEN 'open_' || COALESCE((SELECT channel FROM message_history WHERE id = ct.entity_id), 'email')
+			WHEN ct.entity_type = 'message_history' AND ct.operation = 'update' AND ct.changes ? 'clicked_at' 
+				THEN 'click_' || COALESCE((SELECT channel FROM message_history WHERE id = ct.entity_id), 'email')
+			WHEN ct.entity_type = 'message_history' AND ct.operation = 'update' AND ct.changes ? 'bounced_at' 
+				THEN 'bounce_' || COALESCE((SELECT channel FROM message_history WHERE id = ct.entity_id), 'email')
+			WHEN ct.entity_type = 'message_history' AND ct.operation = 'update' AND ct.changes ? 'complained_at' 
+				THEN 'complain_' || COALESCE((SELECT channel FROM message_history WHERE id = ct.entity_id), 'email')
+			WHEN ct.entity_type = 'message_history' AND ct.operation = 'update' AND ct.changes ? 'unsubscribed_at' 
+				THEN 'unsubscribe_' || COALESCE((SELECT channel FROM message_history WHERE id = ct.entity_id), 'email')
+			-- Default: operation_entitytype
+			ELSE ct.operation || '_' || ct.entity_type
+		END
+		WHERE ct.kind = '' OR ct.kind IS NULL
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to populate kind column in contact_timeline table for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Update existing rows to set db_created_at from created_at for historical data
+	_, err = db.ExecContext(ctx, `
+		UPDATE contact_timeline
+		SET db_created_at = created_at
+		WHERE db_created_at IS NULL OR db_created_at = CURRENT_TIMESTAMP
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to populate db_created_at column in contact_timeline table for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Remove default from created_at column (PostgreSQL requires a different approach)
+	// We need to alter the column to remove the default
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE contact_timeline
+		ALTER COLUMN created_at DROP DEFAULT
+	`)
+	if err != nil {
+		// This is not critical - if it fails, it just means the default stays
+		// Log it but don't fail the migration
+		fmt.Printf("Warning: failed to remove default from created_at column in contact_timeline table for workspace %s: %v\n", workspace.ID, err)
+	}
+
+	// Add db_created_at and db_updated_at to contacts table with defaults
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE contacts
+		ADD COLUMN IF NOT EXISTS db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+		ADD COLUMN IF NOT EXISTS db_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add db_created_at and db_updated_at columns to contacts table for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Create index on kind column for filtering
+	_, err = db.ExecContext(ctx, `
+		CREATE INDEX IF NOT EXISTS idx_contact_timeline_kind ON contact_timeline(kind)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create kind index on contact_timeline table for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Update trigger functions to include kind field
+	// Contact changes trigger function
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION track_contact_changes()
 		RETURNS TRIGGER AS $$
 		DECLARE
 			changes_json JSONB := '{}'::jsonb;
@@ -315,9 +180,15 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			END IF;
 			RETURN NEW;
 		END;
-		$$ LANGUAGE plpgsql;`,
-		// Contact list changes trigger function
-		`CREATE OR REPLACE FUNCTION track_contact_list_changes()
+		$$ LANGUAGE plpgsql;
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to update track_contact_changes function for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Contact list changes trigger function
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION track_contact_list_changes()
 		RETURNS TRIGGER AS $$
 		DECLARE
 			changes_json JSONB := '{}'::jsonb;
@@ -336,9 +207,15 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			VALUES (NEW.email, op, 'contact_list', op || '_contact_list', NEW.list_id, changes_json, CURRENT_TIMESTAMP);
 			RETURN NEW;
 		END;
-		$$ LANGUAGE plpgsql;`,
-		// Message history changes trigger function
-		`CREATE OR REPLACE FUNCTION track_message_history_changes()
+		$$ LANGUAGE plpgsql;
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to update track_contact_list_changes function for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Message history changes trigger function
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION track_message_history_changes()
 		RETURNS TRIGGER AS $$
 		DECLARE
 			changes_json JSONB := '{}'::jsonb;
@@ -390,9 +267,15 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			END IF;
 			RETURN NEW;
 		END;
-		$$ LANGUAGE plpgsql;`,
-		// Webhook event changes trigger function
-		`CREATE OR REPLACE FUNCTION track_webhook_event_changes()
+		$$ LANGUAGE plpgsql;
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to update track_message_history_changes function for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Webhook event changes trigger function
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION track_webhook_event_changes()
 		RETURNS TRIGGER AS $$
 		DECLARE
 			changes_json JSONB := '{}'::jsonb;
@@ -406,41 +289,16 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			VALUES (NEW.recipient_email, 'insert', 'webhook_event', 'insert_webhook_event', NEW.message_id, changes_json, CURRENT_TIMESTAMP);
 			RETURN NEW;
 		END;
-		$$ LANGUAGE plpgsql;`,
-		// Create triggers
-		`DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts`,
-		`CREATE TRIGGER contact_changes_trigger AFTER INSERT OR UPDATE ON contacts FOR EACH ROW EXECUTE FUNCTION track_contact_changes()`,
-		`DROP TRIGGER IF EXISTS contact_list_changes_trigger ON contact_lists`,
-		`CREATE TRIGGER contact_list_changes_trigger AFTER INSERT OR UPDATE ON contact_lists FOR EACH ROW EXECUTE FUNCTION track_contact_list_changes()`,
-		`DROP TRIGGER IF EXISTS message_history_changes_trigger ON message_history`,
-		`CREATE TRIGGER message_history_changes_trigger AFTER INSERT OR UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION track_message_history_changes()`,
-		`DROP TRIGGER IF EXISTS webhook_event_changes_trigger ON webhook_events`,
-		`CREATE TRIGGER webhook_event_changes_trigger AFTER INSERT ON webhook_events FOR EACH ROW EXECUTE FUNCTION track_webhook_event_changes()`,
-	}
-
-	for _, query := range triggerQueries {
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to create workspace triggers: %w", err)
-		}
+		$$ LANGUAGE plpgsql;
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to update track_webhook_event_changes function for workspace %s: %w", workspace.ID, err)
 	}
 
 	return nil
 }
 
-// CleanDatabase drops all tables in reverse order
-func CleanDatabase(db *sql.DB) error {
-	// Drop tables in reverse order to handle dependencies
-	for i := len(schema.TableNames) - 1; i >= 0; i-- {
-		query := fmt.Sprintf("DROP TABLE IF EXISTS %s CASCADE", schema.TableNames[i])
-		if _, err := db.Exec(query); err != nil {
-			return fmt.Errorf("failed to drop table %s: %w", schema.TableNames[i], err)
-		}
-	}
-
-	// Drop the webhook_events table
-	if _, err := db.Exec("DROP TABLE IF EXISTS webhook_events CASCADE"); err != nil {
-		return fmt.Errorf("failed to drop webhook_events table: %w", err)
-	}
-
-	return nil
+// init registers this migration with the default registry
+func init() {
+	Register(&V8Migration{})
 }

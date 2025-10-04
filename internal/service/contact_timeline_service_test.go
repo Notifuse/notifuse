@@ -26,27 +26,32 @@ func TestContactTimelineService_List(t *testing.T) {
 
 	t.Run("Success - List timeline entries", func(t *testing.T) {
 		cursor := "cursor123"
+		now := time.Now()
 		expectedEntries := []*domain.ContactTimelineEntry{
 			{
-				ID:         "entry1",
-				Email:      email,
-				Operation:  "insert",
-				EntityType: "contact",
-				Changes:    nil,
-				CreatedAt:  time.Now(),
+				ID:          "entry1",
+				Email:       email,
+				Operation:   "insert",
+				EntityType:  "contact",
+				Kind:        "insert_contact",
+				Changes:     nil,
+				CreatedAt:   now,
+				DBCreatedAt: now,
 			},
 			{
 				ID:         "entry2",
 				Email:      email,
 				Operation:  "update",
 				EntityType: "contact",
+				Kind:       "update_contact",
 				Changes: map[string]interface{}{
 					"first_name": map[string]interface{}{
 						"old": "John",
 						"new": "Jane",
 					},
 				},
-				CreatedAt: time.Now().Add(-1 * time.Hour),
+				CreatedAt:   now.Add(-1 * time.Hour),
+				DBCreatedAt: now.Add(-1 * time.Hour),
 			},
 		}
 

@@ -64,22 +64,27 @@ func TestContactTimelineHandler_handleList(t *testing.T) {
 
 		// Mock service response
 		cursor := "cursor123"
+		now := time.Now()
 		entries := []*domain.ContactTimelineEntry{
 			{
-				ID:         "entry1",
-				Email:      "user@example.com",
-				Operation:  "insert",
-				EntityType: "contact",
-				Changes:    nil,
-				CreatedAt:  time.Now(),
+				ID:          "entry1",
+				Email:       "user@example.com",
+				Operation:   "insert",
+				EntityType:  "contact",
+				Kind:        "insert_contact",
+				Changes:     nil,
+				CreatedAt:   now,
+				DBCreatedAt: now,
 			},
 			{
-				ID:         "entry2",
-				Email:      "user@example.com",
-				Operation:  "update",
-				EntityType: "contact",
-				Changes:    map[string]interface{}{"first_name": map[string]interface{}{"old": "John", "new": "Jane"}},
-				CreatedAt:  time.Now(),
+				ID:          "entry2",
+				Email:       "user@example.com",
+				Operation:   "update",
+				EntityType:  "contact",
+				Kind:        "update_contact",
+				Changes:     map[string]interface{}{"first_name": map[string]interface{}{"old": "John", "new": "Jane"}},
+				CreatedAt:   now,
+				DBCreatedAt: now,
 			},
 		}
 		mockService.EXPECT().

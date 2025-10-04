@@ -156,8 +156,10 @@ type dbContact struct {
 	CustomJSON4 []byte
 	CustomJSON5 []byte
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DBCreatedAt time.Time
+	DBUpdatedAt time.Time
 }
 
 // ScanContact scans a contact from the database
@@ -206,6 +208,8 @@ func ScanContact(scanner interface {
 		&dbc.CustomJSON5,
 		&dbc.CreatedAt,
 		&dbc.UpdatedAt,
+		&dbc.DBCreatedAt,
+		&dbc.DBUpdatedAt,
 	)
 
 	if err != nil {
@@ -217,8 +221,8 @@ func ScanContact(scanner interface {
 		Email:       dbc.Email,
 		CreatedAt:   dbc.CreatedAt,
 		UpdatedAt:   dbc.UpdatedAt,
-		DBCreatedAt: dbc.CreatedAt,
-		DBUpdatedAt: dbc.UpdatedAt,
+		DBCreatedAt: dbc.DBCreatedAt,
+		DBUpdatedAt: dbc.DBUpdatedAt,
 	}
 
 	// Handle nullable fields

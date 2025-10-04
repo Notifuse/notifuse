@@ -194,6 +194,8 @@ func TestScanContact(t *testing.T) {
 			jsonData5,                                           // CustomJSON5
 			now,                                                 // CreatedAt
 			now,                                                 // UpdatedAt
+			now,                                                 // DBCreatedAt
+			now,                                                 // DBUpdatedAt
 		},
 	}
 
@@ -306,6 +308,8 @@ func TestScanContact(t *testing.T) {
 				[]byte("null"), // CustomJSON5
 				time.Now(),     // CreatedAt
 				time.Now(),     // UpdatedAt
+				time.Now(),     // DBCreatedAt
+				time.Now(),     // DBUpdatedAt
 			},
 		}
 
@@ -390,6 +394,8 @@ func TestScanContact(t *testing.T) {
 				[]byte("null"),                                // CustomJSON5
 				time.Now(),                                    // CreatedAt
 				time.Now(),                                    // UpdatedAt
+				time.Now(),                                    // DBCreatedAt
+				time.Now(),                                    // DBUpdatedAt
 			},
 		}
 
@@ -2559,6 +2565,8 @@ func TestScanContact_SetsDBTimestamps(t *testing.T) {
 			[]byte("null"), // CustomJSON5
 			now,            // CreatedAt
 			now,            // UpdatedAt
+			now,            // DBCreatedAt
+			now,            // DBUpdatedAt
 		},
 	}
 
@@ -2566,8 +2574,8 @@ func TestScanContact_SetsDBTimestamps(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, now, contact.CreatedAt)
 	assert.Equal(t, now, contact.UpdatedAt)
-	assert.Equal(t, contact.CreatedAt, contact.DBCreatedAt)
-	assert.Equal(t, contact.UpdatedAt, contact.DBUpdatedAt)
+	assert.Equal(t, now, contact.DBCreatedAt)
+	assert.Equal(t, now, contact.DBUpdatedAt)
 }
 
 func TestContact_Merge_DBTimeStamps(t *testing.T) {

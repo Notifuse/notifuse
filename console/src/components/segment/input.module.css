@@ -1,0 +1,103 @@
+.self:not(:first-child) {
+  padding-top: 1rem;
+}
+
+.self :global(.ant-form-inline .ant-form-item-with-help) {
+  margin: 0;
+}
+
+.self :global(.ant-form-item-explain-error) {
+  margin: 0;
+}
+
+.inputGroup {
+  border-bottom: 1px solid #CFD8DC;
+  padding-bottom: 1rem;
+}
+
+.cascaderWide {
+  width: 600px;
+}
+
+.color1 {
+  border-color: #03A9F4;
+}
+
+.color2 {
+  border-color: #4CAF50;
+}
+
+.color3 {
+  border-color: #E91E63;
+}
+
+.color4 {
+  border-color: #795548;
+}
+
+.color5 {
+  border-color: #FF9800;
+}
+
+.color6 {
+  border-color: #009688;
+}
+
+.color7 {
+  border-color: #9C27B0;
+}
+
+.color8 {
+  border-color: #FFC107;
+}
+
+.color9 {
+  border-color: #607D8B;
+}
+
+.color10 {
+  border-color: #CDDC39;
+}
+
+.color11 {
+  border-color: #3F51B5;
+}
+
+.condition {
+  margin-left: 60px;
+  position: relative;
+}
+
+.condition:not(:last-child) {
+  border-bottom: 1px solid rgba(0, 0, 100, 0.1);
+}
+
+.conditionSeparator {
+  position: absolute;
+  left: -35px;
+  border-right: 1px solid #CFD8DC;
+  top: 0;
+  bottom: 0;
+}
+
+.conditionSeparatorHalf {
+  bottom: 25px;
+}
+
+.conditionOperatorAndOr {
+  position: absolute;
+  left: -55px;
+  top: 16px;
+  height: 24px;
+  line-height: 24px;
+  background-color: #fafafa;
+  border: 1px solid #CFD8DC;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  width: 42px;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+

@@ -54,10 +54,12 @@ export interface ContactTimelineEntry {
   email: string
   operation: 'insert' | 'update' | 'delete'
   entity_type: 'contact' | 'contact_list' | 'message_history' | 'webhook_event'
+  kind: string // operation_entityType (e.g., 'insert_contact', 'update_message_history')
   changes: Record<string, any>
   entity_id?: string // NULL for contact, list_id for contact_list, message_id for message_history and webhook_event
   entity_data?: EntityData // Joined entity data with contact, list, message, or webhook event details
-  created_at: string
+  created_at: string // Can be set to historical data
+  db_created_at: string // Timestamp when record was inserted into database
 }
 
 export interface TimelineListRequest {

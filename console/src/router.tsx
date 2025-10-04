@@ -15,6 +15,7 @@ import { BroadcastsPage } from './pages/BroadcastsPage'
 import { TransactionalNotificationsPage } from './pages/TransactionalNotificationsPage'
 import { LogsPage } from './pages/LogsPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
+import { NewSegmentPage } from './pages/NewSegmentPage'
 import { createRouter } from '@tanstack/react-router'
 
 export interface ContactsSearch {
@@ -167,6 +168,12 @@ const workspaceAnalyticsRoute = createRoute({
   component: AnalyticsPage
 })
 
+const workspaceNewSegmentRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/new-segment',
+  component: NewSegmentPage
+})
+
 // Create the router
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -184,7 +191,8 @@ const routeTree = rootRoute.addChildren([
     workspaceFileManagerRoute,
     workspaceSettingsRoute,
     workspaceTemplatesRoute,
-    workspaceAnalyticsRoute
+    workspaceAnalyticsRoute,
+    workspaceNewSegmentRoute
   ])
 ])
 
