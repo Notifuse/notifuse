@@ -32,6 +32,7 @@ type DemoService struct {
 	webhookRegistrationService       *WebhookRegistrationService
 	messageHistoryService            *MessageHistoryService
 	notificationCenterService        *NotificationCenterService
+	segmentService                   domain.SegmentService
 	workspaceRepo                    domain.WorkspaceRepository
 	taskRepo                         domain.TaskRepository
 	messageHistoryRepo               domain.MessageHistoryRepository
@@ -103,6 +104,7 @@ func NewDemoService(
 	webhookRegistrationService *WebhookRegistrationService,
 	messageHistoryService *MessageHistoryService,
 	notificationCenterService *NotificationCenterService,
+	segmentService domain.SegmentService,
 	workspaceRepo domain.WorkspaceRepository,
 	taskRepo domain.TaskRepository,
 	messageHistoryRepo domain.MessageHistoryRepository,
@@ -125,6 +127,7 @@ func NewDemoService(
 		webhookRegistrationService:       webhookRegistrationService,
 		messageHistoryService:            messageHistoryService,
 		notificationCenterService:        notificationCenterService,
+		segmentService:                   segmentService,
 		workspaceRepo:                    workspaceRepo,
 		taskRepo:                         taskRepo,
 		messageHistoryRepo:               messageHistoryRepo,
@@ -299,6 +302,12 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 	// Step 7: Generate sample message history with realistic engagement rates
 	if err := s.generateSampleMessageHistory(ctx, workspaceID); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to generate sample message history")
+		return err
+	}
+
+	// Step 8: Create sample segments
+	if err := s.createSampleSegments(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample segments")
 		return err
 	}
 
@@ -2191,4 +2200,412 @@ func getRandomPointer(slice []string) *string {
 	}
 	value := slice[rand.Intn(len(slice))]
 	return &value
+}
+
+// createSampleSegments creates demo segments for showcasing the segmentation feature
+func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID string) error {
+	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample segments")
+
+	// Segment 1: VIP Customers (high lifetime value and orders)
+	vipSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "vipcustomers",
+		Name:        "VIP Customers",
+		Color:       "gold",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "lifetime_value",
+										FieldType:    "number",
+										Operator:     "gte",
+										NumberValues: []float64{1000.0},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "orders_count",
+										FieldType:    "number",
+										Operator:     "gte",
+										NumberValues: []float64{3.0},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, vipSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create VIP Customers segment")
+	} else {
+		s.logger.Info("Created VIP Customers segment")
+	}
+
+	// Segment 2: US Customers
+	usSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "uscustomers",
+		Name:        "US Customers",
+		Color:       "blue",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "country",
+							FieldType:    "string",
+							Operator:     "equals",
+							StringValues: []string{"United States"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, usSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create US Customers segment")
+	} else {
+		s.logger.Info("Created US Customers segment")
+	}
+
+	// Segment 3: European Market (complex OR logic)
+	europeSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "european-market",
+		Name:        "European Market",
+		Color:       "geekblue",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "or",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"United Kingdom"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"France"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"Germany"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"Spain"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"Italy"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, europeSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create European Market segment")
+	} else {
+		s.logger.Info("Created European Market segment")
+	}
+
+	// Segment 4: Engaged Users (behavioral - email opens)
+	engagedSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "engaged-users",
+		Name:        "Engaged Users",
+		Color:       "green",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "email_opened",
+					CountOperator: "at_least",
+					CountValue:    5,
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, engagedSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create Engaged Users segment")
+	} else {
+		s.logger.Info("Created Engaged Users segment")
+	}
+
+	// Segment 5: At-Risk Customers (no recent orders)
+	atRiskSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "at-risk-customers",
+		Name:        "At-Risk Customers",
+		Color:       "orange",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "lifetime_value",
+										FieldType:    "number",
+										Operator:     "gte",
+										NumberValues: []float64{500.0},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "last_order_at",
+										FieldType:    "time",
+										Operator:     "before_date",
+										StringValues: []string{"2024-01-01"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, atRiskSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create At-Risk Customers segment")
+	} else {
+		s.logger.Info("Created At-Risk Customers segment")
+	}
+
+	// Segment 6: Newsletter Subscribers (list-based)
+	newsletterSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "newsletter-subscribers",
+		Name:        "Newsletter Subscribers",
+		Color:       "cyan",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contact_lists",
+				ContactList: &domain.ContactListCondition{
+					Operator: "in",
+					ListID:   "newsletter",
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, newsletterSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create Newsletter Subscribers segment")
+	} else {
+		s.logger.Info("Created Newsletter Subscribers segment")
+	}
+
+	// Segment 7: High-Value North America (complex AND/OR logic)
+	highValueNASegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "high-value-north-america",
+		Name:        "High-Value North America",
+		Color:       "purple",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "branch",
+						Branch: &domain.TreeNodeBranch{
+							Operator: "or",
+							Leaves: []*domain.TreeNode{
+								{
+									Kind: "leaf",
+									Leaf: &domain.TreeNodeLeaf{
+										Table: "contacts",
+										Contact: &domain.ContactCondition{
+											Filters: []*domain.DimensionFilter{
+												{
+													FieldName:    "country",
+													FieldType:    "string",
+													Operator:     "equals",
+													StringValues: []string{"United States"},
+												},
+											},
+										},
+									},
+								},
+								{
+									Kind: "leaf",
+									Leaf: &domain.TreeNodeLeaf{
+										Table: "contacts",
+										Contact: &domain.ContactCondition{
+											Filters: []*domain.DimensionFilter{
+												{
+													FieldName:    "country",
+													FieldType:    "string",
+													Operator:     "equals",
+													StringValues: []string{"Canada"},
+												},
+											},
+										},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "lifetime_value",
+										FieldType:    "number",
+										Operator:     "gte",
+										NumberValues: []float64{2000.0},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, highValueNASegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create High-Value North America segment")
+	} else {
+		s.logger.Info("Created High-Value North America segment")
+	}
+
+	// Segment 8: Inactive Users (no email opens)
+	inactiveSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "inactive-users",
+		Name:        "Inactive Users",
+		Color:       "default",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "email_opened",
+					CountOperator: "equals",
+					CountValue:    0,
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, inactiveSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create Inactive Users segment")
+	} else {
+		s.logger.Info("Created Inactive Users segment")
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).Info("Sample segments created successfully")
+	return nil
 }

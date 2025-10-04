@@ -246,7 +246,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	}).Debug("Preparing to send email notification")
 
 	// Get the template (mark as system call to bypass authentication)
-	systemCtx := context.WithValue(ctx, "system_call", true)
+	systemCtx := context.WithValue(ctx, domain.SystemCallKey, true)
 	template, err := s.templateService.GetTemplateByID(systemCtx, request.WorkspaceID, request.TemplateConfig.TemplateID, int64(0))
 	if err != nil {
 		s.logger.WithFields(map[string]interface{}{

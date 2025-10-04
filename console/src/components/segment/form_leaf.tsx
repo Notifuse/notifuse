@@ -2,9 +2,9 @@ import { Dispatch, SetStateAction } from 'react'
 import { cloneDeep } from 'lodash'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faClose } from '@fortawesome/free-solid-svg-icons'
-import { Button, Input, Form, Select, InputNumber, Space, DatePicker } from 'antd'
+import { Button, Input, Form, Select, InputNumber, Space, DatePicker, Tag } from 'antd'
 import { useForm } from 'antd/lib/form/Form'
-import { TreeNode, EditingNodeLeaf, TreeNodeLeaf, TableSchema } from './interfaces'
+import { TreeNode, EditingNodeLeaf, TreeNodeLeaf, TableSchema } from '../../services/api/segment'
 import dayjs from 'dayjs'
 import { InputDimensionFilters } from './input_dimension_filters'
 import Messages from './messages'
@@ -56,12 +56,12 @@ export const LeafContactForm = (props: LeafFormProps) => {
         name="table"
         colon={false}
         label={
-          <span style={{ fontWeight: 500, lineHeight: '32px' }}>
+          <Tag bordered={false} color="cyan">
             {props.schema.icon && (
-              <FontAwesomeIcon icon={props.schema.icon} style={{ width: 18, marginRight: 8 }} />
+              <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
             )}
-            {props.schema.title}
-          </span>
+            Contact property
+          </Tag>
         }
       >
         <Input hidden />
@@ -126,12 +126,12 @@ export const LeafContactListForm = (props: LeafFormProps) => {
 
   return (
     <Space style={{ alignItems: 'start' }}>
-      <span style={{ fontWeight: 500, lineHeight: '32px' }}>
+      <Tag bordered={false} color="cyan">
         {props.schema.icon && (
-          <FontAwesomeIcon icon={props.schema.icon} style={{ width: 18, marginRight: 8 }} />
+          <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
         )}
-        {props.schema.title}
-      </span>
+        List subscription
+      </Tag>
       <Form component="div" layout="inline" form={form} initialValues={props.editingNodeLeaf.leaf}>
         <Form.Item name="table" noStyle>
           <Input hidden />
@@ -245,12 +245,12 @@ export const LeafActionForm = (props: LeafFormProps) => {
 
   return (
     <Space style={{ alignItems: 'start' }}>
-      <span style={{ fontWeight: 500, lineHeight: '32px' }}>
+      <Tag bordered={false} color="cyan">
         {props.schema.icon && (
-          <FontAwesomeIcon icon={props.schema.icon} style={{ width: 18, marginRight: 8 }} />
+          <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
         )}
-        {props.schema.title}
-      </span>
+        Activity
+      </Tag>
       <Form
         component="div"
         layout="vertical"

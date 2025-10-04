@@ -141,7 +141,7 @@ func TestResolveURL(t *testing.T) {
 			var err error
 
 			if tc.hasError && tc.name == "invalid base URL" {
-				baseURL, err = url.Parse(tc.baseURL)
+				_, err := url.Parse(tc.baseURL)
 				assert.Error(t, err)
 				return
 			} else {

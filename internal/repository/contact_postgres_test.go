@@ -86,12 +86,26 @@ func TestGetContactByEmail(t *testing.T) {
 		WithArgs(email).
 		WillReturnRows(listRows)
 
+	// Set up expectations for contact segments query
+	segmentRows := sqlmock.NewRows([]string{
+		"segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+	}).AddRow(
+		"segment1", int64(1), now, now, "Active Users", "#FF5733",
+	)
+
+	mock.ExpectQuery(`SELECT cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = \$1`).
+		WithArgs(email).
+		WillReturnRows(segmentRows)
+
 	contact, err := repo.GetContactByEmail(context.Background(), "workspace123", email)
 	require.NoError(t, err)
 	assert.Equal(t, email, contact.Email)
 	assert.Len(t, contact.ContactLists, 1)
 	assert.Equal(t, "list1", contact.ContactLists[0].ListID)
 	assert.Equal(t, "Marketing List", contact.ContactLists[0].ListName)
+	assert.Len(t, contact.ContactSegments, 1)
+	assert.Equal(t, "segment1", contact.ContactSegments[0].SegmentID)
+	assert.Equal(t, int64(1), contact.ContactSegments[0].Version)
 
 	// Test case 2: Contact not found
 	mock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c.email = \$1`).
@@ -157,6 +171,17 @@ func TestGetContactByExternalID(t *testing.T) {
 		WithArgs(email).
 		WillReturnRows(listRows)
 
+	// Set up expectations for contact segments query
+	segmentRows := sqlmock.NewRows([]string{
+		"segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+	}).AddRow(
+		"segment1", int64(1), now, now, "Active Users", "#FF5733",
+	)
+
+	mock.ExpectQuery(`SELECT cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = \$1`).
+		WithArgs(email).
+		WillReturnRows(segmentRows)
+
 	contact, err := repo.GetContactByExternalID(context.Background(), "workspace123", externalID)
 	require.NoError(t, err)
 	assert.Equal(t, email, contact.Email)
@@ -164,6 +189,8 @@ func TestGetContactByExternalID(t *testing.T) {
 	assert.Len(t, contact.ContactLists, 1)
 	assert.Equal(t, "list1", contact.ContactLists[0].ListID)
 	assert.Equal(t, "Marketing List", contact.ContactLists[0].ListName)
+	assert.Len(t, contact.ContactSegments, 1)
+	assert.Equal(t, "segment1", contact.ContactSegments[0].SegmentID)
 
 	// Test case 2: Contact not found
 	mock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c.external_id = \$1`).
@@ -210,6 +237,15 @@ func TestGetContactByExternalID(t *testing.T) {
 			WithArgs(email).
 			WillReturnRows(listRows)
 
+		// Set up expectations for contact segments query (empty result)
+		segmentRows := sqlmock.NewRows([]string{
+			"segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+		})
+
+		mock.ExpectQuery(`SELECT cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = \$1`).
+			WithArgs(email).
+			WillReturnRows(segmentRows)
+
 		// Act
 		contact, err := repo.GetContactByExternalID(context.Background(), "workspace123", externalID)
 
@@ -219,6 +255,7 @@ func TestGetContactByExternalID(t *testing.T) {
 		assert.Equal(t, email, contact.Email)
 		assert.Equal(t, "e-123", contact.ExternalID.String)
 		assert.Empty(t, contact.ContactLists)
+		assert.Empty(t, contact.ContactSegments)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }
@@ -281,6 +318,19 @@ func TestFetchContact(t *testing.T) {
 			WithArgs(email).
 			WillReturnRows(listRows)
 
+		// Set up expectations for contact segments query
+		segmentRows := sqlmock.NewRows([]string{
+			"segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+		}).AddRow(
+			"segment1", int64(1), now, now, "Active Users", "#FF5733",
+		).AddRow(
+			"segment2", int64(2), now, now, "Premium Users", "#00FF00",
+		)
+
+		mock.ExpectQuery(`SELECT cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = \$1`).
+			WithArgs(email).
+			WillReturnRows(segmentRows)
+
 		// Use the private method directly for testing
 		contact, err := repo.(*contactRepository).fetchContact(context.Background(), "workspace123", sq.Eq{"c.phone": phone})
 		require.NoError(t, err)
@@ -291,6 +341,9 @@ func TestFetchContact(t *testing.T) {
 		assert.Equal(t, "Marketing List", contact.ContactLists[0].ListName)
 		assert.Equal(t, "list2", contact.ContactLists[1].ListID)
 		assert.Equal(t, "Newsletter", contact.ContactLists[1].ListName)
+		assert.Len(t, contact.ContactSegments, 2)
+		assert.Equal(t, "segment1", contact.ContactSegments[0].SegmentID)
+		assert.Equal(t, "segment2", contact.ContactSegments[1].SegmentID)
 	})
 
 	t.Run("with error on contact lists query", func(t *testing.T) {
@@ -386,6 +439,17 @@ func TestGetContacts(t *testing.T) {
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
+		// Set up expectations for contact segments query
+		segmentRows := sqlmock.NewRows([]string{
+			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+		}).AddRow(
+			"test@example.com", "segment1", int64(1), time.Now(), time.Now(), "Active Users", "#FF5733",
+		)
+
+		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+			WithArgs("test@example.com").
+			WillReturnRows(segmentRows)
+
 		req := &domain.GetContactsRequest{
 			WorkspaceID:      "workspace123",
 			Limit:            10,
@@ -400,6 +464,8 @@ func TestGetContacts(t *testing.T) {
 		assert.Equal(t, "list1", resp.Contacts[0].ContactLists[0].ListID)
 		assert.Equal(t, domain.ContactListStatusActive, resp.Contacts[0].ContactLists[0].Status)
 		assert.Equal(t, "Marketing List", resp.Contacts[0].ContactLists[0].ListName)
+		assert.Len(t, resp.Contacts[0].ContactSegments, 1)
+		assert.Equal(t, "segment1", resp.Contacts[0].ContactSegments[0].SegmentID)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -455,6 +521,14 @@ func TestGetContacts(t *testing.T) {
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
+		// Set up expectations for contact segments query
+		segmentRows := sqlmock.NewRows([]string{
+			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+		})
+		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+			WithArgs("test@example.com").
+			WillReturnRows(segmentRows)
+
 		req := &domain.GetContactsRequest{
 			WorkspaceID:      "workspace123",
 			Email:            "test@example.com",
@@ -472,6 +546,7 @@ func TestGetContacts(t *testing.T) {
 		assert.Equal(t, "list1", resp.Contacts[0].ContactLists[0].ListID)
 		assert.Equal(t, domain.ContactListStatusActive, resp.Contacts[0].ContactLists[0].Status)
 		assert.Equal(t, "Marketing List", resp.Contacts[0].ContactLists[0].ListName)
+		assert.Empty(t, resp.Contacts[0].ContactSegments)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -566,6 +641,15 @@ func TestGetContacts(t *testing.T) {
 			WithArgs(emailArgs...).
 			WillReturnRows(listRows)
 
+		// Set up expectations for contact segments query
+		segmentSqlPattern := `SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1,\$2,\$3,\$4,\$5,\$6,\$7,\$8,\$9,\$10\)`
+		segmentRows := sqlmock.NewRows([]string{
+			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+		})
+		mock.ExpectQuery(segmentSqlPattern).
+			WithArgs(emailArgs...).
+			WillReturnRows(segmentRows)
+
 		req := &domain.GetContactsRequest{
 			WorkspaceID:      "workspace123",
 			Cursor:           encodedCursor,
@@ -586,6 +670,7 @@ func TestGetContacts(t *testing.T) {
 			assert.Len(t, contact.ContactLists, 1)
 			assert.Equal(t, "list1", contact.ContactLists[0].ListID)
 			assert.Equal(t, domain.ContactListStatusActive, contact.ContactLists[0].Status)
+			assert.Empty(t, contact.ContactSegments)
 		}
 
 		assert.NoError(t, mock.ExpectationsWereMet())
@@ -766,6 +851,14 @@ func TestGetContacts(t *testing.T) {
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
+		// Set up expectations for contact segments query
+		segmentRows := sqlmock.NewRows([]string{
+			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+		})
+		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+			WithArgs("test@example.com").
+			WillReturnRows(segmentRows)
+
 		req := &domain.GetContactsRequest{
 			WorkspaceID:      "workspace123",
 			Email:            "test@example.com",
@@ -786,6 +879,7 @@ func TestGetContacts(t *testing.T) {
 		assert.Equal(t, "list1", resp.Contacts[0].ContactLists[0].ListID)
 		assert.Equal(t, domain.ContactListStatusActive, resp.Contacts[0].ContactLists[0].Status)
 		assert.Equal(t, "Marketing List", resp.Contacts[0].ContactLists[0].ListName)
+		assert.Empty(t, resp.Contacts[0].ContactSegments)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -873,6 +967,14 @@ func TestGetContacts(t *testing.T) {
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
+		// Set up expectations for contact segments query
+		segmentRows := sqlmock.NewRows([]string{
+			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+		})
+		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+			WithArgs("test@example.com").
+			WillReturnRows(segmentRows)
+
 		req := &domain.GetContactsRequest{
 			WorkspaceID:      "workspace123",
 			ListID:           "list123",
@@ -889,6 +991,7 @@ func TestGetContacts(t *testing.T) {
 		require.Len(t, resp.Contacts[0].ContactLists, 2)
 		assert.Contains(t, []string{resp.Contacts[0].ContactLists[0].ListID, resp.Contacts[0].ContactLists[1].ListID}, "list123")
 		assert.Contains(t, []string{resp.Contacts[0].ContactLists[0].ListID, resp.Contacts[0].ContactLists[1].ListID}, "list456")
+		assert.Empty(t, resp.Contacts[0].ContactSegments)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -945,6 +1048,14 @@ func TestGetContacts(t *testing.T) {
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
+		// Set up expectations for contact segments query
+		segmentRows := sqlmock.NewRows([]string{
+			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+		})
+		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+			WithArgs("test@example.com").
+			WillReturnRows(segmentRows)
+
 		req := &domain.GetContactsRequest{
 			WorkspaceID:       "workspace123",
 			ContactListStatus: string(domain.ContactListStatusActive),
@@ -961,6 +1072,7 @@ func TestGetContacts(t *testing.T) {
 		require.Len(t, resp.Contacts[0].ContactLists, 2)
 		assert.Contains(t, []string{string(resp.Contacts[0].ContactLists[0].Status), string(resp.Contacts[0].ContactLists[1].Status)}, "active")
 		assert.Contains(t, []string{string(resp.Contacts[0].ContactLists[0].Status), string(resp.Contacts[0].ContactLists[1].Status)}, "pending")
+		assert.Empty(t, resp.Contacts[0].ContactSegments)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -1017,6 +1129,14 @@ func TestGetContacts(t *testing.T) {
 			WithArgs("test@example.com").
 			WillReturnRows(listRows)
 
+		// Set up expectations for contact segments query
+		segmentRows := sqlmock.NewRows([]string{
+			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+		})
+		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+			WithArgs("test@example.com").
+			WillReturnRows(segmentRows)
+
 		req := &domain.GetContactsRequest{
 			WorkspaceID:       "workspace123",
 			ListID:            "list123",
@@ -1032,6 +1152,176 @@ func TestGetContacts(t *testing.T) {
 
 		// Should return ALL lists the contact belongs to
 		require.Len(t, resp.Contacts[0].ContactLists, 2)
+		assert.Empty(t, resp.Contacts[0].ContactSegments)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("should filter contacts by segments", func(t *testing.T) {
+		// Create a mock workspace database
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		// Create a new repository with the mock DB
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil).AnyTimes()
+
+		repo := NewContactRepository(workspaceRepo)
+
+		// Set up expectations for the workspace database query with EXISTS subquery for segments
+		rows := sqlmock.NewRows([]string{
+			"email", "external_id", "timezone", "language", "first_name", "last_name",
+			"phone", "address_line_1", "address_line_2", "country", "postcode", "state",
+			"job_title", "lifetime_value", "orders_count", "last_order_at",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
+			"custom_string_5", "custom_number_1", "custom_number_2", "custom_number_3",
+			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
+			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
+			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
+		}).AddRow(
+			"test@example.com", "ext123", "UTC", "en", "John", "Doe",
+			"+1234567890", "123 Main St", "Apt 4B", "US", "12345", "CA",
+			"Engineer", 100.0, 5, time.Now(),
+			"custom1", "custom2", "custom3", "custom4", "custom5",
+			1.0, 2.0, 3.0, 4.0, 5.0,
+			time.Now(), time.Now(), time.Now(), time.Now(), time.Now(),
+			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
+			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
+			time.Now(), time.Now(), time.Now(), time.Now(),
+		)
+
+		// Match the query using a regex pattern that includes the EXISTS subquery for segments
+		mock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$1,\$2\)\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+			WithArgs("segment123", "segment456").
+			WillReturnRows(rows)
+
+		// Set up expectations for the contact lists query
+		listRows := sqlmock.NewRows([]string{
+			"email", "list_id", "status", "created_at", "updated_at", "list_name",
+		}).AddRow(
+			"test@example.com", "list1", "active", time.Now(), time.Now(), "Marketing List",
+		)
+
+		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
+			WithArgs("test@example.com").
+			WillReturnRows(listRows)
+
+		// Set up expectations for contact segments query - should return ALL segments the contact belongs to
+		segmentRows := sqlmock.NewRows([]string{
+			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+		}).
+			AddRow("test@example.com", "segment123", int64(1), time.Now(), time.Now(), "Active Users", "#FF5733").
+			AddRow("test@example.com", "segment456", int64(1), time.Now(), time.Now(), "Premium Users", "#00FF00").
+			AddRow("test@example.com", "segment789", int64(1), time.Now(), time.Now(), "New Users", "#0000FF")
+
+		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+			WithArgs("test@example.com").
+			WillReturnRows(segmentRows)
+
+		req := &domain.GetContactsRequest{
+			WorkspaceID:      "workspace123",
+			Segments:         []string{"segment123", "segment456"},
+			Limit:            10,
+			WithContactLists: true,
+		}
+
+		resp, err := repo.GetContacts(context.Background(), req)
+		require.NoError(t, err)
+		require.Len(t, resp.Contacts, 1)
+		assert.Equal(t, "test@example.com", resp.Contacts[0].Email)
+
+		// Should return ALL segments the contact belongs to (including segment789 which wasn't in the filter)
+		require.Len(t, resp.Contacts[0].ContactSegments, 3)
+		segmentIDs := []string{
+			resp.Contacts[0].ContactSegments[0].SegmentID,
+			resp.Contacts[0].ContactSegments[1].SegmentID,
+			resp.Contacts[0].ContactSegments[2].SegmentID,
+		}
+		assert.Contains(t, segmentIDs, "segment123")
+		assert.Contains(t, segmentIDs, "segment456")
+		assert.Contains(t, segmentIDs, "segment789")
+		assert.Len(t, resp.Contacts[0].ContactLists, 1)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("should filter contacts by single segment", func(t *testing.T) {
+		// Create a mock workspace database
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		// Create a new repository with the mock DB
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil).AnyTimes()
+
+		repo := NewContactRepository(workspaceRepo)
+
+		// Set up expectations for the workspace database query with EXISTS subquery for single segment
+		rows := sqlmock.NewRows([]string{
+			"email", "external_id", "timezone", "language", "first_name", "last_name",
+			"phone", "address_line_1", "address_line_2", "country", "postcode", "state",
+			"job_title", "lifetime_value", "orders_count", "last_order_at",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4",
+			"custom_string_5", "custom_number_1", "custom_number_2", "custom_number_3",
+			"custom_number_4", "custom_number_5", "custom_datetime_1", "custom_datetime_2",
+			"custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
+			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
+		}).AddRow(
+			"test@example.com", "ext123", "UTC", "en", "John", "Doe",
+			"+1234567890", "123 Main St", "Apt 4B", "US", "12345", "CA",
+			"Engineer", 100.0, 5, time.Now(),
+			"custom1", "custom2", "custom3", "custom4", "custom5",
+			1.0, 2.0, 3.0, 4.0, 5.0,
+			time.Now(), time.Now(), time.Now(), time.Now(), time.Now(),
+			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
+			[]byte(`{"key": "value"}`), []byte(`{"key": "value"}`),
+			time.Now(), time.Now(), time.Now(), time.Now(),
+		)
+
+		// Match the query using a regex pattern that includes the EXISTS subquery for a single segment
+		// Note: Squirrel generates IN ($1) even for single values
+		mock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE EXISTS \(SELECT 1 FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email = c\.email AND cs\.segment_id IN \(\$1\)\) ORDER BY c\.created_at DESC, c\.email ASC LIMIT 11`).
+			WithArgs("segment123").
+			WillReturnRows(rows)
+
+		// Set up expectations for the contact lists query
+		listRows := sqlmock.NewRows([]string{
+			"email", "list_id", "status", "created_at", "updated_at", "list_name",
+		})
+
+		mock.ExpectQuery(`SELECT cl\.email, cl\.list_id, cl\.status, cl\.created_at, cl\.updated_at, l\.name as list_name FROM contact_lists cl JOIN lists l ON cl\.list_id = l\.id WHERE cl\.email IN \(\$1\) AND cl\.deleted_at IS NULL AND l\.deleted_at IS NULL`).
+			WithArgs("test@example.com").
+			WillReturnRows(listRows)
+
+		// Set up expectations for contact segments query
+		segmentRows := sqlmock.NewRows([]string{
+			"email", "segment_id", "version", "matched_at", "computed_at", "segment_name", "segment_color",
+		}).AddRow("test@example.com", "segment123", int64(1), time.Now(), time.Now(), "Active Users", "#FF5733")
+
+		mock.ExpectQuery(`SELECT cs\.email, cs\.segment_id, cs\.version, cs\.matched_at, cs\.computed_at, s\.name as segment_name, s\.color as segment_color FROM contact_segments cs JOIN segments s ON cs\.segment_id = s\.id WHERE cs\.email IN \(\$1\)`).
+			WithArgs("test@example.com").
+			WillReturnRows(segmentRows)
+
+		req := &domain.GetContactsRequest{
+			WorkspaceID:      "workspace123",
+			Segments:         []string{"segment123"},
+			Limit:            10,
+			WithContactLists: true,
+		}
+
+		resp, err := repo.GetContacts(context.Background(), req)
+		require.NoError(t, err)
+		require.Len(t, resp.Contacts, 1)
+		assert.Equal(t, "test@example.com", resp.Contacts[0].Email)
+		require.Len(t, resp.Contacts[0].ContactSegments, 1)
+		assert.Equal(t, "segment123", resp.Contacts[0].ContactSegments[0].SegmentID)
+		assert.Empty(t, resp.Contacts[0].ContactLists)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 }

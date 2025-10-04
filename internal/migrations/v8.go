@@ -353,6 +353,54 @@ func (m *V8Migration) UpdateWorkspace(ctx context.Context, config *config.Config
 		return fmt.Errorf("failed to create version index on contact_segments table for workspace %s: %w", workspace.ID, err)
 	}
 
+	// Create trigger function for contact_segments timeline tracking
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION track_contact_segment_changes()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			changes_json JSONB := '{}'::jsonb;
+			op VARCHAR(20);
+			kind_value VARCHAR(50);
+		BEGIN
+			IF TG_OP = 'INSERT' THEN
+				op := 'insert';
+				kind_value := 'join_segment';
+				changes_json := jsonb_build_object('segment_id', jsonb_build_object('new', NEW.segment_id), 'version', jsonb_build_object('new', NEW.version), 'matched_at', jsonb_build_object('new', NEW.matched_at));
+			ELSIF TG_OP = 'DELETE' THEN
+				op := 'delete';
+				kind_value := 'leave_segment';
+				changes_json := jsonb_build_object('segment_id', jsonb_build_object('old', OLD.segment_id), 'version', jsonb_build_object('old', OLD.version));
+				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+				VALUES (OLD.email, op, 'contact_segment', kind_value, OLD.segment_id, changes_json, CURRENT_TIMESTAMP);
+				RETURN OLD;
+			END IF;
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+			VALUES (NEW.email, op, 'contact_segment', kind_value, NEW.segment_id, changes_json, CURRENT_TIMESTAMP);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create track_contact_segment_changes function for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Create trigger for contact_segments
+	_, err = db.ExecContext(ctx, `
+		DROP TRIGGER IF EXISTS contact_segment_changes_trigger ON contact_segments
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to drop contact_segment_changes_trigger for workspace %s: %w", workspace.ID, err)
+	}
+
+	_, err = db.ExecContext(ctx, `
+		CREATE TRIGGER contact_segment_changes_trigger 
+		AFTER INSERT OR DELETE ON contact_segments 
+		FOR EACH ROW EXECUTE FUNCTION track_contact_segment_changes()
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create contact_segment_changes_trigger for workspace %s: %w", workspace.ID, err)
+	}
+
 	return nil
 }
 

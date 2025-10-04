@@ -35,6 +35,7 @@ func (h *ContactHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Register RPC-style endpoints with dot notation
 	mux.Handle("/api/contacts.list", requireAuth(http.HandlerFunc(h.handleList)))
+	mux.Handle("/api/contacts.count", requireAuth(http.HandlerFunc(h.handleCount)))
 	mux.Handle("/api/contacts.getByEmail", requireAuth(http.HandlerFunc(h.handleGetByEmail)))
 	mux.Handle("/api/contacts.getByExternalID", requireAuth(http.HandlerFunc(h.handleGetByExternalID)))
 	mux.Handle("/api/contacts.delete", requireAuth(http.HandlerFunc(h.handleDelete)))
@@ -70,6 +71,31 @@ func (h *ContactHandler) handleList(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
+}
+
+func (h *ContactHandler) handleCount(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get workspace_id from query params
+	workspaceID := r.URL.Query().Get("workspace_id")
+	if workspaceID == "" {
+		WriteJSONError(w, "Missing workspace ID", http.StatusBadRequest)
+		return
+	}
+
+	count, err := h.service.CountContacts(r.Context(), workspaceID)
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to count contacts")
+		WriteJSONError(w, "Failed to count contacts", http.StatusInternalServerError)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"total_contacts": count,
+	})
 }
 
 func (h *ContactHandler) handleGetByEmail(w http.ResponseWriter, r *http.Request) {

@@ -22,7 +22,7 @@ func createTestDemoService(cfg *config.Config, serviceLogger logger.Logger) *ser
 	return service.NewDemoService(
 		serviceLogger,
 		cfg,
-		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 }
 
@@ -172,20 +172,6 @@ func TestDemoHandler_LastResetTimeUpdate(t *testing.T) {
 	h.resetMutex.Unlock()
 
 	assert.Equal(t, initialTime, h.lastReset)
-}
-
-func TestDemoHandler_ResetMutexConcurrency(t *testing.T) {
-	cfg := &config.Config{RootEmail: "test@example.com", Security: config.SecurityConfig{SecretKey: "test-secret"}}
-	mockLogger := logger.NewLoggerWithLevel("disabled")
-	svc := createTestDemoService(cfg, mockLogger)
-	h := NewDemoHandler(svc, mockLogger)
-
-	// Test that the mutex is properly initialized
-	h.resetMutex.Lock()
-	h.resetMutex.Unlock()
-
-	// This tests the mutex field exists and is usable
-	assert.NotNil(t, h)
 }
 
 func TestDemoHandler_DirectLastResetUpdate(t *testing.T) {

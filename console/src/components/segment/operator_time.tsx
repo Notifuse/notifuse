@@ -1,5 +1,5 @@
 import { DatePicker, Form, FormInstance, Tag } from 'antd'
-import { DimensionFilter, FieldTypeValue, IOperator, Operator } from './interfaces'
+import { DimensionFilter, FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
 import Messages from './messages'
 import dayjs from 'dayjs'
 

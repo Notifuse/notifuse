@@ -73,11 +73,17 @@ func (r *segmentRepository) CreateSegment(ctx context.Context, workspaceID strin
 		)
 	`
 
+	// Convert Tree to MapOfAny for database storage
+	treeMap, err := segment.Tree.ToMapOfAny()
+	if err != nil {
+		return fmt.Errorf("failed to convert tree to map: %w", err)
+	}
+
 	_, err = workspaceDB.ExecContext(ctx, query,
 		segment.ID,
 		segment.Name,
 		segment.Color,
-		segment.Tree,
+		treeMap,
 		segment.Timezone,
 		segment.Version,
 		segment.Status,
@@ -116,7 +122,7 @@ func (r *segmentRepository) GetSegmentByID(ctx context.Context, workspaceID stri
 
 	row := workspaceDB.QueryRowContext(ctx, query, id)
 
-	segment, err := scanSegment(row)
+	segment, err := domain.ScanSegment(row)
 	if err == sql.ErrNoRows {
 		return nil, &domain.ErrSegmentNotFound{Message: fmt.Sprintf("segment not found: %s", id)}
 	}
@@ -128,25 +134,40 @@ func (r *segmentRepository) GetSegmentByID(ctx context.Context, workspaceID stri
 }
 
 // GetSegments retrieves all segments for a workspace
-func (r *segmentRepository) GetSegments(ctx context.Context, workspaceID string) ([]*domain.Segment, error) {
+func (r *segmentRepository) GetSegments(ctx context.Context, workspaceID string, withCount bool) ([]*domain.Segment, error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	query := `
-		SELECT 
-			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
-			COALESCE(COUNT(cs.email), 0) as users_count
-		FROM segments s
-		LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
-		WHERE s.status != 'deleted'
-		GROUP BY s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at
-		ORDER BY s.db_created_at DESC
-	`
+	var query string
+	if withCount {
+		// Include contact counts with JOIN (more expensive)
+		query = `
+			SELECT 
+				s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
+				s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+				COALESCE(COUNT(cs.email), 0) as users_count
+			FROM segments s
+			LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
+			WHERE s.status != 'deleted'
+			GROUP BY s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
+				s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at
+			ORDER BY s.db_created_at DESC
+		`
+	} else {
+		// Skip contact counts for better performance
+		query = `
+			SELECT 
+				s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
+				s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+				0 as users_count
+			FROM segments s
+			WHERE s.status != 'deleted'
+			ORDER BY s.db_created_at DESC
+		`
+	}
 
 	rows, err := workspaceDB.QueryContext(ctx, query)
 	if err != nil {
@@ -156,7 +177,7 @@ func (r *segmentRepository) GetSegments(ctx context.Context, workspaceID string)
 
 	segments := make([]*domain.Segment, 0)
 	for rows.Next() {
-		segment, err := scanSegment(rows)
+		segment, err := domain.ScanSegment(rows)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan segment: %w", err)
 		}
@@ -196,11 +217,17 @@ func (r *segmentRepository) UpdateSegment(ctx context.Context, workspaceID strin
 		WHERE id = $1
 	`
 
+	// Convert Tree to MapOfAny for database storage
+	treeMap, err := segment.Tree.ToMapOfAny()
+	if err != nil {
+		return fmt.Errorf("failed to convert tree to map: %w", err)
+	}
+
 	result, err := workspaceDB.ExecContext(ctx, query,
 		segment.ID,
 		segment.Name,
 		segment.Color,
-		segment.Tree,
+		treeMap,
 		segment.Timezone,
 		segment.Version,
 		segment.Status,
@@ -343,7 +370,7 @@ func (r *segmentRepository) GetContactSegments(ctx context.Context, workspaceID 
 
 	segments := make([]*domain.Segment, 0)
 	for rows.Next() {
-		segment, err := scanSegment(rows)
+		segment, err := domain.ScanSegment(rows)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan segment: %w", err)
 		}
@@ -376,28 +403,22 @@ func (r *segmentRepository) GetSegmentContactCount(ctx context.Context, workspac
 	return count, nil
 }
 
-// scanSegment is a helper function to scan a segment from a row
-func scanSegment(scanner interface {
-	Scan(dest ...interface{}) error
-}) (*domain.Segment, error) {
-	var segment domain.Segment
-	err := scanner.Scan(
-		&segment.ID,
-		&segment.Name,
-		&segment.Color,
-		&segment.Tree,
-		&segment.Timezone,
-		&segment.Version,
-		&segment.Status,
-		&segment.GeneratedSQL,
-		&segment.GeneratedArgs,
-		&segment.DBCreatedAt,
-		&segment.DBUpdatedAt,
-		&segment.UsersCount,
-	)
+// PreviewSegment executes a segment query and returns the count of matching contacts
+func (r *segmentRepository) PreviewSegment(ctx context.Context, workspaceID string, sqlQuery string, args []interface{}) (int, error) {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
-		return nil, err
+		return 0, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	return &segment, nil
+	// Wrap the segment query in a COUNT query
+	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM (%s) AS segment_results", sqlQuery)
+
+	var totalCount int
+	err = workspaceDB.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return 0, fmt.Errorf("failed to execute preview query: %w", err)
+	}
+
+	return totalCount, nil
 }

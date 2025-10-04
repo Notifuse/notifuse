@@ -1,7 +1,7 @@
 import { Alert, Form, FormInstance, Select, Tag } from 'antd'
 import { Rule } from 'antd/lib/form'
 import Messages from './messages'
-import { DimensionFilter, FieldTypeValue, IOperator, Operator } from './interfaces'
+import { DimensionFilter, FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
 import { Currencies, Currency } from '../../lib/currencies'
 import { CountriesFormOptions, Timezones } from '../../lib/countries_timezones'
 import { Languages } from '../../lib/languages'

@@ -1,11 +1,33 @@
 import { api } from './client'
-import {
-  SignInRequest,
-  SignInResponse,
-  VerifyCodeRequest,
-  VerifyResponse,
-  GetCurrentUserResponse
-} from './types'
+import type { Workspace } from './workspace'
+
+// Authentication types
+export interface SignInRequest {
+  email: string
+}
+
+export interface SignInResponse {
+  message: string
+  code?: string
+}
+
+export interface VerifyCodeRequest {
+  email: string
+  code: string
+}
+
+export interface VerifyResponse {
+  token: string
+}
+
+export interface GetCurrentUserResponse {
+  user: {
+    id: string
+    email: string
+    timezone: string
+  }
+  workspaces: Workspace[]
+}
 
 /**
  * Check if the current user is the root user

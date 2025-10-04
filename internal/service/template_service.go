@@ -110,7 +110,7 @@ func (s *TemplateService) CreateTemplate(ctx context.Context, workspaceID string
 func (s *TemplateService) GetTemplateByID(ctx context.Context, workspaceID string, id string, version int64) (*domain.Template, error) {
 	// Check if this is a system call that should bypass authentication
 	var userWorkspace *domain.UserWorkspace
-	if ctx.Value("system_call") == nil {
+	if ctx.Value(domain.SystemCallKey) == nil {
 		// Authenticate user for workspace for regular calls
 		var err error
 		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
@@ -250,7 +250,7 @@ func (s *TemplateService) DeleteTemplate(ctx context.Context, workspaceID string
 
 func (s *TemplateService) CompileTemplate(ctx context.Context, payload domain.CompileTemplateRequest) (*domain.CompileTemplateResponse, error) {
 	// Check if this is a system call that should bypass authentication
-	if ctx.Value("system_call") == nil {
+	if ctx.Value(domain.SystemCallKey) == nil {
 		// Check if user is already authenticated in context
 		if user := ctx.Value("authenticated_user"); user == nil {
 			// Authenticate user for workspace

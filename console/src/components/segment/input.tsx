@@ -14,8 +14,7 @@ import {
   TableSchema,
   List,
   ContactTimelineCondition
-} from './interfaces'
-import TableTag from './table_tag'
+} from '../../services/api/segment'
 import { FieldTypeString } from './type_string'
 import { FieldTypeTime } from './type_time'
 import { LeafActionForm, LeafContactForm, LeafContactListForm } from './form_leaf'
@@ -487,15 +486,11 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
 
           <div>
             <Space style={{ alignItems: 'center' }}>
-              <span style={{ fontWeight: 500 }}>
-                {schema.icon && (
-                  <FontAwesomeIcon icon={schema.icon} style={{ width: 18, marginRight: 8 }} />
-                )}
-                {schema.title}
-              </span>
-              <Tag bordered={false} color="blue">
-                {isInList ? 'is in' : 'is not in'}
+              <Tag bordered={false} color="cyan">
+                {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
+                List subscription
               </Tag>
+              <span className="opacity-60">{isInList ? 'is in' : 'is not in'}</span>
               <Tag bordered={false} color="green">
                 {listName}
               </Tag>
@@ -524,16 +519,27 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
 
     return (
       <div style={{ lineHeight: '32px' }} className="py-4 pl-4">
-        <Button.Group className="float-right">
+        <Space.Compact className="float-right">
           {deleteButton(path, pathKey, false)}
           <Button size="small" onClick={editNode.bind(null, path, pathKey)}>
             <FontAwesomeIcon icon={faPenToSquare} />
           </Button>
-        </Button.Group>
+        </Space.Compact>
 
         <div>
           <Space style={{ alignItems: 'start' }}>
-            <TableTag table={node.leaf?.table as string} />
+            {isContactTable && (
+              <Tag bordered={false} color="cyan">
+                {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
+                Contact property
+              </Tag>
+            )}
+            {isContactTimelineTable && (
+              <Tag bordered={false} color="cyan">
+                {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
+                Activity
+              </Tag>
+            )}
             <div>
               {node.leaf?.contact_timeline && (
                 <>
@@ -613,7 +619,6 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               )}
               {filtersToShow && filtersToShow.length > 0 && (
                 <Space style={{ alignItems: 'start' }}>
-                  <span className="opacity-60">with filters</span>
                   <table>
                     <tbody>
                       {filtersToShow.map((filter, key) => {

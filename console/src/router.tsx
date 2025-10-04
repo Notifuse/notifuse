@@ -29,6 +29,7 @@ export interface ContactsSearch {
   language?: string
   list_id?: string
   contact_list_status?: string
+  segments?: string[]
   limit?: number
 }
 
@@ -146,6 +147,11 @@ export const workspaceContactsRoute = createRoute({
     language: search.language as string | undefined,
     list_id: search.list_id as string | undefined,
     contact_list_status: search.contact_list_status as string | undefined,
+    segments: Array.isArray(search.segments)
+      ? (search.segments as string[])
+      : search.segments
+        ? [search.segments as string]
+        : undefined,
     limit: search.limit ? Number(search.limit) : 10
   })
 })

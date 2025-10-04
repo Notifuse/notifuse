@@ -266,6 +266,35 @@ func (tdf *TestDataFactory) CreateContactList(workspaceID string, opts ...Contac
 	return contactList, nil
 }
 
+// CreateContactTimelineEvent creates a timeline event for a contact
+func (tdf *TestDataFactory) CreateContactTimelineEvent(workspaceID, email, kind string, metadata map[string]interface{}) error {
+	// Get workspace database connection
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace database: %w", err)
+	}
+
+	// Serialize metadata to JSON
+	metadataJSON, err := json.Marshal(metadata)
+	if err != nil {
+		return fmt.Errorf("failed to marshal metadata: %w", err)
+	}
+
+	// Insert timeline event directly into workspace database
+	// The table has: email, operation, entity_type, kind, changes, entity_id, created_at
+	query := `
+		INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`
+
+	_, err = workspaceDB.ExecContext(context.Background(), query, email, "insert", "message_history", kind, metadataJSON, time.Now().UTC())
+	if err != nil {
+		return fmt.Errorf("failed to insert contact timeline event: %w", err)
+	}
+
+	return nil
+}
+
 // AddUserToWorkspace adds a user to a workspace with the specified role
 func (tdf *TestDataFactory) AddUserToWorkspace(userID, workspaceID, role string) error {
 	userWorkspace := &domain.UserWorkspace{
@@ -464,6 +493,18 @@ func WithContactName(firstName, lastName string) ContactOption {
 func WithContactExternalID(externalID string) ContactOption {
 	return func(c *domain.Contact) {
 		c.ExternalID = &domain.NullableString{String: externalID, IsNull: false}
+	}
+}
+
+func WithContactCountry(country string) ContactOption {
+	return func(c *domain.Contact) {
+		c.Country = &domain.NullableString{String: country, IsNull: false}
+	}
+}
+
+func WithContactLifetimeValue(value float64) ContactOption {
+	return func(c *domain.Contact) {
+		c.LifetimeValue = &domain.NullableFloat64{Float64: value, IsNull: false}
 	}
 }
 

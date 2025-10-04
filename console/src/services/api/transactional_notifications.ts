@@ -1,5 +1,5 @@
 import { api } from './client'
-import { TestTemplateRequest, TestTemplateResponse, TrackingSettings } from './types'
+import type { TestTemplateRequest, TestTemplateResponse, TrackingSettings } from './template'
 
 export type TransactionalChannel = 'email'
 // Add other channels in the future (sms, push, etc.)

@@ -1,4 +1,4 @@
-import { TableSchema } from './interfaces'
+import { TableSchema } from '../../services/api/segment'
 import { CountriesFormOptions, Timezones } from '../utils/countries_timezones'
 import { Languages } from '../utils/languages'
 import { faUser, faFolderOpen } from '@fortawesome/free-regular-svg-icons'
@@ -275,7 +275,7 @@ export const ContactListsTableSchema: TableSchema = {
       type: 'string',
       shown: true,
       options: [
-        { value: 'subscribed', label: 'Subscribed' },
+        { value: 'active', label: 'Active' },
         { value: 'unsubscribed', label: 'Unsubscribed' },
         { value: 'pending', label: 'Pending' },
         { value: 'bounced', label: 'Bounced' },

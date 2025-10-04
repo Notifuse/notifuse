@@ -431,6 +431,31 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
+		// Contact segment changes trigger function
+		`CREATE OR REPLACE FUNCTION track_contact_segment_changes()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			changes_json JSONB := '{}'::jsonb;
+			op VARCHAR(20);
+			kind_value VARCHAR(50);
+		BEGIN
+			IF TG_OP = 'INSERT' THEN
+				op := 'insert';
+				kind_value := 'join_segment';
+				changes_json := jsonb_build_object('segment_id', jsonb_build_object('new', NEW.segment_id), 'version', jsonb_build_object('new', NEW.version), 'matched_at', jsonb_build_object('new', NEW.matched_at));
+			ELSIF TG_OP = 'DELETE' THEN
+				op := 'delete';
+				kind_value := 'leave_segment';
+				changes_json := jsonb_build_object('segment_id', jsonb_build_object('old', OLD.segment_id), 'version', jsonb_build_object('old', OLD.version));
+				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+				VALUES (OLD.email, op, 'contact_segment', kind_value, OLD.segment_id, changes_json, CURRENT_TIMESTAMP);
+				RETURN OLD;
+			END IF;
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+			VALUES (NEW.email, op, 'contact_segment', kind_value, NEW.segment_id, changes_json, CURRENT_TIMESTAMP);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;`,
 		// Create triggers
 		`DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts`,
 		`CREATE TRIGGER contact_changes_trigger AFTER INSERT OR UPDATE ON contacts FOR EACH ROW EXECUTE FUNCTION track_contact_changes()`,
@@ -440,6 +465,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TRIGGER message_history_changes_trigger AFTER INSERT OR UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION track_message_history_changes()`,
 		`DROP TRIGGER IF EXISTS webhook_event_changes_trigger ON webhook_events`,
 		`CREATE TRIGGER webhook_event_changes_trigger AFTER INSERT ON webhook_events FOR EACH ROW EXECUTE FUNCTION track_webhook_event_changes()`,
+		`DROP TRIGGER IF EXISTS contact_segment_changes_trigger ON contact_segments`,
+		`CREATE TRIGGER contact_segment_changes_trigger AFTER INSERT OR DELETE ON contact_segments FOR EACH ROW EXECUTE FUNCTION track_contact_segment_changes()`,
 	}
 
 	for _, query := range triggerQueries {

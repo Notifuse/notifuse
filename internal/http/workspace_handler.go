@@ -629,7 +629,7 @@ func (h *WorkspaceHandler) handleVerifyInvitationToken(w http.ResponseWriter, r 
 	}
 
 	// Get workspace details using system context to bypass authentication for invitation verification
-	systemCtx := context.WithValue(r.Context(), "system_call", true)
+	systemCtx := context.WithValue(r.Context(), domain.SystemCallKey, true)
 	workspace, err := h.workspaceService.GetWorkspace(systemCtx, workspaceID)
 	if err != nil {
 		// Check if it's a workspace not found error

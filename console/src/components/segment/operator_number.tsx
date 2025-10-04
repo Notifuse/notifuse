@@ -1,6 +1,6 @@
 import { Form, FormInstance, InputNumber, Tag } from 'antd'
 import Messages from './messages'
-import { DimensionFilter, FieldTypeValue, IOperator, Operator } from './interfaces'
+import { DimensionFilter, FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
 
 export type OperatorNumberProps = {
   value: string | undefined

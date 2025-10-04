@@ -1,6 +1,11 @@
 import { FormInstance, Form, Select, Alert } from 'antd'
 import Messages from './messages'
-import { DimensionFilter, FieldTypeRenderer, FieldTypeValue, IOperator } from './interfaces'
+import {
+  DimensionFilter,
+  FieldTypeRenderer,
+  FieldTypeValue,
+  IOperator
+} from '../../services/api/segment'
 import { OperatorSet, OperatorNotSet } from './operator_set_not_set'
 import {
   OperatorBeforeDate,

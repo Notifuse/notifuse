@@ -16,6 +16,26 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Test helper: creates a simple valid tree for testing
+func validTestTree() *domain.TreeNode {
+	return &domain.TreeNode{
+		Kind: "leaf",
+		Leaf: &domain.TreeNodeLeaf{
+			Table: "contacts",
+			Contact: &domain.ContactCondition{
+				Filters: []*domain.DimensionFilter{
+					{
+						FieldName:    "email",
+						FieldType:    "string",
+						Operator:     "equals",
+						StringValues: []string{"test@example.com"},
+					},
+				},
+			},
+		},
+	}
+}
+
 func setupSegmentRepositoryTest(t *testing.T) (domain.SegmentRepository, sqlmock.Sqlmock, *mocks.MockWorkspaceRepository) {
 	ctrl := gomock.NewController(t)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
@@ -29,19 +49,10 @@ func createTestSegment() *domain.Segment {
 	now := time.Now().UTC()
 	sql := "SELECT email FROM contacts WHERE orders_count >= $1"
 	return &domain.Segment{
-		ID:    "seg123",
-		Name:  "VIP Customers",
-		Color: "#FF5733",
-		Tree: domain.MapOfAny{
-			"operator": "and",
-			"children": []interface{}{
-				map[string]interface{}{
-					"field": "orders_count",
-					"op":    "gte",
-					"value": 5,
-				},
-			},
-		},
+		ID:            "seg123",
+		Name:          "VIP Customers",
+		Color:         "#FF5733",
+		Tree:          validTestTree(),
 		Timezone:      "America/New_York",
 		Version:       1,
 		Status:        string(domain.SegmentStatusBuilding),
@@ -237,7 +248,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 		Return(db, nil).
 		AnyTimes()
 
-	t.Run("segments found", func(t *testing.T) {
+	t.Run("segments found with counts", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
 			"generated_sql", "generated_args", "db_created_at", "db_updated_at", "users_count",
@@ -279,13 +290,48 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 		WHERE s.status != 'deleted'
 	`)).WillReturnRows(rows)
 
-		segments, err := repo.GetSegments(context.Background(), "workspace123")
+		segments, err := repo.GetSegments(context.Background(), "workspace123", true)
 		require.NoError(t, err)
 		assert.Len(t, segments, 2)
 		assert.Equal(t, testSegment.ID, segments[0].ID)
 		assert.Equal(t, 42, segments[0].UsersCount)
 		assert.Equal(t, "seg456", segments[1].ID)
 		assert.Equal(t, 25, segments[1].UsersCount)
+	})
+
+	t.Run("segments found without counts", func(t *testing.T) {
+		rows := sqlmock.NewRows([]string{
+			"id", "name", "color", "tree", "timezone", "version", "status",
+			"generated_sql", "generated_args", "db_created_at", "db_updated_at", "users_count",
+		}).AddRow(
+			testSegment.ID,
+			testSegment.Name,
+			testSegment.Color,
+			`{"operator":"and"}`,
+			testSegment.Timezone,
+			testSegment.Version,
+			testSegment.Status,
+			testSegment.GeneratedSQL,
+			`{"arg1":5}`,
+			testSegment.DBCreatedAt,
+			testSegment.DBUpdatedAt,
+			0, // No count when withCount=false
+		)
+
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT 
+			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
+			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+			0 as users_count
+		FROM segments s
+		WHERE s.status != 'deleted'
+	`)).WillReturnRows(rows)
+
+		segments, err := repo.GetSegments(context.Background(), "workspace123", false)
+		require.NoError(t, err)
+		assert.Len(t, segments, 1)
+		assert.Equal(t, testSegment.ID, segments[0].ID)
+		assert.Equal(t, 0, segments[0].UsersCount)
 	})
 
 	t.Run("no segments found", func(t *testing.T) {
@@ -299,7 +345,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 	`)).WillReturnRows(rows)
 
-		segments, err := repo.GetSegments(context.Background(), "workspace123")
+		segments, err := repo.GetSegments(context.Background(), "workspace123", true)
 		require.NoError(t, err)
 		assert.Len(t, segments, 0)
 	})
@@ -310,7 +356,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
 	`)).WillReturnError(errors.New("database error"))
 
-		segments, err := repo.GetSegments(context.Background(), "workspace123")
+		segments, err := repo.GetSegments(context.Background(), "workspace123", false)
 		require.Error(t, err)
 		assert.Nil(t, segments)
 		assert.Contains(t, err.Error(), "failed to query segments")
@@ -667,5 +713,79 @@ func TestSegmentRepository_GetSegmentContactCount(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, 0, count)
 		assert.Contains(t, err.Error(), "failed to get segment contact count")
+	})
+}
+
+func TestSegmentRepository_PreviewSegment(t *testing.T) {
+	repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+
+	// Setup workspace connection mock
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	mockWorkspaceRepo.EXPECT().
+		GetConnection(gomock.Any(), "workspace123").
+		Return(db, nil).
+		AnyTimes()
+
+	t.Run("successful preview with count", func(t *testing.T) {
+		testQuery := "SELECT email FROM contacts WHERE status = $1"
+		testArgs := []interface{}{"active"}
+
+		rows := sqlmock.NewRows([]string{"count"}).AddRow(150)
+
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM (SELECT email FROM contacts WHERE status = $1) AS segment_results`)).
+			WithArgs("active").
+			WillReturnRows(rows)
+
+		count, err := repo.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs)
+		require.NoError(t, err)
+		assert.Equal(t, 150, count)
+	})
+
+	t.Run("successful preview with zero count", func(t *testing.T) {
+		testQuery := "SELECT email FROM contacts WHERE status = $1"
+		testArgs := []interface{}{"inactive"}
+
+		rows := sqlmock.NewRows([]string{"count"}).AddRow(0)
+
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM (SELECT email FROM contacts WHERE status = $1) AS segment_results`)).
+			WithArgs("inactive").
+			WillReturnRows(rows)
+
+		count, err := repo.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs)
+		require.NoError(t, err)
+		assert.Equal(t, 0, count)
+	})
+
+	t.Run("workspace connection error", func(t *testing.T) {
+		repo2, _, mockWorkspaceRepo2 := setupSegmentRepositoryTest(t)
+
+		mockWorkspaceRepo2.EXPECT().
+			GetConnection(gomock.Any(), "workspace123").
+			Return(nil, errors.New("connection error"))
+
+		testQuery := "SELECT email FROM contacts"
+		testArgs := []interface{}{}
+
+		count, err := repo2.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs)
+		require.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("database query error", func(t *testing.T) {
+		testQuery := "SELECT email FROM contacts WHERE status = $1"
+		testArgs := []interface{}{"active"}
+
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM (SELECT email FROM contacts WHERE status = $1) AS segment_results`)).
+			WithArgs("active").
+			WillReturnError(errors.New("database error"))
+
+		count, err := repo.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs)
+		require.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), "failed to execute preview query")
 	})
 }

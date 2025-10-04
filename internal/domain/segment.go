@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -34,7 +35,7 @@ type Segment struct {
 	ID            string    `json:"id"`
 	Name          string    `json:"name"`
 	Color         string    `json:"color"`
-	Tree          MapOfAny  `json:"tree"`
+	Tree          *TreeNode `json:"tree"`
 	Timezone      string    `json:"timezone"`
 	Version       int64     `json:"version"`
 	Status        string    `json:"status"`
@@ -42,7 +43,7 @@ type Segment struct {
 	GeneratedArgs MapOfAny  `json:"generated_args,omitempty"`
 	DBCreatedAt   time.Time `json:"db_created_at"`
 	DBUpdatedAt   time.Time `json:"db_updated_at"`
-	UsersCount    int       `json:"users_count,omitempty"` // joined server-side
+	UsersCount    int       `json:"users_count"` // joined server-side
 }
 
 // ContactSegment represents the relationship between a contact and a segment
@@ -59,8 +60,9 @@ func (s *Segment) Validate() error {
 	if s.ID == "" {
 		return fmt.Errorf("invalid segment: id is required")
 	}
-	if !govalidator.IsAlphanumeric(s.ID) {
-		return fmt.Errorf("invalid segment: id must be alphanumeric")
+	// Allow lowercase letters, numbers, and underscores (snake_case)
+	if !govalidator.Matches(s.ID, "^[a-z0-9_]+$") {
+		return fmt.Errorf("invalid segment: id must contain only lowercase letters, numbers, and underscores")
 	}
 	if len(s.ID) > 32 {
 		return fmt.Errorf("invalid segment: id length must be between 1 and 32")
@@ -97,9 +99,13 @@ func (s *Segment) Validate() error {
 		return fmt.Errorf("invalid segment: %w", err)
 	}
 
-	// Validate tree is not empty
-	if len(s.Tree) == 0 {
+	// Validate tree is not nil and valid
+	if s.Tree == nil {
 		return fmt.Errorf("invalid segment: tree is required")
+	}
+
+	if err := s.Tree.Validate(); err != nil {
+		return fmt.Errorf("invalid segment tree: %w", err)
 	}
 
 	return nil
@@ -125,6 +131,7 @@ func ScanSegment(scanner interface {
 	Scan(dest ...interface{}) error
 }) (*Segment, error) {
 	var dbs dbSegment
+	var usersCount int
 	if err := scanner.Scan(
 		&dbs.ID,
 		&dbs.Name,
@@ -137,15 +144,22 @@ func ScanSegment(scanner interface {
 		&dbs.GeneratedArgs,
 		&dbs.DBCreatedAt,
 		&dbs.DBUpdatedAt,
+		&usersCount,
 	); err != nil {
 		return nil, err
+	}
+
+	// Convert MapOfAny tree to TreeNode
+	tree, err := TreeNodeFromMapOfAny(dbs.Tree)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse segment tree: %w", err)
 	}
 
 	s := &Segment{
 		ID:            dbs.ID,
 		Name:          dbs.Name,
 		Color:         dbs.Color,
-		Tree:          dbs.Tree,
+		Tree:          tree,
 		Timezone:      dbs.Timezone,
 		Version:       dbs.Version,
 		Status:        dbs.Status,
@@ -153,6 +167,7 @@ func ScanSegment(scanner interface {
 		GeneratedArgs: dbs.GeneratedArgs,
 		DBCreatedAt:   dbs.DBCreatedAt,
 		DBUpdatedAt:   dbs.DBUpdatedAt,
+		UsersCount:    usersCount,
 	}
 
 	return s, nil
@@ -160,12 +175,12 @@ func ScanSegment(scanner interface {
 
 // Request/Response types
 type CreateSegmentRequest struct {
-	WorkspaceID string   `json:"workspace_id"`
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Color       string   `json:"color"`
-	Tree        MapOfAny `json:"tree"`
-	Timezone    string   `json:"timezone"`
+	WorkspaceID string    `json:"workspace_id"`
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Color       string    `json:"color"`
+	Tree        *TreeNode `json:"tree"`
+	Timezone    string    `json:"timezone"`
 }
 
 func (r *CreateSegmentRequest) Validate() (segment *Segment, workspaceID string, err error) {
@@ -203,8 +218,12 @@ func (r *CreateSegmentRequest) Validate() (segment *Segment, workspaceID string,
 		return nil, "", fmt.Errorf("invalid create segment request: timezone length must be between 1 and 100")
 	}
 
-	if len(r.Tree) == 0 {
+	if r.Tree == nil {
 		return nil, "", fmt.Errorf("invalid create segment request: tree is required")
+	}
+
+	if err := r.Tree.Validate(); err != nil {
+		return nil, "", fmt.Errorf("invalid create segment request: invalid tree: %w", err)
 	}
 
 	return &Segment{
@@ -220,11 +239,36 @@ func (r *CreateSegmentRequest) Validate() (segment *Segment, workspaceID string,
 
 type GetSegmentsRequest struct {
 	WorkspaceID string `json:"workspace_id"`
+	WithCount   bool   `json:"with_count"` // Whether to include contact counts (can be expensive)
+}
+
+func (r *GetSegmentsRequest) FromURLParams(values url.Values) error {
+	r.WorkspaceID = values.Get("workspace_id")
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+	// Parse with_count parameter (defaults to false)
+	r.WithCount = values.Get("with_count") == "true" || values.Get("with_count") == "1"
+	return nil
 }
 
 type GetSegmentRequest struct {
 	WorkspaceID string `json:"workspace_id"`
 	ID          string `json:"id"`
+}
+
+func (r *GetSegmentRequest) FromURLParams(values url.Values) error {
+	r.WorkspaceID = values.Get("workspace_id")
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+
+	r.ID = values.Get("id")
+	if r.ID == "" {
+		return fmt.Errorf("id is required")
+	}
+
+	return nil
 }
 
 func (r *GetSegmentRequest) Validate() (workspaceID string, id string, err error) {
@@ -246,12 +290,12 @@ func (r *GetSegmentRequest) Validate() (workspaceID string, id string, err error
 }
 
 type UpdateSegmentRequest struct {
-	WorkspaceID string   `json:"workspace_id"`
-	ID          string   `json:"id"`
-	Name        string   `json:"name"`
-	Color       string   `json:"color"`
-	Tree        MapOfAny `json:"tree"`
-	Timezone    string   `json:"timezone"`
+	WorkspaceID string    `json:"workspace_id"`
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Color       string    `json:"color"`
+	Tree        *TreeNode `json:"tree"`
+	Timezone    string    `json:"timezone"`
 }
 
 func (r *UpdateSegmentRequest) Validate() (segment *Segment, workspaceID string, err error) {
@@ -289,8 +333,12 @@ func (r *UpdateSegmentRequest) Validate() (segment *Segment, workspaceID string,
 		return nil, "", fmt.Errorf("invalid update segment request: timezone length must be between 1 and 100")
 	}
 
-	if len(r.Tree) == 0 {
+	if r.Tree == nil {
 		return nil, "", fmt.Errorf("invalid update segment request: tree is required")
+	}
+
+	if err := r.Tree.Validate(); err != nil {
+		return nil, "", fmt.Errorf("invalid update segment request: invalid tree: %w", err)
 	}
 
 	return &Segment{
@@ -325,22 +373,39 @@ func (r *DeleteSegmentRequest) Validate() (workspaceID string, id string, err er
 	return r.WorkspaceID, r.ID, nil
 }
 
+type PreviewSegmentResponse struct {
+	Emails       []string      `json:"emails"`
+	TotalCount   int           `json:"total_count"`
+	Limit        int           `json:"limit"`
+	GeneratedSQL string        `json:"generated_sql"`
+	SQLArgs      []interface{} `json:"sql_args"`
+}
+
 // SegmentService provides operations for managing segments
 type SegmentService interface {
 	// CreateSegment creates a new segment
-	CreateSegment(ctx context.Context, workspaceID string, segment *Segment) error
+	CreateSegment(ctx context.Context, req *CreateSegmentRequest) (*Segment, error)
 
-	// GetSegmentByID retrieves a segment by ID
-	GetSegmentByID(ctx context.Context, workspaceID string, id string) (*Segment, error)
+	// GetSegment retrieves a segment by ID
+	GetSegment(ctx context.Context, req *GetSegmentRequest) (*Segment, error)
 
-	// GetSegments retrieves all segments
-	GetSegments(ctx context.Context, workspaceID string) ([]*Segment, error)
+	// ListSegments retrieves all segments
+	ListSegments(ctx context.Context, req *GetSegmentsRequest) ([]*Segment, error)
 
 	// UpdateSegment updates an existing segment
-	UpdateSegment(ctx context.Context, workspaceID string, segment *Segment) error
+	UpdateSegment(ctx context.Context, req *UpdateSegmentRequest) (*Segment, error)
 
 	// DeleteSegment deletes a segment by ID
-	DeleteSegment(ctx context.Context, workspaceID string, id string) error
+	DeleteSegment(ctx context.Context, req *DeleteSegmentRequest) error
+
+	// RebuildSegment triggers a rebuild of a segment
+	RebuildSegment(ctx context.Context, workspaceID, segmentID string) error
+
+	// PreviewSegment previews the contacts that would match a segment tree
+	PreviewSegment(ctx context.Context, workspaceID string, tree *TreeNode, limit int) (*PreviewSegmentResponse, error)
+
+	// GetSegmentContacts retrieves the contacts belonging to a segment
+	GetSegmentContacts(ctx context.Context, workspaceID, segmentID string, limit, offset int) ([]string, error)
 }
 
 type SegmentRepository interface {
@@ -350,8 +415,8 @@ type SegmentRepository interface {
 	// GetSegmentByID retrieves a segment by its ID
 	GetSegmentByID(ctx context.Context, workspaceID string, id string) (*Segment, error)
 
-	// GetSegments retrieves all segments
-	GetSegments(ctx context.Context, workspaceID string) ([]*Segment, error)
+	// GetSegments retrieves all segments, optionally with contact counts
+	GetSegments(ctx context.Context, workspaceID string, withCount bool) ([]*Segment, error)
 
 	// UpdateSegment updates an existing segment
 	UpdateSegment(ctx context.Context, workspaceID string, segment *Segment) error
@@ -373,6 +438,9 @@ type SegmentRepository interface {
 
 	// GetSegmentContactCount gets the count of contacts in a segment
 	GetSegmentContactCount(ctx context.Context, workspaceID string, segmentID string) (int, error)
+
+	// PreviewSegment executes a segment query and returns the count of matching contacts
+	PreviewSegment(ctx context.Context, workspaceID string, sqlQuery string, args []interface{}) (int, error)
 }
 
 // ErrSegmentNotFound is returned when a segment is not found

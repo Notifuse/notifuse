@@ -4,7 +4,7 @@ import { Segmented, Select, Space } from 'antd'
 import dayjs from 'dayjs'
 import { useAuth } from '../contexts/AuthContext'
 import { AnalyticsDashboard } from '../components/analytics/AnalyticsDashboard'
-import { Timezones } from '../lib/timezones'
+import { TimezonesForSelect } from '../lib/countries_timezones'
 
 type TimePeriod = '7D' | '14D' | '30D' | '90D'
 
@@ -22,12 +22,6 @@ export function AnalyticsPage() {
     const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
     setSelectedTimezone(browserTimezone)
   }, [])
-
-  // Generate timezone options from the comprehensive timezone list
-  const timezoneOptions = Timezones.map((tz) => ({
-    label: tz,
-    value: tz
-  }))
 
   // Calculate time range based on selected period
   const getTimeRangeFromPeriod = (period: TimePeriod): [string, string] => {
@@ -81,13 +75,13 @@ export function AnalyticsPage() {
           <Select
             value={selectedTimezone}
             onChange={handleTimezoneChange}
-            options={timezoneOptions}
+            options={TimezonesForSelect}
             variant="filled"
             style={{ width: 170 }}
             placeholder="Select timezone"
             showSearch
             filterOption={(input, option) =>
-              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+              (option?.label ?? '').toString().toLowerCase().includes(input.toLowerCase())
             }
           />
           <Segmented

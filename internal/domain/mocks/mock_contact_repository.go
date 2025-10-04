@@ -35,6 +35,21 @@ func (m *MockContactRepository) EXPECT() *MockContactRepositoryMockRecorder {
 	return m.recorder
 }
 
+// Count mocks base method.
+func (m *MockContactRepository) Count(arg0 context.Context, arg1 string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Count", arg0, arg1)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Count indicates an expected call of Count.
+func (mr *MockContactRepositoryMockRecorder) Count(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Count", reflect.TypeOf((*MockContactRepository)(nil).Count), arg0, arg1)
+}
+
 // CountContactsForBroadcast mocks base method.
 func (m *MockContactRepository) CountContactsForBroadcast(arg0 context.Context, arg1 string, arg2 domain.AudienceSettings) (int, error) {
 	m.ctrl.T.Helper()
@@ -62,6 +77,21 @@ func (m *MockContactRepository) DeleteContact(arg0 context.Context, arg1, arg2 s
 func (mr *MockContactRepositoryMockRecorder) DeleteContact(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteContact", reflect.TypeOf((*MockContactRepository)(nil).DeleteContact), arg0, arg1, arg2)
+}
+
+// GetBatchForSegment mocks base method.
+func (m *MockContactRepository) GetBatchForSegment(arg0 context.Context, arg1 string, arg2 int64, arg3 int) ([]*domain.Contact, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBatchForSegment", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].([]*domain.Contact)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBatchForSegment indicates an expected call of GetBatchForSegment.
+func (mr *MockContactRepositoryMockRecorder) GetBatchForSegment(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBatchForSegment", reflect.TypeOf((*MockContactRepository)(nil).GetBatchForSegment), arg0, arg1, arg2, arg3)
 }
 
 // GetContactByEmail mocks base method.

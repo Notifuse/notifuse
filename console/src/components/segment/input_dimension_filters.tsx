@@ -1,4 +1,8 @@
-import { DimensionFilter, FieldTypeRendererDictionary, TableSchema } from './interfaces'
+import {
+  DimensionFilter,
+  FieldTypeRendererDictionary,
+  TableSchema
+} from '../../services/api/segment'
 import { Alert, Button, Form, Modal, Popconfirm, Popover, Select, Space, Tooltip } from 'antd'
 import { useState } from 'react'
 import { clone, map } from 'lodash'
@@ -63,7 +67,7 @@ export const InputDimensionFilters = (props: {
                     )}
                   </td>
                   <td>
-                    <Button.Group>
+                    <Space.Compact>
                       <Popconfirm
                         title="Do you really want to remove this filter?"
                         onConfirm={() => {
@@ -77,7 +81,7 @@ export const InputDimensionFilters = (props: {
                           <FontAwesomeIcon icon={faTrashAlt} />
                         </Button>
                       </Popconfirm>
-                    </Button.Group>
+                    </Space.Compact>
                   </td>
                 </tr>
               )

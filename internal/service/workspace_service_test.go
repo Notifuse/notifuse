@@ -222,7 +222,7 @@ func TestWorkspaceService_GetWorkspace(t *testing.T) {
 		}
 
 		// Create a system context that should bypass authentication
-		systemCtx := context.WithValue(ctx, "system_call", true)
+		systemCtx := context.WithValue(ctx, domain.SystemCallKey, true)
 
 		// No auth service call expected since this is a system call
 		mockRepo.EXPECT().GetByID(systemCtx, workspaceID).Return(expectedWorkspace, nil)

@@ -92,6 +92,7 @@ func getTaskTypes() []string {
 		"export_contacts",
 		"send_broadcast",
 		"generate_report",
+		"build_segment",
 	}
 }
 

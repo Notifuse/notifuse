@@ -1,5 +1,5 @@
 import { FormInstance } from 'antd'
-import { FieldTypeValue, IOperator, Operator } from './interfaces'
+import { FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
 
 export class OperatorSet implements IOperator {
   type: Operator = 'is_set'

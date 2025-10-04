@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Card, Typography, Space, Button, Form, message } from 'antd'
 import { TreeNodeInput, SegmentSchemas } from '../components/segment/input'
-import { TreeNode, List } from '../components/segment/interfaces'
+import { TreeNode, List } from '../services/api/segment'
 import { TableSchemas } from '../components/segment/table_schemas'
 
 const { Title, Paragraph } = Typography

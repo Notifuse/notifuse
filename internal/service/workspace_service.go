@@ -99,7 +99,7 @@ func (s *WorkspaceService) ListWorkspaces(ctx context.Context) ([]*domain.Worksp
 // GetWorkspace returns a workspace by ID if the user has access
 func (s *WorkspaceService) GetWorkspace(ctx context.Context, id string) (*domain.Workspace, error) {
 	// Check if this is a system call that should bypass authentication
-	if ctx.Value("system_call") == nil {
+	if ctx.Value(domain.SystemCallKey) == nil {
 		// Validate user is a member of the workspace
 		var user *domain.User
 		var err error

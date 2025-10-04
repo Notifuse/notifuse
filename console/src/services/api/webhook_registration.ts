@@ -1,5 +1,5 @@
 import { api } from './client'
-import { EmailProviderKind } from './types'
+import type { EmailProviderKind } from './workspace'
 
 export type EmailEventType = 'delivered' | 'bounce' | 'complaint' | 'click' | 'open'
 

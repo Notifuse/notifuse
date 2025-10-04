@@ -6,17 +6,27 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestSegment_Validate(t *testing.T) {
-	validTree := MapOfAny{
-		"operator": "and",
-		"children": []interface{}{
-			map[string]interface{}{
-				"field": "email",
-				"op":    "contains",
-				"value": "test",
+// Test helper: creates a simple valid tree for testing
+func validTestTree() *TreeNode {
+	return &TreeNode{
+		Kind: "leaf",
+		Leaf: &TreeNodeLeaf{
+			Table: "contacts",
+			Contact: &ContactCondition{
+				Filters: []*DimensionFilter{
+					{
+						FieldName:    "email",
+						FieldType:    "string",
+						Operator:     "equals",
+						StringValues: []string{"test@example.com"},
+					},
+				},
 			},
 		},
 	}
+}
+
+func TestSegment_Validate(t *testing.T) {
 
 	tests := []struct {
 		name    string
@@ -29,7 +39,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment123",
 				Name:     "My Segment",
 				Color:    "#FF5733",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "America/New_York",
 				Version:  1,
 				Status:   string(SegmentStatusActive),
@@ -42,7 +52,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "",
 				Name:     "My Segment",
 				Color:    "#FF5733",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "America/New_York",
 				Version:  1,
 				Status:   string(SegmentStatusActive),
@@ -55,7 +65,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment-123",
 				Name:     "My Segment",
 				Color:    "#FF5733",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "America/New_York",
 				Version:  1,
 				Status:   string(SegmentStatusActive),
@@ -68,7 +78,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment1234567890123456789012345678901234567890",
 				Name:     "My Segment",
 				Color:    "#FF5733",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "America/New_York",
 				Version:  1,
 				Status:   string(SegmentStatusActive),
@@ -81,7 +91,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment123",
 				Name:     "",
 				Color:    "#FF5733",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "America/New_York",
 				Version:  1,
 				Status:   string(SegmentStatusActive),
@@ -94,7 +104,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment123",
 				Name:     string(make([]byte, 256)),
 				Color:    "#FF5733",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "America/New_York",
 				Version:  1,
 				Status:   string(SegmentStatusActive),
@@ -107,7 +117,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment123",
 				Name:     "My Segment",
 				Color:    "",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "America/New_York",
 				Version:  1,
 				Status:   string(SegmentStatusActive),
@@ -120,7 +130,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment123",
 				Name:     "My Segment",
 				Color:    string(make([]byte, 51)),
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "America/New_York",
 				Version:  1,
 				Status:   string(SegmentStatusActive),
@@ -133,7 +143,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment123",
 				Name:     "My Segment",
 				Color:    "#FF5733",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "",
 				Version:  1,
 				Status:   string(SegmentStatusActive),
@@ -146,7 +156,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment123",
 				Name:     "My Segment",
 				Color:    "#FF5733",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: string(make([]byte, 101)),
 				Version:  1,
 				Status:   string(SegmentStatusActive),
@@ -159,7 +169,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment123",
 				Name:     "My Segment",
 				Color:    "#FF5733",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "America/New_York",
 				Version:  0,
 				Status:   string(SegmentStatusActive),
@@ -172,7 +182,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment123",
 				Name:     "My Segment",
 				Color:    "#FF5733",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "America/New_York",
 				Version:  -1,
 				Status:   string(SegmentStatusActive),
@@ -185,7 +195,7 @@ func TestSegment_Validate(t *testing.T) {
 				ID:       "segment123",
 				Name:     "My Segment",
 				Color:    "#FF5733",
-				Tree:     validTree,
+				Tree:     validTestTree(),
 				Timezone: "America/New_York",
 				Version:  1,
 				Status:   "invalid_status",
@@ -193,12 +203,12 @@ func TestSegment_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid tree - empty",
+			name: "invalid tree - nil",
 			segment: Segment{
 				ID:       "segment123",
 				Name:     "My Segment",
 				Color:    "#FF5733",
-				Tree:     MapOfAny{},
+				Tree:     nil,
 				Timezone: "America/New_York",
 				Version:  1,
 				Status:   string(SegmentStatusActive),
@@ -260,16 +270,6 @@ func TestSegmentStatus_Validate(t *testing.T) {
 }
 
 func TestCreateSegmentRequest_Validate(t *testing.T) {
-	validTree := MapOfAny{
-		"operator": "and",
-		"children": []interface{}{
-			map[string]interface{}{
-				"field": "email",
-				"op":    "contains",
-				"value": "test",
-			},
-		},
-	}
 
 	tests := []struct {
 		name    string
@@ -283,7 +283,7 @@ func TestCreateSegmentRequest_Validate(t *testing.T) {
 				ID:          "segment123",
 				Name:        "My Segment",
 				Color:       "#FF5733",
-				Tree:        validTree,
+				Tree:        validTestTree(),
 				Timezone:    "America/New_York",
 			},
 			wantErr: false,
@@ -295,7 +295,7 @@ func TestCreateSegmentRequest_Validate(t *testing.T) {
 				ID:          "segment123",
 				Name:        "My Segment",
 				Color:       "#FF5733",
-				Tree:        validTree,
+				Tree:        validTestTree(),
 				Timezone:    "America/New_York",
 			},
 			wantErr: true,
@@ -307,7 +307,7 @@ func TestCreateSegmentRequest_Validate(t *testing.T) {
 				ID:          "",
 				Name:        "My Segment",
 				Color:       "#FF5733",
-				Tree:        validTree,
+				Tree:        validTestTree(),
 				Timezone:    "America/New_York",
 			},
 			wantErr: true,
@@ -319,7 +319,7 @@ func TestCreateSegmentRequest_Validate(t *testing.T) {
 				ID:          "segment123",
 				Name:        "",
 				Color:       "#FF5733",
-				Tree:        validTree,
+				Tree:        validTestTree(),
 				Timezone:    "America/New_York",
 			},
 			wantErr: true,
@@ -331,7 +331,7 @@ func TestCreateSegmentRequest_Validate(t *testing.T) {
 				ID:          "segment123",
 				Name:        "My Segment",
 				Color:       "",
-				Tree:        validTree,
+				Tree:        validTestTree(),
 				Timezone:    "America/New_York",
 			},
 			wantErr: true,
@@ -343,7 +343,7 @@ func TestCreateSegmentRequest_Validate(t *testing.T) {
 				ID:          "segment123",
 				Name:        "My Segment",
 				Color:       "#FF5733",
-				Tree:        validTree,
+				Tree:        validTestTree(),
 				Timezone:    "",
 			},
 			wantErr: true,
@@ -355,7 +355,7 @@ func TestCreateSegmentRequest_Validate(t *testing.T) {
 				ID:          "segment123",
 				Name:        "My Segment",
 				Color:       "#FF5733",
-				Tree:        MapOfAny{},
+				Tree:        nil,
 				Timezone:    "America/New_York",
 			},
 			wantErr: true,
@@ -385,16 +385,6 @@ func TestCreateSegmentRequest_Validate(t *testing.T) {
 }
 
 func TestUpdateSegmentRequest_Validate(t *testing.T) {
-	validTree := MapOfAny{
-		"operator": "and",
-		"children": []interface{}{
-			map[string]interface{}{
-				"field": "email",
-				"op":    "contains",
-				"value": "test",
-			},
-		},
-	}
 
 	tests := []struct {
 		name    string
@@ -408,7 +398,7 @@ func TestUpdateSegmentRequest_Validate(t *testing.T) {
 				ID:          "segment123",
 				Name:        "Updated Segment",
 				Color:       "#FF5733",
-				Tree:        validTree,
+				Tree:        validTestTree(),
 				Timezone:    "America/New_York",
 			},
 			wantErr: false,
@@ -420,7 +410,7 @@ func TestUpdateSegmentRequest_Validate(t *testing.T) {
 				ID:          "segment123",
 				Name:        "Updated Segment",
 				Color:       "#FF5733",
-				Tree:        validTree,
+				Tree:        validTestTree(),
 				Timezone:    "America/New_York",
 			},
 			wantErr: true,
@@ -432,7 +422,7 @@ func TestUpdateSegmentRequest_Validate(t *testing.T) {
 				ID:          "",
 				Name:        "Updated Segment",
 				Color:       "#FF5733",
-				Tree:        validTree,
+				Tree:        validTestTree(),
 				Timezone:    "America/New_York",
 			},
 			wantErr: true,
