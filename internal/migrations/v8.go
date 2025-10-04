@@ -295,6 +295,64 @@ func (m *V8Migration) UpdateWorkspace(ctx context.Context, config *config.Config
 		return fmt.Errorf("failed to update track_webhook_event_changes function for workspace %s: %w", workspace.ID, err)
 	}
 
+	// Create segments table
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS segments (
+			id VARCHAR(32) PRIMARY KEY,
+			name VARCHAR(255) NOT NULL,
+			color VARCHAR(50) NOT NULL,
+			tree JSONB NOT NULL,
+			timezone VARCHAR(100) NOT NULL,
+			version INTEGER NOT NULL,
+			status VARCHAR(20) NOT NULL,
+			generated_sql TEXT,
+			generated_args JSONB,
+			db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			db_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create segments table for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Create indexes for segments table
+	_, err = db.ExecContext(ctx, `
+		CREATE INDEX IF NOT EXISTS idx_segments_status ON segments(status)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create status index on segments table for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Create contact_segments table
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS contact_segments (
+			email VARCHAR(255) NOT NULL,
+			segment_id VARCHAR(32) NOT NULL,
+			version INTEGER NOT NULL,
+			matched_at TIMESTAMP WITH TIME ZONE NOT NULL,
+			computed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (email, segment_id)
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create contact_segments table for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Create indexes for contact_segments table
+	_, err = db.ExecContext(ctx, `
+		CREATE INDEX IF NOT EXISTS idx_contact_segments_segment_id ON contact_segments(segment_id)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create segment_id index on contact_segments table for workspace %s: %w", workspace.ID, err)
+	}
+
+	_, err = db.ExecContext(ctx, `
+		CREATE INDEX IF NOT EXISTS idx_contact_segments_version ON contact_segments(segment_id, version)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create version index on contact_segments table for workspace %s: %w", workspace.ID, err)
+	}
+
 	return nil
 }
 

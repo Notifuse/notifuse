@@ -11,15 +11,15 @@ export interface Segment {
   id: string
   name: string
   color: string
-  db_created_at: string
-  db_updated_at: string
-  parent_segment_id: string
+  parent_segment_id?: string
   tree: TreeNode
   timezone: string
   version: number
   status: 'active' | 'deleted' | 'building'
   generated_sql?: string
   generated_args?: any[]
+  db_created_at: string
+  db_updated_at: string
   // joined server-side
   users_count: number
 }
@@ -60,7 +60,7 @@ export interface ContactListCondition {
 }
 
 export interface ContactTimelineCondition {
-  entity_type: string
+  kind: string
   count_operator: 'at_least' | 'at_most' | 'exactly'
   count_value: number
   timeframe_operator?:
@@ -70,7 +70,7 @@ export interface ContactTimelineCondition {
     | 'after_date'
     | 'in_the_last_days'
   timeframe_values?: string[]
-  filters: DimensionFilter[]
+  filters?: DimensionFilter[]
 }
 
 // current editing condition

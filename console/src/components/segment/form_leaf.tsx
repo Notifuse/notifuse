@@ -265,23 +265,25 @@ export const LeafActionForm = (props: LeafFormProps) => {
         <div className="mb-2">
           <Space>
             <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              did
+              type
             </span>
             <Form.Item
               noStyle
-              name={['contact_timeline', 'entity_type']}
+              name={['contact_timeline', 'kind']}
               colon={false}
-              rules={[{ required: true, message: 'Please select an entity type' }]}
+              rules={[{ required: true, message: 'Please select an event type' }]}
             >
               <Select
-                style={{ width: 150 }}
+                style={{ width: 200 }}
                 size="small"
-                placeholder="Select entity"
+                placeholder="Select event"
                 options={[
-                  { value: 'message', label: 'Message' },
-                  { value: 'email', label: 'Email' },
-                  { value: 'order', label: 'Order' },
-                  { value: 'subscription', label: 'Subscription' }
+                  { value: 'open_email', label: 'Open email' },
+                  { value: 'click_email', label: 'Click email' },
+                  { value: 'bounce_email', label: 'Bounce email' },
+                  { value: 'complain_email', label: 'Complain email' },
+                  { value: 'unsubscribe_email', label: 'Unsubscribe email' },
+                  { value: 'insert_message_history', label: 'New email' }
                 ]}
               />
             </Form.Item>
@@ -437,22 +439,26 @@ export const LeafActionForm = (props: LeafFormProps) => {
           </Space>
         </div>
 
-        <div className="mt-2">
-          <Space style={{ alignItems: 'start' }}>
-            <span className="opacity-60" style={{ lineHeight: '32px' }}>
-              with filters
-            </span>
-            <Form.Item
-              name={['contact_timeline', 'filters']}
-              noStyle
-              colon={false}
-              className="mt-3"
-              rules={[{ required: false, type: 'array', min: 0, message: Messages.RequiredField }]}
-            >
-              <InputDimensionFilters schema={props.schema} btnType="link" btnGhost={true} />
-            </Form.Item>
-          </Space>
-        </div>
+        {props.table === 'contact_events' && (
+          <div className="mt-2">
+            <Space style={{ alignItems: 'start' }}>
+              <span className="opacity-60" style={{ lineHeight: '32px' }}>
+                with filters
+              </span>
+              <Form.Item
+                name={['contact_timeline', 'filters']}
+                noStyle
+                colon={false}
+                className="mt-3"
+                rules={[
+                  { required: false, type: 'array', min: 0, message: Messages.RequiredField }
+                ]}
+              >
+                <InputDimensionFilters schema={props.schema} btnType="link" btnGhost={true} />
+              </Form.Item>
+            </Space>
+          </div>
+        )}
 
         {/* CONFIRM / CANCEL */}
         <Space style={{ position: 'absolute', top: 16, right: 0 }}>

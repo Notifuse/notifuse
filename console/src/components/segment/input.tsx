@@ -271,7 +271,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     } else {
       // Contact timeline uses ContactTimelineCondition
       leaf.contact_timeline = {
-        entity_type: '',
+        kind: '',
         timeframe_operator: 'anytime',
         timeframe_values: [],
         count_operator: 'at_least',
@@ -537,61 +537,78 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
             <div>
               {node.leaf?.contact_timeline && (
                 <>
-                  <span className="opacity-60 pr-3">
-                    happened&nbsp;
-                    {node.leaf?.contact_timeline.count_operator === 'at_least' && 'at least'}
-                    {node.leaf?.contact_timeline.count_operator === 'at_most' && 'at most'}
-                    {node.leaf?.contact_timeline.count_operator === 'exactly' && 'exactly'}
-                  </span>
-                  <Tag bordered={false} color="blue">
-                    {node.leaf?.contact_timeline.count_value}
-                  </Tag>
+                  <div className="mb-2">
+                    <span className="opacity-60 pr-3">type</span>
+                    <Tag bordered={false} color="blue">
+                      {node.leaf?.contact_timeline.kind === 'open_email' && 'Open email'}
+                      {node.leaf?.contact_timeline.kind === 'click_email' && 'Click email'}
+                      {node.leaf?.contact_timeline.kind === 'bounce_email' && 'Bounce email'}
+                      {node.leaf?.contact_timeline.kind === 'complain_email' && 'Complain email'}
+                      {node.leaf?.contact_timeline.kind === 'unsubscribe_email' &&
+                        'Unsubscribe email'}
+                      {node.leaf?.contact_timeline.kind === 'insert_message_history' && 'New email'}
+                    </Tag>
+                  </div>
+                  <Space>
+                    <span className="opacity-60">happened</span>
+                    <Tag bordered={false} color="blue">
+                      {node.leaf?.contact_timeline.count_operator === 'at_least' && 'at least'}
+                      {node.leaf?.contact_timeline.count_operator === 'at_most' && 'at most'}
+                      {node.leaf?.contact_timeline.count_operator === 'exactly' && 'exactly'}
+                    </Tag>
+                    <Tag bordered={false} color="blue">
+                      {node.leaf?.contact_timeline.count_value}
+                    </Tag>
+                    <span className="opacity-60">times</span>
+                  </Space>
 
-                  <span className="opacity-60">times</span>
-
-                  {node.leaf?.contact_timeline.timeframe_operator !== 'anytime' && (
-                    <div>
-                      <Space>
-                        {node.leaf?.contact_timeline.timeframe_operator === 'in_the_last_days' && (
-                          <>
-                            <span className="opacity-60">in the last</span>
-                            <Tag bordered={false} color="blue">
-                              {node.leaf?.contact_timeline.timeframe_values?.[0]}
-                            </Tag>
-                            <span className="opacity-60">days</span>
-                          </>
-                        )}
-                        {node.leaf?.contact_timeline.timeframe_operator === 'in_date_range' && (
-                          <>
-                            <span className="opacity-60">between</span>
-                            <Tag bordered={false} color="blue">
-                              {node.leaf?.contact_timeline.timeframe_values?.[0]}
-                            </Tag>
-                            &rarr;
-                            <Tag className="ml-3" bordered={false} color="blue">
-                              {node.leaf?.contact_timeline.timeframe_values?.[1]}
-                            </Tag>
-                          </>
-                        )}
-                        {node.leaf?.contact_timeline.timeframe_operator === 'before_date' && (
-                          <>
-                            <span className="opacity-60">before</span>
-                            <Tag bordered={false} color="blue">
-                              {node.leaf?.contact_timeline.timeframe_values?.[0]}
-                            </Tag>
-                          </>
-                        )}
-                        {node.leaf?.contact_timeline.timeframe_operator === 'after_date' && (
-                          <>
-                            <span className="opacity-60">after</span>
-                            <Tag bordered={false} color="blue">
-                              {node.leaf?.contact_timeline.timeframe_values?.[0]}
-                            </Tag>
-                          </>
-                        )}
-                      </Space>
-                    </div>
-                  )}
+                  <div className="mt-2">
+                    <Space>
+                      <span className="opacity-60">timeframe</span>
+                      {node.leaf?.contact_timeline.timeframe_operator === 'anytime' && (
+                        <Tag bordered={false} color="blue">
+                          anytime
+                        </Tag>
+                      )}
+                      {node.leaf?.contact_timeline.timeframe_operator === 'in_the_last_days' && (
+                        <>
+                          <span className="opacity-60">in the last</span>
+                          <Tag bordered={false} color="blue">
+                            {node.leaf?.contact_timeline.timeframe_values?.[0]}
+                          </Tag>
+                          <span className="opacity-60">days</span>
+                        </>
+                      )}
+                      {node.leaf?.contact_timeline.timeframe_operator === 'in_date_range' && (
+                        <>
+                          <span className="opacity-60">between</span>
+                          <Tag bordered={false} color="blue">
+                            {node.leaf?.contact_timeline.timeframe_values?.[0]}
+                          </Tag>
+                          &rarr;
+                          <Tag className="ml-3" bordered={false} color="blue">
+                            {node.leaf?.contact_timeline.timeframe_values?.[1]}
+                          </Tag>
+                        </>
+                      )}
+                      {node.leaf?.contact_timeline.timeframe_operator === 'before_date' && (
+                        <>
+                          <span className="opacity-60">before</span>
+                          <Tag bordered={false} color="blue">
+                            {node.leaf?.contact_timeline.timeframe_values?.[0]}
+                          </Tag>
+                        </>
+                      )}
+                      {node.leaf?.contact_timeline.timeframe_operator === 'after_date' && (
+                        <>
+                          <span className="opacity-60">after</span>
+                          <Tag bordered={false} color="blue">
+                            {node.leaf?.contact_timeline.timeframe_values?.[0]}
+                          </Tag>
+                        </>
+                      )}
+                    </Space>
+                  </div>
                 </>
               )}
               {filtersToShow && filtersToShow.length > 0 && (

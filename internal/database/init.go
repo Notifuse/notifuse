@@ -246,6 +246,30 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline(email, created_at DESC, id DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_kind ON contact_timeline(kind)`,
 		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline(entity_id) WHERE entity_id IS NOT NULL`,
+		`CREATE TABLE IF NOT EXISTS segments (
+			id VARCHAR(32) PRIMARY KEY,
+			name VARCHAR(255) NOT NULL,
+			color VARCHAR(50) NOT NULL,
+			tree JSONB NOT NULL,
+			timezone VARCHAR(100) NOT NULL,
+			version INTEGER NOT NULL,
+			status VARCHAR(20) NOT NULL,
+			generated_sql TEXT,
+			generated_args JSONB,
+			db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			db_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_segments_status ON segments(status)`,
+		`CREATE TABLE IF NOT EXISTS contact_segments (
+			email VARCHAR(255) NOT NULL,
+			segment_id VARCHAR(32) NOT NULL,
+			version INTEGER NOT NULL,
+			matched_at TIMESTAMP WITH TIME ZONE NOT NULL,
+			computed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (email, segment_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_segments_segment_id ON contact_segments(segment_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_segments_version ON contact_segments(segment_id, version)`,
 	}
 
 	// Run all table creation queries
