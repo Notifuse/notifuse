@@ -246,6 +246,18 @@ func (dm *DatabaseManager) Cleanup() error {
 	}
 
 	if dm.systemDB != nil && dm.dbName != "" {
+		// Terminate all connections to the test database before dropping it
+		terminateQuery := fmt.Sprintf(`
+			SELECT pg_terminate_backend(pid) 
+			FROM pg_stat_activity 
+			WHERE datname = '%s' 
+			AND pid <> pg_backend_pid()`, dm.dbName)
+
+		dm.systemDB.Exec(terminateQuery)
+
+		// Small delay for connections to close
+		time.Sleep(100 * time.Millisecond)
+
 		// Drop the test database
 		_, err := dm.systemDB.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", dm.dbName))
 		if err != nil {
