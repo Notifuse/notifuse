@@ -22,7 +22,7 @@ func TestDefaultConfig(t *testing.T) {
 	assert.Equal(t, true, config.EnableCircuitBreaker)
 	assert.Equal(t, 5, config.CircuitBreakerThreshold)
 	assert.Equal(t, 1*time.Minute, config.CircuitBreakerCooldown)
-	assert.Equal(t, 600, config.DefaultRateLimit)
+	assert.Equal(t, 25, config.DefaultRateLimit)
 	assert.Equal(t, 3, config.MaxRetries)
 	assert.Equal(t, 30*time.Second, config.RetryInterval)
 }

@@ -39,7 +39,7 @@ func DefaultConfig() *Config {
 		EnableCircuitBreaker:    true,
 		CircuitBreakerThreshold: 5,
 		CircuitBreakerCooldown:  1 * time.Minute,
-		DefaultRateLimit:        600, // 10 per second
+		DefaultRateLimit:        25, // 25 per minute
 		MaxRetries:              3,
 		RetryInterval:           30 * time.Second,
 	}

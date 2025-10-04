@@ -165,7 +165,8 @@ func (s *messageSender) enforceRateLimit(ctx context.Context, broadcastRateLimit
 	permitsPerSecond := float64(effectiveRateLimit) / 60.0
 
 	// Calculate the ideal time between messages
-	timeBetweenMessages := time.Second / time.Duration(permitsPerSecond)
+	// Convert to nanoseconds first to avoid truncation for rates < 60/min
+	timeBetweenMessages := time.Duration(float64(time.Second) / permitsPerSecond)
 
 	s.sendMutex.Lock()
 	defer s.sendMutex.Unlock()
