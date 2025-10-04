@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [7.1] - 2025-10-04
+
+- Fix panic when broadcast rate limit is set to less than 60 emails per minute
+- Improve rate limiting calculation to properly handle low rate limits
+
 ## [7.0] - 2025-10-02
 
 - New feature: contact events timeline (messages, webhook events, profile mutations etc...). It's the backbone of the upcoming automations feature.
