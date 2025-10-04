@@ -1526,7 +1526,8 @@ func (r *contactRepository) GetBatchForSegment(ctx context.Context, workspaceID 
 		"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 		"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 		"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
-		"custom_json", "unsubscribed", "bounced", "created_at", "updated_at",
+		"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
+		"created_at", "updated_at", "db_created_at", "db_updated_at",
 	).
 		From("contacts").
 		OrderBy("email").
