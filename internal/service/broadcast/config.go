@@ -44,3 +44,21 @@ func DefaultConfig() *Config {
 		RetryInterval:           30 * time.Second,
 	}
 }
+
+// TestConfig returns a configuration optimized for fast unit tests
+// with rate limiting disabled for speed
+func TestConfig() *Config {
+	return &Config{
+		MaxParallelism:          10,
+		MaxProcessTime:          50 * time.Second,
+		FetchBatchSize:          50,
+		ProcessBatchSize:        25,
+		ProgressLogInterval:     5 * time.Second,
+		EnableCircuitBreaker:    true,
+		CircuitBreakerThreshold: 5,
+		CircuitBreakerCooldown:  1 * time.Minute,
+		DefaultRateLimit:        6000, // 6000 per minute = 100/sec (effectively no rate limiting for tests)
+		MaxRetries:              3,
+		RetryInterval:           30 * time.Second,
+	}
+}

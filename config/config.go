@@ -19,6 +19,7 @@ type Config struct {
 	Tracing         TracingConfig
 	SMTP            SMTPConfig
 	Demo            DemoConfig
+	Broadcast       BroadcastConfig
 	Telemetry       bool
 	RootEmail       string
 	Environment     string
@@ -112,6 +113,10 @@ type SMTPConfig struct {
 	Password  string
 	FromEmail string
 	FromName  string
+}
+
+type BroadcastConfig struct {
+	DefaultRateLimit int // Default rate limit per minute for broadcasts (0 means use service default)
 }
 
 // LoadOptions contains options for loading configuration

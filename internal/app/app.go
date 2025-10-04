@@ -515,6 +515,10 @@ func (a *App) InitServices() error {
 
 	// Create broadcast factory with refactored components
 	broadcastConfig := broadcast.DefaultConfig()
+	// Override default rate limit if set in config
+	if a.config.Broadcast.DefaultRateLimit > 0 {
+		broadcastConfig.DefaultRateLimit = a.config.Broadcast.DefaultRateLimit
+	}
 	broadcastFactory := broadcast.NewFactory(
 		a.broadcastRepo,
 		a.messageHistoryRepo,
