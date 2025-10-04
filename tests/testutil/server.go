@@ -87,6 +87,9 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 			FromEmail: "test@example.com",
 			FromName:  "Test Notifuse",
 		},
+		Broadcast: config.BroadcastConfig{
+			DefaultRateLimit: 6000, // 6000 per minute = 100 per second (no rate limiting for tests)
+		},
 		Tracing: config.TracingConfig{
 			Enabled: false,
 		},

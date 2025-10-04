@@ -184,7 +184,7 @@ func TestSendToRecipientSuccess(t *testing.T) {
 		mockTemplateRepo,
 		mockEmailService,
 		mockLogger,
-		DefaultConfig(),
+		TestConfig(),
 		"",
 	)
 
@@ -257,7 +257,7 @@ func TestSendToRecipientCompileFailure(t *testing.T) {
 		mockTemplateRepo,
 		mockEmailService,
 		mockLogger,
-		DefaultConfig(),
+		TestConfig(),
 		"",
 	)
 
@@ -508,7 +508,7 @@ func TestSendBatch(t *testing.T) {
 		mockTemplateRepo,
 		mockEmailService,
 		mockLogger,
-		DefaultConfig(),
+		TestConfig(),
 		"",
 	)
 
@@ -564,9 +564,10 @@ func TestSendBatch_EmptyRecipients(t *testing.T) {
 	emailProvider := &domain.EmailProvider{
 		Kind:    domain.EmailProviderKindSMTP,
 		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 	}
 	// Create message sender
-	config := DefaultConfig()
+	config := TestConfig()
 	sender := NewMessageSender(
 		mockBroadcastRepository,
 		mockMessageHistoryRepo,
@@ -627,7 +628,7 @@ func TestSendBatch_CircuitBreakerOpen(t *testing.T) {
 	}
 
 	// Create message sender with circuit breaker enabled
-	config := DefaultConfig()
+	config := TestConfig()
 	config.EnableCircuitBreaker = true
 	config.CircuitBreakerThreshold = 1
 	sender := NewMessageSender(
@@ -771,7 +772,7 @@ func TestSendBatch_WithFailure(t *testing.T) {
 		mockTemplateRepo,
 		mockEmailService,
 		mockLogger,
-		DefaultConfig(),
+		TestConfig(),
 		"",
 	)
 
@@ -884,7 +885,7 @@ func TestSendBatch_RecordMessageFails(t *testing.T) {
 		mockTemplateRepo,
 		mockEmailService,
 		mockLogger,
-		DefaultConfig(),
+		TestConfig(),
 		"",
 	)
 
@@ -933,7 +934,7 @@ func TestSendToRecipientWithLiquidSubject(t *testing.T) {
 		mockTemplateRepo,
 		mockEmailService,
 		mockLogger,
-		DefaultConfig(),
+		TestConfig(),
 		"https://api.test.com",
 	)
 
@@ -1145,7 +1146,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			mockTemplateRepo,
 			mockEmailService,
 			mockLogger,
-			DefaultConfig(),
+			TestConfig(),
 			"",
 		)
 
@@ -1159,6 +1160,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 		emailProvider := &domain.EmailProvider{
 			Kind:    domain.EmailProviderKindSMTP,
 			Senders: []domain.EmailSender{emailSender},
+			SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 		}
 
 		template := &domain.Template{
@@ -1203,7 +1205,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			mockTemplateRepo,
 			mockEmailService,
 			mockLogger,
-			DefaultConfig(),
+			TestConfig(),
 			"",
 		)
 
@@ -1264,7 +1266,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			mockTemplateRepo,
 			mockEmailService,
 			mockLogger,
-			DefaultConfig(),
+			TestConfig(),
 			"",
 		)
 
@@ -1282,6 +1284,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 		emailProvider := &domain.EmailProvider{
 			Kind:    domain.EmailProviderKindSMTP,
 			Senders: []domain.EmailSender{emailSender},
+			SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 		}
 
 		// Template with invalid Liquid syntax in subject
@@ -1363,6 +1366,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 		emailProvider := &domain.EmailProvider{
 			Kind:    domain.EmailProviderKindSMTP,
 			Senders: []domain.EmailSender{emailSender},
+			SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 		}
 
 		template := &domain.Template{
@@ -1429,7 +1433,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			mockTemplateRepo,
 			mockEmailService,
 			mockLogger,
-			DefaultConfig(),
+			TestConfig(),
 			"",
 		)
 
@@ -1459,7 +1463,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			mockTemplateRepo,
 			mockEmailService,
 			mockLogger,
-			DefaultConfig(),
+			TestConfig(),
 			"",
 		)
 
@@ -1517,7 +1521,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			mockTemplateRepo,
 			mockEmailService,
 			mockLogger,
-			DefaultConfig(),
+			TestConfig(),
 			"",
 		)
 
@@ -1568,6 +1572,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 		emailProvider := &domain.EmailProvider{
 			Kind:    domain.EmailProviderKindSMTP,
 			Senders: []domain.EmailSender{emailSender},
+			SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 		}
 
 		mockBroadcastRepository.EXPECT().
@@ -1597,7 +1602,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			mockTemplateRepo,
 			mockEmailService,
 			mockLogger,
-			DefaultConfig(),
+			TestConfig(),
 			"",
 		)
 
@@ -1639,6 +1644,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 		emailProvider := &domain.EmailProvider{
 			Kind:    domain.EmailProviderKindSMTP,
 			Senders: []domain.EmailSender{emailSender},
+			SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 		}
 
 		mockBroadcastRepository.EXPECT().
@@ -1661,7 +1667,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 	})
 
 	t.Run("CircuitBreakerRecordsFailureOnHighFailureRate", func(t *testing.T) {
-		config := DefaultConfig()
+		config := TestConfig()
 		config.EnableCircuitBreaker = true
 		config.CircuitBreakerThreshold = 5 // Set higher than number of recipients to allow all attempts
 
@@ -1711,6 +1717,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 		emailProvider := &domain.EmailProvider{
 			Kind:    domain.EmailProviderKindSMTP,
 			Senders: []domain.EmailSender{emailSender},
+			SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 		}
 
 		mockBroadcastRepository.EXPECT().
@@ -1891,7 +1898,7 @@ func TestSendBatch_TemplateDataBuildFailure(t *testing.T) {
 		mockTemplateRepo,
 		mockEmailService,
 		mockLogger,
-		DefaultConfig(),
+		TestConfig(),
 		"",
 	)
 
@@ -1934,6 +1941,7 @@ func TestSendBatch_TemplateDataBuildFailure(t *testing.T) {
 	emailProvider := &domain.EmailProvider{
 		Kind:    domain.EmailProviderKindSMTP,
 		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 	}
 
 	// Mock expectations for successful processing
@@ -1983,7 +1991,7 @@ func TestSendBatch_EmptyEmailContact(t *testing.T) {
 		mockTemplateRepo,
 		mockEmailService,
 		mockLogger,
-		DefaultConfig(),
+		TestConfig(),
 		"",
 	)
 
@@ -2024,6 +2032,7 @@ func TestSendBatch_EmptyEmailContact(t *testing.T) {
 	emailProvider := &domain.EmailProvider{
 		Kind:    domain.EmailProviderKindSMTP,
 		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 	}
 
 	mockBroadcastRepository.EXPECT().
@@ -2076,7 +2085,7 @@ func TestSendBatch_NoVariations(t *testing.T) {
 		mockTemplateRepo,
 		mockEmailService,
 		mockLogger,
-		DefaultConfig(),
+		TestConfig(),
 		"",
 	)
 
@@ -2141,7 +2150,7 @@ func TestSendToRecipient_CompilationFailsWithNilHTML(t *testing.T) {
 		mockTemplateRepo,
 		mockEmailService,
 		mockLogger,
-		DefaultConfig(),
+		TestConfig(),
 		"",
 	)
 
@@ -2159,6 +2168,7 @@ func TestSendToRecipient_CompilationFailsWithNilHTML(t *testing.T) {
 	emailProvider := &domain.EmailProvider{
 		Kind:    domain.EmailProviderKindSMTP,
 		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 	}
 
 	// Template with minimal content that might cause HTML compilation to return nil
@@ -2199,7 +2209,7 @@ func TestSendToRecipient_CircuitBreakerSuccessRecording(t *testing.T) {
 	mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
 	mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
 
-	config := DefaultConfig()
+	config := TestConfig()
 	config.EnableCircuitBreaker = true
 
 	sender := NewMessageSender(
@@ -2231,6 +2241,7 @@ func TestSendToRecipient_CircuitBreakerSuccessRecording(t *testing.T) {
 	emailProvider := &domain.EmailProvider{
 		Kind:    domain.EmailProviderKindSMTP,
 		Senders: []domain.EmailSender{emailSender},
+		SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 	}
 
 	template := &domain.Template{
@@ -2415,6 +2426,7 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 		emailProvider := &domain.EmailProvider{
 			Kind:    domain.EmailProviderKindSMTP,
 			Senders: []domain.EmailSender{emailSender},
+			SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 		}
 
 		template := &domain.Template{
