@@ -1,11 +1,11 @@
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { Table, Tag, Button, Space, Tooltip, message, Dropdown, Modal, Badge } from 'antd'
+import { Table, Tag, Button, Space, Tooltip, message, Dropdown } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { MenuProps } from 'antd'
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
 import { contactsApi, type Contact, type ListContactsRequest } from '../services/api/contacts'
 import { listsApi } from '../services/api/list'
-import { listSegments, deleteSegment, type Segment } from '../services/api/segment'
+import { listSegments } from '../services/api/segment'
 import React from 'react'
 import { workspaceContactsRoute } from '../router'
 import { Filter } from '../components/filters/Filter'
@@ -27,9 +27,9 @@ import {
 } from '@fortawesome/free-solid-svg-icons'
 import { ContactDetailsDrawer } from '../components/contacts/ContactDetailsDrawer'
 import { DeleteContactModal } from '../components/contacts/DeleteContactModal'
+import { SegmentsFilter } from '../components/contacts/SegmentsFilter'
 import dayjs from '../lib/dayjs'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
-import ButtonUpsertSegment from '../components/segment/button_upsert'
 import numbro from 'numbro'
 
 const STORAGE_KEY = 'contact_columns_visibility'
@@ -112,22 +112,6 @@ export function ContactsPage() {
   const { data: totalContactsData } = useQuery({
     queryKey: ['total-contacts', workspaceId],
     queryFn: () => contactsApi.getTotalContacts({ workspace_id: workspaceId })
-  })
-
-  // Delete segment mutation
-  const deleteSegmentMutation = useMutation({
-    mutationFn: (segmentId: string) =>
-      deleteSegment({
-        workspace_id: workspaceId,
-        id: segmentId
-      }),
-    onSuccess: () => {
-      message.success('Segment deleted successfully')
-      queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
-    },
-    onError: (error: any) => {
-      message.error(error?.message || 'Failed to delete segment')
-    }
   })
 
   // Delete contact mutation
@@ -931,125 +915,27 @@ export function ContactsPage() {
       </div>
 
       {/* Segments */}
-      <div className="flex items-center gap-2 mb-6">
-        <div className="text-sm font-medium">Segments:</div>
-        <Space wrap>
-          {segmentsData?.segments?.map((segment: Segment) => {
-            const isSelected = search.segments?.includes(segment.id)
+      <SegmentsFilter
+        workspaceId={workspaceId}
+        segments={segmentsData?.segments || []}
+        selectedSegmentIds={search.segments}
+        totalContacts={totalContactsData?.total_contacts}
+        onSegmentToggle={(segmentId: string) => {
+          const currentSegments = search.segments || []
+          const newSegments = currentSegments.includes(segmentId)
+            ? currentSegments.filter((id) => id !== segmentId)
+            : [...currentSegments, segmentId]
 
-            const handleToggleSegment = () => {
-              const currentSegments = search.segments || []
-              const newSegments = currentSegments.includes(segment.id)
-                ? currentSegments.filter((id) => id !== segment.id)
-                : [...currentSegments, segment.id]
-
-              navigate({
-                to: workspaceContactsRoute.to,
-                params: { workspaceId },
-                search: {
-                  ...search,
-                  segments: newSegments.length > 0 ? newSegments : undefined
-                }
-              })
+          navigate({
+            to: workspaceContactsRoute.to,
+            params: { workspaceId },
+            search: {
+              ...search,
+              segments: newSegments.length > 0 ? newSegments : undefined
             }
-
-            // Get status badge color and tooltip
-            const getStatusBadge = () => {
-              switch (segment.status) {
-                case 'active':
-                  return { status: 'success', text: 'Active - Ready to use' }
-                case 'building':
-                  return { status: 'processing', text: 'Building - Processing contacts' }
-                case 'deleted':
-                  return { status: 'error', text: 'Deleted - Will be removed' }
-                default:
-                  return { status: 'default', text: 'Unknown status' }
-              }
-            }
-
-            const statusBadge = getStatusBadge()
-
-            return (
-              <Dropdown.Button
-                key={segment.id}
-                size="small"
-                onClick={handleToggleSegment}
-                buttonsRender={([leftButton, rightButton]) => [
-                  React.cloneElement(leftButton as React.ReactElement, {
-                    color: isSelected ? 'primary' : 'default',
-                    variant: 'outlined'
-                  }),
-                  React.cloneElement(rightButton as React.ReactElement, {
-                    color: isSelected ? 'primary' : 'default',
-                    variant: 'outlined'
-                  })
-                ]}
-                menu={{
-                  items: [
-                    {
-                      key: 'update',
-                      label: (
-                        <ButtonUpsertSegment
-                          segment={segment}
-                          totalContacts={totalContactsData?.total_contacts}
-                          onSuccess={() => {
-                            queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
-                          }}
-                        >
-                          <span>Update</span>
-                        </ButtonUpsertSegment>
-                      )
-                    },
-                    {
-                      key: 'delete',
-                      label: <span style={{ color: '#ff4d4f' }}>Delete</span>,
-                      onClick: () => {
-                        Modal.confirm({
-                          title: 'Delete segment',
-                          content: `Are you sure you want to delete "${segment.name}"?`,
-                          okText: 'Yes',
-                          cancelText: 'No',
-                          okButtonProps: { danger: true },
-                          onOk: () => {
-                            deleteSegmentMutation.mutate(segment.id)
-                          }
-                        })
-                      }
-                    }
-                  ]
-                }}
-              >
-                <Space size="small">
-                  <Tooltip title={statusBadge.text}>
-                    <Badge status={statusBadge.status as any} />
-                  </Tooltip>
-                  <Tag bordered={false} color={segment.color} style={{ margin: 0 }}>
-                    {segment.name}
-                    {segment.users_count !== undefined && (
-                      <span style={{ marginLeft: '4px', opacity: 0.8 }}>
-                        (
-                        {numbro(segment.users_count).format({
-                          thousandSeparated: true,
-                          mantissa: 0
-                        })}
-                        )
-                      </span>
-                    )}
-                  </Tag>
-                </Space>
-              </Dropdown.Button>
-            )
-          })}
-          <ButtonUpsertSegment
-            btnType="primary"
-            btnSize="small"
-            totalContacts={totalContactsData?.total_contacts}
-            onSuccess={() => {
-              queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
-            }}
-          />
-        </Space>
-      </div>
+          })
+        }}
+      />
 
       {/* Contacts Table */}
       <Table

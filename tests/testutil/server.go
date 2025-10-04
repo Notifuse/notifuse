@@ -156,6 +156,12 @@ func (sm *ServerManager) Stop() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	// First, shutdown the app (closes database connections, etc.)
+	if err := sm.app.Shutdown(ctx); err != nil {
+		sm.app.GetLogger().WithField("error", err.Error()).Warn("Failed to shutdown app gracefully")
+	}
+
+	// Then shutdown the HTTP server
 	if err := sm.server.Shutdown(ctx); err != nil {
 		return fmt.Errorf("failed to shutdown server: %w", err)
 	}
