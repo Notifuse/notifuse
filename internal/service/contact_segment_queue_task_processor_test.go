@@ -110,7 +110,8 @@ func TestContactSegmentQueueTaskProcessor_Process_Success(t *testing.T) {
 	// For simplicity, we'll expect it to fail gracefully when getting connection
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), workspaceID).
-		Return(nil, errors.New("connection error"))
+		Return(nil, errors.New("connection error")).
+		AnyTimes()
 
 	// Expect logging for the initial info, error in ProcessQueue, and final info
 	mockLogger.EXPECT().
@@ -123,12 +124,22 @@ func TestContactSegmentQueueTaskProcessor_Process_Success(t *testing.T) {
 		AnyTimes()
 
 	mockLogger.EXPECT().
-		Error(gomock.Any())
+		Error(gomock.Any()).
+		AnyTimes()
 
-	// GetQueueSize to be called - return 0 to stop the loop
-	mockQueueRepo.EXPECT().
-		GetQueueSize(gomock.Any(), workspaceID).
-		Return(0, nil)
+	mockLogger.EXPECT().
+		Warn(gomock.Any()).
+		AnyTimes()
+
+	// GetQueueSize to be called - return error on second call to stop the loop after wait
+	gomock.InOrder(
+		mockQueueRepo.EXPECT().
+			GetQueueSize(gomock.Any(), workspaceID).
+			Return(0, nil), // First call: queue is empty
+		mockQueueRepo.EXPECT().
+			GetQueueSize(gomock.Any(), workspaceID).
+			Return(0, errors.New("stop processing")), // Second call after wait: error to stop
+	)
 
 	// Execute
 	completed, err := processor.Process(ctx, task, timeoutAt)

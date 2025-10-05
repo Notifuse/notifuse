@@ -6,15 +6,19 @@ import {
   faClock,
   faMousePointer,
   faCircleExclamation,
-  faTriangleExclamation
+  faTriangleExclamation,
+  faArrowRightToBracket,
+  faArrowRightFromBracket
 } from '@fortawesome/free-solid-svg-icons'
 import { faUser, faFolderOpen, faPaperPlane, faEye } from '@fortawesome/free-regular-svg-icons'
 import {
   ContactTimelineEntry,
   ContactListEntityData,
-  MessageHistoryEntityData
+  MessageHistoryEntityData,
+  ContactSegmentEntityData
 } from '../../services/api/contact_timeline'
 import type { Workspace } from '../../services/api/types'
+import type { Segment } from '../../services/api/segment'
 import dayjs from '../../lib/dayjs'
 import TemplatePreviewDrawer from '../templates/TemplatePreviewDrawer'
 
@@ -25,6 +29,7 @@ interface ContactTimelineProps {
   loading?: boolean
   timezone?: string
   workspace?: Workspace
+  segments?: Segment[]
   onLoadMore?: () => void
   hasMore?: boolean
   isLoadingMore?: boolean
@@ -35,6 +40,7 @@ export function ContactTimeline({
   loading = false,
   timezone = 'UTC',
   workspace,
+  segments = [],
   onLoadMore,
   hasMore = false,
   isLoadingMore = false
@@ -82,6 +88,14 @@ export function ContactTimeline({
         return faUser
       case 'contact_list':
         return faFolderOpen
+      case 'contact_segment':
+        // Use kind to determine join vs leave
+        if (entry.kind === 'join_segment') {
+          return faArrowRightToBracket
+        } else if (entry.kind === 'leave_segment') {
+          return faArrowRightFromBracket
+        }
+        return faClock
       case 'message_history':
         if (entry.changes.delivered_at) {
           return faCheck
@@ -121,9 +135,11 @@ export function ContactTimeline({
       <div className="flex items-start gap-4 mb-2">
         {titleContent}
         <Tooltip title={`${dayjs(entry.created_at).format('LLLL')} in ${timezone}`}>
-          <Text type="secondary" className="text-xs cursor-help">
-            {dayjs(entry.created_at).fromNow()}
-          </Text>
+          <span>
+            <Text type="secondary" className="text-xs cursor-help">
+              {dayjs(entry.created_at).fromNow()}
+            </Text>
+          </span>
         </Tooltip>
       </div>
     )
@@ -146,7 +162,9 @@ export function ContactTimeline({
     const listDisplay = listName ? (
       <>
         <Tooltip title={'ID: ' + listId}>
-          <Text strong>{listName}</Text>{' '}
+          <span>
+            <Text strong>{listName}</Text>{' '}
+          </span>
         </Tooltip>
       </>
     ) : (
@@ -246,7 +264,9 @@ export function ContactTimeline({
                     } else {
                       displayValue = (
                         <Tooltip title={JSON.stringify(value, null, 2)}>
-                          <Tag className="cursor-help">JSON Object</Tag>
+                          <span>
+                            <Tag className="cursor-help">JSON Object</Tag>
+                          </span>
                         </Tooltip>
                       )
                     }
@@ -260,7 +280,9 @@ export function ContactTimeline({
                     // Likely a date string
                     displayValue = (
                       <Tooltip title={`${dayjs(value).format('LLLL')} in ${timezone}`}>
-                        <Text>{dayjs(value).fromNow()}</Text>
+                        <span>
+                          <Text>{dayjs(value).fromNow()}</Text>
+                        </span>
                       </Tooltip>
                     )
                   } else {
@@ -296,6 +318,49 @@ export function ContactTimeline({
 
       case 'contact_list':
         return <div>{renderContactListMessage(entry)}</div>
+
+      case 'contact_segment':
+        const segmentId = entry.entity_id || 'Unknown Segment'
+
+        // Look up segment from segments prop
+        const segment = segments.find((s) => s.id === segmentId)
+
+        const segmentDisplay = segment ? (
+          <>
+            <Tooltip title={'ID: ' + segmentId}>
+              <span>
+                <Tag bordered={false} color={segment.color}>
+                  {segment.name}
+                </Tag>
+              </span>
+            </Tooltip>
+          </>
+        ) : (
+          <Tag bordered={false} color="blue">
+            {segmentId}
+          </Tag>
+        )
+
+        if (entry.kind === 'join_segment') {
+          return (
+            <div>
+              {renderTitleWithDate(entry, <Text strong>Segment</Text>)}
+              <div className="mb-2">
+                <Text>Joined segment {segmentDisplay}</Text>
+              </div>
+            </div>
+          )
+        } else if (entry.kind === 'leave_segment') {
+          return (
+            <div>
+              {renderTitleWithDate(entry, <Text strong>Segment</Text>)}
+              <div className="mb-2">
+                <Text>Left segment {segmentDisplay}</Text>
+              </div>
+            </div>
+          )
+        }
+        return null
 
       case 'message_history':
         const messageData = entry.entity_data as MessageHistoryEntityData | undefined
@@ -340,9 +405,11 @@ export function ContactTimeline({
                       Template:{' '}
                       {messageData.template_name ? (
                         <Tooltip title={`ID: ${messageData.template_id}`}>
-                          <Text strong className="text-xs cursor-help">
-                            {messageData.template_name}
-                          </Text>
+                          <span>
+                            <Text strong className="text-xs cursor-help">
+                              {messageData.template_name}
+                            </Text>
+                          </span>
                         </Tooltip>
                       ) : (
                         <Text code className="text-xs">
@@ -353,28 +420,30 @@ export function ContactTimeline({
                     </Text>
                     {workspace && messageData.template_email && (
                       <Tooltip title="Preview email">
-                        <TemplatePreviewDrawer
-                          record={
-                            {
-                              id: messageData.template_id,
-                              name: messageData.template_name || messageData.template_id,
-                              version: messageData.template_version,
-                              category: messageData.template_category || 'transactional',
-                              channel: messageData.channel,
-                              email: messageData.template_email,
-                              test_data: messageData.message_data || {}
-                            } as any
-                          }
-                          workspace={workspace}
-                          templateData={messageData.message_data}
-                        >
-                          <Button
-                            size="small"
-                            type="text"
-                            icon={<FontAwesomeIcon icon={faEye} />}
-                            className="p-0 h-auto text-xs"
-                          />
-                        </TemplatePreviewDrawer>
+                        <span>
+                          <TemplatePreviewDrawer
+                            record={
+                              {
+                                id: messageData.template_id,
+                                name: messageData.template_name || messageData.template_id,
+                                version: messageData.template_version,
+                                category: messageData.template_category || 'transactional',
+                                channel: messageData.channel,
+                                email: messageData.template_email,
+                                test_data: messageData.message_data || {}
+                              } as any
+                            }
+                            workspace={workspace}
+                            templateData={messageData.message_data}
+                          >
+                            <Button
+                              size="small"
+                              type="text"
+                              icon={<FontAwesomeIcon icon={faEye} />}
+                              className="p-0 h-auto text-xs"
+                            />
+                          </TemplatePreviewDrawer>
+                        </span>
                       </Tooltip>
                     )}
                   </div>
@@ -422,9 +491,11 @@ export function ContactTimeline({
                     Template:{' '}
                     {webhookEventData?.template_name ? (
                       <Tooltip title={`ID: ${webhookTemplateId}`}>
-                        <Text strong className="text-xs cursor-help">
-                          {webhookEventData.template_name}
-                        </Text>
+                        <span>
+                          <Text strong className="text-xs cursor-help">
+                            {webhookEventData.template_name}
+                          </Text>
+                        </span>
                       </Tooltip>
                     ) : (
                       <Text code className="text-xs">

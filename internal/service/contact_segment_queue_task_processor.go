@@ -47,7 +47,6 @@ func (p *ContactSegmentQueueTaskProcessor) Process(ctx context.Context, task *do
 	// Keep track of statistics
 	totalProcessed := 0
 	batchCount := 0
-	startTime := time.Now()
 
 	// Process batches until we're close to the timeout
 	// Leave 5 seconds buffer before timeout to ensure cleanup
@@ -101,29 +100,23 @@ func (p *ContactSegmentQueueTaskProcessor) Process(ctx context.Context, task *do
 		batchCount++
 		totalProcessed += processedCount
 
-		// If queue is empty, we're done
+		// If queue is empty, check if we have time to wait and check again
 		if queueSize == 0 {
-			p.logger.WithFields(map[string]interface{}{
-				"task_id":         task.ID,
-				"workspace_id":    task.WorkspaceID,
-				"batch_count":     batchCount,
-				"total_processed": totalProcessed,
-			}).Info("Queue is empty, stopping processing")
-			break
+			// Check if we have enough time to wait 10 seconds + buffer
+			waitDuration := 10 * time.Second
+			if time.Now().Add(waitDuration + bufferDuration).After(timeoutAt) {
+				// Not enough time to wait, stop processing
+				break
+			}
+
+			// We have time, wait 10 seconds and check again
+			time.Sleep(waitDuration)
+			continue
 		}
 
 		// Small delay between batches to avoid hammering the database
 		time.Sleep(100 * time.Millisecond)
 	}
-
-	elapsed := time.Since(startTime)
-	p.logger.WithFields(map[string]interface{}{
-		"task_id":         task.ID,
-		"workspace_id":    task.WorkspaceID,
-		"batch_count":     batchCount,
-		"total_processed": totalProcessed,
-		"elapsed_seconds": elapsed.Seconds(),
-	}).Info("Queue processing session completed")
 
 	// This is a permanent recurring task - return false with progress to keep it as "pending"
 	// This allows it to be picked up again on the next cron run

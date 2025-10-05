@@ -805,6 +805,7 @@ export function ContactsPage() {
               workspace={currentWorkspace}
               contactEmail={record.email}
               lists={listsData?.lists || []}
+              segments={segmentsData?.segments || []}
               key={record.email}
               onContactUpdate={(updatedContact) => {
                 // Update the contact in the allContacts array

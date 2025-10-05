@@ -20,6 +20,7 @@ import {
 } from 'antd'
 import { Contact } from '../../services/api/contacts'
 import { List, Workspace } from '../../services/api/types'
+import { Segment } from '../../services/api/segment'
 import dayjs from '../../lib/dayjs'
 import numbro from 'numbro'
 import { ContactUpsertDrawer } from './ContactUpsertDrawer'
@@ -44,6 +45,7 @@ interface ContactDetailsDrawerProps {
   visible?: boolean
   onClose?: () => void
   lists?: List[]
+  segments?: Segment[]
   onContactUpdate?: (contact: Contact) => void
   buttonProps: {
     type?: 'primary' | 'default' | 'dashed' | 'link' | 'text'
@@ -85,6 +87,7 @@ export function ContactDetailsDrawer({
   visible: externalVisible,
   onClose: externalOnClose,
   lists = [],
+  segments = [],
   onContactUpdate,
   buttonProps
 }: ContactDetailsDrawerProps) {
@@ -1000,6 +1003,7 @@ export function ContactDetailsDrawer({
                           loading={loadingTimeline}
                           timezone={contact?.timezone || workspace.settings.timezone}
                           workspace={workspace}
+                          segments={segments}
                           onLoadMore={handleLoadMoreTimeline}
                           hasMore={!!timelineData?.next_cursor}
                           isLoadingMore={isLoadingMoreTimeline}
