@@ -12,7 +12,8 @@ import {
   Switch,
   InputNumber,
   Popconfirm,
-  Alert
+  Alert,
+  Tag
 } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -69,6 +70,7 @@ interface UpsertBroadcastDrawerProps {
   buttonContent?: React.ReactNode
   onClose?: () => void
   lists?: { id: string; name: string }[]
+  segments?: { id: string; name: string; color: string; users_count?: number }[]
 }
 
 export function UpsertBroadcastDrawer({
@@ -77,7 +79,8 @@ export function UpsertBroadcastDrawer({
   buttonProps = {},
   buttonContent,
   onClose,
-  lists = []
+  lists = [],
+  segments = []
 }: UpsertBroadcastDrawerProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [form] = Form.useForm()
@@ -334,6 +337,53 @@ export function UpsertBroadcastDrawer({
                     />
                   </Form.Item>
 
+                  <Form.Item
+                    name={['audience', 'segments']}
+                    label="Segments"
+                    extra="Optionally filter contacts by segments within the selected lists"
+                  >
+                    <Select
+                      mode="multiple"
+                      placeholder="Select segments (optional)"
+                      options={segments.map((segment) => ({
+                        value: segment.id,
+                        label: segment.name
+                      }))}
+                      optionRender={(option) => {
+                        const segment = segments.find((s) => s.id === option.value)
+                        if (!segment) return option.label
+
+                        return (
+                          <Tag color={segment.color} bordered={false}>
+                            {segment.name}
+                            {segment.users_count !== undefined && (
+                              <span className="ml-1">({segment.users_count.toLocaleString()})</span>
+                            )}
+                          </Tag>
+                        )
+                      }}
+                      tagRender={(props) => {
+                        const segment = segments.find((s) => s.id === props.value)
+                        if (!segment) return <Tag {...props}>{props.label}</Tag>
+
+                        return (
+                          <Tag
+                            color={segment.color}
+                            bordered={false}
+                            closable={props.closable}
+                            onClose={props.onClose}
+                            style={{ marginRight: 3 }}
+                          >
+                            {segment.name}
+                            {segment.users_count !== undefined && (
+                              <span className="ml-1">({segment.users_count.toLocaleString()})</span>
+                            )}
+                          </Tag>
+                        )
+                      }}
+                    />
+                  </Form.Item>
+
                   <div className="text-xs mt-12 mb-4 font-bold border-b border-solid pb-2 border-gray-400 text-gray-900">
                     Advanced Options
                   </div>
@@ -383,31 +433,6 @@ export function UpsertBroadcastDrawer({
                       </div>
                     </div>
                   )}
-
-                  <div className="text-xs mt-12 mb-4 font-bold border-b border-solid border-gray-400 pb-2 text-gray-900">
-                    URL Tracking Parameters
-                  </div>
-                  <Row gutter={24}>
-                    <Col span={8}>
-                      <Form.Item name={['utm_parameters', 'source']} label="utm_source">
-                        <Input placeholder="Your website or company name" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                      <Form.Item
-                        name={['utm_parameters', 'medium']}
-                        label="utm_medium"
-                        initialValue="email"
-                      >
-                        <Input placeholder="email" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                      <Form.Item name={['utm_parameters', 'campaign']} label="utm_campaign">
-                        <Input />
-                      </Form.Item>
-                    </Col>
-                  </Row>
                 </Col>
 
                 {/* Right Column */}
@@ -590,6 +615,30 @@ export function UpsertBroadcastDrawer({
                       )
                     }}
                   </Form.Item>
+                  <div className="text-xs mt-12 mb-4 font-bold border-b border-solid border-gray-400 pb-2 text-gray-900">
+                    URL Tracking Parameters
+                  </div>
+                  <Row gutter={24}>
+                    <Col span={8}>
+                      <Form.Item name={['utm_parameters', 'source']} label="utm_source">
+                        <Input placeholder="Your website or company name" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item
+                        name={['utm_parameters', 'medium']}
+                        label="utm_medium"
+                        initialValue="email"
+                      >
+                        <Input placeholder="email" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item name={['utm_parameters', 'campaign']} label="utm_campaign">
+                        <Input />
+                      </Form.Item>
+                    </Col>
+                  </Row>
                 </Col>
               </Row>
             </div>

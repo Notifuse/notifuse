@@ -57,7 +57,7 @@ const ButtonUpsertSegment = (props: {
           icon={!props.segment ? <FontAwesomeIcon icon={faPlus} /> : undefined}
           onClick={() => setDrawserVisible(!drawserVisible)}
         >
-          {props.segment ? 'Edit segment' : 'Create'}
+          {props.segment ? 'Edit segment' : 'Segment'}
         </Button>
       )}
       {drawserVisible && (

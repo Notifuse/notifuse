@@ -331,8 +331,9 @@ export const LeafActionForm = (props: LeafFormProps) => {
                   { value: 'anytime', label: 'anytime' },
                   { value: 'in_date_range', label: 'in date range' },
                   { value: 'before_date', label: 'before date' },
-                  { value: 'after_date', label: 'after date' },
-                  { value: 'in_the_last_days', label: 'in the last' }
+                  { value: 'after_date', label: 'after date' }
+                  // dont implement this for now
+                  // { value: 'in_the_last_days', label: 'in the last' }
                 ]}
               />
             </Form.Item>

@@ -1199,12 +1199,33 @@ func (r *contactRepository) GetContactsForBroadcast(
 		}
 	}
 
-	// Handle segments filtering (if implemented)
+	// Handle segments filtering
 	if len(audience.Segments) > 0 {
-		// This would involve joining with segments tables or applying segment conditions
-		// Implementation depends on how segments are structured in the database
-		// For now, we'll just return an error
-		return nil, fmt.Errorf("segments filtering not implemented")
+		// If we already have list filtering, we need to add segments as an additional filter
+		// This means contacts must be in BOTH the specified lists AND segments
+		if len(audience.Lists) > 0 {
+			// Join with contact_segments table in addition to the existing list joins
+			query = query.Join("contact_segments cs ON c.email = cs.email")
+			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
+		} else {
+			// No list filtering, so we're filtering by segments only
+			// We need to select from contacts and join with contact_segments
+			includeListID = false
+			query = psql.Select("c.*").
+				From("contacts c").
+				Join("contact_segments cs ON c.email = cs.email").
+				Where(sq.Eq{"cs.segment_id": audience.Segments}).
+				Limit(uint64(limit)).
+				Offset(uint64(offset))
+
+			// Set order by clause based on whether we need deduplication
+			if audience.SkipDuplicateEmails {
+				// For DISTINCT ON (c.email), we must order by c.email first
+				query = query.OrderBy("c.email ASC", "c.created_at ASC")
+			} else {
+				query = query.OrderBy("c.created_at ASC")
+			}
+		}
 	}
 
 	// Build the final query
@@ -1460,11 +1481,29 @@ func (r *contactRepository) CountContactsForBroadcast(
 		}
 	}
 
-	// Handle segments filtering (if implemented)
+	// Handle segments filtering
 	if len(audience.Segments) > 0 {
-		// This would involve joining with segments tables or applying segment conditions
-		// Implementation depends on how segments are structured in the database
-		return 0, fmt.Errorf("segments filtering not implemented")
+		// If we already have list filtering, we need to add segments as an additional filter
+		// This means contacts must be in BOTH the specified lists AND segments
+		if len(audience.Lists) > 0 {
+			// Join with contact_segments table in addition to the existing list joins
+			query = query.Join("contact_segments cs ON c.email = cs.email")
+			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
+		} else {
+			// No list filtering, so we're filtering by segments only
+			// Use DISTINCT counting if needed
+			var countExpression string
+			if audience.SkipDuplicateEmails {
+				countExpression = "COUNT(DISTINCT c.email)"
+			} else {
+				countExpression = "COUNT(*)"
+			}
+
+			query = psql.Select(countExpression).
+				From("contacts c").
+				Join("contact_segments cs ON c.email = cs.email").
+				Where(sq.Eq{"cs.segment_id": audience.Segments})
+		}
 	}
 
 	// Build and execute the query

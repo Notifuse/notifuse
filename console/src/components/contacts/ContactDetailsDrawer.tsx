@@ -775,6 +775,20 @@ export function ContactDetailsDrawer({
                   {fullName}
                 </Title>
                 <Text type="secondary">{contact?.email}</Text>
+                {/* Contact segments */}
+                {contact?.contact_segments && contact.contact_segments.length > 0 && (
+                  <Space size={4} wrap style={{ marginTop: '8px' }}>
+                    {contact.contact_segments.map((cs) => {
+                      const segment = segments.find((s) => s.id === cs.segment_id)
+                      if (!segment) return null
+                      return (
+                        <Tag key={cs.segment_id} bordered={false} color={segment.color}>
+                          {segment.name}
+                        </Tag>
+                      )
+                    })}
+                  </Space>
+                )}
               </div>
             </div>
 

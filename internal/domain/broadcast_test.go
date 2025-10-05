@@ -168,15 +168,14 @@ func TestBroadcast_Validate(t *testing.T) {
 			errMsg:  "either lists or segments must be specified",
 		},
 		{
-			name: "both lists and segments specified",
+			name: "both lists and segments specified (valid - segments filter lists)",
 			broadcast: func() domain.Broadcast {
 				b := createValidBroadcast()
 				b.Audience.Lists = []string{"list1"}
 				b.Audience.Segments = []string{"segment1"}
 				return b
 			}(),
-			wantErr: true,
-			errMsg:  "both lists and segments are specified",
+			wantErr: false,
 		},
 		{
 			name: "scheduled time required when not sending immediately",

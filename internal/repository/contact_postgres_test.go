@@ -1624,9 +1624,9 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		assert.Nil(t, contacts)
 	})
 
-	t.Run("should return error for segments filtering", func(t *testing.T) {
+	t.Run("should get contacts for broadcast with segments filtering", func(t *testing.T) {
 		// Create a mock workspace database
-		mockDB, _, cleanup := setupMockDB(t)
+		mockDB, mock, cleanup := setupMockDB(t)
 		defer cleanup()
 
 		// Create a new repository with the mock DB
@@ -1641,17 +1641,47 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		// Create test audience settings with segments
 		audience := domain.AudienceSettings{
 			Segments:            []string{"segment1"},
-			ExcludeUnsubscribed: true,
+			ExcludeUnsubscribed: false,
 			SkipDuplicateEmails: false,
 		}
+
+		// Set up expectations for the query
+		// When selecting from contacts with segment filtering, we should see a JOIN with contact_segments
+		createdAt1 := time.Now().UTC().Add(-24 * time.Hour)
+		createdAt2 := time.Now().UTC()
+		rows := sqlmock.NewRows([]string{
+			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
+			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
+			"lifetime_value", "orders_count", "last_order_at",
+			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
+			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
+			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
+		}).
+			AddRow("test1@example.com", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+				nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+				nil, nil, nil, nil, nil, createdAt1, createdAt1, createdAt1, createdAt1).
+			AddRow("test2@example.com", nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+				nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+				nil, nil, nil, nil, nil, createdAt2, createdAt2, createdAt2, createdAt2)
+
+		// Expect the query to join contacts with contact_segments
+		mock.ExpectQuery(`SELECT c\.\* FROM contacts c JOIN contact_segments cs ON c\.email = cs\.email WHERE cs\.segment_id IN \(\$1\) ORDER BY c\.created_at ASC LIMIT 10 OFFSET 0`).
+			WithArgs("segment1").
+			WillReturnRows(rows)
 
 		// Call the method being tested
 		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, 0)
 
 		// Assertions
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "segments filtering not implemented")
-		assert.Nil(t, contacts)
+		require.NoError(t, err)
+		require.Len(t, contacts, 2)
+		assert.Equal(t, "test1@example.com", contacts[0].Contact.Email)
+		assert.Equal(t, "test2@example.com", contacts[1].Contact.Email)
+		// When filtering by segments only, ListID and ListName should be empty
+		assert.Equal(t, "", contacts[0].ListID)
+		assert.Equal(t, "", contacts[0].ListName)
 	})
 }
 
@@ -1839,9 +1869,9 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		assert.Equal(t, 0, count)
 	})
 
-	t.Run("should return error for segments filtering", func(t *testing.T) {
+	t.Run("should count contacts for broadcast with segments filtering", func(t *testing.T) {
 		// Create a mock workspace database
-		mockDB, _, cleanup := setupMockDB(t)
+		mockDB, mock, cleanup := setupMockDB(t)
 		defer cleanup()
 
 		// Create a new repository with the mock DB
@@ -1855,18 +1885,68 @@ func TestCountContactsForBroadcast(t *testing.T) {
 
 		// Create test audience settings with segments
 		audience := domain.AudienceSettings{
-			Segments:            []string{"segment1"},
-			ExcludeUnsubscribed: true,
+			Segments:            []string{"segment1", "segment2"},
+			ExcludeUnsubscribed: false,
 			SkipDuplicateEmails: false,
 		}
+
+		// Set up expectations for the count query
+		rows := sqlmock.NewRows([]string{"count"}).AddRow(42)
+
+		// Expect query with JOIN for segment filtering
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_segments cs ON c\.email = cs\.email WHERE cs\.segment_id IN \(\$1,\$2\)`).
+			WithArgs("segment1", "segment2").
+			WillReturnRows(rows)
 
 		// Call the method being tested
 		count, err := repo.CountContactsForBroadcast(context.Background(), "workspace123", audience)
 
 		// Assertions
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "segments filtering not implemented")
-		assert.Equal(t, 0, count)
+		require.NoError(t, err)
+		assert.Equal(t, 42, count)
+	})
+
+	t.Run("should count contacts for broadcast with both lists and segments", func(t *testing.T) {
+		// Create a mock workspace database
+		mockDB, mock, cleanup := setupMockDB(t)
+		defer cleanup()
+
+		// Create a new repository with the mock DB
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+		workspaceRepo.EXPECT().GetConnection(gomock.Any(), "workspace123").Return(mockDB, nil)
+
+		repo := NewContactRepository(workspaceRepo)
+
+		// Create test audience settings with both lists and segments
+		audience := domain.AudienceSettings{
+			Lists:               []string{"list1"},
+			Segments:            []string{"segment1"},
+			ExcludeUnsubscribed: true,
+			SkipDuplicateEmails: false,
+		}
+
+		// Set up expectations for the count query
+		rows := sqlmock.NewRows([]string{"count"}).AddRow(15)
+
+		// Expect query with JOINs for both list and segment filtering
+		// The query should join contact_lists, then also join contact_segments
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id IN \(\$1\) AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND cs\.segment_id IN \(\$5\)`).
+			WithArgs("list1",
+				domain.ContactListStatusUnsubscribed,
+				domain.ContactListStatusBounced,
+				domain.ContactListStatusComplained,
+				"segment1").
+			WillReturnRows(rows)
+
+		// Call the method being tested
+		count, err := repo.CountContactsForBroadcast(context.Background(), "workspace123", audience)
+
+		// Assertions
+		require.NoError(t, err)
+		assert.Equal(t, 15, count)
 	})
 }
 

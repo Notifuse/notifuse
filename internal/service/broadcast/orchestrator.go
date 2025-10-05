@@ -562,6 +562,42 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			}).Info("Broadcast completed with no recipients")
 			// codecov:ignore:end
 
+			// Get the broadcast and update its status to sent
+			broadcast, getBroadcastErr := o.broadcastRepo.GetBroadcast(ctx, task.WorkspaceID, broadcastState.BroadcastID)
+			if getBroadcastErr != nil {
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastState.BroadcastID,
+					"error":        getBroadcastErr.Error(),
+				}).Error("Failed to get broadcast for status update (no recipients)")
+				err = fmt.Errorf("failed to get broadcast: %w", getBroadcastErr)
+				return false, err
+			}
+
+			// Update broadcast status to sent
+			broadcast.Status = domain.BroadcastStatusSent
+			broadcast.UpdatedAt = time.Now().UTC()
+
+			// Set completion time
+			completedAt := time.Now().UTC()
+			broadcast.CompletedAt = &completedAt
+
+			// Save the updated broadcast
+			if updateErr := o.broadcastRepo.UpdateBroadcast(context.Background(), broadcast); updateErr != nil {
+				o.logger.WithFields(map[string]interface{}{
+					"task_id":      task.ID,
+					"broadcast_id": broadcastState.BroadcastID,
+					"error":        updateErr.Error(),
+				}).Error("Failed to update broadcast status to sent (no recipients)")
+				err = fmt.Errorf("failed to update broadcast status to sent: %w", updateErr)
+				return false, err
+			}
+
+			o.logger.WithFields(map[string]interface{}{
+				"task_id":      task.ID,
+				"broadcast_id": broadcastState.BroadcastID,
+			}).Info("Broadcast marked as sent successfully (no recipients)")
+
 			allDone = true
 			return allDone, err
 		}

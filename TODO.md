@@ -1,9 +1,5 @@
 # TODO
 
-- match segments in broadcast
-- implement daily segment recompute when having relative dates
-- when we have activity that matches a segment we should enqueue contact for segment queue
-
 ## Content
 
 - page vs phplist
@@ -17,6 +13,7 @@
 - better design for system email
 - add contact_list reason string
 - move rate limit as ESP settings
+- implement daily segment recompute when having relative dates (in the last... days)
 
 ## Roadmap
 

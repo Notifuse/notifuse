@@ -31,6 +31,7 @@ import { SegmentsFilter } from '../components/contacts/SegmentsFilter'
 import dayjs from '../lib/dayjs'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import numbro from 'numbro'
+import { PlusOutlined } from '@ant-design/icons'
 
 const STORAGE_KEY = 'contact_columns_visibility'
 
@@ -900,7 +901,11 @@ export function ContactsPage() {
               <ContactUpsertDrawer
                 workspace={currentWorkspace}
                 buttonProps={{
-                  buttonContent: 'Create',
+                  buttonContent: (
+                    <>
+                      <PlusOutlined /> Add
+                    </>
+                  ),
                   disabled: !permissions?.contacts?.write
                 }}
               />
