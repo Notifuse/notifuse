@@ -1927,11 +1927,6 @@ func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceI
 	return totalMessages, nil
 }
 
-// stringPtr returns a pointer to a string
-func stringPtr(s string) *string {
-	return &s
-}
-
 // messageEngagementData holds a message and its engagement info
 type messageEngagementData struct {
 	message    *domain.MessageHistory
@@ -2202,14 +2197,19 @@ func getRandomPointer(slice []string) *string {
 	return &value
 }
 
+// Helper function to create a pointer to a string
+func stringPtr(s string) *string {
+	return &s
+}
+
 // createSampleSegments creates demo segments for showcasing the segmentation feature
 func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID string) error {
 	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample segments")
 
-	// Segment 1: VIP Customers (high lifetime value and orders)
+	// Segment 1: VIP Customers (high lifetime value and orders) - demonstrates AND logic
 	vipSegment := &domain.CreateSegmentRequest{
 		WorkspaceID: workspaceID,
-		ID:          "vipcustomers",
+		ID:          "vip_customers",
 		Name:        "VIP Customers",
 		Color:       "gold",
 		Timezone:    "UTC",
@@ -2261,49 +2261,10 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 		s.logger.Info("Created VIP Customers segment")
 	}
 
-	// Segment 2: US Customers
-	usSegment := &domain.CreateSegmentRequest{
-		WorkspaceID: workspaceID,
-		ID:          "uscustomers",
-		Name:        "US Customers",
-		Color:       "blue",
-		Timezone:    "UTC",
-		Tree: &domain.TreeNode{
-			Kind: "branch",
-			Branch: &domain.TreeNodeBranch{
-				Operator: "and",
-				Leaves: []*domain.TreeNode{
-					{
-						Kind: "leaf",
-						Leaf: &domain.TreeNodeLeaf{
-							Table: "contacts",
-							Contact: &domain.ContactCondition{
-								Filters: []*domain.DimensionFilter{
-									{
-										FieldName:    "country",
-										FieldType:    "string",
-										Operator:     "equals",
-										StringValues: []string{"US"},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if _, err := s.segmentService.CreateSegment(ctx, usSegment); err != nil {
-		s.logger.WithField("error", err.Error()).Warn("Failed to create US Customers segment")
-	} else {
-		s.logger.Info("Created US Customers segment")
-	}
-
-	// Segment 3: European Market (complex OR logic)
+	// Segment 2: European Market (complex OR logic) - demonstrates OR logic
 	europeSegment := &domain.CreateSegmentRequest{
 		WorkspaceID: workspaceID,
-		ID:          "european-market",
+		ID:          "european_market",
 		Name:        "European Market",
 		Color:       "geekblue",
 		Timezone:    "UTC",
@@ -2403,10 +2364,10 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 		s.logger.Info("Created European Market segment")
 	}
 
-	// Segment 4: Engaged Users (behavioral - email opens)
+	// Segment 3: Engaged Users (behavioral - email opens) - demonstrates timeline-based filtering
 	engagedSegment := &domain.CreateSegmentRequest{
 		WorkspaceID: workspaceID,
-		ID:          "engaged-users",
+		ID:          "engaged_users",
 		Name:        "Engaged Users",
 		Color:       "green",
 		Timezone:    "UTC",
@@ -2422,7 +2383,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 							ContactTimeline: &domain.ContactTimelineCondition{
 								Kind:          "open_email",
 								CountOperator: "at_least",
-								CountValue:    5,
+								CountValue:    3,
 							},
 						},
 					},
@@ -2435,207 +2396,6 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 		s.logger.WithField("error", err.Error()).Warn("Failed to create Engaged Users segment")
 	} else {
 		s.logger.Info("Created Engaged Users segment")
-	}
-
-	// Segment 5: At-Risk Customers (no recent orders)
-	atRiskSegment := &domain.CreateSegmentRequest{
-		WorkspaceID: workspaceID,
-		ID:          "at-risk-customers",
-		Name:        "At-Risk Customers",
-		Color:       "orange",
-		Timezone:    "UTC",
-		Tree: &domain.TreeNode{
-			Kind: "branch",
-			Branch: &domain.TreeNodeBranch{
-				Operator: "and",
-				Leaves: []*domain.TreeNode{
-					{
-						Kind: "leaf",
-						Leaf: &domain.TreeNodeLeaf{
-							Table: "contacts",
-							Contact: &domain.ContactCondition{
-								Filters: []*domain.DimensionFilter{
-									{
-										FieldName:    "lifetime_value",
-										FieldType:    "number",
-										Operator:     "gte",
-										NumberValues: []float64{500.0},
-									},
-								},
-							},
-						},
-					},
-					{
-						Kind: "leaf",
-						Leaf: &domain.TreeNodeLeaf{
-							Table: "contacts",
-							Contact: &domain.ContactCondition{
-								Filters: []*domain.DimensionFilter{
-									{
-										FieldName:    "last_order_at",
-										FieldType:    "time",
-										Operator:     "before_date",
-										StringValues: []string{"2024-01-01"},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if _, err := s.segmentService.CreateSegment(ctx, atRiskSegment); err != nil {
-		s.logger.WithField("error", err.Error()).Warn("Failed to create At-Risk Customers segment")
-	} else {
-		s.logger.Info("Created At-Risk Customers segment")
-	}
-
-	// Segment 6: Newsletter Subscribers (list-based)
-	newsletterSegment := &domain.CreateSegmentRequest{
-		WorkspaceID: workspaceID,
-		ID:          "newsletter-subscribers",
-		Name:        "Newsletter Subscribers",
-		Color:       "cyan",
-		Timezone:    "UTC",
-		Tree: &domain.TreeNode{
-			Kind: "branch",
-			Branch: &domain.TreeNodeBranch{
-				Operator: "and",
-				Leaves: []*domain.TreeNode{
-					{
-						Kind: "leaf",
-						Leaf: &domain.TreeNodeLeaf{
-							Table: "contact_lists",
-							ContactList: &domain.ContactListCondition{
-								Operator: "in",
-								ListID:   "newsletter",
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if _, err := s.segmentService.CreateSegment(ctx, newsletterSegment); err != nil {
-		s.logger.WithField("error", err.Error()).Warn("Failed to create Newsletter Subscribers segment")
-	} else {
-		s.logger.Info("Created Newsletter Subscribers segment")
-	}
-
-	// Segment 7: High-Value North America (complex AND/OR logic)
-	highValueNASegment := &domain.CreateSegmentRequest{
-		WorkspaceID: workspaceID,
-		ID:          "high-value-north-america",
-		Name:        "High-Value North America",
-		Color:       "purple",
-		Timezone:    "UTC",
-		Tree: &domain.TreeNode{
-			Kind: "branch",
-			Branch: &domain.TreeNodeBranch{
-				Operator: "and",
-				Leaves: []*domain.TreeNode{
-					{
-						Kind: "branch",
-						Branch: &domain.TreeNodeBranch{
-							Operator: "or",
-							Leaves: []*domain.TreeNode{
-								{
-									Kind: "leaf",
-									Leaf: &domain.TreeNodeLeaf{
-										Table: "contacts",
-										Contact: &domain.ContactCondition{
-											Filters: []*domain.DimensionFilter{
-												{
-													FieldName:    "country",
-													FieldType:    "string",
-													Operator:     "equals",
-													StringValues: []string{"US"},
-												},
-											},
-										},
-									},
-								},
-								{
-									Kind: "leaf",
-									Leaf: &domain.TreeNodeLeaf{
-										Table: "contacts",
-										Contact: &domain.ContactCondition{
-											Filters: []*domain.DimensionFilter{
-												{
-													FieldName:    "country",
-													FieldType:    "string",
-													Operator:     "equals",
-													StringValues: []string{"CA"},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-					{
-						Kind: "leaf",
-						Leaf: &domain.TreeNodeLeaf{
-							Table: "contacts",
-							Contact: &domain.ContactCondition{
-								Filters: []*domain.DimensionFilter{
-									{
-										FieldName:    "lifetime_value",
-										FieldType:    "number",
-										Operator:     "gte",
-										NumberValues: []float64{2000.0},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if _, err := s.segmentService.CreateSegment(ctx, highValueNASegment); err != nil {
-		s.logger.WithField("error", err.Error()).Warn("Failed to create High-Value North America segment")
-	} else {
-		s.logger.Info("Created High-Value North America segment")
-	}
-
-	// Segment 8: Inactive Users (no email opens)
-	inactiveSegment := &domain.CreateSegmentRequest{
-		WorkspaceID: workspaceID,
-		ID:          "inactive-users",
-		Name:        "Inactive Users",
-		Color:       "default",
-		Timezone:    "UTC",
-		Tree: &domain.TreeNode{
-			Kind: "branch",
-			Branch: &domain.TreeNodeBranch{
-				Operator: "and",
-				Leaves: []*domain.TreeNode{
-					{
-						Kind: "leaf",
-						Leaf: &domain.TreeNodeLeaf{
-							Table: "contact_timeline",
-							ContactTimeline: &domain.ContactTimelineCondition{
-								Kind:          "open_email",
-								CountOperator: "equals",
-								CountValue:    0,
-							},
-						},
-					},
-				},
-			},
-		},
-	}
-
-	if _, err := s.segmentService.CreateSegment(ctx, inactiveSegment); err != nil {
-		s.logger.WithField("error", err.Error()).Warn("Failed to create Inactive Users segment")
-	} else {
-		s.logger.Info("Created Inactive Users segment")
 	}
 
 	s.logger.WithField("workspace_id", workspaceID).Info("Sample segments created successfully")

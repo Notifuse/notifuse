@@ -1,5 +1,7 @@
 # TODO
 
+- match segments in broadcast
+
 ## Content
 
 - page vs phplist
@@ -12,8 +14,8 @@
 
 - better design for system email
 - add contact_list reason string
+- move rate limit as ESP settings
 
 ## Roadmap
 
-- segments with async recompute on changes
 - automations with async triggers

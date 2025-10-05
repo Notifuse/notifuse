@@ -793,6 +793,11 @@ func TestTaskService_RegisterProcessor(t *testing.T) {
 			Return(false).
 			Times(1)
 
+		mockProcessor.EXPECT().
+			CanProcess("process_contact_segment_queue").
+			Return(false).
+			Times(1)
+
 		// Register the processor
 		taskService.RegisterProcessor(mockProcessor)
 

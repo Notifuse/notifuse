@@ -270,6 +270,11 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_contact_segments_segment_id ON contact_segments(segment_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_contact_segments_version ON contact_segments(segment_id, version)`,
+		`CREATE TABLE IF NOT EXISTS contact_segment_queue (
+			email VARCHAR(255) PRIMARY KEY,
+			queued_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_segment_queue_queued_at ON contact_segment_queue(queued_at ASC)`,
 	}
 
 	// Run all table creation queries
@@ -333,9 +338,17 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			IF TG_OP = 'INSERT' THEN
 				INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
 				VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.created_at);
+				-- Queue the contact for segment recomputation
+				INSERT INTO contact_segment_queue (email, queued_at)
+				VALUES (NEW.email, NEW.created_at)
+				ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
 			ELSE
 				INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
 				VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.updated_at);
+				-- Queue the contact for segment recomputation (only for actual changes)
+				INSERT INTO contact_segment_queue (email, queued_at)
+				VALUES (NEW.email, NEW.updated_at)
+				ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
 			END IF;
 			RETURN NEW;
 		END;

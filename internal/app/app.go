@@ -94,6 +94,7 @@ type App struct {
 	analyticsRepo                 domain.AnalyticsRepository
 	contactTimelineRepo           domain.ContactTimelineRepository
 	segmentRepo                   domain.SegmentRepository
+	contactSegmentQueueRepo       domain.ContactSegmentQueueRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -331,6 +332,7 @@ func (a *App) InitRepositories() error {
 	a.analyticsRepo = repository.NewAnalyticsRepository(a.workspaceRepo, a.logger)
 	a.contactTimelineRepo = repository.NewContactTimelineRepository(a.workspaceRepo)
 	a.segmentRepo = repository.NewSegmentRepository(a.workspaceRepo)
+	a.contactSegmentQueueRepo = repository.NewContactSegmentQueueRepository(a.workspaceRepo)
 
 	return nil
 }
@@ -463,6 +465,7 @@ func (a *App) InitServices() error {
 	a.workspaceService = service.NewWorkspaceService(
 		a.workspaceRepo,
 		a.userRepo,
+		a.taskRepo,
 		a.logger,
 		a.userService,
 		a.authService,
@@ -584,6 +587,23 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 	a.taskService.RegisterProcessor(segmentBuildProcessor)
+
+	// Initialize contact segment queue processor
+	contactSegmentQueueProcessor := service.NewContactSegmentQueueProcessor(
+		a.contactSegmentQueueRepo,
+		a.segmentRepo,
+		a.contactRepo,
+		a.workspaceRepo,
+		a.logger,
+	)
+
+	// Initialize and register contact segment queue task processor
+	contactSegmentQueueTaskProcessor := service.NewContactSegmentQueueTaskProcessor(
+		contactSegmentQueueProcessor,
+		a.taskRepo,
+		a.logger,
+	)
+	a.taskService.RegisterProcessor(contactSegmentQueueTaskProcessor)
 
 	// Initialize demo service
 	a.demoService = service.NewDemoService(

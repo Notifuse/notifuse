@@ -93,6 +93,7 @@ func getTaskTypes() []string {
 		"send_broadcast",
 		"generate_report",
 		"build_segment",
+		"process_contact_segment_queue",
 	}
 }
 

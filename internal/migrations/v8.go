@@ -20,7 +20,7 @@ func (m *V8Migration) GetMajorVersion() float64 {
 
 // HasSystemUpdate indicates if this migration has system-level changes
 func (m *V8Migration) HasSystemUpdate() bool {
-	return false
+	return true
 }
 
 // HasWorkspaceUpdate indicates if this migration has workspace-level changes
@@ -30,7 +30,65 @@ func (m *V8Migration) HasWorkspaceUpdate() bool {
 
 // UpdateSystem executes system-level migration changes
 func (m *V8Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
-	// No system-level changes for v8
+	// Get all workspaces to create queue processing tasks
+	rows, err := db.QueryContext(ctx, `SELECT id FROM workspaces`)
+	if err != nil {
+		return fmt.Errorf("failed to query workspaces: %w", err)
+	}
+	defer rows.Close()
+
+	// Collect all workspace IDs first to avoid query conflicts
+	var workspaceIDs []string
+	for rows.Next() {
+		var workspaceID string
+		if err := rows.Scan(&workspaceID); err != nil {
+			return fmt.Errorf("failed to scan workspace ID: %w", err)
+		}
+		workspaceIDs = append(workspaceIDs, workspaceID)
+	}
+
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("error iterating workspaces: %w", err)
+	}
+
+	// Now process each workspace
+	for _, workspaceID := range workspaceIDs {
+		// Create permanent task for processing contact_segment_queue
+		// This task will run on every cron tick to process queued contacts
+		// Check if task already exists first
+		var exists bool
+		err = db.QueryRowContext(ctx, `
+			SELECT EXISTS(SELECT 1 FROM tasks WHERE workspace_id = $1 AND type = 'process_contact_segment_queue')
+		`, workspaceID).Scan(&exists)
+		if err != nil {
+			return fmt.Errorf("failed to check existing task for workspace %s: %w", workspaceID, err)
+		}
+
+		// Only create if it doesn't exist
+		if !exists {
+			_, err = db.ExecContext(ctx, `
+				INSERT INTO tasks (id, workspace_id, type, status, next_run_after, max_runtime, max_retries, retry_interval, progress, state, created_at, updated_at)
+				VALUES (
+					gen_random_uuid(),
+					$1,
+					'process_contact_segment_queue',
+					'pending',
+					CURRENT_TIMESTAMP,
+					50,
+					3,
+					60,
+					0,
+					'{"message": "Contact segment queue processing task"}'::jsonb,
+					CURRENT_TIMESTAMP,
+					CURRENT_TIMESTAMP
+				)
+			`, workspaceID)
+			if err != nil {
+				return fmt.Errorf("failed to create queue processing task for workspace %s: %w", workspaceID, err)
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -120,7 +178,26 @@ func (m *V8Migration) UpdateWorkspace(ctx context.Context, config *config.Config
 		return fmt.Errorf("failed to create kind index on contact_timeline table for workspace %s: %w", workspace.ID, err)
 	}
 
-	// Update trigger functions to include kind field
+	// Create contact_segment_queue table (before triggers that reference it)
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS contact_segment_queue (
+			email VARCHAR(255) PRIMARY KEY,
+			queued_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create contact_segment_queue table for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Create index on queued_at for ordered processing
+	_, err = db.ExecContext(ctx, `
+		CREATE INDEX IF NOT EXISTS idx_contact_segment_queue_queued_at ON contact_segment_queue(queued_at ASC)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create queued_at index on contact_segment_queue table for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Update trigger functions to include kind field and queue logic
 	// Contact changes trigger function
 	_, err = db.ExecContext(ctx, `
 		CREATE OR REPLACE FUNCTION track_contact_changes()
@@ -174,9 +251,17 @@ func (m *V8Migration) UpdateWorkspace(ctx context.Context, config *config.Config
 			IF TG_OP = 'INSERT' THEN
 				INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
 				VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.created_at);
+				-- Queue the contact for segment recomputation
+				INSERT INTO contact_segment_queue (email, queued_at)
+				VALUES (NEW.email, NEW.created_at)
+				ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
 			ELSE
 				INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
 				VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.updated_at);
+				-- Queue the contact for segment recomputation (only for actual changes)
+				INSERT INTO contact_segment_queue (email, queued_at)
+				VALUES (NEW.email, NEW.updated_at)
+				ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
 			END IF;
 			RETURN NEW;
 		END;
@@ -400,6 +485,8 @@ func (m *V8Migration) UpdateWorkspace(ctx context.Context, config *config.Config
 	if err != nil {
 		return fmt.Errorf("failed to create contact_segment_changes_trigger for workspace %s: %w", workspace.ID, err)
 	}
+
+	// Note: Task creation has been moved to UpdateSystem since tasks table is in the system database
 
 	return nil
 }

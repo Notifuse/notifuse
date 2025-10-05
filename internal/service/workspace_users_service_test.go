@@ -37,6 +37,7 @@ func TestWorkspaceService_AddUserToWorkspace(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserSvc,
 		mockAuthSvc,
@@ -162,6 +163,7 @@ func TestWorkspaceService_RemoveUserFromWorkspace(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserSvc,
 		mockAuthSvc,
@@ -327,6 +329,7 @@ func TestWorkspaceService_TransferOwnership(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserSvc,
 		mockAuthSvc,
@@ -504,6 +507,7 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserSvc,
 		mockAuthSvc,
@@ -641,6 +645,7 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserSvc,
 		mockAuthSvc,
@@ -939,6 +944,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 		subService := NewWorkspaceService(
 			mockRepo,
 			mockUserRepo,
+			mocks.NewMockTaskRepository(ctrl),
 			mockLogger,
 			mockUserSvc,
 			mockAuthSvc,
@@ -1005,6 +1011,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 		subService := NewWorkspaceService(
 			mockRepo,
 			mockUserRepo,
+			mocks.NewMockTaskRepository(ctrl),
 			mockLogger,
 			mockUserSvc,
 			mockAuthSvc,
@@ -1040,6 +1047,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 		subService := NewWorkspaceService(
 			mockRepo,
 			mockUserRepo,
+			mocks.NewMockTaskRepository(ctrl),
 			mockLogger,
 			mockUserSvc,
 			mockAuthSvc,
@@ -1084,6 +1092,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 		subService := NewWorkspaceService(
 			mockRepo,
 			mockUserRepo,
+			mocks.NewMockTaskRepository(ctrl),
 			mockLogger,
 			mockUserSvc,
 			mockAuthSvc,
@@ -1132,6 +1141,7 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 		subService := NewWorkspaceService(
 			mockRepo,
 			mockUserRepo,
+			mocks.NewMockTaskRepository(ctrl),
 			mockLogger,
 			mockUserSvc,
 			mockAuthSvc,

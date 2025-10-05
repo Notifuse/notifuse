@@ -37,7 +37,7 @@ func NewSegmentBuildProcessor(
 		workspaceRepo: workspaceRepo,
 		queryBuilder:  NewQueryBuilder(),
 		logger:        logger,
-		batchSize:     1000, // Process 1000 contacts at a time
+		batchSize:     100, // Process 100 contacts at a time, allows frequent version checks
 	}
 }
 
@@ -92,23 +92,14 @@ func (p *SegmentBuildProcessor) Process(ctx context.Context, task *domain.Task, 
 		state.Version = segment.Version
 	}
 
-	// Build the SQL query from the segment tree
-	sqlQuery, args, err := p.queryBuilder.BuildSQL(segment.Tree)
-	if err != nil {
-		return false, fmt.Errorf("failed to build SQL query: %w", err)
+	// Use the pre-generated SQL and args stored in the segment
+	// These are generated when the segment is created/updated
+	if segment.GeneratedSQL == nil || *segment.GeneratedSQL == "" {
+		return false, fmt.Errorf("segment has no generated SQL - segment may not have been properly initialized")
 	}
 
-	// Store the generated SQL for debugging/auditing
-	segment.GeneratedSQL = &sqlQuery
-	// Convert args to MapOfAny for storage
-	argsMap := make(domain.MapOfAny)
-	for i, arg := range args {
-		argsMap[fmt.Sprintf("arg_%d", i+1)] = arg
-	}
-	segment.GeneratedArgs = argsMap
-	if err := p.segmentRepo.UpdateSegment(ctx, task.WorkspaceID, segment); err != nil {
-		p.logger.WithField("error", err.Error()).Warn("Failed to save generated SQL (non-fatal)")
-	}
+	sqlQuery := *segment.GeneratedSQL
+	args := []interface{}(segment.GeneratedArgs)
 
 	// Get total contact count if not already set
 	if state.TotalContacts == 0 {
@@ -131,25 +122,60 @@ func (p *SegmentBuildProcessor) Process(ctx context.Context, task *domain.Task, 
 			return false, nil
 		}
 
-		// Get next batch of contacts
-		contacts, err := p.contactRepo.GetBatchForSegment(ctx, task.WorkspaceID, state.ContactOffset, p.batchSize)
+		// Refetch segment to check if version has changed (segment was updated)
+		currentSegment, err := p.segmentRepo.GetSegmentByID(ctx, task.WorkspaceID, state.SegmentID)
 		if err != nil {
-			return false, fmt.Errorf("failed to fetch contact batch: %w", err)
+			return false, fmt.Errorf("failed to refetch segment: %w", err)
 		}
 
-		// If no more contacts, we're done
-		if len(contacts) == 0 {
+		// If segment version has changed, this task is outdated
+		if currentSegment.Version > state.Version {
+			p.logger.WithFields(map[string]interface{}{
+				"task_version":     state.Version,
+				"current_version":  currentSegment.Version,
+				"segment_id":       state.SegmentID,
+				"processed_so_far": state.ProcessedCount,
+			}).Info("Segment was updated, aborting outdated task")
+
+			// Clean up partial work from this outdated task version
+			// Remove all memberships with version < currentVersion to clean up stale data
+			if err := p.segmentRepo.RemoveOldMemberships(ctx, task.WorkspaceID, state.SegmentID, currentSegment.Version); err != nil {
+				p.logger.WithFields(map[string]interface{}{
+					"error":      err.Error(),
+					"segment_id": state.SegmentID,
+					"version":    state.Version,
+				}).Warn("Failed to clean up old memberships on abort (non-fatal)")
+				// Don't fail the task - the next successful build will clean it up
+			} else {
+				p.logger.WithFields(map[string]interface{}{
+					"segment_id":      state.SegmentID,
+					"cleaned_version": state.Version,
+				}).Info("Cleaned up partial memberships from aborted task")
+			}
+
+			// Mark task as completed (it's superseded, not a failure)
+			return true, nil
+		}
+
+		// Get next batch of emails (optimized - only fetches email addresses)
+		emails, err := p.contactRepo.GetBatchForSegment(ctx, task.WorkspaceID, state.ContactOffset, p.batchSize)
+		if err != nil {
+			return false, fmt.Errorf("failed to fetch email batch: %w", err)
+		}
+
+		// If no more emails, we're done
+		if len(emails) == 0 {
 			break
 		}
 
 		// Process this batch
-		if err := p.processBatch(ctx, task.WorkspaceID, sqlQuery, args, contacts, state); err != nil {
+		if err := p.processBatch(ctx, task.WorkspaceID, sqlQuery, args, emails, state); err != nil {
 			return false, fmt.Errorf("failed to process batch: %w", err)
 		}
 
 		// Update offset for next batch
-		state.ContactOffset += int64(len(contacts))
-		state.ProcessedCount += len(contacts)
+		state.ContactOffset += int64(len(emails))
+		state.ProcessedCount += len(emails)
 
 		// Update progress
 		if state.TotalContacts > 0 {
@@ -200,21 +226,15 @@ func (p *SegmentBuildProcessor) Process(ctx context.Context, task *domain.Task, 
 	return true, nil
 }
 
-// processBatch processes a batch of contacts against the segment criteria
+// processBatch processes a batch of emails against the segment criteria
 func (p *SegmentBuildProcessor) processBatch(
 	ctx context.Context,
 	workspaceID string,
 	sqlQuery string,
 	args []interface{},
-	contacts []*domain.Contact,
+	emails []string,
 	state *domain.BuildSegmentState,
 ) error {
-	// Extract email addresses from contacts
-	emails := make([]string, len(contacts))
-	for i, contact := range contacts {
-		emails[i] = contact.Email
-	}
-
 	// Execute the segment query with email filter
 	// We need to modify the query to only check contacts in this batch
 	batchQuery := sqlQuery + " AND email = ANY($" + fmt.Sprintf("%d", len(args)+1) + ")"

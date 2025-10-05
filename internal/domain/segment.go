@@ -40,7 +40,7 @@ type Segment struct {
 	Version       int64     `json:"version"`
 	Status        string    `json:"status"`
 	GeneratedSQL  *string   `json:"generated_sql,omitempty"`
-	GeneratedArgs MapOfAny  `json:"generated_args,omitempty"`
+	GeneratedArgs JSONArray `json:"generated_args,omitempty"` // Array of query arguments in order
 	DBCreatedAt   time.Time `json:"db_created_at"`
 	DBUpdatedAt   time.Time `json:"db_updated_at"`
 	UsersCount    int       `json:"users_count"` // joined server-side
@@ -121,7 +121,7 @@ type dbSegment struct {
 	Version       int64
 	Status        string
 	GeneratedSQL  *string
-	GeneratedArgs MapOfAny
+	GeneratedArgs JSONArray // Array of query arguments stored as JSONB
 	DBCreatedAt   time.Time
 	DBUpdatedAt   time.Time
 }
@@ -190,8 +190,8 @@ func (r *CreateSegmentRequest) Validate() (segment *Segment, workspaceID string,
 	if r.ID == "" {
 		return nil, "", fmt.Errorf("invalid create segment request: id is required")
 	}
-	if !govalidator.IsAlphanumeric(r.ID) {
-		return nil, "", fmt.Errorf("invalid create segment request: id must be alphanumeric")
+	if !govalidator.Matches(r.ID, "^[a-z0-9_]+$") {
+		return nil, "", fmt.Errorf("invalid create segment request: id must contain only lowercase letters, numbers, and underscores")
 	}
 	if len(r.ID) > 32 {
 		return nil, "", fmt.Errorf("invalid create segment request: id length must be between 1 and 32")

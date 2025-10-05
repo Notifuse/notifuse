@@ -1510,53 +1510,39 @@ func (r *contactRepository) Count(ctx context.Context, workspaceID string) (int,
 	return count, nil
 }
 
-// GetBatchForSegment retrieves a batch of contacts for segment processing
-func (r *contactRepository) GetBatchForSegment(ctx context.Context, workspaceID string, offset int64, limit int) ([]*domain.Contact, error) {
+// GetBatchForSegment retrieves a batch of email addresses for segment processing
+// Optimized to only fetch emails instead of full contact objects
+func (r *contactRepository) GetBatchForSegment(ctx context.Context, workspaceID string, offset int64, limit int) ([]string, error) {
 	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	query, args, err := psql.Select(
-		"email", "external_id", "timezone", "language",
-		"first_name", "last_name", "phone",
-		"address_line_1", "address_line_2", "country", "postcode", "state",
-		"job_title", "lifetime_value", "orders_count", "last_order_at",
-		"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
-		"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
-		"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
-		"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-		"created_at", "updated_at", "db_created_at", "db_updated_at",
-	).
-		From("contacts").
-		OrderBy("email").
-		Offset(uint64(offset)).
-		Limit(uint64(limit)).
-		ToSql()
+	query := `
+		SELECT email 
+		FROM contacts 
+		ORDER BY email ASC 
+		LIMIT $1 OFFSET $2
+	`
 
+	rows, err := db.QueryContext(ctx, query, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to build query: %w", err)
-	}
-
-	rows, err := db.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query contacts: %w", err)
+		return nil, fmt.Errorf("failed to query emails: %w", err)
 	}
 	defer rows.Close()
 
-	var contacts []*domain.Contact
+	emails := make([]string, 0, limit)
 	for rows.Next() {
-		contact, err := domain.ScanContact(rows)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan contact: %w", err)
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, fmt.Errorf("failed to scan email: %w", err)
 		}
-		contacts = append(contacts, contact)
+		emails = append(emails, email)
 	}
 
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating rows: %w", err)
 	}
 
-	return contacts, nil
+	return emails, nil
 }

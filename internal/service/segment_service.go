@@ -65,13 +65,9 @@ func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSe
 		return nil, fmt.Errorf("failed to build SQL from tree: %w", err)
 	}
 
-	// Store generated SQL for debugging
+	// Store generated SQL and args for debugging and reuse
 	segment.GeneratedSQL = &sqlQuery
-	argsMap := make(domain.MapOfAny)
-	for i, arg := range args {
-		argsMap[fmt.Sprintf("arg_%d", i+1)] = arg
-	}
-	segment.GeneratedArgs = argsMap
+	segment.GeneratedArgs = domain.JSONArray(args)
 
 	// Create the segment in the database
 	if err := s.segmentRepo.CreateSegment(ctx, workspaceID, segment); err != nil {
@@ -89,7 +85,7 @@ func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSe
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: segment.ID,
 				Version:   segment.Version,
-				BatchSize: 1000,
+				BatchSize: 100,
 				StartedAt: time.Now().Format(time.RFC3339),
 			},
 		},
@@ -196,17 +192,13 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 		existing.Tree = updates.Tree
 		treeChanged = true
 
-		// Regenerate SQL
+		// Regenerate SQL and args
 		sqlQuery, args, err := s.queryBuilder.BuildSQL(existing.Tree)
 		if err != nil {
 			return nil, fmt.Errorf("failed to build SQL from updated tree: %w", err)
 		}
 		existing.GeneratedSQL = &sqlQuery
-		argsMap := make(domain.MapOfAny)
-		for i, arg := range args {
-			argsMap[fmt.Sprintf("arg_%d", i+1)] = arg
-		}
-		existing.GeneratedArgs = argsMap
+		existing.GeneratedArgs = domain.JSONArray(args)
 
 		// Increment version since the criteria changed
 		existing.Version++
@@ -232,7 +224,7 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 				BuildSegment: &domain.BuildSegmentState{
 					SegmentID: existing.ID,
 					Version:   existing.Version,
-					BatchSize: 1000,
+					BatchSize: 100,
 					StartedAt: time.Now().Format(time.RFC3339),
 				},
 			},
@@ -326,7 +318,7 @@ func (s *SegmentService) RebuildSegment(ctx context.Context, workspaceID, segmen
 			BuildSegment: &domain.BuildSegmentState{
 				SegmentID: segment.ID,
 				Version:   segment.Version,
-				BatchSize: 1000,
+				BatchSize: 100,
 				StartedAt: time.Now().Format(time.RFC3339),
 			},
 		},

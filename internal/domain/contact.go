@@ -635,8 +635,8 @@ type ContactRepository interface {
 	// Count returns the total number of contacts in a workspace
 	Count(ctx context.Context, workspaceID string) (int, error)
 
-	// GetBatchForSegment retrieves a batch of contacts for segment processing
-	GetBatchForSegment(ctx context.Context, workspaceID string, offset int64, limit int) ([]*Contact, error)
+	// GetBatchForSegment retrieves a batch of email addresses for segment processing
+	GetBatchForSegment(ctx context.Context, workspaceID string, offset int64, limit int) ([]string, error)
 }
 
 // FromJSON parses JSON data into a Contact struct
