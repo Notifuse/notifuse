@@ -1,5 +1,7 @@
 # TODO
 
+- doc for segmentation
+
 ## Content
 
 - page vs phplist
@@ -10,7 +12,7 @@
 
 ## Eventual features
 
-- better design for system email
+- better design for system email (use MJML for template)
 - add contact_list reason string
 - move rate limit as ESP settings
 - implement daily segment recompute when having relative dates (in the last... days)
