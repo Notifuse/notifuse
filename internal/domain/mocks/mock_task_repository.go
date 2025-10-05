@@ -268,6 +268,34 @@ func (mr *MockTaskRepositoryMockRecorder) MarkAsPausedTx(arg0, arg1, arg2, arg3,
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsPausedTx", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsPausedTx), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
 }
 
+// MarkAsPending mocks base method.
+func (m *MockTaskRepository) MarkAsPending(arg0 context.Context, arg1, arg2 string, arg3 time.Time, arg4 float64, arg5 *domain.TaskState) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkAsPending", arg0, arg1, arg2, arg3, arg4, arg5)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkAsPending indicates an expected call of MarkAsPending.
+func (mr *MockTaskRepositoryMockRecorder) MarkAsPending(arg0, arg1, arg2, arg3, arg4, arg5 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsPending", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsPending), arg0, arg1, arg2, arg3, arg4, arg5)
+}
+
+// MarkAsPendingTx mocks base method.
+func (m *MockTaskRepository) MarkAsPendingTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string, arg4 time.Time, arg5 float64, arg6 *domain.TaskState) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "MarkAsPendingTx", arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// MarkAsPendingTx indicates an expected call of MarkAsPendingTx.
+func (mr *MockTaskRepositoryMockRecorder) MarkAsPendingTx(arg0, arg1, arg2, arg3, arg4, arg5, arg6 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsPendingTx", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsPendingTx), arg0, arg1, arg2, arg3, arg4, arg5, arg6)
+}
+
 // MarkAsRunning mocks base method.
 func (m *MockTaskRepository) MarkAsRunning(arg0 context.Context, arg1, arg2 string, arg3 time.Time) error {
 	m.ctrl.T.Helper()

@@ -393,8 +393,8 @@ func TestExecutePendingTasksRequest_FromURLParams(t *testing.T) {
 		err := req.FromURLParams(values)
 		require.NoError(t, err)
 
-		// The implementation uses a default value of 10
-		assert.Equal(t, 10, req.MaxTasks) // Default value is 10 in the implementation
+		// The implementation uses a default value of 100
+		assert.Equal(t, 100, req.MaxTasks) // Default value is 100 in the implementation
 	})
 
 	t.Run("invalid max_tasks", func(t *testing.T) {

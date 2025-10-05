@@ -181,51 +181,48 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 
 	// Use EXISTS subquery for list_id and contact_list_status filters instead of JOIN
 	if req.ListID != "" || req.ContactListStatus != "" {
-		// Start building the subquery
-		subquery := psql.Select("1").
-			From("contact_lists cl").
-			Where("cl.email = c.email").
-			Where(sq.Eq{"cl.deleted_at": nil})
+		// Build the EXISTS clause manually with ? placeholders
+		// Squirrel will convert these to the correct $N placeholders
+		var existsClause string
+		var args []interface{}
 
-		// Add specific conditions to the subquery
 		if req.ListID != "" && req.ContactListStatus != "" {
 			// Both list_id and status
-			subquery = subquery.Where(sq.Eq{"cl.list_id": req.ListID, "cl.status": req.ContactListStatus})
+			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE cl.email = c.email AND cl.deleted_at IS NULL AND cl.list_id = ? AND cl.status = ?)"
+			args = []interface{}{req.ListID, req.ContactListStatus}
 		} else if req.ListID != "" {
 			// Just list_id
-			subquery = subquery.Where(sq.Eq{"cl.list_id": req.ListID})
+			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE cl.email = c.email AND cl.deleted_at IS NULL AND cl.list_id = ?)"
+			args = []interface{}{req.ListID}
 		} else if req.ContactListStatus != "" {
 			// Just status
-			subquery = subquery.Where(sq.Eq{"cl.status": req.ContactListStatus})
+			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE cl.email = c.email AND cl.deleted_at IS NULL AND cl.status = ?)"
+			args = []interface{}{req.ContactListStatus}
 		}
 
-		// Convert subquery to SQL
-		subquerySql, subqueryArgs, err := subquery.ToSql()
-		if err != nil {
-			return nil, fmt.Errorf("failed to build subquery: %w", err)
-		}
-
-		// Add the EXISTS condition to the main query using Expr to properly handle parameters
-		sb = sb.Where(sq.Expr("EXISTS ("+subquerySql+")", subqueryArgs...))
+		sb = sb.Where(sq.Expr(existsClause, args...))
 	}
 
 	// Use EXISTS subquery for segments filter
 	if len(req.Segments) > 0 {
-		// Start building the subquery
-		segmentSubquery := psql.Select("1").
-			From("contact_segments cs").
-			Join("segments s ON cs.segment_id = s.id").
-			Where("cs.email = c.email").
-			Where(sq.Eq{"cs.segment_id": req.Segments})
+		// Build the placeholder string for the IN clause using ? placeholders
+		// Squirrel will convert these to the correct $N placeholders
+		placeholders := make([]string, len(req.Segments))
+		for i := range placeholders {
+			placeholders[i] = "?"
+		}
+		placeholdersStr := strings.Join(placeholders, ",")
 
-		// Convert subquery to SQL
-		segmentSubquerySql, segmentSubqueryArgs, err := segmentSubquery.ToSql()
-		if err != nil {
-			return nil, fmt.Errorf("failed to build segment subquery: %w", err)
+		// Build the EXISTS clause with ? placeholders
+		existsClause := fmt.Sprintf("EXISTS (SELECT 1 FROM contact_segments cs JOIN segments s ON cs.segment_id = s.id WHERE cs.email = c.email AND cs.segment_id IN (%s))", placeholdersStr)
+
+		// Convert []string to []interface{} for sq.Expr
+		args := make([]interface{}, len(req.Segments))
+		for i, seg := range req.Segments {
+			args[i] = seg
 		}
 
-		// Add the EXISTS condition to the main query using Expr to properly handle parameters
-		sb = sb.Where(sq.Expr("EXISTS ("+segmentSubquerySql+")", segmentSubqueryArgs...))
+		sb = sb.Where(sq.Expr(existsClause, args...))
 	}
 
 	if req.Cursor != "" {

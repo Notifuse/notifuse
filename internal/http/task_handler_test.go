@@ -779,9 +779,9 @@ func TestTaskHandler_ExecutePendingTasks(t *testing.T) {
 	})
 
 	t.Run("Default max_tasks (omitted)", func(t *testing.T) {
-		// Configure service mock to return success with default max_tasks (should be 10)
+		// Configure service mock to return success with default max_tasks (should be 100)
 		mockTaskService.EXPECT().
-			ExecutePendingTasks(gomock.Any(), 10).
+			ExecutePendingTasks(gomock.Any(), 100).
 			Return(nil)
 
 		// Call handler without max_tasks

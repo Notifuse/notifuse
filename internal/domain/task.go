@@ -177,6 +177,10 @@ type TaskRepository interface {
 	// MarkAsPaused marks a task as paused (e.g., due to timeout)
 	MarkAsPaused(ctx context.Context, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
 	MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
+
+	// MarkAsPending marks a task as pending (e.g., for recurring tasks)
+	MarkAsPending(ctx context.Context, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
+	MarkAsPendingTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
 }
 
 // TaskFilter defines the filtering criteria for task listing
@@ -427,7 +431,7 @@ func (r *ExecutePendingTasksRequest) FromURLParams(values url.Values) error {
 		}
 		r.MaxTasks = maxTasks
 	} else {
-		r.MaxTasks = 10 // default value
+		r.MaxTasks = 100 // default value
 	}
 
 	return nil

@@ -70,7 +70,7 @@ func (p *SegmentBuildProcessor) Process(ctx context.Context, task *domain.Task, 
 	}
 
 	if state.StartedAt == "" {
-		state.StartedAt = time.Now().Format(time.RFC3339)
+		state.StartedAt = time.Now().UTC().Format(time.RFC3339)
 	}
 
 	// Fetch the segment

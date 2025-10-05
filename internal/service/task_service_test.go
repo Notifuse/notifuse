@@ -383,10 +383,10 @@ func TestTaskService_ExecuteTask(t *testing.T) {
 			Process(gomock.Any(), task, gomock.Any()).
 			Return(false, nil)
 
-		// Mark as paused should be called for a partial completion
+		// Mark as pending should be called for a partial completion
 		nextRun := time.Now().Add(1 * time.Minute)
 		mockRepo.EXPECT().
-			MarkAsPaused(gomock.Any(), workspaceID, taskID, gomock.Any(), task.Progress, task.State).
+			MarkAsPending(gomock.Any(), workspaceID, taskID, gomock.Any(), task.Progress, task.State).
 			DoAndReturn(func(_ context.Context, _, _ string, actualNextRun time.Time, progress float64, state *domain.TaskState) error {
 				// Verify the next run is set approximately 1 minute in the future
 				assert.WithinDuration(t, nextRun, actualNextRun, 60*time.Second)
@@ -1132,16 +1132,16 @@ func TestTaskService_ExecutePendingTasks(t *testing.T) {
 
 		// Setup
 		ctx := context.Background()
-		maxTasks := 0 // Should default to 10
+		maxTasks := 0 // Should default to 100
 
 		// Configure setting repo mock to expect SetLastCronRun call
 		mockSettingRepo.EXPECT().
 			SetLastCronRun(gomock.Any()).
 			Return(nil)
 
-		// Configure mock - expect 10 as the default
+		// Configure mock - expect 100 as the default
 		mockRepo.EXPECT().
-			GetNextBatch(gomock.Any(), 10).
+			GetNextBatch(gomock.Any(), 100).
 			Return([]*domain.Task{}, nil)
 
 		// Call the method

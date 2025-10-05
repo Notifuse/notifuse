@@ -70,11 +70,11 @@ func (p *ContactSegmentQueueTaskProcessor) Process(ctx context.Context, task *do
 		}).Debug("Queue processing completed")
 	}
 
-	// This is a permanent recurring task - return false with progress to keep it as "paused"
+	// This is a permanent recurring task - return false with progress to keep it as "pending"
 	// This allows it to be picked up again on the next cron run
 	// The task's NextRunAfter is set to NOW in the EnsureTask function, so it's immediately available
 	task.Progress = 0 // Reset progress for next run
-	return false, nil // false = task is not complete, will be marked as "paused" and re-run
+	return false, nil // false = task is not complete, will be marked as "pending" and re-run
 }
 
 // EnsureContactSegmentQueueProcessingTask creates or updates the permanent queue processing task for a workspace
@@ -103,7 +103,7 @@ func EnsureContactSegmentQueueProcessingTask(ctx context.Context, taskRepo domai
 			needsUpdate = true
 		}
 
-		now := time.Now()
+		now := time.Now().UTC()
 		if existingTask.NextRunAfter == nil || existingTask.NextRunAfter.After(now) {
 			existingTask.NextRunAfter = &now
 			needsUpdate = true
@@ -119,7 +119,7 @@ func EnsureContactSegmentQueueProcessingTask(ctx context.Context, taskRepo domai
 	}
 
 	// Create new task
-	now := time.Now()
+	now := time.Now().UTC()
 	task := &domain.Task{
 		WorkspaceID:   workspaceID,
 		Type:          "process_contact_segment_queue",

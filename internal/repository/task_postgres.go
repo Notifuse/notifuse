@@ -871,6 +871,60 @@ func (r *TaskRepository) MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspa
 	return nil
 }
 
+// MarkAsPending marks a task as pending and sets the next run time
+func (r *TaskRepository) MarkAsPending(ctx context.Context, workspace, id string, nextRunAfter time.Time, progress float64, state *domain.TaskState) error {
+	return r.WithTransaction(ctx, func(tx *sql.Tx) error {
+		return r.MarkAsPendingTx(ctx, tx, workspace, id, nextRunAfter, progress, state)
+	})
+}
+
+// MarkAsPendingTx marks a task as pending and sets the next run time within a transaction
+func (r *TaskRepository) MarkAsPendingTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time, progress float64, state *domain.TaskState) error {
+	now := time.Now().UTC()
+
+	// Convert state to JSON
+	stateJSON, err := json.Marshal(state)
+	if err != nil {
+		return fmt.Errorf("failed to marshal state: %w", err)
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+
+	// Update task with the provided progress and state
+	query := psql.Update("tasks").
+		Set("status", domain.TaskStatusPending).
+		Set("progress", progress).
+		Set("state", stateJSON).
+		Set("updated_at", now).
+		Set("next_run_after", nextRunAfter).
+		Set("timeout_after", nil).
+		Where(sq.Eq{
+			"id":           id,
+			"workspace_id": workspace,
+		})
+
+	sqlQuery, args, err := query.ToSql()
+	if err != nil {
+		return fmt.Errorf("failed to build update query: %w", err)
+	}
+
+	result, err := tx.ExecContext(ctx, sqlQuery, args...)
+	if err != nil {
+		return fmt.Errorf("failed to mark task as pending: %w", err)
+	}
+
+	// Check if the task was found
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return fmt.Errorf("task not found")
+	}
+
+	return nil
+}
+
 // GetTaskByBroadcastID retrieves a task associated with a specific broadcast ID
 func (r *TaskRepository) GetTaskByBroadcastID(ctx context.Context, workspace, broadcastID string) (*domain.Task, error) {
 	var task *domain.Task

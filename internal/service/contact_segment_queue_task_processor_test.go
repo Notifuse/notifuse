@@ -332,7 +332,7 @@ func TestEnsureContactSegmentQueueProcessingTask_UpdatesExisting(t *testing.T) {
 	workspaceID := "workspace-1"
 
 	// Create an existing task that needs updating
-	futureTime := time.Now().Add(1 * time.Hour)
+	futureTime := time.Now().UTC().Add(1 * time.Hour)
 	existingTask := &domain.Task{
 		ID:           "task-1",
 		WorkspaceID:  workspaceID,
@@ -375,7 +375,7 @@ func TestEnsureContactSegmentQueueProcessingTask_NoUpdateNeeded(t *testing.T) {
 	workspaceID := "workspace-1"
 
 	// Create an existing task that doesn't need updating
-	now := time.Now()
+	now := time.Now().UTC()
 	existingTask := &domain.Task{
 		ID:           "task-1",
 		WorkspaceID:  workspaceID,
@@ -456,7 +456,7 @@ func TestEnsureContactSegmentQueueProcessingTask_UpdateError(t *testing.T) {
 	workspaceID := "workspace-1"
 
 	// Create an existing task that needs updating
-	futureTime := time.Now().Add(1 * time.Hour)
+	futureTime := time.Now().UTC().Add(1 * time.Hour)
 	existingTask := &domain.Task{
 		ID:           "task-1",
 		WorkspaceID:  workspaceID,
