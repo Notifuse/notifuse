@@ -3,7 +3,7 @@ import { Rule } from 'antd/lib/form'
 import Messages from './messages'
 import { DimensionFilter, FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
 import { Currencies, Currency } from '../../lib/currencies'
-import { CountriesFormOptions, Timezones } from '../../lib/countries_timezones'
+import { CountriesFormOptions, TimezonesForSelect } from '../../lib/countries_timezones'
 import { Languages } from '../../lib/languages'
 
 export type OperatorEqualsProps = {
@@ -129,14 +129,10 @@ export class OperatorEquals implements IOperator {
               showSearch={true}
               filterOption={(searchText: any, option: any) => {
                 return (
-                  searchText !== '' && option.name.toLowerCase().includes(searchText.toLowerCase())
+                  searchText !== '' && option.label.toLowerCase().includes(searchText.toLowerCase())
                 )
               }}
-              options={Timezones}
-              fieldNames={{
-                label: 'name',
-                value: 'name'
-              }}
+              options={TimezonesForSelect}
             />
           )
         }

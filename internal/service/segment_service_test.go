@@ -82,6 +82,9 @@ func TestSegmentService_CreateSegment(t *testing.T) {
 			},
 		)
 
+		// Expect ExecutePendingTasks to be called asynchronously after task creation
+		mockTaskService.EXPECT().ExecutePendingTasks(gomock.Any(), 1).Return(nil).AnyTimes()
+
 		segment, err := service.CreateSegment(ctx, req)
 		assert.NoError(t, err)
 		assert.NotNil(t, segment)
@@ -438,6 +441,9 @@ func TestSegmentService_UpdateSegment(t *testing.T) {
 
 		mockTaskService.EXPECT().CreateTask(gomock.Any(), "workspace123", gomock.Any()).Return(nil)
 
+		// Expect ExecutePendingTasks to be called asynchronously after task creation
+		mockTaskService.EXPECT().ExecutePendingTasks(gomock.Any(), 1).Return(nil).AnyTimes()
+
 		segment, err := service.UpdateSegment(ctx, req)
 		assert.NoError(t, err)
 		assert.NotNil(t, segment)
@@ -494,6 +500,9 @@ func TestSegmentService_UpdateSegment(t *testing.T) {
 				return nil
 			},
 		)
+
+		// Expect ExecutePendingTasks to be called asynchronously after task creation
+		mockTaskService.EXPECT().ExecutePendingTasks(gomock.Any(), 1).Return(nil).AnyTimes()
 
 		segment, err := service.UpdateSegment(ctx, req)
 		assert.NoError(t, err)
@@ -711,6 +720,9 @@ func TestSegmentService_RebuildSegment(t *testing.T) {
 				return nil
 			},
 		)
+
+		// Expect ExecutePendingTasks to be called asynchronously after task creation
+		mockTaskService.EXPECT().ExecutePendingTasks(gomock.Any(), 1).Return(nil).AnyTimes()
 
 		err := service.RebuildSegment(ctx, "workspace123", "segment1")
 		assert.NoError(t, err)

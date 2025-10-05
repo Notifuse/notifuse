@@ -29,7 +29,7 @@ const initialTree: TreeNode = {
   }
 }
 
-export function NewSegmentPage() {
+export function DebugSegmentPage() {
   const [form] = Form.useForm()
   const [tree, setTree] = useState<TreeNode>(initialTree)
 
@@ -47,7 +47,7 @@ export function NewSegmentPage() {
     <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       <Space direction="vertical" size="large" style={{ width: '100%' }}>
         <div>
-          <Title level={2}>New Segment Builder</Title>
+          <Title level={2}>Debug Segment Builder</Title>
           <Paragraph>
             Build complex contact segments using AND/OR logic with filters across multiple data
             tables. Start by adding conditions for contacts, contact lists, or contact timeline

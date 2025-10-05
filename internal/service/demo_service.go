@@ -81,8 +81,8 @@ var (
 	}
 
 	countries = []string{
-		"United States", "Canada", "United Kingdom", "Germany", "France",
-		"Spain", "Italy", "Australia", "Japan", "Brazil",
+		"US", "CA", "GB", "DE", "FR",
+		"ES", "IT", "AU", "JP", "BR",
 	}
 )
 
@@ -2228,7 +2228,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 										FieldName:    "lifetime_value",
 										FieldType:    "number",
 										Operator:     "gte",
-										NumberValues: []float64{1000.0},
+										NumberValues: []float64{800.0},
 									},
 								},
 							},
@@ -2269,16 +2269,24 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 		Color:       "blue",
 		Timezone:    "UTC",
 		Tree: &domain.TreeNode{
-			Kind: "leaf",
-			Leaf: &domain.TreeNodeLeaf{
-				Table: "contacts",
-				Contact: &domain.ContactCondition{
-					Filters: []*domain.DimensionFilter{
-						{
-							FieldName:    "country",
-							FieldType:    "string",
-							Operator:     "equals",
-							StringValues: []string{"United States"},
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"US"},
+									},
+								},
+							},
 						},
 					},
 				},
@@ -2314,7 +2322,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 										FieldName:    "country",
 										FieldType:    "string",
 										Operator:     "equals",
-										StringValues: []string{"United Kingdom"},
+										StringValues: []string{"GB"},
 									},
 								},
 							},
@@ -2330,7 +2338,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 										FieldName:    "country",
 										FieldType:    "string",
 										Operator:     "equals",
-										StringValues: []string{"France"},
+										StringValues: []string{"FR"},
 									},
 								},
 							},
@@ -2346,7 +2354,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 										FieldName:    "country",
 										FieldType:    "string",
 										Operator:     "equals",
-										StringValues: []string{"Germany"},
+										StringValues: []string{"DE"},
 									},
 								},
 							},
@@ -2362,7 +2370,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 										FieldName:    "country",
 										FieldType:    "string",
 										Operator:     "equals",
-										StringValues: []string{"Spain"},
+										StringValues: []string{"ES"},
 									},
 								},
 							},
@@ -2378,7 +2386,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 										FieldName:    "country",
 										FieldType:    "string",
 										Operator:     "equals",
-										StringValues: []string{"Italy"},
+										StringValues: []string{"IT"},
 									},
 								},
 							},
@@ -2403,13 +2411,21 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 		Color:       "green",
 		Timezone:    "UTC",
 		Tree: &domain.TreeNode{
-			Kind: "leaf",
-			Leaf: &domain.TreeNodeLeaf{
-				Table: "contact_timeline",
-				ContactTimeline: &domain.ContactTimelineCondition{
-					Kind:          "email_opened",
-					CountOperator: "at_least",
-					CountValue:    5,
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contact_timeline",
+							ContactTimeline: &domain.ContactTimelineCondition{
+								Kind:          "open_email",
+								CountOperator: "at_least",
+								CountValue:    5,
+							},
+						},
+					},
 				},
 			},
 		},
@@ -2484,12 +2500,20 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 		Color:       "cyan",
 		Timezone:    "UTC",
 		Tree: &domain.TreeNode{
-			Kind: "leaf",
-			Leaf: &domain.TreeNodeLeaf{
-				Table: "contact_lists",
-				ContactList: &domain.ContactListCondition{
-					Operator: "in",
-					ListID:   "newsletter",
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contact_lists",
+							ContactList: &domain.ContactListCondition{
+								Operator: "in",
+								ListID:   "newsletter",
+							},
+						},
+					},
 				},
 			},
 		},
@@ -2528,7 +2552,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 													FieldName:    "country",
 													FieldType:    "string",
 													Operator:     "equals",
-													StringValues: []string{"United States"},
+													StringValues: []string{"US"},
 												},
 											},
 										},
@@ -2544,7 +2568,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 													FieldName:    "country",
 													FieldType:    "string",
 													Operator:     "equals",
-													StringValues: []string{"Canada"},
+													StringValues: []string{"CA"},
 												},
 											},
 										},
@@ -2588,13 +2612,21 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 		Color:       "default",
 		Timezone:    "UTC",
 		Tree: &domain.TreeNode{
-			Kind: "leaf",
-			Leaf: &domain.TreeNodeLeaf{
-				Table: "contact_timeline",
-				ContactTimeline: &domain.ContactTimelineCondition{
-					Kind:          "email_opened",
-					CountOperator: "equals",
-					CountValue:    0,
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contact_timeline",
+							ContactTimeline: &domain.ContactTimelineCondition{
+								Kind:          "open_email",
+								CountOperator: "equals",
+								CountValue:    0,
+							},
+						},
+					},
 				},
 			},
 		},

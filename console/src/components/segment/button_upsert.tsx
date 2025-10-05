@@ -97,6 +97,15 @@ const DrawerSegment = (props: {
     }
   }, [workspaceId, workspaces])
 
+  // Log the tree when the drawer opens
+  useEffect(() => {
+    if (props.segment?.tree) {
+      console.log('Segment tree:', props.segment.tree)
+    } else {
+      console.log('New segment - empty tree')
+    }
+  }, [])
+
   // Fetch lists for the current workspace
   const { data: listsData } = useQuery({
     queryKey: ['lists', workspaceId],

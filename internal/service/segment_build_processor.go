@@ -8,6 +8,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/lib/pq"
 )
 
 // SegmentBuildProcessor handles the execution of segment building tasks
@@ -161,6 +162,23 @@ func (p *SegmentBuildProcessor) Process(ctx context.Context, task *domain.Task, 
 		}
 	}
 
+	// If no contacts matched, skip the segment building
+	if state.MatchedCount == 0 {
+		p.logger.WithFields(map[string]interface{}{
+			"segment_id":     state.SegmentID,
+			"version":        state.Version,
+			"total_contacts": state.TotalContacts,
+		}).Info("Segment build skipped: no contacts matched the criteria")
+
+		// Update segment status to "active" but with no members
+		segment.Status = string(domain.SegmentStatusActive)
+		if err := p.segmentRepo.UpdateSegment(ctx, task.WorkspaceID, segment); err != nil {
+			return false, fmt.Errorf("failed to update segment status to active: %w", err)
+		}
+
+		return true, nil
+	}
+
 	// Remove old memberships from previous versions
 	if err := p.segmentRepo.RemoveOldMemberships(ctx, task.WorkspaceID, state.SegmentID, state.Version); err != nil {
 		return false, fmt.Errorf("failed to remove old memberships: %w", err)
@@ -200,7 +218,7 @@ func (p *SegmentBuildProcessor) processBatch(
 	// Execute the segment query with email filter
 	// We need to modify the query to only check contacts in this batch
 	batchQuery := sqlQuery + " AND email = ANY($" + fmt.Sprintf("%d", len(args)+1) + ")"
-	batchArgs := append(args, emails)
+	batchArgs := append(args, pq.Array(emails))
 
 	// Execute query to find matching contacts
 	rows, err := p.executeSegmentQuery(ctx, workspaceID, batchQuery, batchArgs)

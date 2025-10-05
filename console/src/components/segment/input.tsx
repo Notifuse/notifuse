@@ -551,8 +551,9 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                       {node.leaf?.contact_timeline.kind === 'bounce_email' && 'Bounce email'}
                       {node.leaf?.contact_timeline.kind === 'complain_email' && 'Complain email'}
                       {node.leaf?.contact_timeline.kind === 'unsubscribe_email' &&
-                        'Unsubscribe email'}
-                      {node.leaf?.contact_timeline.kind === 'insert_message_history' && 'New email'}
+                        'Unsubscribe from list'}
+                      {node.leaf?.contact_timeline.kind === 'insert_message_history' &&
+                        'New message (email...)'}
                     </Tag>
                   </div>
                   <Space>

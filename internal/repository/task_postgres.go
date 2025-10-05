@@ -723,6 +723,7 @@ func (r *TaskRepository) MarkAsCompletedTx(ctx context.Context, tx *sql.Tx, work
 	query := psql.Update("tasks").
 		Set("status", domain.TaskStatusCompleted).
 		Set("progress", 100).
+		Set("error_message", "").
 		Set("updated_at", now).
 		Set("completed_at", now).
 		Set("timeout_after", nil).

@@ -205,8 +205,8 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 			return nil, fmt.Errorf("failed to build subquery: %w", err)
 		}
 
-		// Add the EXISTS condition to the main query
-		sb = sb.Where(fmt.Sprintf("EXISTS (%s)", subquerySql), subqueryArgs...)
+		// Add the EXISTS condition to the main query using Expr to properly handle parameters
+		sb = sb.Where(sq.Expr("EXISTS ("+subquerySql+")", subqueryArgs...))
 	}
 
 	// Use EXISTS subquery for segments filter
@@ -224,8 +224,8 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 			return nil, fmt.Errorf("failed to build segment subquery: %w", err)
 		}
 
-		// Add the EXISTS condition to the main query
-		sb = sb.Where(fmt.Sprintf("EXISTS (%s)", segmentSubquerySql), segmentSubqueryArgs...)
+		// Add the EXISTS condition to the main query using Expr to properly handle parameters
+		sb = sb.Where(sq.Expr("EXISTS ("+segmentSubquerySql+")", segmentSubqueryArgs...))
 	}
 
 	if req.Cursor != "" {

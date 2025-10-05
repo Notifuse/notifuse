@@ -278,12 +278,12 @@ export const LeafActionForm = (props: LeafFormProps) => {
                 size="small"
                 placeholder="Select event"
                 options={[
+                  { value: 'insert_message_history', label: 'New message (email...)' },
                   { value: 'open_email', label: 'Open email' },
                   { value: 'click_email', label: 'Click email' },
                   { value: 'bounce_email', label: 'Bounce email' },
                   { value: 'complain_email', label: 'Complain email' },
-                  { value: 'unsubscribe_email', label: 'Unsubscribe email' },
-                  { value: 'insert_message_history', label: 'New email' }
+                  { value: 'unsubscribe_email', label: 'Unsubscribe from list' }
                 ]}
               />
             </Form.Item>

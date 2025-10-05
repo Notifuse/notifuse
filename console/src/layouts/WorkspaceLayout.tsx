@@ -15,8 +15,7 @@ import {
   faTerminal,
   faUserGroup,
   faBarsStaggered,
-  faChartLine,
-  faFilter
+  faChartLine
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
 import { Workspace, UserPermissions } from '../services/api/types'
@@ -128,8 +127,6 @@ export function WorkspaceLayout() {
     selectedKey = 'logs'
   } else if (currentPath.includes('/broadcasts')) {
     selectedKey = 'broadcasts'
-  } else if (currentPath.includes('/new-segment')) {
-    selectedKey = 'new-segment'
   }
 
   const handleWorkspaceChange = (workspaceId: string) => {
@@ -199,15 +196,6 @@ export function WorkspaceLayout() {
       label: (
         <Link to="/workspace/$workspaceId/lists" params={{ workspaceId }}>
           Lists
-        </Link>
-      )
-    },
-    hasAccess('contacts') && {
-      key: 'new-segment',
-      icon: <FontAwesomeIcon icon={faFilter} size="sm" style={{ opacity: 0.7 }} />,
-      label: (
-        <Link to="/workspace/$workspaceId/new-segment" params={{ workspaceId }}>
-          Segment Builder
         </Link>
       )
     },

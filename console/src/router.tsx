@@ -15,7 +15,7 @@ import { BroadcastsPage } from './pages/BroadcastsPage'
 import { TransactionalNotificationsPage } from './pages/TransactionalNotificationsPage'
 import { LogsPage } from './pages/LogsPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
-import { NewSegmentPage } from './pages/NewSegmentPage'
+import { DebugSegmentPage } from './pages/DebugSegmentPage'
 import { createRouter } from '@tanstack/react-router'
 
 export interface ContactsSearch {
@@ -176,8 +176,8 @@ const workspaceAnalyticsRoute = createRoute({
 
 const workspaceNewSegmentRoute = createRoute({
   getParentRoute: () => workspaceRoute,
-  path: '/new-segment',
-  component: NewSegmentPage
+  path: '/debug-segment',
+  component: DebugSegmentPage
 })
 
 // Create the router

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { Space, Dropdown, Modal, Badge, Tag, Popover, message, Progress } from 'antd'
-import { deleteSegment, type Segment } from '../../services/api/segment'
+import { deleteSegment, rebuildSegment, type Segment } from '../../services/api/segment'
 import { taskApi } from '../../services/api/task'
 import ButtonUpsertSegment from '../segment/button_upsert'
 import numbro from 'numbro'
@@ -22,6 +22,7 @@ interface SegmentButtonProps {
   totalContacts?: number
   onToggle: () => void
   onDelete: (segmentId: string) => void
+  onRebuild: (segmentId: string) => void
 }
 
 function SegmentButton({
@@ -30,7 +31,8 @@ function SegmentButton({
   isSelected,
   totalContacts,
   onToggle,
-  onDelete
+  onDelete,
+  onRebuild
 }: SegmentButtonProps) {
   const queryClient = useQueryClient()
 
@@ -39,7 +41,7 @@ function SegmentButton({
     queryKey: ['segment-task', workspaceId, segment.id],
     queryFn: () => taskApi.findBySegmentId(workspaceId, segment.id),
     enabled: segment.status === 'building',
-    refetchInterval: segment.status === 'building' ? 3000 : false // Poll every 3 seconds when building
+    refetchInterval: segment.status === 'building' ? 15000 : false // Poll every 15 seconds when building
   })
 
   // Get status badge color and content for popover
@@ -120,6 +122,21 @@ function SegmentButton({
             )
           },
           {
+            key: 'rebuild',
+            label: 'Rebuild',
+            onClick: () => {
+              Modal.confirm({
+                title: 'Rebuild segment',
+                content: `Are you sure you want to rebuild "${segment.name}"? This will recalculate segment membership.`,
+                okText: 'Yes',
+                cancelText: 'No',
+                onOk: () => {
+                  onRebuild(segment.id)
+                }
+              })
+            }
+          },
+          {
             key: 'delete',
             label: <span style={{ color: '#ff4d4f' }}>Delete</span>,
             onClick: () => {
@@ -140,7 +157,9 @@ function SegmentButton({
     >
       <Space size="small">
         <Popover title={statusBadge.title} content={statusBadge.content}>
-          <Badge status={statusBadge.status as any} />
+          <span>
+            <Badge status={statusBadge.status as any} />
+          </span>
         </Popover>
         <Tag bordered={false} color={segment.color} style={{ margin: 0 }}>
           {segment.name}
@@ -185,6 +204,22 @@ export function SegmentsFilter({
     }
   })
 
+  // Rebuild segment mutation
+  const rebuildSegmentMutation = useMutation({
+    mutationFn: (segmentId: string) =>
+      rebuildSegment({
+        workspace_id: workspaceId,
+        segment_id: segmentId
+      }),
+    onSuccess: (data) => {
+      message.success(data.message || 'Segment rebuild started successfully')
+      queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
+    },
+    onError: (error: any) => {
+      message.error(error?.message || 'Failed to rebuild segment')
+    }
+  })
+
   return (
     <div className="flex items-center gap-2 mb-6">
       <div className="text-sm font-medium">Segments:</div>
@@ -201,6 +236,7 @@ export function SegmentsFilter({
               totalContacts={totalContacts}
               onToggle={() => onSegmentToggle(segment.id)}
               onDelete={(segmentId) => deleteSegmentMutation.mutate(segmentId)}
+              onRebuild={(segmentId) => rebuildSegmentMutation.mutate(segmentId)}
             />
           )
         })}

@@ -102,6 +102,19 @@ func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSe
 			"error":      err.Error(),
 			"segment_id": segment.ID,
 		}).Warn("Failed to create build task for segment (non-fatal)")
+	} else {
+		// Immediately trigger task execution after segment creation
+		go func() {
+			// Small delay to ensure transaction is committed
+			time.Sleep(100 * time.Millisecond)
+			if execErr := s.taskService.ExecutePendingTasks(context.Background(), 1); execErr != nil {
+				s.logger.WithFields(map[string]interface{}{
+					"segment_id": segment.ID,
+					"task_id":    task.ID,
+					"error":      execErr.Error(),
+				}).Error("Failed to trigger immediate task execution after segment creation")
+			}
+		}()
 	}
 
 	s.logger.WithFields(map[string]interface{}{
@@ -232,6 +245,19 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 				"error":      err.Error(),
 				"segment_id": existing.ID,
 			}).Warn("Failed to create rebuild task for segment (non-fatal)")
+		} else {
+			// Immediately trigger task execution after segment update
+			go func() {
+				// Small delay to ensure transaction is committed
+				time.Sleep(100 * time.Millisecond)
+				if execErr := s.taskService.ExecutePendingTasks(context.Background(), 1); execErr != nil {
+					s.logger.WithFields(map[string]interface{}{
+						"segment_id": existing.ID,
+						"task_id":    task.ID,
+						"error":      execErr.Error(),
+					}).Error("Failed to trigger immediate task execution after segment update")
+				}
+			}()
 		}
 
 		existing.Status = string(domain.SegmentStatusBuilding)
@@ -311,6 +337,19 @@ func (s *SegmentService) RebuildSegment(ctx context.Context, workspaceID, segmen
 	if err := s.taskService.CreateTask(ctx, workspaceID, task); err != nil {
 		return fmt.Errorf("failed to create rebuild task: %w", err)
 	}
+
+	// Immediately trigger task execution after segment rebuild
+	go func() {
+		// Small delay to ensure transaction is committed
+		time.Sleep(100 * time.Millisecond)
+		if execErr := s.taskService.ExecutePendingTasks(context.Background(), 1); execErr != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"segment_id": segmentID,
+				"task_id":    task.ID,
+				"error":      execErr.Error(),
+			}).Error("Failed to trigger immediate task execution after segment rebuild")
+		}
+	}()
 
 	s.logger.WithFields(map[string]interface{}{
 		"segment_id":   segmentID,
