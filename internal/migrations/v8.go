@@ -248,21 +248,13 @@ func (m *V8Migration) UpdateWorkspace(ctx context.Context, config *config.Config
 				IF OLD.custom_json_5 IS DISTINCT FROM NEW.custom_json_5 THEN changes_json := changes_json || jsonb_build_object('custom_json_5', jsonb_build_object('old', OLD.custom_json_5, 'new', NEW.custom_json_5)); END IF;
 				IF changes_json = '{}'::jsonb THEN RETURN NEW; END IF;
 			END IF;
-			IF TG_OP = 'INSERT' THEN
-				INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
-				VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.created_at);
-				-- Queue the contact for segment recomputation
-				INSERT INTO contact_segment_queue (email, queued_at)
-				VALUES (NEW.email, NEW.created_at)
-				ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
-			ELSE
-				INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
-				VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.updated_at);
-				-- Queue the contact for segment recomputation (only for actual changes)
-				INSERT INTO contact_segment_queue (email, queued_at)
-				VALUES (NEW.email, NEW.updated_at)
-				ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
-			END IF;
+		IF TG_OP = 'INSERT' THEN
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
+			VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.created_at);
+		ELSE
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
+			VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.updated_at);
+		END IF;
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;
@@ -378,6 +370,40 @@ func (m *V8Migration) UpdateWorkspace(ctx context.Context, config *config.Config
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to update track_webhook_event_changes function for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Contact timeline queue trigger function
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION queue_contact_for_segment_recomputation()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			-- Queue the contact for segment recomputation
+			INSERT INTO contact_segment_queue (email, queued_at)
+			VALUES (NEW.email, CURRENT_TIMESTAMP)
+			ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create queue_contact_for_segment_recomputation function for workspace %s: %w", workspace.ID, err)
+	}
+
+	// Create trigger on contact_timeline to queue contacts
+	_, err = db.ExecContext(ctx, `
+		DROP TRIGGER IF EXISTS contact_timeline_queue_trigger ON contact_timeline
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to drop contact_timeline_queue_trigger for workspace %s: %w", workspace.ID, err)
+	}
+
+	_, err = db.ExecContext(ctx, `
+		CREATE TRIGGER contact_timeline_queue_trigger 
+		AFTER INSERT ON contact_timeline 
+		FOR EACH ROW EXECUTE FUNCTION queue_contact_for_segment_recomputation()
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create contact_timeline_queue_trigger for workspace %s: %w", workspace.ID, err)
 	}
 
 	// Create segments table

@@ -335,21 +335,13 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				IF OLD.custom_json_5 IS DISTINCT FROM NEW.custom_json_5 THEN changes_json := changes_json || jsonb_build_object('custom_json_5', jsonb_build_object('old', OLD.custom_json_5, 'new', NEW.custom_json_5)); END IF;
 				IF changes_json = '{}'::jsonb THEN RETURN NEW; END IF;
 			END IF;
-			IF TG_OP = 'INSERT' THEN
-				INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
-				VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.created_at);
-				-- Queue the contact for segment recomputation
-				INSERT INTO contact_segment_queue (email, queued_at)
-				VALUES (NEW.email, NEW.created_at)
-				ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
-			ELSE
-				INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
-				VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.updated_at);
-				-- Queue the contact for segment recomputation (only for actual changes)
-				INSERT INTO contact_segment_queue (email, queued_at)
-				VALUES (NEW.email, NEW.updated_at)
-				ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
-			END IF;
+		IF TG_OP = 'INSERT' THEN
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
+			VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.created_at);
+		ELSE
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
+			VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.updated_at);
+		END IF;
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
@@ -469,6 +461,17 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
+		// Contact timeline queue trigger function
+		`CREATE OR REPLACE FUNCTION queue_contact_for_segment_recomputation()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			-- Queue the contact for segment recomputation
+			INSERT INTO contact_segment_queue (email, queued_at)
+			VALUES (NEW.email, CURRENT_TIMESTAMP)
+			ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;`,
 		// Create triggers
 		`DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts`,
 		`CREATE TRIGGER contact_changes_trigger AFTER INSERT OR UPDATE ON contacts FOR EACH ROW EXECUTE FUNCTION track_contact_changes()`,
@@ -480,6 +483,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TRIGGER webhook_event_changes_trigger AFTER INSERT ON webhook_events FOR EACH ROW EXECUTE FUNCTION track_webhook_event_changes()`,
 		`DROP TRIGGER IF EXISTS contact_segment_changes_trigger ON contact_segments`,
 		`CREATE TRIGGER contact_segment_changes_trigger AFTER INSERT OR DELETE ON contact_segments FOR EACH ROW EXECUTE FUNCTION track_contact_segment_changes()`,
+		`DROP TRIGGER IF EXISTS contact_timeline_queue_trigger ON contact_timeline`,
+		`CREATE TRIGGER contact_timeline_queue_trigger AFTER INSERT ON contact_timeline FOR EACH ROW EXECUTE FUNCTION queue_contact_for_segment_recomputation()`,
 	}
 
 	for _, query := range triggerQueries {
