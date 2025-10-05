@@ -37,38 +37,93 @@ func (p *ContactSegmentQueueTaskProcessor) CanProcess(taskType string) bool {
 
 // Process executes the contact segment queue processing task
 // This task is permanent and recurring - it always reschedules itself for the next run
+// It processes batches continuously until the timeout is reached
 func (p *ContactSegmentQueueTaskProcessor) Process(ctx context.Context, task *domain.Task, timeoutAt time.Time) (bool, error) {
 	p.logger.WithFields(map[string]interface{}{
 		"task_id":      task.ID,
 		"workspace_id": task.WorkspaceID,
 	}).Info("Processing contact segment queue")
 
-	// Process the queue for this workspace
-	if err := p.queueProcessor.ProcessQueue(ctx, task.WorkspaceID); err != nil {
-		p.logger.WithFields(map[string]interface{}{
-			"task_id":      task.ID,
-			"workspace_id": task.WorkspaceID,
-			"error":        err.Error(),
-		}).Error("Failed to process contact segment queue")
-		// Don't fail the task - just log the error and continue
-		// The task will retry on the next cron run
+	// Keep track of statistics
+	totalProcessed := 0
+	batchCount := 0
+	startTime := time.Now()
+
+	// Process batches until we're close to the timeout
+	// Leave 5 seconds buffer before timeout to ensure cleanup
+	bufferDuration := 5 * time.Second
+
+	for {
+		// Check if we're approaching the timeout
+		if time.Now().Add(bufferDuration).After(timeoutAt) {
+			p.logger.WithFields(map[string]interface{}{
+				"task_id":         task.ID,
+				"workspace_id":    task.WorkspaceID,
+				"batch_count":     batchCount,
+				"total_processed": totalProcessed,
+			}).Info("Approaching timeout, stopping queue processing")
+			break
+		}
+
+		// Check if context is done
+		if ctx.Err() != nil {
+			p.logger.WithFields(map[string]interface{}{
+				"task_id":      task.ID,
+				"workspace_id": task.WorkspaceID,
+				"error":        ctx.Err().Error(),
+			}).Info("Context cancelled, stopping queue processing")
+			break
+		}
+
+		// Process the queue for this workspace (one batch)
+		processedCount, err := p.queueProcessor.ProcessQueue(ctx, task.WorkspaceID)
+		if err != nil {
+			p.logger.WithFields(map[string]interface{}{
+				"task_id":      task.ID,
+				"workspace_id": task.WorkspaceID,
+				"error":        err.Error(),
+			}).Error("Failed to process contact segment queue batch")
+			// Don't fail the task - just log the error and continue to next batch
+		}
+
+		// Get queue size to check if we should continue
+		queueSize, err := p.queueProcessor.GetQueueSize(ctx, task.WorkspaceID)
+		if err != nil {
+			p.logger.WithFields(map[string]interface{}{
+				"task_id":      task.ID,
+				"workspace_id": task.WorkspaceID,
+				"error":        err.Error(),
+			}).Warn("Failed to get queue size")
+			// If we can't get queue size, stop processing to be safe
+			break
+		}
+
+		batchCount++
+		totalProcessed += processedCount
+
+		// If queue is empty, we're done
+		if queueSize == 0 {
+			p.logger.WithFields(map[string]interface{}{
+				"task_id":         task.ID,
+				"workspace_id":    task.WorkspaceID,
+				"batch_count":     batchCount,
+				"total_processed": totalProcessed,
+			}).Info("Queue is empty, stopping processing")
+			break
+		}
+
+		// Small delay between batches to avoid hammering the database
+		time.Sleep(100 * time.Millisecond)
 	}
 
-	// Get queue size for monitoring
-	queueSize, err := p.queueProcessor.GetQueueSize(ctx, task.WorkspaceID)
-	if err != nil {
-		p.logger.WithFields(map[string]interface{}{
-			"task_id":      task.ID,
-			"workspace_id": task.WorkspaceID,
-			"error":        err.Error(),
-		}).Warn("Failed to get queue size")
-	} else {
-		p.logger.WithFields(map[string]interface{}{
-			"task_id":      task.ID,
-			"workspace_id": task.WorkspaceID,
-			"queue_size":   queueSize,
-		}).Debug("Queue processing completed")
-	}
+	elapsed := time.Since(startTime)
+	p.logger.WithFields(map[string]interface{}{
+		"task_id":         task.ID,
+		"workspace_id":    task.WorkspaceID,
+		"batch_count":     batchCount,
+		"total_processed": totalProcessed,
+		"elapsed_seconds": elapsed.Seconds(),
+	}).Info("Queue processing session completed")
 
 	// This is a permanent recurring task - return false with progress to keep it as "pending"
 	// This allows it to be picked up again on the next cron run

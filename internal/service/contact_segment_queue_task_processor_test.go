@@ -112,29 +112,23 @@ func TestContactSegmentQueueTaskProcessor_Process_Success(t *testing.T) {
 		GetConnection(gomock.Any(), workspaceID).
 		Return(nil, errors.New("connection error"))
 
-	// Expect logging
+	// Expect logging for the initial info, error in ProcessQueue, and final info
 	mockLogger.EXPECT().
 		WithFields(gomock.Any()).
 		Return(mockLogger).
-		Times(2) // Info log + Error log
+		AnyTimes()
 
 	mockLogger.EXPECT().
-		Info(gomock.Any())
+		Info(gomock.Any()).
+		AnyTimes()
 
 	mockLogger.EXPECT().
 		Error(gomock.Any())
 
-	// Also expect GetQueueSize to be called
+	// GetQueueSize to be called - return 0 to stop the loop
 	mockQueueRepo.EXPECT().
 		GetQueueSize(gomock.Any(), workspaceID).
-		Return(10, nil)
-
-	mockLogger.EXPECT().
-		WithFields(gomock.Any()).
-		Return(mockLogger)
-
-	mockLogger.EXPECT().
-		Debug(gomock.Any())
+		Return(0, nil)
 
 	// Execute
 	completed, err := processor.Process(ctx, task, timeoutAt)
@@ -186,19 +180,20 @@ func TestContactSegmentQueueTaskProcessor_Process_QueueProcessorError(t *testing
 		GetConnection(gomock.Any(), workspaceID).
 		Return(nil, errors.New("database connection failed"))
 
-	// Expect logging
+	// Expect logging - use AnyTimes for flexibility
 	mockLogger.EXPECT().
 		WithFields(gomock.Any()).
 		Return(mockLogger).
-		Times(3) // Info + Error + GetQueueSize Warn
+		AnyTimes()
 
 	mockLogger.EXPECT().
-		Info(gomock.Any())
+		Info(gomock.Any()).
+		AnyTimes()
 
 	mockLogger.EXPECT().
 		Error(gomock.Any())
 
-	// GetQueueSize also fails
+	// GetQueueSize also fails - this causes the loop to exit
 	mockQueueRepo.EXPECT().
 		GetQueueSize(gomock.Any(), workspaceID).
 		Return(0, errors.New("queue size error"))
@@ -259,17 +254,22 @@ func TestContactSegmentQueueTaskProcessor_Process_GetQueueSizeError(t *testing.T
 	mockLogger.EXPECT().
 		WithFields(gomock.Any()).
 		Return(mockLogger).
-		Times(3) // Info + Error + Warn
+		AnyTimes()
 
-	mockLogger.EXPECT().Info(gomock.Any())
-	mockLogger.EXPECT().Error(gomock.Any())
+	mockLogger.EXPECT().
+		Info(gomock.Any()).
+		AnyTimes()
 
-	// GetQueueSize fails
+	mockLogger.EXPECT().
+		Error(gomock.Any())
+
+	// GetQueueSize fails - this causes the loop to exit
 	mockQueueRepo.EXPECT().
 		GetQueueSize(gomock.Any(), workspaceID).
 		Return(0, errors.New("failed to get queue size"))
 
-	mockLogger.EXPECT().Warn(gomock.Any())
+	mockLogger.EXPECT().
+		Warn(gomock.Any())
 
 	// Execute
 	completed, err := processor.Process(ctx, task, timeoutAt)

@@ -41,29 +41,30 @@ func NewContactSegmentQueueProcessor(
 
 // ProcessQueue processes pending contacts in the queue for segment recomputation
 // Uses a transaction to ensure row locks are held during processing
-func (p *ContactSegmentQueueProcessor) ProcessQueue(ctx context.Context, workspaceID string) error {
+// Returns the number of contacts successfully processed
+func (p *ContactSegmentQueueProcessor) ProcessQueue(ctx context.Context, workspaceID string) (int, error) {
 	// Get workspace DB connection
 	workspaceDB, err := p.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
-		return fmt.Errorf("failed to get workspace connection: %w", err)
+		return 0, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
 	// Start a transaction to hold locks during processing
 	tx, err := workspaceDB.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return 0, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback() // Rollback if not committed
 
 	// Get pending emails (locks them with FOR UPDATE SKIP LOCKED)
 	emails, err := p.getPendingEmailsInTx(ctx, tx, p.batchSize)
 	if err != nil {
-		return fmt.Errorf("failed to get pending emails: %w", err)
+		return 0, fmt.Errorf("failed to get pending emails: %w", err)
 	}
 
 	if len(emails) == 0 {
 		p.logger.WithField("workspace_id", workspaceID).Debug("No pending contacts to process")
-		return nil // Nothing to commit, just return
+		return 0, nil // Nothing to commit, just return
 	}
 
 	p.logger.WithFields(map[string]interface{}{
@@ -74,7 +75,7 @@ func (p *ContactSegmentQueueProcessor) ProcessQueue(ctx context.Context, workspa
 	// Get all active segments for this workspace
 	segments, err := p.segmentRepo.GetSegments(ctx, workspaceID, false)
 	if err != nil {
-		return fmt.Errorf("failed to get segments: %w", err)
+		return 0, fmt.Errorf("failed to get segments: %w", err)
 	}
 
 	// Filter for active segments only
@@ -90,9 +91,12 @@ func (p *ContactSegmentQueueProcessor) ProcessQueue(ctx context.Context, workspa
 		// Remove from queue since there are no segments to update
 		if err := p.removeBatchFromQueueInTx(ctx, tx, emails); err != nil {
 			p.logger.WithField("error", err.Error()).Warn("Failed to clear queue")
-			return err
+			return 0, err
 		}
-		return tx.Commit()
+		if err := tx.Commit(); err != nil {
+			return 0, err
+		}
+		return len(emails), nil
 	}
 
 	processedEmails := make([]string, 0, len(emails))
@@ -114,13 +118,13 @@ func (p *ContactSegmentQueueProcessor) ProcessQueue(ctx context.Context, workspa
 	if len(processedEmails) > 0 {
 		if err := p.removeBatchFromQueueInTx(ctx, tx, processedEmails); err != nil {
 			p.logger.WithField("error", err.Error()).Error("Failed to remove processed emails from queue")
-			return err
+			return 0, err
 		}
 	}
 
 	// Commit the transaction (releases locks)
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return 0, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	p.logger.WithFields(map[string]interface{}{
@@ -129,7 +133,7 @@ func (p *ContactSegmentQueueProcessor) ProcessQueue(ctx context.Context, workspa
 		"failed_count":    len(emails) - len(processedEmails),
 	}).Info("Completed processing contact segment queue")
 
-	return nil
+	return len(processedEmails), nil
 }
 
 // getPendingEmailsInTx gets pending emails within a transaction (with row locks)

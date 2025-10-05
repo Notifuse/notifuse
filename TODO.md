@@ -2,6 +2,7 @@
 
 - match segments in broadcast
 - implement daily segment recompute when having relative dates
+- when we have activity that matches a segment we should enqueue contact for segment queue
 
 ## Content
 

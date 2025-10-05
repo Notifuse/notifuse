@@ -65,8 +65,9 @@ func TestContactSegmentQueueProcessor_ProcessQueue_GetConnectionError(t *testing
 		GetConnection(ctx, "workspace1").
 		Return(nil, errors.New("connection failed"))
 
-	err := processor.ProcessQueue(ctx, "workspace1")
+	count, err := processor.ProcessQueue(ctx, "workspace1")
 	assert.Error(t, err)
+	assert.Equal(t, 0, count)
 	assert.Contains(t, err.Error(), "failed to get workspace connection")
 }
 
@@ -92,6 +93,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_BeginTxError(t *testing.T) {
 
 	// Create a mock DB that fails on BeginTx
 	db, mock, err := sqlmock.New()
+	var count int
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -101,8 +103,9 @@ func TestContactSegmentQueueProcessor_ProcessQueue_BeginTxError(t *testing.T) {
 		GetConnection(ctx, "workspace1").
 		Return(db, nil)
 
-	err = processor.ProcessQueue(ctx, "workspace1")
+	count, err = processor.ProcessQueue(ctx, "workspace1")
 	assert.Error(t, err)
+	assert.Equal(t, 0, count)
 	assert.Contains(t, err.Error(), "failed to begin transaction")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -132,6 +135,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_NoPendingContacts(t *testing.
 
 	// Create a mock DB
 	db, mock, err := sqlmock.New()
+	var count int
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -144,8 +148,9 @@ func TestContactSegmentQueueProcessor_ProcessQueue_NoPendingContacts(t *testing.
 		GetConnection(ctx, "workspace1").
 		Return(db, nil)
 
-	err = processor.ProcessQueue(ctx, "workspace1")
+	count, err = processor.ProcessQueue(ctx, "workspace1")
 	assert.NoError(t, err)
+	assert.Equal(t, 0, count)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -175,6 +180,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_GetSegmentsError(t *testing.T
 
 	// Create a mock DB
 	db, mock, err := sqlmock.New()
+	var count int
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -191,8 +197,9 @@ func TestContactSegmentQueueProcessor_ProcessQueue_GetSegmentsError(t *testing.T
 		GetSegments(ctx, "workspace1", false).
 		Return(nil, errors.New("db error"))
 
-	err = processor.ProcessQueue(ctx, "workspace1")
+	count, err = processor.ProcessQueue(ctx, "workspace1")
 	assert.Error(t, err)
+	assert.Equal(t, 0, count)
 	assert.Contains(t, err.Error(), "failed to get segments")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
@@ -224,6 +231,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_NoActiveSegments(t *testing.T
 
 	// Create a mock DB
 	db, mock, err := sqlmock.New()
+	var count int
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -241,8 +249,9 @@ func TestContactSegmentQueueProcessor_ProcessQueue_NoActiveSegments(t *testing.T
 		GetSegments(ctx, "workspace1", false).
 		Return([]*domain.Segment{}, nil)
 
-	err = processor.ProcessQueue(ctx, "workspace1")
+	count, err = processor.ProcessQueue(ctx, "workspace1")
 	assert.NoError(t, err)
+	assert.Equal(t, 1, count)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -274,6 +283,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_Success(t *testing.T) {
 
 	// Create a mock DB
 	db, mock, err := sqlmock.New()
+	var count int
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -313,8 +323,9 @@ func TestContactSegmentQueueProcessor_ProcessQueue_Success(t *testing.T) {
 		AddContactToSegment(ctx, "workspace1", "test@test.com", "segment1", int64(1)).
 		Return(nil)
 
-	err = processor.ProcessQueue(ctx, "workspace1")
+	count, err = processor.ProcessQueue(ctx, "workspace1")
 	assert.NoError(t, err)
+	assert.Equal(t, 1, count)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -345,6 +356,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_RemoveFromSegment(t *testing.
 
 	// Create a mock DB
 	db, mock, err := sqlmock.New()
+	var count int
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -384,8 +396,9 @@ func TestContactSegmentQueueProcessor_ProcessQueue_RemoveFromSegment(t *testing.
 		RemoveContactFromSegment(ctx, "workspace1", "test@test.com", "segment1").
 		Return(nil)
 
-	err = processor.ProcessQueue(ctx, "workspace1")
+	count, err = processor.ProcessQueue(ctx, "workspace1")
 	assert.NoError(t, err)
+	assert.Equal(t, 1, count)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -417,6 +430,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_RemoveBatchError(t *testing.T
 
 	// Create a mock DB
 	db, mock, err := sqlmock.New()
+	var count int
 	assert.NoError(t, err)
 	defer db.Close()
 
@@ -453,8 +467,9 @@ func TestContactSegmentQueueProcessor_ProcessQueue_RemoveBatchError(t *testing.T
 		AddContactToSegment(ctx, "workspace1", "test@test.com", "segment1", int64(1)).
 		Return(nil)
 
-	err = processor.ProcessQueue(ctx, "workspace1")
+	count, err = processor.ProcessQueue(ctx, "workspace1")
 	assert.Error(t, err)
+	assert.Equal(t, 0, count)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
