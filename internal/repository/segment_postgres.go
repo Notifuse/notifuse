@@ -404,20 +404,19 @@ func (r *segmentRepository) GetSegmentContactCount(ctx context.Context, workspac
 }
 
 // PreviewSegment executes a segment query and returns the count of matching contacts
-func (r *segmentRepository) PreviewSegment(ctx context.Context, workspaceID string, sqlQuery string, args []interface{}) (int, error) {
+func (r *segmentRepository) PreviewSegment(ctx context.Context, workspaceID string, sqlQuery string, args []interface{}, limit int) (int, error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return 0, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	// Wrap the segment query in a COUNT query
+	// Get the total count (emails not fetched for privacy/performance)
 	countQuery := fmt.Sprintf("SELECT COUNT(*) FROM (%s) AS segment_results", sqlQuery)
-
 	var totalCount int
 	err = workspaceDB.QueryRowContext(ctx, countQuery, args...).Scan(&totalCount)
 	if err != nil {
-		return 0, fmt.Errorf("failed to execute preview query: %w", err)
+		return 0, fmt.Errorf("failed to execute preview count query: %w", err)
 	}
 
 	return totalCount, nil

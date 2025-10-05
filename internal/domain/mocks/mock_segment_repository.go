@@ -138,18 +138,18 @@ func (mr *MockSegmentRepositoryMockRecorder) GetSegments(arg0, arg1, arg2 interf
 }
 
 // PreviewSegment mocks base method.
-func (m *MockSegmentRepository) PreviewSegment(arg0 context.Context, arg1, arg2 string, arg3 []interface{}) (int, error) {
+func (m *MockSegmentRepository) PreviewSegment(arg0 context.Context, arg1, arg2 string, arg3 []interface{}, arg4 int) (int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PreviewSegment", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "PreviewSegment", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(int)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // PreviewSegment indicates an expected call of PreviewSegment.
-func (mr *MockSegmentRepositoryMockRecorder) PreviewSegment(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockSegmentRepositoryMockRecorder) PreviewSegment(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreviewSegment", reflect.TypeOf((*MockSegmentRepository)(nil).PreviewSegment), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PreviewSegment", reflect.TypeOf((*MockSegmentRepository)(nil).PreviewSegment), arg0, arg1, arg2, arg3, arg4)
 }
 
 // RemoveContactFromSegment mocks base method.

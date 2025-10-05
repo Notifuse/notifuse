@@ -732,14 +732,14 @@ func TestSegmentRepository_PreviewSegment(t *testing.T) {
 	t.Run("successful preview with count", func(t *testing.T) {
 		testQuery := "SELECT email FROM contacts WHERE status = $1"
 		testArgs := []interface{}{"active"}
+		limit := 10
 
-		rows := sqlmock.NewRows([]string{"count"}).AddRow(150)
-
+		countRows := sqlmock.NewRows([]string{"count"}).AddRow(150)
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM (SELECT email FROM contacts WHERE status = $1) AS segment_results`)).
 			WithArgs("active").
-			WillReturnRows(rows)
+			WillReturnRows(countRows)
 
-		count, err := repo.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs)
+		count, err := repo.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs, limit)
 		require.NoError(t, err)
 		assert.Equal(t, 150, count)
 	})
@@ -747,14 +747,14 @@ func TestSegmentRepository_PreviewSegment(t *testing.T) {
 	t.Run("successful preview with zero count", func(t *testing.T) {
 		testQuery := "SELECT email FROM contacts WHERE status = $1"
 		testArgs := []interface{}{"inactive"}
+		limit := 10
 
-		rows := sqlmock.NewRows([]string{"count"}).AddRow(0)
-
+		countRows := sqlmock.NewRows([]string{"count"}).AddRow(0)
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM (SELECT email FROM contacts WHERE status = $1) AS segment_results`)).
 			WithArgs("inactive").
-			WillReturnRows(rows)
+			WillReturnRows(countRows)
 
-		count, err := repo.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs)
+		count, err := repo.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs, limit)
 		require.NoError(t, err)
 		assert.Equal(t, 0, count)
 	})
@@ -768,8 +768,9 @@ func TestSegmentRepository_PreviewSegment(t *testing.T) {
 
 		testQuery := "SELECT email FROM contacts"
 		testArgs := []interface{}{}
+		limit := 10
 
-		count, err := repo2.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs)
+		count, err := repo2.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs, limit)
 		require.Error(t, err)
 		assert.Equal(t, 0, count)
 		assert.Contains(t, err.Error(), "failed to get workspace connection")
@@ -778,14 +779,15 @@ func TestSegmentRepository_PreviewSegment(t *testing.T) {
 	t.Run("database query error", func(t *testing.T) {
 		testQuery := "SELECT email FROM contacts WHERE status = $1"
 		testArgs := []interface{}{"active"}
+		limit := 10
 
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*) FROM (SELECT email FROM contacts WHERE status = $1) AS segment_results`)).
 			WithArgs("active").
 			WillReturnError(errors.New("database error"))
 
-		count, err := repo.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs)
+		count, err := repo.PreviewSegment(context.Background(), "workspace123", testQuery, testArgs, limit)
 		require.Error(t, err)
 		assert.Equal(t, 0, count)
-		assert.Contains(t, err.Error(), "failed to execute preview query")
+		assert.Contains(t, err.Error(), "failed to execute preview count query")
 	})
 }

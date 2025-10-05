@@ -383,7 +383,7 @@ func (s *SegmentService) PreviewSegment(ctx context.Context, workspaceID string,
 	}).Debug("Preview segment SQL generated")
 
 	// Get count using repository method
-	totalCount, err := s.segmentRepo.PreviewSegment(ctx, workspaceID, sqlQuery, args)
+	totalCount, err := s.segmentRepo.PreviewSegment(ctx, workspaceID, sqlQuery, args, limit)
 	if err != nil {
 		return nil, fmt.Errorf("failed to preview segment: %w", err)
 	}

@@ -238,15 +238,10 @@ func testSegmentPreview(t *testing.T, client *testutil.APIClient, factory *testu
 		emails := result["emails"].([]interface{})
 		totalCount := int(result["total_count"].(float64))
 
-		// Should find at least 5 premium contacts
-		assert.True(t, len(emails) >= 5, "Expected at least 5 emails in preview")
+		// Emails should not be returned for privacy/performance reasons
+		assert.Empty(t, emails, "Emails should not be returned in preview")
+		// Should find at least 5 premium contacts in the count
 		assert.True(t, totalCount >= 5, "Expected total count of at least 5")
-
-		// Verify emails match the pattern
-		for _, email := range emails {
-			emailStr := email.(string)
-			assert.Contains(t, emailStr, "premium-", "Preview should only return premium contacts")
-		}
 	})
 }
 
@@ -376,13 +371,8 @@ func testComplexSegmentTree(t *testing.T, client *testutil.APIClient, factory *t
 
 		// Should match 5 contacts (3 US VIP + 2 CA VIP)
 		assert.Equal(t, 5, totalCount, "Expected exactly 5 matching contacts")
-		assert.Equal(t, 5, len(emails), "Expected 5 emails in preview")
-
-		// Verify only VIP emails are returned
-		for _, email := range emails {
-			emailStr := email.(string)
-			assert.Contains(t, emailStr, "vip", "Should only return VIP contacts")
-		}
+		// Emails should not be returned for privacy/performance reasons
+		assert.Empty(t, emails, "Emails should not be returned in preview")
 	})
 }
 
@@ -463,13 +453,8 @@ func testSegmentWithContactLists(t *testing.T, client *testutil.APIClient, facto
 
 		// Should find 5 newsletter subscribers
 		assert.Equal(t, 5, totalCount, "Expected 5 newsletter subscribers")
-		assert.Equal(t, 5, len(emails), "Expected 5 emails in preview")
-
-		// Verify only newsletter contacts are returned
-		for _, email := range emails {
-			emailStr := email.(string)
-			assert.Contains(t, emailStr, "newsletter-", "Should only return newsletter contacts")
-		}
+		// Emails should not be returned for privacy/performance reasons
+		assert.Empty(t, emails, "Emails should not be returned in preview")
 	})
 }
 
@@ -549,16 +534,8 @@ func testSegmentWithContactTimeline(t *testing.T, client *testutil.APIClient, fa
 
 		// Should find 2 active users
 		assert.Equal(t, 2, totalCount, "Expected 2 active users")
-		assert.Equal(t, 2, len(emails), "Expected 2 emails in preview")
-
-		// Verify correct contacts are returned
-		emailMap := make(map[string]bool)
-		for _, email := range emails {
-			emailMap[email.(string)] = true
-		}
-		assert.True(t, emailMap["active-user-1@example.com"], "Should include active-user-1")
-		assert.True(t, emailMap["active-user-2@example.com"], "Should include active-user-2")
-		assert.False(t, emailMap["inactive-user@example.com"], "Should not include inactive user")
+		// Emails should not be returned for privacy/performance reasons
+		assert.Empty(t, emails, "Emails should not be returned in preview")
 	})
 }
 

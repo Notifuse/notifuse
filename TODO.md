@@ -1,6 +1,7 @@
 # TODO
 
 - match segments in broadcast
+- implement daily segment recompute when having relative dates
 
 ## Content
 

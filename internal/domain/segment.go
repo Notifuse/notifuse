@@ -440,7 +440,7 @@ type SegmentRepository interface {
 	GetSegmentContactCount(ctx context.Context, workspaceID string, segmentID string) (int, error)
 
 	// PreviewSegment executes a segment query and returns the count of matching contacts
-	PreviewSegment(ctx context.Context, workspaceID string, sqlQuery string, args []interface{}) (int, error)
+	PreviewSegment(ctx context.Context, workspaceID string, sqlQuery string, args []interface{}, limit int) (int, error)
 }
 
 // ErrSegmentNotFound is returned when a segment is not found

@@ -799,7 +799,7 @@ func TestSegmentService_PreviewSegment(t *testing.T) {
 		tree := createTestTree()
 
 		mockRepo.EXPECT().
-			PreviewSegment(ctx, "workspace123", gomock.Any(), gomock.Any()).
+			PreviewSegment(ctx, "workspace123", gomock.Any(), gomock.Any(), 10).
 			Return(42, nil)
 
 		response, err := service.PreviewSegment(ctx, "workspace123", tree, 10)
@@ -807,7 +807,7 @@ func TestSegmentService_PreviewSegment(t *testing.T) {
 		assert.NotNil(t, response)
 		assert.Equal(t, 42, response.TotalCount)
 		assert.Equal(t, 10, response.Limit)
-		assert.Empty(t, response.Emails)
+		assert.Empty(t, response.Emails) // Emails not returned for privacy/performance
 		assert.NotEmpty(t, response.GeneratedSQL)
 	})
 
@@ -815,7 +815,7 @@ func TestSegmentService_PreviewSegment(t *testing.T) {
 		tree := createTestTree()
 
 		mockRepo.EXPECT().
-			PreviewSegment(ctx, "workspace123", gomock.Any(), gomock.Any()).
+			PreviewSegment(ctx, "workspace123", gomock.Any(), gomock.Any(), 10).
 			Return(0, nil)
 
 		response, err := service.PreviewSegment(ctx, "workspace123", tree, 10)
@@ -870,7 +870,7 @@ func TestSegmentService_PreviewSegment(t *testing.T) {
 		tree := createTestTree()
 
 		mockRepo.EXPECT().
-			PreviewSegment(ctx, "workspace123", gomock.Any(), gomock.Any()).
+			PreviewSegment(ctx, "workspace123", gomock.Any(), gomock.Any(), 10).
 			Return(0, errors.New("preview failed"))
 
 		response, err := service.PreviewSegment(ctx, "workspace123", tree, 10)
@@ -883,7 +883,7 @@ func TestSegmentService_PreviewSegment(t *testing.T) {
 		tree := createTestTree()
 
 		mockRepo.EXPECT().
-			PreviewSegment(ctx, "workspace123", gomock.Any(), gomock.Any()).
+			PreviewSegment(ctx, "workspace123", gomock.Any(), gomock.Any(), 20).
 			Return(10, nil)
 
 		// Test with invalid limit (0) - should default to 20
@@ -897,7 +897,7 @@ func TestSegmentService_PreviewSegment(t *testing.T) {
 		tree := createTestTree()
 
 		mockRepo.EXPECT().
-			PreviewSegment(ctx, "workspace123", gomock.Any(), gomock.Any()).
+			PreviewSegment(ctx, "workspace123", gomock.Any(), gomock.Any(), 20).
 			Return(10, nil)
 
 		// Test with limit > 100 - should default to 20
