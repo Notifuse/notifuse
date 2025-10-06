@@ -632,16 +632,16 @@ This migration significantly improves the self-hosting experience while maintain
 #### 1.3 Setup Handler
 
 - [ ] Create `internal/http/setup_handler.go`
-- [ ] Implement `GET /api/setup.status` endpoint
-- [ ] Implement `POST /api/setup.initialize` endpoint
+- [ ] Implement `GET /api/setup.status` public endpoint (no auth)
+- [ ] Implement `GET /api/setup.pasetoKeys` public endpoint to return newly generated PASETO keys in base64 format
+- [ ] Implement `POST /api/setup.initialize` public endpoint and nothing if already installed (204 No Content)
 - [ ] Add request validation (email formats, required fields)
-- [ ] Implement PASETO key generation logic
+- [ ] Implement PASETO key encryption/decryption with SECRET_KEY
 - [ ] Implement API_ENDPOINT auto-detection from Host header
 - [ ] Add check to reject setup if already installed
 - [ ] Implement root user creation during setup
 - [ ] Generate auth token for immediate login
 - [ ] Add optional SMTP connection test helper
-- [ ] Add rate limiting for setup endpoints
 - [ ] Create `internal/http/setup_handler_test.go`
 - [ ] Add unit tests for status endpoint
 - [ ] Add unit tests for initialize endpoint
@@ -658,7 +658,6 @@ This migration significantly improves the self-hosting experience while maintain
 
 - [ ] Update `internal/app/app.go` to check `cfg.IsInstalled`
 - [ ] Add log message when setup wizard is required
-- [ ] Update middleware to skip auth for `/api/setup.*` endpoints
 - [ ] Update `cmd/api/main.go` if needed
 - [ ] Test application startup with `is_installed=false`
 - [ ] Test application startup with `is_installed=true`
