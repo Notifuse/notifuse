@@ -3,11 +3,11 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"fmt"
-	"time"
-
 	"encoding/base64"
+	"encoding/json"
+	"fmt"
 	"strings"
+	"time"
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -26,6 +26,56 @@ func NewMessageHistoryRepository(workspaceRepo domain.WorkspaceRepository) *Mess
 	}
 }
 
+// scanMessage scans a message history row including attachments
+func scanMessage(scanner interface {
+	Scan(dest ...interface{}) error
+}, message *domain.MessageHistory) error {
+	var attachmentsJSON []byte
+	err := scanner.Scan(
+		&message.ID,
+		&message.ExternalID,
+		&message.ContactEmail,
+		&message.BroadcastID,
+		&message.TemplateID,
+		&message.TemplateVersion,
+		&message.Channel,
+		&message.StatusInfo,
+		&message.MessageData,
+		&attachmentsJSON,
+		&message.SentAt,
+		&message.DeliveredAt,
+		&message.FailedAt,
+		&message.OpenedAt,
+		&message.ClickedAt,
+		&message.BouncedAt,
+		&message.ComplainedAt,
+		&message.UnsubscribedAt,
+		&message.CreatedAt,
+		&message.UpdatedAt,
+	)
+
+	if err != nil {
+		return err
+	}
+
+	// Unmarshal attachments if present
+	if len(attachmentsJSON) > 0 {
+		if err := json.Unmarshal(attachmentsJSON, &message.Attachments); err != nil {
+			return fmt.Errorf("failed to unmarshal attachments: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// messageHistorySelectFields returns the common SELECT fields for message history queries
+func messageHistorySelectFields() string {
+	return `id, external_id, contact_email, broadcast_id, template_id, template_version, 
+			channel, status_info, message_data, attachments, sent_at, delivered_at, 
+			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
+			unsubscribed_at, created_at, updated_at`
+}
+
 // Create adds a new message history record
 func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID string, message *domain.MessageHistory) error {
 	// Get the workspace database connection
@@ -34,17 +84,23 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
+	// Serialize attachments to JSON for storage
+	var attachmentsJSON interface{}
+	if len(message.Attachments) > 0 {
+		attachmentsJSON = message.Attachments
+	}
+
 	query := `
 		INSERT INTO message_history (
 			id, external_id, contact_email, broadcast_id, template_id, template_version, 
-			channel, status_info, message_data, sent_at, delivered_at, 
+			channel, status_info, message_data, attachments, sent_at, delivered_at, 
 			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
 			unsubscribed_at, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, 
-			$7, LEFT($8, 255), $9, $10, $11, 
-			$12, $13, $14, $15, $16, 
-			$17, $18, $19
+			$7, LEFT($8, 255), $9, $10, $11, $12, 
+			$13, $14, $15, $16, $17, 
+			$18, $19, $20
 		)
 	`
 
@@ -60,6 +116,7 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 		message.Channel,
 		message.StatusInfo,
 		message.MessageData,
+		attachmentsJSON,
 		message.SentAt,
 		message.DeliveredAt,
 		message.FailedAt,
@@ -87,6 +144,12 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
+	// Serialize attachments to JSON for storage
+	var attachmentsJSON interface{}
+	if len(message.Attachments) > 0 {
+		attachmentsJSON = message.Attachments
+	}
+
 	query := `
 		UPDATE message_history SET
 			external_id = $2,
@@ -97,15 +160,16 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 			channel = $7,
 			status_info = LEFT($8, 255),
 			message_data = $9,
-			sent_at = $10,
-			delivered_at = $11,
-			failed_at = $12,
-			opened_at = $13,	
-			clicked_at = $14,
-			bounced_at = $15,
-			complained_at = $16,
-			unsubscribed_at = $17,
-			updated_at = $18
+			attachments = $10,
+			sent_at = $11,
+			delivered_at = $12,
+			failed_at = $13,
+			opened_at = $14,	
+			clicked_at = $15,
+			bounced_at = $16,
+			complained_at = $17,
+			unsubscribed_at = $18,
+			updated_at = $19
 		WHERE id = $1
 	`
 
@@ -121,6 +185,7 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 		message.Channel,
 		message.StatusInfo,
 		message.MessageData,
+		attachmentsJSON,
 		message.SentAt,
 		message.DeliveredAt,
 		message.FailedAt,
@@ -147,38 +212,10 @@ func (r *MessageHistoryRepository) Get(ctx context.Context, workspaceID, id stri
 		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	query := `
-		SELECT 
-			id, external_id, contact_email, broadcast_id, template_id, template_version, 
-			channel, status_info, message_data, sent_at, delivered_at, 
-			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
-			unsubscribed_at, created_at, updated_at
-		FROM message_history
-		WHERE id = $1
-	`
+	query := fmt.Sprintf(`SELECT %s FROM message_history WHERE id = $1`, messageHistorySelectFields())
 
 	var message domain.MessageHistory
-	err = workspaceDB.QueryRowContext(ctx, query, id).Scan(
-		&message.ID,
-		&message.ExternalID,
-		&message.ContactEmail,
-		&message.BroadcastID,
-		&message.TemplateID,
-		&message.TemplateVersion,
-		&message.Channel,
-		&message.StatusInfo,
-		&message.MessageData,
-		&message.SentAt,
-		&message.DeliveredAt,
-		&message.FailedAt,
-		&message.OpenedAt,
-		&message.ClickedAt,
-		&message.BouncedAt,
-		&message.ComplainedAt,
-		&message.UnsubscribedAt,
-		&message.CreatedAt,
-		&message.UpdatedAt,
-	)
+	err = scanMessage(workspaceDB.QueryRowContext(ctx, query, id), &message)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -198,38 +235,10 @@ func (r *MessageHistoryRepository) GetByExternalID(ctx context.Context, workspac
 		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	query := `
-		SELECT 
-			id, external_id, contact_email, broadcast_id, template_id, template_version, 
-			channel, status_info, message_data, sent_at, delivered_at, 
-			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
-			unsubscribed_at, created_at, updated_at
-		FROM message_history
-		WHERE external_id = $1
-	`
+	query := fmt.Sprintf(`SELECT %s FROM message_history WHERE external_id = $1`, messageHistorySelectFields())
 
 	var message domain.MessageHistory
-	err = workspaceDB.QueryRowContext(ctx, query, externalID).Scan(
-		&message.ID,
-		&message.ExternalID,
-		&message.ContactEmail,
-		&message.BroadcastID,
-		&message.TemplateID,
-		&message.TemplateVersion,
-		&message.Channel,
-		&message.StatusInfo,
-		&message.MessageData,
-		&message.SentAt,
-		&message.DeliveredAt,
-		&message.FailedAt,
-		&message.OpenedAt,
-		&message.ClickedAt,
-		&message.BouncedAt,
-		&message.ComplainedAt,
-		&message.UnsubscribedAt,
-		&message.CreatedAt,
-		&message.UpdatedAt,
-	)
+	err = scanMessage(workspaceDB.QueryRowContext(ctx, query, externalID), &message)
 
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -265,17 +274,13 @@ func (r *MessageHistoryRepository) GetByContact(ctx context.Context, workspaceID
 		offset = 0
 	}
 
-	query := `
-		SELECT 
-			id, external_id, contact_email, broadcast_id, template_id, template_version, 
-			channel, status_info, message_data, sent_at, delivered_at, 
-			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
-			unsubscribed_at, created_at, updated_at
+	query := fmt.Sprintf(`
+		SELECT %s
 		FROM message_history
 		WHERE contact_email = $1
 		ORDER BY sent_at DESC
 		LIMIT $2 OFFSET $3
-	`
+	`, messageHistorySelectFields())
 
 	rows, err := workspaceDB.QueryContext(ctx, query, contactEmail, limit, offset)
 	if err != nil {
@@ -286,28 +291,7 @@ func (r *MessageHistoryRepository) GetByContact(ctx context.Context, workspaceID
 	var messages []*domain.MessageHistory
 	for rows.Next() {
 		var message domain.MessageHistory
-		err := rows.Scan(
-			&message.ID,
-			&message.ExternalID,
-			&message.ContactEmail,
-			&message.BroadcastID,
-			&message.TemplateID,
-			&message.TemplateVersion,
-			&message.Channel,
-			&message.StatusInfo,
-			&message.MessageData,
-			&message.SentAt,
-			&message.DeliveredAt,
-			&message.FailedAt,
-			&message.OpenedAt,
-			&message.ClickedAt,
-			&message.BouncedAt,
-			&message.ComplainedAt,
-			&message.UnsubscribedAt,
-			&message.CreatedAt,
-			&message.UpdatedAt,
-		)
-		if err != nil {
+		if err := scanMessage(rows, &message); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan message history: %w", err)
 		}
 		messages = append(messages, &message)
@@ -344,17 +328,13 @@ func (r *MessageHistoryRepository) GetByBroadcast(ctx context.Context, workspace
 		offset = 0
 	}
 
-	query := `
-		SELECT 
-			id, external_id, contact_email, broadcast_id, template_id, template_version, 
-			channel, status_info, message_data, sent_at, delivered_at, 
-			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
-			unsubscribed_at, created_at, updated_at
+	query := fmt.Sprintf(`
+		SELECT %s
 		FROM message_history
 		WHERE broadcast_id = $1
 		ORDER BY sent_at DESC
 		LIMIT $2 OFFSET $3
-	`
+	`, messageHistorySelectFields())
 
 	rows, err := workspaceDB.QueryContext(ctx, query, broadcastID, limit, offset)
 	if err != nil {
@@ -365,28 +345,7 @@ func (r *MessageHistoryRepository) GetByBroadcast(ctx context.Context, workspace
 	var messages []*domain.MessageHistory
 	for rows.Next() {
 		var message domain.MessageHistory
-		err := rows.Scan(
-			&message.ID,
-			&message.ExternalID,
-			&message.ContactEmail,
-			&message.BroadcastID,
-			&message.TemplateID,
-			&message.TemplateVersion,
-			&message.Channel,
-			&message.StatusInfo,
-			&message.MessageData,
-			&message.SentAt,
-			&message.DeliveredAt,
-			&message.FailedAt,
-			&message.OpenedAt,
-			&message.ClickedAt,
-			&message.BouncedAt,
-			&message.ComplainedAt,
-			&message.UnsubscribedAt,
-			&message.CreatedAt,
-			&message.UpdatedAt,
-		)
-		if err != nil {
+		if err := scanMessage(rows, &message); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan message history: %w", err)
 		}
 		messages = append(messages, &message)
@@ -576,7 +535,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	queryBuilder := psql.Select(
 		"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
-		"channel", "status_info", "message_data", "sent_at", "delivered_at",
+		"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 		"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 		"unsubscribed_at", "created_at", "updated_at",
 	).From("message_history")
@@ -755,11 +714,12 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 		var externalID sql.NullString
 		var broadcastID sql.NullString
 		var statusInfo sql.NullString
+		var attachmentsJSON []byte
 		var deliveredAt, failedAt, openedAt, clickedAt, bouncedAt, complainedAt, unsubscribedAt sql.NullTime
 
 		err := rows.Scan(
 			&message.ID, &externalID, &message.ContactEmail, &broadcastID, &message.TemplateID, &message.TemplateVersion,
-			&message.Channel, &statusInfo, &message.MessageData,
+			&message.Channel, &statusInfo, &message.MessageData, &attachmentsJSON,
 			&message.SentAt, &deliveredAt, &failedAt, &openedAt,
 			&clickedAt, &bouncedAt, &complainedAt, &unsubscribedAt,
 			&message.CreatedAt, &message.UpdatedAt,
@@ -811,6 +771,16 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 
 		if unsubscribedAt.Valid {
 			message.UnsubscribedAt = &unsubscribedAt.Time
+		}
+
+		// Unmarshal attachments if present
+		if len(attachmentsJSON) > 0 {
+			if err := json.Unmarshal(attachmentsJSON, &message.Attachments); err != nil {
+				// codecov:ignore:start
+				tracing.MarkSpanError(ctx, err)
+				// codecov:ignore:end
+				return nil, "", fmt.Errorf("failed to unmarshal attachments: %w", err)
+			}
 		}
 
 		messages = append(messages, message)

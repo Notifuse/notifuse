@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Modal, Button, Input, Select, Typography, Form, App } from 'antd'
+import { Modal, Button, Input, Select, Typography, Form, App, Upload, Space, Tag } from 'antd'
+import { UploadOutlined, DeleteOutlined } from '@ant-design/icons'
 import { Workspace, Template, Integration } from '../../services/api/types'
-import { transactionalNotificationsApi } from '../../services/api/transactional_notifications'
+import {
+  transactionalNotificationsApi,
+  Attachment
+} from '../../services/api/transactional_notifications'
 import { emailProviders } from '../integrations/EmailProviders'
 
 const { Text } = Typography
@@ -31,6 +35,7 @@ export default function SendTemplateModal({
   const [ccEmails, setCcEmails] = useState<string[]>([])
   const [bccEmails, setBccEmails] = useState<string[]>([])
   const [replyTo, setReplyTo] = useState<string>('')
+  const [attachments, setAttachments] = useState<Attachment[]>([])
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
   const [form] = Form.useForm()
   const { message } = App.useApp()
@@ -68,6 +73,7 @@ export default function SendTemplateModal({
       setCcEmails([])
       setBccEmails([])
       setReplyTo('')
+      setAttachments([])
       setShowAdvancedOptions(false)
       form.resetFields()
     }
@@ -87,7 +93,8 @@ export default function SendTemplateModal({
         {
           cc: ccEmails,
           bcc: bccEmails,
-          reply_to: replyTo
+          reply_to: replyTo,
+          attachments: attachments.length > 0 ? attachments : undefined
         }
       )
 
@@ -106,6 +113,91 @@ export default function SendTemplateModal({
     } finally {
       setSendLoading(false)
     }
+  }
+
+  // Convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = () => {
+        const base64 = reader.result as string
+        // Remove the data URL prefix (e.g., "data:image/png;base64,")
+        const base64Content = base64.split(',')[1]
+        resolve(base64Content)
+      }
+      reader.onerror = (error) => reject(error)
+    })
+  }
+
+  // Handle file upload
+  const handleFileUpload = async (file: File) => {
+    try {
+      // Check file size (3MB limit per file)
+      const maxSize = 3 * 1024 * 1024
+      if (file.size > maxSize) {
+        message.error(`File ${file.name} exceeds 3MB limit`)
+        return false
+      }
+
+      // Use functional form to get current state for validation
+      let shouldAbort = false
+      setAttachments((currentAttachments) => {
+        // Check total attachments size (10MB total)
+        const totalSize = currentAttachments.reduce((sum, att) => {
+          // Approximate size from base64 (base64 is ~4/3 of original size)
+          return sum + (att.content.length * 3) / 4
+        }, 0)
+
+        if (totalSize + file.size > 10 * 1024 * 1024) {
+          message.error('Total attachments size exceeds 10MB limit')
+          shouldAbort = true
+          return currentAttachments
+        }
+
+        // Check maximum number of attachments
+        if (currentAttachments.length >= 20) {
+          message.error('Maximum 20 attachments allowed')
+          shouldAbort = true
+          return currentAttachments
+        }
+
+        return currentAttachments
+      })
+
+      if (shouldAbort) {
+        return false
+      }
+
+      const base64Content = await fileToBase64(file)
+
+      const newAttachment: Attachment = {
+        filename: file.name,
+        content: base64Content,
+        content_type: file.type || 'application/octet-stream',
+        disposition: 'attachment'
+      }
+
+      // Use functional form to ensure we're working with the latest state
+      setAttachments((prev) => [...prev, newAttachment])
+      message.success(`File ${file.name} added`)
+      return false // Prevent default upload behavior
+    } catch (error) {
+      message.error(`Failed to process file ${file.name}`)
+      return false
+    }
+  }
+
+  // Remove attachment
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  // Format file size for display
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return `${bytes} B`
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
   }
 
   const renderIntegrationOption = (integration: Integration) => {
@@ -193,7 +285,7 @@ export default function SendTemplateModal({
 
           {!showAdvancedOptions && (
             <Button type="link" onClick={() => setShowAdvancedOptions(true)} className="!p-0">
-              + add CC, BCC, reply-to
+              + add CC, BCC, reply-to, attachments
             </Button>
           )}
 
@@ -228,6 +320,43 @@ export default function SendTemplateModal({
                   onChange={(e) => setReplyTo(e.target.value)}
                   allowClear
                 />
+              </Form.Item>
+
+              <Form.Item label="Attachments">
+                <Upload beforeUpload={handleFileUpload} showUploadList={false} multiple>
+                  <Button icon={<UploadOutlined />} disabled={attachments.length >= 20}>
+                    Upload Files
+                  </Button>
+                </Upload>
+                <Text type="secondary" className="text-xs mt-1 block">
+                  Max 3MB per file, 10MB total, 20 files maximum
+                </Text>
+                {attachments.length > 0 && (
+                  <Space direction="vertical" className="mt-2 w-full">
+                    {attachments.map((att, index) => {
+                      // Calculate approximate file size from base64
+                      const sizeBytes = (att.content.length * 3) / 4
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center justify-between p-2 border border-gray-200 rounded"
+                        >
+                          <Space>
+                            <Text>{att.filename}</Text>
+                            <Tag>{formatFileSize(sizeBytes)}</Tag>
+                          </Space>
+                          <Button
+                            type="text"
+                            danger
+                            size="small"
+                            icon={<DeleteOutlined />}
+                            onClick={() => removeAttachment(index)}
+                          />
+                        </div>
+                      )
+                    })}
+                  </Space>
+                )}
               </Form.Item>
             </>
           )}

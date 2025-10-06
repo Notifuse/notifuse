@@ -2179,3 +2179,644 @@ func TestSendEmail_VerifyEmailStructure(t *testing.T) {
 
 	assert.NoError(t, err)
 }
+
+// Test SendEmail - with single attachment
+func TestSendEmail_WithSingleAttachment(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	// Create a simple text attachment (base64 encoded "Hello World")
+	attachments := []domain.Attachment{
+		{
+			Filename:    "test.txt",
+			Content:     "SGVsbG8gV29ybGQ=", // "Hello World" in base64
+			ContentType: "text/plain",
+			Disposition: "attachment",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			// Verify raw message is not nil
+			assert.NotNil(t, input.RawMessage)
+			assert.NotNil(t, input.RawMessage.Data)
+
+			// Verify the raw message contains attachment references
+			rawData := string(input.RawMessage.Data)
+			assert.Contains(t, rawData, "test.txt")
+			assert.Contains(t, rawData, "text/plain")
+			assert.Contains(t, rawData, "Content-Disposition: attachment")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "Content",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// Test SendEmail - with multiple attachments
+func TestSendEmail_WithMultipleAttachments(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "document.pdf",
+			Content:     "JVBERi0xLjQKJeLjz9M=", // PDF header in base64
+			ContentType: "application/pdf",
+			Disposition: "attachment",
+		},
+		{
+			Filename:    "image.png",
+			Content:     "iVBORw0KGgo=", // PNG header in base64
+			ContentType: "image/png",
+			Disposition: "attachment",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			assert.NotNil(t, input.RawMessage)
+			rawData := string(input.RawMessage.Data)
+
+			// Verify both attachments are present
+			assert.Contains(t, rawData, "document.pdf")
+			assert.Contains(t, rawData, "application/pdf")
+			assert.Contains(t, rawData, "image.png")
+			assert.Contains(t, rawData, "image/png")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "<html><body>Email with attachments</body></html>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// Test SendEmail - with inline attachment
+func TestSendEmail_WithInlineAttachment(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "logo.png",
+			Content:     "iVBORw0KGgo=",
+			ContentType: "image/png",
+			Disposition: "inline",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			assert.NotNil(t, input.RawMessage)
+			rawData := string(input.RawMessage.Data)
+
+			// Verify inline disposition and Content-ID (note: canonicalized as Content-Id)
+			assert.Contains(t, rawData, "logo.png")
+			assert.Contains(t, rawData, "Content-Disposition: inline")
+			assert.Contains(t, rawData, "Content-Id: <logo.png>")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "<html><body><img src=\"cid:logo.png\"/></body></html>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// Test SendEmail - with attachment without content type (auto-detect)
+func TestSendEmail_WithAttachmentNoContentType(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "data.bin",
+			Content:     "SGVsbG8=",
+			ContentType: "", // Empty, should default to application/octet-stream
+			Disposition: "attachment",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			assert.NotNil(t, input.RawMessage)
+			rawData := string(input.RawMessage.Data)
+
+			// Verify default content type is set
+			assert.Contains(t, rawData, "application/octet-stream")
+			assert.Contains(t, rawData, "data.bin")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "Content",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// Test SendEmail - with attachment decode error
+func TestSendEmail_WithAttachmentDecodeError(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	// Invalid base64 content
+	attachments := []domain.Attachment{
+		{
+			Filename:    "test.txt",
+			Content:     "not-valid-base64!!!",
+			ContentType: "text/plain",
+			Disposition: "attachment",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "Content",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decode content")
+}
+
+// Test SendEmail - with attachments and CC/BCC
+func TestSendEmail_WithAttachmentsAndCCBCC(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "report.pdf",
+			Content:     "JVBERi0xLjQ=",
+			ContentType: "application/pdf",
+			Disposition: "attachment",
+		},
+	}
+
+	cc := []string{"cc@example.com"}
+	bcc := []string{"bcc@example.com"}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			assert.NotNil(t, input.RawMessage)
+			rawData := string(input.RawMessage.Data)
+
+			// Verify CC is in headers (but not BCC for privacy)
+			assert.Contains(t, rawData, "Cc: cc@example.com")
+			assert.NotContains(t, rawData, "Bcc:")
+
+			// Verify BCC is in destinations
+			assert.Len(t, input.Destinations, 2) // to + bcc
+			destinations := make([]string, len(input.Destinations))
+			for i, dest := range input.Destinations {
+				destinations[i] = *dest
+			}
+			assert.Contains(t, destinations, "to@example.com")
+			assert.Contains(t, destinations, "bcc@example.com")
+
+			// Verify attachment
+			assert.Contains(t, rawData, "report.pdf")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "Content",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			CC:          cc,
+			BCC:         bcc,
+			Attachments: attachments,
+		},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// Test SendEmail - with attachments and ReplyTo
+func TestSendEmail_WithAttachmentsAndReplyTo(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "file.txt",
+			Content:     "SGVsbG8=",
+			ContentType: "text/plain",
+			Disposition: "attachment",
+		},
+	}
+
+	replyTo := "reply@example.com"
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			assert.NotNil(t, input.RawMessage)
+			rawData := string(input.RawMessage.Data)
+
+			// Verify Reply-To header
+			assert.Contains(t, rawData, fmt.Sprintf("Reply-To: %s", replyTo))
+
+			// Verify attachment
+			assert.Contains(t, rawData, "file.txt")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "Content",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			ReplyTo:     replyTo,
+			Attachments: attachments,
+		},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// Test SendEmail - with attachments and configuration set
+func TestSendEmail_WithAttachmentsAndConfigSet(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	integrationID := "test-integration"
+	configSetName := fmt.Sprintf("notifuse-%s", integrationID)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "doc.pdf",
+			Content:     "JVBERi0=",
+			ContentType: "application/pdf",
+			Disposition: "attachment",
+		},
+	}
+
+	// Mock configuration set exists
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{
+			ConfigurationSets: []*ses.ConfigurationSet{
+				{Name: aws.String(configSetName)},
+			},
+		}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			// Verify configuration set is included
+			assert.NotNil(t, input.ConfigurationSetName)
+			assert.Equal(t, configSetName, *input.ConfigurationSetName)
+
+			// Verify attachment
+			rawData := string(input.RawMessage.Data)
+			assert.Contains(t, rawData, "doc.pdf")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: integrationID,
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "Content",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// Test SendEmail - with attachments, AWS SendRawEmail error
+func TestSendEmail_WithAttachmentsAWSError(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "test.txt",
+			Content:     "SGVsbG8=",
+			ContentType: "text/plain",
+			Disposition: "attachment",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	awsErr := awserr.New("MessageRejected", "Message too large", nil)
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		Return(nil, awsErr)
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "Content",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "SES error")
+	assert.Contains(t, err.Error(), "MessageRejected")
+}
+
+// Test SendEmail - with attachments, generic error
+func TestSendEmail_WithAttachmentsGenericError(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "test.txt",
+			Content:     "SGVsbG8=",
+			ContentType: "text/plain",
+			Disposition: "attachment",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		Return(nil, errors.New("network error"))
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "Content",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to send raw email")
+}
+
+// Test SendEmail - verify MIME structure with attachments
+func TestSendEmail_VerifyMIMEStructureWithAttachments(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "test.txt",
+			Content:     "SGVsbG8gV29ybGQ=", // "Hello World"
+			ContentType: "text/plain",
+			Disposition: "attachment",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			assert.NotNil(t, input.RawMessage)
+			rawData := string(input.RawMessage.Data)
+
+			// Verify MIME headers
+			assert.Contains(t, rawData, "MIME-Version: 1.0")
+			assert.Contains(t, rawData, "Content-Type: multipart/mixed")
+			assert.Contains(t, rawData, "From: From <from@example.com>")
+			assert.Contains(t, rawData, "To: to@example.com")
+			assert.Contains(t, rawData, "Subject: Test Subject")
+			assert.Contains(t, rawData, "X-Message-ID: test-message-id")
+
+			// Verify HTML body part
+			assert.Contains(t, rawData, "Content-Type: text/html; charset=UTF-8")
+			assert.Contains(t, rawData, "<html><body>Test</body></html>")
+
+			// Verify attachment part
+			assert.Contains(t, rawData, "Content-Type: text/plain")
+			assert.Contains(t, rawData, "Content-Transfer-Encoding: base64")
+			assert.Contains(t, rawData, "Content-Disposition: attachment; filename=\"test.txt\"")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "test-message-id",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Test Subject",
+		Content:       "<html><body>Test</body></html>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}

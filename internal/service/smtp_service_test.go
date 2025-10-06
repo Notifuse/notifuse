@@ -1167,3 +1167,529 @@ func TestDefaultGoMailFactory_CreateClient_Signature(t *testing.T) {
 	factoryType := fmt.Sprintf("%T", factory.CreateClient)
 	assert.Equal(t, "func(string, int, string, string, bool) (*mail.Client, error)", factoryType)
 }
+
+func TestSMTPService_SendEmail_WithAttachments(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create mock logger
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	// Test data
+	ctx := context.Background()
+	messageID := "test-message-id"
+	workspaceID := "workspace-123"
+	fromAddress := "sender@example.com"
+	fromName := "Test Sender"
+	to := "recipient@example.com"
+	subject := "Test Subject"
+	content := "<h1>Test Email</h1><p>This is a test email with attachments.</p>"
+
+	// Create valid provider config
+	validProvider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "smtp.example.com",
+			Port:     587,
+			Username: "user@example.com",
+			Password: "password",
+			UseTLS:   true,
+		},
+		Senders: []domain.EmailSender{
+			domain.NewEmailSender("default@example.com", "Default Sender"),
+		},
+	}
+
+	// Helper function to create base64 content
+	createBase64Content := func(content string) string {
+		return "VGVzdCBmaWxlIGNvbnRlbnQ=" // "Test file content" in base64
+	}
+
+	t.Run("single attachment", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		attachment := domain.Attachment{
+			Filename:    "test.pdf",
+			Content:     createBase64Content("test content"),
+			ContentType: "application/pdf",
+			Disposition: "attachment",
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{attachment},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DialAndSend stage, but attachment processing should succeed
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to send email")
+	})
+
+	t.Run("multiple attachments", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		attachments := []domain.Attachment{
+			{
+				Filename:    "document.pdf",
+				Content:     createBase64Content("PDF content"),
+				ContentType: "application/pdf",
+				Disposition: "attachment",
+			},
+			{
+				Filename:    "image.png",
+				Content:     createBase64Content("PNG content"),
+				ContentType: "image/png",
+				Disposition: "attachment",
+			},
+			{
+				Filename:    "data.csv",
+				Content:     createBase64Content("CSV content"),
+				ContentType: "text/csv",
+				Disposition: "attachment",
+			},
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: attachments,
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DialAndSend stage, but attachment processing should succeed
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to send email")
+	})
+
+	t.Run("inline attachment", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		attachment := domain.Attachment{
+			Filename:    "logo.png",
+			Content:     createBase64Content("image content"),
+			ContentType: "image/png",
+			Disposition: "inline",
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{attachment},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DialAndSend stage, but attachment processing should succeed
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to send email")
+	})
+
+	t.Run("invalid base64 content in attachment", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		attachment := domain.Attachment{
+			Filename:    "test.pdf",
+			Content:     "not-valid-base64!@#$",
+			ContentType: "application/pdf",
+			Disposition: "attachment",
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{attachment},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DecodeContent stage
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to decode content")
+	})
+
+	t.Run("attachment without content type", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		attachment := domain.Attachment{
+			Filename:    "test.pdf",
+			Content:     createBase64Content("test content"),
+			ContentType: "", // No content type specified
+			Disposition: "attachment",
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{attachment},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DialAndSend stage, but attachment processing should succeed
+		// (content type is optional)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to send email")
+	})
+
+	t.Run("mixed inline and regular attachments", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		attachments := []domain.Attachment{
+			{
+				Filename:    "logo.png",
+				Content:     createBase64Content("logo content"),
+				ContentType: "image/png",
+				Disposition: "inline",
+			},
+			{
+				Filename:    "report.pdf",
+				Content:     createBase64Content("report content"),
+				ContentType: "application/pdf",
+				Disposition: "attachment",
+			},
+			{
+				Filename:    "banner.jpg",
+				Content:     createBase64Content("banner content"),
+				ContentType: "image/jpeg",
+				Disposition: "inline",
+			},
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: attachments,
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DialAndSend stage, but attachment processing should succeed
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to send email")
+	})
+
+	t.Run("email with attachments and CC/BCC/ReplyTo", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		attachment := domain.Attachment{
+			Filename:    "document.pdf",
+			Content:     createBase64Content("document content"),
+			ContentType: "application/pdf",
+			Disposition: "attachment",
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				CC:          []string{"cc@example.com"},
+				BCC:         []string{"bcc@example.com"},
+				ReplyTo:     "reply@example.com",
+				Attachments: []domain.Attachment{attachment},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DialAndSend stage, but all processing should succeed
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to send email")
+	})
+
+	t.Run("attachment with special characters in filename", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		attachment := domain.Attachment{
+			Filename:    "test-file_2024 (1).pdf",
+			Content:     createBase64Content("test content"),
+			ContentType: "application/pdf",
+			Disposition: "attachment",
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{attachment},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DialAndSend stage, but attachment processing should succeed
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to send email")
+	})
+
+	t.Run("no attachments", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{}, // Empty array
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DialAndSend stage, message composition should succeed
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to send email")
+	})
+
+	t.Run("empty base64 content", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		attachment := domain.Attachment{
+			Filename:    "empty.txt",
+			Content:     "", // Empty base64 content
+			ContentType: "text/plain",
+			Disposition: "attachment",
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{attachment},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DecodeContent stage (empty content is valid base64 but decodes to empty)
+		// The service should handle empty attachments gracefully
+		require.Error(t, err)
+		// Empty content will decode successfully (to empty bytes) but may fail at send stage
+	})
+}

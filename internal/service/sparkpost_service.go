@@ -793,11 +793,25 @@ func (s *SparkPostService) SendEmail(ctx context.Context, request domain.SendEma
 		Email string `json:"email"`
 	}
 
+	type Attachment struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+		Data string `json:"data"` // base64 encoded
+	}
+
+	type InlineImage struct {
+		Name string `json:"name"`
+		Type string `json:"type"`
+		Data string `json:"data"` // base64 encoded
+	}
+
 	type Content struct {
-		From    From   `json:"from"`
-		Subject string `json:"subject"`
-		ReplyTo string `json:"reply_to,omitempty"`
-		HTML    string `json:"html"`
+		From         From          `json:"from"`
+		Subject      string        `json:"subject"`
+		ReplyTo      string        `json:"reply_to,omitempty"`
+		HTML         string        `json:"html"`
+		Attachments  []Attachment  `json:"attachments,omitempty"`
+		InlineImages []InlineImage `json:"inline_images,omitempty"`
 	}
 
 	type EmailRequest struct {
@@ -861,6 +875,47 @@ func (s *SparkPostService) SendEmail(ctx context.Context, request domain.SendEma
 					Email: bccAddress,
 				},
 			})
+		}
+	}
+
+	// Add attachments if specified
+	// SparkPost has separate arrays for regular attachments and inline images
+	// Content limit: 20MB total for (text + html + attachments + inline images)
+	// https://developers.sparkpost.com/api/transmissions/#header-attachment-object
+	if len(request.EmailOptions.Attachments) > 0 {
+		for i, att := range request.EmailOptions.Attachments {
+			// Validate content can be decoded
+			content, err := att.DecodeContent()
+			if err != nil {
+				return fmt.Errorf("attachment %d: failed to decode content: %w", i, err)
+			}
+
+			contentType := att.ContentType
+			if contentType == "" {
+				contentType = "application/octet-stream"
+			}
+
+			// SparkPost handles inline images separately from regular attachments
+			if att.Disposition == "inline" {
+				// Use inline_images array for inline attachments
+				emailReq.Content.InlineImages = append(emailReq.Content.InlineImages, InlineImage{
+					Name: att.Filename,
+					Type: contentType,
+					Data: att.Content, // Already base64 encoded
+				})
+			} else {
+				// Regular attachments
+				emailReq.Content.Attachments = append(emailReq.Content.Attachments, Attachment{
+					Name: att.Filename,
+					Type: contentType,
+					Data: att.Content, // Already base64 encoded
+				})
+			}
+
+			// Log size for debugging (SparkPost has 20MB total content limit)
+			s.logger.WithField("attachment_size", len(content)).
+				WithField("filename", att.Filename).
+				Debug("Added attachment to SparkPost transmission")
 		}
 	}
 

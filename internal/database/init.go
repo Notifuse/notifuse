@@ -186,6 +186,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			channel VARCHAR(20) NOT NULL,
 			status_info VARCHAR(255),
 			message_data JSONB NOT NULL,
+			attachments JSONB,
 			sent_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			delivered_at TIMESTAMP WITH TIME ZONE,
 			failed_at TIMESTAMP WITH TIME ZONE,
@@ -275,6 +276,13 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			queued_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_contact_segment_queue_queued_at ON contact_segment_queue(queued_at ASC)`,
+		`CREATE TABLE IF NOT EXISTS message_attachments (
+			checksum VARCHAR(64) PRIMARY KEY,
+			content BYTEA NOT NULL,
+			content_type VARCHAR(255),
+			size_bytes BIGINT NOT NULL,
+			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
 	}
 
 	// Run all table creation queries

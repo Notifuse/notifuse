@@ -635,7 +635,7 @@ func TestMailgunService_SendEmail(t *testing.T) {
 	subject := "Test Subject"
 	content := "<p>Test Email Content</p>"
 
-	t.Run("successful email sending", func(t *testing.T) {
+	t.Run("successful email sending without attachments", func(t *testing.T) {
 		ctx := context.Background()
 
 		// Create provider config
@@ -672,7 +672,7 @@ func TestMailgunService_SendEmail(t *testing.T) {
 				assert.Equal(t, "api", username)
 				assert.Equal(t, provider.Mailgun.APIKey, password)
 
-				// Verify Content-Type header
+				// Verify Content-Type header is form-urlencoded (not multipart) when no attachments
 				assert.Equal(t, "application/x-www-form-urlencoded", req.Header.Get("Content-Type"))
 
 				// Read and verify form data
@@ -864,5 +864,426 @@ func TestMailgunService_SendEmail(t *testing.T) {
 		// Verify error handling
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "API returned non-OK status code 400")
+	})
+
+	t.Run("email with single attachment", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{
+				Domain: "example.com",
+				APIKey: "test-api-key",
+				Region: "US",
+			},
+		}
+
+		// Create a small PDF attachment (base64 encoded)
+		pdfContent := []byte("sample pdf content")
+		base64Content := "c2FtcGxlIHBkZiBjb250ZW50" // base64 of "sample pdf content"
+
+		// Mock successful response
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"id": "<message-id>", "message": "Queued. Thank you."}`)),
+		}
+
+		// Allow logger calls for attachment debugging
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		// Set expectation for HTTP request
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request
+				assert.Equal(t, "POST", req.Method)
+				assert.Equal(t, "https://api.mailgun.net/v3/example.com/messages", req.URL.String())
+
+				// Verify Content-Type is multipart/form-data
+				contentType := req.Header.Get("Content-Type")
+				assert.Contains(t, contentType, "multipart/form-data")
+
+				// Verify auth header
+				username, password, ok := req.BasicAuth()
+				assert.True(t, ok)
+				assert.Equal(t, "api", username)
+				assert.Equal(t, provider.Mailgun.APIKey, password)
+
+				// Read and verify form data contains attachment
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+				bodyStr := string(body)
+
+				// Check for basic fields
+				assert.Contains(t, bodyStr, "from")
+				assert.Contains(t, bodyStr, "to")
+				assert.Contains(t, bodyStr, "subject")
+				assert.Contains(t, bodyStr, "html")
+
+				// Check for attachment
+				assert.Contains(t, bodyStr, "filename=\"invoice.pdf\"")
+				assert.Contains(t, bodyStr, string(pdfContent))
+
+				return resp, nil
+			})
+
+		// Call the service with attachment
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     base64Content,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Verify results
+		require.NoError(t, err)
+	})
+
+	t.Run("email with multiple attachments", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{
+				Domain: "example.com",
+				APIKey: "test-api-key",
+				Region: "US",
+			},
+		}
+
+		// Create attachments (base64 encoded)
+		pdfContent := "c2FtcGxlIHBkZiBjb250ZW50"       // base64 of "sample pdf content"
+		imageContent := "c2FtcGxlIGltYWdlIGNvbnRlbnQ=" // base64 of "sample image content"
+
+		// Mock successful response
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"id": "<message-id>", "message": "Queued. Thank you."}`)),
+		}
+
+		// Allow logger calls for attachment debugging
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		// Set expectation for HTTP request
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify Content-Type is multipart/form-data
+				contentType := req.Header.Get("Content-Type")
+				assert.Contains(t, contentType, "multipart/form-data")
+
+				// Read and verify form data contains both attachments
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+				bodyStr := string(body)
+
+				// Check for both attachments
+				assert.Contains(t, bodyStr, "filename=\"invoice.pdf\"")
+				assert.Contains(t, bodyStr, "filename=\"logo.png\"")
+
+				return resp, nil
+			})
+
+		// Call the service with multiple attachments
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     pdfContent,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+					{
+						Filename:    "logo.png",
+						Content:     imageContent,
+						ContentType: "image/png",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Verify results
+		require.NoError(t, err)
+	})
+
+	t.Run("email with inline attachment", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{
+				Domain: "example.com",
+				APIKey: "test-api-key",
+				Region: "US",
+			},
+		}
+
+		// Create an inline image attachment
+		imageContent := "c2FtcGxlIGltYWdlIGNvbnRlbnQ=" // base64 of "sample image content"
+
+		// Mock successful response
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"id": "<message-id>", "message": "Queued. Thank you."}`)),
+		}
+
+		// Allow logger calls for attachment debugging
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		// Set expectation for HTTP request
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify Content-Type is multipart/form-data
+				contentType := req.Header.Get("Content-Type")
+				assert.Contains(t, contentType, "multipart/form-data")
+
+				// Read and verify form data
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+				bodyStr := string(body)
+
+				// Check for inline attachment
+				assert.Contains(t, bodyStr, "filename=\"logo.png\"")
+				// Verify it's marked as inline (Mailgun uses "inline" field name for inline attachments)
+				assert.Contains(t, bodyStr, "name=\"inline\"")
+
+				return resp, nil
+			})
+
+		// Call the service with inline attachment
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "logo.png",
+						Content:     imageContent,
+						ContentType: "image/png",
+						Disposition: "inline",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Verify results
+		require.NoError(t, err)
+	})
+
+	t.Run("email with attachments and CC/BCC", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{
+				Domain: "example.com",
+				APIKey: "test-api-key",
+				Region: "US",
+			},
+		}
+
+		// Create attachment
+		pdfContent := "c2FtcGxlIHBkZiBjb250ZW50" // base64 of "sample pdf content"
+
+		// Mock successful response
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(`{"id": "<message-id>", "message": "Queued. Thank you."}`)),
+		}
+
+		// Allow logger calls for attachment debugging
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		// Set expectation for HTTP request
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Read and verify form data
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+				bodyStr := string(body)
+
+				// Check for attachment
+				assert.Contains(t, bodyStr, "filename=\"invoice.pdf\"")
+
+				// Check for CC and BCC
+				assert.Contains(t, bodyStr, "cc1@example.com")
+				assert.Contains(t, bodyStr, "bcc1@example.com")
+
+				// Check for reply-to
+				assert.Contains(t, bodyStr, "reply@example.com")
+
+				return resp, nil
+			})
+
+		// Call the service with attachment and CC/BCC
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				CC:      []string{"cc1@example.com"},
+				BCC:     []string{"bcc1@example.com"},
+				ReplyTo: "reply@example.com",
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     pdfContent,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Verify results
+		require.NoError(t, err)
+	})
+
+	t.Run("email with attachment decode error", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{
+				Domain: "example.com",
+				APIKey: "test-api-key",
+				Region: "US",
+			},
+		}
+
+		// Call the service with invalid base64 content
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     "invalid-base64-content!!!",
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Verify error handling
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to decode content")
+	})
+
+	t.Run("email with attachment API error", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{
+				Domain: "example.com",
+				APIKey: "test-api-key",
+				Region: "US",
+			},
+		}
+
+		// Create attachment
+		pdfContent := "c2FtcGxlIHBkZiBjb250ZW50" // base64 of "sample pdf content"
+
+		// Mock error response
+		resp := &http.Response{
+			StatusCode: http.StatusRequestEntityTooLarge,
+			Body:       io.NopCloser(strings.NewReader(`{"message": "Attachment too large"}`)),
+		}
+
+		// Set expectation
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			Return(resp, nil)
+
+		// Allow any logger calls since we don't test logging
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		// Call the service
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     pdfContent,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Verify error handling
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "API returned non-OK status code 413")
 	})
 }

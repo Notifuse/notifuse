@@ -481,21 +481,36 @@ func (s *MailjetService) SendEmail(ctx context.Context, request domain.SendEmail
 		Name  string `json:"Name,omitempty"`
 	}
 
+	type MailjetAttachment struct {
+		ContentType   string `json:"ContentType"`
+		Filename      string `json:"Filename"`
+		Base64Content string `json:"Base64Content"`
+	}
+
+	type MailjetInlinedAttachment struct {
+		ContentType   string `json:"ContentType"`
+		Filename      string `json:"Filename"`
+		Base64Content string `json:"Base64Content"`
+		ContentID     string `json:"ContentID"` // For inline images, e.g., "logo.png"
+	}
+
 	type EmailMessage struct {
 		From struct {
 			Email string `json:"Email"`
 			Name  string `json:"Name,omitempty"`
 		} `json:"From"`
-		To               []EmailRecipient  `json:"To"`
-		Cc               []EmailRecipient  `json:"Cc,omitempty"`
-		Bcc              []EmailRecipient  `json:"Bcc,omitempty"`
-		Subject          string            `json:"Subject"`
-		HTMLPart         string            `json:"HTMLPart"`
-		CustomID         string            `json:"CustomID,omitempty"`
-		TextPart         string            `json:"TextPart,omitempty"`
-		TemplateID       int               `json:"TemplateID,omitempty"`
-		TemplateLanguage bool              `json:"TemplateLanguage,omitempty"`
-		Headers          map[string]string `json:"Headers,omitempty"`
+		To                 []EmailRecipient           `json:"To"`
+		Cc                 []EmailRecipient           `json:"Cc,omitempty"`
+		Bcc                []EmailRecipient           `json:"Bcc,omitempty"`
+		Subject            string                     `json:"Subject"`
+		HTMLPart           string                     `json:"HTMLPart"`
+		CustomID           string                     `json:"CustomID,omitempty"`
+		TextPart           string                     `json:"TextPart,omitempty"`
+		TemplateID         int                        `json:"TemplateID,omitempty"`
+		TemplateLanguage   bool                       `json:"TemplateLanguage,omitempty"`
+		Headers            map[string]string          `json:"Headers,omitempty"`
+		Attachments        []MailjetAttachment        `json:"Attachments,omitempty"`
+		InlinedAttachments []MailjetInlinedAttachment `json:"InlinedAttachments,omitempty"`
 	}
 
 	type EmailRequest struct {
@@ -548,6 +563,47 @@ func (s *MailjetService) SendEmail(ctx context.Context, request domain.SendEmail
 	// Add Reply-To if specified
 	if request.EmailOptions.ReplyTo != "" {
 		message.Headers["Reply-To"] = request.EmailOptions.ReplyTo
+	}
+
+	// Add attachments if specified
+	// Mailjet uses separate arrays for regular attachments and inline images
+	// https://dev.mailjet.com/email/guides/send-api-v31/#send-with-attached-files
+	if len(request.EmailOptions.Attachments) > 0 {
+		for i, att := range request.EmailOptions.Attachments {
+			content, err := att.DecodeContent()
+			if err != nil {
+				return fmt.Errorf("attachment %d: failed to decode content: %w", i, err)
+			}
+
+			contentType := att.ContentType
+			if contentType == "" {
+				contentType = "application/octet-stream"
+			}
+
+			// Mailjet uses InlinedAttachments for inline images
+			if att.Disposition == "inline" {
+				// For inline attachments, use InlinedAttachments array with ContentID
+				message.InlinedAttachments = append(message.InlinedAttachments, MailjetInlinedAttachment{
+					ContentType:   contentType,
+					Filename:      att.Filename,
+					Base64Content: att.Content,  // Already base64 encoded
+					ContentID:     att.Filename, // ContentID for referencing in HTML
+				})
+			} else {
+				// Regular attachments
+				message.Attachments = append(message.Attachments, MailjetAttachment{
+					ContentType:   contentType,
+					Filename:      att.Filename,
+					Base64Content: att.Content, // Already base64 encoded
+				})
+			}
+
+			// Log size for debugging
+			s.logger.WithField("attachment_size", len(content)).
+				WithField("filename", att.Filename).
+				WithField("disposition", att.Disposition).
+				Debug("Added attachment to Mailjet email")
+		}
 	}
 
 	// Set up the email payload

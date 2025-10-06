@@ -586,6 +586,52 @@ func (s *PostmarkService) SendEmail(ctx context.Context, request domain.SendEmai
 		requestBody["ReplyTo"] = request.EmailOptions.ReplyTo
 	}
 
+	// Add attachments if specified
+	// Postmark supports up to 50 MB payload size, including attachments
+	// https://postmarkapp.com/developer/api/email-api
+	if len(request.EmailOptions.Attachments) > 0 {
+		type PostmarkAttachment struct {
+			Name        string `json:"Name"`
+			Content     string `json:"Content"` // base64 encoded
+			ContentType string `json:"ContentType"`
+			ContentID   string `json:"ContentID,omitempty"` // For inline images, e.g., "cid:image.jpg"
+		}
+
+		var attachments []PostmarkAttachment
+		for i, att := range request.EmailOptions.Attachments {
+			content, err := att.DecodeContent()
+			if err != nil {
+				return fmt.Errorf("attachment %d: failed to decode content: %w", i, err)
+			}
+
+			contentType := att.ContentType
+			if contentType == "" {
+				contentType = "application/octet-stream"
+			}
+
+			attachment := PostmarkAttachment{
+				Name:        att.Filename,
+				Content:     att.Content, // Already base64 encoded
+				ContentType: contentType,
+			}
+
+			// For inline attachments, set ContentID for HTML references
+			// Postmark format: "cid:filename" for referencing in HTML as <img src="cid:filename">
+			if att.Disposition == "inline" {
+				attachment.ContentID = fmt.Sprintf("cid:%s", att.Filename)
+			}
+
+			attachments = append(attachments, attachment)
+
+			// Log size for debugging (Postmark has 50MB total payload limit)
+			s.logger.WithField("attachment_size", len(content)).
+				WithField("filename", att.Filename).
+				WithField("disposition", att.Disposition).
+				Debug("Added attachment to Postmark email")
+		}
+		requestBody["Attachments"] = attachments
+	}
+
 	// Convert to JSON
 	jsonBody, err := json.Marshal(requestBody)
 	if err != nil {

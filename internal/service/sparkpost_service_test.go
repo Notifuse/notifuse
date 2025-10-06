@@ -2171,6 +2171,7 @@ func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
 
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 
 	sparkPostService := service.NewSparkPostService(mockHTTPClient, mockAuthService, mockLogger)
@@ -2313,6 +2314,419 @@ func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
 			EmailOptions: domain.EmailOptions{
 				CC:  []string{""}, // Empty CC
 				BCC: []string{""}, // Empty BCC
+			},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("With Single Attachment", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		// Create a simple PDF attachment (base64 encoded "test content")
+		attachmentContent := "dGVzdCBjb250ZW50" // "test content" in base64
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify attachment is included
+				body, _ := io.ReadAll(req.Body)
+				var emailReq map[string]interface{}
+				json.Unmarshal(body, &emailReq)
+
+				content := emailReq["content"].(map[string]interface{})
+				attachments := content["attachments"].([]interface{})
+				assert.Len(t, attachments, 1)
+
+				att := attachments[0].(map[string]interface{})
+				assert.Equal(t, "invoice.pdf", att["name"])
+				assert.Equal(t, "application/pdf", att["type"])
+				assert.Equal(t, attachmentContent, att["data"])
+
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     attachmentContent,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("With Multiple Attachments", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify multiple attachments are included
+				body, _ := io.ReadAll(req.Body)
+				var emailReq map[string]interface{}
+				json.Unmarshal(body, &emailReq)
+
+				content := emailReq["content"].(map[string]interface{})
+				attachments := content["attachments"].([]interface{})
+				assert.Len(t, attachments, 3)
+
+				att1 := attachments[0].(map[string]interface{})
+				assert.Equal(t, "invoice.pdf", att1["name"])
+				assert.Equal(t, "application/pdf", att1["type"])
+
+				att2 := attachments[1].(map[string]interface{})
+				assert.Equal(t, "report.docx", att2["name"])
+				assert.Equal(t, "application/vnd.openxmlformats-officedocument.wordprocessingml.document", att2["type"])
+
+				att3 := attachments[2].(map[string]interface{})
+				assert.Equal(t, "data.csv", att3["name"])
+				assert.Equal(t, "text/csv", att3["type"])
+
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     "dGVzdCBjb250ZW50", // "test content" in base64
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+					{
+						Filename:    "report.docx",
+						Content:     "ZG9jdW1lbnQgY29udGVudA==", // "document content" in base64
+						ContentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+						Disposition: "attachment",
+					},
+					{
+						Filename:    "data.csv",
+						Content:     "Y3N2IGRhdGE=", // "csv data" in base64
+						ContentType: "text/csv",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("With Inline Image", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		imageContent := "aW1hZ2UgZGF0YQ==" // "image data" in base64
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify inline image is in inline_images array
+				body, _ := io.ReadAll(req.Body)
+				var emailReq map[string]interface{}
+				json.Unmarshal(body, &emailReq)
+
+				content := emailReq["content"].(map[string]interface{})
+
+				// Should have no regular attachments
+				attachments, hasAttachments := content["attachments"]
+				if hasAttachments {
+					assert.Len(t, attachments, 0)
+				}
+
+				// Should have inline image
+				inlineImages := content["inline_images"].([]interface{})
+				assert.Len(t, inlineImages, 1)
+
+				img := inlineImages[0].(map[string]interface{})
+				assert.Equal(t, "logo.png", img["name"])
+				assert.Equal(t, "image/png", img["type"])
+				assert.Equal(t, imageContent, img["data"])
+
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "logo.png",
+						Content:     imageContent,
+						ContentType: "image/png",
+						Disposition: "inline",
+					},
+				},
+			},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("With Mixed Attachments and Inline Images", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify both attachments and inline images
+				body, _ := io.ReadAll(req.Body)
+				var emailReq map[string]interface{}
+				json.Unmarshal(body, &emailReq)
+
+				content := emailReq["content"].(map[string]interface{})
+
+				// Should have 2 regular attachments
+				attachments := content["attachments"].([]interface{})
+				assert.Len(t, attachments, 2)
+
+				// Should have 1 inline image
+				inlineImages := content["inline_images"].([]interface{})
+				assert.Len(t, inlineImages, 1)
+
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     "dGVzdCBjb250ZW50",
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+					{
+						Filename:    "logo.png",
+						Content:     "aW1hZ2UgZGF0YQ==",
+						ContentType: "image/png",
+						Disposition: "inline",
+					},
+					{
+						Filename:    "report.docx",
+						Content:     "ZG9jdW1lbnQ=",
+						ContentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("Attachment with Missing ContentType", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify default content type is applied
+				body, _ := io.ReadAll(req.Body)
+				var emailReq map[string]interface{}
+				json.Unmarshal(body, &emailReq)
+
+				content := emailReq["content"].(map[string]interface{})
+				attachments := content["attachments"].([]interface{})
+				assert.Len(t, attachments, 1)
+
+				att := attachments[0].(map[string]interface{})
+				assert.Equal(t, "application/octet-stream", att["type"])
+
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "unknown.bin",
+						Content:     "dGVzdCBjb250ZW50",
+						ContentType: "", // Empty content type
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("Invalid Base64 Attachment Content", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invalid.pdf",
+						Content:     "not-valid-base64!!!",
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to decode content")
+	})
+
+	t.Run("Empty Attachments Array", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify no attachments or inline images in request
+				body, _ := io.ReadAll(req.Body)
+				var emailReq map[string]interface{}
+				json.Unmarshal(body, &emailReq)
+
+				content := emailReq["content"].(map[string]interface{})
+
+				// Attachments and inline_images should not be present or empty
+				attachments, hasAttachments := content["attachments"]
+				if hasAttachments {
+					assert.Empty(t, attachments)
+				}
+
+				inlineImages, hasInlineImages := content["inline_images"]
+				if hasInlineImages {
+					assert.Empty(t, inlineImages)
+				}
+
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{}, // Empty array
 			},
 		}
 		err := sparkPostService.SendEmail(ctx, request)

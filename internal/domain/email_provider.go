@@ -253,9 +253,10 @@ func (e *EmailProvider) DecryptSecretKeys(passphrase string) error {
 }
 
 type EmailOptions struct {
-	CC      []string
-	BCC     []string
-	ReplyTo string
+	CC          []string     `json:"cc,omitempty"`
+	BCC         []string     `json:"bcc,omitempty"`
+	ReplyTo     string       `json:"reply_to,omitempty"`
+	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
 // SendEmailProviderRequest encapsulates all parameters needed to send an email via a provider

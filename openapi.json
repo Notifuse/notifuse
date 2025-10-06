@@ -713,6 +713,22 @@
                 "format": "email",
                 "description": "Reply-To email address",
                 "example": "support@example.com"
+              },
+              "attachments": {
+                "type": "array",
+                "description": "Email attachments (max 20 files, 3MB per file, 10MB total)",
+                "items": {
+                  "$ref": "#/components/schemas/EmailAttachment"
+                },
+                "maxItems": 20,
+                "example": [
+                  {
+                    "filename": "invoice.pdf",
+                    "content": "JVBERi0xLjQKJeLjz9MKMy4uLg==",
+                    "content_type": "application/pdf",
+                    "disposition": "attachment"
+                  }
+                ]
               }
             }
           }
@@ -1254,6 +1270,36 @@
             "format": "email",
             "description": "Email address of the contact to delete",
             "example": "user@example.com"
+          }
+        }
+      },
+      "EmailAttachment": {
+        "type": "object",
+        "required": ["filename", "content"],
+        "properties": {
+          "filename": {
+            "type": "string",
+            "description": "Name of the file (max 255 characters, no path separators)",
+            "example": "invoice.pdf",
+            "maxLength": 255
+          },
+          "content": {
+            "type": "string",
+            "format": "byte",
+            "description": "Base64-encoded file content (max 3MB per file)",
+            "example": "JVBERi0xLjQKJeLjz9MKMy4uLg=="
+          },
+          "content_type": {
+            "type": "string",
+            "description": "MIME type of the file (auto-detected if not provided)",
+            "example": "application/pdf"
+          },
+          "disposition": {
+            "type": "string",
+            "enum": ["attachment", "inline"],
+            "description": "How the attachment should be displayed (defaults to 'attachment')",
+            "example": "attachment",
+            "default": "attachment"
           }
         }
       }

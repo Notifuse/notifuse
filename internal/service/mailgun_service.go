@@ -1,10 +1,12 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"mime/multipart"
 	"net/http"
 	"net/url"
 	"strings"
@@ -623,6 +625,19 @@ func (s *MailgunService) SendEmail(ctx context.Context, request domain.SendEmail
 	// Format the API URL
 	apiURL := fmt.Sprintf("%s/%s/messages", endpoint, request.Provider.Mailgun.Domain)
 
+	// If there are attachments, use multipart/form-data
+	// https://documentation.mailgun.com/docs/mailgun/api-reference/send/mailgun/messages/post-v3--domain-name--messages
+	// "Important: You must use multipart/form-data encoding for sending attachments"
+	if len(request.EmailOptions.Attachments) > 0 {
+		return s.sendEmailWithAttachments(ctx, apiURL, request)
+	}
+
+	// For emails without attachments, use application/x-www-form-urlencoded
+	return s.sendEmailSimple(ctx, apiURL, request)
+}
+
+// sendEmailSimple sends an email without attachments using application/x-www-form-urlencoded
+func (s *MailgunService) sendEmailSimple(ctx context.Context, apiURL string, request domain.SendEmailProviderRequest) error {
 	// Create the form data for the email
 	form := url.Values{}
 	form.Add("from", fmt.Sprintf("%s <%s>", request.FromName, request.FromAddress))
@@ -662,6 +677,120 @@ func (s *MailgunService) SendEmail(ctx context.Context, request domain.SendEmail
 	// Set basic auth header
 	req.SetBasicAuth("api", request.Provider.Mailgun.APIKey)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	// Send the request
+	resp, err := s.httpClient.Do(req)
+	if err != nil {
+		s.logger.Error(fmt.Sprintf("Failed to execute request for sending Mailgun email: %v", err))
+		return fmt.Errorf("failed to execute request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Check response
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		s.logger.Error(fmt.Sprintf("Mailgun API returned non-OK status code %d: %s", resp.StatusCode, string(body)))
+		return fmt.Errorf("API returned non-OK status code %d", resp.StatusCode)
+	}
+
+	return nil
+}
+
+// sendEmailWithAttachments sends an email with attachments using multipart/form-data
+func (s *MailgunService) sendEmailWithAttachments(ctx context.Context, apiURL string, request domain.SendEmailProviderRequest) error {
+	var buf bytes.Buffer
+	writer := multipart.NewWriter(&buf)
+
+	// Add basic fields
+	if err := writer.WriteField("from", fmt.Sprintf("%s <%s>", request.FromName, request.FromAddress)); err != nil {
+		return fmt.Errorf("failed to write from field: %w", err)
+	}
+	if err := writer.WriteField("to", request.To); err != nil {
+		return fmt.Errorf("failed to write to field: %w", err)
+	}
+	if err := writer.WriteField("subject", request.Subject); err != nil {
+		return fmt.Errorf("failed to write subject field: %w", err)
+	}
+	if err := writer.WriteField("html", request.Content); err != nil {
+		return fmt.Errorf("failed to write html field: %w", err)
+	}
+
+	// Add cc recipients if provided
+	for _, ccAddress := range request.EmailOptions.CC {
+		if ccAddress != "" {
+			if err := writer.WriteField("cc", ccAddress); err != nil {
+				return fmt.Errorf("failed to write cc field: %w", err)
+			}
+		}
+	}
+
+	// Add bcc recipients if provided
+	for _, bccAddress := range request.EmailOptions.BCC {
+		if bccAddress != "" {
+			if err := writer.WriteField("bcc", bccAddress); err != nil {
+				return fmt.Errorf("failed to write bcc field: %w", err)
+			}
+		}
+	}
+
+	// Add reply-to if provided
+	if request.EmailOptions.ReplyTo != "" {
+		if err := writer.WriteField("h:Reply-To", request.EmailOptions.ReplyTo); err != nil {
+			return fmt.Errorf("failed to write reply-to field: %w", err)
+		}
+	}
+
+	// Add messageID as a custom variable for tracking
+	if err := writer.WriteField("v:notifuse_message_id", request.MessageID); err != nil {
+		return fmt.Errorf("failed to write message id field: %w", err)
+	}
+
+	// Add attachments
+	for i, att := range request.EmailOptions.Attachments {
+		content, err := att.DecodeContent()
+		if err != nil {
+			return fmt.Errorf("attachment %d: failed to decode content: %w", i, err)
+		}
+
+		// Determine the field name based on disposition
+		fieldName := "attachment"
+		if att.Disposition == "inline" {
+			fieldName = "inline"
+		}
+
+		// Create form file
+		part, err := writer.CreateFormFile(fieldName, att.Filename)
+		if err != nil {
+			return fmt.Errorf("attachment %d: failed to create form file: %w", i, err)
+		}
+
+		// Write the file content
+		if _, err := part.Write(content); err != nil {
+			return fmt.Errorf("attachment %d: failed to write content: %w", i, err)
+		}
+
+		// Log size for debugging
+		s.logger.WithField("attachment_size", len(content)).
+			WithField("filename", att.Filename).
+			WithField("disposition", att.Disposition).
+			Debug("Added attachment to Mailgun email")
+	}
+
+	// Close the multipart writer
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// Create the request
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, apiURL, &buf)
+	if err != nil {
+		s.logger.Error(fmt.Sprintf("Failed to create request for sending Mailgun email: %v", err))
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set basic auth header
+	req.SetBasicAuth("api", request.Provider.Mailgun.APIKey)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	// Send the request
 	resp, err := s.httpClient.Do(req)

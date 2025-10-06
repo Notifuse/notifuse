@@ -252,12 +252,11 @@ func (s *TemplateService) CompileTemplate(ctx context.Context, payload domain.Co
 	// Check if this is a system call that should bypass authentication
 	if ctx.Value(domain.SystemCallKey) == nil {
 		// Check if user is already authenticated in context
-		if user := ctx.Value("authenticated_user"); user == nil {
+		if user := ctx.Value(domain.WorkspaceUserKey(payload.WorkspaceID)); user == nil {
 			// Authenticate user for workspace
-			var user *domain.User
 			var userWorkspace *domain.UserWorkspace
 			var err error
-			ctx, user, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, payload.WorkspaceID)
+			_, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, payload.WorkspaceID)
 			if err != nil {
 				// Return standard Go error for non-compilation issues
 				return nil, fmt.Errorf("failed to authenticate user: %w", err)
@@ -271,9 +270,6 @@ func (s *TemplateService) CompileTemplate(ctx context.Context, payload domain.Co
 					"Insufficient permissions: read access to templates required",
 				)
 			}
-
-			// Store user in context for future use
-			ctx = context.WithValue(ctx, "authenticated_user", user)
 		}
 	}
 

@@ -26,10 +26,18 @@ export interface TransactionalNotification {
   deleted_at?: string
 }
 
+export interface Attachment {
+  filename: string
+  content: string // base64 encoded
+  content_type?: string
+  disposition?: 'attachment' | 'inline'
+}
+
 export interface EmailOptions {
   reply_to?: string
   cc?: string[]
   bcc?: string[]
+  attachments?: Attachment[]
 }
 
 export interface CreateTransactionalNotificationRequest {

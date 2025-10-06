@@ -69,15 +69,16 @@ func (d *MessageData) Scan(value interface{}) error {
 
 // MessageHistory represents a record of a message sent to a contact
 type MessageHistory struct {
-	ID              string      `json:"id"`
-	ExternalID      *string     `json:"external_id,omitempty"` // For idempotency checks
-	ContactEmail    string      `json:"contact_email"`
-	BroadcastID     *string     `json:"broadcast_id,omitempty"`
-	TemplateID      string      `json:"template_id"`
-	TemplateVersion int64       `json:"template_version"`
-	Channel         string      `json:"channel"` // email, sms, push, etc.
-	StatusInfo      *string     `json:"status_info,omitempty"`
-	MessageData     MessageData `json:"message_data"`
+	ID              string                `json:"id"`
+	ExternalID      *string               `json:"external_id,omitempty"` // For idempotency checks
+	ContactEmail    string                `json:"contact_email"`
+	BroadcastID     *string               `json:"broadcast_id,omitempty"`
+	TemplateID      string                `json:"template_id"`
+	TemplateVersion int64                 `json:"template_version"`
+	Channel         string                `json:"channel"` // email, sms, push, etc.
+	StatusInfo      *string               `json:"status_info,omitempty"`
+	MessageData     MessageData           `json:"message_data"`
+	Attachments     []AttachmentMetadata  `json:"attachments,omitempty"`
 
 	// Event timestamps
 	SentAt         time.Time  `json:"sent_at"`

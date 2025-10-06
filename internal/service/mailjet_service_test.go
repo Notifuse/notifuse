@@ -620,4 +620,523 @@ func TestMailjetService_SendEmail(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "API returned non-OK status code 400")
 	})
+
+	t.Run("Successfully send email with single attachment", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailjet: &domain.MailjetSettings{
+				APIKey:    "test-api-key",
+				SecretKey: "test-secret-key",
+			},
+		}
+
+		// Create a simple PDF attachment (base64 encoded)
+		pdfContent := "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PmVuZG9iag=="
+
+		// Expected response from Mailjet API
+		expectedResponse := map[string]interface{}{
+			"Messages": []map[string]interface{}{
+				{
+					"Status": "success",
+					"To": []map[string]interface{}{
+						{
+							"Email":       to,
+							"MessageID":   "message-id-123",
+							"MessageUUID": "uuid-123",
+						},
+					},
+					"CustomID": messageID,
+				},
+			},
+		}
+
+		// Setup mock expectations
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request
+				assert.Equal(t, "POST", req.Method)
+				assert.Equal(t, "https://api.mailjet.com/v3.1/send", req.URL.String())
+
+				// Verify auth header
+				username, password, ok := req.BasicAuth()
+				assert.True(t, ok)
+				assert.Equal(t, provider.Mailjet.APIKey, username)
+				assert.Equal(t, provider.Mailjet.SecretKey, password)
+
+				// Verify request body
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+
+				var emailReq map[string]interface{}
+				err = json.Unmarshal(body, &emailReq)
+				require.NoError(t, err)
+
+				messages, ok := emailReq["Messages"].([]interface{})
+				assert.True(t, ok)
+				assert.Len(t, messages, 1)
+
+				message := messages[0].(map[string]interface{})
+
+				// Verify attachments array exists
+				attachments, ok := message["Attachments"].([]interface{})
+				assert.True(t, ok)
+				assert.Len(t, attachments, 1)
+
+				// Verify attachment details
+				attachment := attachments[0].(map[string]interface{})
+				assert.Equal(t, "invoice.pdf", attachment["Filename"])
+				assert.Equal(t, "application/pdf", attachment["ContentType"])
+				assert.Equal(t, pdfContent, attachment["Base64Content"])
+
+				return mockHTTPResponse(t, http.StatusOK, expectedResponse), nil
+			})
+
+		// Call the service method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     pdfContent,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Assertions
+		require.NoError(t, err)
+	})
+
+	t.Run("Successfully send email with multiple attachments", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailjet: &domain.MailjetSettings{
+				APIKey:    "test-api-key",
+				SecretKey: "test-secret-key",
+			},
+		}
+
+		// Create attachments
+		pdfContent := "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PmVuZG9iag=="
+		imageContent := "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
+		// Expected response from Mailjet API
+		expectedResponse := map[string]interface{}{
+			"Messages": []map[string]interface{}{
+				{
+					"Status": "success",
+					"To": []map[string]interface{}{
+						{
+							"Email":       to,
+							"MessageID":   "message-id-123",
+							"MessageUUID": "uuid-123",
+						},
+					},
+					"CustomID": messageID,
+				},
+			},
+		}
+
+		// Setup mock expectations
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request body
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+
+				var emailReq map[string]interface{}
+				err = json.Unmarshal(body, &emailReq)
+				require.NoError(t, err)
+
+				messages, ok := emailReq["Messages"].([]interface{})
+				assert.True(t, ok)
+				message := messages[0].(map[string]interface{})
+
+				// Verify attachments array has 2 attachments
+				attachments, ok := message["Attachments"].([]interface{})
+				assert.True(t, ok)
+				assert.Len(t, attachments, 2)
+
+				// Verify first attachment
+				att1 := attachments[0].(map[string]interface{})
+				assert.Equal(t, "invoice.pdf", att1["Filename"])
+				assert.Equal(t, "application/pdf", att1["ContentType"])
+
+				// Verify second attachment
+				att2 := attachments[1].(map[string]interface{})
+				assert.Equal(t, "image.png", att2["Filename"])
+				assert.Equal(t, "image/png", att2["ContentType"])
+
+				return mockHTTPResponse(t, http.StatusOK, expectedResponse), nil
+			})
+
+		// Call the service method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     pdfContent,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+					{
+						Filename:    "image.png",
+						Content:     imageContent,
+						ContentType: "image/png",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Assertions
+		require.NoError(t, err)
+	})
+
+	t.Run("Successfully send email with inline attachment", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailjet: &domain.MailjetSettings{
+				APIKey:    "test-api-key",
+				SecretKey: "test-secret-key",
+			},
+		}
+
+		// Create inline image
+		imageContent := "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
+		// Expected response from Mailjet API
+		expectedResponse := map[string]interface{}{
+			"Messages": []map[string]interface{}{
+				{
+					"Status": "success",
+					"To": []map[string]interface{}{
+						{
+							"Email":       to,
+							"MessageID":   "message-id-123",
+							"MessageUUID": "uuid-123",
+						},
+					},
+					"CustomID": messageID,
+				},
+			},
+		}
+
+		// Setup mock expectations
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request body
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+
+				var emailReq map[string]interface{}
+				err = json.Unmarshal(body, &emailReq)
+				require.NoError(t, err)
+
+				messages, ok := emailReq["Messages"].([]interface{})
+				assert.True(t, ok)
+				message := messages[0].(map[string]interface{})
+
+				// Verify InlinedAttachments array exists
+				inlinedAttachments, ok := message["InlinedAttachments"].([]interface{})
+				assert.True(t, ok)
+				assert.Len(t, inlinedAttachments, 1)
+
+				// Verify inline attachment details
+				inlineAtt := inlinedAttachments[0].(map[string]interface{})
+				assert.Equal(t, "logo.png", inlineAtt["Filename"])
+				assert.Equal(t, "image/png", inlineAtt["ContentType"])
+				assert.Equal(t, imageContent, inlineAtt["Base64Content"])
+				assert.Equal(t, "logo.png", inlineAtt["ContentID"])
+
+				return mockHTTPResponse(t, http.StatusOK, expectedResponse), nil
+			})
+
+		// Call the service method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "logo.png",
+						Content:     imageContent,
+						ContentType: "image/png",
+						Disposition: "inline",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Assertions
+		require.NoError(t, err)
+	})
+
+	t.Run("Successfully send email with both regular and inline attachments", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailjet: &domain.MailjetSettings{
+				APIKey:    "test-api-key",
+				SecretKey: "test-secret-key",
+			},
+		}
+
+		// Create attachments
+		pdfContent := "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PmVuZG9iag=="
+		imageContent := "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
+
+		// Expected response from Mailjet API
+		expectedResponse := map[string]interface{}{
+			"Messages": []map[string]interface{}{
+				{
+					"Status": "success",
+					"To": []map[string]interface{}{
+						{
+							"Email":       to,
+							"MessageID":   "message-id-123",
+							"MessageUUID": "uuid-123",
+						},
+					},
+					"CustomID": messageID,
+				},
+			},
+		}
+
+		// Setup mock expectations
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request body
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+
+				var emailReq map[string]interface{}
+				err = json.Unmarshal(body, &emailReq)
+				require.NoError(t, err)
+
+				messages, ok := emailReq["Messages"].([]interface{})
+				assert.True(t, ok)
+				message := messages[0].(map[string]interface{})
+
+				// Verify regular attachments
+				attachments, ok := message["Attachments"].([]interface{})
+				assert.True(t, ok)
+				assert.Len(t, attachments, 1)
+				att := attachments[0].(map[string]interface{})
+				assert.Equal(t, "invoice.pdf", att["Filename"])
+
+				// Verify inline attachments
+				inlinedAttachments, ok := message["InlinedAttachments"].([]interface{})
+				assert.True(t, ok)
+				assert.Len(t, inlinedAttachments, 1)
+				inlineAtt := inlinedAttachments[0].(map[string]interface{})
+				assert.Equal(t, "logo.png", inlineAtt["Filename"])
+				assert.Equal(t, "logo.png", inlineAtt["ContentID"])
+
+				return mockHTTPResponse(t, http.StatusOK, expectedResponse), nil
+			})
+
+		// Call the service method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     pdfContent,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+					{
+						Filename:    "logo.png",
+						Content:     imageContent,
+						ContentType: "image/png",
+						Disposition: "inline",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Assertions
+		require.NoError(t, err)
+	})
+
+	t.Run("Send email with invalid base64 attachment content", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailjet: &domain.MailjetSettings{
+				APIKey:    "test-api-key",
+				SecretKey: "test-secret-key",
+			},
+		}
+
+		// Call the service method with invalid base64 content
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     "not-valid-base64!!!",
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Assertions
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to decode content")
+	})
+
+	t.Run("Successfully send email with attachment without content type", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailjet: &domain.MailjetSettings{
+				APIKey:    "test-api-key",
+				SecretKey: "test-secret-key",
+			},
+		}
+
+		// Create attachment without content type
+		pdfContent := "JVBERi0xLjQKJeLjz9MKMSAwIG9iago8PC9UeXBlL0NhdGFsb2cvUGFnZXMgMiAwIFI+PmVuZG9iag=="
+
+		// Expected response from Mailjet API
+		expectedResponse := map[string]interface{}{
+			"Messages": []map[string]interface{}{
+				{
+					"Status": "success",
+					"To": []map[string]interface{}{
+						{
+							"Email":       to,
+							"MessageID":   "message-id-123",
+							"MessageUUID": "uuid-123",
+						},
+					},
+					"CustomID": messageID,
+				},
+			},
+		}
+
+		// Setup mock expectations
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request body
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+
+				var emailReq map[string]interface{}
+				err = json.Unmarshal(body, &emailReq)
+				require.NoError(t, err)
+
+				messages, ok := emailReq["Messages"].([]interface{})
+				assert.True(t, ok)
+				message := messages[0].(map[string]interface{})
+
+				// Verify attachments array exists
+				attachments, ok := message["Attachments"].([]interface{})
+				assert.True(t, ok)
+				assert.Len(t, attachments, 1)
+
+				// Verify attachment has default content type
+				attachment := attachments[0].(map[string]interface{})
+				assert.Equal(t, "file.bin", attachment["Filename"])
+				assert.Equal(t, "application/octet-stream", attachment["ContentType"])
+
+				return mockHTTPResponse(t, http.StatusOK, expectedResponse), nil
+			})
+
+		// Call the service method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "file.bin",
+						Content:     pdfContent,
+						ContentType: "", // Empty content type should default to application/octet-stream
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Assertions
+		require.NoError(t, err)
+	})
 }

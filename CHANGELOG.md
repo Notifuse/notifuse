@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [9.0] - 2025-10-06
+
+- New feature: email attachments support for transactional emails
+- Add `message_attachments` table for deduplication and storage of attachment content
+- Add `attachments` JSONB column to `message_history` table
+- Support for attachments across all ESP integrations (SMTP, SES, SparkPost, Postmark, Mailgun, Mailjet)
+- Maximum 20 attachments per email, 3MB per file, 10MB total
+
 ## [8.0] - 2025-10-04
 
 - New feature: real-time contact segmentation engine

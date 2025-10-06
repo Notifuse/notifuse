@@ -24,6 +24,7 @@ type SESClient interface {
 	UpdateConfigurationSetEventDestinationWithContext(ctx context.Context, input *ses.UpdateConfigurationSetEventDestinationInput, opts ...request.Option) (*ses.UpdateConfigurationSetEventDestinationOutput, error)
 	DeleteConfigurationSetEventDestinationWithContext(ctx context.Context, input *ses.DeleteConfigurationSetEventDestinationInput, opts ...request.Option) (*ses.DeleteConfigurationSetEventDestinationOutput, error)
 	SendEmailWithContext(ctx context.Context, input *ses.SendEmailInput, opts ...request.Option) (*ses.SendEmailOutput, error)
+	SendRawEmailWithContext(ctx context.Context, input *ses.SendRawEmailInput, opts ...request.Option) (*ses.SendRawEmailOutput, error)
 }
 
 // SNSWebhookClient defines the interface for SNS client operations related to webhook management

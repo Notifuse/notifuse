@@ -176,6 +176,26 @@ func (mr *MockSESClientMockRecorder) SendEmailWithContext(arg0, arg1 interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendEmailWithContext", reflect.TypeOf((*MockSESClient)(nil).SendEmailWithContext), varargs...)
 }
 
+// SendRawEmailWithContext mocks base method.
+func (m *MockSESClient) SendRawEmailWithContext(arg0 context.Context, arg1 *ses.SendRawEmailInput, arg2 ...request.Option) (*ses.SendRawEmailOutput, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "SendRawEmailWithContext", varargs...)
+	ret0, _ := ret[0].(*ses.SendRawEmailOutput)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SendRawEmailWithContext indicates an expected call of SendRawEmailWithContext.
+func (mr *MockSESClientMockRecorder) SendRawEmailWithContext(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SendRawEmailWithContext", reflect.TypeOf((*MockSESClient)(nil).SendRawEmailWithContext), varargs...)
+}
+
 // UpdateConfigurationSetEventDestinationWithContext mocks base method.
 func (m *MockSESClient) UpdateConfigurationSetEventDestinationWithContext(arg0 context.Context, arg1 *ses.UpdateConfigurationSetEventDestinationInput, arg2 ...request.Option) (*ses.UpdateConfigurationSetEventDestinationOutput, error) {
 	m.ctrl.T.Helper()

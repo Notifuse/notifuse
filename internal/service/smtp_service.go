@@ -1,6 +1,7 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"time"
@@ -134,6 +135,34 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 
 	msg.Subject(request.Subject)
 	msg.SetBodyString(mail.TypeTextHTML, request.Content)
+
+	// Add attachments if specified
+	for i, att := range request.EmailOptions.Attachments {
+		// Decode base64 content
+		content, err := att.DecodeContent()
+		if err != nil {
+			return fmt.Errorf("attachment %d: failed to decode content: %w", i, err)
+		}
+
+		// Prepare file options for go-mail
+		var fileOpts []mail.FileOption
+
+		// Set content type if provided
+		if att.ContentType != "" {
+			fileOpts = append(fileOpts, mail.WithFileContentType(mail.ContentType(att.ContentType)))
+		}
+
+		// Add attachment or embed inline
+		if att.Disposition == "inline" {
+			// For inline attachments, set Content-ID for HTML references
+			// Generate a simple Content-ID from filename (e.g., <logo.png>)
+			contentID := att.Filename
+			fileOpts = append(fileOpts, mail.WithFileContentID(contentID))
+			msg.EmbedReader(att.Filename, bytes.NewReader(content), fileOpts...)
+		} else {
+			msg.AttachReader(att.Filename, bytes.NewReader(content), fileOpts...)
+		}
+	}
 
 	// Send the email directly
 	if err := client.DialAndSend(msg); err != nil {

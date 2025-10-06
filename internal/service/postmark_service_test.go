@@ -1727,6 +1727,480 @@ func TestPostmarkService_SendEmail(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to read Postmark API response")
 	})
+
+	t.Run("Email with single attachment", func(t *testing.T) {
+		// Setup
+		service, httpClient, _, logger := setupPostmarkTest(t)
+		workspaceID := "workspace-123"
+		fromAddress := "sender@example.com"
+		fromName := "Sender Name"
+		to := "recipient@example.com"
+		subject := "Test Email"
+		content := "<p>This is a test email</p>"
+
+		// Create a small PDF attachment (base64 encoded)
+		base64Content := "c2FtcGxlIHBkZiBjb250ZW50" // base64 of "sample pdf content"
+
+		// Provider config
+		providerConfig := &domain.EmailProvider{
+			Kind: domain.EmailProviderKindPostmark,
+			Postmark: &domain.PostmarkSettings{
+				ServerToken: "test-server-token",
+			},
+		}
+
+		// Allow logger calls for attachment debugging
+		logger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		// Expect HTTP request
+		httpClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request details
+				assert.Equal(t, "POST", req.Method)
+				assert.Equal(t, "https://api.postmarkapp.com/email", req.URL.String())
+				assert.Equal(t, "application/json", req.Header.Get("Content-Type"))
+
+				// Verify request body
+				body, _ := io.ReadAll(req.Body)
+				var requestBody map[string]interface{}
+				err := json.Unmarshal(body, &requestBody)
+				require.NoError(t, err)
+
+				// Check for attachments
+				attachments, ok := requestBody["Attachments"].([]interface{})
+				assert.True(t, ok, "Attachments should be present")
+				assert.Len(t, attachments, 1)
+
+				attachment := attachments[0].(map[string]interface{})
+				assert.Equal(t, "invoice.pdf", attachment["Name"])
+				assert.Equal(t, base64Content, attachment["Content"])
+				assert.Equal(t, "application/pdf", attachment["ContentType"])
+
+				return createMockResponse(http.StatusOK, `{"MessageID":"12345"}`), nil
+			})
+
+		// Call the method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      providerConfig,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     base64Content,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(context.Background(), request)
+
+		// Verify results
+		assert.NoError(t, err)
+	})
+
+	t.Run("Email with multiple attachments", func(t *testing.T) {
+		// Setup
+		service, httpClient, _, logger := setupPostmarkTest(t)
+		workspaceID := "workspace-123"
+
+		// Create attachments (base64 encoded)
+		pdfContent := "c2FtcGxlIHBkZiBjb250ZW50"       // base64 of "sample pdf content"
+		imageContent := "c2FtcGxlIGltYWdlIGNvbnRlbnQ=" // base64 of "sample image content"
+
+		// Provider config
+		providerConfig := &domain.EmailProvider{
+			Kind: domain.EmailProviderKindPostmark,
+			Postmark: &domain.PostmarkSettings{
+				ServerToken: "test-server-token",
+			},
+		}
+
+		// Allow logger calls for attachment debugging
+		logger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		// Expect HTTP request
+		httpClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request body
+				body, _ := io.ReadAll(req.Body)
+				var requestBody map[string]interface{}
+				err := json.Unmarshal(body, &requestBody)
+				require.NoError(t, err)
+
+				// Check for attachments
+				attachments, ok := requestBody["Attachments"].([]interface{})
+				assert.True(t, ok, "Attachments should be present")
+				assert.Len(t, attachments, 2)
+
+				// Verify first attachment
+				attachment1 := attachments[0].(map[string]interface{})
+				assert.Equal(t, "invoice.pdf", attachment1["Name"])
+				assert.Equal(t, pdfContent, attachment1["Content"])
+				assert.Equal(t, "application/pdf", attachment1["ContentType"])
+
+				// Verify second attachment
+				attachment2 := attachments[1].(map[string]interface{})
+				assert.Equal(t, "logo.png", attachment2["Name"])
+				assert.Equal(t, imageContent, attachment2["Content"])
+				assert.Equal(t, "image/png", attachment2["ContentType"])
+
+				return createMockResponse(http.StatusOK, `{"MessageID":"12345"}`), nil
+			})
+
+		// Call the method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   "sender@example.com",
+			FromName:      "Sender",
+			To:            "recipient@example.com",
+			Subject:       "Subject",
+			Content:       "Content",
+			Provider:      providerConfig,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     pdfContent,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+					{
+						Filename:    "logo.png",
+						Content:     imageContent,
+						ContentType: "image/png",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(context.Background(), request)
+
+		// Verify results
+		assert.NoError(t, err)
+	})
+
+	t.Run("Email with inline attachment", func(t *testing.T) {
+		// Setup
+		service, httpClient, _, logger := setupPostmarkTest(t)
+		workspaceID := "workspace-123"
+
+		// Create an inline image attachment
+		imageContent := "c2FtcGxlIGltYWdlIGNvbnRlbnQ=" // base64 of "sample image content"
+
+		// Provider config
+		providerConfig := &domain.EmailProvider{
+			Kind: domain.EmailProviderKindPostmark,
+			Postmark: &domain.PostmarkSettings{
+				ServerToken: "test-server-token",
+			},
+		}
+
+		// Allow logger calls for attachment debugging
+		logger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		// Expect HTTP request
+		httpClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request body
+				body, _ := io.ReadAll(req.Body)
+				var requestBody map[string]interface{}
+				err := json.Unmarshal(body, &requestBody)
+				require.NoError(t, err)
+
+				// Check for attachments
+				attachments, ok := requestBody["Attachments"].([]interface{})
+				assert.True(t, ok, "Attachments should be present")
+				assert.Len(t, attachments, 1)
+
+				// Verify inline attachment has ContentID
+				attachment := attachments[0].(map[string]interface{})
+				assert.Equal(t, "logo.png", attachment["Name"])
+				assert.Equal(t, imageContent, attachment["Content"])
+				assert.Equal(t, "image/png", attachment["ContentType"])
+				assert.Equal(t, "cid:logo.png", attachment["ContentID"], "Inline attachment should have ContentID")
+
+				return createMockResponse(http.StatusOK, `{"MessageID":"12345"}`), nil
+			})
+
+		// Call the method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   "sender@example.com",
+			FromName:      "Sender",
+			To:            "recipient@example.com",
+			Subject:       "Subject",
+			Content:       "Content",
+			Provider:      providerConfig,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "logo.png",
+						Content:     imageContent,
+						ContentType: "image/png",
+						Disposition: "inline",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(context.Background(), request)
+
+		// Verify results
+		assert.NoError(t, err)
+	})
+
+	t.Run("Email with attachments and CC/BCC/ReplyTo", func(t *testing.T) {
+		// Setup
+		service, httpClient, _, logger := setupPostmarkTest(t)
+		workspaceID := "workspace-123"
+
+		// Create attachment
+		pdfContent := "c2FtcGxlIHBkZiBjb250ZW50" // base64 of "sample pdf content"
+
+		// Provider config
+		providerConfig := &domain.EmailProvider{
+			Kind: domain.EmailProviderKindPostmark,
+			Postmark: &domain.PostmarkSettings{
+				ServerToken: "test-server-token",
+			},
+		}
+
+		// Allow logger calls for attachment debugging
+		logger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		// Expect HTTP request
+		httpClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request body
+				body, _ := io.ReadAll(req.Body)
+				var requestBody map[string]interface{}
+				err := json.Unmarshal(body, &requestBody)
+				require.NoError(t, err)
+
+				// Check for attachments
+				attachments, ok := requestBody["Attachments"].([]interface{})
+				assert.True(t, ok, "Attachments should be present")
+				assert.Len(t, attachments, 1)
+
+				// Check for CC, BCC, and ReplyTo
+				assert.Equal(t, "cc1@example.com", requestBody["Cc"])
+				assert.Equal(t, "bcc1@example.com", requestBody["Bcc"])
+				assert.Equal(t, "reply@example.com", requestBody["ReplyTo"])
+
+				return createMockResponse(http.StatusOK, `{"MessageID":"12345"}`), nil
+			})
+
+		// Call the method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   "sender@example.com",
+			FromName:      "Sender",
+			To:            "recipient@example.com",
+			Subject:       "Subject",
+			Content:       "Content",
+			Provider:      providerConfig,
+			EmailOptions: domain.EmailOptions{
+				CC:      []string{"cc1@example.com"},
+				BCC:     []string{"bcc1@example.com"},
+				ReplyTo: "reply@example.com",
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     pdfContent,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(context.Background(), request)
+
+		// Verify results
+		assert.NoError(t, err)
+	})
+
+	t.Run("Email with attachment decode error", func(t *testing.T) {
+		// Setup
+		service, _, _, _ := setupPostmarkTest(t)
+		workspaceID := "workspace-123"
+
+		// Provider config
+		providerConfig := &domain.EmailProvider{
+			Kind: domain.EmailProviderKindPostmark,
+			Postmark: &domain.PostmarkSettings{
+				ServerToken: "test-server-token",
+			},
+		}
+
+		// Call the method with invalid base64 content
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   "sender@example.com",
+			FromName:      "Sender",
+			To:            "recipient@example.com",
+			Subject:       "Subject",
+			Content:       "Content",
+			Provider:      providerConfig,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     "invalid-base64-content!!!",
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(context.Background(), request)
+
+		// Verify error handling
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to decode content")
+	})
+
+	t.Run("Email with attachment API error", func(t *testing.T) {
+		// Setup
+		service, httpClient, _, logger := setupPostmarkTest(t)
+		workspaceID := "workspace-123"
+
+		// Create attachment
+		pdfContent := "c2FtcGxlIHBkZiBjb250ZW50" // base64 of "sample pdf content"
+
+		// Provider config
+		providerConfig := &domain.EmailProvider{
+			Kind: domain.EmailProviderKindPostmark,
+			Postmark: &domain.PostmarkSettings{
+				ServerToken: "test-server-token",
+			},
+		}
+
+		// Allow logger calls for attachment debugging
+		logger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		// Simulate error response (payload too large)
+		httpClient.EXPECT().
+			Do(gomock.Any()).
+			Return(createMockResponse(http.StatusRequestEntityTooLarge, `{"ErrorCode":413,"Message":"Attachment too large"}`), nil)
+
+		// Call the method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   "sender@example.com",
+			FromName:      "Sender",
+			To:            "recipient@example.com",
+			Subject:       "Subject",
+			Content:       "Content",
+			Provider:      providerConfig,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "invoice.pdf",
+						Content:     pdfContent,
+						ContentType: "application/pdf",
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(context.Background(), request)
+
+		// Verify error handling
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "Postmark API error")
+	})
+
+	t.Run("Email with attachment without ContentType", func(t *testing.T) {
+		// Setup
+		service, httpClient, _, logger := setupPostmarkTest(t)
+		workspaceID := "workspace-123"
+
+		// Create attachment without content type
+		base64Content := "c2FtcGxlIGNvbnRlbnQ=" // base64 of "sample content"
+
+		// Provider config
+		providerConfig := &domain.EmailProvider{
+			Kind: domain.EmailProviderKindPostmark,
+			Postmark: &domain.PostmarkSettings{
+				ServerToken: "test-server-token",
+			},
+		}
+
+		// Allow logger calls for attachment debugging
+		logger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		// Expect HTTP request
+		httpClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request body
+				body, _ := io.ReadAll(req.Body)
+				var requestBody map[string]interface{}
+				err := json.Unmarshal(body, &requestBody)
+				require.NoError(t, err)
+
+				// Check for attachments
+				attachments, ok := requestBody["Attachments"].([]interface{})
+				assert.True(t, ok, "Attachments should be present")
+				assert.Len(t, attachments, 1)
+
+				// Verify default content type is set
+				attachment := attachments[0].(map[string]interface{})
+				assert.Equal(t, "document.bin", attachment["Name"])
+				assert.Equal(t, "application/octet-stream", attachment["ContentType"], "Should default to application/octet-stream")
+
+				return createMockResponse(http.StatusOK, `{"MessageID":"12345"}`), nil
+			})
+
+		// Call the method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   "sender@example.com",
+			FromName:      "Sender",
+			To:            "recipient@example.com",
+			Subject:       "Subject",
+			Content:       "Content",
+			Provider:      providerConfig,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "document.bin",
+						Content:     base64Content,
+						ContentType: "", // Empty content type
+						Disposition: "attachment",
+					},
+				},
+			},
+		}
+		err := service.SendEmail(context.Background(), request)
+
+		// Verify results
+		assert.NoError(t, err)
+	})
 }
 
 // errorReader is a helper type that always returns an error when Read is called

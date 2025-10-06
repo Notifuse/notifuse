@@ -1,8 +1,12 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"fmt"
+	"mime/multipart"
+	"net/textproto"
 	"strings"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -445,19 +449,15 @@ func (s *SESService) RegisterWebhooks(
 
 	// Map our event types to SES event types
 	var sesEventTypes []string
-	var registeredEvents []domain.EmailEventType
 
 	for _, eventType := range eventTypes {
 		switch eventType {
 		case domain.EmailEventDelivered:
 			sesEventTypes = append(sesEventTypes, "delivery")
-			registeredEvents = append(registeredEvents, domain.EmailEventDelivered)
 		case domain.EmailEventBounce:
 			sesEventTypes = append(sesEventTypes, "bounce")
-			registeredEvents = append(registeredEvents, domain.EmailEventBounce)
 		case domain.EmailEventComplaint:
 			sesEventTypes = append(sesEventTypes, "complaint")
-			registeredEvents = append(registeredEvents, domain.EmailEventComplaint)
 		}
 	}
 
@@ -800,6 +800,11 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 		}
 	}
 
+	// If there are attachments, use SendRawEmail instead
+	if len(request.EmailOptions.Attachments) > 0 {
+		return s.sendRawEmailWithAttachments(ctx, sesEmailClient, request, configSetName)
+	}
+
 	// Add custom messageID as a tag
 	if request.MessageID != "" {
 		input.Tags = []*ses.MessageTag{
@@ -817,6 +822,145 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 			return fmt.Errorf("SES error: %s", aerr.Error())
 		}
 		return fmt.Errorf("failed to send email: %w", err)
+	}
+
+	return nil
+}
+
+// sendRawEmailWithAttachments sends email with attachments using SendRawEmail
+// Following AWS SES raw MIME message construction as documented at:
+// https://docs.aws.amazon.com/ses/latest/dg/attachments.html
+func (s *SESService) sendRawEmailWithAttachments(ctx context.Context, sesClient domain.SESClient, request domain.SendEmailProviderRequest, configSetName string) error {
+	var buf bytes.Buffer
+
+	// Write email headers
+	buf.WriteString(fmt.Sprintf("From: %s <%s>\r\n", request.FromName, request.FromAddress))
+	buf.WriteString(fmt.Sprintf("To: %s\r\n", request.To))
+
+	if len(request.EmailOptions.CC) > 0 {
+		ccList := strings.Join(request.EmailOptions.CC, ", ")
+		buf.WriteString(fmt.Sprintf("Cc: %s\r\n", ccList))
+	}
+
+	if request.EmailOptions.ReplyTo != "" {
+		buf.WriteString(fmt.Sprintf("Reply-To: %s\r\n", request.EmailOptions.ReplyTo))
+	}
+
+	buf.WriteString(fmt.Sprintf("Subject: %s\r\n", request.Subject))
+	buf.WriteString(fmt.Sprintf("X-Message-ID: %s\r\n", request.MessageID))
+	buf.WriteString("MIME-Version: 1.0\r\n")
+
+	// Create multipart writer
+	writer := multipart.NewWriter(&buf)
+	boundary := writer.Boundary()
+	buf.WriteString(fmt.Sprintf("Content-Type: multipart/mixed; boundary=\"%s\"\r\n\r\n", boundary))
+
+	// Add HTML body part
+	htmlPart := textproto.MIMEHeader{}
+	htmlPart.Set("Content-Type", "text/html; charset=UTF-8")
+	htmlPart.Set("Content-Transfer-Encoding", "quoted-printable")
+
+	htmlWriter, err := writer.CreatePart(htmlPart)
+	if err != nil {
+		return fmt.Errorf("failed to create HTML part: %w", err)
+	}
+
+	if _, err := htmlWriter.Write([]byte(request.Content)); err != nil {
+		return fmt.Errorf("failed to write HTML content: %w", err)
+	}
+
+	// Add attachments
+	for i, att := range request.EmailOptions.Attachments {
+		content, err := att.DecodeContent()
+		if err != nil {
+			return fmt.Errorf("attachment %d: failed to decode content: %w", i, err)
+		}
+
+		attachPart := textproto.MIMEHeader{}
+
+		// Set content type (auto-detect if not provided, as per SES best practices)
+		contentType := att.ContentType
+		if contentType == "" {
+			contentType = "application/octet-stream"
+		}
+		attachPart.Set("Content-Type", contentType)
+
+		// Use base64 encoding for binary content (SES standard)
+		attachPart.Set("Content-Transfer-Encoding", "base64")
+
+		// Set disposition (attachment or inline)
+		disposition := att.Disposition
+		if disposition == "" {
+			disposition = "attachment"
+		}
+
+		// For inline attachments, we need to set Content-ID for referencing in HTML
+		if disposition == "inline" {
+			// Generate a simple Content-ID from filename (AWS SES approach)
+			contentID := strings.ReplaceAll(att.Filename, " ", "_")
+			attachPart.Set("Content-ID", fmt.Sprintf("<%s>", contentID))
+			attachPart.Set("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", att.Filename))
+		} else {
+			attachPart.Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", att.Filename))
+		}
+
+		attachWriter, err := writer.CreatePart(attachPart)
+		if err != nil {
+			return fmt.Errorf("attachment %d: failed to create part: %w", i, err)
+		}
+
+		// Write base64 encoded content with proper line wrapping (RFC 2045: max 76 chars per line)
+		encoded := base64.StdEncoding.EncodeToString(content)
+		// Split into 76-character lines for RFC compliance
+		for len(encoded) > 76 {
+			if _, err := attachWriter.Write([]byte(encoded[:76] + "\r\n")); err != nil {
+				return fmt.Errorf("attachment %d: failed to write content: %w", i, err)
+			}
+			encoded = encoded[76:]
+		}
+		// Write remaining content
+		if len(encoded) > 0 {
+			if _, err := attachWriter.Write([]byte(encoded + "\r\n")); err != nil {
+				return fmt.Errorf("attachment %d: failed to write content: %w", i, err)
+			}
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return fmt.Errorf("failed to close multipart writer: %w", err)
+	}
+
+	// Create raw email input
+	rawInput := &ses.SendRawEmailInput{
+		RawMessage: &ses.RawMessage{
+			Data: buf.Bytes(),
+		},
+	}
+
+	// Add configuration set if available
+	if configSetName != "" {
+		rawInput.ConfigurationSetName = aws.String(configSetName)
+	}
+
+	// Add BCC addresses if provided (not in raw message headers for privacy)
+	if len(request.EmailOptions.BCC) > 0 {
+		var destinations []*string
+		destinations = append(destinations, aws.String(request.To))
+		for _, bcc := range request.EmailOptions.BCC {
+			if bcc != "" {
+				destinations = append(destinations, aws.String(bcc))
+			}
+		}
+		rawInput.Destinations = destinations
+	}
+
+	// Send the raw email
+	_, err = sesClient.SendRawEmailWithContext(ctx, rawInput)
+	if err != nil {
+		if aerr, ok := err.(awserr.Error); ok {
+			return fmt.Errorf("SES error: %s", aerr.Error())
+		}
+		return fmt.Errorf("failed to send raw email: %w", err)
 	}
 
 	return nil
