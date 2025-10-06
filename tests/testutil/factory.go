@@ -889,7 +889,7 @@ func WithTaskNextRunAfter(nextRunAfter time.Time) TaskOption {
 // WithTaskErrorMessage sets the error message for the task
 func WithTaskErrorMessage(errorMsg string) TaskOption {
 	return func(t *domain.Task) {
-		t.ErrorMessage = errorMsg
+		t.ErrorMessage = &errorMsg
 	}
 }
 

@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [8.0] - 2025-10-04
 
+- New feature: real-time contact segmentation engine
 - Add `db_created_at` and `db_updated_at` fields to contacts table for accurate database tracking
 - Add `kind` field to contact timeline for granular event types (e.g., open_email, click_email)
 - Make `created_at` and `updated_at` optional with database defaults to support historical data imports
