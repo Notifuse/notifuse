@@ -100,7 +100,7 @@ type Task struct {
 	Status        TaskStatus `json:"status"`
 	Progress      float64    `json:"progress"`
 	State         *TaskState `json:"state,omitempty"` // Typed state struct
-	ErrorMessage  string     `json:"error_message,omitempty"`
+	ErrorMessage  *string    `json:"error_message,omitempty"`
 	CreatedAt     time.Time  `json:"created_at"`
 	UpdatedAt     time.Time  `json:"updated_at"`
 	LastRunAt     *time.Time `json:"last_run_at,omitempty"`
