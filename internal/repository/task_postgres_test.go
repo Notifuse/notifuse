@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 	"testing"
@@ -80,22 +79,6 @@ func taskToMockRows(t *testing.T, task *domain.Task) *sqlmock.Rows {
 		task.MaxRuntime, task.MaxRetries, task.RetryCount, task.RetryInterval,
 		task.BroadcastID,
 	)
-}
-
-// For value comparison with sqlmock AnyArg
-type anyTime struct{}
-
-func (a anyTime) Match(v driver.Value) bool {
-	_, ok := v.(time.Time)
-	return ok
-}
-
-// For value comparison with sqlmock JSON payloads
-type anyJSON struct{}
-
-func (a anyJSON) Match(v driver.Value) bool {
-	_, ok := v.([]byte)
-	return ok
 }
 
 func TestTaskRepository_WithTransaction(t *testing.T) {
@@ -604,11 +587,12 @@ func TestTaskRepository_MarkAsCompleted(t *testing.T) {
 
 	// Test successful mark as completed
 	mock.ExpectBegin()
+	// Squirrel generates the args in the order: status, progress, error_message, updated_at, completed_at, timeout_after, id, workspace_id
 	mock.ExpectExec("UPDATE tasks SET").
 		WithArgs(
 			string(domain.TaskStatusCompleted),
 			int64(100),       // progress
-			"",               // error_message (cleared on completion)
+			nil,              // error_message (nil on completion)
 			sqlmock.AnyArg(), // updated_at
 			sqlmock.AnyArg(), // completed_at
 			nil,              // timeout_after
@@ -628,7 +612,7 @@ func TestTaskRepository_MarkAsCompleted(t *testing.T) {
 		WithArgs(
 			string(domain.TaskStatusCompleted),
 			int64(100),       // progress
-			"",               // error_message (cleared on completion)
+			nil,              // error_message (nil on completion)
 			sqlmock.AnyArg(), // updated_at
 			sqlmock.AnyArg(), // completed_at
 			nil,              // timeout_after
@@ -649,7 +633,7 @@ func TestTaskRepository_MarkAsCompleted(t *testing.T) {
 		WithArgs(
 			string(domain.TaskStatusCompleted),
 			int64(100),       // progress
-			"",               // error_message (cleared on completion)
+			nil,              // error_message (nil on completion)
 			sqlmock.AnyArg(), // updated_at
 			sqlmock.AnyArg(), // completed_at
 			nil,              // timeout_after
