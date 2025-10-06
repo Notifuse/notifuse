@@ -4,7 +4,7 @@ build:
 	go build -o bin/server ./cmd/api
 
 test-unit:
-	go test -v ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository
+	go test -v ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations
 
 test-integration:
 	INTEGRATION_TESTS=true go test -timeout 9m ./tests/integration/ -v

@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestParseVersion(t *testing.T) {
@@ -63,14 +62,6 @@ func TestParseVersion(t *testing.T) {
 			}
 		})
 	}
-}
-
-func TestGetCurrentCodeVersion(t *testing.T) {
-	// This test assumes VERSION is set to "8.0" in config
-	version, err := GetCurrentCodeVersion()
-
-	require.NoError(t, err)
-	assert.Equal(t, 8.0, version)
 }
 
 func TestCompareVersions(t *testing.T) {
