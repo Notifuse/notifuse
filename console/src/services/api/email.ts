@@ -1,5 +1,6 @@
 import { api } from './client'
-import { EmailProvider, TestEmailProviderResponse } from './types'
+import type { EmailProvider } from './workspace'
+import type { TestEmailProviderResponse } from './template'
 
 export const emailService = {
   /**

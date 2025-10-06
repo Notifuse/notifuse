@@ -285,7 +285,7 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 		}
 
 		if list == nil {
-			s.logger.WithField("list_id", listID).Error(fmt.Sprintf("List not found"))
+			s.logger.WithField("list_id", listID).Error("List not found")
 			return fmt.Errorf("list not found")
 		}
 
@@ -498,7 +498,7 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 		}
 
 		if list == nil {
-			s.logger.WithField("list_id", listID).Error(fmt.Sprintf("List not found"))
+			s.logger.WithField("list_id", listID).Error("List not found")
 			return fmt.Errorf("list not found")
 		}
 

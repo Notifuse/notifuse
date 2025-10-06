@@ -583,8 +583,7 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).DoAndReturn(
 			func(ctx context.Context, workspaceID string, contact *domain.Contact) (bool, error) {
 				assert.Equal(t, "new@example.com", contact.Email)
-				assert.NotZero(t, contact.CreatedAt)
-				assert.NotZero(t, contact.UpdatedAt)
+				// CreatedAt and UpdatedAt are optional - if not provided (zero value), DB will set them
 				return true, nil // true means it's a new contact
 			})
 
@@ -592,8 +591,7 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).DoAndReturn(
 			func(ctx context.Context, workspaceID string, contact *domain.Contact) (bool, error) {
 				assert.Equal(t, "existing@example.com", contact.Email)
-				assert.NotZero(t, contact.CreatedAt)
-				assert.NotZero(t, contact.UpdatedAt)
+				// CreatedAt and UpdatedAt are optional - if not provided (zero value), DB will set them
 				return false, nil // false means it's an existing contact
 			})
 

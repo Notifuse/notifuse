@@ -13,6 +13,7 @@ export interface ListContactsRequest {
   with_contact_lists?: boolean
   list_id?: string
   contact_list_status?: string
+  segments?: string[]
   // Pagination
   limit?: number
   cursor?: string
@@ -71,6 +72,13 @@ export interface Contact {
     created_at: string
     updated_at: string
   }[]
+
+  contact_segments?: {
+    segment_id: string
+    version?: number
+    matched_at?: string
+    computed_at?: string
+  }[]
 }
 
 export interface ListContactsResponse {
@@ -93,6 +101,10 @@ export interface DeleteContactResponse {
   success: boolean
 }
 
+export interface GetTotalContactsResponse {
+  total_contacts: number
+}
+
 export const contactsApi = {
   list: async (params: ListContactsRequest): Promise<ListContactsResponse> => {
     const searchParams = new URLSearchParams()
@@ -111,6 +123,9 @@ export const contactsApi = {
     if (params.list_id) searchParams.append('list_id', params.list_id)
     if (params.contact_list_status)
       searchParams.append('contact_list_status', params.contact_list_status)
+    if (params.segments && params.segments.length > 0) {
+      params.segments.forEach((segment) => searchParams.append('segments[]', segment))
+    }
     if (params.limit) searchParams.append('limit', params.limit.toString())
     if (params.cursor) searchParams.append('cursor', params.cursor)
     if (params.with_contact_lists)
@@ -136,5 +151,11 @@ export const contactsApi = {
       workspace_id: params.workspace_id,
       email: params.email
     })
+  },
+
+  getTotalContacts: async (params: { workspace_id: string }): Promise<GetTotalContactsResponse> => {
+    const searchParams = new URLSearchParams()
+    searchParams.append('workspace_id', params.workspace_id)
+    return api.get<GetTotalContactsResponse>(`/api/contacts.count?${searchParams.toString()}`)
   }
 }

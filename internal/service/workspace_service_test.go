@@ -38,6 +38,7 @@ func TestWorkspaceService_ListWorkspaces(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserService,
 		mockAuthService,
@@ -134,6 +135,7 @@ func TestWorkspaceService_GetWorkspace(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserService,
 		mockAuthService,
@@ -222,7 +224,7 @@ func TestWorkspaceService_GetWorkspace(t *testing.T) {
 		}
 
 		// Create a system context that should bypass authentication
-		systemCtx := context.WithValue(ctx, "system_call", true)
+		systemCtx := context.WithValue(ctx, domain.SystemCallKey, true)
 
 		// No auth service call expected since this is a system call
 		mockRepo.EXPECT().GetByID(systemCtx, workspaceID).Return(expectedWorkspace, nil)
@@ -239,6 +241,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockTaskRepo := mocks.NewMockTaskRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
@@ -253,6 +256,7 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mockTaskRepo,
 		mockLogger,
 		mockUserService,
 		mockAuthService,
@@ -304,6 +308,10 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 			},
 			ListIDs: []string{"test"},
 		}, true).Return(nil)
+
+		// Expect EnsureContactSegmentQueueProcessingTask to be called
+		mockTaskRepo.EXPECT().List(ctx, workspaceID, gomock.Any()).Return([]*domain.Task{}, 0, nil).AnyTimes()
+		mockTaskRepo.EXPECT().Create(ctx, workspaceID, gomock.Any()).Return(nil).AnyTimes()
 
 		workspace, err := service.CreateWorkspace(ctx, workspaceID, "Test Workspace", "https://example.com", "https://example.com/logo.png", "https://example.com/cover.png", "UTC", domain.FileManagerSettings{
 			Endpoint:  "https://s3.amazonaws.com",
@@ -524,6 +532,7 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserService,
 		mockAuthService,
@@ -684,6 +693,7 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockTaskRepo := mocks.NewMockTaskRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
@@ -698,6 +708,7 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mockTaskRepo,
 		mockLogger,
 		mockUserService,
 		mockAuthService,
@@ -742,6 +753,7 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
 		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(userWorkspace, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(workspace, nil)
+		mockTaskRepo.EXPECT().DeleteAll(ctx, workspaceID).Return(nil)
 		mockRepo.EXPECT().Delete(ctx, workspaceID).Return(nil)
 
 		err := service.DeleteWorkspace(ctx, workspaceID)
@@ -801,6 +813,9 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 		// Once for each integration deletion
 		mockRepo.EXPECT().Update(ctx, gomock.Any()).Return(nil).Times(2)
 
+		// Task cleanup
+		mockTaskRepo.EXPECT().DeleteAll(ctx, workspaceID).Return(nil)
+
 		// Final workspace deletion
 		mockRepo.EXPECT().Delete(ctx, workspaceID).Return(nil)
 
@@ -851,7 +866,8 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 		// The update fails
 		mockRepo.EXPECT().Update(ctx, gomock.Any()).Return(errors.New("integration delete error"))
 
-		// Should still proceed with workspace deletion
+		// Should still proceed with task cleanup and workspace deletion
+		mockTaskRepo.EXPECT().DeleteAll(ctx, workspaceID).Return(nil)
 		mockRepo.EXPECT().Delete(ctx, workspaceID).Return(nil)
 
 		err := service.DeleteWorkspace(ctx, workspaceID)
@@ -918,6 +934,7 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserService,
 		mockAuthService,
@@ -1080,6 +1097,7 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserService,
 		mockAuthService,
@@ -1244,6 +1262,7 @@ func TestWorkspaceService_DeleteIntegration(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserService,
 		mockAuthService,
@@ -1482,6 +1501,7 @@ func TestWorkspaceService_RemoveMember(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserService,
 		mockAuthService,
@@ -1732,6 +1752,7 @@ func TestWorkspaceService_GetInvitationByID(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserService,
 		mockAuthService,
@@ -1803,6 +1824,7 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserService,
 		mockAuthService,
@@ -2242,6 +2264,7 @@ func TestWorkspaceService_DeleteInvitation(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserSvc,
 		mockAuthSvc,
@@ -2410,6 +2433,7 @@ func TestWorkspaceService_SetUserPermissions(t *testing.T) {
 	service := NewWorkspaceService(
 		mockRepo,
 		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
 		mockLogger,
 		mockUserService,
 		mockAuthService,

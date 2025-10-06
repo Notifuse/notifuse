@@ -92,6 +92,8 @@ func getTaskTypes() []string {
 		"export_contacts",
 		"send_broadcast",
 		"generate_report",
+		"build_segment",
+		"process_contact_segment_queue",
 	}
 }
 
@@ -218,8 +220,11 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 	}
 
 	// Get the next batch of tasks
+	// each workspace has a permanent task to process the contact segment queue
+	// TODO/problem: if new number of workspaces is above 100, this will not work
+	// we need to have a way to scale this
 	if maxTasks <= 0 {
-		maxTasks = 10 // Default value
+		maxTasks = 100 // Default value
 	}
 
 	tracing.AddAttribute(ctx, "max_tasks", maxTasks)
@@ -352,7 +357,7 @@ func (s *TaskService) executeTasksDirectly(ctx context.Context, tasks []*domain.
 	ctx, span := tracing.StartServiceSpan(ctx, "TaskService", "executeTasksDirectly")
 	defer tracing.EndSpan(span, nil)
 
-	now := time.Now()
+	now := time.Now().UTC()
 
 	tracing.AddAttribute(ctx, "task_count", len(tasks))
 
@@ -579,27 +584,27 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 				"workspace_id": workspace,
 			}).Info("Task completed successfully")
 		} else {
-			// Mark task as paused for next run
-			pauseCtx, pauseSpan := tracing.StartServiceSpan(ctx, "TaskService", "MarkTaskPaused")
-			defer tracing.EndSpan(pauseSpan, nil)
+			// Mark task as pending for next run
+			pendingCtx, pendingSpan := tracing.StartServiceSpan(ctx, "TaskService", "MarkTaskPending")
+			defer tracing.EndSpan(pendingSpan, nil)
 
-			tracing.AddAttribute(pauseCtx, "task_id", taskID)
-			tracing.AddAttribute(pauseCtx, "workspace_id", workspace)
+			tracing.AddAttribute(pendingCtx, "task_id", taskID)
+			tracing.AddAttribute(pendingCtx, "workspace_id", workspace)
 
-			nextRun := time.Now()
-			tracing.AddAttribute(pauseCtx, "next_run", nextRun.Format(time.RFC3339))
-			tracing.AddAttribute(pauseCtx, "progress", task.Progress)
+			nextRun := time.Now().UTC()
+			tracing.AddAttribute(pendingCtx, "next_run", nextRun.Format(time.RFC3339))
+			tracing.AddAttribute(pendingCtx, "progress", task.Progress)
 
-			if err := s.repo.MarkAsPaused(bgCtx, task.WorkspaceID, task.ID, nextRun, task.Progress, task.State); err != nil {
-				tracing.MarkSpanError(pauseCtx, err)
+			if err := s.repo.MarkAsPending(bgCtx, task.WorkspaceID, task.ID, nextRun, task.Progress, task.State); err != nil {
+				tracing.MarkSpanError(pendingCtx, err)
 				s.logger.WithFields(map[string]interface{}{
 					"task_id":      taskID,
 					"workspace_id": workspace,
 					"error":        err.Error(),
-				}).Error("Failed to mark task as paused")
+				}).Error("Failed to mark task as pending")
 				return &domain.ErrTaskExecution{
 					TaskID: taskID,
-					Reason: "failed to mark task as paused",
+					Reason: "failed to mark task as pending",
 					Err:    err,
 				}
 			}
@@ -607,7 +612,7 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 				"task_id":      taskID,
 				"workspace_id": workspace,
 				"next_run":     nextRun,
-			}).Info("Task paused and will continue in next run")
+			}).Info("Task pending and will continue in next run")
 		}
 	case err := <-processErr:
 		// Task failed with an error
@@ -937,7 +942,7 @@ func (s *TaskService) handleBroadcastResumed(ctx context.Context, payload domain
 	tracing.AddAttribute(ctx, "current_status", string(task.Status))
 
 	// Resume the task
-	nextRunAfter := time.Now()
+	nextRunAfter := time.Now().UTC()
 	task.NextRunAfter = &nextRunAfter
 	task.Status = domain.TaskStatusPending
 

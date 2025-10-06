@@ -47,9 +47,11 @@ func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string
 			ct.email,
 			ct.operation,
 			ct.entity_type,
+			ct.kind,
 			ct.changes,
 			ct.entity_id,
 			ct.created_at,
+			ct.db_created_at,
 			CASE 
 				WHEN ct.entity_type = 'contact' THEN json_build_object(
 					'email', c.email,
@@ -152,9 +154,11 @@ func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string
 			&entry.Email,
 			&entry.Operation,
 			&entry.EntityType,
+			&entry.Kind,
 			&changesJSON,
 			&entry.EntityID,
 			&entry.CreatedAt,
+			&entry.DBCreatedAt,
 			&entityDataJSON,
 		)
 		if err != nil {

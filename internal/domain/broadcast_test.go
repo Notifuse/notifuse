@@ -165,18 +165,17 @@ func TestBroadcast_Validate(t *testing.T) {
 				return b
 			}(),
 			wantErr: true,
-			errMsg:  "either lists or segments must be specified",
+			errMsg:  "at least one list must be specified",
 		},
 		{
-			name: "both lists and segments specified",
+			name: "both lists and segments specified (valid - segments filter lists)",
 			broadcast: func() domain.Broadcast {
 				b := createValidBroadcast()
 				b.Audience.Lists = []string{"list1"}
 				b.Audience.Segments = []string{"segment1"}
 				return b
 			}(),
-			wantErr: true,
-			errMsg:  "both lists and segments are specified",
+			wantErr: false,
 		},
 		{
 			name: "scheduled time required when not sending immediately",
@@ -1864,7 +1863,7 @@ func TestUpdateBroadcastRequest_Validate_Additional(t *testing.T) {
 
 	_, err := invalidAudienceRequest.Validate(&existingBroadcast)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "either lists or segments must be specified")
+	assert.Contains(t, err.Error(), "at least one list must be specified")
 }
 
 // Additional test for ParseBoolParam

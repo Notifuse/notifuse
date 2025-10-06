@@ -2,9 +2,10 @@ import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { Table, Tag, Button, Space, Tooltip, message, Dropdown } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { MenuProps } from 'antd'
-import { useParams, useSearch } from '@tanstack/react-router'
+import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
 import { contactsApi, type Contact, type ListContactsRequest } from '../services/api/contacts'
 import { listsApi } from '../services/api/list'
+import { listSegments } from '../services/api/segment'
 import React from 'react'
 import { workspaceContactsRoute } from '../router'
 import { Filter } from '../components/filters/Filter'
@@ -17,18 +18,20 @@ import { FilterField } from '../components/filters/types'
 import { ContactColumnsSelector, JsonViewer } from '../components/contacts/ContactColumnsSelector'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEye, faHourglass } from '@fortawesome/free-regular-svg-icons'
-import { faCircleCheck, faFaceFrown, faTrashAlt } from '@fortawesome/free-regular-svg-icons'
+import { faCircleCheck, faFaceFrown } from '@fortawesome/free-regular-svg-icons'
 import {
   faBan,
   faTriangleExclamation,
   faRefresh,
-  faPenToSquare,
   faEllipsisV
 } from '@fortawesome/free-solid-svg-icons'
 import { ContactDetailsDrawer } from '../components/contacts/ContactDetailsDrawer'
 import { DeleteContactModal } from '../components/contacts/DeleteContactModal'
+import { SegmentsFilter } from '../components/contacts/SegmentsFilter'
 import dayjs from '../lib/dayjs'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
+import numbro from 'numbro'
+import { PlusOutlined } from '@ant-design/icons'
 
 const STORAGE_KEY = 'contact_columns_visibility'
 
@@ -38,6 +41,7 @@ const DEFAULT_VISIBLE_COLUMNS = {
   timezone: true,
   country: true,
   lists: true,
+  segments: true,
   phone: false,
   address: false,
   job_title: false,
@@ -70,6 +74,7 @@ const DEFAULT_VISIBLE_COLUMNS = {
 export function ContactsPage() {
   const { workspaceId } = useParams({ from: '/workspace/$workspaceId/contacts' })
   const search = useSearch({ from: workspaceContactsRoute.id })
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId)
@@ -98,6 +103,18 @@ export function ContactsPage() {
     queryFn: () => listsApi.list({ workspace_id: workspaceId })
   })
 
+  // Fetch segments for the current workspace with contact counts
+  const { data: segmentsData } = useQuery({
+    queryKey: ['segments', workspaceId],
+    queryFn: () => listSegments({ workspace_id: workspaceId, with_count: true })
+  })
+
+  // Fetch total contacts count
+  const { data: totalContactsData } = useQuery({
+    queryKey: ['total-contacts', workspaceId],
+    queryFn: () => contactsApi.getTotalContacts({ workspace_id: workspaceId })
+  })
+
   // Delete contact mutation
   const deleteContactMutation = useMutation({
     mutationFn: (email: string) =>
@@ -111,6 +128,8 @@ export function ContactsPage() {
       setAllContacts((prev) => prev.filter((contact) => contact.email !== deletedEmail))
       // Invalidate and refetch the contacts query to ensure data consistency
       queryClient.invalidateQueries({ queryKey: ['contacts', workspaceId] })
+      // Invalidate total contacts count
+      queryClient.invalidateQueries({ queryKey: ['total-contacts', workspaceId] })
       // Close modal and reset state
       setDeleteModalVisible(false)
       setContactToDelete(null)
@@ -212,6 +231,7 @@ export function ContactsPage() {
 
   const allColumns: { key: string; title: string }[] = [
     { key: 'lists', title: 'Lists' },
+    { key: 'segments', title: 'Segments' },
     { key: 'name', title: 'Name' },
     { key: 'phone', title: 'Phone' },
     { key: 'country', title: 'Country' },
@@ -249,13 +269,18 @@ export function ContactsPage() {
     return Object.entries(search)
       .filter(
         ([key, value]) =>
-          filterFields.some((field) => field.key === key) && value !== undefined && value !== ''
+          key !== 'segments' && // Exclude segments as they are shown separately
+          key !== 'limit' && // Exclude limit as it's a pagination param
+          key !== 'cursor' && // Exclude cursor as it's a pagination param
+          filterFields.some((field) => field.key === key) &&
+          value !== undefined &&
+          value !== ''
       )
       .map(([key, value]) => {
         const field = filterFields.find((f) => f.key === key)
         return {
           field: key,
-          value,
+          value: value as string | number | boolean | Date,
           label: field?.label || key
         }
       })
@@ -289,6 +314,7 @@ export function ContactsPage() {
         language: search.language,
         list_id: search.list_id,
         contact_list_status: search.contact_list_status,
+        segments: search.segments,
         with_contact_lists: true
       }
       return contactsApi.list(request)
@@ -339,6 +365,7 @@ export function ContactsPage() {
     search.language,
     search.list_id,
     search.contact_list_status,
+    search.segments,
     search.limit,
     refetch,
     queryClient,
@@ -352,6 +379,7 @@ export function ContactsPage() {
     // Reset and refetch the query
     queryClient.resetQueries({ queryKey: ['contacts', workspaceId] })
     queryClient.invalidateQueries({ queryKey: ['lists', workspaceId] })
+    queryClient.invalidateQueries({ queryKey: ['total-contacts', workspaceId] })
     refetch()
   }
 
@@ -449,6 +477,54 @@ export function ContactsPage() {
         </Space>
       ),
       hidden: !visibleColumns.lists
+    },
+    {
+      title: 'Segments',
+      key: 'segments',
+      render: (_: unknown, record: Contact) => (
+        <Space direction="vertical" size={2}>
+          {record.contact_segments?.map(
+            (segment: {
+              segment_id: string
+              version?: number
+              matched_at?: string
+              computed_at?: string
+            }) => {
+              // Find segment data from segmentsData to get the name and color
+              const segmentData = segmentsData?.segments?.find((s) => s.id === segment.segment_id)
+              const segmentName = segmentData?.name || segment.segment_id
+              const segmentColor = segmentData?.color || '#1890ff'
+
+              // Format matched date if available using workspace timezone
+              const matchedDate = segment.matched_at
+                ? dayjs(segment.matched_at).tz(workspaceTimezone).format('LL - HH:mm')
+                : 'Unknown date'
+
+              const tooltipTitle = (
+                <>
+                  <div>
+                    <strong>{segmentName}</strong>
+                  </div>
+                  <div>Matched on: {matchedDate}</div>
+                  {segment.version && <div>Version: {segment.version}</div>}
+                  <div>
+                    <small>Timezone: {workspaceTimezone}</small>
+                  </div>
+                </>
+              )
+
+              return (
+                <Tooltip key={segment.segment_id} title={tooltipTitle}>
+                  <Tag bordered={false} color={segmentColor} style={{ marginBottom: '2px' }}>
+                    {segmentName}
+                  </Tag>
+                </Tooltip>
+              )
+            }
+          ) || []}
+        </Space>
+      ),
+      hidden: !visibleColumns.segments
     },
     {
       title: 'Name',
@@ -730,6 +806,7 @@ export function ContactsPage() {
               workspace={currentWorkspace}
               contactEmail={record.email}
               lists={listsData?.lists || []}
+              segments={segmentsData?.segments || []}
               key={record.email}
               onContactUpdate={(updatedContact) => {
                 // Update the contact in the allContacts array
@@ -765,8 +842,19 @@ export function ContactsPage() {
 
   return (
     <div className="p-6">
+      {/* Header with title and actions */}
       <div className="flex justify-between items-center mb-6">
-        <div className="text-2xl font-medium">Contacts</div>
+        <div className="flex items-center gap-3">
+          <div className="text-2xl font-medium">Contacts</div>
+          {totalContactsData?.total_contacts !== undefined && (
+            <Tag bordered={false} color="blue">
+              {numbro(totalContactsData.total_contacts).format({
+                thousandSeparated: true,
+                mantissa: 0
+              })}
+            </Tag>
+          )}
+        </div>
         <Space>
           <Tooltip
             title={
@@ -813,7 +901,11 @@ export function ContactsPage() {
               <ContactUpsertDrawer
                 workspace={currentWorkspace}
                 buttonProps={{
-                  buttonContent: 'Create',
+                  buttonContent: (
+                    <>
+                      <PlusOutlined /> Add
+                    </>
+                  ),
                   disabled: !permissions?.contacts?.write
                 }}
               />
@@ -822,10 +914,36 @@ export function ContactsPage() {
         </Space>
       </div>
 
-      <div className="flex justify-between items-center mb-6">
+      {/* Filters */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="text-sm font-medium">Filters:</div>
         <Filter fields={filterFields} activeFilters={activeFilters} />
       </div>
 
+      {/* Segments */}
+      <SegmentsFilter
+        workspaceId={workspaceId}
+        segments={segmentsData?.segments || []}
+        selectedSegmentIds={search.segments}
+        totalContacts={totalContactsData?.total_contacts}
+        onSegmentToggle={(segmentId: string) => {
+          const currentSegments = search.segments || []
+          const newSegments = currentSegments.includes(segmentId)
+            ? currentSegments.filter((id) => id !== segmentId)
+            : [...currentSegments, segmentId]
+
+          navigate({
+            to: workspaceContactsRoute.to,
+            params: { workspaceId },
+            search: {
+              ...search,
+              segments: newSegments.length > 0 ? newSegments : undefined
+            }
+          })
+        }}
+      />
+
+      {/* Contacts Table */}
       <Table
         columns={columns}
         dataSource={allContacts}

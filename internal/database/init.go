@@ -110,7 +110,9 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			custom_json_4 JSONB,
 			custom_json_5 JSONB,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			db_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_contacts_email ON contacts(email)`,
 		`CREATE INDEX IF NOT EXISTS idx_contacts_external_id ON contacts(external_id)`,
@@ -235,12 +237,44 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			email VARCHAR(255) NOT NULL,
 			operation VARCHAR(20) NOT NULL,
 			entity_type VARCHAR(20) NOT NULL,
+			kind VARCHAR(50) NOT NULL DEFAULT '',
 			changes JSONB,
 			entity_id VARCHAR(255),
-			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
+			db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_email_created_at ON contact_timeline(email, created_at DESC, id DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_kind ON contact_timeline(kind)`,
 		`CREATE INDEX IF NOT EXISTS idx_contact_timeline_entity_id ON contact_timeline(entity_id) WHERE entity_id IS NOT NULL`,
+		`CREATE TABLE IF NOT EXISTS segments (
+			id VARCHAR(32) PRIMARY KEY,
+			name VARCHAR(255) NOT NULL,
+			color VARCHAR(50) NOT NULL,
+			tree JSONB NOT NULL,
+			timezone VARCHAR(100) NOT NULL,
+			version INTEGER NOT NULL,
+			status VARCHAR(20) NOT NULL,
+			generated_sql TEXT,
+			generated_args JSONB,
+			db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			db_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_segments_status ON segments(status)`,
+		`CREATE TABLE IF NOT EXISTS contact_segments (
+			email VARCHAR(255) NOT NULL,
+			segment_id VARCHAR(32) NOT NULL,
+			version INTEGER NOT NULL,
+			matched_at TIMESTAMP WITH TIME ZONE NOT NULL,
+			computed_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			PRIMARY KEY (email, segment_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_segments_segment_id ON contact_segments(segment_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_segments_version ON contact_segments(segment_id, version)`,
+		`CREATE TABLE IF NOT EXISTS contact_segment_queue (
+			email VARCHAR(255) PRIMARY KEY,
+			queued_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_segment_queue_queued_at ON contact_segment_queue(queued_at ASC)`,
 	}
 
 	// Run all table creation queries
@@ -301,7 +335,13 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				IF OLD.custom_json_5 IS DISTINCT FROM NEW.custom_json_5 THEN changes_json := changes_json || jsonb_build_object('custom_json_5', jsonb_build_object('old', OLD.custom_json_5, 'new', NEW.custom_json_5)); END IF;
 				IF changes_json = '{}'::jsonb THEN RETURN NEW; END IF;
 			END IF;
-			INSERT INTO contact_timeline (email, operation, entity_type, changes) VALUES (NEW.email, op, 'contact', changes_json);
+		IF TG_OP = 'INSERT' THEN
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
+			VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.created_at);
+		ELSE
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
+			VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.updated_at);
+		END IF;
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
@@ -321,7 +361,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				IF OLD.deleted_at IS DISTINCT FROM NEW.deleted_at THEN changes_json := changes_json || jsonb_build_object('deleted_at', jsonb_build_object('old', OLD.deleted_at, 'new', NEW.deleted_at)); END IF;
 				IF changes_json = '{}'::jsonb THEN RETURN NEW; END IF;
 			END IF;
-			INSERT INTO contact_timeline (email, operation, entity_type, entity_id, changes) VALUES (NEW.email, op, 'contact_list', NEW.list_id, changes_json);
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+			VALUES (NEW.email, op, 'contact_list', op || '_contact_list', NEW.list_id, changes_json, CURRENT_TIMESTAMP);
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
@@ -331,23 +372,51 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		DECLARE
 			changes_json JSONB := '{}'::jsonb;
 			op VARCHAR(20);
+			kind_value VARCHAR(50);
 		BEGIN
 			IF TG_OP = 'INSERT' THEN
 				op := 'insert';
 				changes_json := jsonb_build_object('template_id', jsonb_build_object('new', NEW.template_id), 'template_version', jsonb_build_object('new', NEW.template_version), 'channel', jsonb_build_object('new', NEW.channel), 'broadcast_id', jsonb_build_object('new', NEW.broadcast_id), 'sent_at', jsonb_build_object('new', NEW.sent_at));
+				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+				VALUES (NEW.contact_email, op, 'message_history', 'insert_message_history', NEW.id, changes_json, NEW.updated_at);
 			ELSIF TG_OP = 'UPDATE' THEN
 				op := 'update';
+				-- Handle engagement events separately with specific kinds
+				IF OLD.opened_at IS DISTINCT FROM NEW.opened_at AND NEW.opened_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('opened_at', jsonb_build_object('old', OLD.opened_at, 'new', NEW.opened_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+					VALUES (NEW.contact_email, op, 'message_history', 'open_' || NEW.channel, NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.clicked_at IS DISTINCT FROM NEW.clicked_at AND NEW.clicked_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('clicked_at', jsonb_build_object('old', OLD.clicked_at, 'new', NEW.clicked_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+					VALUES (NEW.contact_email, op, 'message_history', 'click_' || NEW.channel, NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.bounced_at IS DISTINCT FROM NEW.bounced_at AND NEW.bounced_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('bounced_at', jsonb_build_object('old', OLD.bounced_at, 'new', NEW.bounced_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+					VALUES (NEW.contact_email, op, 'message_history', 'bounce_' || NEW.channel, NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.complained_at IS DISTINCT FROM NEW.complained_at AND NEW.complained_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('complained_at', jsonb_build_object('old', OLD.complained_at, 'new', NEW.complained_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+					VALUES (NEW.contact_email, op, 'message_history', 'complain_' || NEW.channel, NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				IF OLD.unsubscribed_at IS DISTINCT FROM NEW.unsubscribed_at AND NEW.unsubscribed_at IS NOT NULL THEN
+					changes_json := jsonb_build_object('unsubscribed_at', jsonb_build_object('old', OLD.unsubscribed_at, 'new', NEW.unsubscribed_at));
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+					VALUES (NEW.contact_email, op, 'message_history', 'unsubscribe_' || NEW.channel, NEW.id, changes_json, NEW.updated_at);
+				END IF;
+				-- Handle other updates (delivered, failed, status_info) as generic updates
+				changes_json := '{}'::jsonb;
 				IF OLD.delivered_at IS DISTINCT FROM NEW.delivered_at THEN changes_json := changes_json || jsonb_build_object('delivered_at', jsonb_build_object('old', OLD.delivered_at, 'new', NEW.delivered_at)); END IF;
 				IF OLD.failed_at IS DISTINCT FROM NEW.failed_at THEN changes_json := changes_json || jsonb_build_object('failed_at', jsonb_build_object('old', OLD.failed_at, 'new', NEW.failed_at)); END IF;
-				IF OLD.opened_at IS DISTINCT FROM NEW.opened_at THEN changes_json := changes_json || jsonb_build_object('opened_at', jsonb_build_object('old', OLD.opened_at, 'new', NEW.opened_at)); END IF;
-				IF OLD.clicked_at IS DISTINCT FROM NEW.clicked_at THEN changes_json := changes_json || jsonb_build_object('clicked_at', jsonb_build_object('old', OLD.clicked_at, 'new', NEW.clicked_at)); END IF;
-				IF OLD.bounced_at IS DISTINCT FROM NEW.bounced_at THEN changes_json := changes_json || jsonb_build_object('bounced_at', jsonb_build_object('old', OLD.bounced_at, 'new', NEW.bounced_at)); END IF;
-				IF OLD.complained_at IS DISTINCT FROM NEW.complained_at THEN changes_json := changes_json || jsonb_build_object('complained_at', jsonb_build_object('old', OLD.complained_at, 'new', NEW.complained_at)); END IF;
-				IF OLD.unsubscribed_at IS DISTINCT FROM NEW.unsubscribed_at THEN changes_json := changes_json || jsonb_build_object('unsubscribed_at', jsonb_build_object('old', OLD.unsubscribed_at, 'new', NEW.unsubscribed_at)); END IF;
 				IF OLD.status_info IS DISTINCT FROM NEW.status_info THEN changes_json := changes_json || jsonb_build_object('status_info', jsonb_build_object('old', OLD.status_info, 'new', NEW.status_info)); END IF;
-				IF changes_json = '{}'::jsonb THEN RETURN NEW; END IF;
+				IF changes_json != '{}'::jsonb THEN
+					INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+					VALUES (NEW.contact_email, op, 'message_history', 'update_message_history', NEW.id, changes_json, NEW.updated_at);
+				END IF;
 			END IF;
-			INSERT INTO contact_timeline (email, operation, entity_type, entity_id, changes) VALUES (NEW.contact_email, op, 'message_history', NEW.id, changes_json);
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
@@ -358,11 +427,48 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			changes_json JSONB := '{}'::jsonb;
 		BEGIN
 			changes_json := jsonb_build_object('type', jsonb_build_object('new', NEW.type), 'email_provider_kind', jsonb_build_object('new', NEW.email_provider_kind));
-			IF NEW.bounce_type IS NOT NULL THEN changes_json := changes_json || jsonb_build_object('bounce_type', jsonb_build_object('new', NEW.bounce_type)); END IF;
-			IF NEW.bounce_category IS NOT NULL THEN changes_json := changes_json || jsonb_build_object('bounce_category', jsonb_build_object('new', NEW.bounce_category)); END IF;
-			IF NEW.bounce_diagnostic IS NOT NULL THEN changes_json := changes_json || jsonb_build_object('bounce_diagnostic', jsonb_build_object('new', NEW.bounce_diagnostic)); END IF;
-			IF NEW.complaint_feedback_type IS NOT NULL THEN changes_json := changes_json || jsonb_build_object('complaint_feedback_type', jsonb_build_object('new', NEW.complaint_feedback_type)); END IF;
-			INSERT INTO contact_timeline (email, operation, entity_type, entity_id, changes) VALUES (NEW.recipient_email, 'insert', 'webhook_event', NEW.message_id, changes_json);
+			IF NEW.bounce_type IS NOT NULL AND NEW.bounce_type != '' THEN changes_json := changes_json || jsonb_build_object('bounce_type', jsonb_build_object('new', NEW.bounce_type)); END IF;
+			IF NEW.bounce_category IS NOT NULL AND NEW.bounce_category != '' THEN changes_json := changes_json || jsonb_build_object('bounce_category', jsonb_build_object('new', NEW.bounce_category)); END IF;
+			IF NEW.bounce_diagnostic IS NOT NULL AND NEW.bounce_diagnostic != '' THEN changes_json := changes_json || jsonb_build_object('bounce_diagnostic', jsonb_build_object('new', NEW.bounce_diagnostic)); END IF;
+			IF NEW.complaint_feedback_type IS NOT NULL AND NEW.complaint_feedback_type != '' THEN changes_json := changes_json || jsonb_build_object('complaint_feedback_type', jsonb_build_object('new', NEW.complaint_feedback_type)); END IF;
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+			VALUES (NEW.recipient_email, 'insert', 'webhook_event', 'insert_webhook_event', NEW.message_id, changes_json, CURRENT_TIMESTAMP);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;`,
+		// Contact segment changes trigger function
+		`CREATE OR REPLACE FUNCTION track_contact_segment_changes()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			changes_json JSONB := '{}'::jsonb;
+			op VARCHAR(20);
+			kind_value VARCHAR(50);
+		BEGIN
+			IF TG_OP = 'INSERT' THEN
+				op := 'insert';
+				kind_value := 'join_segment';
+				changes_json := jsonb_build_object('segment_id', jsonb_build_object('new', NEW.segment_id), 'version', jsonb_build_object('new', NEW.version), 'matched_at', jsonb_build_object('new', NEW.matched_at));
+			ELSIF TG_OP = 'DELETE' THEN
+				op := 'delete';
+				kind_value := 'leave_segment';
+				changes_json := jsonb_build_object('segment_id', jsonb_build_object('old', OLD.segment_id), 'version', jsonb_build_object('old', OLD.version));
+				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+				VALUES (OLD.email, op, 'contact_segment', kind_value, OLD.segment_id, changes_json, CURRENT_TIMESTAMP);
+				RETURN OLD;
+			END IF;
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
+			VALUES (NEW.email, op, 'contact_segment', kind_value, NEW.segment_id, changes_json, CURRENT_TIMESTAMP);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;`,
+		// Contact timeline queue trigger function
+		`CREATE OR REPLACE FUNCTION queue_contact_for_segment_recomputation()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			-- Queue the contact for segment recomputation
+			INSERT INTO contact_segment_queue (email, queued_at)
+			VALUES (NEW.email, CURRENT_TIMESTAMP)
+			ON CONFLICT (email) DO UPDATE SET queued_at = EXCLUDED.queued_at;
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
@@ -375,6 +481,10 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TRIGGER message_history_changes_trigger AFTER INSERT OR UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION track_message_history_changes()`,
 		`DROP TRIGGER IF EXISTS webhook_event_changes_trigger ON webhook_events`,
 		`CREATE TRIGGER webhook_event_changes_trigger AFTER INSERT ON webhook_events FOR EACH ROW EXECUTE FUNCTION track_webhook_event_changes()`,
+		`DROP TRIGGER IF EXISTS contact_segment_changes_trigger ON contact_segments`,
+		`CREATE TRIGGER contact_segment_changes_trigger AFTER INSERT OR DELETE ON contact_segments FOR EACH ROW EXECUTE FUNCTION track_contact_segment_changes()`,
+		`DROP TRIGGER IF EXISTS contact_timeline_queue_trigger ON contact_timeline`,
+		`CREATE TRIGGER contact_timeline_queue_trigger AFTER INSERT ON contact_timeline FOR EACH ROW EXECUTE FUNCTION queue_contact_for_segment_recomputation()`,
 	}
 
 	for _, query := range triggerQueries {

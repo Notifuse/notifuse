@@ -188,6 +188,12 @@ func TestProcess_HappyPath(t *testing.T) {
 		Return(0, nil).
 		Times(1)
 
+	// Expect UpdateBroadcast to be called when marking broadcast as sent (no recipients)
+	mockBroadcastRepository.EXPECT().
+		UpdateBroadcast(gomock.Any(), gomock.Any()).
+		Return(nil).
+		Times(1)
+
 	config := createTestConfig()
 	orchestrator := broadcast.NewBroadcastOrchestrator(
 		mockMessageSender,
@@ -551,6 +557,12 @@ func TestProcess_ZeroRecipients(t *testing.T) {
 	mockContactRepo.EXPECT().
 		CountContactsForBroadcast(gomock.Any(), "workspace-123", mockBroadcast.Audience).
 		Return(0, nil).
+		Times(1)
+
+	// Expect UpdateBroadcast to be called when marking broadcast as sent (no recipients)
+	mockBroadcastRepository.EXPECT().
+		UpdateBroadcast(gomock.Any(), gomock.Any()).
+		Return(nil).
 		Times(1)
 
 	config := createTestConfig()

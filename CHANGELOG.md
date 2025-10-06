@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [8.0] - 2025-10-04
+
+- Add `db_created_at` and `db_updated_at` fields to contacts table for accurate database tracking
+- Add `kind` field to contact timeline for granular event types (e.g., open_email, click_email)
+- Make `created_at` and `updated_at` optional with database defaults to support historical data imports
+- Ensure all timestamps stored in UTC timezone
+
 ## [7.1] - 2025-10-04
 
 - Fix panic when broadcast rate limit is set to less than 60 emails per minute

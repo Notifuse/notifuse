@@ -10,6 +10,10 @@ import (
 //go:generate mockgen -destination mocks/mock_auth_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain AuthRepository
 //go:generate mockgen -destination mocks/mock_auth_service.go -package mocks github.com/Notifuse/notifuse/internal/domain AuthService
 
+type ContextKey string
+
+const SystemCallKey ContextKey = "system_call"
+
 // AuthRepository defines the interface for auth-related database operations
 type AuthRepository interface {
 	GetSessionByID(ctx context.Context, sessionID string, userID string) (*time.Time, error)

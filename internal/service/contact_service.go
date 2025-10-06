@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"strings"
-	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -192,12 +191,8 @@ func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID st
 
 	// Validate and upsert
 	for i, contact := range contacts {
-		now := time.Now().UTC()
-		// Set created_at to now if not provided
-		if contact.CreatedAt.IsZero() {
-			contact.CreatedAt = now
-		}
-		contact.UpdatedAt = now
+		// CreatedAt and UpdatedAt are optional - if not provided, DB will use CURRENT_TIMESTAMP
+		// If provided, the values will be used (allows historical imports)
 
 		// init operation
 		operation := &domain.UpsertContactOperation{
@@ -260,13 +255,8 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 		return operation
 	}
 
-	// Set created_at to now if not provided
-	if contact.CreatedAt.IsZero() {
-		contact.CreatedAt = time.Now().UTC()
-	}
-
-	// Always update the updated_at timestamp
-	contact.UpdatedAt = time.Now().UTC()
+	// CreatedAt and UpdatedAt are optional - if not provided, DB will use CURRENT_TIMESTAMP
+	// If provided, the values will be used (allows historical imports)
 
 	isNew, err := s.repo.UpsertContact(ctx, workspaceID, contact)
 	if err != nil {
@@ -281,4 +271,29 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 	}
 
 	return operation
+}
+
+func (s *ContactService) CountContacts(ctx context.Context, workspaceID string) (int, error) {
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading contacts
+	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
+		return 0, domain.NewPermissionError(
+			domain.PermissionResourceContacts,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to contacts required",
+		)
+	}
+
+	count, err := s.repo.Count(ctx, workspaceID)
+	if err != nil {
+		s.logger.Error(fmt.Sprintf("Failed to count contacts: %v", err))
+		return 0, fmt.Errorf("failed to count contacts: %w", err)
+	}
+
+	return count, nil
 }

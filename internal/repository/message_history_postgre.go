@@ -129,7 +129,7 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 		message.BouncedAt,
 		message.ComplainedAt,
 		message.UnsubscribedAt,
-		time.Now(),
+		time.Now().UTC(),
 	)
 
 	if err != nil {
@@ -428,7 +428,7 @@ func (r *MessageHistoryRepository) SetStatusesIfNotSet(ctx context.Context, work
 		messageEventGroups[update.Event] = append(messageEventGroups[update.Event], update)
 	}
 
-	now := time.Now()
+	now := time.Now().UTC()
 
 	// Process each status group with a single query
 	for messageEvent, groupUpdates := range messageEventGroups {

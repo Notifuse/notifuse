@@ -2055,6 +2055,117 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 	assert.Equal(t, 100.0, task.Progress, "Task progress should be 100%")
 }
 
+// TestBroadcastOrchestrator_Process_NoRecipientsUpdatesBroadcastStatus tests that
+// when a broadcast has no recipients, both the task and broadcast are marked as completed
+func TestBroadcastOrchestrator_Process_NoRecipientsUpdatesBroadcastStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+	// Setup time provider
+	baseTime := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
+	mockTimeProvider.EXPECT().Now().Return(baseTime).AnyTimes()
+
+	// Mock broadcast
+	testBroadcast := &domain.Broadcast{
+		ID:          "broadcast-123",
+		WorkspaceID: "workspace-123",
+		Status:      domain.BroadcastStatusSending,
+		Audience: domain.AudienceSettings{
+			Lists: []string{"empty-list"},
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Variations: []domain.BroadcastVariation{
+				{TemplateID: "template-1"},
+			},
+		},
+	}
+
+	// Mock GetBroadcast - called twice: once for counting recipients, once for updating status
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(testBroadcast, nil).Times(2)
+
+	// Mock CountContactsForBroadcast to return 0 recipients
+	mockContactRepo.EXPECT().CountContactsForBroadcast(gomock.Any(), "workspace-123", testBroadcast.Audience).Return(0, nil)
+
+	// Mock UpdateBroadcast - THIS IS THE KEY ASSERTION
+	// The broadcast status should be updated to "sent" with a CompletedAt timestamp
+	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, b *domain.Broadcast) error {
+		// Verify the broadcast was properly updated
+		assert.Equal(t, domain.BroadcastStatusSent, b.Status, "Broadcast status should be 'sent'")
+		assert.NotNil(t, b.CompletedAt, "CompletedAt should be set")
+		return nil
+	})
+
+	config := &broadcast.Config{
+		FetchBatchSize:      100,
+		MaxProcessTime:      30 * time.Second,
+		ProgressLogInterval: 5 * time.Second,
+	}
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil, // abTestEvaluator not needed
+		mockLogger,
+		config,
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	// Create task with no recipients counted yet
+	task := &domain.Task{
+		ID:          "task-123",
+		WorkspaceID: "workspace-123",
+		Type:        "send_broadcast",
+		BroadcastID: stringPtr("broadcast-123"),
+		State: &domain.TaskState{
+			Progress: 0,
+			Message:  "Starting broadcast",
+			SendBroadcast: &domain.SendBroadcastState{
+				BroadcastID:     "broadcast-123",
+				TotalRecipients: 0, // Not counted yet
+				SentCount:       0,
+				FailedCount:     0,
+				RecipientOffset: 0,
+			},
+		},
+		RetryCount: 0,
+		MaxRetries: 3,
+	}
+
+	// Execute
+	ctx := context.Background()
+	timeout := time.Now().Add(30 * time.Second)
+	done, err := orchestrator.Process(ctx, task, timeout)
+
+	// Verify
+	require.NoError(t, err)
+	assert.True(t, done, "Task should be marked as done")
+	assert.Equal(t, 100.0, task.Progress, "Task progress should be 100%")
+	assert.Equal(t, "Broadcast completed: No recipients found", task.State.Message)
+}
+
 // Helper function to create string pointer
 func stringPtr(s string) *string {
 	return &s

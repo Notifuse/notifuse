@@ -18,29 +18,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mockPublicKey implements paseto.V4AsymmetricPublicKey interface for testing
-type mockPublicKey struct{}
-
-// ExportHex satisfies the interface
-func (m *mockPublicKey) ExportHex() string {
-	return ""
-}
-
-// ID satisfies the interface
-func (m *mockPublicKey) ID() []byte {
-	return []byte("")
-}
-
-// Equal satisfies the interface
-func (m *mockPublicKey) Equal(paseto.V4AsymmetricPublicKey) bool {
-	return false
-}
-
-// Verify satisfies the interface
-func (m *mockPublicKey) Verify([]byte, []byte) bool {
-	return true
-}
-
 // setupEmailHandlerTest prepares a test environment for email handler tests
 func setupEmailHandlerTest(t *testing.T) (*mocks.MockEmailServiceInterface, *pkgmocks.MockLogger, *EmailHandler, paseto.V4AsymmetricSecretKey) {
 	ctrl := gomock.NewController(t)

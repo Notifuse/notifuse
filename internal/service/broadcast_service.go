@@ -1094,7 +1094,7 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 		}
 
 		// Resume the task
-		nextRunAfter := time.Now()
+		nextRunAfter := time.Now().UTC()
 		task.NextRunAfter = &nextRunAfter
 		task.Status = domain.TaskStatusPending
 

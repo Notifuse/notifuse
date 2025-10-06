@@ -607,7 +607,8 @@ func TestTaskRepository_MarkAsCompleted(t *testing.T) {
 	mock.ExpectExec("UPDATE tasks SET").
 		WithArgs(
 			string(domain.TaskStatusCompleted),
-			int64(100),       // Change this to int64(100) to match what squirrel sends
+			int64(100),       // progress
+			"",               // error_message (cleared on completion)
 			sqlmock.AnyArg(), // updated_at
 			sqlmock.AnyArg(), // completed_at
 			nil,              // timeout_after
@@ -626,7 +627,8 @@ func TestTaskRepository_MarkAsCompleted(t *testing.T) {
 	mock.ExpectExec("UPDATE tasks SET").
 		WithArgs(
 			string(domain.TaskStatusCompleted),
-			int64(100),       // Change this to int64(100) to match what squirrel sends
+			int64(100),       // progress
+			"",               // error_message (cleared on completion)
 			sqlmock.AnyArg(), // updated_at
 			sqlmock.AnyArg(), // completed_at
 			nil,              // timeout_after
@@ -646,7 +648,8 @@ func TestTaskRepository_MarkAsCompleted(t *testing.T) {
 	mock.ExpectExec("UPDATE tasks SET").
 		WithArgs(
 			string(domain.TaskStatusCompleted),
-			int64(100),       // Change this to int64(100) to match what squirrel sends
+			int64(100),       // progress
+			"",               // error_message (cleared on completion)
 			sqlmock.AnyArg(), // updated_at
 			sqlmock.AnyArg(), // completed_at
 			nil,              // timeout_after

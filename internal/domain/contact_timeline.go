@@ -13,14 +13,16 @@ import (
 
 // ContactTimelineEntry represents a timeline entry for a contact
 type ContactTimelineEntry struct {
-	ID         string                 `json:"id"`
-	Email      string                 `json:"email"`
-	Operation  string                 `json:"operation"`   // 'insert', 'update', 'delete'
-	EntityType string                 `json:"entity_type"` // 'contact', 'contact_list', 'message_history'
-	Changes    map[string]interface{} `json:"changes"`
-	EntityID   *string                `json:"entity_id,omitempty"`   // NULL for contact, list_id for contact_list, message_id for message_history
-	EntityData map[string]interface{} `json:"entity_data,omitempty"` // Joined entity data (contact, list, or message details)
-	CreatedAt  time.Time              `json:"created_at"`
+	ID          string                 `json:"id"`
+	Email       string                 `json:"email"`
+	Operation   string                 `json:"operation"`   // 'insert', 'update', 'delete'
+	EntityType  string                 `json:"entity_type"` // 'contact', 'contact_list', 'message_history'
+	Kind        string                 `json:"kind"`        // operation_entityType (e.g., 'insert_contact', 'update_message_history')
+	Changes     map[string]interface{} `json:"changes"`
+	EntityID    *string                `json:"entity_id,omitempty"`   // NULL for contact, list_id for contact_list, message_id for message_history
+	EntityData  map[string]interface{} `json:"entity_data,omitempty"` // Joined entity data (contact, list, or message details)
+	CreatedAt   time.Time              `json:"created_at"`            // Can be set to historical data
+	DBCreatedAt time.Time              `json:"db_created_at"`         // Timestamp when record was inserted into database
 }
 
 // TimelineListRequest represents the request parameters for listing timeline entries

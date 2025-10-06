@@ -69,7 +69,7 @@ func (h *DemoHandler) handleResetDemo(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update last reset time
-	h.lastReset = time.Now()
+	h.lastReset = time.Now().UTC()
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"message": "Demo data reset successfully",

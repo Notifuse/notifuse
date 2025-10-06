@@ -13,10 +13,22 @@ export interface SendBroadcastState {
   recipient_offset: number
 }
 
+export interface BuildSegmentState {
+  segment_id: string
+  version: number
+  total_contacts: number
+  processed_count: number
+  matched_count: number
+  contact_offset: number
+  batch_size: number
+  started_at: string
+}
+
 export interface TaskState {
   progress?: number
   message?: string
   send_broadcast?: SendBroadcastState
+  build_segment?: BuildSegmentState
 }
 
 // Task interfaces
@@ -172,6 +184,27 @@ export const taskApi = {
       return task || null
     } catch (error) {
       console.error('Error finding task by broadcast ID:', error)
+      return null
+    }
+  },
+
+  // Utility method to find a task by segment ID (uses list with filter)
+  findBySegmentId: async (workspace_id: string, segment_id: string): Promise<Task | null> => {
+    try {
+      const response = await taskApi.list({
+        workspace_id,
+        type: 'build_segment',
+        status: ['pending', 'running'],
+        limit: 100
+      })
+
+      // Find the task with the matching segment_id in its build_segment state
+      const task = response.tasks?.find(
+        (task) => task.state?.build_segment?.segment_id === segment_id
+      )
+      return task || null
+    } catch (error) {
+      console.error('Error finding task by segment ID:', error)
       return null
     }
   }

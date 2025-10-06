@@ -20,6 +20,7 @@ import (
 type WorkspaceService struct {
 	repo               domain.WorkspaceRepository
 	userRepo           domain.UserRepository
+	taskRepo           domain.TaskRepository
 	logger             logger.Logger
 	userService        domain.UserServiceInterface
 	authService        domain.AuthService
@@ -36,6 +37,7 @@ type WorkspaceService struct {
 func NewWorkspaceService(
 	repo domain.WorkspaceRepository,
 	userRepo domain.UserRepository,
+	taskRepo domain.TaskRepository,
 	logger logger.Logger,
 	userService domain.UserServiceInterface,
 	authService domain.AuthService,
@@ -51,6 +53,7 @@ func NewWorkspaceService(
 	return &WorkspaceService{
 		repo:               repo,
 		userRepo:           userRepo,
+		taskRepo:           taskRepo,
 		logger:             logger,
 		userService:        userService,
 		authService:        authService,
@@ -99,7 +102,7 @@ func (s *WorkspaceService) ListWorkspaces(ctx context.Context) ([]*domain.Worksp
 // GetWorkspace returns a workspace by ID if the user has access
 func (s *WorkspaceService) GetWorkspace(ctx context.Context, id string) (*domain.Workspace, error) {
 	// Check if this is a system call that should bypass authentication
-	if ctx.Value("system_call") == nil {
+	if ctx.Value(domain.SystemCallKey) == nil {
 		// Validate user is a member of the workspace
 		var user *domain.User
 		var err error
@@ -255,6 +258,12 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 		return nil, err
 	}
 
+	// Create permanent contact segment queue processing task for this workspace
+	if err := EnsureContactSegmentQueueProcessingTask(ctx, s.taskRepo, id); err != nil {
+		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to create contact segment queue processing task")
+		// Don't fail workspace creation if task creation fails - it can be created later
+	}
+
 	return workspace, nil
 }
 
@@ -363,6 +372,12 @@ func (s *WorkspaceService) DeleteWorkspace(ctx context.Context, id string) error
 			s.logger.WithField("workspace_id", id).WithField("integration_id", integration.ID).WithField("error", err.Error()).Warn("Failed to delete integration during workspace deletion")
 			// Continue with other integrations even if one fails
 		}
+	}
+
+	// Delete all tasks for this workspace (including the queue processing task)
+	if err := s.taskRepo.DeleteAll(ctx, id); err != nil {
+		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Warn("Failed to delete tasks during workspace deletion")
+		// Continue with workspace deletion even if task deletion fails
 	}
 
 	if err := s.repo.Delete(ctx, id); err != nil {

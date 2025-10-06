@@ -148,6 +148,7 @@ func TestNewDemoService_Constructs(t *testing.T) {
 		nil, // webhookRegistrationService
 		nil, // messageHistoryService
 		nil, // notificationCenterService
+		nil, // segmentService
 		nil, // workspaceRepo
 		nil, // taskRepo
 		nil, // messageHistoryRepo
@@ -595,6 +596,7 @@ func TestNewDemoService_AllFields(t *testing.T) {
 		nil, // webhookRegistrationService
 		nil, // messageHistoryService
 		nil, // notificationCenterService
+		nil, // segmentService
 		nil, // workspaceRepo
 		nil, // taskRepo
 		nil, // messageHistoryRepo

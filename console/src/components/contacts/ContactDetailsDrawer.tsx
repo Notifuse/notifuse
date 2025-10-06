@@ -20,6 +20,7 @@ import {
 } from 'antd'
 import { Contact } from '../../services/api/contacts'
 import { List, Workspace } from '../../services/api/types'
+import { Segment } from '../../services/api/segment'
 import dayjs from '../../lib/dayjs'
 import numbro from 'numbro'
 import { ContactUpsertDrawer } from './ContactUpsertDrawer'
@@ -44,6 +45,7 @@ interface ContactDetailsDrawerProps {
   visible?: boolean
   onClose?: () => void
   lists?: List[]
+  segments?: Segment[]
   onContactUpdate?: (contact: Contact) => void
   buttonProps: {
     type?: 'primary' | 'default' | 'dashed' | 'link' | 'text'
@@ -85,6 +87,7 @@ export function ContactDetailsDrawer({
   visible: externalVisible,
   onClose: externalOnClose,
   lists = [],
+  segments = [],
   onContactUpdate,
   buttonProps
 }: ContactDetailsDrawerProps) {
@@ -772,6 +775,20 @@ export function ContactDetailsDrawer({
                   {fullName}
                 </Title>
                 <Text type="secondary">{contact?.email}</Text>
+                {/* Contact segments */}
+                {contact?.contact_segments && contact.contact_segments.length > 0 && (
+                  <Space size={4} wrap style={{ marginTop: '8px' }}>
+                    {contact.contact_segments.map((cs) => {
+                      const segment = segments.find((s) => s.id === cs.segment_id)
+                      if (!segment) return null
+                      return (
+                        <Tag key={cs.segment_id} bordered={false} color={segment.color}>
+                          {segment.name}
+                        </Tag>
+                      )
+                    })}
+                  </Space>
+                )}
               </div>
             </div>
 
@@ -1000,6 +1017,7 @@ export function ContactDetailsDrawer({
                           loading={loadingTimeline}
                           timezone={contact?.timezone || workspace.settings.timezone}
                           workspace={workspace}
+                          segments={segments}
                           onLoadMore={handleLoadMoreTimeline}
                           hasMore={!!timelineData?.next_cursor}
                           isLoadingMore={isLoadingMoreTimeline}

@@ -37,12 +37,13 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			Return(db, nil)
 
 		now := time.Now()
+		dbNow := time.Now()
 		entityData1 := []byte(`{"email":"user@example.com","first_name":"John","last_name":"Doe"}`)
 		entityData2 := []byte(`{"email":"user@example.com","first_name":"Jane","last_name":"Doe"}`)
 
-		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "changes", "entity_id", "created_at", "entity_data"}).
-			AddRow("entry1", email, "insert", "contact", nil, nil, now, entityData1).
-			AddRow("entry2", email, "update", "contact", []byte(`{"first_name":{"old":"John","new":"Jane"}}`), nil, now.Add(-1*time.Hour), entityData2)
+		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "kind", "changes", "entity_id", "created_at", "db_created_at", "entity_data"}).
+			AddRow("entry1", email, "insert", "contact", "insert_contact", nil, nil, now, dbNow, entityData1).
+			AddRow("entry2", email, "update", "contact", "update_contact", []byte(`{"first_name":{"old":"John","new":"Jane"}}`), nil, now.Add(-1*time.Hour), dbNow.Add(-1*time.Hour), entityData2)
 
 		mock.ExpectQuery("SELECT(.+)FROM contact_timeline ct(.+)").
 			WithArgs(email, sqlmock.AnyArg()).
@@ -80,8 +81,9 @@ func TestContactTimelineRepository_List(t *testing.T) {
 		cursorStr := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s|%s", cursorTime.Format(time.RFC3339Nano), cursorID)))
 
 		entityData := []byte(`{"email":"user@example.com","first_name":"Jane","last_name":"Doe"}`)
-		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "changes", "entity_id", "created_at", "entity_data"}).
-			AddRow("entry2", email, "update", "contact", []byte(`{"first_name":{"old":"John","new":"Jane"}}`), nil, cursorTime.Add(-1*time.Minute), entityData)
+		dbNow := time.Now()
+		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "kind", "changes", "entity_id", "created_at", "db_created_at", "entity_data"}).
+			AddRow("entry2", email, "update", "contact", "update_contact", []byte(`{"first_name":{"old":"John","new":"Jane"}}`), nil, cursorTime.Add(-1*time.Minute), dbNow, entityData)
 
 		// The query uses email, cursorTime (twice for the OR condition), cursorID, and limit
 		mock.ExpectQuery("SELECT(.+)FROM contact_timeline ct(.+)").
@@ -108,11 +110,12 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			Return(db, nil)
 
 		now := time.Now()
+		dbNow := time.Now()
 		entityData := []byte(`{"email":"user@example.com","first_name":"Test","last_name":"User"}`)
 		// Return limit + 1 entries to trigger next cursor
-		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "changes", "entity_id", "created_at", "entity_data"})
+		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "kind", "changes", "entity_id", "created_at", "db_created_at", "entity_data"})
 		for i := 0; i <= 10; i++ {
-			rows.AddRow(fmt.Sprintf("entry%d", i), email, "insert", "contact", nil, nil, now.Add(-time.Duration(i)*time.Hour), entityData)
+			rows.AddRow(fmt.Sprintf("entry%d", i), email, "insert", "contact", "insert_contact", nil, nil, now.Add(-time.Duration(i)*time.Hour), dbNow.Add(-time.Duration(i)*time.Hour), entityData)
 		}
 
 		mock.ExpectQuery("SELECT(.+)FROM contact_timeline ct(.+)").
@@ -138,9 +141,10 @@ func TestContactTimelineRepository_List(t *testing.T) {
 
 		listID := "list123"
 		now := time.Now()
+		dbNow := time.Now()
 		entityData := []byte(`{"id":"list123","name":"Test List","status":"active"}`)
-		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "changes", "entity_id", "created_at", "entity_data"}).
-			AddRow("entry1", email, "insert", "contact_list", []byte(`{"list_id":{"new":"list123"},"status":{"new":"active"}}`), listID, now, entityData)
+		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "kind", "changes", "entity_id", "created_at", "db_created_at", "entity_data"}).
+			AddRow("entry1", email, "insert", "contact_list", "insert_contact_list", []byte(`{"list_id":{"new":"list123"},"status":{"new":"active"}}`), listID, now, dbNow, entityData)
 
 		mock.ExpectQuery("SELECT(.+)FROM contact_timeline ct(.+)").
 			WithArgs(email, sqlmock.AnyArg()).
@@ -168,7 +172,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "changes", "entity_id", "created_at", "entity_data"})
+		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "kind", "changes", "entity_id", "created_at", "db_created_at", "entity_data"})
 
 		mock.ExpectQuery("SELECT(.+)FROM contact_timeline ct(.+)").
 			WithArgs(email, sqlmock.AnyArg()).
@@ -191,7 +195,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "changes", "entity_id", "created_at", "entity_data"})
+		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "kind", "changes", "entity_id", "created_at", "db_created_at", "entity_data"})
 
 		mock.ExpectQuery("SELECT(.+)FROM contact_timeline ct(.+)").
 			WithArgs(email, sqlmock.AnyArg()).
@@ -215,7 +219,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "changes", "entity_id", "created_at", "entity_data"})
+		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "kind", "changes", "entity_id", "created_at", "db_created_at", "entity_data"})
 
 		mock.ExpectQuery("SELECT(.+)FROM contact_timeline ct(.+)").
 			WithArgs(email, sqlmock.AnyArg()).
@@ -340,8 +344,9 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			Return(db, nil)
 
 		now := time.Now()
-		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "changes", "entity_id", "created_at", "entity_data"}).
-			AddRow("entry1", email, "update", "contact", []byte(`{invalid json}`), nil, now, nil)
+		dbNow := time.Now()
+		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "kind", "changes", "entity_id", "created_at", "db_created_at", "entity_data"}).
+			AddRow("entry1", email, "update", "contact", "update_contact", []byte(`{invalid json}`), nil, now, dbNow, nil)
 
 		mock.ExpectQuery("SELECT(.+)FROM contact_timeline ct(.+)").
 			WithArgs(email, sqlmock.AnyArg()).
@@ -366,8 +371,9 @@ func TestContactTimelineRepository_List(t *testing.T) {
 			Return(db, nil)
 
 		now := time.Now()
-		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "changes", "entity_id", "created_at", "entity_data"}).
-			AddRow("entry1", email, "insert", "contact", nil, nil, now, []byte(`{invalid json}`))
+		dbNow := time.Now()
+		rows := sqlmock.NewRows([]string{"id", "email", "operation", "entity_type", "kind", "changes", "entity_id", "created_at", "db_created_at", "entity_data"}).
+			AddRow("entry1", email, "insert", "contact", "insert_contact", nil, nil, now, dbNow, []byte(`{invalid json}`))
 
 		mock.ExpectQuery("SELECT(.+)FROM contact_timeline ct(.+)").
 			WithArgs(email, sqlmock.AnyArg()).

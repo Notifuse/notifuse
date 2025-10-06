@@ -105,6 +105,45 @@ func (r *contactRepository) fetchContact(ctx context.Context, workspaceID string
 		return nil, fmt.Errorf("error iterating contact lists: %w", err)
 	}
 
+	// Fetch contact segments for this contact
+	segmentsQuery, segmentsArgs, err := psql.Select("cs.segment_id", "cs.version", "cs.matched_at", "cs.computed_at", "s.name as segment_name", "s.color as segment_color").
+		From("contact_segments cs").
+		Join("segments s ON cs.segment_id = s.id").
+		Where(sq.Eq{"cs.email": contact.Email}).
+		ToSql()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build contact segments query: %w", err)
+	}
+
+	segmentRows, err := db.QueryContext(ctx, segmentsQuery, segmentsArgs...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch contact segments: %w", err)
+	}
+	defer segmentRows.Close()
+
+	contact.ContactSegments = []*domain.ContactSegment{}
+	for segmentRows.Next() {
+		var contactSegment domain.ContactSegment
+		var segmentName, segmentColor string
+		err := segmentRows.Scan(
+			&contactSegment.SegmentID,
+			&contactSegment.Version,
+			&contactSegment.MatchedAt,
+			&contactSegment.ComputedAt,
+			&segmentName,
+			&segmentColor,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan contact segment: %w", err)
+		}
+		contactSegment.Email = contact.Email
+		contact.ContactSegments = append(contact.ContactSegments, &contactSegment)
+	}
+
+	if err = segmentRows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating contact segments: %w", err)
+	}
+
 	return contact, nil
 }
 
@@ -142,32 +181,48 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 
 	// Use EXISTS subquery for list_id and contact_list_status filters instead of JOIN
 	if req.ListID != "" || req.ContactListStatus != "" {
-		// Start building the subquery
-		subquery := psql.Select("1").
-			From("contact_lists cl").
-			Where("cl.email = c.email").
-			Where(sq.Eq{"cl.deleted_at": nil})
+		// Build the EXISTS clause manually with ? placeholders
+		// Squirrel will convert these to the correct $N placeholders
+		var existsClause string
+		var args []interface{}
 
-		// Add specific conditions to the subquery
 		if req.ListID != "" && req.ContactListStatus != "" {
 			// Both list_id and status
-			subquery = subquery.Where(sq.Eq{"cl.list_id": req.ListID, "cl.status": req.ContactListStatus})
+			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE cl.email = c.email AND cl.deleted_at IS NULL AND cl.list_id = ? AND cl.status = ?)"
+			args = []interface{}{req.ListID, req.ContactListStatus}
 		} else if req.ListID != "" {
 			// Just list_id
-			subquery = subquery.Where(sq.Eq{"cl.list_id": req.ListID})
+			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE cl.email = c.email AND cl.deleted_at IS NULL AND cl.list_id = ?)"
+			args = []interface{}{req.ListID}
 		} else if req.ContactListStatus != "" {
 			// Just status
-			subquery = subquery.Where(sq.Eq{"cl.status": req.ContactListStatus})
+			existsClause = "EXISTS (SELECT 1 FROM contact_lists cl WHERE cl.email = c.email AND cl.deleted_at IS NULL AND cl.status = ?)"
+			args = []interface{}{req.ContactListStatus}
 		}
 
-		// Convert subquery to SQL
-		subquerySql, subqueryArgs, err := subquery.ToSql()
-		if err != nil {
-			return nil, fmt.Errorf("failed to build subquery: %w", err)
+		sb = sb.Where(sq.Expr(existsClause, args...))
+	}
+
+	// Use EXISTS subquery for segments filter
+	if len(req.Segments) > 0 {
+		// Build the placeholder string for the IN clause using ? placeholders
+		// Squirrel will convert these to the correct $N placeholders
+		placeholders := make([]string, len(req.Segments))
+		for i := range placeholders {
+			placeholders[i] = "?"
+		}
+		placeholdersStr := strings.Join(placeholders, ",")
+
+		// Build the EXISTS clause with ? placeholders
+		existsClause := fmt.Sprintf("EXISTS (SELECT 1 FROM contact_segments cs JOIN segments s ON cs.segment_id = s.id WHERE cs.email = c.email AND cs.segment_id IN (%s))", placeholdersStr)
+
+		// Convert []string to []interface{} for sq.Expr
+		args := make([]interface{}, len(req.Segments))
+		for i, seg := range req.Segments {
+			args[i] = seg
 		}
 
-		// Add the EXISTS condition to the main query
-		sb = sb.Where(fmt.Sprintf("EXISTS (%s)", subquerySql), subqueryArgs...)
+		sb = sb.Where(sq.Expr(existsClause, args...))
 	}
 
 	if req.Cursor != "" {
@@ -308,6 +363,59 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 		}
 	}
 
+	// Fetch contact segments for all contacts (always included)
+	if len(contacts) > 0 {
+		// Build list of contact emails
+		emails := make([]string, len(contacts))
+		for i, contact := range contacts {
+			emails[i] = contact.Email
+		}
+
+		// Query for ALL contact segments for these contacts
+		segmentQueryBuilder := psql.Select("cs.email", "cs.segment_id", "cs.version", "cs.matched_at", "cs.computed_at", "s.name as segment_name", "s.color as segment_color").
+			From("contact_segments cs").
+			Join("segments s ON cs.segment_id = s.id").
+			Where(sq.Eq{"cs.email": emails}) // squirrel handles IN clauses automatically
+
+		segmentQuery, segmentArgs, err := segmentQueryBuilder.ToSql()
+		if err != nil {
+			return nil, fmt.Errorf("failed to build contact segment query: %w", err)
+		}
+
+		segmentRows, err := db.QueryContext(ctx, segmentQuery, segmentArgs...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to query contact segments: %w", err)
+		}
+		defer segmentRows.Close()
+
+		// Create/use the map of contacts by email for quick lookup
+		contactMap := make(map[string]*domain.Contact)
+		for _, contact := range contacts {
+			contact.ContactSegments = []*domain.ContactSegment{}
+			contactMap[contact.Email] = contact
+		}
+
+		// Process contact segment results
+		for segmentRows.Next() {
+			var email string
+			var segment domain.ContactSegment
+			var segmentName, segmentColor string
+			err := segmentRows.Scan(&email, &segment.SegmentID, &segment.Version, &segment.MatchedAt, &segment.ComputedAt, &segmentName, &segmentColor)
+			if err != nil {
+				return nil, fmt.Errorf("failed to scan contact segment: %w", err)
+			}
+
+			segment.Email = email
+			if contact, ok := contactMap[email]; ok {
+				contact.ContactSegments = append(contact.ContactSegments, &segment)
+			}
+		}
+
+		if err = segmentRows.Err(); err != nil {
+			return nil, fmt.Errorf("error iterating over contact segment rows: %w", err)
+		}
+	}
+
 	return &domain.GetContactsResponse{
 		Contacts:   contacts,
 		NextCursor: nextCursor,
@@ -386,7 +494,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		isNew = true
 
 		// Set DB timestamps
-		now := time.Now()
+		now := time.Now().UTC()
 		contact.DBCreatedAt = now
 		contact.DBUpdatedAt = now
 
@@ -681,6 +789,16 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		}
 
 		// Build insert query using squirrel
+		// Note: We include all columns in one call to avoid misalignment issues
+		createdAtValue := contact.CreatedAt
+		if createdAtValue.IsZero() {
+			createdAtValue = contact.DBCreatedAt // Use db timestamp if not provided
+		}
+		updatedAtValue := contact.UpdatedAt
+		if updatedAtValue.IsZero() {
+			updatedAtValue = contact.DBUpdatedAt // Use db timestamp if not provided
+		}
+
 		insertBuilder := psql.Insert("contacts").
 			Columns(
 				"email", "external_id", "timezone", "language",
@@ -691,7 +809,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 				"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 				"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 				"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-				"created_at", "updated_at",
+				"created_at", "updated_at", "db_created_at", "db_updated_at",
 			).
 			Values(
 				contact.Email, externalIDSQL, timezoneSQL, languageSQL,
@@ -702,7 +820,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 				customNumber1SQL, customNumber2SQL, customNumber3SQL, customNumber4SQL, customNumber5SQL,
 				customDatetime1SQL, customDatetime2SQL, customDatetime3SQL, customDatetime4SQL, customDatetime5SQL,
 				customJSON1SQL, customJSON2SQL, customJSON3SQL, customJSON4SQL, customJSON5SQL,
-				contact.DBCreatedAt, contact.DBUpdatedAt, // Use DB timestamps
+				createdAtValue.UTC(), updatedAtValue.UTC(), contact.DBCreatedAt, contact.DBUpdatedAt,
 			)
 
 		insertQuery, insertArgs, err := insertBuilder.ToSql()
@@ -722,7 +840,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		isNew = false
 
 		// Update DB timestamps
-		existingContact.DBUpdatedAt = time.Now()
+		existingContact.DBUpdatedAt = time.Now().UTC()
 
 		// Merge changes from the input 'contact' into the 'existingContact'
 		existingContact.Merge(contact)
@@ -950,45 +1068,52 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		}
 
 		// Build update query using squirrel
+		updateMap := sq.Eq{
+			"external_id":       externalIDSQL,
+			"timezone":          timezoneSQL,
+			"language":          languageSQL,
+			"first_name":        firstNameSQL,
+			"last_name":         lastNameSQL,
+			"phone":             phoneSQL,
+			"address_line_1":    addressLine1SQL,
+			"address_line_2":    addressLine2SQL,
+			"country":           countrySQL,
+			"postcode":          postcodeSQL,
+			"state":             stateSQL,
+			"job_title":         jobTitleSQL,
+			"lifetime_value":    lifetimeValueSQL,
+			"orders_count":      ordersCountSQL,
+			"last_order_at":     lastOrderAtSQL,
+			"custom_string_1":   customString1SQL,
+			"custom_string_2":   customString2SQL,
+			"custom_string_3":   customString3SQL,
+			"custom_string_4":   customString4SQL,
+			"custom_string_5":   customString5SQL,
+			"custom_number_1":   customNumber1SQL,
+			"custom_number_2":   customNumber2SQL,
+			"custom_number_3":   customNumber3SQL,
+			"custom_number_4":   customNumber4SQL,
+			"custom_number_5":   customNumber5SQL,
+			"custom_datetime_1": customDatetime1SQL,
+			"custom_datetime_2": customDatetime2SQL,
+			"custom_datetime_3": customDatetime3SQL,
+			"custom_datetime_4": customDatetime4SQL,
+			"custom_datetime_5": customDatetime5SQL,
+			"custom_json_1":     customJSON1SQL,
+			"custom_json_2":     customJSON2SQL,
+			"custom_json_3":     customJSON3SQL,
+			"custom_json_4":     customJSON4SQL,
+			"custom_json_5":     customJSON5SQL,
+			"db_updated_at":     existingContact.DBUpdatedAt,
+		}
+
+		// Only update updated_at if provided (not zero)
+		if !existingContact.UpdatedAt.IsZero() {
+			updateMap["updated_at"] = existingContact.UpdatedAt.UTC()
+		}
+
 		updateBuilder := psql.Update("contacts").
-			SetMap(sq.Eq{
-				"external_id":       externalIDSQL,
-				"timezone":          timezoneSQL,
-				"language":          languageSQL,
-				"first_name":        firstNameSQL,
-				"last_name":         lastNameSQL,
-				"phone":             phoneSQL,
-				"address_line_1":    addressLine1SQL,
-				"address_line_2":    addressLine2SQL,
-				"country":           countrySQL,
-				"postcode":          postcodeSQL,
-				"state":             stateSQL,
-				"job_title":         jobTitleSQL,
-				"lifetime_value":    lifetimeValueSQL,
-				"orders_count":      ordersCountSQL,
-				"last_order_at":     lastOrderAtSQL,
-				"custom_string_1":   customString1SQL,
-				"custom_string_2":   customString2SQL,
-				"custom_string_3":   customString3SQL,
-				"custom_string_4":   customString4SQL,
-				"custom_string_5":   customString5SQL,
-				"custom_number_1":   customNumber1SQL,
-				"custom_number_2":   customNumber2SQL,
-				"custom_number_3":   customNumber3SQL,
-				"custom_number_4":   customNumber4SQL,
-				"custom_number_5":   customNumber5SQL,
-				"custom_datetime_1": customDatetime1SQL,
-				"custom_datetime_2": customDatetime2SQL,
-				"custom_datetime_3": customDatetime3SQL,
-				"custom_datetime_4": customDatetime4SQL,
-				"custom_datetime_5": customDatetime5SQL,
-				"custom_json_1":     customJSON1SQL,
-				"custom_json_2":     customJSON2SQL,
-				"custom_json_3":     customJSON3SQL,
-				"custom_json_4":     customJSON4SQL,
-				"custom_json_5":     customJSON5SQL,
-				"updated_at":        existingContact.DBUpdatedAt, // Use DB timestamps
-			}).
+			SetMap(updateMap).
 			Where(sq.Eq{"email": existingContact.Email})
 
 		updateQuery, updateArgs, err := updateBuilder.ToSql()
@@ -1074,12 +1199,33 @@ func (r *contactRepository) GetContactsForBroadcast(
 		}
 	}
 
-	// Handle segments filtering (if implemented)
+	// Handle segments filtering
 	if len(audience.Segments) > 0 {
-		// This would involve joining with segments tables or applying segment conditions
-		// Implementation depends on how segments are structured in the database
-		// For now, we'll just return an error
-		return nil, fmt.Errorf("segments filtering not implemented")
+		// If we already have list filtering, we need to add segments as an additional filter
+		// This means contacts must be in BOTH the specified lists AND segments
+		if len(audience.Lists) > 0 {
+			// Join with contact_segments table in addition to the existing list joins
+			query = query.Join("contact_segments cs ON c.email = cs.email")
+			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
+		} else {
+			// No list filtering, so we're filtering by segments only
+			// We need to select from contacts and join with contact_segments
+			includeListID = false
+			query = psql.Select("c.*").
+				From("contacts c").
+				Join("contact_segments cs ON c.email = cs.email").
+				Where(sq.Eq{"cs.segment_id": audience.Segments}).
+				Limit(uint64(limit)).
+				Offset(uint64(offset))
+
+			// Set order by clause based on whether we need deduplication
+			if audience.SkipDuplicateEmails {
+				// For DISTINCT ON (c.email), we must order by c.email first
+				query = query.OrderBy("c.email ASC", "c.created_at ASC")
+			} else {
+				query = query.OrderBy("c.created_at ASC")
+			}
+		}
 	}
 
 	// Build the final query
@@ -1335,11 +1481,29 @@ func (r *contactRepository) CountContactsForBroadcast(
 		}
 	}
 
-	// Handle segments filtering (if implemented)
+	// Handle segments filtering
 	if len(audience.Segments) > 0 {
-		// This would involve joining with segments tables or applying segment conditions
-		// Implementation depends on how segments are structured in the database
-		return 0, fmt.Errorf("segments filtering not implemented")
+		// If we already have list filtering, we need to add segments as an additional filter
+		// This means contacts must be in BOTH the specified lists AND segments
+		if len(audience.Lists) > 0 {
+			// Join with contact_segments table in addition to the existing list joins
+			query = query.Join("contact_segments cs ON c.email = cs.email")
+			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
+		} else {
+			// No list filtering, so we're filtering by segments only
+			// Use DISTINCT counting if needed
+			var countExpression string
+			if audience.SkipDuplicateEmails {
+				countExpression = "COUNT(DISTINCT c.email)"
+			} else {
+				countExpression = "COUNT(*)"
+			}
+
+			query = psql.Select(countExpression).
+				From("contacts c").
+				Join("contact_segments cs ON c.email = cs.email").
+				Where(sq.Eq{"cs.segment_id": audience.Segments})
+		}
 	}
 
 	// Build and execute the query
@@ -1355,4 +1519,66 @@ func (r *contactRepository) CountContactsForBroadcast(
 	}
 
 	return count, nil
+}
+
+// Count returns the total number of contacts in a workspace
+func (r *contactRepository) Count(ctx context.Context, workspaceID string) (int, error) {
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
+	query, args, err := psql.Select("COUNT(*)").
+		From("contacts").
+		ToSql()
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to build count query: %w", err)
+	}
+
+	var count int
+	err = db.QueryRowContext(ctx, query, args...).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to execute count query: %w", err)
+	}
+
+	return count, nil
+}
+
+// GetBatchForSegment retrieves a batch of email addresses for segment processing
+// Optimized to only fetch emails instead of full contact objects
+func (r *contactRepository) GetBatchForSegment(ctx context.Context, workspaceID string, offset int64, limit int) ([]string, error) {
+	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		SELECT email 
+		FROM contacts 
+		ORDER BY email ASC 
+		LIMIT $1 OFFSET $2
+	`
+
+	rows, err := db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query emails: %w", err)
+	}
+	defer rows.Close()
+
+	emails := make([]string, 0, limit)
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err != nil {
+			return nil, fmt.Errorf("failed to scan email: %w", err)
+		}
+		emails = append(emails, email)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	return emails, nil
 }

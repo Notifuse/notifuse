@@ -27,6 +27,7 @@ func testBroadcast(workspaceID, id string) *domain.Broadcast {
 		ChannelType: "email",
 		Status:      domain.BroadcastStatusDraft,
 		Audience: domain.AudienceSettings{
+			Lists:    []string{"list1"},
 			Segments: []string{"seg1"},
 		},
 		Schedule: domain.ScheduleSettings{
@@ -125,7 +126,7 @@ func TestBroadcastService_CreateBroadcast_Success(t *testing.T) {
 	req := &domain.CreateBroadcastRequest{
 		WorkspaceID: "w1",
 		Name:        "My Campaign",
-		Audience:    domain.AudienceSettings{Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
 		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 	}
 
@@ -399,7 +400,7 @@ func TestBroadcastService_UpdateBroadcast_Success(t *testing.T) {
 		WorkspaceID: "w1",
 		ID:          "b1",
 		Name:        "Updated Name",
-		Audience:    domain.AudienceSettings{Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
 		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 		TestSettings: domain.BroadcastTestSettings{
 			Enabled:    false,
@@ -551,7 +552,7 @@ func TestBroadcastService_CreateBroadcast_RepositoryFailure(t *testing.T) {
 	req := &domain.CreateBroadcastRequest{
 		WorkspaceID: "w1",
 		Name:        "Test",
-		Audience:    domain.AudienceSettings{Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
 		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 	}
 	authOK(d.authService, ctx, req.WorkspaceID)
@@ -658,7 +659,7 @@ func TestBroadcastService_UpdateBroadcast_RepositoryFailure(t *testing.T) {
 		WorkspaceID: "w1",
 		ID:          "b1",
 		Name:        "Updated Name",
-		Audience:    domain.AudienceSettings{Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
 		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 		TestSettings: domain.BroadcastTestSettings{
 			Enabled:    false,
@@ -1831,7 +1832,7 @@ func TestBroadcastService_CreateBroadcast_WithScheduledBroadcast(t *testing.T) {
 	req := &domain.CreateBroadcastRequest{
 		WorkspaceID: "w1",
 		Name:        "Scheduled Campaign",
-		Audience:    domain.AudienceSettings{Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
 		Schedule: domain.ScheduleSettings{
 			IsScheduled:   true,
 			ScheduledDate: "2024-12-25",
@@ -2154,7 +2155,7 @@ func TestBroadcastService_CreateBroadcast_IDGeneration(t *testing.T) {
 	req := &domain.CreateBroadcastRequest{
 		WorkspaceID: "w1",
 		Name:        "Test Campaign",
-		Audience:    domain.AudienceSettings{Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
 		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 	}
 

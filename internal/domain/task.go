@@ -41,6 +41,7 @@ type TaskState struct {
 
 	// Specialized states for different task types - only one will be used based on task type
 	SendBroadcast *SendBroadcastState `json:"send_broadcast,omitempty"`
+	BuildSegment  *BuildSegmentState  `json:"build_segment,omitempty"`
 }
 
 // Value implements the driver.Valuer interface for TaskState
@@ -77,6 +78,18 @@ type SendBroadcastState struct {
 	TestPhaseCompleted        bool   `json:"test_phase_completed"`
 	TestPhaseRecipientCount   int    `json:"test_phase_recipient_count"`
 	WinnerPhaseRecipientCount int    `json:"winner_phase_recipient_count"`
+}
+
+// BuildSegmentState contains state specific to segment building tasks
+type BuildSegmentState struct {
+	SegmentID      string `json:"segment_id"`
+	Version        int64  `json:"version"`
+	TotalContacts  int    `json:"total_contacts"`
+	ProcessedCount int    `json:"processed_count"`
+	MatchedCount   int    `json:"matched_count"`
+	ContactOffset  int64  `json:"contact_offset"` // For resumable processing
+	BatchSize      int    `json:"batch_size"`     // Process 1000 at a time
+	StartedAt      string `json:"started_at"`
 }
 
 // Task represents a background task that can be executed in multiple steps
@@ -164,6 +177,10 @@ type TaskRepository interface {
 	// MarkAsPaused marks a task as paused (e.g., due to timeout)
 	MarkAsPaused(ctx context.Context, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
 	MarkAsPausedTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
+
+	// MarkAsPending marks a task as pending (e.g., for recurring tasks)
+	MarkAsPending(ctx context.Context, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
+	MarkAsPendingTx(ctx context.Context, tx *sql.Tx, workspace, id string, nextRunAfter time.Time, progress float64, state *TaskState) error
 }
 
 // TaskFilter defines the filtering criteria for task listing
@@ -414,7 +431,7 @@ func (r *ExecutePendingTasksRequest) FromURLParams(values url.Values) error {
 		}
 		r.MaxTasks = maxTasks
 	} else {
-		r.MaxTasks = 10 // default value
+		r.MaxTasks = 100 // default value
 	}
 
 	return nil

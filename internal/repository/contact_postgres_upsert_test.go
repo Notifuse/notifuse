@@ -132,7 +132,7 @@ func TestUpsertContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				existingContact.Email, "old-ext", nil, nil, "Old", "Name", nil,
@@ -142,7 +142,7 @@ func TestUpsertContact(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				existingContact.CreatedAt, existingContact.UpdatedAt,
+				existingContact.CreatedAt, existingContact.UpdatedAt, existingContact.CreatedAt, existingContact.UpdatedAt,
 			)
 
 		// New contact data with updates
@@ -367,7 +367,7 @@ func TestUpsertContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				email, "old-ext", nil, nil, "Old", "Name", nil,
@@ -377,7 +377,7 @@ func TestUpsertContact(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				now.Add(-24*time.Hour), now.Add(-24*time.Hour),
+				now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour),
 			)
 
 		// Expect transaction begin
@@ -542,7 +542,7 @@ func TestUpsertContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				email, "ext123", nil, nil, "John", "Doe", nil,
@@ -552,7 +552,7 @@ func TestUpsertContact(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				time.Now(), time.Now(),
+				time.Now(), time.Now(), time.Now(), time.Now(),
 			)
 
 		// Create an update with unmarshalable JSON
@@ -781,7 +781,7 @@ func TestUpsertContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
@@ -791,7 +791,7 @@ func TestUpsertContact(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				now.Add(-24*time.Hour), now.Add(-24*time.Hour),
+				now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour),
 			)
 
 		// Update with mixed null and non-null fields
@@ -864,7 +864,7 @@ func TestUpsertContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", "+1234567000",
@@ -874,7 +874,7 @@ func TestUpsertContact(t *testing.T) {
 				1.1, 2.2, 3.3, 4.4, 5.5,
 				now.Add(-10*time.Hour), now.Add(-20*time.Hour), now.Add(-30*time.Hour), now.Add(-40*time.Hour), now.Add(-50*time.Hour),
 				[]byte(`{"old":"json1"}`), []byte(`{"old":"json2"}`), []byte(`{"old":"json3"}`), []byte(`{"old":"json4"}`), []byte(`{"old":"json5"}`),
-				now.Add(-24*time.Hour), now.Add(-12*time.Hour),
+				now.Add(-24*time.Hour), now.Add(-12*time.Hour), now.Add(-24*time.Hour), now.Add(-12*time.Hour),
 			)
 
 		// Create update contact with ALL fields populated with new values
@@ -983,7 +983,7 @@ func TestUpsertContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				email, "ext123", "UTC", "en-US", "John", "Doe", "+1234567890",
@@ -993,7 +993,7 @@ func TestUpsertContact(t *testing.T) {
 				1.1, 2.2, 3.3, 4.4, 5.5,
 				now.Add(-1*time.Hour), now.Add(-2*time.Hour), now.Add(-3*time.Hour), now.Add(-4*time.Hour), now.Add(-5*time.Hour),
 				[]byte(`{"key1":"value1"}`), []byte(`{"key2":"value2"}`), []byte(`{"key3":"value3"}`), []byte(`{"key4":"value4"}`), []byte(`{"key5":"value5"}`),
-				now.Add(-24*time.Hour), now.Add(-12*time.Hour),
+				now.Add(-24*time.Hour), now.Add(-12*time.Hour), now.Add(-24*time.Hour), now.Add(-12*time.Hour),
 			)
 
 		// Create update with explicit NULL values for fields
@@ -1089,7 +1089,7 @@ func TestUpsertContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
@@ -1099,7 +1099,7 @@ func TestUpsertContact(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				now.Add(-24*time.Hour), now.Add(-24*time.Hour),
+				now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour),
 			)
 
 		// Create update with unmarshalable JSON
@@ -1166,7 +1166,7 @@ func TestUpsertContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
@@ -1176,7 +1176,7 @@ func TestUpsertContact(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				now.Add(-24*time.Hour), now.Add(-24*time.Hour),
+				now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour),
 			)
 
 		// Update with unmarshalable JSON for CustomJSON3
@@ -1242,7 +1242,7 @@ func TestUpsertContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
@@ -1252,7 +1252,7 @@ func TestUpsertContact(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				now.Add(-24*time.Hour), now.Add(-24*time.Hour),
+				now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour),
 			)
 
 		// Update with unmarshalable JSON for CustomJSON4
@@ -1318,7 +1318,7 @@ func TestUpsertContact(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
-			"created_at", "updated_at",
+			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
@@ -1328,7 +1328,7 @@ func TestUpsertContact(t *testing.T) {
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
-				now.Add(-24*time.Hour), now.Add(-24*time.Hour),
+				now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour), now.Add(-24*time.Hour),
 			)
 
 		// Update with unmarshalable JSON for CustomJSON5

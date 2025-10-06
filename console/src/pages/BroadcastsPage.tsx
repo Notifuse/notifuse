@@ -17,17 +17,14 @@ import {
   Popover,
   Alert,
   Popconfirm,
-  Pagination
+  Pagination,
+  Tag
 } from 'antd'
 import { useParams } from '@tanstack/react-router'
-import {
-  broadcastApi,
-  Broadcast,
-  BroadcastStatus,
-  BroadcastVariation
-} from '../services/api/broadcast'
+import { broadcastApi, Broadcast, BroadcastVariation } from '../services/api/broadcast'
 import { listsApi } from '../services/api/list'
 import { taskApi } from '../services/api/task'
+import { listSegments } from '../services/api/segment'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCirclePause,
@@ -397,6 +394,7 @@ const VariationCard: React.FC<VariationCardProps> = ({
 interface BroadcastCardProps {
   broadcast: Broadcast
   lists: List[]
+  segments: { id: string; name: string; color: string; users_count?: number }[]
   workspaceId: string
   onDelete: (broadcast: Broadcast) => void
   onPause: (broadcast: Broadcast) => void
@@ -414,6 +412,7 @@ interface BroadcastCardProps {
 const BroadcastCard: React.FC<BroadcastCardProps> = ({
   broadcast,
   lists,
+  segments,
   workspaceId,
   onDelete,
   onPause,
@@ -656,6 +655,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   workspace={currentWorkspace!}
                   broadcast={broadcast}
                   lists={lists}
+                  segments={segments}
                   buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
                   buttonProps={{
                     size: 'small',
@@ -826,7 +826,20 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   {/* Audience Information */}
                   {broadcast.audience.segments && broadcast.audience.segments.length > 0 && (
                     <Descriptions.Item label="Segments">
-                      {broadcast.audience.segments.length} segments
+                      <Space wrap>
+                        {broadcast.audience.segments.map((segmentId) => {
+                          const segment = segments.find((s) => s.id === segmentId)
+                          return segment ? (
+                            <Tag key={segment.id} color={segment.color} bordered={false}>
+                              {segment.name}
+                            </Tag>
+                          ) : (
+                            <Tag key={segmentId} bordered={false}>
+                              Unknown segment ({segmentId})
+                            </Tag>
+                          )
+                        })}
+                      </Space>
                     </Descriptions.Item>
                   )}
 
@@ -1072,6 +1085,16 @@ export function BroadcastsPage() {
 
   const lists = listsData?.lists || []
 
+  // Fetch segments for the current workspace
+  const { data: segmentsData } = useQuery({
+    queryKey: ['segments', workspaceId],
+    queryFn: () => {
+      return listSegments({ workspace_id: workspaceId, with_count: true })
+    }
+  })
+
+  const segments = segmentsData?.segments || []
+
   const handleDeleteBroadcast = async () => {
     if (!broadcastToDelete) return
 
@@ -1207,6 +1230,7 @@ export function BroadcastsPage() {
                 <UpsertBroadcastDrawer
                   workspace={currentWorkspace}
                   lists={lists}
+                  segments={segments}
                   buttonContent={<>Create Broadcast</>}
                   buttonProps={{
                     disabled: !permissions?.broadcasts?.write
@@ -1248,6 +1272,7 @@ export function BroadcastsPage() {
               key={broadcast.id}
               broadcast={broadcast}
               lists={lists}
+              segments={segments}
               workspaceId={workspaceId}
               onDelete={openDeleteModal}
               onPause={handlePauseBroadcast}
@@ -1297,6 +1322,7 @@ export function BroadcastsPage() {
                   <UpsertBroadcastDrawer
                     workspace={currentWorkspace}
                     lists={lists}
+                    segments={segments}
                     buttonContent="Create Broadcast"
                     buttonProps={{
                       disabled: !permissions?.broadcasts?.write

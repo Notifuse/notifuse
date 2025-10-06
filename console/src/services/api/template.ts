@@ -1,18 +1,166 @@
 import { api } from './client'
-import {
-  GetTemplatesRequest,
-  GetTemplatesResponse,
-  GetTemplateRequest,
-  GetTemplateResponse,
-  CreateTemplateRequest,
-  CreateTemplateResponse,
-  UpdateTemplateRequest,
-  UpdateTemplateResponse,
-  DeleteTemplateRequest,
-  DeleteTemplateResponse,
-  CompileTemplateRequest,
-  CompileTemplateResponse
-} from './types'
+import type { EmailBlock } from '../../components/email_builder/types'
+import type { EmailOptions } from './transactional_notifications'
+import type { EmailProvider } from './workspace'
+
+// Template types
+export interface Template {
+  id: string
+  name: string
+  version: number
+  channel: 'email'
+  email?: EmailTemplate
+  category: string
+  template_macro_id?: string
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  test_data?: Record<string, any>
+  settings?: Record<string, any>
+  created_at: string
+  updated_at: string
+}
+
+export interface EmailTemplate {
+  sender_id?: string
+  reply_to?: string
+  subject: string
+  subject_preview?: string
+  compiled_preview: string // compiled html
+  visual_editor_tree: EmailBlock
+  text?: string
+}
+
+export interface GetTemplatesRequest {
+  workspace_id: string
+  category?: string
+}
+
+export interface GetTemplateRequest {
+  workspace_id: string
+  id: string
+  version?: number
+}
+
+export interface CreateTemplateRequest {
+  workspace_id: string
+  id: string
+  name: string
+  channel: string
+  email: EmailTemplate
+  category: string
+  template_macro_id?: string
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  test_data?: Record<string, any>
+  settings?: Record<string, any>
+}
+
+export interface UpdateTemplateRequest {
+  workspace_id: string
+  id: string
+  name: string
+  channel: string
+  email: EmailTemplate
+  category: string
+  template_macro_id?: string
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  test_data?: Record<string, any>
+  settings?: Record<string, any>
+}
+
+export interface DeleteTemplateRequest {
+  workspace_id: string
+  id: string
+}
+
+export interface GetTemplatesResponse {
+  templates: Template[]
+}
+
+export interface GetTemplateResponse {
+  template: Template
+}
+
+export interface CreateTemplateResponse {
+  template: Template
+}
+
+export interface UpdateTemplateResponse {
+  template: Template
+}
+
+export interface DeleteTemplateResponse {
+  status: string
+}
+
+// Represents a detail within an MJML compilation error
+export interface MjmlErrorDetail {
+  line: number
+  message: string
+  tagName: string
+}
+
+// Represents the structured error returned by the MJML compiler
+export interface MjmlCompileError {
+  message: string
+  details: MjmlErrorDetail[]
+}
+
+export interface TrackingSettings {
+  enable_tracking: boolean
+  endpoint?: string
+  utm_source?: string
+  utm_medium?: string
+  utm_campaign?: string
+  utm_content?: string
+  utm_term?: string
+  workspace_id?: string
+  message_id?: string
+}
+
+export interface CompileTemplateRequest {
+  workspace_id: string
+  message_id: string
+  visual_editor_tree: EmailBlock
+  test_data?: Record<string, any> | null
+  tracking_settings?: TrackingSettings
+}
+
+export interface CompileTemplateResponse {
+  mjml: string
+  html: string
+  error?: MjmlCompileError // Use the structured error type, optional
+}
+
+export interface TestEmailProviderRequest {
+  provider: EmailProvider
+  to: string
+  workspace_id: string
+}
+
+export interface TestEmailProviderResponse {
+  success: boolean
+  error?: string
+}
+
+// Test template types
+export interface TestTemplateRequest {
+  workspace_id: string
+  template_id: string
+  integration_id: string
+  sender_id: string
+  recipient_email: string
+  email_options?: EmailOptions
+}
+
+export interface TestTemplateResponse {
+  success: boolean
+  error?: string
+}
 
 // Define the API interfaces
 export interface TemplatesApi {

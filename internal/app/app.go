@@ -93,6 +93,8 @@ type App struct {
 	telemetryRepo                 domain.TelemetryRepository
 	analyticsRepo                 domain.AnalyticsRepository
 	contactTimelineRepo           domain.ContactTimelineRepository
+	segmentRepo                   domain.SegmentRepository
+	contactSegmentQueueRepo       domain.ContactSegmentQueueRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -115,6 +117,7 @@ type App struct {
 	telemetryService                 *service.TelemetryService
 	analyticsService                 *service.AnalyticsService
 	contactTimelineService           domain.ContactTimelineService
+	segmentService                   *service.SegmentService
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -328,6 +331,8 @@ func (a *App) InitRepositories() error {
 	a.telemetryRepo = repository.NewTelemetryRepository(a.workspaceRepo)
 	a.analyticsRepo = repository.NewAnalyticsRepository(a.workspaceRepo, a.logger)
 	a.contactTimelineRepo = repository.NewContactTimelineRepository(a.workspaceRepo)
+	a.segmentRepo = repository.NewSegmentRepository(a.workspaceRepo)
+	a.contactSegmentQueueRepo = repository.NewContactSegmentQueueRepository(a.workspaceRepo)
 
 	return nil
 }
@@ -460,6 +465,7 @@ func (a *App) InitServices() error {
 	a.workspaceService = service.NewWorkspaceService(
 		a.workspaceRepo,
 		a.userRepo,
+		a.taskRepo,
 		a.logger,
 		a.userService,
 		a.authService,
@@ -564,6 +570,41 @@ func (a *App) InitServices() error {
 	// Register system notification service with event bus
 	a.systemNotificationService.RegisterWithEventBus(a.eventBus)
 
+	// Initialize segment service (before demo service since it depends on it)
+	a.segmentService = service.NewSegmentService(
+		a.segmentRepo,
+		a.workspaceRepo,
+		a.taskService,
+		a.logger,
+	)
+
+	// Initialize and register segment build processor
+	segmentBuildProcessor := service.NewSegmentBuildProcessor(
+		a.segmentRepo,
+		a.contactRepo,
+		a.taskRepo,
+		a.workspaceRepo,
+		a.logger,
+	)
+	a.taskService.RegisterProcessor(segmentBuildProcessor)
+
+	// Initialize contact segment queue processor
+	contactSegmentQueueProcessor := service.NewContactSegmentQueueProcessor(
+		a.contactSegmentQueueRepo,
+		a.segmentRepo,
+		a.contactRepo,
+		a.workspaceRepo,
+		a.logger,
+	)
+
+	// Initialize and register contact segment queue task processor
+	contactSegmentQueueTaskProcessor := service.NewContactSegmentQueueTaskProcessor(
+		contactSegmentQueueProcessor,
+		a.taskRepo,
+		a.logger,
+	)
+	a.taskService.RegisterProcessor(contactSegmentQueueTaskProcessor)
+
 	// Initialize demo service
 	a.demoService = service.NewDemoService(
 		a.logger,
@@ -582,6 +623,7 @@ func (a *App) InitServices() error {
 		a.webhookRegistrationService,
 		a.messageHistoryService,
 		a.notificationCenterService,
+		a.segmentService,
 		a.workspaceRepo,
 		a.taskRepo,
 		a.messageHistoryRepo,
@@ -670,6 +712,11 @@ func (a *App) InitHandlers() error {
 		a.config.Security.PasetoPublicKey,
 		a.logger,
 	)
+	segmentHandler := httpHandler.NewSegmentHandler(
+		a.segmentService,
+		a.config.Security.PasetoPublicKey,
+		a.logger,
+	)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -693,6 +740,7 @@ func (a *App) InitHandlers() error {
 	notificationCenterHandler.RegisterRoutes(a.mux)
 	analyticsHandler.RegisterRoutes(a.mux)
 	contactTimelineHandler.RegisterRoutes(a.mux)
+	segmentHandler.RegisterRoutes(a.mux)
 	a.mux.HandleFunc("/api/detect-favicon", faviconHandler.DetectFavicon)
 
 	return nil
@@ -879,7 +927,7 @@ func (a *App) Shutdown(ctx context.Context) error {
 }
 
 // cleanupResources handles cleanup of database and other resources
-func (a *App) cleanupResources(ctx context.Context) error {
+func (a *App) cleanupResources(_ context.Context) error {
 	a.logger.Info("Cleaning up resources...")
 
 	// Close database connection if it exists
@@ -1109,11 +1157,6 @@ func (a *App) gracefulShutdownMiddleware(next http.Handler) http.Handler {
 		// Track this request
 		a.incrementActiveRequests()
 		defer a.decrementActiveRequests()
-
-		// Add shutdown context to request context
-		ctx := r.Context()
-		ctx = context.WithValue(ctx, "shutdown_ctx", a.shutdownCtx)
-		r = r.WithContext(ctx)
 
 		// Call the next handler
 		next.ServeHTTP(w, r)

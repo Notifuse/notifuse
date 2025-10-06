@@ -81,6 +81,8 @@ type Contact struct {
 
 	// Join contact_lists
 	ContactLists []*ContactList `json:"contact_lists"`
+	// Join contact_segments
+	ContactSegments []*ContactSegment `json:"contact_segments"`
 	// Not persisted
 	EmailHMAC string `json:"email_hmac,omitempty"`
 }
@@ -156,8 +158,10 @@ type dbContact struct {
 	CustomJSON4 []byte
 	CustomJSON5 []byte
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	DBCreatedAt time.Time
+	DBUpdatedAt time.Time
 }
 
 // ScanContact scans a contact from the database
@@ -206,6 +210,8 @@ func ScanContact(scanner interface {
 		&dbc.CustomJSON5,
 		&dbc.CreatedAt,
 		&dbc.UpdatedAt,
+		&dbc.DBCreatedAt,
+		&dbc.DBUpdatedAt,
 	)
 
 	if err != nil {
@@ -217,8 +223,8 @@ func ScanContact(scanner interface {
 		Email:       dbc.Email,
 		CreatedAt:   dbc.CreatedAt,
 		UpdatedAt:   dbc.UpdatedAt,
-		DBCreatedAt: dbc.CreatedAt,
-		DBUpdatedAt: dbc.UpdatedAt,
+		DBCreatedAt: dbc.DBCreatedAt,
+		DBUpdatedAt: dbc.DBUpdatedAt,
 	}
 
 	// Handle nullable fields
@@ -380,15 +386,16 @@ type GetContactsRequest struct {
 	WorkspaceID string `json:"workspace_id" valid:"required,alphanum,stringlength(1|20)"`
 
 	// Optional filters
-	Email             string `json:"email,omitempty" valid:"optional,email"`
-	ExternalID        string `json:"external_id,omitempty" valid:"optional"`
-	FirstName         string `json:"first_name,omitempty" valid:"optional"`
-	LastName          string `json:"last_name,omitempty" valid:"optional"`
-	Phone             string `json:"phone,omitempty" valid:"optional"`
-	Country           string `json:"country,omitempty" valid:"optional"`
-	Language          string `json:"language,omitempty" valid:"optional"`
-	ListID            string `json:"list_id,omitempty" valid:"optional"`
-	ContactListStatus string `json:"contact_list_status,omitempty" valid:"optional"`
+	Email             string   `json:"email,omitempty" valid:"optional,email"`
+	ExternalID        string   `json:"external_id,omitempty" valid:"optional"`
+	FirstName         string   `json:"first_name,omitempty" valid:"optional"`
+	LastName          string   `json:"last_name,omitempty" valid:"optional"`
+	Phone             string   `json:"phone,omitempty" valid:"optional"`
+	Country           string   `json:"country,omitempty" valid:"optional"`
+	Language          string   `json:"language,omitempty" valid:"optional"`
+	ListID            string   `json:"list_id,omitempty" valid:"optional"`
+	ContactListStatus string   `json:"contact_list_status,omitempty" valid:"optional"`
+	Segments          []string `json:"segments,omitempty" valid:"optional"`
 
 	// Join contact_lists
 	WithContactLists bool `json:"with_contact_lists,omitempty" valid:"optional"`
@@ -411,6 +418,11 @@ func (r *GetContactsRequest) FromQueryParams(params url.Values) error {
 	r.ListID = params.Get("list_id")
 	r.ContactListStatus = params.Get("contact_list_status")
 	r.Cursor = params.Get("cursor")
+
+	// Parse segments array
+	if segments, ok := params["segments[]"]; ok && len(segments) > 0 {
+		r.Segments = segments
+	}
 
 	// Validate workspace ID
 	if r.WorkspaceID == "" {
@@ -592,6 +604,9 @@ type ContactService interface {
 
 	// UpsertContact creates a new contact or updates an existing one
 	UpsertContact(ctx context.Context, workspaceID string, contact *Contact) UpsertContactOperation
+
+	// CountContacts returns the total number of contacts in a workspace
+	CountContacts(ctx context.Context, workspaceID string) (int, error)
 }
 
 // ContactRepository is the interface for contact operations
@@ -616,6 +631,12 @@ type ContactRepository interface {
 
 	// CountContactsForBroadcast counts contacts based on broadcast audience settings
 	CountContactsForBroadcast(ctx context.Context, workspaceID string, audience AudienceSettings) (int, error)
+
+	// Count returns the total number of contacts in a workspace
+	Count(ctx context.Context, workspaceID string) (int, error)
+
+	// GetBatchForSegment retrieves a batch of email addresses for segment processing
+	GetBatchForSegment(ctx context.Context, workspaceID string, offset int64, limit int) ([]string, error)
 }
 
 // FromJSON parses JSON data into a Contact struct

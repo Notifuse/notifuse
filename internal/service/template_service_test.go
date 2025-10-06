@@ -268,7 +268,7 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 		templateService, mockRepo, _, _ := setupTemplateServiceTest(ctrl)
 
 		// Create a system context that should bypass authentication
-		systemCtx := context.WithValue(ctx, "system_call", true)
+		systemCtx := context.WithValue(ctx, domain.SystemCallKey, true)
 
 		// No auth service call expected since this is a system call
 		mockRepo.EXPECT().GetTemplateByID(systemCtx, workspaceID, templateID, version).Return(expectedTemplate, nil)
@@ -924,7 +924,7 @@ func TestCompileTemplate_SystemCallBypassesAuth(t *testing.T) {
 	svc := service.NewTemplateService(mockRepo, mockAuthService, mockLogger, "https://api.example.com")
 
 	// Create a system context that should bypass authentication
-	ctx := context.WithValue(context.Background(), "system_call", true)
+	ctx := context.WithValue(context.Background(), domain.SystemCallKey, true)
 	workspaceID := "ws_123"
 	testTree := createValidTestTree(createTestTextBlock("txt1", "Test"))
 

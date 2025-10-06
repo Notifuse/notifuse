@@ -49,6 +49,21 @@ func (mr *MockContactServiceMockRecorder) BatchImportContacts(arg0, arg1, arg2 i
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchImportContacts", reflect.TypeOf((*MockContactService)(nil).BatchImportContacts), arg0, arg1, arg2)
 }
 
+// CountContacts mocks base method.
+func (m *MockContactService) CountContacts(arg0 context.Context, arg1 string) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountContacts", arg0, arg1)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountContacts indicates an expected call of CountContacts.
+func (mr *MockContactServiceMockRecorder) CountContacts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountContacts", reflect.TypeOf((*MockContactService)(nil).CountContacts), arg0, arg1)
+}
+
 // DeleteContact mocks base method.
 func (m *MockContactService) DeleteContact(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()

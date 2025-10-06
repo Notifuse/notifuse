@@ -367,15 +367,9 @@ func (b *Broadcast) Validate() error {
 	}
 
 	// Validate audience settings
-	switch {
-	case len(b.Audience.Lists) > 0 && len(b.Audience.Segments) > 0:
-		return fmt.Errorf("both lists and segments are specified")
-	case len(b.Audience.Lists) > 0:
-		// Lists are specified, no need to check segments
-	case len(b.Audience.Segments) > 0:
-		// Segments are specified, no need to check lists
-	default:
-		return fmt.Errorf("either lists or segments must be specified")
+	// Lists are mandatory, segments are optional and act as filters on lists
+	if len(b.Audience.Lists) == 0 {
+		return fmt.Errorf("at least one list must be specified")
 	}
 
 	// Validate schedule settings

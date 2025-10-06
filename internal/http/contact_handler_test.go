@@ -51,6 +51,7 @@ func TestContactHandler_RegisterRoutes(t *testing.T) {
 	// Check if routes were registered - indirect test by ensuring no panic
 	endpoints := []string{
 		"/api/contacts.list",
+		"/api/contacts.count",
 		"/api/contacts.get",
 		"/api/contacts.getByEmail",
 		"/api/contacts.getByExternalID",
@@ -150,6 +151,89 @@ func TestContactHandler_HandleList(t *testing.T) {
 				err := json.NewDecoder(rr.Body).Decode(&response)
 				assert.NoError(t, err)
 				assert.NotEmpty(t, response.Contacts)
+			}
+		})
+	}
+}
+
+func TestContactHandler_HandleCount(t *testing.T) {
+	testCases := []struct {
+		name           string
+		method         string
+		queryParams    string
+		setupMock      func(*mocks.MockContactService)
+		expectedStatus int
+		expectedCount  int
+	}{
+		{
+			name:        "Count Contacts Success",
+			method:      http.MethodGet,
+			queryParams: "workspace_id=workspace123",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().CountContacts(gomock.Any(), "workspace123").Return(42, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectedCount:  42,
+		},
+		{
+			name:        "Count Contacts Service Error",
+			method:      http.MethodGet,
+			queryParams: "workspace_id=workspace123",
+			setupMock: func(m *mocks.MockContactService) {
+				m.EXPECT().CountContacts(gomock.Any(), "workspace123").Return(0, errors.New("service error"))
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedCount:  0,
+		},
+		{
+			name:        "Missing Workspace ID",
+			method:      http.MethodGet,
+			queryParams: "",
+			setupMock: func(m *mocks.MockContactService) {
+				// No setup needed for this test
+			},
+			expectedStatus: http.StatusBadRequest,
+			expectedCount:  0,
+		},
+		{
+			name:        "Method Not Allowed",
+			method:      http.MethodPost,
+			queryParams: "workspace_id=workspace123",
+			setupMock: func(m *mocks.MockContactService) {
+				// No setup needed for this test
+			},
+			expectedStatus: http.StatusMethodNotAllowed,
+			expectedCount:  0,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockService, _, handler := setupContactHandlerTest(t)
+
+			// Setup mock expectations
+			if tc.setupMock != nil {
+				tc.setupMock(mockService)
+			}
+
+			// Create request
+			req := httptest.NewRequest(tc.method, "/api/contacts.count?"+tc.queryParams, nil)
+
+			// Create response recorder
+			rr := httptest.NewRecorder()
+
+			// Call handler
+			handler.handleCount(rr, req)
+
+			// Check status code
+			assert.Equal(t, tc.expectedStatus, rr.Code)
+
+			// If success, check the response body
+			if tc.expectedStatus == http.StatusOK {
+				var response map[string]int
+				err := json.NewDecoder(rr.Body).Decode(&response)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedCount, response["total_contacts"])
 			}
 		})
 	}

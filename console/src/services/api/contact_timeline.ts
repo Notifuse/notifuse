@@ -43,21 +43,31 @@ export interface WebhookEventEntityData {
   template_name?: string | null
 }
 
+export interface ContactSegmentEntityData {
+  id: string
+  name: string
+  color?: string
+  version?: number
+}
+
 export type EntityData =
   | ContactEntityData
   | ContactListEntityData
   | MessageHistoryEntityData
   | WebhookEventEntityData
+  | ContactSegmentEntityData
 
 export interface ContactTimelineEntry {
   id: string
   email: string
   operation: 'insert' | 'update' | 'delete'
-  entity_type: 'contact' | 'contact_list' | 'message_history' | 'webhook_event'
+  entity_type: 'contact' | 'contact_list' | 'message_history' | 'webhook_event' | 'contact_segment'
+  kind: string // operation_entityType (e.g., 'insert_contact', 'update_message_history', 'join_segment', 'leave_segment')
   changes: Record<string, any>
-  entity_id?: string // NULL for contact, list_id for contact_list, message_id for message_history and webhook_event
+  entity_id?: string // NULL for contact, list_id for contact_list, message_id for message_history and webhook_event, segment_id for contact_segment
   entity_data?: EntityData // Joined entity data with contact, list, message, or webhook event details
-  created_at: string
+  created_at: string // Can be set to historical data
+  db_created_at: string // Timestamp when record was inserted into database
 }
 
 export interface TimelineListRequest {

@@ -32,6 +32,7 @@ type DemoService struct {
 	webhookRegistrationService       *WebhookRegistrationService
 	messageHistoryService            *MessageHistoryService
 	notificationCenterService        *NotificationCenterService
+	segmentService                   domain.SegmentService
 	workspaceRepo                    domain.WorkspaceRepository
 	taskRepo                         domain.TaskRepository
 	messageHistoryRepo               domain.MessageHistoryRepository
@@ -80,8 +81,8 @@ var (
 	}
 
 	countries = []string{
-		"United States", "Canada", "United Kingdom", "Germany", "France",
-		"Spain", "Italy", "Australia", "Japan", "Brazil",
+		"US", "CA", "GB", "DE", "FR",
+		"ES", "IT", "AU", "JP", "BR",
 	}
 )
 
@@ -103,6 +104,7 @@ func NewDemoService(
 	webhookRegistrationService *WebhookRegistrationService,
 	messageHistoryService *MessageHistoryService,
 	notificationCenterService *NotificationCenterService,
+	segmentService domain.SegmentService,
 	workspaceRepo domain.WorkspaceRepository,
 	taskRepo domain.TaskRepository,
 	messageHistoryRepo domain.MessageHistoryRepository,
@@ -125,6 +127,7 @@ func NewDemoService(
 		webhookRegistrationService:       webhookRegistrationService,
 		messageHistoryService:            messageHistoryService,
 		notificationCenterService:        notificationCenterService,
+		segmentService:                   segmentService,
 		workspaceRepo:                    workspaceRepo,
 		taskRepo:                         taskRepo,
 		messageHistoryRepo:               messageHistoryRepo,
@@ -299,6 +302,12 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 	// Step 7: Generate sample message history with realistic engagement rates
 	if err := s.generateSampleMessageHistory(ctx, workspaceID); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to generate sample message history")
+		return err
+	}
+
+	// Step 8: Create sample segments
+	if err := s.createSampleSegments(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample segments")
 		return err
 	}
 
@@ -1918,11 +1927,6 @@ func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceI
 	return totalMessages, nil
 }
 
-// stringPtr returns a pointer to a string
-func stringPtr(s string) *string {
-	return &s
-}
-
 // messageEngagementData holds a message and its engagement info
 type messageEngagementData struct {
 	message    *domain.MessageHistory
@@ -2191,4 +2195,209 @@ func getRandomPointer(slice []string) *string {
 	}
 	value := slice[rand.Intn(len(slice))]
 	return &value
+}
+
+// Helper function to create a pointer to a string
+func stringPtr(s string) *string {
+	return &s
+}
+
+// createSampleSegments creates demo segments for showcasing the segmentation feature
+func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID string) error {
+	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample segments")
+
+	// Segment 1: VIP Customers (high lifetime value and orders) - demonstrates AND logic
+	vipSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "vip_customers",
+		Name:        "VIP Customers",
+		Color:       "gold",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "lifetime_value",
+										FieldType:    "number",
+										Operator:     "gte",
+										NumberValues: []float64{800.0},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "orders_count",
+										FieldType:    "number",
+										Operator:     "gte",
+										NumberValues: []float64{3.0},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, vipSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create VIP Customers segment")
+	} else {
+		s.logger.Info("Created VIP Customers segment")
+	}
+
+	// Segment 2: European Market (complex OR logic) - demonstrates OR logic
+	europeSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "european_market",
+		Name:        "European Market",
+		Color:       "geekblue",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "or",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"GB"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"FR"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"DE"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"ES"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"IT"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, europeSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create European Market segment")
+	} else {
+		s.logger.Info("Created European Market segment")
+	}
+
+	// Segment 3: Engaged Users (behavioral - email opens) - demonstrates timeline-based filtering
+	engagedSegment := &domain.CreateSegmentRequest{
+		WorkspaceID: workspaceID,
+		ID:          "engaged_users",
+		Name:        "Engaged Users",
+		Color:       "green",
+		Timezone:    "UTC",
+		Tree: &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contact_timeline",
+							ContactTimeline: &domain.ContactTimelineCondition{
+								Kind:          "open_email",
+								CountOperator: "at_least",
+								CountValue:    3,
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	if _, err := s.segmentService.CreateSegment(ctx, engagedSegment); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create Engaged Users segment")
+	} else {
+		s.logger.Info("Created Engaged Users segment")
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).Info("Sample segments created successfully")
+	return nil
 }

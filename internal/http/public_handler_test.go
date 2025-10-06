@@ -369,7 +369,6 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 
 // Mock logger for testing
 type mockLogger struct {
-	logs []string
 }
 
 func (l *mockLogger) Debug(msg string) {}
