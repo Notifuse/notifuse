@@ -455,6 +455,10 @@ func TestSegmentRepository_DeleteSegment(t *testing.T) {
 	`)).WithArgs("seg123", sqlmock.AnyArg()).
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
+		sqlMock.ExpectExec(regexp.QuoteMeta(`DELETE FROM contact_segments WHERE segment_id = $1`)).
+			WithArgs("seg123").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
 		err := repo.DeleteSegment(context.Background(), "workspace123", "seg123")
 		require.NoError(t, err)
 	})
@@ -471,7 +475,7 @@ func TestSegmentRepository_DeleteSegment(t *testing.T) {
 		assert.IsType(t, &domain.ErrSegmentNotFound{}, err)
 	})
 
-	t.Run("database error", func(t *testing.T) {
+	t.Run("database error on segment update", func(t *testing.T) {
 		sqlMock.ExpectExec(regexp.QuoteMeta(`
 		UPDATE segments
 	`)).WillReturnError(errors.New("database error"))
@@ -479,6 +483,23 @@ func TestSegmentRepository_DeleteSegment(t *testing.T) {
 		err := repo.DeleteSegment(context.Background(), "workspace123", "seg123")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete segment")
+	})
+
+	t.Run("database error on contact_segments deletion", func(t *testing.T) {
+		sqlMock.ExpectExec(regexp.QuoteMeta(`
+		UPDATE segments
+		SET status = 'deleted', db_updated_at = $2
+		WHERE id = $1
+	`)).WithArgs("seg123", sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		sqlMock.ExpectExec(regexp.QuoteMeta(`DELETE FROM contact_segments WHERE segment_id = $1`)).
+			WithArgs("seg123").
+			WillReturnError(errors.New("database error"))
+
+		err := repo.DeleteSegment(context.Background(), "workspace123", "seg123")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete contact_segments for segment")
 	})
 }
 

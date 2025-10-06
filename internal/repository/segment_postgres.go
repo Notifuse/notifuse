@@ -280,6 +280,13 @@ func (r *segmentRepository) DeleteSegment(ctx context.Context, workspaceID strin
 		return &domain.ErrSegmentNotFound{Message: fmt.Sprintf("segment not found: %s", id)}
 	}
 
+	// Delete all contact_segments entries for this segment
+	deleteContactSegmentsQuery := `DELETE FROM contact_segments WHERE segment_id = $1`
+	_, err = workspaceDB.ExecContext(ctx, deleteContactSegmentsQuery, id)
+	if err != nil {
+		return fmt.Errorf("failed to delete contact_segments for segment: %w", err)
+	}
+
 	return nil
 }
 
