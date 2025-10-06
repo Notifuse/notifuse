@@ -439,7 +439,7 @@ func TestCreateTaskRequest_Validate(t *testing.T) {
 		assert.Equal(t, TaskStatusPending, task.Status)
 		assert.Equal(t, 0.0, task.Progress)
 		assert.Nil(t, task.State)
-		assert.Equal(t, "", task.ErrorMessage)
+		assert.Nil(t, task.ErrorMessage)
 		assert.Equal(t, 50, task.MaxRuntime)     // Default value
 		assert.Equal(t, 3, task.MaxRetries)      // Default value
 		assert.Equal(t, 300, task.RetryInterval) // Default value
@@ -487,7 +487,7 @@ func TestCreateTaskRequest_Validate(t *testing.T) {
 		assert.Equal(t, TaskStatusPending, task.Status)
 		assert.Equal(t, 0.0, task.Progress)
 		assert.Equal(t, state, task.State)
-		assert.Equal(t, "", task.ErrorMessage)
+		assert.Nil(t, task.ErrorMessage)
 		assert.Equal(t, 600, task.MaxRuntime)
 		assert.Equal(t, 5, task.MaxRetries)
 		assert.Equal(t, 120, task.RetryInterval)

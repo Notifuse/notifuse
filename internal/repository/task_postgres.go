@@ -179,6 +179,7 @@ func (r *TaskRepository) GetTx(ctx context.Context, tx *sql.Tx, workspace, id st
 	var stateJSON []byte
 	var lastRunAt, completedAt, nextRunAfter, timeoutAfter sql.NullTime
 	var broadcastID sql.NullString
+	var errorMessage sql.NullString
 
 	err := tx.QueryRowContext(ctx, query, id, workspace).Scan(
 		&task.ID,
@@ -187,7 +188,7 @@ func (r *TaskRepository) GetTx(ctx context.Context, tx *sql.Tx, workspace, id st
 		&task.Status,
 		&task.Progress,
 		&stateJSON,
-		&task.ErrorMessage,
+		&errorMessage,
 		&task.CreatedAt,
 		&task.UpdatedAt,
 		&lastRunAt,
@@ -220,6 +221,11 @@ func (r *TaskRepository) GetTx(ctx context.Context, tx *sql.Tx, workspace, id st
 	}
 	if timeoutAfter.Valid {
 		task.TimeoutAfter = &timeoutAfter.Time
+	}
+
+	// Handle nullable error message
+	if errorMessage.Valid {
+		task.ErrorMessage = &errorMessage.String
 	}
 
 	// Handle optional broadcast ID
@@ -439,6 +445,7 @@ func (r *TaskRepository) List(ctx context.Context, workspace string, filter doma
 		var stateJSON []byte
 		var lastRunAt, completedAt, nextRunAfter, timeoutAfter sql.NullTime
 		var broadcastID sql.NullString
+		var errorMessage sql.NullString
 
 		err := rows.Scan(
 			&task.ID,
@@ -447,7 +454,7 @@ func (r *TaskRepository) List(ctx context.Context, workspace string, filter doma
 			&task.Status,
 			&task.Progress,
 			&stateJSON,
-			&task.ErrorMessage,
+			&errorMessage,
 			&task.CreatedAt,
 			&task.UpdatedAt,
 			&lastRunAt,
@@ -476,6 +483,11 @@ func (r *TaskRepository) List(ctx context.Context, workspace string, filter doma
 		}
 		if timeoutAfter.Valid {
 			task.TimeoutAfter = &timeoutAfter.Time
+		}
+
+		// Handle nullable error message
+		if errorMessage.Valid {
+			task.ErrorMessage = &errorMessage.String
 		}
 
 		// Handle optional broadcast ID
@@ -559,6 +571,7 @@ func (r *TaskRepository) GetNextBatch(ctx context.Context, limit int) ([]*domain
 		var stateJSON []byte
 		var lastRunAt, completedAt, nextRunAfter, timeoutAfter sql.NullTime
 		var broadcastID sql.NullString
+		var errorMessage sql.NullString
 
 		err := rows.Scan(
 			&task.ID,
@@ -567,7 +580,7 @@ func (r *TaskRepository) GetNextBatch(ctx context.Context, limit int) ([]*domain
 			&task.Status,
 			&task.Progress,
 			&stateJSON,
-			&task.ErrorMessage,
+			&errorMessage,
 			&task.CreatedAt,
 			&task.UpdatedAt,
 			&lastRunAt,
@@ -596,6 +609,11 @@ func (r *TaskRepository) GetNextBatch(ctx context.Context, limit int) ([]*domain
 		}
 		if timeoutAfter.Valid {
 			task.TimeoutAfter = &timeoutAfter.Time
+		}
+
+		// Handle nullable error message
+		if errorMessage.Valid {
+			task.ErrorMessage = &errorMessage.String
 		}
 
 		// Handle optional broadcast ID
@@ -723,7 +741,7 @@ func (r *TaskRepository) MarkAsCompletedTx(ctx context.Context, tx *sql.Tx, work
 	query := psql.Update("tasks").
 		Set("status", domain.TaskStatusCompleted).
 		Set("progress", 100).
-		Set("error_message", "").
+		Set("error_message", nil).
 		Set("updated_at", now).
 		Set("completed_at", now).
 		Set("timeout_after", nil).
@@ -958,6 +976,7 @@ func (r *TaskRepository) GetTaskByBroadcastIDTx(ctx context.Context, tx *sql.Tx,
 	var stateJSON []byte
 	var lastRunAt, completedAt, nextRunAfter, timeoutAfter sql.NullTime
 	var dbBroadcastID sql.NullString
+	var errorMessage sql.NullString
 
 	err := tx.QueryRowContext(ctx, query, workspace, broadcastID).Scan(
 		&task.ID,
@@ -966,7 +985,7 @@ func (r *TaskRepository) GetTaskByBroadcastIDTx(ctx context.Context, tx *sql.Tx,
 		&task.Status,
 		&task.Progress,
 		&stateJSON,
-		&task.ErrorMessage,
+		&errorMessage,
 		&task.CreatedAt,
 		&task.UpdatedAt,
 		&lastRunAt,
@@ -999,6 +1018,11 @@ func (r *TaskRepository) GetTaskByBroadcastIDTx(ctx context.Context, tx *sql.Tx,
 	}
 	if timeoutAfter.Valid {
 		task.TimeoutAfter = &timeoutAfter.Time
+	}
+
+	// Handle nullable error message
+	if errorMessage.Valid {
+		task.ErrorMessage = &errorMessage.String
 	}
 
 	// Handle optional broadcast ID
