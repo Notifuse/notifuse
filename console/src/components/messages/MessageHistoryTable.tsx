@@ -17,6 +17,8 @@ import TemplatePreviewDrawer from '../templates/TemplatePreviewDrawer'
 import { templatesApi } from '../../services/api/template'
 import { Workspace } from '../../services/api/types'
 import { useQuery } from '@tanstack/react-query'
+import type { Broadcast } from '../../services/api/broadcast'
+import type { List } from '../../services/api/list'
 
 // Template preview button component that handles its own loading state
 interface TemplatePreviewButtonProps {
@@ -77,6 +79,8 @@ interface MessageHistoryTableProps {
   bordered?: boolean
   size?: 'small' | 'middle' | 'large'
   workspace: Workspace
+  broadcastMap?: Map<string, Broadcast>
+  listMap?: Map<string, List>
 }
 
 export function MessageHistoryTable({
@@ -89,7 +93,9 @@ export function MessageHistoryTable({
   show_email = true,
   bordered = false,
   size = 'small',
-  workspace
+  workspace,
+  broadcastMap = new Map(),
+  listMap = new Map()
 }: MessageHistoryTableProps) {
   // Format date using dayjs
   const formatDate = (dateString: string | undefined): string => {
@@ -126,7 +132,46 @@ export function MessageHistoryTable({
     {
       title: 'Broadcast',
       dataIndex: 'broadcast_id',
-      key: 'broadcast_id'
+      key: 'broadcast_id',
+      render: (broadcastId: string | undefined) => {
+        if (!broadcastId) {
+          return <span className="text-xs text-gray-400">-</span>
+        }
+
+        const broadcast = broadcastMap.get(broadcastId)
+        if (!broadcast) {
+          return (
+            <Tooltip title={broadcastId}>
+              <span className="text-xs text-gray-500">{broadcastId.substring(0, 8)}...</span>
+            </Tooltip>
+          )
+        }
+
+        // Get list names from the broadcast audience
+        const listNames =
+          broadcast.audience.lists
+            ?.map((listId) => listMap.get(listId)?.name || listId)
+            .join(', ') || ''
+
+        const tooltipContent = (
+          <div>
+            <div>
+              <strong>ID:</strong> {broadcastId}
+            </div>
+            {listNames && (
+              <div>
+                <strong>Lists:</strong> {listNames}
+              </div>
+            )}
+          </div>
+        )
+
+        return (
+          <Tooltip title={tooltipContent}>
+            <span className="text-xs cursor-help">{broadcast.name}</span>
+          </Tooltip>
+        )
+      }
     },
     {
       title: 'Events',

@@ -17,6 +17,8 @@ import {
   faArrowRightFromBracket
 } from '@fortawesome/free-solid-svg-icons'
 import { MessageHistoryTable } from './MessageHistoryTable'
+import { broadcastApi } from '../../services/api/broadcast'
+import { listsApi } from '../../services/api/list'
 
 const { Title, Text } = Typography
 
@@ -183,6 +185,38 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
   const [activeFilters, setActiveFilters] = useState<Filter[]>([])
   const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({})
   const [tempFilterValues, setTempFilterValues] = useState<Record<string, string>>({})
+
+  // Fetch broadcasts for the workspace
+  const { data: broadcastsData } = useQuery({
+    queryKey: ['broadcasts', workspaceId],
+    queryFn: async () => {
+      return broadcastApi.list({
+        workspace_id: workspaceId,
+        limit: 1000
+      })
+    },
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  })
+
+  // Fetch lists for the workspace
+  const { data: listsData } = useQuery({
+    queryKey: ['lists', workspaceId],
+    queryFn: async () => {
+      return listsApi.list({ workspace_id: workspaceId })
+    },
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  })
+
+  // Create lookup maps
+  const broadcastMap = useMemo(() => {
+    if (!broadcastsData?.broadcasts) return new Map()
+    return new Map(broadcastsData.broadcasts.map((b) => [b.id, b]))
+  }, [broadcastsData])
+
+  const listMap = useMemo(() => {
+    if (!listsData?.lists) return new Map()
+    return new Map(listsData.lists.map((l) => [l.id, l]))
+  }, [listsData])
 
   // Create API filters from active filters
   const apiFilters = useMemo(() => {
@@ -492,6 +526,8 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
         }}
         bordered={true}
         size="middle"
+        broadcastMap={broadcastMap}
+        listMap={listMap}
       />
     </div>
   )

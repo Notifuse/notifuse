@@ -379,23 +379,6 @@ func TestGetStringValue(t *testing.T) {
 	assert.Equal(t, "test", getStringValue(validValue))
 }
 
-func TestGetRandomPointer(t *testing.T) {
-	// Test with empty slice
-	assert.Nil(t, getRandomPointer([]string{}))
-
-	// Test with single element
-	singleElement := []string{"test"}
-	result := getRandomPointer(singleElement)
-	assert.NotNil(t, result)
-	assert.Equal(t, "test", *result)
-
-	// Test with multiple elements
-	multipleElements := []string{"a", "b", "c"}
-	result = getRandomPointer(multipleElements)
-	assert.NotNil(t, result)
-	assert.Contains(t, multipleElements, *result)
-}
-
 func TestDemoService_DeleteAllWorkspaces_WithWorkspaces(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -549,13 +532,16 @@ func TestDemoService_GenerateMessagesPerContact(t *testing.T) {
 		{Email: "test2@example.com", FirstName: &domain.NullableString{String: "Jane", IsNull: false}},
 	}
 
+	// Provide sample broadcast IDs
+	broadcastIDs := []string{"broadcast-1", "broadcast-2", "broadcast-3", "broadcast-4"}
+
 	// Mock message history creation - each contact gets 2-4 messages
 	mockMessageHistoryRepo.EXPECT().Create(ctx, "demo", gomock.Any()).Return(nil).AnyTimes()
 	// Mock SetOpened and SetClicked for message_history updates (triggers timeline entries)
 	mockMessageHistoryRepo.EXPECT().SetOpened(ctx, "demo", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockMessageHistoryRepo.EXPECT().SetClicked(ctx, "demo", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	count, err := svc.generateMessagesPerContact(ctx, "demo", contacts)
+	count, err := svc.generateMessagesPerContact(ctx, "demo", contacts, broadcastIDs)
 	// No error expected - webhook generation errors are logged but don't fail the operation
 	assert.NoError(t, err)
 	// With 2 contacts getting 2-4 messages each, expect at least 4 messages
@@ -569,7 +555,8 @@ func TestDemoService_GenerateMessagesPerContact_EmptyContacts(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	count, err := svc.generateMessagesPerContact(ctx, "demo", []*domain.Contact{})
+	broadcastIDs := []string{"broadcast-1", "broadcast-2", "broadcast-3", "broadcast-4"}
+	count, err := svc.generateMessagesPerContact(ctx, "demo", []*domain.Contact{}, broadcastIDs)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 0, count)
@@ -606,12 +593,6 @@ func TestNewDemoService_AllFields(t *testing.T) {
 	assert.NotNil(t, svc)
 	assert.Equal(t, logger, svc.logger)
 	assert.Equal(t, config, svc.config)
-}
-
-func TestDemoService_StringPtr(t *testing.T) {
-	result := stringPtr("test")
-	assert.NotNil(t, result)
-	assert.Equal(t, "test", *result)
 }
 
 func TestDemoService_GenerateWebhookEvents_ErrorGettingWorkspace(t *testing.T) {

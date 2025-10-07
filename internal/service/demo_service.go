@@ -287,9 +287,10 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 		return err
 	}
 
-	// Step 5: Create sample broadcast campaign
-	if err := s.createSampleBroadcast(ctx, workspaceID); err != nil {
-		s.logger.WithField("error", err.Error()).Warn("Failed to create sample broadcast")
+	// Step 5: Create sample broadcast campaigns and get their IDs
+	broadcastIDs, err := s.createSampleBroadcasts(ctx, workspaceID)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample broadcasts")
 		return err
 	}
 
@@ -299,8 +300,8 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 		return err
 	}
 
-	// Step 7: Generate sample message history with realistic engagement rates
-	if err := s.generateSampleMessageHistory(ctx, workspaceID); err != nil {
+	// Step 7: Generate sample message history with realistic engagement rates using real broadcast IDs
+	if err := s.generateSampleMessageHistory(ctx, workspaceID, broadcastIDs); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to generate sample message history")
 		return err
 	}
@@ -1516,32 +1517,29 @@ func (s *DemoService) createWelcomeMJMLStructure() notifuse_mjml.EmailBlock {
 	}
 }
 
-// createSampleBroadcast creates a sample broadcast campaign
-func (s *DemoService) createSampleBroadcast(ctx context.Context, workspaceID string) error {
-	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample broadcast")
+// createSampleBroadcasts creates multiple sample broadcast campaigns and returns their IDs
+func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID string) ([]string, error) {
+	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample broadcasts")
 
-	// Create a draft broadcast campaign
-	broadcastReq := &domain.CreateBroadcastRequest{
-		WorkspaceID: workspaceID,
-		Name:        "Weekly Newsletter - Demo Campaign",
-		Audience: domain.AudienceSettings{
-			Lists:               []string{"newsletter"},
-			Segments:            []string{},
-			ExcludeUnsubscribed: true,
-			SkipDuplicateEmails: true,
-			RateLimitPerMinute:  0,
-		},
-		Schedule: domain.ScheduleSettings{
-			IsScheduled:   false,
-			ScheduledDate: "",
-			ScheduledTime: "",
-			Timezone:      "UTC",
-		},
-		TestSettings: domain.BroadcastTestSettings{
-			Enabled:          true,
-			SamplePercentage: 10,
-			AutoSendWinner:   false,
-			Variations: []domain.BroadcastVariation{
+	var broadcastIDs []string
+
+	// Create 4 newsletter broadcasts to simulate recent campaigns
+	broadcasts := []struct {
+		name     string
+		campaign string
+	}{
+		{"Weekly Newsletter #1", "weekly_newsletter_1"},
+		{"Weekly Newsletter #2", "weekly_newsletter_2"},
+		{"Weekly Newsletter #3", "weekly_newsletter_3"},
+		{"Weekly Newsletter #4 - A/B Test", "weekly_newsletter_4"},
+	}
+
+	for i, bc := range broadcasts {
+		var variations []domain.BroadcastVariation
+
+		// Last broadcast has A/B test enabled
+		if i == len(broadcasts)-1 {
+			variations = []domain.BroadcastVariation{
 				{
 					VariationName: "variation-a",
 					TemplateID:    "newsletter-weekly",
@@ -1550,25 +1548,69 @@ func (s *DemoService) createSampleBroadcast(ctx context.Context, workspaceID str
 					VariationName: "variation-b",
 					TemplateID:    "newsletter-weekly-v2",
 				},
+			}
+		} else {
+			// Alternate between templates for other broadcasts
+			templateID := "newsletter-weekly"
+			if i%2 == 1 {
+				templateID = "newsletter-weekly-v2"
+			}
+			variations = []domain.BroadcastVariation{
+				{
+					VariationName: "variation-a",
+					TemplateID:    templateID,
+				},
+			}
+		}
+
+		broadcastReq := &domain.CreateBroadcastRequest{
+			WorkspaceID: workspaceID,
+			Name:        bc.name,
+			Audience: domain.AudienceSettings{
+				Lists:               []string{"newsletter"},
+				Segments:            []string{},
+				ExcludeUnsubscribed: true,
+				SkipDuplicateEmails: true,
+				RateLimitPerMinute:  0,
 			},
-		},
-		TrackingEnabled: true,
-		UTMParameters: &domain.UTMParameters{
-			Source:   "demo.notifuse.com",
-			Medium:   "email",
-			Campaign: "weekly_newsletter_demo_campaign",
-			Term:     "",
-			Content:  "",
-		},
+			Schedule: domain.ScheduleSettings{
+				IsScheduled:   false,
+				ScheduledDate: "",
+				ScheduledTime: "",
+				Timezone:      "UTC",
+			},
+			TestSettings: domain.BroadcastTestSettings{
+				Enabled:          i == len(broadcasts)-1, // Only enable A/B test for last broadcast
+				SamplePercentage: 10,
+				AutoSendWinner:   false,
+				Variations:       variations,
+			},
+			TrackingEnabled: true,
+			UTMParameters: &domain.UTMParameters{
+				Source:   "demo.notifuse.com",
+				Medium:   "email",
+				Campaign: bc.campaign,
+				Term:     "",
+				Content:  "",
+			},
+		}
+
+		broadcast, err := s.broadcastService.CreateBroadcast(ctx, broadcastReq)
+		if err != nil {
+			s.logger.WithField("error", err.Error()).Warn("Failed to create sample broadcast")
+			continue
+		}
+
+		broadcastIDs = append(broadcastIDs, broadcast.ID)
+		s.logger.WithField("broadcast_id", broadcast.ID).WithField("name", bc.name).Info("Sample broadcast created")
 	}
 
-	broadcast, err := s.broadcastService.CreateBroadcast(ctx, broadcastReq)
-	if err != nil {
-		return fmt.Errorf("failed to create sample broadcast: %w", err)
+	if len(broadcastIDs) == 0 {
+		return nil, fmt.Errorf("failed to create any sample broadcasts")
 	}
 
-	s.logger.WithField("broadcast_id", broadcast.ID).WithField("workspace_id", workspaceID).Info("Sample broadcast created successfully")
-	return nil
+	s.logger.WithField("workspace_id", workspaceID).WithField("count", len(broadcastIDs)).Info("Sample broadcasts created successfully")
+	return broadcastIDs, nil
 }
 
 // createPasswordResetMJMLStructure creates the MJML structure for the password reset template
@@ -1787,7 +1829,7 @@ func (s *DemoService) createSampleTransactionalNotifications(ctx context.Context
 // generateSampleMessageHistory creates realistic message history with specified engagement rates:
 // 90% delivered, 5% failed, 5% bounce, 20% opened, 10% click, 1% unsubscribed
 // Each contact receives approximately 3 emails (2-4 range)
-func (s *DemoService) generateSampleMessageHistory(ctx context.Context, workspaceID string) error {
+func (s *DemoService) generateSampleMessageHistory(ctx context.Context, workspaceID string, broadcastIDs []string) error {
 	s.logger.WithField("workspace_id", workspaceID).Info("Generating sample message history with ~3 emails per contact")
 
 	// Get all contacts to create message history for
@@ -1808,7 +1850,7 @@ func (s *DemoService) generateSampleMessageHistory(ctx context.Context, workspac
 
 	// Generate messages per contact (2-4 emails each)
 	// This also generates webhook events and updates for engagement (delivered, opened, clicked)
-	totalMessages, err := s.generateMessagesPerContact(ctx, workspaceID, contactsResp.Contacts)
+	totalMessages, err := s.generateMessagesPerContact(ctx, workspaceID, contactsResp.Contacts, broadcastIDs)
 	if err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to generate message history")
 		return err
@@ -1829,7 +1871,7 @@ type messageEngagement struct {
 }
 
 // generateMessagesPerContact creates message history by assigning 2-4 emails to each contact
-func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceID string, contacts []*domain.Contact) (int, error) {
+func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceID string, contacts []*domain.Contact, broadcastIDs []string) (int, error) {
 	s.logger.WithField("workspace_id", workspaceID).Info("Generating messages per contact")
 
 	// Define available campaign/message templates over the last 10 days
@@ -1842,16 +1884,21 @@ func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceI
 	}
 
 	campaigns := []campaignTemplate{
-		// Newsletter campaigns over last 10 days
-		{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: stringPtr("newsletter-broadcast-1"), messageType: "newsletter", daysAgo: 1},
-		{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: stringPtr("newsletter-broadcast-2"), messageType: "newsletter", daysAgo: 4},
-		{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: stringPtr("newsletter-broadcast-3"), messageType: "newsletter", daysAgo: 7},
-		{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: stringPtr("newsletter-broadcast-4"), messageType: "newsletter", daysAgo: 10},
 		// Transactional messages
 		{templateID: "welcome-email", templateVersion: 1, broadcastID: nil, messageType: "welcome", daysAgo: 2},
 		{templateID: "welcome-email", templateVersion: 1, broadcastID: nil, messageType: "welcome", daysAgo: 5},
 		{templateID: "password-reset", templateVersion: 1, broadcastID: nil, messageType: "password-reset", daysAgo: 3},
 		{templateID: "password-reset", templateVersion: 1, broadcastID: nil, messageType: "password-reset", daysAgo: 8},
+	}
+
+	// Add newsletter campaigns using real broadcast IDs
+	if len(broadcastIDs) >= 4 {
+		campaigns = append(campaigns,
+			campaignTemplate{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: &broadcastIDs[0], messageType: "newsletter", daysAgo: 1},
+			campaignTemplate{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: &broadcastIDs[1], messageType: "newsletter", daysAgo: 4},
+			campaignTemplate{templateID: "newsletter-weekly", templateVersion: 1, broadcastID: &broadcastIDs[2], messageType: "newsletter", daysAgo: 7},
+			campaignTemplate{templateID: "newsletter-weekly-v2", templateVersion: 1, broadcastID: &broadcastIDs[3], messageType: "newsletter", daysAgo: 10},
+		)
 	}
 
 	totalMessages := 0
@@ -2186,20 +2233,6 @@ func getStringValue(ns *domain.NullableString) string {
 		return ns.String
 	}
 	return ""
-}
-
-// Helper function to get a random pointer to string from slice
-func getRandomPointer(slice []string) *string {
-	if len(slice) == 0 {
-		return nil
-	}
-	value := slice[rand.Intn(len(slice))]
-	return &value
-}
-
-// Helper function to create a pointer to a string
-func stringPtr(s string) *string {
-	return &s
 }
 
 // createSampleSegments creates demo segments for showcasing the segmentation feature
