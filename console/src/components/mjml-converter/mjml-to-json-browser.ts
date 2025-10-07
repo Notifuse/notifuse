@@ -1,20 +1,81 @@
 import type { EmailBlock } from '../email_builder/types'
 
 /**
+ * Fixes duplicate attributes on a single tag
+ * When an attribute appears multiple times, keeps only the last occurrence
+ * @param tagContent - The inner content of an XML/MJML tag
+ * @returns Fixed tag content with no duplicate attributes
+ */
+function fixDuplicateAttributes(tagContent: string): string {
+  // Extract all attributes as key-value pairs
+  const attributeMap = new Map<string, string>()
+  const attributeRegex = /(\S+)="([^"]*)"/g
+  let match: RegExpExecArray | null
+
+  // Collect all attributes, later ones overwrite earlier ones
+  while ((match = attributeRegex.exec(tagContent)) !== null) {
+    const attrName = match[1]
+    const attrValue = match[2]
+    attributeMap.set(attrName, attrValue)
+  }
+
+  // Find the tag name (everything before the first space or the end)
+  const tagNameMatch = tagContent.match(/^([^\s>]+)/)
+  const tagName = tagNameMatch ? tagNameMatch[1] : ''
+
+  // Reconstruct the tag with unique attributes
+  const uniqueAttributes = Array.from(attributeMap.entries())
+    .map(([name, value]) => `${name}="${value}"`)
+    .join(' ')
+
+  // Return tag name with unique attributes (and preserve any trailing characters like /)
+  const hasTrailingSlash = tagContent.trim().endsWith('/')
+  return uniqueAttributes
+    ? `${tagName} ${uniqueAttributes}${hasTrailingSlash ? ' /' : ''}`
+    : `${tagName}${hasTrailingSlash ? ' /' : ''}`
+}
+
+/**
  * Preprocesses MJML string to fix common XML issues
  * This makes imports more robust when MJML comes from other editors
  * @param mjmlString - The raw MJML string to preprocess
  * @returns The preprocessed MJML string with fixed XML issues
  */
 export function preprocessMjml(mjmlString: string): string {
+  let processed = mjmlString
+
   // Fix unescaped ampersands in attribute values
   // Use a callback function to process all ampersands within each attribute value
-  return mjmlString.replace(/="([^"]*)"/g, (match, attrValue) => {
+  processed = processed.replace(/="([^"]*)"/g, (match, attrValue) => {
     // Within this attribute value, escape all unescaped ampersands
     // Don't escape if already part of an entity: &amp;, &lt;, &gt;, &quot;, &apos;, &#123;, &#xAB;
     const fixed = attrValue.replace(/&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/g, '&amp;')
     return '="' + fixed + '"'
   })
+
+  // Fix duplicate attributes in opening tags
+  // Match opening tags like <mj-section ...> or <mj-button ... />
+  processed = processed.replace(/<([^>]+)>/g, (fullMatch, tagContent) => {
+    // Check if this tag has any attributes
+    if (!tagContent.includes('=')) {
+      return fullMatch // No attributes, return as-is
+    }
+
+    // Count attribute occurrences
+    const attributes = tagContent.match(/(\S+)="[^"]*"/g) || []
+    const attributeNames = attributes.map((attr: string) => attr.split('=')[0])
+    const hasDuplicates = new Set(attributeNames).size !== attributeNames.length
+
+    if (hasDuplicates) {
+      // Fix the duplicate attributes
+      const fixed = fixDuplicateAttributes(tagContent)
+      return `<${fixed}>`
+    }
+
+    return fullMatch // No duplicates, return as-is
+  })
+
+  return processed
 }
 
 /**

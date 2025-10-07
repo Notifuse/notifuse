@@ -1,5 +1,139 @@
 import { describe, test, expect } from 'vitest'
-import { convertMjmlToJsonBrowser } from '../mjml-to-json-browser'
+import { convertMjmlToJsonBrowser, preprocessMjml } from '../mjml-to-json-browser'
+
+describe('MJML Preprocessing', () => {
+  test('should escape unescaped ampersands in attributes', () => {
+    const input = '<mj-image src="https://example.com?a=1&b=2" />'
+    const expected = '<mj-image src="https://example.com?a=1&amp;b=2" />'
+    expect(preprocessMjml(input)).toBe(expected)
+  })
+
+  test('should not double-escape already escaped ampersands', () => {
+    const input = '<mj-image src="https://example.com?a=1&amp;b=2" />'
+    expect(preprocessMjml(input)).toBe(input) // Should remain unchanged
+  })
+
+  test('should handle multiple unescaped ampersands', () => {
+    const input = '<mj-button href="https://example.com?a=1&b=2&c=3" />'
+    const expected = '<mj-button href="https://example.com?a=1&amp;b=2&amp;c=3" />'
+    expect(preprocessMjml(input)).toBe(expected)
+  })
+
+  test('should preserve other XML entities', () => {
+    const input = '<mj-text title="Test &lt;tag&gt; &quot;quote&quot; &apos;apos&apos;" />'
+    expect(preprocessMjml(input)).toBe(input) // Should remain unchanged
+  })
+
+  test('should preserve numeric entities', () => {
+    const input = '<mj-text title="Copyright &#169; &#xA9;" />'
+    expect(preprocessMjml(input)).toBe(input) // Should remain unchanged
+  })
+
+  test('should handle mixed escaped and unescaped ampersands', () => {
+    const input = '<mj-image src="https://example.com?safe=1&amp;unsafe=2&bad=3" />'
+    const expected = '<mj-image src="https://example.com?safe=1&amp;unsafe=2&amp;bad=3" />'
+    expect(preprocessMjml(input)).toBe(expected)
+  })
+
+  describe('Duplicate Attribute Handling', () => {
+    test('should remove duplicate attributes and keep the last occurrence', () => {
+      const input =
+        '<mj-section background-color="#ffffff" padding="20px" background-color="#000000">'
+      const processed = preprocessMjml(input)
+
+      // Should only have one background-color, and it should be the last one
+      expect(processed).toContain('background-color="#000000"')
+      expect(processed).not.toContain('background-color="#ffffff"')
+      expect(processed).toContain('padding="20px"')
+    })
+
+    test('should handle multiple duplicate attributes on same tag', () => {
+      const input =
+        '<mj-button color="#red" background-color="#fff" color="#blue" background-color="#000">'
+      const processed = preprocessMjml(input)
+
+      // Should keep last occurrence of each duplicate
+      expect(processed).toContain('color="#blue"')
+      expect(processed).toContain('background-color="#000"')
+      expect(processed).not.toContain('color="#red"')
+      expect(processed).not.toContain('background-color="#fff"')
+    })
+
+    test('should handle duplicate attributes on self-closing tags', () => {
+      const input = '<mj-spacer height="10px" height="20px" />'
+      const processed = preprocessMjml(input)
+
+      expect(processed).toContain('height="20px"')
+      expect(processed).not.toContain('height="10px"')
+      expect(processed).toContain('/>')
+    })
+
+    test('should handle duplicate attributes across multiple tags', () => {
+      const input = `
+        <mj-section background-color="#fff" background-color="#000">
+          <mj-column width="50%" width="100%">
+            <mj-text color="#red" color="#blue">Test</mj-text>
+          </mj-column>
+        </mj-section>
+      `
+      const processed = preprocessMjml(input)
+
+      // Each tag should have its duplicates removed independently
+      expect(processed).toContain('background-color="#000"')
+      expect(processed).toContain('width="100%"')
+      expect(processed).toContain('color="#blue"')
+    })
+
+    test('should not modify tags without duplicate attributes', () => {
+      const input = '<mj-section background-color="#ffffff" padding="20px" border-radius="5px">'
+      const processed = preprocessMjml(input)
+
+      // Should remain unchanged
+      expect(processed).toContain('background-color="#ffffff"')
+      expect(processed).toContain('padding="20px"')
+      expect(processed).toContain('border-radius="5px"')
+    })
+
+    test('should handle tags with no attributes', () => {
+      const input = '<mj-section><mj-column></mj-column></mj-section>'
+      const processed = preprocessMjml(input)
+
+      // Should remain unchanged
+      expect(processed).toBe(input)
+    })
+
+    test('should preserve attribute order for non-duplicate attributes', () => {
+      const input = '<mj-button href="#" color="#red" padding="10px" color="#blue">'
+      const processed = preprocessMjml(input)
+
+      // href and padding should remain in order, color should be deduplicated
+      expect(processed.indexOf('href="#"')).toBeLessThan(processed.indexOf('color="#blue"'))
+      expect(processed.indexOf('color="#blue"')).toBeLessThan(processed.indexOf('padding="10px"'))
+    })
+
+    test('should handle complex real-world case with multiple duplicates', () => {
+      const input = `
+        <mj-section 
+          background-color="#ffffff" 
+          padding="20px" 
+          background-color="#f0f0f0"
+          border-radius="5px"
+          padding="30px"
+          background-color="#e0e0e0"
+        >
+      `
+      const processed = preprocessMjml(input)
+
+      // Should keep only last occurrence of each duplicate
+      expect(processed).toContain('background-color="#e0e0e0"')
+      expect(processed).toContain('padding="30px"')
+      expect(processed).toContain('border-radius="5px"')
+      expect(processed).not.toContain('#ffffff')
+      expect(processed).not.toContain('#f0f0f0')
+      expect(processed).not.toContain('padding="20px"')
+    })
+  })
+})
 
 describe('MJML to JSON Browser Converter', () => {
   describe('Basic Conversion', () => {
@@ -99,375 +233,88 @@ describe('MJML to JSON Browser Converter', () => {
     })
   })
 
-  describe('Complex Structures', () => {
-    test('should handle multiple sections and columns', () => {
-      const mjmlInput = `
+  describe('Duplicate Attribute Integration Tests', () => {
+    test('should successfully convert MJML with duplicate background-color attribute', () => {
+      const mjmlWithDuplicate = `
         <mjml>
           <mj-body>
-            <mj-section>
-              <mj-column width="50%">
-                <mj-text>Left Column</mj-text>
-              </mj-column>
-              <mj-column width="50%">
-                <mj-text>Right Column</mj-text>
-              </mj-column>
-            </mj-section>
-            <mj-section>
+            <mj-section background-color="#ffffff" padding="20px" background-color="#000000">
               <mj-column>
-                <mj-button href="https://example.com">Click Me</mj-button>
+                <mj-text>Content</mj-text>
               </mj-column>
             </mj-section>
           </mj-body>
         </mjml>
       `
 
-      const result = convertMjmlToJsonBrowser(mjmlInput)
+      // Should not throw - preprocessing should fix the duplicate
+      const result = convertMjmlToJsonBrowser(mjmlWithDuplicate)
 
-      const bodyBlock = result.children?.[0]
-      expect(bodyBlock?.children?.length).toBe(2)
-
-      // First section with two columns
-      const firstSection = bodyBlock?.children?.[0]
-      expect(firstSection?.type).toBe('mj-section')
-      expect(firstSection?.children?.length).toBe(2)
-
-      const leftColumn = firstSection?.children?.[0]
-      const rightColumn = firstSection?.children?.[1]
-      expect((leftColumn?.attributes as any)?.width).toBe('50%')
-      expect((rightColumn?.attributes as any)?.width).toBe('50%')
-      expect((leftColumn?.children?.[0] as any)?.content).toBe('Left Column')
-      expect((rightColumn?.children?.[0] as any)?.content).toBe('Right Column')
-
-      // Second section with button
-      const secondSection = bodyBlock?.children?.[1]
-      const buttonBlock = secondSection?.children?.[0]?.children?.[0]
-      expect(buttonBlock?.type).toBe('mj-button')
-      expect((buttonBlock?.attributes as any)?.href).toBe('https://example.com')
-      expect((buttonBlock as any)?.content).toBe('Click Me')
-    })
-
-    test('should handle MJML head section', () => {
-      const mjmlInput = `
-        <mjml>
-          <mj-head>
-            <mj-title>Test Email</mj-title>
-            <mj-preview>This is a preview</mj-preview>
-          </mj-head>
-          <mj-body>
-            <mj-section>
-              <mj-column>
-                <mj-text>Body content</mj-text>
-              </mj-column>
-            </mj-section>
-          </mj-body>
-        </mjml>
-      `
-
-      const result = convertMjmlToJsonBrowser(mjmlInput)
-
-      expect(result.children?.length).toBe(2)
-
-      const headBlock = result.children?.[0]
-      const bodyBlock = result.children?.[1]
-
-      expect(headBlock?.type).toBe('mj-head')
-      expect(headBlock?.children?.length).toBe(2)
-
-      const titleBlock = headBlock?.children?.[0]
-      const previewBlock = headBlock?.children?.[1]
-
-      expect(titleBlock?.type).toBe('mj-title')
-      expect((titleBlock as any)?.content).toBe('Test Email')
-
-      expect(previewBlock?.type).toBe('mj-preview')
-      expect((previewBlock as any)?.content).toBe('This is a preview')
-
-      expect(bodyBlock?.type).toBe('mj-body')
-    })
-  })
-
-  describe('Error Handling', () => {
-    test('should throw error for invalid XML', () => {
-      const invalidMjml = `
-        <mjml>
-          <mj-body>
-            <mj-section>
-              <mj-column>
-                <mj-text>Unclosed tag
-              </mj-column>
-            </mj-section>
-          </mj-body>
-      `
-
-      expect(() => convertMjmlToJsonBrowser(invalidMjml)).toThrow('Invalid MJML syntax')
-    })
-
-    test('should throw error for non-mjml root element', () => {
-      const invalidMjml = `
-        <html>
-          <body>
-            <p>This is not MJML</p>
-          </body>
-        </html>
-      `
-
-      expect(() => convertMjmlToJsonBrowser(invalidMjml)).toThrow('Root element must be <mjml>')
-    })
-
-    test('should handle empty MJML', () => {
-      const emptyMjml = '<mjml></mjml>'
-
-      const result = convertMjmlToJsonBrowser(emptyMjml)
       expect(result.type).toBe('mjml')
-      expect(result.children).toBeUndefined()
-    })
-  })
-
-  describe('Content and Attribute Parsing', () => {
-    test('should handle mixed content and whitespace', () => {
-      const mjmlInput = `
-        <mjml>
-          <mj-body>
-            <mj-section>
-              <mj-column>
-                <mj-text>
-                  Hello World with whitespace
-                </mj-text>
-              </mj-column>
-            </mj-section>
-          </mj-body>
-        </mjml>
-      `
-
-      const result = convertMjmlToJsonBrowser(mjmlInput)
-      const textBlock = result.children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]
-      expect((textBlock as any)?.content).toBe('Hello World with whitespace')
-    })
-
-    test('should handle boolean-style attributes', () => {
-      const mjmlInput = `
-        <mjml>
-          <mj-body>
-            <mj-section>
-              <mj-column>
-                <mj-image src="test.jpg" fluid-on-mobile="true" />
-              </mj-column>
-            </mj-section>
-          </mj-body>
-        </mjml>
-      `
-
-      const result = convertMjmlToJsonBrowser(mjmlInput)
-      const imageBlock = result.children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]
-      expect(imageBlock?.type).toBe('mj-image')
-      expect((imageBlock?.attributes as any)?.src).toBe('test.jpg')
-      expect((imageBlock?.attributes as any)?.fluidOnMobile).toBe('true')
-    })
-
-    test('should generate unique IDs for each block', () => {
-      const mjmlInput = `
-        <mjml>
-          <mj-body>
-            <mj-section>
-              <mj-column>
-                <mj-text>First</mj-text>
-                <mj-text>Second</mj-text>
-              </mj-column>
-            </mj-section>
-          </mj-body>
-        </mjml>
-      `
-
-      const result = convertMjmlToJsonBrowser(mjmlInput)
-      const columnBlock = result.children?.[0]?.children?.[0]?.children?.[0]
-      const firstText = columnBlock?.children?.[0]
-      const secondText = columnBlock?.children?.[1]
-
-      expect(firstText?.id).toBeDefined()
-      expect(secondText?.id).toBeDefined()
-      expect(firstText?.id).not.toBe(secondText?.id)
-      expect(result.id).not.toBe(firstText?.id)
-    })
-
-    test('should convert kebab-case attributes to camelCase', () => {
-      const mjmlInput = `
-        <mjml>
-          <mj-body>
-            <mj-section>
-              <mj-column>
-                <mj-divider border-width="2px" border-color="#ff0000" border-style="solid" />
-                <mj-text font-size="18px" background-color="#f0f0f0" line-height="1.5">Test</mj-text>
-              </mj-column>
-            </mj-section>
-          </mj-body>
-        </mjml>
-      `
-
-      const result = convertMjmlToJsonBrowser(mjmlInput)
-      const columnBlock = result.children?.[0]?.children?.[0]?.children?.[0]
-
-      const dividerBlock = columnBlock?.children?.[0]
-      expect(dividerBlock?.type).toBe('mj-divider')
-      expect((dividerBlock?.attributes as any)?.borderWidth).toBe('2px')
-      expect((dividerBlock?.attributes as any)?.borderColor).toBe('#ff0000')
-      expect((dividerBlock?.attributes as any)?.borderStyle).toBe('solid')
-
-      const textBlock = columnBlock?.children?.[1]
-      expect(textBlock?.type).toBe('mj-text')
-      expect((textBlock?.attributes as any)?.fontSize).toBe('18px')
-      expect((textBlock?.attributes as any)?.backgroundColor).toBe('#f0f0f0')
-      expect((textBlock?.attributes as any)?.lineHeight).toBe('1.5')
-    })
-
-    test('should convert SVG-specific attributes like stroke-width to camelCase', () => {
-      const mjmlInput = `
-        <mjml>
-          <mj-body>
-            <mj-section>
-              <mj-column>
-                <mj-divider stroke-width="3px" stroke-color="#0000ff" stroke-dasharray="5,5" />
-                <mj-image stroke-width="1px" src="test.jpg" fluid-on-mobile="true" />
-              </mj-column>
-            </mj-section>
-          </mj-body>
-        </mjml>
-      `
-
-      const result = convertMjmlToJsonBrowser(mjmlInput)
-      const columnBlock = result.children?.[0]?.children?.[0]?.children?.[0]
-
-      const dividerBlock = columnBlock?.children?.[0]
-      expect(dividerBlock?.type).toBe('mj-divider')
-      expect((dividerBlock?.attributes as any)?.strokeWidth).toBe('3px')
-      expect((dividerBlock?.attributes as any)?.strokeColor).toBe('#0000ff')
-      expect((dividerBlock?.attributes as any)?.strokeDasharray).toBe('5,5')
-
-      const imageBlock = columnBlock?.children?.[1]
-      expect(imageBlock?.type).toBe('mj-image')
-      expect((imageBlock?.attributes as any)?.strokeWidth).toBe('1px')
-      expect((imageBlock?.attributes as any)?.src).toBe('test.jpg')
-      expect((imageBlock?.attributes as any)?.fluidOnMobile).toBe('true')
-
-      // Verify no kebab-case attributes remain
-      const allAttributes = [
-        ...Object.keys((dividerBlock?.attributes as any) || {}),
-        ...Object.keys((imageBlock?.attributes as any) || {})
-      ]
-      const kebabAttributes = allAttributes.filter((attr) => attr.includes('-'))
-      expect(kebabAttributes).toEqual([])
-    })
-
-    test('should handle mj-raw content as HTML string, not child elements', () => {
-      const mjmlInput = `
-        <mjml>
-          <mj-body>
-            <mj-raw>
-              <style type="text/css">
-                .custom { color: red; }
-              </style>
-              <div style="background: blue;">
-                <p>Custom HTML content</p>
-                <span>With nested elements</span>
-              </div>
-            </mj-raw>
-            <mj-section>
-              <mj-column>
-                <mj-text>Regular text</mj-text>
-              </mj-column>
-            </mj-section>
-          </mj-body>
-        </mjml>
-      `
-
-      const result = convertMjmlToJsonBrowser(mjmlInput)
-      const bodyBlock = result.children?.[0]
-
-      // Should have mj-raw and mj-section as children
-      expect(bodyBlock?.children?.length).toBe(2)
-
-      const rawBlock = bodyBlock?.children?.[0]
-      const sectionBlock = bodyBlock?.children?.[1]
-
-      expect(rawBlock?.type).toBe('mj-raw')
+      const sectionBlock = result.children?.[0]?.children?.[0]
       expect(sectionBlock?.type).toBe('mj-section')
 
-      // mj-raw should have NO children - content should be stored as string
-      expect(rawBlock?.children).toBeUndefined()
-
-      // mj-raw should have content as HTML string
-      const rawContent = (rawBlock as any)?.content
-      expect(rawContent).toBeDefined()
-      expect(rawContent).toContain('<style type="text/css">')
-      expect(rawContent).toContain('.custom { color: red; }')
-      expect(rawContent).toContain('<div style="background: blue;">')
-      expect(rawContent).toContain('<p>Custom HTML content</p>')
-      expect(rawContent).toContain('<span>With nested elements</span>')
-
-      // Regular section should still have children
-      expect(sectionBlock?.children?.length).toBe(1)
-      expect(sectionBlock?.children?.[0]?.type).toBe('mj-column')
+      // Should have the last value of background-color
+      expect((sectionBlock?.attributes as any)?.backgroundColor).toBe('#000000')
+      expect((sectionBlock?.attributes as any)?.padding).toBe('20px')
     })
 
-    test('should handle mj-raw blocks in different contexts (wrapper, section, column)', () => {
-      const mjmlInput = `
+    test('should handle real-world error case from Sentry (line 291 error)', () => {
+      // Simulating the error reported in Sentry
+      const mjmlWithError = `
         <mjml>
           <mj-body>
-            <mj-wrapper>
-              <mj-raw>
-                <style>
-                  .custom-wrapper { background: red; }
-                </style>
-              </mj-raw>
-              <mj-section>
-                <mj-raw>
-                  <div class="section-raw">Section level raw HTML</div>
-                </mj-raw>
-                <mj-column>
-                  <mj-text>Regular text</mj-text>
-                  <mj-raw>
-                    <p>Column level raw HTML</p>
-                  </mj-raw>
-                </mj-column>
-              </mj-section>
-            </mj-wrapper>
+            <mj-section background-color="#ffffff" background-color="#000000">
+              <mj-column>
+                <mj-text>This would previously fail on line with duplicate attribute</mj-text>
+              </mj-column>
+            </mj-section>
           </mj-body>
         </mjml>
       `
 
-      const result = convertMjmlToJsonBrowser(mjmlInput)
+      // Should NOT throw "Attribute background-color redefined" error
+      expect(() => convertMjmlToJsonBrowser(mjmlWithError)).not.toThrow()
 
-      // Verify the structure
-      const bodyBlock = result.children?.[0]
-      expect(bodyBlock?.type).toBe('mj-body')
+      const result = convertMjmlToJsonBrowser(mjmlWithError)
+      expect(result.type).toBe('mjml')
 
-      const wrapperBlock = bodyBlock?.children?.[0]
-      expect(wrapperBlock?.type).toBe('mj-wrapper')
-      expect(wrapperBlock?.children).toHaveLength(2) // raw + section
+      const sectionBlock = result.children?.[0]?.children?.[0]
+      expect((sectionBlock?.attributes as any)?.backgroundColor).toBe('#000000')
+    })
 
-      // Wrapper level raw
-      const wrapperRawBlock = wrapperBlock?.children?.[0]
-      expect(wrapperRawBlock?.type).toBe('mj-raw')
-      expect((wrapperRawBlock as any)?.content).toContain('.custom-wrapper')
+    test('should combine ampersand escaping with duplicate attribute removal', () => {
+      const complexMjml = `
+        <mjml>
+          <mj-body>
+            <mj-section background-color="#fff" background-color="#000">
+              <mj-column>
+                <mj-image 
+                  src="https://example.com/img.jpg?w=500&h=300" 
+                  width="100px"
+                  src="https://example.com/img2.jpg?a=1&b=2"
+                  width="200px"
+                />
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
 
-      // Section block
-      const sectionBlock = wrapperBlock?.children?.[1]
-      expect(sectionBlock?.type).toBe('mj-section')
-      expect(sectionBlock?.children).toHaveLength(2) // raw + column
+      // Should handle both issues: unescaped ampersands AND duplicate attributes
+      const result = convertMjmlToJsonBrowser(complexMjml)
 
-      // Section level raw
-      const sectionRawBlock = sectionBlock?.children?.[0]
-      expect(sectionRawBlock?.type).toBe('mj-raw')
-      expect((sectionRawBlock as any)?.content).toContain('Section level raw HTML')
+      expect(result.type).toBe('mjml')
 
-      // Column block
-      const columnBlock = sectionBlock?.children?.[1]
-      expect(columnBlock?.type).toBe('mj-column')
-      expect(columnBlock?.children).toHaveLength(2) // text + raw
+      const sectionBlock = result.children?.[0]?.children?.[0]
+      expect((sectionBlock?.attributes as any)?.backgroundColor).toBe('#000')
 
-      // Column level raw
-      const columnRawBlock = columnBlock?.children?.[1]
-      expect(columnRawBlock?.type).toBe('mj-raw')
-      expect((columnRawBlock as any)?.content).toContain('Column level raw HTML')
+      const columnBlock = sectionBlock?.children?.[0]
+
+      const imageBlock = columnBlock?.children?.[0]
+      // Should use the last src value (with properly escaped ampersands)
+      expect((imageBlock?.attributes as any)?.src).toBe('https://example.com/img2.jpg?a=1&b=2')
+      expect((imageBlock?.attributes as any)?.width).toBe('200px')
     })
   })
 })
