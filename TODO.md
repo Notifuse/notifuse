@@ -1,6 +1,5 @@
 # TODO
 
-- doc for segmentation
 - new setup wizard
 
 ## Content

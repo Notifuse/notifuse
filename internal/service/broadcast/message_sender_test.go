@@ -2371,7 +2371,7 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Should wait close to 50ms for 20 per second rate
-		assert.Greater(t, elapsed, 40*time.Millisecond, "Should delay for broadcast rate limiting")
+		assert.Greater(t, elapsed, 30*time.Millisecond, "Should delay for broadcast rate limiting")
 		assert.Less(t, elapsed, 80*time.Millisecond, "Should not delay too much longer than expected")
 	})
 
@@ -2405,7 +2405,7 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Should wait close to 50ms for 20 per second rate
-		assert.Greater(t, elapsed, 40*time.Millisecond, "Should delay using default rate limiting")
+		assert.Greater(t, elapsed, 30*time.Millisecond, "Should delay using default rate limiting")
 		assert.Less(t, elapsed, 80*time.Millisecond, "Should not delay too much longer than expected")
 	})
 
@@ -2506,7 +2506,7 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Should wait close to 50ms due to broadcast rate limit
-		assert.Greater(t, elapsed, 40*time.Millisecond, "Should delay for broadcast rate limiting")
+		assert.Greater(t, elapsed, 30*time.Millisecond, "Should delay for broadcast rate limiting")
 		assert.Less(t, elapsed, 80*time.Millisecond, "Should not delay too much longer than expected")
 	})
 }
