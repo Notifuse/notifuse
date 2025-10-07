@@ -18,10 +18,11 @@ type RootHandler struct {
 	apiEndpoint           string
 	version               string
 	rootEmail             string
+	isInstalled           bool
 }
 
 // NewRootHandler creates a root handler that serves both console and notification center static files
-func NewRootHandler(consoleDir string, notificationCenterDir string, logger logger.Logger, apiEndpoint string, version string, rootEmail string) *RootHandler {
+func NewRootHandler(consoleDir string, notificationCenterDir string, logger logger.Logger, apiEndpoint string, version string, rootEmail string, isInstalled bool) *RootHandler {
 	return &RootHandler{
 		consoleDir:            consoleDir,
 		notificationCenterDir: notificationCenterDir,
@@ -29,6 +30,7 @@ func NewRootHandler(consoleDir string, notificationCenterDir string, logger logg
 		apiEndpoint:           apiEndpoint,
 		version:               version,
 		rootEmail:             rootEmail,
+		isInstalled:           isInstalled,
 	}
 }
 
@@ -70,7 +72,18 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 
-	configJS := fmt.Sprintf("window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;", h.apiEndpoint, h.version, h.rootEmail)
+	isInstalledStr := "false"
+	if h.isInstalled {
+		isInstalledStr = "true"
+	}
+
+	configJS := fmt.Sprintf(
+		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;",
+		h.apiEndpoint,
+		h.version,
+		h.rootEmail,
+		isInstalledStr,
+	)
 	w.Write([]byte(configJS))
 }
 

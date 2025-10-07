@@ -1,16 +1,21 @@
 package config
 
 import (
+	"context"
+	"database/sql"
 	"encoding/base64"
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"aidanwoods.dev/go-paseto"
+	"github.com/Notifuse/notifuse/pkg/crypto"
+	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/spf13/viper"
 )
 
-const VERSION = "10.0"
+const VERSION = "11.0"
 
 type Config struct {
 	Server          ServerConfig
@@ -27,6 +32,7 @@ type Config struct {
 	WebhookEndpoint string
 	LogLevel        string
 	Version         string
+	IsInstalled     bool // NEW: Indicates if setup wizard has been completed
 }
 
 type DemoConfig struct {
@@ -124,6 +130,128 @@ type LoadOptions struct {
 	EnvFile string // Optional environment file to load (e.g., ".env", ".env.test")
 }
 
+// SystemSettings holds configuration loaded from database
+type SystemSettings struct {
+	IsInstalled      bool
+	RootEmail        string
+	APIEndpoint      string
+	PasetoPublicKey  string // Base64 encoded
+	PasetoPrivateKey string // Base64 encoded
+	SMTPHost         string
+	SMTPPort         int
+	SMTPUsername     string
+	SMTPPassword     string
+	SMTPFromEmail    string
+	SMTPFromName     string
+}
+
+// getSystemDSN constructs the database connection string for the system database
+func getSystemDSN(cfg *DatabaseConfig) string {
+	sslMode := cfg.SSLMode
+	if sslMode == "" {
+		sslMode = "require"
+	}
+
+	// Build DSN, omitting password if empty
+	var dsn string
+	if cfg.Password == "" {
+		dsn = fmt.Sprintf(
+			"host=%s port=%d user=%s dbname=%s sslmode=%s",
+			cfg.Host,
+			cfg.Port,
+			cfg.User,
+			cfg.DBName,
+			sslMode,
+		)
+	} else {
+		dsn = fmt.Sprintf(
+			"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			cfg.Host,
+			cfg.Port,
+			cfg.User,
+			cfg.Password,
+			cfg.DBName,
+			sslMode,
+		)
+	}
+
+	return dsn
+}
+
+// loadSystemSettings loads configuration from the database settings table
+func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	settings := &SystemSettings{
+		IsInstalled: false, // Default to false if not found
+		SMTPPort:    587,   // Default SMTP port
+	}
+
+	// Load all settings from database
+	rows, err := db.QueryContext(ctx, "SELECT key, value FROM settings")
+	if err != nil {
+		// If settings table doesn't exist yet, return default settings
+		return settings, nil
+	}
+	defer rows.Close()
+
+	settingsMap := make(map[string]string)
+	for rows.Next() {
+		var key, value string
+		if err := rows.Scan(&key, &value); err != nil {
+			return nil, fmt.Errorf("failed to scan setting: %w", err)
+		}
+		settingsMap[key] = value
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating settings: %w", err)
+	}
+
+	// Parse is_installed
+	if val, ok := settingsMap["is_installed"]; ok && val == "true" {
+		settings.IsInstalled = true
+	}
+
+	// Load other settings if installed
+	if settings.IsInstalled {
+		settings.RootEmail = settingsMap["root_email"]
+		settings.APIEndpoint = settingsMap["api_endpoint"]
+
+		// Decrypt PASETO keys if present
+		if encryptedPrivateKey, ok := settingsMap["encrypted_paseto_private_key"]; ok && encryptedPrivateKey != "" {
+			if decrypted, err := crypto.DecryptFromHexString(encryptedPrivateKey, secretKey); err == nil {
+				settings.PasetoPrivateKey = decrypted
+			}
+		}
+
+		if encryptedPublicKey, ok := settingsMap["encrypted_paseto_public_key"]; ok && encryptedPublicKey != "" {
+			if decrypted, err := crypto.DecryptFromHexString(encryptedPublicKey, secretKey); err == nil {
+				settings.PasetoPublicKey = decrypted
+			}
+		}
+
+		// Load SMTP settings
+		settings.SMTPHost = settingsMap["smtp_host"]
+		if port, ok := settingsMap["smtp_port"]; ok && port != "" {
+			fmt.Sscanf(port, "%d", &settings.SMTPPort)
+		}
+		settings.SMTPUsername = settingsMap["smtp_username"]
+		settings.SMTPFromEmail = settingsMap["smtp_from_email"]
+		settings.SMTPFromName = settingsMap["smtp_from_name"]
+
+		// Decrypt SMTP password if present
+		if encryptedPassword, ok := settingsMap["encrypted_smtp_password"]; ok && encryptedPassword != "" {
+			if decrypted, err := crypto.DecryptFromHexString(encryptedPassword, secretKey); err == nil {
+				settings.SMTPPassword = decrypted
+			}
+		}
+	}
+
+	return settings, nil
+}
+
 // Load loads the configuration with default options
 func Load() (*Config, error) {
 	// Try to load .env file but don't require it
@@ -213,45 +341,157 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
-	// Get base64 encoded keys
-	privateKeyBase64 := v.GetString("PASETO_PRIVATE_KEY")
-	publicKeyBase64 := v.GetString("PASETO_PUBLIC_KEY")
-
-	// Validate required configuration
-	if privateKeyBase64 == "" {
-		return nil, fmt.Errorf("PASETO_PRIVATE_KEY is required")
-	}
-	if publicKeyBase64 == "" {
-		return nil, fmt.Errorf("PASETO_PUBLIC_KEY is required")
-	}
-
-	// Decode base64 keys
-	privateKeyBytes, err := base64.StdEncoding.DecodeString(privateKeyBase64)
-	if err != nil {
-		return nil, fmt.Errorf("error decoding PASETO_PRIVATE_KEY: %w", err)
+	// Build database config first (needed to load system settings)
+	dbConfig := DatabaseConfig{
+		Host:     v.GetString("DB_HOST"),
+		Port:     v.GetInt("DB_PORT"),
+		User:     v.GetString("DB_USER"),
+		Password: v.GetString("DB_PASSWORD"),
+		DBName:   v.GetString("DB_NAME"),
+		Prefix:   v.GetString("DB_PREFIX"),
+		SSLMode:  v.GetString("DB_SSLMODE"),
 	}
 
-	publicKeyBytes, err := base64.StdEncoding.DecodeString(publicKeyBase64)
-	if err != nil {
-		return nil, fmt.Errorf("error decoding PASETO_PUBLIC_KEY: %w", err)
-	}
-
-	// Convert bytes to paseto key types
-	privateKey, err := paseto.NewV4AsymmetricSecretKeyFromBytes(privateKeyBytes)
-	if err != nil {
-		return nil, fmt.Errorf("error creating PASETO private key: %w", err)
-	}
-
-	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromBytes(publicKeyBytes)
-	if err != nil {
-		return nil, fmt.Errorf("error creating PASETO public key: %w", err)
-	}
-
-	// Use PASETO private key as secret key if SECRET_KEY is not provided
+	// SECRET_KEY resolution (CRITICAL for decryption)
 	secretKey := v.GetString("SECRET_KEY")
 	if secretKey == "" {
-		// Use base64 encoded PASETO private key as the secret key
-		secretKey = privateKeyBase64
+		// Fallback for backward compatibility
+		secretKey = v.GetString("PASETO_PRIVATE_KEY")
+	}
+	if secretKey == "" {
+		// REQUIRED - fail fast if both are empty
+		return nil, fmt.Errorf("SECRET_KEY (or PASETO_PRIVATE_KEY for backward compatibility) must be set")
+	}
+
+	// Try to load system settings from database
+	var systemSettings *SystemSettings
+	var isInstalled bool
+
+	db, err := sql.Open("postgres", getSystemDSN(&dbConfig))
+	if err == nil {
+		defer db.Close()
+		if err := db.Ping(); err == nil {
+			// Database is accessible, try to load settings
+			systemSettings, err = loadSystemSettings(db, secretKey)
+			if err == nil && systemSettings != nil {
+				isInstalled = systemSettings.IsInstalled
+			}
+		}
+	}
+
+	// Get PASETO keys from env vars or database
+	var privateKeyBase64, publicKeyBase64 string
+
+	if isInstalled && systemSettings != nil {
+		// Prefer database settings, but env vars override
+		privateKeyBase64 = v.GetString("PASETO_PRIVATE_KEY")
+		if privateKeyBase64 == "" {
+			privateKeyBase64 = systemSettings.PasetoPrivateKey
+		}
+
+		publicKeyBase64 = v.GetString("PASETO_PUBLIC_KEY")
+		if publicKeyBase64 == "" {
+			publicKeyBase64 = systemSettings.PasetoPublicKey
+		}
+	} else {
+		// First-run or database not accessible: use env vars if available
+		privateKeyBase64 = v.GetString("PASETO_PRIVATE_KEY")
+		publicKeyBase64 = v.GetString("PASETO_PUBLIC_KEY")
+	}
+
+	// Initialize PASETO keys if available (optional for first-run)
+	var privateKey paseto.V4AsymmetricSecretKey
+	var publicKey paseto.V4AsymmetricPublicKey
+	var privateKeyBytes, publicKeyBytes []byte
+
+	if privateKeyBase64 != "" && publicKeyBase64 != "" {
+		// Decode base64 keys
+		privateKeyBytes, err = base64.StdEncoding.DecodeString(privateKeyBase64)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding PASETO_PRIVATE_KEY: %w", err)
+		}
+
+		publicKeyBytes, err = base64.StdEncoding.DecodeString(publicKeyBase64)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding PASETO_PUBLIC_KEY: %w", err)
+		}
+
+		// Convert bytes to paseto key types
+		privateKey, err = paseto.NewV4AsymmetricSecretKeyFromBytes(privateKeyBytes)
+		if err != nil {
+			return nil, fmt.Errorf("error creating PASETO private key (expected 64 bytes, got %d): %w", len(privateKeyBytes), err)
+		}
+
+		publicKey, err = paseto.NewV4AsymmetricPublicKeyFromBytes(publicKeyBytes)
+		if err != nil {
+			return nil, fmt.Errorf("error creating PASETO public key: %w", err)
+		}
+	} else if isInstalled {
+		// If installed but keys are missing, that's an error
+		return nil, fmt.Errorf("PASETO keys are required when system is installed")
+	}
+
+	// Load config values with database override logic
+	var rootEmail, apiEndpoint string
+	var smtpConfig SMTPConfig
+
+	if isInstalled && systemSettings != nil {
+		// Prefer database settings, but env vars override
+		rootEmail = v.GetString("ROOT_EMAIL")
+		if rootEmail == "" {
+			rootEmail = systemSettings.RootEmail
+		}
+
+		apiEndpoint = v.GetString("API_ENDPOINT")
+		if apiEndpoint == "" {
+			apiEndpoint = systemSettings.APIEndpoint
+		}
+
+		// SMTP settings
+		smtpConfig = SMTPConfig{
+			Host:      v.GetString("SMTP_HOST"),
+			Port:      v.GetInt("SMTP_PORT"),
+			Username:  v.GetString("SMTP_USERNAME"),
+			Password:  v.GetString("SMTP_PASSWORD"),
+			FromEmail: v.GetString("SMTP_FROM_EMAIL"),
+			FromName:  v.GetString("SMTP_FROM_NAME"),
+		}
+
+		// Use database values as defaults
+		if smtpConfig.Host == "" {
+			smtpConfig.Host = systemSettings.SMTPHost
+		}
+		if smtpConfig.Port == 0 || smtpConfig.Port == 587 {
+			if systemSettings.SMTPPort != 0 {
+				smtpConfig.Port = systemSettings.SMTPPort
+			}
+		}
+		if smtpConfig.Username == "" {
+			smtpConfig.Username = systemSettings.SMTPUsername
+		}
+		if smtpConfig.Password == "" {
+			smtpConfig.Password = systemSettings.SMTPPassword
+		}
+		if smtpConfig.FromEmail == "" {
+			smtpConfig.FromEmail = systemSettings.SMTPFromEmail
+		}
+		if smtpConfig.FromName == "" || smtpConfig.FromName == "Notifuse" {
+			if systemSettings.SMTPFromName != "" {
+				smtpConfig.FromName = systemSettings.SMTPFromName
+			}
+		}
+	} else {
+		// First-run: use env vars only
+		rootEmail = v.GetString("ROOT_EMAIL")
+		apiEndpoint = v.GetString("API_ENDPOINT")
+		smtpConfig = SMTPConfig{
+			Host:      v.GetString("SMTP_HOST"),
+			Port:      v.GetInt("SMTP_PORT"),
+			Username:  v.GetString("SMTP_USERNAME"),
+			Password:  v.GetString("SMTP_PASSWORD"),
+			FromEmail: v.GetString("SMTP_FROM_EMAIL"),
+			FromName:  v.GetString("SMTP_FROM_NAME"),
+		}
 	}
 
 	config := &Config{
@@ -264,23 +504,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 				KeyFile:  v.GetString("SSL_KEY_FILE"),
 			},
 		},
-		Database: DatabaseConfig{
-			Host:     v.GetString("DB_HOST"),
-			Port:     v.GetInt("DB_PORT"),
-			User:     v.GetString("DB_USER"),
-			Password: v.GetString("DB_PASSWORD"),
-			DBName:   v.GetString("DB_NAME"),
-			Prefix:   v.GetString("DB_PREFIX"),
-			SSLMode:  v.GetString("DB_SSLMODE"),
-		},
-		SMTP: SMTPConfig{
-			Host:      v.GetString("SMTP_HOST"),
-			Port:      v.GetInt("SMTP_PORT"),
-			Username:  v.GetString("SMTP_USERNAME"),
-			Password:  v.GetString("SMTP_PASSWORD"),
-			FromEmail: v.GetString("SMTP_FROM_EMAIL"),
-			FromName:  v.GetString("SMTP_FROM_NAME"),
-		},
+		Database: dbConfig,
+		SMTP:     smtpConfig,
 		Security: SecurityConfig{
 			PasetoPrivateKey:      privateKey,
 			PasetoPublicKey:       publicKey,
@@ -330,12 +555,13 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			PrometheusPort:  v.GetInt("TRACING_PROMETHEUS_PORT"),
 		},
 
-		RootEmail:       v.GetString("ROOT_EMAIL"),
+		RootEmail:       rootEmail,
 		Environment:     v.GetString("ENVIRONMENT"),
-		APIEndpoint:     v.GetString("API_ENDPOINT"),
+		APIEndpoint:     apiEndpoint,
 		WebhookEndpoint: v.GetString("WEBHOOK_ENDPOINT"),
 		LogLevel:        v.GetString("LOG_LEVEL"),
 		Version:         v.GetString("VERSION"),
+		IsInstalled:     isInstalled,
 	}
 
 	if config.WebhookEndpoint == "" {

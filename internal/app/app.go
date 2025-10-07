@@ -118,6 +118,7 @@ type App struct {
 	analyticsService                 *service.AnalyticsService
 	contactTimelineService           domain.ContactTimelineService
 	segmentService                   *service.SegmentService
+	settingService                   *service.SettingService
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -333,6 +334,9 @@ func (a *App) InitRepositories() error {
 	a.contactTimelineRepo = repository.NewContactTimelineRepository(a.workspaceRepo)
 	a.segmentRepo = repository.NewSegmentRepository(a.workspaceRepo)
 	a.contactSegmentQueueRepo = repository.NewContactSegmentQueueRepository(a.workspaceRepo)
+
+	// Initialize setting service
+	a.settingService = service.NewSettingService(a.settingRepo)
 
 	return nil
 }
@@ -666,7 +670,14 @@ func (a *App) InitHandlers() error {
 		a.config,
 		a.config.Security.PasetoPublicKey,
 		a.logger)
-	rootHandler := httpHandler.NewRootHandler("console/dist", "notification_center/dist", a.logger, a.config.APIEndpoint, a.config.Version, a.config.RootEmail)
+	rootHandler := httpHandler.NewRootHandler("console/dist", "notification_center/dist", a.logger, a.config.APIEndpoint, a.config.Version, a.config.RootEmail, a.config.IsInstalled)
+	setupHandler := httpHandler.NewSetupHandler(
+		a.settingService,
+		a.userRepo,
+		a.authService,
+		a.logger,
+		a.config.Security.SecretKey,
+	)
 	workspaceHandler := httpHandler.NewWorkspaceHandler(
 		a.workspaceService,
 		a.authService,
@@ -723,6 +734,7 @@ func (a *App) InitHandlers() error {
 	}
 
 	// Register routes
+	setupHandler.RegisterRoutes(a.mux) // Setup handler first (should be accessible without auth)
 	userHandler.RegisterRoutes(a.mux)
 	workspaceHandler.RegisterRoutes(a.mux)
 	rootHandler.RegisterRoutes(a.mux)
@@ -997,6 +1009,17 @@ func (a *App) Initialize() error {
 
 	if err := a.InitDB(); err != nil {
 		return err
+	}
+
+	// Check if setup wizard is required (after migrations have run)
+	var installedValue string
+	err := a.db.QueryRow("SELECT value FROM settings WHERE key = 'is_installed'").Scan(&installedValue)
+	isInstalled := err == nil && installedValue == "true"
+
+	if !isInstalled {
+		a.logger.Info("Setup wizard required - installation not complete")
+	} else {
+		a.logger.Info("System installation verified")
 	}
 
 	if err := a.InitMailer(); err != nil {

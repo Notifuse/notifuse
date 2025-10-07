@@ -16,6 +16,7 @@ import { TransactionalNotificationsPage } from './pages/TransactionalNotificatio
 import { LogsPage } from './pages/LogsPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { DebugSegmentPage } from './pages/DebugSegmentPage'
+import SetupWizard from './pages/SetupWizard'
 import { createRouter } from '@tanstack/react-router'
 
 export interface ContactsSearch {
@@ -68,6 +69,13 @@ const logoutRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/logout',
   component: LogoutPage
+})
+
+// Create the setup wizard route
+const setupRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/setup',
+  component: SetupWizard
 })
 
 // Create the accept invitation route
@@ -185,6 +193,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   signinRoute,
   logoutRoute,
+  setupRoute,
   acceptInvitationRoute,
   workspaceCreateRoute,
   workspaceRoute.addChildren([

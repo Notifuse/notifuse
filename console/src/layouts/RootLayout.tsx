@@ -11,11 +11,19 @@ export function RootLayout() {
   const isAcceptInvitationRoute = useMatch({ from: '/accept-invitation', shouldThrow: false })
   const isLogoutRoute = useMatch({ from: '/logout', shouldThrow: false })
   const isWorkspaceCreateRoute = useMatch({ from: '/workspace/create', shouldThrow: false })
+  const isSetupRoute = useMatch({ from: '/setup', shouldThrow: false })
 
-  const isPublicRoute = isSigninRoute || isAcceptInvitationRoute || isLogoutRoute
+  // Check if system is installed
+  const isInstalled = window.IS_INSTALLED !== false
+
+  const isPublicRoute = isSigninRoute || isAcceptInvitationRoute || isLogoutRoute || isSetupRoute
+
+  // If system is not installed, redirect to setup wizard
+  const shouldRedirectToSetup = !isInstalled && !isSetupRoute
+
   // If not authenticated and not on public routes, redirect to signin
   const shouldRedirectToSignin =
-    !isLogoutRoute && !isSigninRoute && !isAuthenticated && !isPublicRoute
+    !isLogoutRoute && !isSigninRoute && !isAuthenticated && !isPublicRoute && !shouldRedirectToSetup
 
   // If authenticated and has no workspaces, redirect to workspace creation
   const shouldRedirectToCreateWorkspace =
@@ -26,6 +34,11 @@ export function RootLayout() {
   useEffect(() => {
     if (loading) return
 
+    if (shouldRedirectToSetup) {
+      navigate({ to: '/setup' })
+      return
+    }
+
     if (shouldRedirectToSignin) {
       navigate({ to: '/signin' })
       return
@@ -35,14 +48,19 @@ export function RootLayout() {
       navigate({ to: '/workspace/create' })
       return
     }
-  }, [loading, shouldRedirectToSignin, shouldRedirectToCreateWorkspace])
+  }, [loading, shouldRedirectToSetup, shouldRedirectToSignin, shouldRedirectToCreateWorkspace])
 
-  if (loading || shouldRedirectToSignin || shouldRedirectToCreateWorkspace) {
+  if (
+    loading ||
+    shouldRedirectToSetup ||
+    shouldRedirectToSignin ||
+    shouldRedirectToCreateWorkspace
+  ) {
     return (
       <div
         style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}
       >
-        <Spin size="large" tip="Signing out..." fullscreen />
+        <Spin size="large" tip="Loading..." fullscreen />
       </div>
     )
   }
