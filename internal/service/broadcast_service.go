@@ -938,6 +938,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		ID:              messageID,
 		ContactEmail:    request.RecipientEmail,
 		BroadcastID:     &request.BroadcastID,
+		ListIDs:         domain.ListIDs(broadcast.Audience.Lists),
 		TemplateID:      template.ID,
 		TemplateVersion: template.Version,
 		Channel:         "email",

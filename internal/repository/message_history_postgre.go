@@ -36,6 +36,7 @@ func scanMessage(scanner interface {
 		&message.ExternalID,
 		&message.ContactEmail,
 		&message.BroadcastID,
+		&message.ListIDs,
 		&message.TemplateID,
 		&message.TemplateVersion,
 		&message.Channel,
@@ -70,7 +71,7 @@ func scanMessage(scanner interface {
 
 // messageHistorySelectFields returns the common SELECT fields for message history queries
 func messageHistorySelectFields() string {
-	return `id, external_id, contact_email, broadcast_id, template_id, template_version, 
+	return `id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, 
 			channel, status_info, message_data, attachments, sent_at, delivered_at, 
 			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
 			unsubscribed_at, created_at, updated_at`
@@ -92,15 +93,15 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 
 	query := `
 		INSERT INTO message_history (
-			id, external_id, contact_email, broadcast_id, template_id, template_version, 
+			id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, 
 			channel, status_info, message_data, attachments, sent_at, delivered_at, 
 			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
 			unsubscribed_at, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, 
-			$7, LEFT($8, 255), $9, $10, $11, $12, 
-			$13, $14, $15, $16, $17, 
-			$18, $19, $20
+			$1, $2, $3, $4, $5, $6, $7, 
+			$8, LEFT($9, 255), $10, $11, $12, $13, 
+			$14, $15, $16, $17, $18, 
+			$19, $20, $21
 		)
 	`
 
@@ -111,6 +112,7 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 		message.ExternalID,
 		message.ContactEmail,
 		message.BroadcastID,
+		message.ListIDs,
 		message.TemplateID,
 		message.TemplateVersion,
 		message.Channel,
@@ -155,21 +157,22 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 			external_id = $2,
 			contact_email = $3,
 			broadcast_id = $4,
-			template_id = $5,
-			template_version = $6,
-			channel = $7,
-			status_info = LEFT($8, 255),
-			message_data = $9,
-			attachments = $10,
-			sent_at = $11,
-			delivered_at = $12,
-			failed_at = $13,
-			opened_at = $14,	
-			clicked_at = $15,
-			bounced_at = $16,
-			complained_at = $17,
-			unsubscribed_at = $18,
-			updated_at = $19
+			list_ids = $5,
+			template_id = $6,
+			template_version = $7,
+			channel = $8,
+			status_info = LEFT($9, 255),
+			message_data = $10,
+			attachments = $11,
+			sent_at = $12,
+			delivered_at = $13,
+			failed_at = $14,
+			opened_at = $15,	
+			clicked_at = $16,
+			bounced_at = $17,
+			complained_at = $18,
+			unsubscribed_at = $19,
+			updated_at = $20
 		WHERE id = $1
 	`
 
@@ -180,6 +183,7 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 		message.ExternalID,
 		message.ContactEmail,
 		message.BroadcastID,
+		message.ListIDs,
 		message.TemplateID,
 		message.TemplateVersion,
 		message.Channel,
@@ -534,7 +538,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 	// Use squirrel to build the query with placeholders
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	queryBuilder := psql.Select(
-		"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+		"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 		"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 		"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 		"unsubscribed_at", "created_at", "updated_at",
@@ -718,7 +722,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 		var deliveredAt, failedAt, openedAt, clickedAt, bouncedAt, complainedAt, unsubscribedAt sql.NullTime
 
 		err := rows.Scan(
-			&message.ID, &externalID, &message.ContactEmail, &broadcastID, &message.TemplateID, &message.TemplateVersion,
+			&message.ID, &externalID, &message.ContactEmail, &broadcastID, &message.ListIDs, &message.TemplateID, &message.TemplateVersion,
 			&message.Channel, &statusInfo, &message.MessageData, &attachmentsJSON,
 			&message.SentAt, &deliveredAt, &failedAt, &openedAt,
 			&clickedAt, &bouncedAt, &complainedAt, &unsubscribedAt,

@@ -2194,6 +2194,7 @@ func TestProcessWebhook_UpdatesMessageHistoryWithMultipleEvents(t *testing.T) {
 					RecipientTo: "test2@example.com",
 					MessageID:   messageID2,
 					Timestamp:   time.Now().Format(time.RFC3339),
+					BounceClass: "10", // Hard bounce - Invalid Recipient
 				},
 			},
 		},
@@ -2243,6 +2244,132 @@ func TestProcessWebhook_UpdatesMessageHistoryWithMultipleEvents(t *testing.T) {
 }
 
 // TestListEvents tests the ListEvents method of WebhookEventService
+func TestIsHardBounce(t *testing.T) {
+	t.Run("Amazon SES - Permanent bounces", func(t *testing.T) {
+		assert.True(t, isHardBounce("Permanent", ""))
+		assert.True(t, isHardBounce("permanent", ""))
+		assert.True(t, isHardBounce("PERMANENT", ""))
+	})
+
+	t.Run("Amazon SES - Soft bounces", func(t *testing.T) {
+		assert.False(t, isHardBounce("Transient", ""))
+		assert.False(t, isHardBounce("transient", ""))
+		assert.False(t, isHardBounce("Undetermined", ""))
+		assert.False(t, isHardBounce("undetermined", ""))
+	})
+
+	t.Run("Mailgun - Hard bounces", func(t *testing.T) {
+		assert.True(t, isHardBounce("", "hardbounce"))
+		assert.True(t, isHardBounce("", "HardBounce"))
+		assert.True(t, isHardBounce("", "permanent"))
+		assert.True(t, isHardBounce("", "Permanent"))
+	})
+
+	t.Run("Mailgun - Soft bounces", func(t *testing.T) {
+		assert.False(t, isHardBounce("", "softbounce"))
+		assert.False(t, isHardBounce("", "SoftBounce"))
+		assert.False(t, isHardBounce("", "temporary"))
+		assert.False(t, isHardBounce("", "Temporary"))
+	})
+
+	t.Run("Mailjet - Hard bounces", func(t *testing.T) {
+		assert.True(t, isHardBounce("hardbounce", ""))
+		assert.True(t, isHardBounce("HardBounce", ""))
+		assert.True(t, isHardBounce("HARDBOUNCE", ""))
+	})
+
+	t.Run("Mailjet - Soft bounces", func(t *testing.T) {
+		assert.False(t, isHardBounce("softbounce", ""))
+		assert.False(t, isHardBounce("SoftBounce", ""))
+		assert.False(t, isHardBounce("SOFTBOUNCE", ""))
+	})
+
+	t.Run("Blocked emails", func(t *testing.T) {
+		assert.True(t, isHardBounce("blocked", ""))
+		assert.True(t, isHardBounce("Blocked", ""))
+		assert.True(t, isHardBounce("", "blocked"))
+		assert.True(t, isHardBounce("", "Blocked"))
+	})
+
+	t.Run("Postmark - Hard bounce patterns", func(t *testing.T) {
+		assert.True(t, isHardBounce("HardBounce", ""))
+		assert.True(t, isHardBounce("hard", ""))
+		assert.True(t, isHardBounce("", "HardBounce"))
+		assert.True(t, isHardBounce("", "hard"))
+		assert.True(t, isHardBounce("This is a hard bounce", ""))
+	})
+
+	t.Run("Postmark - Soft bounce patterns", func(t *testing.T) {
+		assert.False(t, isHardBounce("SoftBounce", ""))
+		assert.False(t, isHardBounce("soft", ""))
+		assert.False(t, isHardBounce("", "SoftBounce"))
+		assert.False(t, isHardBounce("", "soft"))
+		assert.False(t, isHardBounce("This is a soft bounce", ""))
+	})
+
+	t.Run("SparkPost - Hard bounces", func(t *testing.T) {
+		// Hard bounce classes: 10 (Invalid Recipient), 30 (No RCPT), 90 (Unsubscribe)
+		assert.True(t, isHardBounce("", "10"))
+		assert.True(t, isHardBounce("", "30"))
+		assert.True(t, isHardBounce("", "90"))
+	})
+
+	t.Run("SparkPost - Soft bounces", func(t *testing.T) {
+		// Soft bounce classes: 1, 20-25, 40, 50-54, 60, 70, 80, 100
+		assert.False(t, isHardBounce("", "1"))   // Undetermined
+		assert.False(t, isHardBounce("", "20"))  // Soft bounce
+		assert.False(t, isHardBounce("", "21"))  // Soft bounce
+		assert.False(t, isHardBounce("", "22"))  // Soft bounce
+		assert.False(t, isHardBounce("", "23"))  // Soft bounce
+		assert.False(t, isHardBounce("", "24"))  // Soft bounce
+		assert.False(t, isHardBounce("", "25"))  // Admin failure
+		assert.False(t, isHardBounce("", "40"))  // Generic bounce
+		assert.False(t, isHardBounce("", "50"))  // Block
+		assert.False(t, isHardBounce("", "51"))  // Block
+		assert.False(t, isHardBounce("", "52"))  // Block
+		assert.False(t, isHardBounce("", "53"))  // Block
+		assert.False(t, isHardBounce("", "54"))  // Block
+		assert.False(t, isHardBounce("", "60"))  // Auto-reply
+		assert.False(t, isHardBounce("", "70"))  // Transient failure
+		assert.False(t, isHardBounce("", "80"))  // Subscribe
+		assert.False(t, isHardBounce("", "100")) // Mail block
+	})
+
+	t.Run("SparkPost - Unknown bounce classes default to soft", func(t *testing.T) {
+		assert.False(t, isHardBounce("", "99"))
+		assert.False(t, isHardBounce("", "999"))
+		assert.False(t, isHardBounce("", "5"))
+	})
+
+	t.Run("Case insensitivity", func(t *testing.T) {
+		assert.True(t, isHardBounce("PERMANENT", ""))
+		assert.True(t, isHardBounce("Permanent", ""))
+		assert.True(t, isHardBounce("permanent", ""))
+		assert.True(t, isHardBounce("", "HARDBOUNCE"))
+		assert.True(t, isHardBounce("", "HardBounce"))
+		assert.True(t, isHardBounce("", "hardbounce"))
+	})
+
+	t.Run("Default behavior - unknown types default to soft", func(t *testing.T) {
+		assert.False(t, isHardBounce("unknown", ""))
+		assert.False(t, isHardBounce("", "unknown"))
+		assert.False(t, isHardBounce("some-random-type", "some-random-category"))
+		assert.False(t, isHardBounce("", ""))
+	})
+
+	t.Run("Combined type and category", func(t *testing.T) {
+		// The function checks in order: SES type → Mailgun category → Mailjet type → blocked → patterns → SparkPost
+		// SES "permanent" is checked first, so returns true even with soft category
+		assert.True(t, isHardBounce("permanent", "softbounce"))
+		// SES "transient" is checked first, so returns false even with hard category
+		assert.False(t, isHardBounce("transient", "hardbounce"))
+		// Mailgun category is checked before Mailjet type, so "temporary" returns false
+		assert.False(t, isHardBounce("hardbounce", "temporary"))
+		// But if category doesn't match Mailgun patterns, it continues to check type
+		assert.True(t, isHardBounce("hardbounce", "unknown"))
+	})
+}
+
 func TestListEvents(t *testing.T) {
 	// Setup
 	ctrl := gomock.NewController(t)

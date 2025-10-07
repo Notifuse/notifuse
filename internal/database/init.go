@@ -181,6 +181,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			contact_email VARCHAR(255) NOT NULL,
 			external_id VARCHAR(255),
 			broadcast_id VARCHAR(255),
+			list_ids TEXT[],
 			template_id VARCHAR(32) NOT NULL,
 			template_version INTEGER NOT NULL,
 			channel VARCHAR(20) NOT NULL,
@@ -480,6 +481,38 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
+		// Contact list status update on bounce/complaint trigger function
+		`CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			-- Handle complaint events (worst status - can upgrade from any status)
+			IF NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN
+				IF NEW.list_ids IS NOT NULL AND array_length(NEW.list_ids, 1) > 0 THEN
+					UPDATE contact_lists
+					SET status = 'complained',
+						updated_at = NEW.complained_at
+					WHERE email = NEW.contact_email
+					AND list_id = ANY(NEW.list_ids)
+					AND status != 'complained';
+				END IF;
+			END IF;
+
+			-- Handle bounce events (ONLY HARD BOUNCES - can only update if not already complained or bounced)
+			-- Note: Application layer should only set bounced_at for hard/permanent bounces
+			IF NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN
+				IF NEW.list_ids IS NOT NULL AND array_length(NEW.list_ids, 1) > 0 THEN
+					UPDATE contact_lists
+					SET status = 'bounced',
+						updated_at = NEW.bounced_at
+					WHERE email = NEW.contact_email
+					AND list_id = ANY(NEW.list_ids)
+					AND status NOT IN ('complained', 'bounced');
+				END IF;
+			END IF;
+
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;`,
 		// Create triggers
 		`DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts`,
 		`CREATE TRIGGER contact_changes_trigger AFTER INSERT OR UPDATE ON contacts FOR EACH ROW EXECUTE FUNCTION track_contact_changes()`,
@@ -493,6 +526,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TRIGGER contact_segment_changes_trigger AFTER INSERT OR DELETE ON contact_segments FOR EACH ROW EXECUTE FUNCTION track_contact_segment_changes()`,
 		`DROP TRIGGER IF EXISTS contact_timeline_queue_trigger ON contact_timeline`,
 		`CREATE TRIGGER contact_timeline_queue_trigger AFTER INSERT ON contact_timeline FOR EACH ROW EXECUTE FUNCTION queue_contact_for_segment_recomputation()`,
+		`DROP TRIGGER IF EXISTS message_history_status_trigger ON message_history`,
+		`CREATE TRIGGER message_history_status_trigger AFTER UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION update_contact_lists_on_status_change()`,
 	}
 
 	for _, query := range triggerQueries {

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -14,16 +15,37 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/golang/mock/gomock"
+	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+// StringArrayConverter is a custom ValueConverter for pq.StringArray to handle it in sqlmock.
+// This is needed because sqlmock doesn't natively support PostgreSQL array types.
+//
+// Usage in tests:
+//   - Use pq.Array(value) when expecting array arguments in WithArgs()
+//   - Use "{}" string format for empty arrays in mock return rows (AddRow)
+//   - The domain.ListIDs type alias inherits Scan/Value methods from pq.StringArray
+type StringArrayConverter struct{}
+
+// ConvertValue converts pq.StringArray to a driver.Value for sqlmock compatibility.
+func (s StringArrayConverter) ConvertValue(v interface{}) (driver.Value, error) {
+	switch x := v.(type) {
+	case pq.StringArray:
+		return x, nil
+	default:
+		return driver.DefaultParameterConverter.ConvertValue(v)
+	}
+}
 
 func setupMessageHistoryTest(t *testing.T) (*mocks.MockWorkspaceRepository, domain.MessageHistoryRepository, sqlmock.Sqlmock, *sql.DB, func()) {
 	ctrl := gomock.NewController(t)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 
-	// Create a real DB connection with sqlmock
-	db, mock, err := sqlmock.New()
+	// Create a real DB connection with sqlmock.
+	// The custom ValueConverter helps sqlmock handle pq.StringArray types.
+	db, mock, err := sqlmock.New(sqlmock.ValueConverterOption(StringArrayConverter{}))
 	require.NoError(t, err)
 
 	repo := NewMessageHistoryRepository(mockWorkspaceRepo)
@@ -54,6 +76,7 @@ func createSampleMessageHistory() *domain.MessageHistory {
 		ExternalID:      &externalID,
 		ContactEmail:    "test@example.com",
 		BroadcastID:     &broadcastID,
+		ListIDs:         domain.ListIDs([]string{}), // Empty list
 		TemplateID:      "template-123",
 		TemplateVersion: 1,
 		Channel:         "email",
@@ -91,6 +114,7 @@ func TestMessageHistoryRepository_Create(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
+				message.ListIDs,
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -135,6 +159,7 @@ func TestMessageHistoryRepository_Create(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
+				message.ListIDs,
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -179,6 +204,7 @@ func TestMessageHistoryRepository_Update(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
+				message.ListIDs,
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -222,6 +248,7 @@ func TestMessageHistoryRepository_Update(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
+				message.ListIDs,
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -264,7 +291,7 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
@@ -273,6 +300,7 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
+			"{}", // list_ids (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 			message.Channel,
@@ -335,12 +363,13 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 		}).AddRow(
 			message.ID,
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
+			"{}", // list_ids (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 		) // Incomplete row to cause scan error
@@ -374,7 +403,7 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
@@ -383,6 +412,7 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
+			"{}", // list_ids (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 			message.Channel,
@@ -445,12 +475,13 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 		}).AddRow(
 			message.ID,
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
+			"{}", // list_ids (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 		) // Incomplete row to cause scan error
@@ -493,7 +524,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 
 		// Set up data query
 		dataRows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
@@ -502,6 +533,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
+			"{}", // list_ids (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 			message.Channel,
@@ -625,7 +657,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 		mock.ExpectQuery(`SELECT .* FROM message_history WHERE contact_email = \$1 ORDER BY sent_at DESC LIMIT \$2 OFFSET \$3`).
 			WithArgs(contactEmail, 50, 0).
 			WillReturnRows(sqlmock.NewRows([]string{
-				"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+				"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 				"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 				"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 				"unsubscribed_at", "created_at", "updated_at",
@@ -634,6 +666,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
+				"{}", // list_ids (empty array)
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -688,7 +721,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 
 		// Set up data query
 		dataRows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
@@ -697,6 +730,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
+			"{}", // list_ids (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 			message.Channel,
@@ -820,7 +854,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 		mock.ExpectQuery(`SELECT .* FROM message_history WHERE broadcast_id = \$1 ORDER BY sent_at DESC LIMIT \$2 OFFSET \$3`).
 			WithArgs(broadcastID, 50, 0).
 			WillReturnRows(sqlmock.NewRows([]string{
-				"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+				"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 				"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 				"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 				"unsubscribed_at", "created_at", "updated_at",
@@ -829,6 +863,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
+				"{}", // list_ids (empty array)
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -1522,25 +1557,25 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData2JSON, _ := json.Marshal(message2.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message2.ID, message2.ExternalID, message2.ContactEmail, message2.BroadcastID, message2.TemplateID, message2.TemplateVersion,
+				message2.ID, message2.ExternalID, message2.ContactEmail, message2.BroadcastID, "{}", message2.TemplateID, message2.TemplateVersion,
 				message2.Channel, message2.StatusInfo, messageData2JSON, []byte("[]"), message2.SentAt, message2.DeliveredAt,
 				message2.FailedAt, message2.OpenedAt, message2.ClickedAt, message2.BouncedAt, message2.ComplainedAt,
 				message2.UnsubscribedAt, message2.CreatedAt, message2.UpdatedAt,
 			).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 21`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 21`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -1564,19 +1599,19 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData1JSON, _ := json.Marshal(message1.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE channel = \$1 ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE channel = \$1 ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WithArgs("email").
 			WillReturnRows(rows)
 
@@ -1600,19 +1635,19 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData1JSON, _ := json.Marshal(message1.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE contact_email = \$1 ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE contact_email = \$1 ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WithArgs("user1@example.com").
 			WillReturnRows(rows)
 
@@ -1636,19 +1671,19 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData1JSON, _ := json.Marshal(message1.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE broadcast_id = \$1 ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE broadcast_id = \$1 ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WithArgs("broadcast-1").
 			WillReturnRows(rows)
 
@@ -1672,19 +1707,19 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData1JSON, _ := json.Marshal(message1.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE template_id = \$1 ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE template_id = \$1 ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WithArgs("template-1").
 			WillReturnRows(rows)
 
@@ -1712,20 +1747,20 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData1JSON, _ := json.Marshal(message1.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
 		// Boolean filters are correctly implemented as IS NOT NULL / IS NULL checks
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE delivered_at IS NOT NULL AND opened_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE delivered_at IS NOT NULL AND opened_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -1751,19 +1786,19 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData1JSON, _ := json.Marshal(message1.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE sent_at >= \$1 AND sent_at <= \$2 ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE sent_at >= \$1 AND sent_at <= \$2 ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WithArgs(sentAfter, sentBefore).
 			WillReturnRows(rows)
 
@@ -1792,20 +1827,20 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData2JSON, _ := json.Marshal(message2.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message2.ID, message2.ExternalID, message2.ContactEmail, message2.BroadcastID, message2.TemplateID, message2.TemplateVersion,
+				message2.ID, message2.ExternalID, message2.ContactEmail, message2.BroadcastID, "{}", message2.TemplateID, message2.TemplateVersion,
 				message2.Channel, message2.StatusInfo, messageData2JSON, []byte("[]"), message2.SentAt, message2.DeliveredAt,
 				message2.FailedAt, message2.OpenedAt, message2.ClickedAt, message2.BouncedAt, message2.ComplainedAt,
 				message2.UnsubscribedAt, message2.CreatedAt, message2.UpdatedAt,
 			)
 
 		// The query should include cursor-based WHERE clause
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE \(created_at < \$1 OR \(created_at = \$2 AND id < \$3\)\) ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE \(created_at < \$1 OR \(created_at = \$2 AND id < \$3\)\) ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WithArgs(cursorTime, cursorTime, message1.ID).
 			WillReturnRows(rows)
 
@@ -1830,26 +1865,26 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 
 		// Return 2 rows (limit + 1) to indicate there are more results
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message2.ID, message2.ExternalID, message2.ContactEmail, message2.BroadcastID, message2.TemplateID, message2.TemplateVersion,
+				message2.ID, message2.ExternalID, message2.ContactEmail, message2.BroadcastID, "{}", message2.TemplateID, message2.TemplateVersion,
 				message2.Channel, message2.StatusInfo, messageData2JSON, []byte("[]"), message2.SentAt, message2.DeliveredAt,
 				message2.FailedAt, message2.OpenedAt, message2.ClickedAt, message2.BouncedAt, message2.ComplainedAt,
 				message2.UnsubscribedAt, message2.CreatedAt, message2.UpdatedAt,
 			).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
 		// No cursor provided, so no WHERE clause for cursor pagination
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 2`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 2`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -1948,7 +1983,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnError(errors.New("query execution error"))
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -1969,19 +2004,19 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 
 		// Create rows with invalid data that will cause scanning error
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
-			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
+			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				"msg-1", "external-123", "user@example.com", nil, "template-1", "invalid-version", // invalid template_version type
-				"email", nil, `{"data":{}}`, now, nil,
+				"msg-1", "external-123", "user@example.com", nil, "{}", "template-1", "invalid-version", // invalid template_version type
+				"email", nil, `{"data":{}}`, []byte("[]"), now, nil,
 				nil, nil, nil, nil, nil,
 				nil, now, now,
 			)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -2004,20 +2039,20 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 
 		// Add a valid row and use CloseError to trigger rows.Err()
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			).
 			CloseError(errors.New("row iteration error"))
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -2037,13 +2072,13 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
-			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
+			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		})
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 21`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 21`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -2066,19 +2101,19 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData1JSON, _ := json.Marshal(message1.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE sent_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE sent_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -2099,13 +2134,13 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
-			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
+			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		})
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE sent_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE sent_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -2126,13 +2161,13 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
-			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
+			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		})
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE failed_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE failed_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -2155,19 +2190,19 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData1JSON, _ := json.Marshal(message1.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE clicked_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE clicked_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -2188,13 +2223,13 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
-			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
+			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		})
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE bounced_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE bounced_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -2217,19 +2252,19 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData1JSON, _ := json.Marshal(message1.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE complained_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE complained_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -2250,13 +2285,13 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
-			"channel", "status_info", "message_data", "sent_at", "delivered_at",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
+			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		})
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE unsubscribed_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE unsubscribed_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
 		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
@@ -2282,19 +2317,19 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData1JSON, _ := json.Marshal(message1.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE updated_at >= \$1 AND updated_at <= \$2 ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE updated_at >= \$1 AND updated_at <= \$2 ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WithArgs(updatedAfter, updatedBefore).
 			WillReturnRows(rows)
 
@@ -2324,20 +2359,20 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		messageData1JSON, _ := json.Marshal(message1.MessageData)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "external_id", "contact_email", "broadcast_id", "template_id", "template_version",
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
 			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
 			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 			"unsubscribed_at", "created_at", "updated_at",
 		}).
 			AddRow(
-				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, message1.TemplateID, message1.TemplateVersion,
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
 				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
 				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
 				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
 			)
 
 		// The query should include all the filters with IS NOT NULL for boolean delivered filter
-		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE channel = \$1 AND contact_email = \$2 AND broadcast_id = \$3 AND template_id = \$4 AND delivered_at IS NOT NULL AND sent_at >= \$5 ORDER BY created_at DESC, id DESC LIMIT 11`).
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE channel = \$1 AND contact_email = \$2 AND broadcast_id = \$3 AND template_id = \$4 AND delivered_at IS NOT NULL AND sent_at >= \$5 ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WithArgs("email", "user1@example.com", "broadcast-1", "template-1", twoHoursAgo).
 			WillReturnRows(rows)
 

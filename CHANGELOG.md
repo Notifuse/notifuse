@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [10.0] - 2025-10-07
+
+- New feature: automatic contact list status updates on bounce and complaint events
+- Add `list_ids` TEXT[] column to `message_history` table to track which lists a message was sent to
+- Add database trigger to automatically update `contact_lists` status to 'bounced' or 'complained' when hard bounces or complaints occur
+- Distinguish between hard bounces (permanent failures) and soft bounces (temporary failures) - only hard bounces affect contact status
+- Status hierarchy: complained > bounced > other statuses
+- Backfill historical broadcast messages with list associations
+
 ## [9.0] - 2025-10-06
 
 - New feature: email attachments support for transactional emails
