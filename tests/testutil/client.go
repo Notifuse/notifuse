@@ -130,6 +130,30 @@ func (c *APIClient) Delete(endpoint string, params ...map[string]string) (*http.
 	return c.request(http.MethodDelete, endpoint, nil, params...)
 }
 
+// PostRaw makes a POST request with raw string body (no JSON encoding)
+func (c *APIClient) PostRaw(endpoint string, rawBody string) (*http.Response, error) {
+	// Build URL
+	reqURL := c.baseURL + endpoint
+
+	// Create request with raw body
+	req, err := http.NewRequest(http.MethodPost, reqURL, strings.NewReader(rawBody))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	// Add authentication token if available (webhooks typically don't need auth)
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+
+	// Make request
+	return c.client.Do(req)
+}
+
 // request makes an HTTP request
 func (c *APIClient) request(method, endpoint string, body interface{}, params ...map[string]string) (*http.Response, error) {
 	// Build URL with query parameters

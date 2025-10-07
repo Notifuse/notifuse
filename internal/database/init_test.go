@@ -217,8 +217,9 @@ func TestInitializeWorkspaceDatabase_Comprehensive(t *testing.T) {
 		require.NoError(t, err)
 		defer db.Close()
 
-		// Mock all SQL statements - both CREATE TABLE and CREATE INDEX
-		for i := 0; i < 50; i++ { // Allow for many SQL statements
+		// Mock all SQL statements - tables, indexes, trigger functions, and triggers
+		// Current count: ~34 table/index queries + ~34 trigger queries = 68 total
+		for i := 0; i < 80; i++ { // Allow for many SQL statements with buffer
 			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 

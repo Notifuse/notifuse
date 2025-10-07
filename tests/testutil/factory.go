@@ -703,6 +703,18 @@ func WithMessageBounced(bounced bool) MessageHistoryOption {
 	}
 }
 
+func WithMessageListIDs(listIDs []string) MessageHistoryOption {
+	return func(m *domain.MessageHistory) {
+		m.ListIDs = listIDs
+	}
+}
+
+func WithMessageID(id string) MessageHistoryOption {
+	return func(m *domain.MessageHistory) {
+		m.ID = id
+	}
+}
+
 // Integration options
 func WithIntegrationName(name string) IntegrationOption {
 	return func(integration *domain.Integration) {
