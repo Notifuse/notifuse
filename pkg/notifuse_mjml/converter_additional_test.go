@@ -120,8 +120,8 @@ func TestFormatAttributesAndHelpers(t *testing.T) {
 	}
 	got := formatAttributes(attrs)
 
-	// href should keep '&' characters; title must be quoted/escaped; data-value numeric; boolean true present; false omitted; empty omitted
-	if !strings.Contains(got, ` href="https://example.com?a=1&b=2"`) {
+	// href should escape '&' as '&amp;' per XML spec; title must be quoted/escaped; data-value numeric; boolean true present; false omitted; empty omitted
+	if !strings.Contains(got, ` href="https://example.com?a=1&amp;b=2"`) {
 		t.Fatalf("href not formatted as expected: %s", got)
 	}
 	if !strings.Contains(got, ` title="He said &quot;Hi&quot;"`) {

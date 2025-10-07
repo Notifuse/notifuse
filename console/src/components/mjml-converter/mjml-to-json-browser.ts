@@ -1,14 +1,34 @@
 import type { EmailBlock } from '../email_builder/types'
 
 /**
+ * Preprocesses MJML string to fix common XML issues
+ * This makes imports more robust when MJML comes from other editors
+ * @param mjmlString - The raw MJML string to preprocess
+ * @returns The preprocessed MJML string with fixed XML issues
+ */
+export function preprocessMjml(mjmlString: string): string {
+  // Fix unescaped ampersands in attribute values
+  // Use a callback function to process all ampersands within each attribute value
+  return mjmlString.replace(/="([^"]*)"/g, (match, attrValue) => {
+    // Within this attribute value, escape all unescaped ampersands
+    // Don't escape if already part of an entity: &amp;, &lt;, &gt;, &quot;, &apos;, &#123;, &#xAB;
+    const fixed = attrValue.replace(/&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/g, '&amp;')
+    return '="' + fixed + '"'
+  })
+}
+
+/**
  * Browser-compatible MJML to JSON converter using DOMParser
  * This is a fallback when mjml2json doesn't work in browser environment
  */
 export function convertMjmlToJsonBrowser(mjmlString: string): EmailBlock {
   try {
+    // Preprocess MJML to fix common XML issues
+    const preprocessedMjml = preprocessMjml(mjmlString)
+
     // Parse MJML using browser's DOMParser
     const parser = new DOMParser()
-    const doc = parser.parseFromString(mjmlString, 'text/xml')
+    const doc = parser.parseFromString(preprocessedMjml, 'text/xml')
 
     // Check for parsing errors
     const parserError = doc.querySelector('parsererror')

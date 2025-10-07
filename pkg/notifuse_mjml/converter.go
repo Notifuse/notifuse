@@ -390,17 +390,13 @@ func camelToKebab(str string) string {
 	})
 }
 
-// escapeAttributeValue escapes attribute values for safe HTML output
-// For URL attributes (src, href, action), we don't escape & to preserve URL query parameters
+// escapeAttributeValue escapes attribute values for safe XML/MJML output
+// All ampersands must be escaped as &amp; per XML specification
+// The MJML compiler will handle converting them back to & in the final HTML
 func escapeAttributeValue(value string, attributeName string) string {
-	// Check if this is a URL attribute and the value looks like a URL
-	isURLAttribute := attributeName == "src" || attributeName == "href" || attributeName == "action"
-	looksLikeURL := strings.HasPrefix(value, "http://") || strings.HasPrefix(value, "https://") || strings.HasPrefix(value, "//")
-
-	// Only skip escaping ampersands if it's a URL attribute AND the value looks like a URL
-	if !(isURLAttribute && looksLikeURL) {
-		value = strings.ReplaceAll(value, "&", "&amp;")
-	}
+	// Always escape ampersands first, even in URLs
+	// MJML is XML and must follow XML escaping rules
+	value = strings.ReplaceAll(value, "&", "&amp;")
 	value = strings.ReplaceAll(value, "\"", "&quot;")
 	value = strings.ReplaceAll(value, "'", "&#39;")
 	value = strings.ReplaceAll(value, "<", "&lt;")
