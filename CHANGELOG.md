@@ -10,6 +10,8 @@ All notable changes to this project will be documented in this file.
 - Distinguish between hard bounces (permanent failures) and soft bounces (temporary failures) - only hard bounces affect contact status
 - Status hierarchy: complained > bounced > other statuses
 - Backfill historical broadcast messages with list associations
+- Render broadcast name in message logs
+- escape special characters in MJML import/export
 
 ## [9.0] - 2025-10-06
 
