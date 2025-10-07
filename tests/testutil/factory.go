@@ -382,6 +382,29 @@ func (tdf *TestDataFactory) CreateSMTPIntegration(workspaceID string, opts ...In
 	return tdf.CreateIntegration(workspaceID, smtpOpts...)
 }
 
+// CreateSESIntegration creates a test SES integration for webhook testing
+func (tdf *TestDataFactory) CreateSESIntegration(workspaceID string, opts ...IntegrationOption) (*domain.Integration, error) {
+	sesOpts := []IntegrationOption{
+		WithIntegrationName("Test SES Integration"),
+		WithIntegrationEmailProvider(domain.EmailProvider{
+			Kind: domain.EmailProviderKindSES,
+			Senders: []domain.EmailSender{
+				domain.NewEmailSender("test@example.com", "Test Sender"),
+			},
+			SES: &domain.AmazonSESSettings{
+				Region:    "us-east-1",
+				AccessKey: "test-key",
+				SecretKey: "test-secret",
+			},
+		}),
+	}
+
+	// Append user-provided options
+	sesOpts = append(sesOpts, opts...)
+
+	return tdf.CreateIntegration(workspaceID, sesOpts...)
+}
+
 // CreateMailhogSMTPIntegration creates an SMTP integration configured for Mailhog
 func (tdf *TestDataFactory) CreateMailhogSMTPIntegration(workspaceID string, opts ...IntegrationOption) (*domain.Integration, error) {
 	mailhogOpts := []IntegrationOption{

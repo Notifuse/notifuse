@@ -75,8 +75,8 @@ func TestWebhookSubscriptionStatusE2E(t *testing.T) {
 }
 
 func testHardBounceUpdatesContactListStatus(t *testing.T, suite *testutil.IntegrationTestSuite, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
-	// Create integration
-	integration, err := factory.CreateSMTPIntegration(workspaceID)
+	// Create SES integration for webhook testing
+	integration, err := factory.CreateSESIntegration(workspaceID)
 	require.NoError(t, err)
 
 	// Create list
@@ -120,7 +120,8 @@ func testHardBounceUpdatesContactListStatus(t *testing.T, suite *testutil.Integr
 			m.ListIDs = []string{list.ID}
 		})
 	require.NoError(t, err)
-	require.Equal(t, []string{list.ID}, message.ListIDs)
+	require.Len(t, message.ListIDs, 1)
+	require.Equal(t, list.ID, message.ListIDs[0])
 
 	// Verify contact list status is initially active
 	contactListRepo := app.GetContactListRepository()
@@ -154,8 +155,8 @@ func testHardBounceUpdatesContactListStatus(t *testing.T, suite *testutil.Integr
 }
 
 func testComplaintUpdatesContactListStatus(t *testing.T, suite *testutil.IntegrationTestSuite, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
-	// Create integration
-	integration, err := factory.CreateSMTPIntegration(workspaceID)
+	// Create SES integration for webhook testing
+	integration, err := factory.CreateSESIntegration(workspaceID)
 	require.NoError(t, err)
 
 	// Create list
@@ -227,8 +228,8 @@ func testComplaintUpdatesContactListStatus(t *testing.T, suite *testutil.Integra
 }
 
 func testSoftBounceDoesNotUpdateContactListStatus(t *testing.T, suite *testutil.IntegrationTestSuite, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
-	// Create integration
-	integration, err := factory.CreateSMTPIntegration(workspaceID)
+	// Create SES integration for webhook testing
+	integration, err := factory.CreateSESIntegration(workspaceID)
 	require.NoError(t, err)
 
 	// Create list
@@ -300,8 +301,8 @@ func testSoftBounceDoesNotUpdateContactListStatus(t *testing.T, suite *testutil.
 }
 
 func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTestSuite, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
-	// Create integration
-	integration, err := factory.CreateSMTPIntegration(workspaceID)
+	// Create SES integration for webhook testing
+	integration, err := factory.CreateSESIntegration(workspaceID)
 	require.NoError(t, err)
 
 	// Create multiple lists
@@ -378,7 +379,7 @@ func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTe
 
 	// Verify both list1 and list2 statuses were updated
 	contactListRepo := app.GetContactListRepository()
-	
+
 	list1ContactList, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, domain.ContactListStatusBounced, list1ContactList.Status, "List1 status should be bounced")
@@ -394,8 +395,8 @@ func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTe
 }
 
 func testComplaintTakesPriorityOverBounce(t *testing.T, suite *testutil.IntegrationTestSuite, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
-	// Create integration
-	integration, err := factory.CreateSMTPIntegration(workspaceID)
+	// Create SES integration for webhook testing
+	integration, err := factory.CreateSESIntegration(workspaceID)
 	require.NoError(t, err)
 
 	// Create list
@@ -461,8 +462,8 @@ func testComplaintTakesPriorityOverBounce(t *testing.T, suite *testutil.Integrat
 }
 
 func testWebhookWithoutListIDsDoesNotUpdate(t *testing.T, suite *testutil.IntegrationTestSuite, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
-	// Create integration
-	integration, err := factory.CreateSMTPIntegration(workspaceID)
+	// Create SES integration for webhook testing
+	integration, err := factory.CreateSESIntegration(workspaceID)
 	require.NoError(t, err)
 
 	// Create list
@@ -603,8 +604,8 @@ func createSESComplaintPayload(messageID, recipientEmail string) string {
 						"emailAddress": recipientEmail,
 					},
 				},
-				"timestamp":         time.Now().UTC().Format(time.RFC3339),
-				"feedbackId":        "test-feedback-id",
+				"timestamp":             time.Now().UTC().Format(time.RFC3339),
+				"feedbackId":            "test-feedback-id",
 				"complaintFeedbackType": "abuse",
 			},
 			"mail": map[string]interface{}{
@@ -623,4 +624,3 @@ func createSESComplaintPayload(messageID, recipientEmail string) string {
 	payloadBytes, _ := json.Marshal(payload)
 	return string(payloadBytes)
 }
-
