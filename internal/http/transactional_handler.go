@@ -15,21 +15,21 @@ import (
 type TransactionalNotificationHandler struct {
 	service   domain.TransactionalNotificationService
 	logger    logger.Logger
-	publicKey paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 	isDemo    bool
 }
 
 // NewTransactionalNotificationHandler creates a new instance of TransactionalNotificationHandler
 func NewTransactionalNotificationHandler(
 	service domain.TransactionalNotificationService,
-	publicKey paseto.V4AsymmetricPublicKey,
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
 	logger logger.Logger,
 	isDemo bool,
 ) *TransactionalNotificationHandler {
 	return &TransactionalNotificationHandler{
 		service:   service,
 		logger:    logger,
-		publicKey: publicKey,
+		getPublicKey:        getPublicKey,
 		isDemo:    isDemo,
 	}
 }
@@ -37,7 +37,7 @@ func NewTransactionalNotificationHandler(
 // RegisterRoutes registers all routes for transactional notifications
 func (h *TransactionalNotificationHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	restrictedInDemo := middleware.RestrictedInDemo(h.isDemo)

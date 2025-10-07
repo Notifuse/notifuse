@@ -27,7 +27,7 @@ func TestNewAnalyticsHandler(t *testing.T) {
 	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
 	require.NoError(t, err)
 
-	handler := NewAnalyticsHandler(mockService, publicKey, mockLogger)
+	handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 
 	assert.NotNil(t, handler)
 	assert.IsType(t, &AnalyticsHandler{}, handler)
@@ -43,7 +43,7 @@ func TestAnalyticsHandler_RegisterRoutes(t *testing.T) {
 	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
 	require.NoError(t, err)
 
-	handler := NewAnalyticsHandler(mockService, publicKey, mockLogger)
+	handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 	mux := http.NewServeMux()
 
 	handler.RegisterRoutes(mux)
@@ -170,7 +170,7 @@ func TestAnalyticsHandler_handleQuery(t *testing.T) {
 			publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
 			require.NoError(t, err)
 
-			handler := NewAnalyticsHandler(mockService, publicKey, mockLogger)
+			handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 
 			// Setup mocks
 			tt.setupMocks(mockService)
@@ -304,7 +304,7 @@ func TestAnalyticsHandler_handleGetSchemas(t *testing.T) {
 			publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
 			require.NoError(t, err)
 
-			handler := NewAnalyticsHandler(mockService, publicKey, mockLogger)
+			handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 
 			// Setup mocks
 			tt.setupMocks(mockService)
@@ -354,7 +354,7 @@ func TestAnalyticsHandler_writeJSONResponse(t *testing.T) {
 	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
 	require.NoError(t, err)
 
-	handler := NewAnalyticsHandler(mockService, publicKey, mockLogger)
+	handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 
 	tests := []struct {
 		name       string
@@ -399,7 +399,7 @@ func TestAnalyticsHandler_writeErrorResponse(t *testing.T) {
 	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
 	require.NoError(t, err)
 
-	handler := NewAnalyticsHandler(mockService, publicKey, mockLogger)
+	handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 
 	w := httptest.NewRecorder()
 	handler.writeErrorResponse(w, http.StatusBadRequest, "Test error message")
@@ -426,7 +426,7 @@ func TestAnalyticsHandler_Integration(t *testing.T) {
 	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
 	require.NoError(t, err)
 
-	handler := NewAnalyticsHandler(mockService, publicKey, mockLogger)
+	handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 
 	// Setup service mock
 	response := &analytics.Response{

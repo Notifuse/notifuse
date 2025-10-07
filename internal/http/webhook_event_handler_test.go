@@ -38,7 +38,7 @@ func setupWebhookEventHandlerTest(t *testing.T) (*WebhookEventHandler, *mocks.Mo
 
 	handler := NewWebhookEventHandler(
 		mockService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 	)
 

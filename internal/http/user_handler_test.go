@@ -35,7 +35,7 @@ func setupUserHandlerTest(t *testing.T) (*UserHandler, *mocks.MockUserServiceInt
 	publicKey := secretKey.Public()
 
 	mockLogger := &pkgmocks.MockLogger{}
-	handler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, cfg, publicKey, mockLogger)
+	handler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, cfg, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 
 	return handler, mockUserSvc, mockWorkspaceSvc, secretKey
 }
@@ -48,8 +48,10 @@ func TestUserHandler_SignIn(t *testing.T) {
 	prodConfig := &config.Config{Environment: "production"}
 
 	// Create handlers with different configs
-	devHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, devConfig, secretKey.Public(), &pkgmocks.MockLogger{})
-	prodHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, prodConfig, secretKey.Public(), &pkgmocks.MockLogger{})
+	publicKey := secretKey.Public()
+	getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }
+	devHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, devConfig, getPublicKey, &pkgmocks.MockLogger{})
+	prodHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, prodConfig, getPublicKey, &pkgmocks.MockLogger{})
 
 	tests := []struct {
 		name         string

@@ -36,7 +36,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, publicKey, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
 
 	t.Run("Successful execution", func(t *testing.T) {
 		// Setup
@@ -253,7 +253,7 @@ func TestTaskHandler_RegisterRoutes(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, publicKey, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
 
 	// Create a new mux
 	mux := http.NewServeMux()
@@ -293,7 +293,7 @@ func TestTaskHandler_CreateTask(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, publicKey, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
 
 	t.Run("Successful creation", func(t *testing.T) {
 		// Setup
@@ -415,7 +415,7 @@ func TestTaskHandler_GetTask(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, publicKey, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
 
 	t.Run("Successful retrieval", func(t *testing.T) {
 		// Setup expected task
@@ -519,7 +519,7 @@ func TestTaskHandler_ListTasks(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, publicKey, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
 
 	t.Run("Successful list", func(t *testing.T) {
 		// Setup expected response
@@ -639,7 +639,7 @@ func TestTaskHandler_DeleteTask(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, publicKey, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
 
 	t.Run("Successful deletion", func(t *testing.T) {
 		// Configure service mock to return success
@@ -732,7 +732,7 @@ func TestTaskHandler_ExecutePendingTasks(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, publicKey, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
 
 	t.Run("Successful execution", func(t *testing.T) {
 		// Configure service mock to return success
@@ -831,7 +831,7 @@ func TestTaskHandler_GetCronStatus(t *testing.T) {
 
 	handler := NewTaskHandler(
 		mockTaskService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 		"test-secret",
 	)
@@ -948,7 +948,7 @@ func TestTaskHandler_GetCronStatus_Integration(t *testing.T) {
 
 	handler := NewTaskHandler(
 		mockTaskService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 		"test-secret",
 	)

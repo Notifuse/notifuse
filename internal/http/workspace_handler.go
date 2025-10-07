@@ -19,7 +19,7 @@ import (
 type WorkspaceHandler struct {
 	workspaceService domain.WorkspaceServiceInterface
 	authService      domain.AuthService
-	publicKey        paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 	logger           logger.Logger
 	secretKey        string
 }
@@ -28,14 +28,14 @@ type WorkspaceHandler struct {
 func NewWorkspaceHandler(
 	workspaceService domain.WorkspaceServiceInterface,
 	authService domain.AuthService,
-	publicKey paseto.V4AsymmetricPublicKey,
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
 	logger logger.Logger,
 	secretKey string,
 ) *WorkspaceHandler {
 	return &WorkspaceHandler{
 		workspaceService: workspaceService,
 		authService:      authService,
-		publicKey:        publicKey,
+		getPublicKey:        getPublicKey,
 		logger:           logger,
 		secretKey:        secretKey,
 	}
@@ -44,7 +44,7 @@ func NewWorkspaceHandler(
 // RegisterRoutes registers all workspace RPC-style routes with authentication middleware
 func (h *WorkspaceHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

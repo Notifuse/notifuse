@@ -48,7 +48,7 @@ func TestContactTimelineHandler_handleList(t *testing.T) {
 	handler := NewContactTimelineHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 		mockTracer,
 	)
@@ -231,7 +231,7 @@ func TestContactTimelineHandler_RegisterRoutes(t *testing.T) {
 	handler := NewContactTimelineHandler(
 		mockService,
 		mockAuthService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 	)
 

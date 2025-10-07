@@ -13,21 +13,21 @@ import (
 type ListHandler struct {
 	service   domain.ListService
 	logger    logger.Logger
-	publicKey paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 }
 
-func NewListHandler(service domain.ListService, publicKey paseto.V4AsymmetricPublicKey, logger logger.Logger) *ListHandler {
+func NewListHandler(service domain.ListService, getPublicKey func() (paseto.V4AsymmetricPublicKey, error), logger logger.Logger) *ListHandler {
 	return &ListHandler{
 		service:   service,
 		logger:    logger,
-		publicKey: publicKey,
+		getPublicKey:        getPublicKey,
 	}
 }
 
 func (h *ListHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

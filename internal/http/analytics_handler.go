@@ -16,26 +16,26 @@ import (
 type AnalyticsHandler struct {
 	service   domain.AnalyticsService
 	logger    logger.Logger
-	publicKey paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 }
 
 // NewAnalyticsHandler creates a new analytics handler
 func NewAnalyticsHandler(
 	service domain.AnalyticsService,
-	publicKey paseto.V4AsymmetricPublicKey,
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
 	logger logger.Logger,
 ) *AnalyticsHandler {
 	return &AnalyticsHandler{
 		service:   service,
 		logger:    logger,
-		publicKey: publicKey,
+		getPublicKey:        getPublicKey,
 	}
 }
 
 // RegisterRoutes registers the analytics-related routes
 func (h *AnalyticsHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

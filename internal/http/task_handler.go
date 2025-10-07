@@ -15,7 +15,7 @@ import (
 // TaskHandler handles HTTP requests related to tasks
 type TaskHandler struct {
 	taskService domain.TaskService
-	publicKey   paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 	logger      logger.Logger
 	secretKey   string
 }
@@ -23,13 +23,13 @@ type TaskHandler struct {
 // NewTaskHandler creates a new task handler
 func NewTaskHandler(
 	taskService domain.TaskService,
-	publicKey paseto.V4AsymmetricPublicKey,
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
 	logger logger.Logger,
 	secretKey string,
 ) *TaskHandler {
 	return &TaskHandler{
 		taskService: taskService,
-		publicKey:   publicKey,
+		getPublicKey:        getPublicKey,
 		logger:      logger,
 		secretKey:   secretKey,
 	}
@@ -38,7 +38,7 @@ func NewTaskHandler(
 // RegisterRoutes registers the task-related routes
 func (h *TaskHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

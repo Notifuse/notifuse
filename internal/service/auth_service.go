@@ -22,42 +22,69 @@ type AuthService struct {
 	repo          domain.AuthRepository
 	workspaceRepo domain.WorkspaceRepository
 	logger        logger.Logger
-	privateKey    paseto.V4AsymmetricSecretKey
-	publicKey     paseto.V4AsymmetricPublicKey
+	getKeys       func() (privateKey []byte, publicKey []byte, err error)
+
+	// Cached keys to avoid re-parsing on every call
+	cachedPrivateKey paseto.V4AsymmetricSecretKey
+	cachedPublicKey  paseto.V4AsymmetricPublicKey
+	keysLoaded       bool
 }
 
 type AuthServiceConfig struct {
 	Repository          domain.AuthRepository
 	WorkspaceRepository domain.WorkspaceRepository
-	PrivateKey          []byte
-	PublicKey           []byte
+	GetKeys             func() (privateKey []byte, publicKey []byte, err error)
 	Logger              logger.Logger
 }
 
-func NewAuthService(cfg AuthServiceConfig) (*AuthService, error) {
-	privateKey, err := paseto.NewV4AsymmetricSecretKeyFromBytes(cfg.PrivateKey)
-	if err != nil {
-		if cfg.Logger != nil {
-			cfg.Logger.WithField("error", err.Error()).Error("Error creating PASETO private key")
-		}
-		return nil, err
-	}
-
-	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromBytes(cfg.PublicKey)
-	if err != nil {
-		if cfg.Logger != nil {
-			cfg.Logger.WithField("error", err.Error()).Error("Error creating PASETO public key")
-		}
-		return nil, err
-	}
-
+func NewAuthService(cfg AuthServiceConfig) *AuthService {
 	return &AuthService{
 		repo:          cfg.Repository,
 		workspaceRepo: cfg.WorkspaceRepository,
 		logger:        cfg.Logger,
-		privateKey:    privateKey,
-		publicKey:     publicKey,
-	}, nil
+		getKeys:       cfg.GetKeys,
+		keysLoaded:    false,
+	}
+}
+
+// ensureKeys loads and caches PASETO keys if not already loaded
+func (s *AuthService) ensureKeys() error {
+	if s.keysLoaded {
+		return nil
+	}
+
+	privateKeyBytes, publicKeyBytes, err := s.getKeys()
+	if err != nil {
+		return fmt.Errorf("PASETO keys not available: %w", err)
+	}
+
+	if len(privateKeyBytes) == 0 || len(publicKeyBytes) == 0 {
+		return fmt.Errorf("system setup not completed - PASETO keys not configured")
+	}
+
+	s.cachedPrivateKey, err = paseto.NewV4AsymmetricSecretKeyFromBytes(privateKeyBytes)
+	if err != nil {
+		if s.logger != nil {
+			s.logger.WithField("error", err.Error()).Error("Error creating PASETO private key")
+		}
+		return fmt.Errorf("invalid PASETO private key: %w", err)
+	}
+
+	s.cachedPublicKey, err = paseto.NewV4AsymmetricPublicKeyFromBytes(publicKeyBytes)
+	if err != nil {
+		if s.logger != nil {
+			s.logger.WithField("error", err.Error()).Error("Error creating PASETO public key")
+		}
+		return fmt.Errorf("invalid PASETO public key: %w", err)
+	}
+
+	s.keysLoaded = true
+	return nil
+}
+
+// InvalidateKeyCache clears the cached keys, forcing them to be reloaded on next use
+func (s *AuthService) InvalidateKeyCache() {
+	s.keysLoaded = false
 }
 func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.User, error) {
 
@@ -161,6 +188,13 @@ func (s *AuthService) VerifyUserSession(ctx context.Context, userID, sessionID s
 
 // GenerateAuthToken generates an authentication token for a user
 func (s *AuthService) GenerateUserAuthToken(user *domain.User, sessionID string, expiresAt time.Time) string {
+	if err := s.ensureKeys(); err != nil {
+		if s.logger != nil {
+			s.logger.WithField("error", err.Error()).WithField("user_id", user.ID).Error("Cannot generate auth token - keys not available")
+		}
+		return ""
+	}
+
 	token := paseto.NewToken()
 	token.SetIssuedAt(time.Now())
 	token.SetNotBefore(time.Now())
@@ -170,7 +204,7 @@ func (s *AuthService) GenerateUserAuthToken(user *domain.User, sessionID string,
 	token.SetString("session_id", sessionID)
 	token.SetString("email", user.Email)
 
-	encrypted := token.V4Sign(s.privateKey, nil)
+	encrypted := token.V4Sign(s.cachedPrivateKey, nil)
 	if encrypted == "" && s.logger != nil {
 		s.logger.WithField("user_id", user.ID).WithField("session_id", sessionID).Error("Failed to sign authentication token")
 	}
@@ -180,6 +214,13 @@ func (s *AuthService) GenerateUserAuthToken(user *domain.User, sessionID string,
 
 // GenerateAPIAuthToken generates an authentication token for an API key
 func (s *AuthService) GenerateAPIAuthToken(user *domain.User) string {
+	if err := s.ensureKeys(); err != nil {
+		if s.logger != nil {
+			s.logger.WithField("error", err.Error()).WithField("user_id", user.ID).Error("Cannot generate API token - keys not available")
+		}
+		return ""
+	}
+
 	token := paseto.NewToken()
 	token.SetIssuedAt(time.Now())
 	token.SetNotBefore(time.Now())
@@ -187,7 +228,7 @@ func (s *AuthService) GenerateAPIAuthToken(user *domain.User) string {
 	token.SetString("user_id", user.ID)
 	token.SetString("type", string(domain.UserTypeAPIKey))
 
-	encrypted := token.V4Sign(s.privateKey, nil)
+	encrypted := token.V4Sign(s.cachedPrivateKey, nil)
 	if encrypted == "" && s.logger != nil {
 		s.logger.WithField("user_id", user.ID).Error("Failed to sign API authentication token")
 	}
@@ -195,13 +236,31 @@ func (s *AuthService) GenerateAPIAuthToken(user *domain.User) string {
 	return encrypted
 }
 
-// GetPrivateKey returns the private key
-func (s *AuthService) GetPrivateKey() paseto.V4AsymmetricSecretKey {
-	return s.privateKey
+// GetPrivateKey returns the private key (loads keys if not already loaded)
+func (s *AuthService) GetPrivateKey() (paseto.V4AsymmetricSecretKey, error) {
+	if err := s.ensureKeys(); err != nil {
+		return paseto.V4AsymmetricSecretKey{}, err
+	}
+	return s.cachedPrivateKey, nil
+}
+
+// GetPublicKey returns the public key (loads keys if not already loaded)
+func (s *AuthService) GetPublicKey() (paseto.V4AsymmetricPublicKey, error) {
+	if err := s.ensureKeys(); err != nil {
+		return paseto.V4AsymmetricPublicKey{}, err
+	}
+	return s.cachedPublicKey, nil
 }
 
 // GenerateInvitationToken generates a PASETO token for a workspace invitation
 func (s *AuthService) GenerateInvitationToken(invitation *domain.WorkspaceInvitation) string {
+	if err := s.ensureKeys(); err != nil {
+		if s.logger != nil {
+			s.logger.WithField("error", err.Error()).WithField("invitation_id", invitation.ID).Error("Cannot generate invitation token - keys not available")
+		}
+		return ""
+	}
+
 	token := paseto.NewToken()
 	token.SetIssuedAt(time.Now())
 	token.SetNotBefore(time.Now())
@@ -210,7 +269,7 @@ func (s *AuthService) GenerateInvitationToken(invitation *domain.WorkspaceInvita
 	token.SetString("workspace_id", invitation.WorkspaceID)
 	token.SetString("email", invitation.Email)
 
-	encrypted := token.V4Sign(s.privateKey, nil)
+	encrypted := token.V4Sign(s.cachedPrivateKey, nil)
 	if encrypted == "" && s.logger != nil {
 		s.logger.WithField("invitation_id", invitation.ID).Error("Failed to sign invitation token")
 	}
@@ -220,11 +279,18 @@ func (s *AuthService) GenerateInvitationToken(invitation *domain.WorkspaceInvita
 
 // ValidateInvitationToken validates a PASETO invitation token and returns the invitation details
 func (s *AuthService) ValidateInvitationToken(token string) (invitationID, workspaceID, email string, err error) {
+	if err := s.ensureKeys(); err != nil {
+		if s.logger != nil {
+			s.logger.WithField("error", err.Error()).Error("Cannot validate invitation token - keys not available")
+		}
+		return "", "", "", fmt.Errorf("keys not available: %w", err)
+	}
+
 	parser := paseto.NewParser()
 	parser.AddRule(paseto.NotExpired())
 
 	// Verify token and get claims
-	verified, err := parser.ParseV4Public(s.publicKey, token, nil)
+	verified, err := parser.ParseV4Public(s.cachedPublicKey, token, nil)
 	if err != nil {
 		if s.logger != nil {
 			s.logger.WithField("error", err.Error()).Error("Failed to parse invitation token")

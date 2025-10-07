@@ -39,7 +39,7 @@ func setupEmailHandlerTest(t *testing.T) (*mocks.MockEmailServiceInterface, *pkg
 	secretKey := paseto.NewV4AsymmetricSecretKey()
 	publicKey := secretKey.Public()
 
-	handler := NewEmailHandler(mockService, publicKey, mockLogger, "test-secret-key")
+	handler := NewEmailHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, "test-secret-key")
 
 	return mockService, mockLogger, handler, secretKey
 }
@@ -55,12 +55,12 @@ func TestNewEmailHandler(t *testing.T) {
 	publicKey := secretKey.Public()
 
 	// Act
-	handler := NewEmailHandler(mockService, publicKey, mockLogger, "test-secret-key")
+	handler := NewEmailHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, "test-secret-key")
 
 	// Assert
 	assert.NotNil(t, handler)
 	assert.Equal(t, mockService, handler.emailService)
-	assert.Equal(t, publicKey, handler.publicKey)
+	assert.NotNil(t, handler.getPublicKey)
 	assert.Equal(t, mockLogger, handler.logger)
 	assert.Equal(t, "test-secret-key", handler.secretKey)
 }

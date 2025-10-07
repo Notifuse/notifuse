@@ -15,7 +15,7 @@ type ContactTimelineHandler struct {
 	service     domain.ContactTimelineService
 	authService domain.AuthService
 	logger      logger.Logger
-	publicKey   paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 	tracer      tracing.Tracer
 }
 
@@ -23,14 +23,14 @@ type ContactTimelineHandler struct {
 func NewContactTimelineHandler(
 	service domain.ContactTimelineService,
 	authService domain.AuthService,
-	publicKey paseto.V4AsymmetricPublicKey,
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
 	logger logger.Logger,
 ) *ContactTimelineHandler {
 	return &ContactTimelineHandler{
 		service:     service,
 		authService: authService,
 		logger:      logger,
-		publicKey:   publicKey,
+		getPublicKey:        getPublicKey,
 		tracer:      tracing.GetTracer(),
 	}
 }
@@ -39,7 +39,7 @@ func NewContactTimelineHandler(
 func NewContactTimelineHandlerWithTracer(
 	service domain.ContactTimelineService,
 	authService domain.AuthService,
-	publicKey paseto.V4AsymmetricPublicKey,
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
 	logger logger.Logger,
 	tracer tracing.Tracer,
 ) *ContactTimelineHandler {
@@ -47,7 +47,7 @@ func NewContactTimelineHandlerWithTracer(
 		service:     service,
 		authService: authService,
 		logger:      logger,
-		publicKey:   publicKey,
+		getPublicKey:        getPublicKey,
 		tracer:      tracer,
 	}
 }
@@ -55,7 +55,7 @@ func NewContactTimelineHandlerWithTracer(
 // RegisterRoutes registers the contact timeline HTTP endpoints
 func (h *ContactTimelineHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

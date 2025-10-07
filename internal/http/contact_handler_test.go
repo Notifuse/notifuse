@@ -39,7 +39,7 @@ func setupContactHandlerTest(t *testing.T) (*mocks.MockContactService, *pkgmocks
 	secretKey := paseto.NewV4AsymmetricSecretKey()
 	publicKey := secretKey.Public()
 
-	handler := NewContactHandler(mockService, publicKey, mockLogger)
+	handler := NewContactHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 	return mockService, mockLogger, handler
 }
 

@@ -25,23 +25,23 @@ type BroadcastHandler struct {
 	service     domain.BroadcastService
 	templateSvc domain.TemplateService
 	logger      logger.Logger
-	publicKey   paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 	isDemo      bool
 }
 
-func NewBroadcastHandler(service domain.BroadcastService, templateSvc domain.TemplateService, publicKey paseto.V4AsymmetricPublicKey, logger logger.Logger, isDemo bool) *BroadcastHandler {
+func NewBroadcastHandler(service domain.BroadcastService, templateSvc domain.TemplateService, getPublicKey func() (paseto.V4AsymmetricPublicKey, error), logger logger.Logger, isDemo bool) *BroadcastHandler {
 	return &BroadcastHandler{
 		service:     service,
 		templateSvc: templateSvc,
 		logger:      logger,
-		publicKey:   publicKey,
+		getPublicKey:        getPublicKey,
 		isDemo:      isDemo,
 	}
 }
 
 func (h *BroadcastHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	restrictedInDemo := middleware.RestrictedInDemo(h.isDemo)

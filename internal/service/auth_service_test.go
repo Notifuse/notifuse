@@ -29,15 +29,17 @@ func setupAuthTest(t *testing.T) (
 	// Generate test keys
 	privateKey := paseto.NewV4AsymmetricSecretKey()
 	publicKey := privateKey.Public()
+	privateKeyBytes := privateKey.ExportBytes()
+	publicKeyBytes := publicKey.ExportBytes()
 
-	service, err := NewAuthService(AuthServiceConfig{
+	service := NewAuthService(AuthServiceConfig{
 		Repository:          mockAuthRepo,
 		WorkspaceRepository: mockWorkspaceRepo,
-		PrivateKey:          privateKey.ExportBytes(),
-		PublicKey:           publicKey.ExportBytes(),
-		Logger:              mockLogger,
+		GetKeys: func() ([]byte, []byte, error) {
+			return privateKeyBytes, publicKeyBytes, nil
+		},
+		Logger: mockLogger,
 	})
-	require.NoError(t, err)
 
 	return mockAuthRepo, mockWorkspaceRepo, mockLogger, service
 }
@@ -510,16 +512,23 @@ func TestAuthService_GenerateAuthToken(t *testing.T) {
 		require.NotNil(t, token)
 	})
 
-	t.Run("failed token generation", func(t *testing.T) {
-		// Create a service with invalid key length
-		_, err := NewAuthService(AuthServiceConfig{
+	t.Run("failed token generation with invalid keys", func(t *testing.T) {
+		// Create a service with invalid key provider
+		service := NewAuthService(AuthServiceConfig{
 			Repository:          mockAuthRepo,
 			WorkspaceRepository: nil,
-			PrivateKey:          []byte("invalid"),
-			PublicKey:           []byte("invalid"),
-			Logger:              nil,
+			GetKeys: func() ([]byte, []byte, error) {
+				return []byte("invalid"), []byte("invalid"), nil
+			},
+			Logger: nil,
 		})
-		require.Error(t, err)
+
+		// Token generation should return empty string when keys are invalid
+		user := &domain.User{ID: "user1", Email: "test@example.com"}
+		sessionID := "session123"
+		expiresAt := time.Now().Add(time.Hour)
+		token := service.GenerateUserAuthToken(user, sessionID, expiresAt)
+		require.Empty(t, token)
 	})
 }
 
@@ -548,16 +557,26 @@ func TestAuthService_GenerateInvitationToken(t *testing.T) {
 		require.NotNil(t, token)
 	})
 
-	t.Run("failed token generation", func(t *testing.T) {
-		// Create a service with invalid key length
-		_, err := NewAuthService(AuthServiceConfig{
+	t.Run("failed token generation with invalid keys", func(t *testing.T) {
+		// Create a service with invalid key provider
+		service := NewAuthService(AuthServiceConfig{
 			Repository:          mockAuthRepo,
 			WorkspaceRepository: nil,
-			PrivateKey:          []byte("invalid"),
-			PublicKey:           []byte("invalid"),
-			Logger:              nil,
+			GetKeys: func() ([]byte, []byte, error) {
+				return []byte("invalid"), []byte("invalid"), nil
+			},
+			Logger: nil,
 		})
-		require.Error(t, err)
+
+		// Token generation should return empty string when keys are invalid
+		invitation := &domain.WorkspaceInvitation{
+			ID:          "inv1",
+			WorkspaceID: "ws1",
+			Email:       "test@example.com",
+			ExpiresAt:   time.Now().Add(time.Hour),
+		}
+		token := service.GenerateInvitationToken(invitation)
+		require.Empty(t, token)
 	})
 }
 
@@ -637,7 +656,9 @@ func TestAuthService_GenerateAPIAuthToken(t *testing.T) {
 
 		// Verify the token can be parsed and contains expected claims
 		parser := paseto.NewParser()
-		publicKey := service.GetPrivateKey().Public()
+		privateKey, err := service.GetPrivateKey()
+		require.NoError(t, err)
+		publicKey := privateKey.Public()
 
 		parsedToken, err := parser.ParseV4Public(publicKey, token, nil)
 		require.NoError(t, err)
@@ -669,31 +690,37 @@ func TestAuthService_GenerateAPIAuthToken(t *testing.T) {
 	})
 
 	t.Run("token generation with invalid key format", func(t *testing.T) {
-		// Test that service construction fails with invalid key format
+		// Test that key loading fails with invalid key format
 		mockLoggerForInvalid := pkgmocks.NewMockLogger(gomock.NewController(t))
 		mockLoggerForInvalid.EXPECT().
-			WithField("error", gomock.Any()).
-			Return(mockLoggerForInvalid)
+			WithField(gomock.Any(), gomock.Any()).
+			Return(mockLoggerForInvalid).
+			AnyTimes() // Allow multiple calls since ensureKeys may be called multiple times
 		mockLoggerForInvalid.EXPECT().
-			Error("Error creating PASETO private key")
+			Error(gomock.Any()).
+			AnyTimes()
 
-		_, err := NewAuthService(AuthServiceConfig{
+		service := NewAuthService(AuthServiceConfig{
 			Repository:          nil,
 			WorkspaceRepository: nil,
-			PrivateKey:          make([]byte, 32), // Invalid key format
-			PublicKey:           make([]byte, 32), // Invalid key format
-			Logger:              mockLoggerForInvalid,
+			GetKeys: func() ([]byte, []byte, error) {
+				return make([]byte, 32), make([]byte, 32), nil // Invalid key format
+			},
+			Logger: mockLoggerForInvalid,
 		})
-		require.Error(t, err) // Should fail during construction
 
-		// Test with valid service to ensure token generation works
+		// GetPrivateKey should fail with invalid keys
+		_, err := service.GetPrivateKey()
+		require.Error(t, err) // Should fail when loading keys
+
+		// GenerateAPIAuthToken should also fail (return empty string) with invalid keys
 		user := &domain.User{
 			ID:    userID,
 			Email: email,
 		}
 
 		token := service.GenerateAPIAuthToken(user)
-		require.NotEmpty(t, token)
+		require.Empty(t, token) // Should be empty due to invalid keys
 	})
 
 	t.Run("token generation with nil user", func(t *testing.T) {
@@ -709,8 +736,8 @@ func TestAuthService_GetPrivateKey(t *testing.T) {
 	_, _, _, service := setupAuthTest(t)
 
 	t.Run("successful private key retrieval", func(t *testing.T) {
-		privateKey := service.GetPrivateKey()
-
+		privateKey, err := service.GetPrivateKey()
+		require.NoError(t, err)
 		require.NotNil(t, privateKey)
 
 		// Verify the key can be used for signing
@@ -738,14 +765,17 @@ func TestAuthService_GetPrivateKey(t *testing.T) {
 
 	t.Run("private key consistency", func(t *testing.T) {
 		// Verify that multiple calls return the same key
-		key1 := service.GetPrivateKey()
-		key2 := service.GetPrivateKey()
+		key1, err := service.GetPrivateKey()
+		require.NoError(t, err)
+		key2, err := service.GetPrivateKey()
+		require.NoError(t, err)
 
 		require.Equal(t, key1.ExportBytes(), key2.ExportBytes())
 	})
 
 	t.Run("private key security", func(t *testing.T) {
-		privateKey := service.GetPrivateKey()
+		privateKey, err := service.GetPrivateKey()
+		require.NoError(t, err)
 
 		// Verify the key has the expected length for V4 asymmetric keys
 		keyBytes := privateKey.ExportBytes()
@@ -845,7 +875,8 @@ func TestAuthService_ValidateInvitationToken(t *testing.T) {
 		token.SetExpiration(time.Now().Add(time.Hour))
 		token.SetString("some_other_claim", "value")
 
-		privateKey := service.GetPrivateKey()
+		privateKey, err := service.GetPrivateKey()
+		require.NoError(t, err)
 		signedToken := token.V4Sign(privateKey, nil)
 		require.NotEmpty(t, signedToken)
 
@@ -872,7 +903,8 @@ func TestAuthService_ValidateInvitationToken(t *testing.T) {
 		token.SetExpiration(time.Now().Add(time.Hour))
 		token.SetString("invitation_id", invitationID)
 
-		privateKey := service.GetPrivateKey()
+		privateKey, err := service.GetPrivateKey()
+		require.NoError(t, err)
 		signedToken := token.V4Sign(privateKey, nil)
 		require.NotEmpty(t, signedToken)
 
@@ -900,7 +932,8 @@ func TestAuthService_ValidateInvitationToken(t *testing.T) {
 		token.SetString("invitation_id", invitationID)
 		token.SetString("workspace_id", workspaceID)
 
-		privateKey := service.GetPrivateKey()
+		privateKey, err := service.GetPrivateKey()
+		require.NoError(t, err)
 		signedToken := token.V4Sign(privateKey, nil)
 		require.NotEmpty(t, signedToken)
 

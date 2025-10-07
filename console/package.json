@@ -35,7 +35,7 @@
     "@tiptap/starter-kit": "^2.14.0",
     "@types/html2canvas": "^0.5.35",
     "@types/uuid": "^10.0.0",
-    "antd": "^5.14.0",
+    "antd": "^5.27.4",
     "dayjs": "^1.11.13",
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",

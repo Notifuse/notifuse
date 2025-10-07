@@ -31,12 +31,32 @@ type SMTPWebhookPayload struct {
 type SMTPSettings struct {
 	Host              string `json:"host"`
 	Port              int    `json:"port"`
-	Username          string `json:"username"`
+	EncryptedUsername string `json:"encrypted_username,omitempty"`
 	EncryptedPassword string `json:"encrypted_password,omitempty"`
 	UseTLS            bool   `json:"use_tls"`
 
-	// decoded password, not stored in the database
+	// decoded username, not stored in the database
+	// decoded password , not stored in the database
+	Username string `json:"username"`
 	Password string `json:"password,omitempty"`
+}
+
+func (s *SMTPSettings) DecryptUsername(passphrase string) error {
+	username, err := crypto.DecryptFromHexString(s.EncryptedUsername, passphrase)
+	if err != nil {
+		return fmt.Errorf("failed to decrypt SMTP username: %w", err)
+	}
+	s.Username = username
+	return nil
+}
+
+func (s *SMTPSettings) EncryptUsername(passphrase string) error {
+	encryptedUsername, err := crypto.EncryptString(s.Username, passphrase)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt SMTP username: %w", err)
+	}
+	s.EncryptedUsername = encryptedUsername
+	return nil
 }
 
 func (s *SMTPSettings) DecryptPassword(passphrase string) error {
@@ -68,6 +88,13 @@ func (s *SMTPSettings) Validate(passphrase string) error {
 
 	if s.Username == "" {
 		return fmt.Errorf("username is required for SMTP configuration")
+	}
+
+	// Only encrypt username if it's not empty
+	if s.Username != "" {
+		if err := s.EncryptUsername(passphrase); err != nil {
+			return fmt.Errorf("failed to encrypt SMTP username: %w", err)
+		}
 	}
 
 	// Only encrypt password if it's not empty

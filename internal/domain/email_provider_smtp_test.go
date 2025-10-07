@@ -14,6 +14,41 @@ import (
 	"github.com/wneessen/go-mail"
 )
 
+func TestSMTPSettings_EncryptDecryptUsername(t *testing.T) {
+	passphrase := "test-passphrase"
+	username := "user@example.com"
+
+	settings := domain.SMTPSettings{
+		Host:     "smtp.example.com",
+		Port:     587,
+		Username: username,
+		Password: "test-password",
+		UseTLS:   true,
+	}
+
+	// Test encryption
+	err := settings.EncryptUsername(passphrase)
+	require.NoError(t, err)
+	assert.NotEmpty(t, settings.EncryptedUsername)
+	assert.Equal(t, username, settings.Username) // Original username should be unchanged
+
+	// Save encrypted username
+	encryptedUsername := settings.EncryptedUsername
+
+	// Test decryption
+	settings.Username = "" // Clear username
+	err = settings.DecryptUsername(passphrase)
+	require.NoError(t, err)
+	assert.Equal(t, username, settings.Username)
+
+	// Test decryption with wrong passphrase
+	settings.Username = "" // Clear username
+	settings.EncryptedUsername = encryptedUsername
+	err = settings.DecryptUsername("wrong-passphrase")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decrypt SMTP username")
+}
+
 func TestSMTPSettings_EncryptDecryptPassword(t *testing.T) {
 	passphrase := "test-passphrase"
 	password := "test-password"

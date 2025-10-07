@@ -1,49 +1,41 @@
 package http
 
 import (
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
-	"time"
 
-	"aidanwoods.dev/go-paseto"
-	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/google/uuid"
 )
 
 // SetupHandler handles setup wizard endpoints
 type SetupHandler struct {
+	setupService   *service.SetupService
 	settingService *service.SettingService
-	userRepo       domain.UserRepository
-	authService    *service.AuthService
 	logger         logger.Logger
-	secretKey      string
 }
 
 // NewSetupHandler creates a new setup handler
 func NewSetupHandler(
+	setupService *service.SetupService,
 	settingService *service.SettingService,
-	userRepo domain.UserRepository,
-	authService *service.AuthService,
 	logger logger.Logger,
-	secretKey string,
 ) *SetupHandler {
 	return &SetupHandler{
+		setupService:   setupService,
 		settingService: settingService,
-		userRepo:       userRepo,
-		authService:    authService,
 		logger:         logger,
-		secretKey:      secretKey,
 	}
 }
 
 // StatusResponse represents the installation status response
 type StatusResponse struct {
-	IsInstalled bool `json:"is_installed"`
+	IsInstalled           bool `json:"is_installed"`
+	SMTPConfigured        bool `json:"smtp_configured"`
+	PasetoConfigured      bool `json:"paseto_configured"`
+	APIEndpointConfigured bool `json:"api_endpoint_configured"`
+	RootEmailConfigured   bool `json:"root_email_configured"`
 }
 
 // PasetoKeysResponse represents generated PASETO keys
@@ -69,8 +61,22 @@ type InitializeRequest struct {
 
 // InitializeResponse represents the setup completion response
 type InitializeResponse struct {
+	Success    bool                `json:"success"`
+	Message    string              `json:"message"`
+	PasetoKeys *PasetoKeysResponse `json:"paseto_keys,omitempty"`
+}
+
+// TestSMTPRequest represents the SMTP connection test request
+type TestSMTPRequest struct {
+	SMTPHost     string `json:"smtp_host"`
+	SMTPPort     int    `json:"smtp_port"`
+	SMTPUsername string `json:"smtp_username"`
+	SMTPPassword string `json:"smtp_password"`
+}
+
+// TestSMTPResponse represents the SMTP connection test response
+type TestSMTPResponse struct {
 	Success bool   `json:"success"`
-	Token   string `json:"token"`
 	Message string `json:"message"`
 }
 
@@ -89,44 +95,15 @@ func (h *SetupHandler) Status(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get configuration status to tell frontend what's configured via env
+	configStatus := h.setupService.GetConfigurationStatus()
+
 	response := StatusResponse{
-		IsInstalled: isInstalled,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// GeneratePasetoKeys generates new PASETO keys
-func (h *SetupHandler) GeneratePasetoKeys(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	ctx := r.Context()
-	isInstalled, err := h.settingService.IsInstalled(ctx)
-	if err != nil {
-		h.logger.WithField("error", err).Error("Failed to check installation status")
-		WriteJSONError(w, "Failed to check installation status", http.StatusInternalServerError)
-		return
-	}
-
-	if isInstalled {
-		WriteJSONError(w, "System is already installed", http.StatusForbidden)
-		return
-	}
-
-	// Generate new PASETO keys
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
-	privateKeyBase64 := base64.StdEncoding.EncodeToString(secretKey.ExportBytes())
-	publicKeyBase64 := base64.StdEncoding.EncodeToString(publicKey.ExportBytes())
-
-	response := PasetoKeysResponse{
-		PublicKey:  publicKeyBase64,
-		PrivateKey: privateKeyBase64,
+		IsInstalled:           isInstalled,
+		SMTPConfigured:        configStatus.SMTPConfigured,
+		PasetoConfigured:      configStatus.PasetoConfigured,
+		APIEndpointConfigured: configStatus.APIEndpointConfigured,
+		RootEmailConfigured:   configStatus.RootEmailConfigured,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -151,8 +128,14 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if isInstalled {
-		// Already installed, return 204 No Content
-		w.WriteHeader(http.StatusNoContent)
+		// Already installed, return success response
+		response := InitializeResponse{
+			Success: true,
+			Message: "Setup already completed. System is ready to use.",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
 		return
 	}
 
@@ -160,12 +143,6 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 	var req InitializeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate required fields
-	if req.RootEmail == "" {
-		WriteJSONError(w, "root_email is required", http.StatusBadRequest)
 		return
 	}
 
@@ -179,118 +156,40 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 		req.APIEndpoint = fmt.Sprintf("%s://%s", scheme, r.Host)
 	}
 
-	// Handle PASETO keys
-	var privateKeyBase64, publicKeyBase64 string
-	if req.GeneratePasetoKeys {
-		// Generate new keys
-		secretKey := paseto.NewV4AsymmetricSecretKey()
-		publicKey := secretKey.Public()
-		privateKeyBase64 = base64.StdEncoding.EncodeToString(secretKey.ExportBytes())
-		publicKeyBase64 = base64.StdEncoding.EncodeToString(publicKey.ExportBytes())
-	} else {
-		// Use provided keys
-		if req.PasetoPrivateKey == "" || req.PasetoPublicKey == "" {
-			WriteJSONError(w, "PASETO keys are required when not generating new ones", http.StatusBadRequest)
-			return
-		}
-		privateKeyBase64 = req.PasetoPrivateKey
-		publicKeyBase64 = req.PasetoPublicKey
-
-		// Validate provided keys
-		if _, err := base64.StdEncoding.DecodeString(privateKeyBase64); err != nil {
-			WriteJSONError(w, "Invalid PASETO private key format", http.StatusBadRequest)
-			return
-		}
-		if _, err := base64.StdEncoding.DecodeString(publicKeyBase64); err != nil {
-			WriteJSONError(w, "Invalid PASETO public key format", http.StatusBadRequest)
-			return
-		}
+	// Convert request to service config
+	setupConfig := &service.SetupConfig{
+		RootEmail:          req.RootEmail,
+		APIEndpoint:        req.APIEndpoint,
+		GeneratePasetoKeys: req.GeneratePasetoKeys,
+		PasetoPublicKey:    req.PasetoPublicKey,
+		PasetoPrivateKey:   req.PasetoPrivateKey,
+		SMTPHost:           req.SMTPHost,
+		SMTPPort:           req.SMTPPort,
+		SMTPUsername:       req.SMTPUsername,
+		SMTPPassword:       req.SMTPPassword,
+		SMTPFromEmail:      req.SMTPFromEmail,
+		SMTPFromName:       req.SMTPFromName,
 	}
 
-	// Validate SMTP settings (basic validation)
-	if req.SMTPHost == "" {
-		WriteJSONError(w, "smtp_host is required", http.StatusBadRequest)
+	// Initialize using service (callback will be called in service)
+	generatedKeys, err := h.setupService.Initialize(ctx, setupConfig)
+	if err != nil {
+		h.logger.WithField("error", err).Error("Failed to initialize system")
+		WriteJSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if req.SMTPPort == 0 {
-		req.SMTPPort = 587 // Default
-	}
-	if req.SMTPFromEmail == "" {
-		WriteJSONError(w, "smtp_from_email is required", http.StatusBadRequest)
-		return
-	}
-
-	// Store system settings
-	systemConfig := &service.SystemConfig{
-		IsInstalled:      true,
-		RootEmail:        req.RootEmail,
-		APIEndpoint:      req.APIEndpoint,
-		PasetoPrivateKey: privateKeyBase64,
-		PasetoPublicKey:  publicKeyBase64,
-		SMTPHost:         req.SMTPHost,
-		SMTPPort:         req.SMTPPort,
-		SMTPUsername:     req.SMTPUsername,
-		SMTPPassword:     req.SMTPPassword,
-		SMTPFromEmail:    req.SMTPFromEmail,
-		SMTPFromName:     req.SMTPFromName,
-	}
-
-	if err := h.settingService.SetSystemConfig(ctx, systemConfig, h.secretKey); err != nil {
-		h.logger.WithField("error", err).Error("Failed to save system configuration")
-		WriteJSONError(w, "Failed to save system configuration", http.StatusInternalServerError)
-		return
-	}
-
-	// Create root user
-	rootUser := &domain.User{
-		ID:        uuid.New().String(),
-		Email:     req.RootEmail,
-		Name:      "Root User",
-		Type:      domain.UserTypeUser,
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
-	}
-
-	if err := h.userRepo.CreateUser(ctx, rootUser); err != nil {
-		// Check if user already exists
-		if !strings.Contains(err.Error(), "duplicate key") {
-			h.logger.WithField("error", err).Error("Failed to create root user")
-			WriteJSONError(w, "Failed to create root user", http.StatusInternalServerError)
-			return
-		}
-		// User already exists, fetch it
-		existingUser, err := h.userRepo.GetUserByEmail(ctx, req.RootEmail)
-		if err != nil {
-			h.logger.WithField("error", err).Error("Failed to fetch existing root user")
-			WriteJSONError(w, "Failed to fetch existing root user", http.StatusInternalServerError)
-			return
-		}
-		rootUser = existingUser
-	}
-
-	// Create a session for the root user
-	session := &domain.Session{
-		ID:        uuid.New().String(),
-		UserID:    rootUser.ID,
-		ExpiresAt: time.Now().UTC().Add(30 * 24 * time.Hour), // 30 days
-		CreatedAt: time.Now().UTC(),
-	}
-
-	if err := h.userRepo.CreateSession(ctx, session); err != nil {
-		h.logger.WithField("error", err).Error("Failed to create session for root user")
-		WriteJSONError(w, "Failed to create session for root user", http.StatusInternalServerError)
-		return
-	}
-
-	// Generate auth token for immediate login
-	token := h.authService.GenerateUserAuthToken(rootUser, session.ID, session.ExpiresAt)
-
-	h.logger.WithField("email", req.RootEmail).Info("Setup wizard completed successfully")
 
 	response := InitializeResponse{
 		Success: true,
-		Token:   token,
-		Message: "Setup completed successfully",
+		Message: "Setup completed successfully. You can now sign in with your email.",
+	}
+
+	// Include generated keys in response if they were generated
+	if generatedKeys != nil {
+		response.PasetoKeys = &PasetoKeysResponse{
+			PublicKey:  generatedKeys.PublicKey,
+			PrivateKey: generatedKeys.PrivateKey,
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -298,9 +197,61 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// TestSMTP tests the SMTP connection with the provided configuration
+func (h *SetupHandler) TestSMTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	ctx := r.Context()
+
+	// Check if already installed - disable this endpoint if installed
+	isInstalled, err := h.settingService.IsInstalled(ctx)
+	if err != nil {
+		h.logger.WithField("error", err).Error("Failed to check installation status")
+		WriteJSONError(w, "Failed to check installation status", http.StatusInternalServerError)
+		return
+	}
+
+	if isInstalled {
+		WriteJSONError(w, "System is already installed", http.StatusForbidden)
+		return
+	}
+
+	// Parse request body
+	var req TestSMTPRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Test SMTP connection using service
+	testConfig := &service.SMTPTestConfig{
+		Host:     req.SMTPHost,
+		Port:     req.SMTPPort,
+		Username: req.SMTPUsername,
+		Password: req.SMTPPassword,
+	}
+
+	if err := h.setupService.TestSMTPConnection(ctx, testConfig); err != nil {
+		h.logger.WithField("error", err).Warn("SMTP connection test failed")
+		WriteJSONError(w, fmt.Sprintf("SMTP connection failed: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	response := TestSMTPResponse{
+		Success: true,
+		Message: "SMTP connection test successful",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 // RegisterRoutes registers the setup handler routes
 func (h *SetupHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/setup.status", h.Status)
-	mux.HandleFunc("/api/setup.pasetoKeys", h.GeneratePasetoKeys)
 	mux.HandleFunc("/api/setup.initialize", h.Initialize)
+	mux.HandleFunc("/api/setup.testSmtp", h.TestSMTP)
 }

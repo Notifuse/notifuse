@@ -16,20 +16,20 @@ import (
 type TemplateHandler struct {
 	service   domain.TemplateService
 	logger    logger.Logger
-	publicKey paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 }
 
-func NewTemplateHandler(service domain.TemplateService, publicKey paseto.V4AsymmetricPublicKey, logger logger.Logger) *TemplateHandler {
+func NewTemplateHandler(service domain.TemplateService, getPublicKey func() (paseto.V4AsymmetricPublicKey, error), logger logger.Logger) *TemplateHandler {
 	return &TemplateHandler{
 		service:   service,
 		logger:    logger,
-		publicKey: publicKey,
+		getPublicKey:        getPublicKey,
 	}
 }
 
 func (h *TemplateHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

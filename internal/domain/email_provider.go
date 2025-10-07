@@ -211,9 +211,16 @@ func (e *EmailProvider) DecryptSecretKeys(passphrase string) error {
 		}
 	}
 
-	if e.Kind == EmailProviderKindSMTP && e.SMTP != nil && e.SMTP.EncryptedPassword != "" {
-		if err := e.SMTP.DecryptPassword(passphrase); err != nil {
-			return err
+	if e.Kind == EmailProviderKindSMTP && e.SMTP != nil {
+		if e.SMTP.EncryptedUsername != "" {
+			if err := e.SMTP.DecryptUsername(passphrase); err != nil {
+				return err
+			}
+		}
+		if e.SMTP.EncryptedPassword != "" {
+			if err := e.SMTP.DecryptPassword(passphrase); err != nil {
+				return err
+			}
 		}
 	}
 

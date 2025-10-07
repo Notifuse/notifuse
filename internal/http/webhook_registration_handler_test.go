@@ -47,7 +47,7 @@ func setupWebhookRegistrationHandlerTest(t *testing.T) (*mocks.MockWebhookRegist
 	secretKey := paseto.NewV4AsymmetricSecretKey()
 	publicKey := secretKey.Public()
 
-	handler := NewWebhookRegistrationHandler(mockService, publicKey, mockLogger)
+	handler := NewWebhookRegistrationHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
@@ -241,7 +241,11 @@ func TestWebhookRegistrationHandler_handleRegister(t *testing.T) {
 
 		// Create a test server with our handler
 		mux := http.NewServeMux()
-		authMiddleware := middleware.NewAuthMiddleware(secretKey.Public())
+		publicKey := secretKey.Public()
+		getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) {
+			return publicKey, nil
+		}
+		authMiddleware := middleware.NewAuthMiddleware(getPublicKey)
 		requireAuth := authMiddleware.RequireAuth()
 		mux.Handle("/api/webhooks.register", requireAuth(http.HandlerFunc(handler.handleRegister)))
 
@@ -397,7 +401,11 @@ func TestWebhookRegistrationHandler_handleStatus(t *testing.T) {
 
 		// Create a test server with our handler
 		mux := http.NewServeMux()
-		authMiddleware := middleware.NewAuthMiddleware(secretKey.Public())
+		publicKey := secretKey.Public()
+		getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) {
+			return publicKey, nil
+		}
+		authMiddleware := middleware.NewAuthMiddleware(getPublicKey)
 		requireAuth := authMiddleware.RequireAuth()
 		mux.Handle("/api/webhooks.status", requireAuth(http.HandlerFunc(handler.handleStatus)))
 

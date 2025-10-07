@@ -18,11 +18,11 @@ type RootHandler struct {
 	apiEndpoint           string
 	version               string
 	rootEmail             string
-	isInstalled           bool
+	isInstalledPtr        *bool // Pointer to installation status that updates dynamically
 }
 
 // NewRootHandler creates a root handler that serves both console and notification center static files
-func NewRootHandler(consoleDir string, notificationCenterDir string, logger logger.Logger, apiEndpoint string, version string, rootEmail string, isInstalled bool) *RootHandler {
+func NewRootHandler(consoleDir string, notificationCenterDir string, logger logger.Logger, apiEndpoint string, version string, rootEmail string, isInstalledPtr *bool) *RootHandler {
 	return &RootHandler{
 		consoleDir:            consoleDir,
 		notificationCenterDir: notificationCenterDir,
@@ -30,7 +30,7 @@ func NewRootHandler(consoleDir string, notificationCenterDir string, logger logg
 		apiEndpoint:           apiEndpoint,
 		version:               version,
 		rootEmail:             rootEmail,
-		isInstalled:           isInstalled,
+		isInstalledPtr:        isInstalledPtr,
 	}
 }
 
@@ -73,7 +73,7 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Expires", "0")
 
 	isInstalledStr := "false"
-	if h.isInstalled {
+	if h.isInstalledPtr != nil && *h.isInstalledPtr {
 		isInstalledStr = "true"
 	}
 

@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -70,11 +71,12 @@ type AppInterface interface {
 
 // App encapsulates the application dependencies and configuration
 type App struct {
-	config   *config.Config
-	logger   logger.Logger
-	db       *sql.DB
-	mailer   mailer.Mailer
-	eventBus domain.EventBus
+	config      *config.Config
+	logger      logger.Logger
+	db          *sql.DB
+	mailer      mailer.Mailer
+	eventBus    domain.EventBus
+	isInstalled bool // Indicates if setup wizard has been completed
 
 	// Repositories
 	userRepo                      domain.UserRepository
@@ -119,6 +121,7 @@ type App struct {
 	contactTimelineService           domain.ContactTimelineService
 	segmentService                   *service.SegmentService
 	settingService                   *service.SettingService
+	setupService                     *service.SetupService
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -346,19 +349,23 @@ func (a *App) InitServices() error {
 	// Initialize event bus first
 	a.eventBus = domain.NewInMemoryEventBus()
 
-	// Initialize auth service
-	authServiceConfig := service.AuthServiceConfig{
+	// Initialize auth service with key provider callback
+	// Keys are loaded on-demand, so this never fails
+	a.authService = service.NewAuthService(service.AuthServiceConfig{
 		Repository:          a.authRepo,
 		WorkspaceRepository: a.workspaceRepo,
-		PrivateKey:          a.config.Security.PasetoPrivateKeyBytes,
-		PublicKey:           a.config.Security.PasetoPublicKeyBytes,
-	}
+		GetKeys: func() (privateKey []byte, publicKey []byte, err error) {
+			// Return current keys from config
+			// These will be nil before setup, or loaded from database after setup
+			if len(a.config.Security.PasetoPrivateKeyBytes) == 0 || len(a.config.Security.PasetoPublicKeyBytes) == 0 {
+				return nil, nil, fmt.Errorf("system setup not completed")
+			}
+			return a.config.Security.PasetoPrivateKeyBytes, a.config.Security.PasetoPublicKeyBytes, nil
+		},
+		Logger: a.logger,
+	})
 
 	var err error
-	a.authService, err = service.NewAuthService(authServiceConfig)
-	if err != nil {
-		return fmt.Errorf("failed to initialize auth service: %w", err)
-	}
 
 	// Initialize user service
 	userServiceConfig := service.UserServiceConfig{
@@ -375,6 +382,36 @@ func (a *App) InitServices() error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize user service: %w", err)
 	}
+
+	// Initialize setup service with environment config from config loader
+	// Config tracks which values came from actual env vars (not database, not generated)
+	rootEmail, apiEndpoint, pasetoPublicKey, pasetoPrivateKey, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName, smtpPort := a.config.GetEnvValues()
+	envConfig := &service.EnvironmentConfig{
+		RootEmail:        rootEmail,
+		APIEndpoint:      apiEndpoint,
+		PasetoPublicKey:  pasetoPublicKey,
+		PasetoPrivateKey: pasetoPrivateKey,
+		SMTPHost:         smtpHost,
+		SMTPPort:         smtpPort,
+		SMTPUsername:     smtpUsername,
+		SMTPPassword:     smtpPassword,
+		SMTPFromEmail:    smtpFromEmail,
+		SMTPFromName:     smtpFromName,
+	}
+
+	a.setupService = service.NewSetupService(
+		a.settingService,
+		a.userService,
+		a.userRepo,
+		a.logger,
+		a.config.Security.SecretKey,
+		func() error {
+			// Reload config after setup completes
+			ctx := context.Background()
+			return a.ReloadConfig(ctx)
+		},
+		envConfig,
+	)
 
 	// Initialize template service
 	a.templateService = service.NewTemplateService(
@@ -663,48 +700,52 @@ func (a *App) InitHandlers() error {
 	// Create a new ServeMux to avoid route conflicts on restart
 	a.mux = http.NewServeMux()
 
-	// Initialize handlers
+	// Create a callback for getting the public key on-demand
+	// This ensures handlers always use fresh keys after config reload
+	getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) {
+		return a.authService.GetPublicKey()
+	}
+
+	// Initialize handlers (pass callback instead of static public key)
 	userHandler := httpHandler.NewUserHandler(
 		a.userService,
 		a.workspaceService,
 		a.config,
-		a.config.Security.PasetoPublicKey,
+		getPublicKey,
 		a.logger)
-	rootHandler := httpHandler.NewRootHandler("console/dist", "notification_center/dist", a.logger, a.config.APIEndpoint, a.config.Version, a.config.RootEmail, a.config.IsInstalled)
+	rootHandler := httpHandler.NewRootHandler("console/dist", "notification_center/dist", a.logger, a.config.APIEndpoint, a.config.Version, a.config.RootEmail, &a.isInstalled)
 	setupHandler := httpHandler.NewSetupHandler(
+		a.setupService,
 		a.settingService,
-		a.userRepo,
-		a.authService,
 		a.logger,
-		a.config.Security.SecretKey,
 	)
 	workspaceHandler := httpHandler.NewWorkspaceHandler(
 		a.workspaceService,
 		a.authService,
-		a.config.Security.PasetoPublicKey,
+		getPublicKey,
 		a.logger,
 		a.config.Security.SecretKey,
 	)
 	faviconHandler := httpHandler.NewFaviconHandler()
-	contactHandler := httpHandler.NewContactHandler(a.contactService, a.config.Security.PasetoPublicKey, a.logger)
-	listHandler := httpHandler.NewListHandler(a.listService, a.config.Security.PasetoPublicKey, a.logger)
-	contactListHandler := httpHandler.NewContactListHandler(a.contactListService, a.config.Security.PasetoPublicKey, a.logger)
-	templateHandler := httpHandler.NewTemplateHandler(a.templateService, a.config.Security.PasetoPublicKey, a.logger)
-	emailHandler := httpHandler.NewEmailHandler(a.emailService, a.config.Security.PasetoPublicKey, a.logger, a.config.Security.SecretKey)
-	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, a.config.Security.PasetoPublicKey, a.logger, a.config.IsDemo())
+	contactHandler := httpHandler.NewContactHandler(a.contactService, getPublicKey, a.logger)
+	listHandler := httpHandler.NewListHandler(a.listService, getPublicKey, a.logger)
+	contactListHandler := httpHandler.NewContactListHandler(a.contactListService, getPublicKey, a.logger)
+	templateHandler := httpHandler.NewTemplateHandler(a.templateService, getPublicKey, a.logger)
+	emailHandler := httpHandler.NewEmailHandler(a.emailService, getPublicKey, a.logger, a.config.Security.SecretKey)
+	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getPublicKey, a.logger, a.config.IsDemo())
 	taskHandler := httpHandler.NewTaskHandler(
 		a.taskService,
-		a.config.Security.PasetoPublicKey,
+		getPublicKey,
 		a.logger,
 		a.config.Security.SecretKey,
 	)
-	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, a.config.Security.PasetoPublicKey, a.logger, a.config.IsDemo())
-	webhookEventHandler := httpHandler.NewWebhookEventHandler(a.webhookEventService, a.config.Security.PasetoPublicKey, a.logger)
-	webhookRegistrationHandler := httpHandler.NewWebhookRegistrationHandler(a.webhookRegistrationService, a.config.Security.PasetoPublicKey, a.logger)
+	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, getPublicKey, a.logger, a.config.IsDemo())
+	webhookEventHandler := httpHandler.NewWebhookEventHandler(a.webhookEventService, getPublicKey, a.logger)
+	webhookRegistrationHandler := httpHandler.NewWebhookRegistrationHandler(a.webhookRegistrationService, getPublicKey, a.logger)
 	messageHistoryHandler := httpHandler.NewMessageHistoryHandler(
 		a.messageHistoryService,
 		a.authService,
-		a.config.Security.PasetoPublicKey,
+		getPublicKey,
 		a.logger,
 	)
 	notificationCenterHandler := httpHandler.NewNotificationCenterHandler(
@@ -714,18 +755,18 @@ func (a *App) InitHandlers() error {
 	)
 	analyticsHandler := httpHandler.NewAnalyticsHandler(
 		a.analyticsService,
-		a.config.Security.PasetoPublicKey,
+		getPublicKey,
 		a.logger,
 	)
 	contactTimelineHandler := httpHandler.NewContactTimelineHandler(
 		a.contactTimelineService,
 		a.authService,
-		a.config.Security.PasetoPublicKey,
+		getPublicKey,
 		a.logger,
 	)
 	segmentHandler := httpHandler.NewSegmentHandler(
 		a.segmentService,
-		a.config.Security.PasetoPublicKey,
+		getPublicKey,
 		a.logger,
 	)
 	if !a.config.IsProduction() {
@@ -1014,9 +1055,9 @@ func (a *App) Initialize() error {
 	// Check if setup wizard is required (after migrations have run)
 	var installedValue string
 	err := a.db.QueryRow("SELECT value FROM settings WHERE key = 'is_installed'").Scan(&installedValue)
-	isInstalled := err == nil && installedValue == "true"
+	a.isInstalled = err == nil && installedValue == "true"
 
-	if !isInstalled {
+	if !a.isInstalled {
 		a.logger.Info("Setup wizard required - installation not complete")
 	} else {
 		a.logger.Info("System installation verified")
@@ -1030,6 +1071,7 @@ func (a *App) Initialize() error {
 		return err
 	}
 
+	// Initialize services (with temporary keys if not installed)
 	if err := a.InitServices(); err != nil {
 		return err
 	}
@@ -1056,6 +1098,33 @@ func (a *App) Initialize() error {
 // GetConfig returns the app's configuration
 func (a *App) GetConfig() *config.Config {
 	return a.config
+}
+
+// ReloadConfig reloads the configuration from the database and updates services
+func (a *App) ReloadConfig(ctx context.Context) error {
+	a.logger.Info("Reloading configuration from database...")
+
+	// Reload the configuration
+	newConfig, err := config.Load()
+	if err != nil {
+		return fmt.Errorf("failed to reload config: %w", err)
+	}
+
+	// Update the config
+	a.config = newConfig
+	a.isInstalled = newConfig.IsInstalled
+
+	// Reinitialize mailer with new SMTP settings
+	if err := a.InitMailer(); err != nil {
+		return fmt.Errorf("failed to reinitialize mailer: %w", err)
+	}
+
+	// Invalidate auth service key cache so it reloads keys from new config on next use
+	// No need to reinitialize the entire service - the callback will fetch fresh keys
+	a.authService.InvalidateKeyCache()
+
+	a.logger.Info("Configuration reloaded successfully - PASETO keys will be reloaded on next use")
+	return nil
 }
 
 // GetLogger returns the app's logger

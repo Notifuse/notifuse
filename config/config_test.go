@@ -104,39 +104,48 @@ func TestInvalidKeysHandling(t *testing.T) {
 
 	t.Run("missing_private_key", func(t *testing.T) {
 		// Clear any existing environment variables
+		os.Unsetenv("SECRET_KEY")
 		os.Unsetenv("PASETO_PRIVATE_KEY")
 		os.Unsetenv("PASETO_PUBLIC_KEY")
 
-		// Test missing private key
+		// Test missing SECRET_KEY
 		_, err := LoadWithOptions(LoadOptions{})
 		require.Error(t, err)
-		assert.Equal(t, "PASETO_PRIVATE_KEY is required", err.Error())
+		assert.Equal(t, "SECRET_KEY (or PASETO_PRIVATE_KEY for backward compatibility) must be set", err.Error())
 	})
 
 	t.Run("missing_public_key", func(t *testing.T) {
 		// Clear any existing environment variables first
+		os.Unsetenv("SECRET_KEY")
 		os.Unsetenv("PASETO_PRIVATE_KEY")
 		os.Unsetenv("PASETO_PUBLIC_KEY")
 
-		// Set valid private key but no public key
+		// Set SECRET_KEY and valid private key but no public key
+		// On first run (not installed), missing PASETO keys is OK
+		os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
 		os.Setenv("PASETO_PRIVATE_KEY", "8OSonZEkrCTlDd612EBoORCKVMZ4OjbWlrq03n0FIEgEJK+qb95F4pwewi+Dd++qOjQ9zkviUjFdIaBUz3nzgA==")
-		defer os.Unsetenv("PASETO_PRIVATE_KEY")
+		defer func() {
+			os.Unsetenv("SECRET_KEY")
+			os.Unsetenv("PASETO_PRIVATE_KEY")
+		}()
 
-		// Should fail with missing public key
+		// Should succeed on first run (not installed), PASETO keys are optional
 		_, err := LoadWithOptions(LoadOptions{})
-		require.Error(t, err)
-		assert.Equal(t, "PASETO_PUBLIC_KEY is required", err.Error())
+		require.NoError(t, err) // No error expected for first-run without public key
 	})
 
 	t.Run("invalid_private_key", func(t *testing.T) {
 		// Clear any existing environment variables first
+		os.Unsetenv("SECRET_KEY")
 		os.Unsetenv("PASETO_PRIVATE_KEY")
 		os.Unsetenv("PASETO_PUBLIC_KEY")
 
-		// Set invalid private key but also public key (to pass the presence check)
+		// Set SECRET_KEY, invalid private key but also public key (to pass the presence check)
+		os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
 		os.Setenv("PASETO_PRIVATE_KEY", "invalid-base64!")
 		os.Setenv("PASETO_PUBLIC_KEY", "BCSvqm/eReKcHsIvg3fvqjo0Pc5L4lIxXSGgVM9584A=")
 		defer func() {
+			os.Unsetenv("SECRET_KEY")
 			os.Unsetenv("PASETO_PRIVATE_KEY")
 			os.Unsetenv("PASETO_PUBLIC_KEY")
 		}()
@@ -149,13 +158,16 @@ func TestInvalidKeysHandling(t *testing.T) {
 
 	t.Run("invalid_public_key", func(t *testing.T) {
 		// Clear any existing environment variables first
+		os.Unsetenv("SECRET_KEY")
 		os.Unsetenv("PASETO_PRIVATE_KEY")
 		os.Unsetenv("PASETO_PUBLIC_KEY")
 
-		// Set valid private key but invalid public key
+		// Set SECRET_KEY, valid private key but invalid public key
+		os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
 		os.Setenv("PASETO_PRIVATE_KEY", "8OSonZEkrCTlDd612EBoORCKVMZ4OjbWlrq03n0FIEgEJK+qb95F4pwewi+Dd++qOjQ9zkviUjFdIaBUz3nzgA==")
 		os.Setenv("PASETO_PUBLIC_KEY", "invalid-base64!")
 		defer func() {
+			os.Unsetenv("SECRET_KEY")
 			os.Unsetenv("PASETO_PRIVATE_KEY")
 			os.Unsetenv("PASETO_PUBLIC_KEY")
 		}()

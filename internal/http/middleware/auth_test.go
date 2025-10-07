@@ -16,11 +16,17 @@ func TestNewAuthMiddleware(t *testing.T) {
 	secretKey := paseto.NewV4AsymmetricSecretKey()
 	publicKey := secretKey.Public()
 
-	// Create the middleware
-	middleware := NewAuthMiddleware(publicKey)
+	// Create a callback that returns the public key
+	getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) {
+		return publicKey, nil
+	}
 
-	// Assert the middleware is created with the given key
-	assert.Equal(t, publicKey, middleware.PublicKey)
+	// Create the middleware
+	middleware := NewAuthMiddleware(getPublicKey)
+
+	// Assert the middleware is created
+	assert.NotNil(t, middleware)
+	assert.NotNil(t, middleware.GetPublicKey)
 }
 
 func TestRequireAuth(t *testing.T) {
@@ -28,8 +34,13 @@ func TestRequireAuth(t *testing.T) {
 	secretKey := paseto.NewV4AsymmetricSecretKey()
 	publicKey := secretKey.Public()
 
+	// Create a callback that returns the public key
+	getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) {
+		return publicKey, nil
+	}
+
 	// Create the middleware
-	authConfig := NewAuthMiddleware(publicKey)
+	authConfig := NewAuthMiddleware(getPublicKey)
 
 	t.Run("missing authorization header", func(t *testing.T) {
 		// Create a test handler

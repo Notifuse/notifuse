@@ -46,7 +46,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     ...options.headers
   }
 
-  const apiEndpoint = window.API_ENDPOINT || 'http://localhost:3000'
+  let defaultOrigin = window.location.origin
+  if (defaultOrigin.includes('notifusedev.com')) {
+    defaultOrigin = 'https://localapi.notifuse.com:4000'
+  }
+
+  const apiEndpoint = window.API_ENDPOINT?.trim() || defaultOrigin
+
   const response = await fetch(`${apiEndpoint}${endpoint}`, {
     ...options,
     headers

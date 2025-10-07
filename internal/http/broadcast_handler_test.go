@@ -63,7 +63,7 @@ func setupBroadcastHandler(t *testing.T) (
 	handler := http_handler.NewBroadcastHandler(
 		mockBroadcastService,
 		mockTemplateService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 		false,
 	)
@@ -592,7 +592,7 @@ func TestHandleSchedule(t *testing.T) {
 		customHandler := http_handler.NewBroadcastHandler(
 			customMock,
 			customTemplateService,
-			publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 			customLogger,
 			false,
 		)
@@ -634,7 +634,7 @@ func TestHandleSchedule(t *testing.T) {
 		customHandler := http_handler.NewBroadcastHandler(
 			customMock,
 			customTemplateService,
-			publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 			customLogger,
 			false,
 		)
@@ -681,7 +681,7 @@ func TestHandleSchedule(t *testing.T) {
 		customHandler := http_handler.NewBroadcastHandler(
 			customMock,
 			customTemplateService,
-			publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 			customLogger,
 			false,
 		)

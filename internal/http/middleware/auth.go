@@ -22,13 +22,13 @@ func writeJSONError(w http.ResponseWriter, message string, statusCode int) {
 
 // AuthConfig holds the configuration for the auth middleware
 type AuthConfig struct {
-	PublicKey paseto.V4AsymmetricPublicKey
+	GetPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 }
 
-// NewAuthMiddleware creates a new auth middleware with the given public key
-func NewAuthMiddleware(publicKey paseto.V4AsymmetricPublicKey) *AuthConfig {
+// NewAuthMiddleware creates a new auth middleware with the given public key provider
+func NewAuthMiddleware(getPublicKey func() (paseto.V4AsymmetricPublicKey, error)) *AuthConfig {
 	return &AuthConfig{
-		PublicKey: publicKey,
+		GetPublicKey: getPublicKey,
 	}
 }
 
@@ -52,12 +52,19 @@ func (ac *AuthConfig) RequireAuth() func(http.Handler) http.Handler {
 
 			token := parts[1]
 
+			// Get public key on-demand
+			publicKey, err := ac.GetPublicKey()
+			if err != nil {
+				writeJSONError(w, fmt.Sprintf("Authentication unavailable: %v", err), http.StatusServiceUnavailable)
+				return
+			}
+
 			// Parse and verify the token
 			parser := paseto.NewParser()
 			parser.AddRule(paseto.NotExpired())
 
 			// Verify token and get claims
-			verified, err := parser.ParseV4Public(ac.PublicKey, token, nil)
+			verified, err := parser.ParseV4Public(publicKey, token, nil)
 			if err != nil {
 				writeJSONError(w, fmt.Sprintf("Invalid token: %v", err), http.StatusUnauthorized)
 				return

@@ -15,7 +15,7 @@ type MessageHistoryHandler struct {
 	service     domain.MessageHistoryService
 	authService domain.AuthService
 	logger      logger.Logger
-	publicKey   paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 	tracer      tracing.Tracer
 }
 
@@ -23,14 +23,14 @@ type MessageHistoryHandler struct {
 func NewMessageHistoryHandler(
 	service domain.MessageHistoryService,
 	authService domain.AuthService,
-	publicKey paseto.V4AsymmetricPublicKey,
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
 	logger logger.Logger,
 ) *MessageHistoryHandler {
 	return &MessageHistoryHandler{
 		service:     service,
 		authService: authService,
 		logger:      logger,
-		publicKey:   publicKey,
+		getPublicKey:        getPublicKey,
 		tracer:      tracing.GetTracer(),
 	}
 }
@@ -39,7 +39,7 @@ func NewMessageHistoryHandler(
 func NewMessageHistoryHandlerWithTracer(
 	service domain.MessageHistoryService,
 	authService domain.AuthService,
-	publicKey paseto.V4AsymmetricPublicKey,
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
 	logger logger.Logger,
 	tracer tracing.Tracer,
 ) *MessageHistoryHandler {
@@ -47,7 +47,7 @@ func NewMessageHistoryHandlerWithTracer(
 		service:     service,
 		authService: authService,
 		logger:      logger,
-		publicKey:   publicKey,
+		getPublicKey:        getPublicKey,
 		tracer:      tracer,
 	}
 }
@@ -55,7 +55,7 @@ func NewMessageHistoryHandlerWithTracer(
 // RegisterRoutes registers the message history HTTP endpoints
 func (h *MessageHistoryHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

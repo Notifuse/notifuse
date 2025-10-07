@@ -14,7 +14,7 @@ import (
 // EmailHandler handles HTTP requests for email operations
 type EmailHandler struct {
 	emailService domain.EmailServiceInterface
-	publicKey    paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 	logger       logger.Logger
 	secretKey    string
 }
@@ -22,13 +22,13 @@ type EmailHandler struct {
 // NewEmailHandler creates a new email handler
 func NewEmailHandler(
 	emailService domain.EmailServiceInterface,
-	publicKey paseto.V4AsymmetricPublicKey,
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
 	logger logger.Logger,
 	secretKey string,
 ) *EmailHandler {
 	return &EmailHandler{
 		emailService: emailService,
-		publicKey:    publicKey,
+		getPublicKey:        getPublicKey,
 		logger:       logger,
 		secretKey:    secretKey,
 	}
@@ -37,7 +37,7 @@ func NewEmailHandler(
 // RegisterRoutes registers all workspace RPC-style routes with authentication middleware
 func (h *EmailHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

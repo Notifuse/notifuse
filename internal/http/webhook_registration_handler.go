@@ -14,26 +14,26 @@ import (
 type WebhookRegistrationHandler struct {
 	service   domain.WebhookRegistrationService
 	logger    logger.Logger
-	publicKey paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 }
 
 // NewWebhookRegistrationHandler creates a new webhook registration handler
 func NewWebhookRegistrationHandler(
 	service domain.WebhookRegistrationService,
-	publicKey paseto.V4AsymmetricPublicKey,
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
 	logger logger.Logger,
 ) *WebhookRegistrationHandler {
 	return &WebhookRegistrationHandler{
 		service:   service,
 		logger:    logger,
-		publicKey: publicKey,
+		getPublicKey:        getPublicKey,
 	}
 }
 
 // RegisterRoutes registers the webhook registration HTTP endpoints
 func (h *WebhookRegistrationHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register webhook endpoints

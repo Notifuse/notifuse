@@ -38,7 +38,7 @@ func setupSegmentHandlerTest(t *testing.T) (*mocks.MockSegmentService, *pkgmocks
 	secretKey := paseto.NewV4AsymmetricSecretKey()
 	publicKey := secretKey.Public()
 
-	handler := NewSegmentHandler(mockService, publicKey, mockLogger)
+	handler := NewSegmentHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 	return mockService, mockLogger, handler
 }
 

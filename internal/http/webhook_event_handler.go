@@ -14,22 +14,22 @@ import (
 type WebhookEventHandler struct {
 	service   domain.WebhookEventServiceInterface
 	logger    logger.Logger
-	publicKey paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 }
 
 // NewWebhookEventHandler creates a new webhook event handler
-func NewWebhookEventHandler(service domain.WebhookEventServiceInterface, publicKey paseto.V4AsymmetricPublicKey, logger logger.Logger) *WebhookEventHandler {
+func NewWebhookEventHandler(service domain.WebhookEventServiceInterface, getPublicKey func() (paseto.V4AsymmetricPublicKey, error), logger logger.Logger) *WebhookEventHandler {
 	return &WebhookEventHandler{
 		service:   service,
 		logger:    logger,
-		publicKey: publicKey,
+		getPublicKey:        getPublicKey,
 	}
 }
 
 // RegisterRoutes registers the webhook event HTTP endpoints
 func (h *WebhookEventHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Public webhooks endpoint for receiving events from email providers

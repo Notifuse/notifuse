@@ -97,16 +97,21 @@ func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) 
 		}
 	}
 
-	if setting, err := s.repo.Get(ctx, "smtp_username"); err == nil {
-		config.SMTPUsername = setting.Value
-	}
-
 	if setting, err := s.repo.Get(ctx, "smtp_from_email"); err == nil {
 		config.SMTPFromEmail = setting.Value
 	}
 
 	if setting, err := s.repo.Get(ctx, "smtp_from_name"); err == nil {
 		config.SMTPFromName = setting.Value
+	}
+
+	// Load and decrypt SMTP username
+	if setting, err := s.repo.Get(ctx, "encrypted_smtp_username"); err == nil && setting.Value != "" {
+		decrypted, err := crypto.DecryptFromHexString(setting.Value, secretKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to decrypt SMTP username: %w", err)
+		}
+		config.SMTPUsername = decrypted
 	}
 
 	// Load and decrypt SMTP password
@@ -181,12 +186,6 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		}
 	}
 
-	if config.SMTPUsername != "" {
-		if err := s.repo.Set(ctx, "smtp_username", config.SMTPUsername); err != nil {
-			return fmt.Errorf("failed to set smtp_username: %w", err)
-		}
-	}
-
 	if config.SMTPFromEmail != "" {
 		if err := s.repo.Set(ctx, "smtp_from_email", config.SMTPFromEmail); err != nil {
 			return fmt.Errorf("failed to set smtp_from_email: %w", err)
@@ -196,6 +195,17 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 	if config.SMTPFromName != "" {
 		if err := s.repo.Set(ctx, "smtp_from_name", config.SMTPFromName); err != nil {
 			return fmt.Errorf("failed to set smtp_from_name: %w", err)
+		}
+	}
+
+	// Encrypt and store SMTP username
+	if config.SMTPUsername != "" {
+		encrypted, err := crypto.EncryptString(config.SMTPUsername, secretKey)
+		if err != nil {
+			return fmt.Errorf("failed to encrypt SMTP username: %w", err)
+		}
+		if err := s.repo.Set(ctx, "encrypted_smtp_username", encrypted); err != nil {
+			return fmt.Errorf("failed to set encrypted_smtp_username: %w", err)
 		}
 	}
 

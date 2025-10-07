@@ -36,7 +36,7 @@ func setupTest(t *testing.T) (*WorkspaceHandler, *mocks.MockWorkspaceServiceInte
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
 
-	handler := NewWorkspaceHandler(workspaceSvc, authSvc, publicKey, mockLogger, passphrase)
+	handler := NewWorkspaceHandler(workspaceSvc, authSvc, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, passphrase)
 
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)

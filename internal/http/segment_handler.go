@@ -14,20 +14,20 @@ import (
 type SegmentHandler struct {
 	service   domain.SegmentService
 	logger    logger.Logger
-	publicKey paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 }
 
-func NewSegmentHandler(service domain.SegmentService, publicKey paseto.V4AsymmetricPublicKey, logger logger.Logger) *SegmentHandler {
+func NewSegmentHandler(service domain.SegmentService, getPublicKey func() (paseto.V4AsymmetricPublicKey, error), logger logger.Logger) *SegmentHandler {
 	return &SegmentHandler{
 		service:   service,
 		logger:    logger,
-		publicKey: publicKey,
+		getPublicKey:        getPublicKey,
 	}
 }
 
 func (h *SegmentHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

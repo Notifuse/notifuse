@@ -13,8 +13,8 @@ export function RootLayout() {
   const isWorkspaceCreateRoute = useMatch({ from: '/workspace/create', shouldThrow: false })
   const isSetupRoute = useMatch({ from: '/setup', shouldThrow: false })
 
-  // Check if system is installed
-  const isInstalled = window.IS_INSTALLED !== false
+  // Check if system is installed (explicitly check for true to handle undefined case)
+  const isInstalled = window.IS_INSTALLED === true
 
   const isPublicRoute = isSigninRoute || isAcceptInvitationRoute || isLogoutRoute || isSetupRoute
 

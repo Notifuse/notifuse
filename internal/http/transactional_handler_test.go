@@ -32,7 +32,7 @@ func setupTransactionalHandlerTest(t *testing.T) (*mocks.MockTransactionalNotifi
 	secretKey := paseto.NewV4AsymmetricSecretKey()
 	publicKey := secretKey.Public()
 
-	handler := NewTransactionalNotificationHandler(mockService, publicKey, mockLogger, false)
+	handler := NewTransactionalNotificationHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, false)
 
 	return mockService, mockLogger, handler
 }
@@ -68,12 +68,12 @@ func TestNewTransactionalNotificationHandler(t *testing.T) {
 	publicKey := secretKey.Public()
 
 	// Act
-	handler := NewTransactionalNotificationHandler(mockService, publicKey, mockLogger, false)
+	handler := NewTransactionalNotificationHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, false)
 
 	// Assert
 	assert.NotNil(t, handler)
 	assert.Equal(t, mockService, handler.service)
-	assert.Equal(t, publicKey, handler.publicKey)
+	assert.NotNil(t, handler.getPublicKey)
 	assert.Equal(t, mockLogger, handler.logger)
 }
 
@@ -863,7 +863,7 @@ func TestTransactionalNotificationHandler_HandleSend(t *testing.T) {
 	secretKey := paseto.NewV4AsymmetricSecretKey()
 	publicKey := secretKey.Public()
 
-	handler := NewTransactionalNotificationHandler(mockService, publicKey, mockLogger, false)
+	handler := NewTransactionalNotificationHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, false)
 
 	workspaceID := "workspace1"
 	notificationID := "test-notification"
@@ -1487,9 +1487,9 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 
 			// Create the handler
 			handler := &TransactionalNotificationHandler{
-				service:   mockService,
-				logger:    mockLogger,
-				publicKey: publicKey,
+				service:      mockService,
+				logger:       mockLogger,
+				getPublicKey: func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 			}
 
 			// Create request

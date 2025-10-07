@@ -33,6 +33,23 @@ type Config struct {
 	LogLevel        string
 	Version         string
 	IsInstalled     bool // NEW: Indicates if setup wizard has been completed
+
+	// Track which values came from actual environment variables (not database, not generated)
+	envValues envValues
+}
+
+// envValues tracks configuration that came from actual environment variables
+type envValues struct {
+	RootEmail        string
+	APIEndpoint      string
+	PasetoPublicKey  string
+	PasetoPrivateKey string
+	SMTPHost         string
+	SMTPPort         int
+	SMTPUsername     string
+	SMTPPassword     string
+	SMTPFromEmail    string
+	SMTPFromName     string
 }
 
 type DemoConfig struct {
@@ -237,9 +254,15 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 		if port, ok := settingsMap["smtp_port"]; ok && port != "" {
 			fmt.Sscanf(port, "%d", &settings.SMTPPort)
 		}
-		settings.SMTPUsername = settingsMap["smtp_username"]
 		settings.SMTPFromEmail = settingsMap["smtp_from_email"]
 		settings.SMTPFromName = settingsMap["smtp_from_name"]
+
+		// Decrypt SMTP username if present
+		if encryptedUsername, ok := settingsMap["encrypted_smtp_username"]; ok && encryptedUsername != "" {
+			if decrypted, err := crypto.DecryptFromHexString(encryptedUsername, secretKey); err == nil {
+				settings.SMTPUsername = decrypted
+			}
+		}
 
 		// Decrypt SMTP password if present
 		if encryptedPassword, ok := settingsMap["encrypted_smtp_password"]; ok && encryptedPassword != "" {
@@ -277,7 +300,6 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("VERSION", VERSION)
 
 	// SMTP defaults
-	v.SetDefault("SMTP_PORT", 587)
 	v.SetDefault("SMTP_FROM_NAME", "Notifuse")
 
 	// Default tracing config
@@ -379,24 +401,39 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		}
 	}
 
+	// Track env var values from viper (before any database fallbacks are applied)
+	// Note: These come from environment variables or .env file, not from defaults or database
+	envVals := envValues{
+		RootEmail:        v.GetString("ROOT_EMAIL"),
+		APIEndpoint:      v.GetString("API_ENDPOINT"),
+		PasetoPublicKey:  v.GetString("PASETO_PUBLIC_KEY"),
+		PasetoPrivateKey: v.GetString("PASETO_PRIVATE_KEY"),
+		SMTPHost:         v.GetString("SMTP_HOST"),
+		SMTPPort:         v.GetInt("SMTP_PORT"),
+		SMTPUsername:     v.GetString("SMTP_USERNAME"),
+		SMTPPassword:     v.GetString("SMTP_PASSWORD"),
+		SMTPFromEmail:    v.GetString("SMTP_FROM_EMAIL"),
+		SMTPFromName:     v.GetString("SMTP_FROM_NAME"),
+	}
+
 	// Get PASETO keys from env vars or database
 	var privateKeyBase64, publicKeyBase64 string
 
 	if isInstalled && systemSettings != nil {
-		// Prefer database settings, but env vars override
-		privateKeyBase64 = v.GetString("PASETO_PRIVATE_KEY")
+		// Prefer env vars, fall back to database
+		privateKeyBase64 = envVals.PasetoPrivateKey
 		if privateKeyBase64 == "" {
 			privateKeyBase64 = systemSettings.PasetoPrivateKey
 		}
 
-		publicKeyBase64 = v.GetString("PASETO_PUBLIC_KEY")
+		publicKeyBase64 = envVals.PasetoPublicKey
 		if publicKeyBase64 == "" {
 			publicKeyBase64 = systemSettings.PasetoPublicKey
 		}
 	} else {
 		// First-run or database not accessible: use env vars if available
-		privateKeyBase64 = v.GetString("PASETO_PRIVATE_KEY")
-		publicKeyBase64 = v.GetString("PASETO_PUBLIC_KEY")
+		privateKeyBase64 = envVals.PasetoPrivateKey
+		publicKeyBase64 = envVals.PasetoPublicKey
 	}
 
 	// Initialize PASETO keys if available (optional for first-run)
@@ -426,9 +463,10 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error creating PASETO public key: %w", err)
 		}
-	} else if isInstalled {
-		// If installed but keys are missing, that's an error
-		return nil, fmt.Errorf("PASETO keys are required when system is installed")
+	} else {
+		// No PASETO keys available - this is OK if system is not installed yet
+		// Keys will be loaded on-demand by AuthService after setup completes
+		// Leave privateKeyBytes and publicKeyBytes as nil
 	}
 
 	// Load config values with database override logic
@@ -436,35 +474,36 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	var smtpConfig SMTPConfig
 
 	if isInstalled && systemSettings != nil {
-		// Prefer database settings, but env vars override
-		rootEmail = v.GetString("ROOT_EMAIL")
+		// Prefer env vars, fall back to database
+		rootEmail = envVals.RootEmail
 		if rootEmail == "" {
 			rootEmail = systemSettings.RootEmail
 		}
 
-		apiEndpoint = v.GetString("API_ENDPOINT")
+		apiEndpoint = envVals.APIEndpoint
 		if apiEndpoint == "" {
 			apiEndpoint = systemSettings.APIEndpoint
 		}
 
-		// SMTP settings
+		// SMTP settings - env vars override database
 		smtpConfig = SMTPConfig{
-			Host:      v.GetString("SMTP_HOST"),
-			Port:      v.GetInt("SMTP_PORT"),
-			Username:  v.GetString("SMTP_USERNAME"),
-			Password:  v.GetString("SMTP_PASSWORD"),
-			FromEmail: v.GetString("SMTP_FROM_EMAIL"),
-			FromName:  v.GetString("SMTP_FROM_NAME"),
+			Host:      envVals.SMTPHost,
+			Port:      envVals.SMTPPort,
+			Username:  envVals.SMTPUsername,
+			Password:  envVals.SMTPPassword,
+			FromEmail: envVals.SMTPFromEmail,
+			FromName:  envVals.SMTPFromName,
 		}
 
-		// Use database values as defaults
+		// Use database values as fallback
 		if smtpConfig.Host == "" {
 			smtpConfig.Host = systemSettings.SMTPHost
 		}
-		if smtpConfig.Port == 0 || smtpConfig.Port == 587 {
-			if systemSettings.SMTPPort != 0 {
-				smtpConfig.Port = systemSettings.SMTPPort
-			}
+		if smtpConfig.Port == 0 {
+			smtpConfig.Port = systemSettings.SMTPPort
+		}
+		if smtpConfig.Port == 0 {
+			smtpConfig.Port = 587 // Default
 		}
 		if smtpConfig.Username == "" {
 			smtpConfig.Username = systemSettings.SMTPUsername
@@ -475,22 +514,30 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		if smtpConfig.FromEmail == "" {
 			smtpConfig.FromEmail = systemSettings.SMTPFromEmail
 		}
-		if smtpConfig.FromName == "" || smtpConfig.FromName == "Notifuse" {
-			if systemSettings.SMTPFromName != "" {
-				smtpConfig.FromName = systemSettings.SMTPFromName
-			}
+		if smtpConfig.FromName == "" {
+			smtpConfig.FromName = systemSettings.SMTPFromName
+		}
+		if smtpConfig.FromName == "" {
+			smtpConfig.FromName = "Notifuse" // Default
 		}
 	} else {
 		// First-run: use env vars only
-		rootEmail = v.GetString("ROOT_EMAIL")
-		apiEndpoint = v.GetString("API_ENDPOINT")
+		rootEmail = envVals.RootEmail
+		apiEndpoint = envVals.APIEndpoint
 		smtpConfig = SMTPConfig{
-			Host:      v.GetString("SMTP_HOST"),
-			Port:      v.GetInt("SMTP_PORT"),
-			Username:  v.GetString("SMTP_USERNAME"),
-			Password:  v.GetString("SMTP_PASSWORD"),
-			FromEmail: v.GetString("SMTP_FROM_EMAIL"),
-			FromName:  v.GetString("SMTP_FROM_NAME"),
+			Host:      envVals.SMTPHost,
+			Port:      envVals.SMTPPort,
+			Username:  envVals.SMTPUsername,
+			Password:  envVals.SMTPPassword,
+			FromEmail: envVals.SMTPFromEmail,
+			FromName:  envVals.SMTPFromName,
+		}
+		// Apply defaults for first-run
+		if smtpConfig.Port == 0 {
+			smtpConfig.Port = 587
+		}
+		if smtpConfig.FromName == "" {
+			smtpConfig.FromName = "Notifuse"
 		}
 	}
 
@@ -562,6 +609,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		LogLevel:        v.GetString("LOG_LEVEL"),
 		Version:         v.GetString("VERSION"),
 		IsInstalled:     isInstalled,
+		envValues:       envVals, // Store env values for setup service
 	}
 
 	if config.WebhookEndpoint == "" {
@@ -582,4 +630,19 @@ func (c *Config) IsDemo() bool {
 
 func (c *Config) IsProduction() bool {
 	return c.Environment == "production"
+}
+
+// GetEnvValues returns configuration values that came from actual environment variables
+// This is used by the setup service to determine which settings are already configured
+func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, pasetoPublicKey, pasetoPrivateKey, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string, smtpPort int) {
+	return c.envValues.RootEmail,
+		c.envValues.APIEndpoint,
+		c.envValues.PasetoPublicKey,
+		c.envValues.PasetoPrivateKey,
+		c.envValues.SMTPHost,
+		c.envValues.SMTPUsername,
+		c.envValues.SMTPPassword,
+		c.envValues.SMTPFromEmail,
+		c.envValues.SMTPFromName,
+		c.envValues.SMTPPort
 }

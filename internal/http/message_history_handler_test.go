@@ -37,7 +37,7 @@ func setupMessageHistoryHandlerTest(t *testing.T) (*MessageHistoryHandler, *mock
 	handler := NewMessageHistoryHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 		mockTracer,
 	)
@@ -126,7 +126,7 @@ func TestMessageHistoryHandler_handleList_AuthenticationError(t *testing.T) {
 	handler := NewMessageHistoryHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 		mockTracer,
 	)
@@ -318,7 +318,7 @@ func TestMessageHistoryHandler_handleList_ServiceError(t *testing.T) {
 	handler := NewMessageHistoryHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 		mockTracer,
 	)
@@ -531,7 +531,7 @@ func TestMessageHistoryHandler_handleList_NilTracer(t *testing.T) {
 	handler := NewMessageHistoryHandler(
 		mockService,
 		mockAuthService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 	)
 
@@ -584,7 +584,7 @@ func TestMessageHistoryHandler_handleList_TracerErrorHandling(t *testing.T) {
 	handler := NewMessageHistoryHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 		mockTracer,
 	)
@@ -732,7 +732,7 @@ func TestMessageHistoryHandler_handleBroadcastStats_ServiceError(t *testing.T) {
 	handler := NewMessageHistoryHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		publicKey,
+		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
 		mockLogger,
 		mockTracer,
 	)

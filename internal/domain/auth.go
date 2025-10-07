@@ -26,7 +26,9 @@ type AuthService interface {
 	VerifyUserSession(ctx context.Context, userID, sessionID string) (*User, error)
 	GenerateUserAuthToken(user *User, sessionID string, expiresAt time.Time) string
 	GenerateAPIAuthToken(user *User) string
-	GetPrivateKey() paseto.V4AsymmetricSecretKey
+	GetPrivateKey() (paseto.V4AsymmetricSecretKey, error)
+	GetPublicKey() (paseto.V4AsymmetricPublicKey, error)
 	GenerateInvitationToken(invitation *WorkspaceInvitation) string
 	ValidateInvitationToken(token string) (invitationID, workspaceID, email string, err error)
+	InvalidateKeyCache()
 }

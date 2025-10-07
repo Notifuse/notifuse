@@ -31,7 +31,7 @@ type UserHandler struct {
 	userService      UserServiceInterface
 	workspaceService domain.WorkspaceServiceInterface
 	config           *config.Config
-	publicKey        paseto.V4AsymmetricPublicKey
+	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 	logger           logger.Logger
 	tracer           tracing.Tracer
 }
@@ -46,12 +46,12 @@ func extractEmailDomain(email string) string {
 	return ""
 }
 
-func NewUserHandler(userService UserServiceInterface, workspaceService domain.WorkspaceServiceInterface, cfg *config.Config, publicKey paseto.V4AsymmetricPublicKey, logger logger.Logger) *UserHandler {
+func NewUserHandler(userService UserServiceInterface, workspaceService domain.WorkspaceServiceInterface, cfg *config.Config, getPublicKey func() (paseto.V4AsymmetricPublicKey, error), logger logger.Logger) *UserHandler {
 	return &UserHandler{
 		userService:      userService,
 		workspaceService: workspaceService,
 		config:           cfg,
-		publicKey:        publicKey,
+		getPublicKey:        getPublicKey,
 		logger:           logger,
 		tracer:           tracing.GetTracer(),
 	}
@@ -204,7 +204,7 @@ func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/user.verify", h.VerifyCode)
 
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.publicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register protected routes

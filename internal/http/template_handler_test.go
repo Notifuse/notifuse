@@ -43,7 +43,7 @@ func setupTemplateHandlerTest(t *testing.T) (*mocks.MockTemplateService, *pkgmoc
 	secretKey := paseto.NewV4AsymmetricSecretKey() // Key for signing tokens
 	publicKey := secretKey.Public()                // Key for handler/middleware verification
 
-	handler := http_handler.NewTemplateHandler(mockService, publicKey, mockLogger)
+	handler := http_handler.NewTemplateHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
 

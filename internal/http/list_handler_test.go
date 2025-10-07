@@ -38,7 +38,7 @@ func setupListHandlerTest(t *testing.T) (*mocks.MockListService, *pkgmocks.MockL
 	secretKey := paseto.NewV4AsymmetricSecretKey()
 	publicKey := secretKey.Public()
 
-	handler := NewListHandler(mockService, publicKey, mockLogger)
+	handler := NewListHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
 	return mockService, mockLogger, handler
 }
 
