@@ -8,8 +8,12 @@ services:
     ports:
       - '8081:8080'
     environment:
+      # Server Configuration
       - SERVER_PORT=8080
       - SERVER_HOST=0.0.0.0
+      - ENVIRONMENT=development
+
+      # Database Configuration (Required)
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=postgres
@@ -17,31 +21,23 @@ services:
       - DB_PREFIX=notifuse
       - DB_NAME=notifuse_system
       - DB_SSLMODE=disable
-      - ENVIRONMENT=production
-      - PASETO_PRIVATE_KEY=${PASETO_PRIVATE_KEY:-d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==}
-      - PASETO_PUBLIC_KEY=${PASETO_PUBLIC_KEY:-9+/hU37jDB2/H5XHzzKi5bkUd674W6+eea+o9QxIoKw=}
-      - ROOT_EMAIL=${ROOT_EMAIL:-admin@example.com}
-      - SMTP_HOST=${SMTP_HOST:-smtp.example.com}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USERNAME=${SMTP_USERNAME:-your-username}
-      - SMTP_PASSWORD=${SMTP_PASSWORD:-your-password}
-      - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL:-noreply@example.com}
-      - SMTP_FROM_NAME=${SMTP_FROM_NAME:-Notifuse}
-      - API_ENDPOINT=${API_ENDPOINT:-https://notifuse.yourdomain.com}
-      - TRACING_ENABLED=false
-      - TRACING_SERVICE_NAME=notifuse
-      - TRACING_SAMPLING_PROBABILITY=0.05
-      - TRACING_TRACE_EXPORTER="none"
-      - TRACING_JAEGER_ENDPOINT="http://localhost:14268/api/traces"
-      - TRACING_ZIPKIN_ENDPOINT="http://localhost:9411/api/v2/spans"
-      - TRACING_STACKDRIVER_PROJECT_ID=""
-      - TRACING_AZURE_INSTRUMENTATION_KEY=""
-      - TRACING_DATADOG_AGENT_ADDRESS="localhost:8126"
-      - TRACING_DATADOG_API_KEY=""
-      - TRACING_XRAY_REGION="us-west-2"
-      - TRACING_AGENT_ENDPOINT="localhost:6831"
-      - TRACING_METRICS_EXPORTER="prometheus"
-      - TRACING_PROMETHEUS_PORT=9464
+
+      # Secret Key (Required) - Generate a secure random string for production
+      - SECRET_KEY=${SECRET_KEY:-d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==}
+
+      # All other settings (ROOT_EMAIL, API_ENDPOINT, SMTP, PASETO keys)
+      # can be configured through the Setup Wizard on first launch
+      # Or set them here as environment variables if you prefer
+      # - ROOT_EMAIL=${ROOT_EMAIL}
+      # - API_ENDPOINT=${API_ENDPOINT}
+      # - PASETO_PRIVATE_KEY=${PASETO_PRIVATE_KEY}
+      # - PASETO_PUBLIC_KEY=${PASETO_PUBLIC_KEY}
+      # - SMTP_HOST=${SMTP_HOST}
+      # - SMTP_PORT=${SMTP_PORT}
+      # - SMTP_USERNAME=${SMTP_USERNAME}
+      # - SMTP_PASSWORD=${SMTP_PASSWORD}
+      # - SMTP_FROM_EMAIL=${SMTP_FROM_EMAIL}
+      # - SMTP_FROM_NAME=${SMTP_FROM_NAME}
     depends_on:
       - postgres
     volumes:
