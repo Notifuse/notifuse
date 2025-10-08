@@ -20,70 +20,100 @@ func (m *V12Migration) GetMajorVersion() float64 {
 
 // HasSystemUpdate indicates if this migration has system-level changes
 func (m *V12Migration) HasSystemUpdate() bool {
-	return false // No system-level changes needed
+	return true // Updates workspace integrations in system database
 }
 
 // HasWorkspaceUpdate indicates if this migration has workspace-level changes
 func (m *V12Migration) HasWorkspaceUpdate() bool {
-	return true // Updates workspace integrations
+	return false // No workspace database changes needed
 }
 
-// UpdateSystem executes system-level migration changes (none for v12)
+// UpdateSystem executes system-level migration changes
+// Adds default rate_limit_per_minute to all email provider integrations
 func (m *V12Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db DBExecutor) error {
+	// Query all workspaces from the system database
+	rows, err := db.QueryContext(ctx, "SELECT id, integrations FROM workspaces")
+	if err != nil {
+		return fmt.Errorf("failed to query workspaces: %w", err)
+	}
+	defer rows.Close()
+
+	// Process each workspace
+	for rows.Next() {
+		var workspaceID string
+		var integrationsData []byte
+
+		if err := rows.Scan(&workspaceID, &integrationsData); err != nil {
+			return fmt.Errorf("failed to scan workspace row: %w", err)
+		}
+
+		// Parse integrations
+		var integrations []domain.Integration
+		if len(integrationsData) > 0 {
+			if err := json.Unmarshal(integrationsData, &integrations); err != nil {
+				return fmt.Errorf("failed to unmarshal integrations for workspace %s: %w", workspaceID, err)
+			}
+		}
+
+		// Check if workspace has any integrations
+		if len(integrations) == 0 {
+			// No integrations to migrate
+			continue
+		}
+
+		// Track if we made any changes
+		madeChanges := false
+
+		// Iterate through all integrations
+		for i := range integrations {
+			integration := &integrations[i]
+
+			// Only process email integrations
+			if integration.Type != domain.IntegrationTypeEmail {
+				continue
+			}
+
+			// Check if rate limit is already set
+			if integration.EmailProvider.RateLimitPerMinute > 0 {
+				// Already has a rate limit, skip
+				continue
+			}
+
+			// Set default rate limit
+			integration.EmailProvider.RateLimitPerMinute = 25
+			madeChanges = true
+		}
+
+		// If we made changes, update the workspace in the database
+		if madeChanges {
+			// Serialize integrations to JSON
+			integrationsJSON, err := json.Marshal(integrations)
+			if err != nil {
+				return fmt.Errorf("failed to marshal integrations for workspace %s: %w", workspaceID, err)
+			}
+
+			// Update the workspace integrations in the system database
+			_, err = db.ExecContext(ctx, `
+				UPDATE workspaces
+				SET integrations = $1, updated_at = NOW()
+				WHERE id = $2
+			`, integrationsJSON, workspaceID)
+			if err != nil {
+				return fmt.Errorf("failed to update workspace integrations for workspace %s: %w", workspaceID, err)
+			}
+		}
+	}
+
+	// Check for any errors during iteration
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("error iterating workspace rows: %w", err)
+	}
+
 	return nil
 }
 
-// UpdateWorkspace executes workspace-level migration changes
-// Adds default rate_limit_per_minute to all email provider integrations
+// UpdateWorkspace executes workspace-level migration changes (none for v12)
 func (m *V12Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, workspace *domain.Workspace, db DBExecutor) error {
-	// Check if workspace has any integrations
-	if len(workspace.Integrations) == 0 {
-		// No integrations to migrate
-		return nil
-	}
-
-	// Track if we made any changes
-	madeChanges := false
-
-	// Iterate through all integrations
-	for i := range workspace.Integrations {
-		integration := &workspace.Integrations[i]
-
-		// Only process email integrations
-		if integration.Type != domain.IntegrationTypeEmail {
-			continue
-		}
-
-		// Check if rate limit is already set
-		if integration.EmailProvider.RateLimitPerMinute > 0 {
-			// Already has a rate limit, skip
-			continue
-		}
-
-		// Set default rate limit
-		integration.EmailProvider.RateLimitPerMinute = 25
-		madeChanges = true
-	}
-
-	// If we made changes, update the workspace in the database
-	if madeChanges {
-		// Serialize integrations to JSON
-		integrationsJSON, err := json.Marshal(workspace.Integrations)
-		if err != nil {
-			return fmt.Errorf("failed to marshal integrations: %w", err)
-		}
-
-		// Update the workspace integrations in the database
-		_, err = db.ExecContext(ctx, `
-			UPDATE workspaces
-			SET integrations = $1, updated_at = NOW()
-			WHERE id = $2
-		`, integrationsJSON, workspace.ID)
-		if err != nil {
-			return fmt.Errorf("failed to update workspace integrations: %w", err)
-		}
-	}
-
 	return nil
 }
 
