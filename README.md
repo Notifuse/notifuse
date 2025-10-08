@@ -24,6 +24,7 @@ Notifuse is a modern, self-hosted emailing platform that allows you to send news
 
 ### 🔧 Developer-Friendly
 
+- **Easy Setup**: Interactive setup wizard for quick deployment and configuration
 - **Transactional API**: Powerful REST API for automated email delivery
 - **Webhook Integration**: Real-time event notifications and integrations
 - **Liquid Templating**: Dynamic content with variables like `{{ contact.first_name }}`
@@ -90,33 +91,31 @@ Notifuse follows clean architecture principles with clear separation of concerns
    cd notifuse
    ```
 
-2. **Configure environment variables**:
+2. **Configure required environment variables**:
 
    ```bash
    cp env.example .env
-   # Edit .env with your configuration
+   # Edit .env with database credentials and SECRET_KEY
    ```
 
-3. **Generate PASETO keys**:
-   Visit [paseto.notifuse.com](https://paseto.notifuse.com) to generate your PASETO keys, or use the built-in keygen command:
+   **Minimum required variables**: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `SECRET_KEY`
 
-   ```bash
-   # Generate keys manually
-   make keygen
-
-   # Or directly with Go
-   go run cmd/keygen/main.go
-   ```
-
-4. **Start the services**:
+3. **Start the services**:
 
    ```bash
    docker-compose up -d
    ```
 
-5. **Access the application**:
-   - Console: http://localhost:8080
-   - API: http://localhost:8080/api
+4. **Access the application and complete setup**:
+   - Open http://localhost:8080
+   - Follow the interactive **Setup Wizard** to configure:
+     - Root administrator email
+     - API endpoint
+     - SMTP settings
+     - PASETO keys (automatically generated)
+   - Save the generated keys securely!
+
+**Alternative**: You can skip the setup wizard by pre-configuring all environment variables in your `.env` file. Generate PASETO keys at [paseto.notifuse.com](https://paseto.notifuse.com) or use `make keygen`.
 
 ### Environment Configuration
 
@@ -129,16 +128,25 @@ Notifuse follows clean architecture principles with clear separation of concerns
 
 #### Development Setup
 
-The docker-compose includes a PostgreSQL container for quick testing. Simply run `docker-compose up -d` to get started.
+The docker-compose includes a PostgreSQL container for quick testing. Simply run `docker-compose up -d` to get started, then complete the setup wizard in your browser.
 
 #### Production Setup
 
-Copy `env.example` to `.env` and configure:
+**Required Environment Variables:**
 
-- **Required**: `ROOT_EMAIL`, `API_ENDPOINT`, `PASETO_PRIVATE_KEY`, `PASETO_PUBLIC_KEY`
-- **Database**: Configure `DB_HOST`, `DB_USER`, `DB_PASSWORD` for your external PostgreSQL
-- **SMTP Settings**: Configure your email provider for system emails
-- **SSL**: Set `DB_SSLMODE=require` for secure database connections
+- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` - External PostgreSQL database
+- `SECRET_KEY` - Secret key for encrypting sensitive data (or `PASETO_PRIVATE_KEY` as fallback)
+- `DB_SSLMODE=require` - For secure database connections
+
+**Optional (can be configured via Setup Wizard or environment variables):**
+
+- `ROOT_EMAIL` - Root administrator email
+- `API_ENDPOINT` - Public API endpoint URL
+- `PASETO_PRIVATE_KEY`, `PASETO_PUBLIC_KEY` - Authentication keys (auto-generated in wizard)
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` - Email provider settings
+- `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` - From address and name
+
+**Note:** Environment variables always take precedence over database settings configured via the setup wizard.
 
 For detailed installation instructions, configuration options, and setup guides, visit **[docs.notifuse.com](https://docs.notifuse.com)**.
 
