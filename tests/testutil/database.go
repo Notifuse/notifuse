@@ -126,6 +126,50 @@ func (dm *DatabaseManager) SeedTestData() error {
 		return fmt.Errorf("database not setup")
 	}
 
+	// Mark system as installed with PASETO keys in settings
+	testGlobalKey := "test-secret-key-for-integration-tests-only" // Must match server.go SecurityConfig.SecretKey
+
+	// Get test PASETO keys from pkg/testkeys
+	privateKeyB64, publicKeyB64 := "UayDa4OMDpm3CvIT+iSC39iDyPlsui0pNQYDEZ1pbo1LsIrO4p/aVuCBWz6LiYvzj9pc+gn0gLwRd0CoHV+nxw==", "S7CKzuKf2lbggVs+i4mL84/aXPoJ9IC8EXdAqB1fp8c="
+
+	// Encrypt PASETO keys for storage
+	encryptedPrivateKey, err := crypto.EncryptString(privateKeyB64, testGlobalKey)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt PASETO private key: %w", err)
+	}
+
+	encryptedPublicKey, err := crypto.EncryptString(publicKeyB64, testGlobalKey)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt PASETO public key: %w", err)
+	}
+
+	// Insert or update system settings
+	settingsToInsert := []struct {
+		key   string
+		value string
+	}{
+		{"is_installed", "true"},
+		{"root_email", "test@example.com"},
+		{"api_endpoint", "http://localhost:8080"},
+		{"encrypted_paseto_private_key", encryptedPrivateKey},
+		{"encrypted_paseto_public_key", encryptedPublicKey},
+		{"smtp_host", "localhost"},
+		{"smtp_port", "1025"},
+		{"smtp_from_email", "test@example.com"},
+		{"smtp_from_name", "Test Notifuse"},
+	}
+
+	for _, setting := range settingsToInsert {
+		_, err := dm.db.Exec(`
+			INSERT INTO settings (key, value, created_at, updated_at)
+			VALUES ($1, $2, NOW(), NOW())
+			ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+		`, setting.key, setting.value)
+		if err != nil {
+			return fmt.Errorf("failed to insert setting %s: %w", setting.key, err)
+		}
+	}
+
 	// Create test users with valid UUIDs (using different emails to avoid conflict with root user)
 	testUsers := []struct {
 		id    string
@@ -168,7 +212,7 @@ func (dm *DatabaseManager) SeedTestData() error {
 	// Create workspace settings with encrypted secret key
 	// For testing, we'll use a simple secret key and encrypt it with the same global key used in server.go
 	testSecretKey := "test-workspace-secret-key-for-integration-tests"
-	testGlobalKey := "test-secret-key-for-integration-tests-only" // Must match server.go SecurityConfig.SecretKey
+	// testGlobalKey already declared above for PASETO keys
 
 	// Import crypto package functions
 	encryptedSecretKey, err := crypto.EncryptString(testSecretKey, testGlobalKey)

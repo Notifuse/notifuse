@@ -69,6 +69,8 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 	cfg := &config.Config{
 		Environment: "test",
 		RootEmail:   "test@example.com",
+		APIEndpoint: "http://localhost:8080",
+		IsInstalled: true, // Mark as installed for tests
 		Server: config.ServerConfig{
 			Host: "127.0.0.1",
 			Port: 0, // Use random available port
