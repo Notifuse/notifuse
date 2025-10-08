@@ -216,6 +216,30 @@ func (p *SegmentBuildProcessor) Process(ctx context.Context, task *domain.Task, 
 		return false, fmt.Errorf("failed to update segment status to active: %w", err)
 	}
 
+	// If segment has recompute_after set, reschedule it for next 5AM
+	if segment.RecomputeAfter != nil {
+		next5AM, err := calculateNext5AMInTimezone(segment.Timezone)
+		if err != nil {
+			p.logger.WithFields(map[string]interface{}{
+				"error":      err.Error(),
+				"segment_id": state.SegmentID,
+				"timezone":   segment.Timezone,
+			}).Warn("Failed to calculate next 5AM for recompute rescheduling (non-fatal)")
+		} else {
+			if err := p.segmentRepo.UpdateRecomputeAfter(ctx, task.WorkspaceID, state.SegmentID, &next5AM); err != nil {
+				p.logger.WithFields(map[string]interface{}{
+					"error":      err.Error(),
+					"segment_id": state.SegmentID,
+				}).Warn("Failed to update recompute_after for segment (non-fatal)")
+			} else {
+				p.logger.WithFields(map[string]interface{}{
+					"segment_id":      state.SegmentID,
+					"recompute_after": next5AM.Format(time.RFC3339),
+				}).Info("Rescheduled segment for next daily recomputation")
+			}
+		}
+	}
+
 	p.logger.WithFields(map[string]interface{}{
 		"segment_id":     state.SegmentID,
 		"version":        state.Version,

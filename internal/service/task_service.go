@@ -94,6 +94,7 @@ func getTaskTypes() []string {
 		"generate_report",
 		"build_segment",
 		"process_contact_segment_queue",
+		"check_segment_recompute",
 	}
 }
 

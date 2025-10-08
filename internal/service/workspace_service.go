@@ -264,6 +264,12 @@ func (s *WorkspaceService) CreateWorkspace(ctx context.Context, id string, name 
 		// Don't fail workspace creation if task creation fails - it can be created later
 	}
 
+	// Create permanent segment recompute checking task for this workspace
+	if err := EnsureSegmentRecomputeTask(ctx, s.taskRepo, id); err != nil {
+		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to create segment recompute task")
+		// Don't fail workspace creation if task creation fails - it can be created later
+	}
+
 	return workspace, nil
 }
 

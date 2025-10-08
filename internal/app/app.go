@@ -629,6 +629,15 @@ func (a *App) InitServices() error {
 	)
 	a.taskService.RegisterProcessor(segmentBuildProcessor)
 
+	// Initialize and register segment recompute task processor
+	segmentRecomputeProcessor := service.NewSegmentRecomputeTaskProcessor(
+		a.segmentRepo,
+		a.taskRepo,
+		a.taskService,
+		a.logger,
+	)
+	a.taskService.RegisterProcessor(segmentRecomputeProcessor)
+
 	// Initialize contact segment queue processor
 	contactSegmentQueueProcessor := service.NewContactSegmentQueueProcessor(
 		a.contactSegmentQueueRepo,

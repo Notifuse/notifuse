@@ -258,6 +258,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			status VARCHAR(20) NOT NULL,
 			generated_sql TEXT,
 			generated_args JSONB,
+			recompute_after TIMESTAMP WITH TIME ZONE,
 			db_created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			db_updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,

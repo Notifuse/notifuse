@@ -32,18 +32,19 @@ func (s SegmentStatus) Validate() error {
 
 // Segment represents a user segment for filtering contacts
 type Segment struct {
-	ID            string    `json:"id"`
-	Name          string    `json:"name"`
-	Color         string    `json:"color"`
-	Tree          *TreeNode `json:"tree"`
-	Timezone      string    `json:"timezone"`
-	Version       int64     `json:"version"`
-	Status        string    `json:"status"`
-	GeneratedSQL  *string   `json:"generated_sql,omitempty"`
-	GeneratedArgs JSONArray `json:"generated_args,omitempty"` // Array of query arguments in order
-	DBCreatedAt   time.Time `json:"db_created_at"`
-	DBUpdatedAt   time.Time `json:"db_updated_at"`
-	UsersCount    int       `json:"users_count"` // joined server-side
+	ID             string     `json:"id"`
+	Name           string     `json:"name"`
+	Color          string     `json:"color"`
+	Tree           *TreeNode  `json:"tree"`
+	Timezone       string     `json:"timezone"`
+	Version        int64      `json:"version"`
+	Status         string     `json:"status"`
+	GeneratedSQL   *string    `json:"generated_sql,omitempty"`
+	GeneratedArgs  JSONArray  `json:"generated_args,omitempty"`  // Array of query arguments in order
+	RecomputeAfter *time.Time `json:"recompute_after,omitempty"` // When segment should be recomputed (for relative date filters)
+	DBCreatedAt    time.Time  `json:"db_created_at"`
+	DBUpdatedAt    time.Time  `json:"db_updated_at"`
+	UsersCount     int        `json:"users_count"` // joined server-side
 }
 
 // ContactSegment represents the relationship between a contact and a segment
@@ -113,17 +114,18 @@ func (s *Segment) Validate() error {
 
 // For database scanning
 type dbSegment struct {
-	ID            string
-	Name          string
-	Color         string
-	Tree          MapOfAny
-	Timezone      string
-	Version       int64
-	Status        string
-	GeneratedSQL  *string
-	GeneratedArgs JSONArray // Array of query arguments stored as JSONB
-	DBCreatedAt   time.Time
-	DBUpdatedAt   time.Time
+	ID             string
+	Name           string
+	Color          string
+	Tree           MapOfAny
+	Timezone       string
+	Version        int64
+	Status         string
+	GeneratedSQL   *string
+	GeneratedArgs  JSONArray // Array of query arguments stored as JSONB
+	RecomputeAfter *time.Time
+	DBCreatedAt    time.Time
+	DBUpdatedAt    time.Time
 }
 
 // ScanSegment scans a segment from the database
@@ -142,6 +144,7 @@ func ScanSegment(scanner interface {
 		&dbs.Status,
 		&dbs.GeneratedSQL,
 		&dbs.GeneratedArgs,
+		&dbs.RecomputeAfter,
 		&dbs.DBCreatedAt,
 		&dbs.DBUpdatedAt,
 		&usersCount,
@@ -156,18 +159,19 @@ func ScanSegment(scanner interface {
 	}
 
 	s := &Segment{
-		ID:            dbs.ID,
-		Name:          dbs.Name,
-		Color:         dbs.Color,
-		Tree:          tree,
-		Timezone:      dbs.Timezone,
-		Version:       dbs.Version,
-		Status:        dbs.Status,
-		GeneratedSQL:  dbs.GeneratedSQL,
-		GeneratedArgs: dbs.GeneratedArgs,
-		DBCreatedAt:   dbs.DBCreatedAt,
-		DBUpdatedAt:   dbs.DBUpdatedAt,
-		UsersCount:    usersCount,
+		ID:             dbs.ID,
+		Name:           dbs.Name,
+		Color:          dbs.Color,
+		Tree:           tree,
+		Timezone:       dbs.Timezone,
+		Version:        dbs.Version,
+		Status:         dbs.Status,
+		GeneratedSQL:   dbs.GeneratedSQL,
+		GeneratedArgs:  dbs.GeneratedArgs,
+		RecomputeAfter: dbs.RecomputeAfter,
+		DBCreatedAt:    dbs.DBCreatedAt,
+		DBUpdatedAt:    dbs.DBUpdatedAt,
+		UsersCount:     usersCount,
 	}
 
 	return s, nil
@@ -441,6 +445,12 @@ type SegmentRepository interface {
 
 	// PreviewSegment executes a segment query and returns the count of matching contacts
 	PreviewSegment(ctx context.Context, workspaceID string, sqlQuery string, args []interface{}, limit int) (int, error)
+
+	// GetSegmentsDueForRecompute retrieves segments that need recomputation (recompute_after <= now)
+	GetSegmentsDueForRecompute(ctx context.Context, workspaceID string, limit int) ([]*Segment, error)
+
+	// UpdateRecomputeAfter updates only the recompute_after field for a segment
+	UpdateRecomputeAfter(ctx context.Context, workspaceID string, segmentID string, recomputeAfter *time.Time) error
 }
 
 // ErrSegmentNotFound is returned when a segment is not found

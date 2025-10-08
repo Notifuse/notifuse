@@ -80,9 +80,9 @@ func TestSegmentRepository_CreateSegment(t *testing.T) {
 		sqlMock.ExpectExec(regexp.QuoteMeta(`
 		INSERT INTO segments (
 			id, name, color, tree, timezone, version, status,
-			generated_sql, generated_args, db_created_at, db_updated_at
+			generated_sql, generated_args, recompute_after, db_created_at, db_updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 		)
 	`)).WithArgs(
 			testSegment.ID,
@@ -94,6 +94,7 @@ func TestSegmentRepository_CreateSegment(t *testing.T) {
 			testSegment.Status,
 			testSegment.GeneratedSQL,
 			sqlmock.AnyArg(), // generated_args JSONB
+			sqlmock.AnyArg(), // recompute_after
 			sqlmock.AnyArg(), // db_created_at
 			sqlmock.AnyArg(), // db_updated_at
 		).WillReturnResult(sqlmock.NewResult(1, 1))
@@ -119,9 +120,9 @@ func TestSegmentRepository_CreateSegment(t *testing.T) {
 		sqlMock.ExpectExec(regexp.QuoteMeta(`
 		INSERT INTO segments (
 			id, name, color, tree, timezone, version, status,
-			generated_sql, generated_args, db_created_at, db_updated_at
+			generated_sql, generated_args, recompute_after, db_created_at, db_updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 		)
 	`)).WillReturnError(errors.New("database error"))
 
@@ -162,7 +163,7 @@ func TestSegmentRepository_GetSegmentByID(t *testing.T) {
 	t.Run("segment found", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
-			"generated_sql", "generated_args", "db_created_at", "db_updated_at", "users_count",
+			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
 		}).AddRow(
 			testSegment.ID,
 			testSegment.Name,
@@ -173,6 +174,7 @@ func TestSegmentRepository_GetSegmentByID(t *testing.T) {
 			testSegment.Status,
 			testSegment.GeneratedSQL,
 			`[5]`,
+			nil, // recompute_after
 			testSegment.DBCreatedAt,
 			testSegment.DBUpdatedAt,
 			42, // users_count
@@ -181,13 +183,13 @@ func TestSegmentRepository_GetSegmentByID(t *testing.T) {
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
 			COALESCE(COUNT(cs.email), 0) as users_count
 		FROM segments s
 		LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 		WHERE s.id = $1
 		GROUP BY s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at
 	`)).WithArgs(testSegment.ID).WillReturnRows(rows)
 
 		segment, err := repo.GetSegmentByID(context.Background(), "workspace123", testSegment.ID)
@@ -204,7 +206,7 @@ func TestSegmentRepository_GetSegmentByID(t *testing.T) {
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
 			COALESCE(COUNT(cs.email), 0) as users_count
 		FROM segments s
 		LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
@@ -221,7 +223,7 @@ func TestSegmentRepository_GetSegmentByID(t *testing.T) {
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
 			COALESCE(COUNT(cs.email), 0) as users_count
 		FROM segments s
 	`)).WillReturnError(errors.New("database error"))
@@ -251,7 +253,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 	t.Run("segments found with counts", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
-			"generated_sql", "generated_args", "db_created_at", "db_updated_at", "users_count",
+			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
 		}).AddRow(
 			testSegment.ID,
 			testSegment.Name,
@@ -262,6 +264,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 			testSegment.Status,
 			testSegment.GeneratedSQL,
 			`[5]`,
+			nil, // recompute_after
 			testSegment.DBCreatedAt,
 			testSegment.DBUpdatedAt,
 			42,
@@ -275,6 +278,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 			"active",
 			testSegment.GeneratedSQL,
 			`[10]`,
+			nil, // recompute_after
 			testSegment.DBCreatedAt,
 			testSegment.DBUpdatedAt,
 			25,
@@ -283,7 +287,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
 			COALESCE(COUNT(cs.email), 0) as users_count
 		FROM segments s
 		LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
@@ -302,7 +306,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 	t.Run("segments found without counts", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
-			"generated_sql", "generated_args", "db_created_at", "db_updated_at", "users_count",
+			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
 		}).AddRow(
 			testSegment.ID,
 			testSegment.Name,
@@ -313,6 +317,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 			testSegment.Status,
 			testSegment.GeneratedSQL,
 			`[5]`,
+			nil, // recompute_after
 			testSegment.DBCreatedAt,
 			testSegment.DBUpdatedAt,
 			0, // No count when withCount=false
@@ -321,7 +326,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
 			0 as users_count
 		FROM segments s
 		WHERE s.status != 'deleted'
@@ -392,7 +397,8 @@ func TestSegmentRepository_UpdateSegment(t *testing.T) {
 			status = $7,
 			generated_sql = $8,
 			generated_args = $9,
-			db_updated_at = $10
+			recompute_after = $10,
+			db_updated_at = $11
 		WHERE id = $1
 	`)).WithArgs(
 			testSegment.ID,
@@ -404,6 +410,7 @@ func TestSegmentRepository_UpdateSegment(t *testing.T) {
 			testSegment.Status,
 			testSegment.GeneratedSQL,
 			sqlmock.AnyArg(), // generated_args JSONB
+			sqlmock.AnyArg(), // recompute_after
 			sqlmock.AnyArg(), // db_updated_at
 		).WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -627,7 +634,7 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 	t.Run("segments found for contact", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
-			"generated_sql", "generated_args", "db_created_at", "db_updated_at", "users_count",
+			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
 		}).AddRow(
 			testSegment.ID,
 			testSegment.Name,
@@ -638,6 +645,7 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 			"active",
 			testSegment.GeneratedSQL,
 			`[5]`,
+			nil, // recompute_after
 			testSegment.DBCreatedAt,
 			testSegment.DBUpdatedAt,
 			0,
@@ -646,11 +654,12 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
 			0 as users_count
 		FROM segments s
 		INNER JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 		WHERE cs.email = $1 AND s.status = 'active'
+		ORDER BY s.name ASC
 	`)).WithArgs("test@example.com").WillReturnRows(rows)
 
 		segments, err := repo.GetContactSegments(context.Background(), "workspace123", "test@example.com")
@@ -663,12 +672,18 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 	t.Run("no segments found", func(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "color", "tree", "timezone", "version", "status",
-			"generated_sql", "generated_args", "db_created_at", "db_updated_at", "users_count",
+			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at", "users_count",
 		})
 
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
+			0 as users_count
+		FROM segments s
+		INNER JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
+		WHERE cs.email = $1 AND s.status = 'active'
+		ORDER BY s.name ASC
 	`)).WillReturnRows(rows)
 
 		segments, err := repo.GetContactSegments(context.Background(), "workspace123", "test@example.com")
@@ -680,6 +695,9 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 		sqlMock.ExpectQuery(regexp.QuoteMeta(`
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
+			0 as users_count
+		FROM segments s
 	`)).WillReturnError(errors.New("database error"))
 
 		segments, err := repo.GetContactSegments(context.Background(), "workspace123", "test@example.com")

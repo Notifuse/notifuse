@@ -7,6 +7,7 @@ package mocks
 import (
 	context "context"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
@@ -137,6 +138,21 @@ func (mr *MockSegmentRepositoryMockRecorder) GetSegments(arg0, arg1, arg2 interf
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSegments", reflect.TypeOf((*MockSegmentRepository)(nil).GetSegments), arg0, arg1, arg2)
 }
 
+// GetSegmentsDueForRecompute mocks base method.
+func (m *MockSegmentRepository) GetSegmentsDueForRecompute(arg0 context.Context, arg1 string, arg2 int) ([]*domain.Segment, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSegmentsDueForRecompute", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]*domain.Segment)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSegmentsDueForRecompute indicates an expected call of GetSegmentsDueForRecompute.
+func (mr *MockSegmentRepositoryMockRecorder) GetSegmentsDueForRecompute(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSegmentsDueForRecompute", reflect.TypeOf((*MockSegmentRepository)(nil).GetSegmentsDueForRecompute), arg0, arg1, arg2)
+}
+
 // PreviewSegment mocks base method.
 func (m *MockSegmentRepository) PreviewSegment(arg0 context.Context, arg1, arg2 string, arg3 []interface{}, arg4 int) (int, error) {
 	m.ctrl.T.Helper()
@@ -178,6 +194,20 @@ func (m *MockSegmentRepository) RemoveOldMemberships(arg0 context.Context, arg1,
 func (mr *MockSegmentRepositoryMockRecorder) RemoveOldMemberships(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveOldMemberships", reflect.TypeOf((*MockSegmentRepository)(nil).RemoveOldMemberships), arg0, arg1, arg2, arg3)
+}
+
+// UpdateRecomputeAfter mocks base method.
+func (m *MockSegmentRepository) UpdateRecomputeAfter(arg0 context.Context, arg1, arg2 string, arg3 *time.Time) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateRecomputeAfter", arg0, arg1, arg2, arg3)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// UpdateRecomputeAfter indicates an expected call of UpdateRecomputeAfter.
+func (mr *MockSegmentRepositoryMockRecorder) UpdateRecomputeAfter(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateRecomputeAfter", reflect.TypeOf((*MockSegmentRepository)(nil).UpdateRecomputeAfter), arg0, arg1, arg2, arg3)
 }
 
 // UpdateSegment mocks base method.

@@ -1135,3 +1135,81 @@ func (tdf *TestDataFactory) GetConnectionCount() int {
 	pool := GetGlobalTestPool()
 	return pool.GetConnectionCount()
 }
+
+// SetSegmentRecomputeAfter sets the recompute_after timestamp for a segment (for testing)
+func (tdf *TestDataFactory) SetSegmentRecomputeAfter(workspaceID, segmentID string, recomputeAfter time.Time) error {
+	// Get workspace database connection
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	// Update the segment's recompute_after field
+	query := `UPDATE segments SET recompute_after = $1, db_updated_at = CURRENT_TIMESTAMP WHERE id = $2`
+	_, err = workspaceDB.ExecContext(context.Background(), query, recomputeAfter, segmentID)
+	if err != nil {
+		return fmt.Errorf("failed to set recompute_after: %w", err)
+	}
+
+	return nil
+}
+
+// EnsureSegmentRecomputeTask ensures the check_segment_recompute task exists for a workspace (for testing)
+func (tdf *TestDataFactory) EnsureSegmentRecomputeTask(workspaceID string) error {
+	ctx := context.Background()
+
+	// Check if task already exists
+	existing, err := tdf.db.QueryContext(ctx,
+		`SELECT id FROM tasks WHERE workspace_id = $1 AND type = 'check_segment_recompute' LIMIT 1`,
+		workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to check for existing task: %w", err)
+	}
+	defer existing.Close()
+
+	if existing.Next() {
+		// Task already exists
+		return nil
+	}
+
+	// Create the task
+	taskID := uuid.New().String()
+	state := map[string]interface{}{
+		"message": "Check segments for daily recompute",
+	}
+	stateJSON, err := json.Marshal(state)
+	if err != nil {
+		return fmt.Errorf("failed to marshal state: %w", err)
+	}
+
+	now := time.Now().UTC()
+	query := `
+		INSERT INTO tasks (
+			id, workspace_id, type, status, progress, state,
+			created_at, updated_at, next_run_after,
+			max_runtime, max_retries, retry_count, retry_interval
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+		)
+	`
+	_, err = tdf.db.ExecContext(ctx, query,
+		taskID,
+		workspaceID,
+		"check_segment_recompute",
+		"pending",
+		0.0,
+		stateJSON,
+		now,
+		now,
+		now, // next_run_after - run immediately
+		50,  // max_runtime in seconds
+		3,   // max_retries
+		0,   // retry_count
+		60,  // retry_interval in seconds
+	)
+	if err != nil {
+		return fmt.Errorf("failed to create task: %w", err)
+	}
+
+	return nil
+}

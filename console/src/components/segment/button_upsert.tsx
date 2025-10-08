@@ -1,4 +1,5 @@
 import {
+  Alert,
   Button,
   Col,
   Drawer,
@@ -32,6 +33,32 @@ import {
 import { TimezonesForSelect } from '../../lib/countries_timezones'
 import { TableSchemas } from './table_schemas'
 import { Workspace } from '../../services/api/types'
+
+// Helper function to check if a tree contains relative date filters
+const treeHasRelativeDates = (tree: any): boolean => {
+  if (!tree) return false
+
+  if (tree.kind === 'branch') {
+    // Check all child leaves recursively
+    if (tree.branch?.leaves) {
+      return tree.branch.leaves.some((leaf: any) => treeHasRelativeDates(leaf))
+    }
+    return false
+  }
+
+  if (tree.kind === 'leaf') {
+    // Check contact timeline conditions for relative date operators
+    if (tree.leaf?.contact_timeline) {
+      if (tree.leaf.contact_timeline.timeframe_operator === 'in_the_last_days') {
+        return true
+      }
+    }
+    // Could add more checks here for other types of relative date filters
+    return false
+  }
+
+  return false
+}
 
 const ButtonUpsertSegment = (props: {
   segment?: Segment
@@ -385,6 +412,27 @@ const DrawerSegment = (props: {
                   }}
                   options={TimezonesForSelect}
                 />
+              </Form.Item>
+
+              {/* Alert for segments with relative date filters */}
+              <Form.Item noStyle dependencies={['tree', 'timezone']}>
+                {() => {
+                  const values = form.getFieldsValue()
+                  const hasRelativeDates = treeHasRelativeDates(values.tree)
+                  const timezone = values.timezone || workspace?.settings.timezone || 'UTC'
+
+                  if (hasRelativeDates) {
+                    return (
+                      <Alert
+                        type="info"
+                        showIcon
+                        message={`This segment uses relative date filters and will be automatically recomputed daily at 5:00 AM (${timezone})`}
+                        style={{ marginBottom: 16 }}
+                      />
+                    )
+                  }
+                  return null
+                }}
               </Form.Item>
             </Col>
             <Col span={6}>

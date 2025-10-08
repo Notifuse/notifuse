@@ -67,9 +67,9 @@ func (r *segmentRepository) CreateSegment(ctx context.Context, workspaceID strin
 	query := `
 		INSERT INTO segments (
 			id, name, color, tree, timezone, version, status,
-			generated_sql, generated_args, db_created_at, db_updated_at
+			generated_sql, generated_args, recompute_after, db_created_at, db_updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 		)
 	`
 
@@ -89,6 +89,7 @@ func (r *segmentRepository) CreateSegment(ctx context.Context, workspaceID strin
 		segment.Status,
 		segment.GeneratedSQL,
 		segment.GeneratedArgs,
+		segment.RecomputeAfter,
 		segment.DBCreatedAt,
 		segment.DBUpdatedAt,
 	)
@@ -111,13 +112,13 @@ func (r *segmentRepository) GetSegmentByID(ctx context.Context, workspaceID stri
 	query := `
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
 			COALESCE(COUNT(cs.email), 0) as users_count
 		FROM segments s
 		LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 		WHERE s.id = $1
 		GROUP BY s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at
 	`
 
 	row := workspaceDB.QueryRowContext(ctx, query, id)
@@ -147,13 +148,13 @@ func (r *segmentRepository) GetSegments(ctx context.Context, workspaceID string,
 		query = `
 			SELECT 
 				s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-				s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+				s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
 				COALESCE(COUNT(cs.email), 0) as users_count
 			FROM segments s
 			LEFT JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
 			WHERE s.status != 'deleted'
 			GROUP BY s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-				s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at
+				s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at
 			ORDER BY s.db_created_at DESC
 		`
 	} else {
@@ -161,7 +162,7 @@ func (r *segmentRepository) GetSegments(ctx context.Context, workspaceID string,
 		query = `
 			SELECT 
 				s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-				s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+				s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
 				0 as users_count
 			FROM segments s
 			WHERE s.status != 'deleted'
@@ -213,7 +214,8 @@ func (r *segmentRepository) UpdateSegment(ctx context.Context, workspaceID strin
 			status = $7,
 			generated_sql = $8,
 			generated_args = $9,
-			db_updated_at = $10
+			recompute_after = $10,
+			db_updated_at = $11
 		WHERE id = $1
 	`
 
@@ -233,6 +235,7 @@ func (r *segmentRepository) UpdateSegment(ctx context.Context, workspaceID strin
 		segment.Status,
 		segment.GeneratedSQL,
 		segment.GeneratedArgs,
+		segment.RecomputeAfter,
 		segment.DBUpdatedAt,
 	)
 
@@ -361,7 +364,7 @@ func (r *segmentRepository) GetContactSegments(ctx context.Context, workspaceID 
 	query := `
 		SELECT 
 			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
-			s.generated_sql, s.generated_args, s.db_created_at, s.db_updated_at,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
 			0 as users_count
 		FROM segments s
 		INNER JOIN contact_segments cs ON s.id = cs.segment_id AND s.version = cs.version
@@ -427,4 +430,78 @@ func (r *segmentRepository) PreviewSegment(ctx context.Context, workspaceID stri
 	}
 
 	return totalCount, nil
+}
+
+// GetSegmentsDueForRecompute retrieves segments that need recomputation (recompute_after <= now)
+func (r *segmentRepository) GetSegmentsDueForRecompute(ctx context.Context, workspaceID string, limit int) ([]*domain.Segment, error) {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		SELECT 
+			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
+			0 as users_count
+		FROM segments s
+		WHERE s.status = 'active'
+			AND s.recompute_after IS NOT NULL
+			AND s.recompute_after <= NOW()
+		ORDER BY s.recompute_after ASC
+		LIMIT $1
+	`
+
+	rows, err := workspaceDB.QueryContext(ctx, query, limit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query segments due for recompute: %w", err)
+	}
+	defer rows.Close()
+
+	segments := make([]*domain.Segment, 0)
+	for rows.Next() {
+		segment, err := domain.ScanSegment(rows)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan segment: %w", err)
+		}
+		segments = append(segments, segment)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating segments: %w", err)
+	}
+
+	return segments, nil
+}
+
+// UpdateRecomputeAfter updates only the recompute_after field for a segment
+func (r *segmentRepository) UpdateRecomputeAfter(ctx context.Context, workspaceID string, segmentID string, recomputeAfter *time.Time) error {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		UPDATE segments
+		SET recompute_after = $2, db_updated_at = $3
+		WHERE id = $1
+	`
+
+	result, err := workspaceDB.ExecContext(ctx, query, segmentID, recomputeAfter, time.Now().UTC())
+	if err != nil {
+		return fmt.Errorf("failed to update recompute_after: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return &domain.ErrSegmentNotFound{Message: fmt.Sprintf("segment not found: %s", segmentID)}
+	}
+
+	return nil
 }

@@ -271,3 +271,42 @@ func TreeNodeFromJSON(jsonStr string) (*TreeNode, error) {
 
 	return &node, nil
 }
+
+// HasRelativeDates checks if the tree contains any relative date filters
+// that require daily recomputation (e.g., "in_the_last_days")
+func (t *TreeNode) HasRelativeDates() bool {
+	if t == nil {
+		return false
+	}
+
+	switch t.Kind {
+	case "branch":
+		if t.Branch == nil {
+			return false
+		}
+		// Check all child leaves
+		for _, leaf := range t.Branch.Leaves {
+			if leaf.HasRelativeDates() {
+				return true
+			}
+		}
+		return false
+
+	case "leaf":
+		if t.Leaf == nil {
+			return false
+		}
+		// Check contact timeline conditions for relative date operators
+		if t.Leaf.ContactTimeline != nil {
+			if t.Leaf.ContactTimeline.TimeframeOperator != nil &&
+				*t.Leaf.ContactTimeline.TimeframeOperator == "in_the_last_days" {
+				return true
+			}
+		}
+		// Could add more checks here for other types of relative date filters
+		return false
+
+	default:
+		return false
+	}
+}

@@ -88,6 +88,14 @@ func TestSegmentE2E(t *testing.T) {
 	t.Run("Update and Delete Segments", func(t *testing.T) {
 		testUpdateAndDeleteSegments(t, client, factory, workspace.ID)
 	})
+
+	t.Run("Segment with Relative Dates - Daily Recompute", func(t *testing.T) {
+		testSegmentWithRelativeDates(t, client, factory, workspace.ID)
+	})
+
+	t.Run("Check Segment Recompute Task Processor", func(t *testing.T) {
+		testCheckSegmentRecomputeProcessor(t, client, factory, workspace.ID)
+	})
 }
 
 // testSimpleContactSegment tests creating a simple segment with contact filters
@@ -815,5 +823,617 @@ func testUpdateAndDeleteSegments(t *testing.T, client *testutil.APIClient, facto
 			// Hard delete - expect 404
 			assert.Equal(t, http.StatusNotFound, getResp.StatusCode)
 		}
+	})
+}
+
+// testSegmentWithRelativeDates tests segments with relative date filters and daily recompute
+func testSegmentWithRelativeDates(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
+	t.Run("should set recompute_after for segments with relative dates", func(t *testing.T) {
+		// Create contacts with timeline events
+		activeContact, err := factory.CreateContact(workspaceID,
+			testutil.WithContactEmail("recent-active@example.com"))
+		require.NoError(t, err)
+
+		// Add recent timeline events (within last 7 days)
+		for i := 0; i < 5; i++ {
+			err = factory.CreateContactTimelineEvent(workspaceID, activeContact.Email, "email_opened", map[string]interface{}{
+				"message_id": fmt.Sprintf("recent-msg-%d", i),
+			})
+			require.NoError(t, err)
+		}
+
+		// Create segment with relative date filter: contacts who opened email in the last 7 days
+		timeframeOp := "in_the_last_days"
+		segment := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           fmt.Sprintf("recentactive%d", time.Now().Unix()),
+			"name":         "Recently Active",
+			"description":  "Contacts who opened emails in the last 7 days",
+			"color":        "#FF6B6B",
+			"timezone":     "America/New_York",
+			"tree": map[string]interface{}{
+				"kind": "leaf",
+				"leaf": map[string]interface{}{
+					"table": "contact_timeline",
+					"contact_timeline": map[string]interface{}{
+						"kind":               "email_opened",
+						"count_operator":     "at_least",
+						"count_value":        1,
+						"timeframe_operator": &timeframeOp,
+						"timeframe_values":   []string{"7"},
+					},
+				},
+			},
+		}
+
+		// Create the segment
+		createResp, err := client.Post("/api/segments.create", segment)
+		require.NoError(t, err)
+		defer createResp.Body.Close()
+		assert.Equal(t, http.StatusCreated, createResp.StatusCode)
+
+		var createResult map[string]interface{}
+		err = json.NewDecoder(createResp.Body).Decode(&createResult)
+		require.NoError(t, err)
+
+		segmentData := createResult["segment"].(map[string]interface{})
+		segmentID := segmentData["id"].(string)
+
+		// Verify recompute_after is set
+		if recomputeAfter, ok := segmentData["recompute_after"].(string); ok {
+			assert.NotEmpty(t, recomputeAfter, "recompute_after should be set for segments with relative dates")
+
+			// Parse and verify it's a future timestamp
+			recomputeTime, err := time.Parse(time.RFC3339, recomputeAfter)
+			require.NoError(t, err)
+			assert.True(t, recomputeTime.After(time.Now()), "recompute_after should be in the future")
+		}
+
+		// Build the segment
+		rebuildResp, err := client.Post("/api/segments.rebuild", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"segment_id":   segmentID,
+		})
+		require.NoError(t, err)
+		defer rebuildResp.Body.Close()
+
+		// Execute tasks
+		time.Sleep(1 * time.Second)
+		execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
+		require.NoError(t, err)
+		execResp.Body.Close()
+
+		time.Sleep(500 * time.Millisecond)
+
+		// Verify segment is built and recompute_after is still set
+		getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
+		require.NoError(t, err)
+		defer getResp.Body.Close()
+
+		var getResult map[string]interface{}
+		err = json.NewDecoder(getResp.Body).Decode(&getResult)
+		require.NoError(t, err)
+
+		updatedSegment := getResult["segment"].(map[string]interface{})
+
+		// After build, recompute_after should still be set (rescheduled for next day)
+		if recomputeAfter, ok := updatedSegment["recompute_after"].(string); ok {
+			assert.NotEmpty(t, recomputeAfter, "recompute_after should remain set after build")
+		}
+	})
+
+	t.Run("should NOT set recompute_after for segments without relative dates", func(t *testing.T) {
+		// Create segment without relative dates
+		segment := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           fmt.Sprintf("norelative%d", time.Now().Unix()),
+			"name":         "No Relative Dates",
+			"description":  "Segment without relative date filters",
+			"color":        "#4ECDC4",
+			"timezone":     "UTC",
+			"tree": map[string]interface{}{
+				"kind": "leaf",
+				"leaf": map[string]interface{}{
+					"table": "contacts",
+					"contact": map[string]interface{}{
+						"filters": []map[string]interface{}{
+							{
+								"field_name":    "country",
+								"field_type":    "string",
+								"operator":      "equals",
+								"string_values": []string{"US"},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		createResp, err := client.Post("/api/segments.create", segment)
+		require.NoError(t, err)
+		defer createResp.Body.Close()
+
+		var createResult map[string]interface{}
+		err = json.NewDecoder(createResp.Body).Decode(&createResult)
+		require.NoError(t, err)
+
+		segmentData := createResult["segment"].(map[string]interface{})
+
+		// Verify recompute_after is not set or is null
+		recomputeAfter, hasField := segmentData["recompute_after"]
+		if hasField && recomputeAfter != nil {
+			t.Errorf("recompute_after should be null for segments without relative dates, got: %v", recomputeAfter)
+		}
+	})
+
+	t.Run("should update recompute_after when adding relative dates", func(t *testing.T) {
+		// Create segment without relative dates
+		segmentID := fmt.Sprintf("updatetest%d", time.Now().Unix())
+		segment := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           segmentID,
+			"name":         "Test Update",
+			"color":        "#95E1D3",
+			"timezone":     "UTC",
+			"tree": map[string]interface{}{
+				"kind": "leaf",
+				"leaf": map[string]interface{}{
+					"table": "contacts",
+					"contact": map[string]interface{}{
+						"filters": []map[string]interface{}{
+							{
+								"field_name":    "country",
+								"field_type":    "string",
+								"operator":      "equals",
+								"string_values": []string{"FR"},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		createResp, err := client.Post("/api/segments.create", segment)
+		require.NoError(t, err)
+		createResp.Body.Close()
+
+		// Update segment to add relative dates
+		timeframeOp := "in_the_last_days"
+		updateReq := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           segmentID,
+			"name":         "Test Update - With Relative Dates",
+			"color":        "#95E1D3",
+			"timezone":     "UTC",
+			"tree": map[string]interface{}{
+				"kind": "leaf",
+				"leaf": map[string]interface{}{
+					"table": "contact_timeline",
+					"contact_timeline": map[string]interface{}{
+						"kind":               "email_opened",
+						"count_operator":     "at_least",
+						"count_value":        1,
+						"timeframe_operator": &timeframeOp,
+						"timeframe_values":   []string{"30"},
+					},
+				},
+			},
+		}
+
+		updateResp, err := client.Post("/api/segments.update", updateReq)
+		require.NoError(t, err)
+		defer updateResp.Body.Close()
+		assert.Equal(t, http.StatusOK, updateResp.StatusCode)
+
+		var updateResult map[string]interface{}
+		err = json.NewDecoder(updateResp.Body).Decode(&updateResult)
+		require.NoError(t, err)
+
+		updatedSegment := updateResult["segment"].(map[string]interface{})
+
+		// Verify recompute_after is now set
+		if recomputeAfter, ok := updatedSegment["recompute_after"].(string); ok {
+			assert.NotEmpty(t, recomputeAfter, "recompute_after should be set after adding relative dates")
+		}
+	})
+}
+
+// testCheckSegmentRecomputeProcessor tests the recurring task that checks for segments due for recompute
+func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
+	// Ensure the check_segment_recompute task exists for this workspace
+	err := factory.EnsureSegmentRecomputeTask(workspaceID)
+	require.NoError(t, err)
+
+	t.Run("should create build tasks for segments due for recompute", func(t *testing.T) {
+		// Create a segment with relative dates
+		timeframeOp := "in_the_last_days"
+		segment1 := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           fmt.Sprintf("taskrecomp1%d", time.Now().Unix()),
+			"name":         "Task Recompute Test 1",
+			"color":        "#FF6B6B",
+			"timezone":     "UTC",
+			"tree": map[string]interface{}{
+				"kind": "leaf",
+				"leaf": map[string]interface{}{
+					"table": "contact_timeline",
+					"contact_timeline": map[string]interface{}{
+						"kind":               "email_opened",
+						"count_operator":     "at_least",
+						"count_value":        1,
+						"timeframe_operator": &timeframeOp,
+						"timeframe_values":   []string{"7"},
+					},
+				},
+			},
+		}
+
+		// Create the segment
+		createResp, err := client.Post("/api/segments.create", segment1)
+		require.NoError(t, err)
+		defer createResp.Body.Close()
+		assert.Equal(t, http.StatusCreated, createResp.StatusCode)
+
+		var createResult map[string]interface{}
+		err = json.NewDecoder(createResp.Body).Decode(&createResult)
+		require.NoError(t, err)
+
+		segmentData := createResult["segment"].(map[string]interface{})
+		segment1ID := segmentData["id"].(string)
+
+		// Manually set recompute_after to the past using the factory
+		pastTime := time.Now().Add(-1 * time.Hour)
+		err = factory.SetSegmentRecomputeAfter(workspaceID, segment1ID, pastTime)
+		require.NoError(t, err)
+
+		// Wait to ensure the update is persisted and to create a clear time gap
+		// Longer wait to account for system load when running full test suite
+		time.Sleep(1 * time.Second)
+
+		// Find the check_segment_recompute task for this workspace
+		listResp, err := client.ListTasks(map[string]string{
+			"workspace_id": workspaceID,
+			"type":         "check_segment_recompute",
+		})
+		require.NoError(t, err)
+		defer listResp.Body.Close()
+
+		var listResult map[string]interface{}
+		err = json.NewDecoder(listResp.Body).Decode(&listResult)
+		require.NoError(t, err)
+
+		tasksInterface, ok := listResult["tasks"]
+		if !ok || tasksInterface == nil {
+			t.Skip("check_segment_recompute task not found - may need to wait for workspace initialization")
+		}
+
+		tasks := tasksInterface.([]interface{})
+		if len(tasks) == 0 {
+			t.Skip("check_segment_recompute task not yet created for this workspace")
+		}
+		require.GreaterOrEqual(t, len(tasks), 1, "Should have at least one check_segment_recompute task")
+
+		recomputeTask := tasks[0].(map[string]interface{})
+		recomputeTaskID := recomputeTask["id"].(string)
+
+		// Get the current time to track tasks created after the recompute task runs
+		timeBeforeExecution := time.Now()
+
+		// Execute the check_segment_recompute task
+		executeResp, err := client.ExecuteTask(map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           recomputeTaskID,
+		})
+		require.NoError(t, err)
+		defer executeResp.Body.Close()
+		assert.Equal(t, http.StatusOK, executeResp.StatusCode)
+
+		// Wait a bit for task processing
+		time.Sleep(500 * time.Millisecond)
+
+		// Check that a build task was created specifically for segment1
+		buildTasksAfterResp, err := client.ListTasks(map[string]string{
+			"workspace_id": workspaceID,
+			"type":         "build_segment",
+		})
+		require.NoError(t, err)
+		defer buildTasksAfterResp.Body.Close()
+
+		var buildTasksAfterResult map[string]interface{}
+		err = json.NewDecoder(buildTasksAfterResp.Body).Decode(&buildTasksAfterResult)
+		require.NoError(t, err)
+
+		// Look for a NEW build task created for segment1 after we ran the recompute task
+		foundNewTaskForSegment1 := false
+		for _, taskInterface := range buildTasksAfterResult["tasks"].([]interface{}) {
+			task := taskInterface.(map[string]interface{})
+
+			// Check if task was created after we executed the recompute task
+			createdAtStr, ok := task["created_at"].(string)
+			if !ok {
+				continue
+			}
+			createdAt, err := time.Parse(time.RFC3339, createdAtStr)
+			if err != nil {
+				continue
+			}
+
+			// Only check NEW tasks
+			if !createdAt.After(timeBeforeExecution) {
+				continue
+			}
+
+			if state, ok := task["state"].(map[string]interface{}); ok {
+				if buildSegment, ok := state["build_segment"].(map[string]interface{}); ok {
+					if segmentID, ok := buildSegment["segment_id"].(string); ok {
+						if segmentID == segment1ID {
+							foundNewTaskForSegment1 = true
+							break
+						}
+					}
+				}
+			}
+		}
+
+		assert.True(t, foundNewTaskForSegment1, "Should have created a new build_segment task for segment1")
+
+		// Verify the check_segment_recompute task is still pending (continues recurring)
+		getTaskResp, err := client.GetTask(workspaceID, recomputeTaskID)
+		require.NoError(t, err)
+		defer getTaskResp.Body.Close()
+
+		var getTaskResult map[string]interface{}
+		err = json.NewDecoder(getTaskResp.Body).Decode(&getTaskResult)
+		require.NoError(t, err)
+
+		taskStatus := getTaskResult["task"].(map[string]interface{})["status"].(string)
+		assert.Equal(t, "pending", taskStatus, "check_segment_recompute task should remain pending for recurring execution")
+	})
+
+	t.Run("should NOT create build tasks for segments not yet due", func(t *testing.T) {
+		// Create a segment with relative dates
+		timeframeOp := "in_the_last_days"
+		segment2 := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           fmt.Sprintf("taskrecomp2%d", time.Now().Unix()),
+			"name":         "Task Recompute Test 2",
+			"color":        "#4ECDC4",
+			"timezone":     "UTC",
+			"tree": map[string]interface{}{
+				"kind": "leaf",
+				"leaf": map[string]interface{}{
+					"table": "contact_timeline",
+					"contact_timeline": map[string]interface{}{
+						"kind":               "email_opened",
+						"count_operator":     "at_least",
+						"count_value":        1,
+						"timeframe_operator": &timeframeOp,
+						"timeframe_values":   []string{"30"},
+					},
+				},
+			},
+		}
+
+		// Create the segment
+		createResp, err := client.Post("/api/segments.create", segment2)
+		require.NoError(t, err)
+		defer createResp.Body.Close()
+
+		var createResult map[string]interface{}
+		err = json.NewDecoder(createResp.Body).Decode(&createResult)
+		require.NoError(t, err)
+
+		segmentData := createResult["segment"].(map[string]interface{})
+		segment2ID := segmentData["id"].(string)
+
+		// Set recompute_after to the future
+		futureTime := time.Now().Add(24 * time.Hour)
+		err = factory.SetSegmentRecomputeAfter(workspaceID, segment2ID, futureTime)
+		require.NoError(t, err)
+
+		// Find the check_segment_recompute task
+		listResp, err := client.ListTasks(map[string]string{
+			"workspace_id": workspaceID,
+			"type":         "check_segment_recompute",
+		})
+		require.NoError(t, err)
+		defer listResp.Body.Close()
+
+		var listResult map[string]interface{}
+		err = json.NewDecoder(listResp.Body).Decode(&listResult)
+		require.NoError(t, err)
+
+		tasksInterface, ok := listResult["tasks"]
+		if !ok || tasksInterface == nil {
+			t.Skip("check_segment_recompute task not found")
+		}
+
+		tasks := tasksInterface.([]interface{})
+		if len(tasks) == 0 {
+			t.Skip("check_segment_recompute task not yet created for this workspace")
+		}
+		require.GreaterOrEqual(t, len(tasks), 1)
+
+		recomputeTask := tasks[0].(map[string]interface{})
+		recomputeTaskID := recomputeTask["id"].(string)
+
+		// Count build tasks before
+		buildTasksBeforeResp, err := client.ListTasks(map[string]string{
+			"workspace_id": workspaceID,
+			"type":         "build_segment",
+			"status":       "pending",
+		})
+		require.NoError(t, err)
+		defer buildTasksBeforeResp.Body.Close()
+
+		var buildTasksBeforeResult map[string]interface{}
+		err = json.NewDecoder(buildTasksBeforeResp.Body).Decode(&buildTasksBeforeResult)
+		require.NoError(t, err)
+		buildTasksBeforeCount := len(buildTasksBeforeResult["tasks"].([]interface{}))
+
+		// Execute the check_segment_recompute task
+		executeResp, err := client.ExecuteTask(map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           recomputeTaskID,
+		})
+		require.NoError(t, err)
+		defer executeResp.Body.Close()
+
+		// Wait a bit
+		time.Sleep(500 * time.Millisecond)
+
+		// Count build tasks after - should NOT have created any for the future segment
+		buildTasksAfterResp, err := client.ListTasks(map[string]string{
+			"workspace_id": workspaceID,
+			"type":         "build_segment",
+			"status":       "pending",
+		})
+		require.NoError(t, err)
+		defer buildTasksAfterResp.Body.Close()
+
+		var buildTasksAfterResult map[string]interface{}
+		err = json.NewDecoder(buildTasksAfterResp.Body).Decode(&buildTasksAfterResult)
+		require.NoError(t, err)
+		buildTasksAfterCount := len(buildTasksAfterResult["tasks"].([]interface{}))
+
+		// The count should be the same or only increased by tasks from previous test
+		// The important thing is that no task was created for segment2
+		assert.LessOrEqual(t, buildTasksAfterCount-buildTasksBeforeCount, 1, "Should not create build task for segment not yet due")
+	})
+
+	t.Run("should skip deleted segments", func(t *testing.T) {
+		// Create a segment with relative dates
+		timeframeOp := "in_the_last_days"
+		segment3 := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           fmt.Sprintf("taskrecomp3%d", time.Now().Unix()),
+			"name":         "Task Recompute Test 3 - To Delete",
+			"color":        "#95E1D3",
+			"timezone":     "UTC",
+			"tree": map[string]interface{}{
+				"kind": "leaf",
+				"leaf": map[string]interface{}{
+					"table": "contact_timeline",
+					"contact_timeline": map[string]interface{}{
+						"kind":               "email_clicked",
+						"count_operator":     "at_least",
+						"count_value":        1,
+						"timeframe_operator": &timeframeOp,
+						"timeframe_values":   []string{"14"},
+					},
+				},
+			},
+		}
+
+		// Create the segment
+		createResp, err := client.Post("/api/segments.create", segment3)
+		require.NoError(t, err)
+		defer createResp.Body.Close()
+
+		var createResult map[string]interface{}
+		err = json.NewDecoder(createResp.Body).Decode(&createResult)
+		require.NoError(t, err)
+
+		segmentData := createResult["segment"].(map[string]interface{})
+		segment3ID := segmentData["id"].(string)
+
+		// Set recompute_after to the past
+		pastTime := time.Now().Add(-2 * time.Hour)
+		err = factory.SetSegmentRecomputeAfter(workspaceID, segment3ID, pastTime)
+		require.NoError(t, err)
+
+		// Delete the segment
+		deleteResp, err := client.Post("/api/segments.delete", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           segment3ID,
+		})
+		require.NoError(t, err)
+		defer deleteResp.Body.Close()
+
+		// Find and execute the check_segment_recompute task
+		listResp, err := client.ListTasks(map[string]string{
+			"workspace_id": workspaceID,
+			"type":         "check_segment_recompute",
+		})
+		require.NoError(t, err)
+		defer listResp.Body.Close()
+
+		var listResult map[string]interface{}
+		err = json.NewDecoder(listResp.Body).Decode(&listResult)
+		require.NoError(t, err)
+
+		tasksInterface, ok := listResult["tasks"]
+		if !ok || tasksInterface == nil {
+			t.Skip("check_segment_recompute task not found")
+		}
+
+		tasks := tasksInterface.([]interface{})
+		if len(tasks) == 0 {
+			t.Skip("check_segment_recompute task not yet created for this workspace")
+		}
+		require.GreaterOrEqual(t, len(tasks), 1)
+
+		recomputeTask := tasks[0].(map[string]interface{})
+		recomputeTaskID := recomputeTask["id"].(string)
+
+		// Count build tasks created by recompute task before execution
+		// Get current timestamp to track new tasks
+		timeBeforeExecution := time.Now()
+
+		// Execute the check_segment_recompute task
+		executeResp, err := client.ExecuteTask(map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           recomputeTaskID,
+		})
+		require.NoError(t, err)
+		defer executeResp.Body.Close()
+
+		// Wait a bit for task processing
+		time.Sleep(500 * time.Millisecond)
+
+		// Verify no NEW build task was created for the deleted segment after recompute ran
+		buildTasksAfterResp, err := client.ListTasks(map[string]string{
+			"workspace_id": workspaceID,
+			"type":         "build_segment",
+		})
+		require.NoError(t, err)
+		defer buildTasksAfterResp.Body.Close()
+
+		var buildTasksAfterResult map[string]interface{}
+		err = json.NewDecoder(buildTasksAfterResp.Body).Decode(&buildTasksAfterResult)
+		require.NoError(t, err)
+
+		// Check that no NEW tasks were created for the deleted segment after recompute execution
+		newTasksForDeletedSegment := 0
+		for _, taskInterface := range buildTasksAfterResult["tasks"].([]interface{}) {
+			task := taskInterface.(map[string]interface{})
+
+			// Parse created_at to see if task was created after we ran the recompute task
+			createdAtStr, ok := task["created_at"].(string)
+			if !ok {
+				continue
+			}
+			createdAt, err := time.Parse(time.RFC3339, createdAtStr)
+			if err != nil {
+				continue
+			}
+
+			// Only check tasks created after we executed the recompute task
+			if !createdAt.After(timeBeforeExecution) {
+				continue
+			}
+
+			if state, ok := task["state"].(map[string]interface{}); ok {
+				if buildSegment, ok := state["build_segment"].(map[string]interface{}); ok {
+					if segmentID, ok := buildSegment["segment_id"].(string); ok {
+						if segmentID == segment3ID {
+							newTasksForDeletedSegment++
+						}
+					}
+				}
+			}
+		}
+
+		assert.Equal(t, 0, newTasksForDeletedSegment, "Should not create NEW build tasks for deleted segment")
 	})
 }

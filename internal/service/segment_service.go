@@ -69,6 +69,24 @@ func (s *SegmentService) CreateSegment(ctx context.Context, req *domain.CreateSe
 	segment.GeneratedSQL = &sqlQuery
 	segment.GeneratedArgs = domain.JSONArray(args)
 
+	// Check if segment has relative dates and set recompute_after if needed
+	if segment.Tree.HasRelativeDates() {
+		next5AM, err := calculateNext5AMInTimezone(segment.Timezone)
+		if err != nil {
+			s.logger.WithFields(map[string]interface{}{
+				"error":      err.Error(),
+				"segment_id": segment.ID,
+				"timezone":   segment.Timezone,
+			}).Warn("Failed to calculate next 5AM for segment with relative dates (non-fatal)")
+		} else {
+			segment.RecomputeAfter = &next5AM
+			s.logger.WithFields(map[string]interface{}{
+				"segment_id":      segment.ID,
+				"recompute_after": next5AM.Format(time.RFC3339),
+			}).Info("Segment has relative dates, scheduled for daily recomputation")
+		}
+	}
+
 	// Create the segment in the database
 	if err := s.segmentRepo.CreateSegment(ctx, workspaceID, segment); err != nil {
 		return nil, fmt.Errorf("failed to create segment: %w", err)
@@ -175,8 +193,9 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 		return nil, fmt.Errorf("failed to get existing segment: %w", err)
 	}
 
-	// Track if tree has changed (requires rebuild)
+	// Track if tree or timezone has changed
 	treeChanged := false
+	timezoneChanged := false
 
 	// Apply updates
 	if updates.Name != "" {
@@ -185,8 +204,9 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 	if updates.Color != "" {
 		existing.Color = updates.Color
 	}
-	if updates.Timezone != "" {
+	if updates.Timezone != "" && updates.Timezone != existing.Timezone {
 		existing.Timezone = updates.Timezone
+		timezoneChanged = true
 	}
 	if updates.Tree != nil {
 		existing.Tree = updates.Tree
@@ -202,6 +222,36 @@ func (s *SegmentService) UpdateSegment(ctx context.Context, req *domain.UpdateSe
 
 		// Increment version since the criteria changed
 		existing.Version++
+	}
+
+	// Update recompute_after if tree or timezone changed
+	if treeChanged || timezoneChanged {
+		hasRelativeDates := existing.Tree.HasRelativeDates()
+		if hasRelativeDates {
+			// Segment now has (or still has) relative dates - schedule recomputation
+			next5AM, err := calculateNext5AMInTimezone(existing.Timezone)
+			if err != nil {
+				s.logger.WithFields(map[string]interface{}{
+					"error":      err.Error(),
+					"segment_id": existing.ID,
+					"timezone":   existing.Timezone,
+				}).Warn("Failed to calculate next 5AM for segment with relative dates (non-fatal)")
+			} else {
+				existing.RecomputeAfter = &next5AM
+				s.logger.WithFields(map[string]interface{}{
+					"segment_id":      existing.ID,
+					"recompute_after": next5AM.Format(time.RFC3339),
+				}).Info("Updated recompute schedule for segment with relative dates")
+			}
+		} else {
+			// Segment no longer has relative dates - remove recomputation schedule
+			if existing.RecomputeAfter != nil {
+				existing.RecomputeAfter = nil
+				s.logger.WithFields(map[string]interface{}{
+					"segment_id": existing.ID,
+				}).Info("Removed recompute schedule (segment no longer has relative dates)")
+			}
+		}
 	}
 
 	// Update timestamp
@@ -447,4 +497,28 @@ func (s *SegmentService) GetSegmentContacts(ctx context.Context, workspaceID, se
 	}
 
 	return emails, nil
+}
+
+// calculateNext5AMInTimezone calculates the next occurrence of 5:00 AM in the given timezone
+// and returns it as a UTC time
+func calculateNext5AMInTimezone(tz string) (time.Time, error) {
+	// Load the timezone
+	loc, err := time.LoadLocation(tz)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("invalid timezone %s: %w", tz, err)
+	}
+
+	// Get current time in the target timezone
+	now := time.Now().In(loc)
+
+	// Calculate next 5:00 AM in that timezone
+	next5AM := time.Date(now.Year(), now.Month(), now.Day(), 5, 0, 0, 0, loc)
+
+	// If we've already passed 5 AM today, move to tomorrow
+	if now.After(next5AM) || now.Equal(next5AM) {
+		next5AM = next5AM.Add(24 * time.Hour)
+	}
+
+	// Convert to UTC for storage
+	return next5AM.UTC(), nil
 }
