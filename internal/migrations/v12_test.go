@@ -92,8 +92,8 @@ func TestV12Migration_UpdateSystem(t *testing.T) {
 			{
 				Type: domain.IntegrationTypeEmail,
 				EmailProvider: domain.EmailProvider{
-					Kind:                domain.EmailProviderKindSMTP,
-					RateLimitPerMinute:  0, // No rate limit set
+					Kind:               domain.EmailProviderKindSMTP,
+					RateLimitPerMinute: 0, // No rate limit set
 				},
 			},
 		}
@@ -124,8 +124,8 @@ func TestV12Migration_UpdateSystem(t *testing.T) {
 			{
 				Type: domain.IntegrationTypeEmail,
 				EmailProvider: domain.EmailProvider{
-					Kind:                domain.EmailProviderKindSMTP,
-					RateLimitPerMinute:  50, // Rate limit already set
+					Kind:               domain.EmailProviderKindSMTP,
+					RateLimitPerMinute: 50, // Rate limit already set
 				},
 			},
 		}
@@ -153,8 +153,8 @@ func TestV12Migration_UpdateSystem(t *testing.T) {
 			{
 				Type: domain.IntegrationTypeEmail,
 				EmailProvider: domain.EmailProvider{
-					Kind:                domain.EmailProviderKindSMTP,
-					RateLimitPerMinute:  0, // Needs update
+					Kind:               domain.EmailProviderKindSMTP,
+					RateLimitPerMinute: 0, // Needs update
 				},
 			},
 		}
@@ -162,8 +162,8 @@ func TestV12Migration_UpdateSystem(t *testing.T) {
 			{
 				Type: domain.IntegrationTypeEmail,
 				EmailProvider: domain.EmailProvider{
-					Kind:                domain.EmailProviderKindMailgun,
-					RateLimitPerMinute:  100, // Already set
+					Kind:               domain.EmailProviderKindMailgun,
+					RateLimitPerMinute: 100, // Already set
 				},
 			},
 		}
@@ -207,15 +207,15 @@ func TestV12Migration_UpdateSystem(t *testing.T) {
 			{
 				Type: domain.IntegrationTypeEmail,
 				EmailProvider: domain.EmailProvider{
-					Kind:                domain.EmailProviderKindSMTP,
-					RateLimitPerMinute:  0, // Needs update
+					Kind:               domain.EmailProviderKindSMTP,
+					RateLimitPerMinute: 0, // Needs update
 				},
 			},
 			{
 				Type: domain.IntegrationTypeEmail,
 				EmailProvider: domain.EmailProvider{
-					Kind:                domain.EmailProviderKindMailgun,
-					RateLimitPerMinute:  0, // Needs update
+					Kind:               domain.EmailProviderKindMailgun,
+					RateLimitPerMinute: 0, // Needs update
 				},
 			},
 		}
@@ -277,8 +277,8 @@ func TestV12Migration_UpdateSystem(t *testing.T) {
 			{
 				Type: domain.IntegrationTypeEmail,
 				EmailProvider: domain.EmailProvider{
-					Kind:                domain.EmailProviderKindSMTP,
-					RateLimitPerMinute:  0,
+					Kind:               domain.EmailProviderKindSMTP,
+					RateLimitPerMinute: 0,
 				},
 			},
 		}
@@ -323,4 +323,3 @@ func TestV12Migration_Registration(t *testing.T) {
 	assert.NotNil(t, migration, "V12Migration should not be nil")
 	assert.Equal(t, 12.0, migration.GetMajorVersion(), "Registered migration should be version 12.0")
 }
-

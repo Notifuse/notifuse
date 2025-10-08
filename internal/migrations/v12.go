@@ -28,6 +28,14 @@ func (m *V12Migration) HasWorkspaceUpdate() bool {
 	return false // No workspace database changes needed
 }
 
+// workspaceIntegrationData holds workspace data for migration
+type workspaceIntegrationData struct {
+	ID                  string
+	Integrations        []domain.Integration
+	UpdatedIntegrations []byte
+	NeedsUpdate         bool
+}
+
 // UpdateSystem executes system-level migration changes
 // Adds default rate_limit_per_minute to all email provider integrations
 func (m *V12Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db DBExecutor) error {
@@ -38,7 +46,10 @@ func (m *V12Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 	}
 	defer rows.Close()
 
-	// Process each workspace
+	// Read all workspaces into memory first to avoid "unexpected Parse response" error
+	// (PostgreSQL doesn't allow executing queries while reading from another query on the same connection)
+	var workspacesToUpdate []workspaceIntegrationData
+
 	for rows.Next() {
 		var workspaceID string
 		var integrationsData []byte
@@ -84,7 +95,7 @@ func (m *V12Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 			madeChanges = true
 		}
 
-		// If we made changes, update the workspace in the database
+		// If we made changes, prepare the update
 		if madeChanges {
 			// Serialize integrations to JSON
 			integrationsJSON, err := json.Marshal(integrations)
@@ -92,21 +103,33 @@ func (m *V12Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 				return fmt.Errorf("failed to marshal integrations for workspace %s: %w", workspaceID, err)
 			}
 
-			// Update the workspace integrations in the system database
-			_, err = db.ExecContext(ctx, `
-				UPDATE workspaces
-				SET integrations = $1, updated_at = NOW()
-				WHERE id = $2
-			`, integrationsJSON, workspaceID)
-			if err != nil {
-				return fmt.Errorf("failed to update workspace integrations for workspace %s: %w", workspaceID, err)
-			}
+			workspacesToUpdate = append(workspacesToUpdate, workspaceIntegrationData{
+				ID:                  workspaceID,
+				Integrations:        integrations,
+				UpdatedIntegrations: integrationsJSON,
+				NeedsUpdate:         true,
+			})
 		}
 	}
 
 	// Check for any errors during iteration
 	if err := rows.Err(); err != nil {
 		return fmt.Errorf("error iterating workspace rows: %w", err)
+	}
+
+	// Close rows before executing updates
+	rows.Close()
+
+	// Now execute all updates
+	for _, workspace := range workspacesToUpdate {
+		_, err = db.ExecContext(ctx, `
+			UPDATE workspaces
+			SET integrations = $1, updated_at = NOW()
+			WHERE id = $2
+		`, workspace.UpdatedIntegrations, workspace.ID)
+		if err != nil {
+			return fmt.Errorf("failed to update workspace integrations for workspace %s: %w", workspace.ID, err)
+		}
 	}
 
 	return nil
