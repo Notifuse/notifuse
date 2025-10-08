@@ -1540,7 +1540,8 @@ func TestWorkspaceHandler_HandleCreateIntegration(t *testing.T) {
 		Name:        "Test Integration",
 		Type:        domain.IntegrationTypeEmail,
 		Provider: domain.EmailProvider{
-			Kind: domain.EmailProviderKindSES,
+			Kind:               domain.EmailProviderKindSES,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("test@example.com", "Test Sender"),
 			},
@@ -1656,7 +1657,8 @@ func TestWorkspaceHandler_HandleCreateIntegration_UnauthorizedError(t *testing.T
 		Name:        "Test Integration",
 		Type:        domain.IntegrationTypeEmail,
 		Provider: domain.EmailProvider{
-			Kind: domain.EmailProviderKindSES,
+			Kind:               domain.EmailProviderKindSES,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("test@example.com", "Test Sender"),
 			},
@@ -1700,7 +1702,8 @@ func TestWorkspaceHandler_HandleCreateIntegration_ServiceError(t *testing.T) {
 		Name:        "Test Integration",
 		Type:        domain.IntegrationTypeEmail,
 		Provider: domain.EmailProvider{
-			Kind: domain.EmailProviderKindSES,
+			Kind:               domain.EmailProviderKindSES,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("test@example.com", "Test Sender"),
 			},
@@ -1748,7 +1751,8 @@ func TestWorkspaceHandler_HandleUpdateIntegration(t *testing.T) {
 		IntegrationID: "integration-123",
 		Name:          "Updated Integration",
 		Provider: domain.EmailProvider{
-			Kind: domain.EmailProviderKindMailgun,
+			Kind:               domain.EmailProviderKindMailgun,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("test@example.com", "Test Sender"),
 			},
@@ -1865,7 +1869,8 @@ func TestWorkspaceHandler_HandleUpdateIntegration_UnauthorizedError(t *testing.T
 		IntegrationID: "integration-123",
 		Name:          "Updated Integration",
 		Provider: domain.EmailProvider{
-			Kind: domain.EmailProviderKindMailgun,
+			Kind:               domain.EmailProviderKindMailgun,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("test@example.com", "Test Sender"),
 			},
@@ -1908,7 +1913,8 @@ func TestWorkspaceHandler_HandleUpdateIntegration_ServiceError(t *testing.T) {
 		IntegrationID: "integration-123",
 		Name:          "Updated Integration",
 		Provider: domain.EmailProvider{
-			Kind: domain.EmailProviderKindMailgun,
+			Kind:               domain.EmailProviderKindMailgun,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("test@example.com", "Test Sender"),
 			},

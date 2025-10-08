@@ -958,7 +958,8 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 	integrationName := "Test SMTP Integration"
 
 	provider := domain.EmailProvider{
-		Kind: domain.EmailProviderKindSMTP,
+		Kind:               domain.EmailProviderKindSMTP,
+		RateLimitPerMinute: 25,
 		SMTP: &domain.SMTPSettings{
 			Host:     "smtp.example.com",
 			Port:     587,
@@ -1122,7 +1123,8 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 	integrationName := "Updated SMTP Integration"
 
 	provider := domain.EmailProvider{
-		Kind: domain.EmailProviderKindSMTP,
+		Kind:               domain.EmailProviderKindSMTP,
+		RateLimitPerMinute: 25,
 		SMTP: &domain.SMTPSettings{
 			Host:     "smtp.updated.com",
 			Port:     587,
@@ -1152,7 +1154,8 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 			Name: "Original SMTP Integration",
 			Type: domain.IntegrationTypeEmail,
 			EmailProvider: domain.EmailProvider{
-				Kind: domain.EmailProviderKindSMTP,
+				Kind:               domain.EmailProviderKindSMTP,
+				RateLimitPerMinute: 25,
 				SMTP: &domain.SMTPSettings{
 					Host:     "smtp.example.com",
 					Port:     587,

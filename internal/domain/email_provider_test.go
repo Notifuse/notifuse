@@ -216,6 +216,7 @@ func TestEmailProviderValidation(t *testing.T) {
 					Password: "password",
 					UseTLS:   true,
 				},
+				RateLimitPerMinute: 25,
 			},
 			wantErr: false,
 		},
@@ -231,6 +232,7 @@ func TestEmailProviderValidation(t *testing.T) {
 					AccessKey: "AKIAIOSFODNN7EXAMPLE",
 					SecretKey: "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
 				},
+				RateLimitPerMinute: 25,
 			},
 			wantErr: false,
 		},
@@ -245,13 +247,15 @@ func TestEmailProviderValidation(t *testing.T) {
 					APIKey:   "test-api-key",
 					Endpoint: "https://api.sparkpost.com",
 				},
+				RateLimitPerMinute: 25,
 			},
 			wantErr: false,
 		},
 		{
 			name: "No senders",
 			provider: EmailProvider{
-				Kind: EmailProviderKindSMTP,
+				Kind:               EmailProviderKindSMTP,
+				RateLimitPerMinute: 25,
 				SMTP: &SMTPSettings{
 					Host:     "smtp.example.com",
 					Port:     587,
@@ -275,6 +279,7 @@ func TestEmailProviderValidation(t *testing.T) {
 					Username: "user@example.com",
 					Password: "password",
 				},
+				RateLimitPerMinute: 25,
 			},
 			wantErr: true,
 			errMsg:  "invalid sender email",
@@ -292,6 +297,7 @@ func TestEmailProviderValidation(t *testing.T) {
 					Username: "user@example.com",
 					Password: "password",
 				},
+				RateLimitPerMinute: 25,
 			},
 			wantErr: true,
 			errMsg:  "sender name is required",
@@ -303,6 +309,7 @@ func TestEmailProviderValidation(t *testing.T) {
 				Senders: []EmailSender{
 					NewEmailSender("default@example.com", "Default Sender"),
 				},
+				RateLimitPerMinute: 25,
 			},
 			wantErr: true,
 			errMsg:  "invalid email provider kind",
@@ -310,7 +317,8 @@ func TestEmailProviderValidation(t *testing.T) {
 		{
 			name: "SMTP provider with nil SMTP settings",
 			provider: EmailProvider{
-				Kind: EmailProviderKindSMTP,
+				Kind:               EmailProviderKindSMTP,
+				RateLimitPerMinute: 25,
 				Senders: []EmailSender{
 					NewEmailSender("default@example.com", "Default Sender"),
 				},
@@ -321,7 +329,8 @@ func TestEmailProviderValidation(t *testing.T) {
 		{
 			name: "SES provider with nil SES settings",
 			provider: EmailProvider{
-				Kind: EmailProviderKindSES,
+				Kind:               EmailProviderKindSES,
+				RateLimitPerMinute: 25,
 				Senders: []EmailSender{
 					NewEmailSender("default@example.com", "Default Sender"),
 				},
@@ -332,7 +341,8 @@ func TestEmailProviderValidation(t *testing.T) {
 		{
 			name: "SparkPost provider with nil SparkPost settings",
 			provider: EmailProvider{
-				Kind: EmailProviderKindSparkPost,
+				Kind:               EmailProviderKindSparkPost,
+				RateLimitPerMinute: 25,
 				Senders: []EmailSender{
 					NewEmailSender("default@example.com", "Default Sender"),
 				},
@@ -567,7 +577,8 @@ func TestMailgunSettings_EncryptDecryptAPIKey(t *testing.T) {
 
 func TestEmailProvider_ValidateWithMailgun(t *testing.T) {
 	provider := EmailProvider{
-		Kind: EmailProviderKindMailgun,
+		Kind:               EmailProviderKindMailgun,
+		RateLimitPerMinute: 25,
 		Senders: []EmailSender{
 			NewEmailSender("sender@example.com", "Test Sender"),
 		},
@@ -678,7 +689,8 @@ func TestMailjetSettings_EncryptDecryptSecretKey(t *testing.T) {
 func TestEmailProvider_ValidateWithMailjet(t *testing.T) {
 	// Valid provider with Mailjet
 	provider := EmailProvider{
-		Kind: EmailProviderKindMailjet,
+		Kind:               EmailProviderKindMailjet,
+		RateLimitPerMinute: 25,
 		Senders: []EmailSender{
 			NewEmailSender("from@example.com", "Test Sender"),
 		},
@@ -695,7 +707,8 @@ func TestEmailProvider_ValidateWithMailjet(t *testing.T) {
 
 	// Provider with missing Mailjet settings
 	invalidProvider := EmailProvider{
-		Kind: EmailProviderKindMailjet,
+		Kind:               EmailProviderKindMailjet,
+		RateLimitPerMinute: 25,
 		Senders: []EmailSender{
 			NewEmailSender("from@example.com", "Test Sender"),
 		},
@@ -848,7 +861,8 @@ func TestEmailProviderEncryptDecryptSecretKeys_AllProviders(t *testing.T) {
 func TestEmailProvider_ValidateWithPostmark(t *testing.T) {
 	// Valid provider with Postmark
 	provider := EmailProvider{
-		Kind: EmailProviderKindPostmark,
+		Kind:               EmailProviderKindPostmark,
+		RateLimitPerMinute: 25,
 		Senders: []EmailSender{
 			NewEmailSender("from@example.com", "Test Sender"),
 		},
@@ -866,7 +880,8 @@ func TestEmailProvider_ValidateWithPostmark(t *testing.T) {
 
 	// Provider with missing Postmark settings
 	invalidProvider := EmailProvider{
-		Kind: EmailProviderKindPostmark,
+		Kind:               EmailProviderKindPostmark,
+		RateLimitPerMinute: 25,
 		Senders: []EmailSender{
 			NewEmailSender("from@example.com", "Test Sender"),
 		},
@@ -993,7 +1008,8 @@ func TestEmailProvider_AdditionalValidation(t *testing.T) {
 
 	t.Run("Invalid kind with valid settings", func(t *testing.T) {
 		provider := EmailProvider{
-			Kind: "invalid",
+			Kind:               "invalid",
+			RateLimitPerMinute: 25,
 			Senders: []EmailSender{
 				NewEmailSender("default@example.com", "Default Sender"),
 			},
@@ -1024,7 +1040,8 @@ func TestEmailProvider_AdditionalValidation(t *testing.T) {
 		// Test that validation fails even when multiple providers have valid settings
 		// if the Kind doesn't match
 		provider := EmailProvider{
-			Kind: EmailProviderKindSMTP,
+			Kind:               EmailProviderKindSMTP,
+			RateLimitPerMinute: 25,
 			Senders: []EmailSender{
 				NewEmailSender("default@example.com", "Default Sender"),
 			},

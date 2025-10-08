@@ -578,6 +578,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 						IsDefault: true,
 					},
 				},
+				RateLimitPerMinute: 25,
 			},
 		}
 
@@ -623,7 +624,8 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 			Name:        "", // Empty name
 			Type:        domain.IntegrationTypeEmail,
 			Provider: domain.EmailProvider{
-				Kind: domain.EmailProviderKindMailgun,
+				Kind:               domain.EmailProviderKindMailgun,
+				RateLimitPerMinute: 25,
 			},
 		}
 

@@ -248,7 +248,8 @@ func TestEmailProvider_WithMailjetSettings(t *testing.T) {
 
 	t.Run("Mailjet provider encryption/decryption", func(t *testing.T) {
 		provider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindMailjet,
+			Kind:               domain.EmailProviderKindMailjet,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},
@@ -277,7 +278,8 @@ func TestEmailProvider_WithMailjetSettings(t *testing.T) {
 	t.Run("Mailjet provider validation", func(t *testing.T) {
 		// Valid provider
 		provider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindMailjet,
+			Kind:               domain.EmailProviderKindMailjet,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},
@@ -296,7 +298,8 @@ func TestEmailProvider_WithMailjetSettings(t *testing.T) {
 
 		// Provider with missing Mailjet settings
 		invalidProvider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindMailjet,
+			Kind:               domain.EmailProviderKindMailjet,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},

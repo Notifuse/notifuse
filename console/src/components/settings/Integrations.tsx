@@ -404,13 +404,15 @@ interface EmailProviderFormValues {
   mailgun?: EmailProvider['mailgun']
   mailjet?: EmailProvider['mailjet']
   senders: Sender[]
+  rate_limit_per_minute: number
   type?: IntegrationType
 }
 
 const constructProviderFromForm = (formValues: EmailProviderFormValues): EmailProvider => {
   const provider: EmailProvider = {
     kind: formValues.kind,
-    senders: formValues.senders || []
+    senders: formValues.senders || [],
+    rate_limit_per_minute: formValues.rate_limit_per_minute || 25
   }
 
   // Add provider-specific settings
@@ -435,6 +437,7 @@ const constructProviderFromForm = (formValues: EmailProviderFormValues): EmailPr
 export function Integrations({ workspace, onSave, loading, isOwner }: IntegrationsProps) {
   // State for providers
   const [emailProviderForm] = Form.useForm()
+  const rateLimitPerMinute = Form.useWatch('rate_limit_per_minute', emailProviderForm)
   const [selectedProviderType, setSelectedProviderType] = useState<EmailProviderKind | null>(null)
   const [editingIntegrationId, setEditingIntegrationId] = useState<string | null>(null)
   const [senders, setSenders] = useState<Sender[]>([])
@@ -525,6 +528,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       name: integration.name,
       kind: integration.email_provider.kind,
       senders: integrationSenders,
+      rate_limit_per_minute: integration.email_provider.rate_limit_per_minute || 25,
       ses: integration.email_provider.ses,
       smtp: integration.email_provider.smtp,
       sparkpost: integration.email_provider.sparkpost,
@@ -1027,6 +1031,25 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           </>
         )}
 
+        <Form.Item
+          name="rate_limit_per_minute"
+          label="Rate limit for marketing emails (emails per minute)"
+          rules={[
+            { required: true, message: 'Please enter a rate limit' },
+            { type: 'number', min: 1, message: 'Rate limit must be at least 1' }
+          ]}
+          initialValue={25}
+        >
+          <InputNumber min={1} placeholder="25" disabled={!isOwner} style={{ width: '100%' }} />
+        </Form.Item>
+
+        {(rateLimitPerMinute || 25) > 0 && (
+          <div className="text-xs text-gray-600 -mt-4 mb-4">
+            <div>≈ {((rateLimitPerMinute || 25) * 60).toLocaleString()} emails per hour</div>
+            <div>≈ {((rateLimitPerMinute || 25) * 60 * 24).toLocaleString()} emails per day</div>
+          </div>
+        )}
+
         {renderSendersField()}
       </>
     )
@@ -1173,6 +1196,17 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         </Descriptions.Item>
       )
     }
+
+    // Add rate limit for all providers
+    items.push(
+      <Descriptions.Item key="rate_limit" label="Rate Limit for Marketing">
+        <div>{provider.rate_limit_per_minute} emails/min</div>
+        <div className="text-xs text-gray-600 mt-1">
+          <div>≈ {(provider.rate_limit_per_minute * 60).toLocaleString()} emails per hour</div>
+          <div>≈ {(provider.rate_limit_per_minute * 60 * 24).toLocaleString()} emails per day</div>
+        </div>
+      </Descriptions.Item>
+    )
 
     return items
   }

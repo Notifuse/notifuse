@@ -368,6 +368,7 @@ func (s *DemoService) createDemoSMTPIntegration(ctx context.Context, workspaceID
 				IsDefault: true,
 			},
 		},
+		RateLimitPerMinute: 25,
 	}
 
 	// Create the integration
@@ -1571,7 +1572,6 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 				Segments:            []string{},
 				ExcludeUnsubscribed: true,
 				SkipDuplicateEmails: true,
-				RateLimitPerMinute:  0,
 			},
 			Schedule: domain.ScheduleSettings{
 				IsScheduled:   false,

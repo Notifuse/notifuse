@@ -1564,7 +1564,8 @@ func TestWorkspace_BeforeSaveAndAfterLoadWithEmailProviders(t *testing.T) {
 				Name: "Marketing Email",
 				Type: IntegrationTypeEmail,
 				EmailProvider: EmailProvider{
-					Kind: EmailProviderKindSES,
+					Kind:               EmailProviderKindSES,
+					RateLimitPerMinute: 25,
 					Senders: []EmailSender{
 						{
 							ID:    "123e4567-e89b-12d3-a456-426614174000",
@@ -1586,7 +1587,8 @@ func TestWorkspace_BeforeSaveAndAfterLoadWithEmailProviders(t *testing.T) {
 				Name: "Transactional Email",
 				Type: IntegrationTypeEmail,
 				EmailProvider: EmailProvider{
-					Kind: EmailProviderKindSMTP,
+					Kind:               EmailProviderKindSMTP,
+					RateLimitPerMinute: 25,
 					Senders: []EmailSender{
 						{
 							ID:    "123e4567-e89b-12d3-a456-426614174000",
@@ -2038,7 +2040,8 @@ func TestWorkspace_GetEmailProvider(t *testing.T) {
 						Name: "Transactional Provider",
 						Type: IntegrationTypeEmail,
 						EmailProvider: EmailProvider{
-							Kind: EmailProviderKindSMTP,
+							Kind:               EmailProviderKindSMTP,
+							RateLimitPerMinute: 25,
 							Senders: []EmailSender{
 								{
 									ID:    "123e4567-e89b-12d3-a456-426614174000",
@@ -2091,7 +2094,8 @@ func TestWorkspace_GetEmailProvider(t *testing.T) {
 						Name: "Marketing Provider",
 						Type: IntegrationTypeEmail,
 						EmailProvider: EmailProvider{
-							Kind: EmailProviderKindMailjet,
+							Kind:               EmailProviderKindMailjet,
+							RateLimitPerMinute: 25,
 							Senders: []EmailSender{
 								{
 									ID:    "123e4567-e89b-12d3-a456-426614174000",
@@ -2140,7 +2144,8 @@ func TestWorkspace_GetEmailProvider(t *testing.T) {
 						Name: "Some Provider",
 						Type: IntegrationTypeEmail,
 						EmailProvider: EmailProvider{
-							Kind: EmailProviderKindSMTP,
+							Kind:               EmailProviderKindSMTP,
+							RateLimitPerMinute: 25,
 							Senders: []EmailSender{
 								{
 									ID:    "123e4567-e89b-12d3-a456-426614174000",
@@ -2178,7 +2183,8 @@ func TestWorkspace_GetEmailProvider(t *testing.T) {
 						Name: "Existing Provider",
 						Type: IntegrationTypeEmail,
 						EmailProvider: EmailProvider{
-							Kind: EmailProviderKindSMTP,
+							Kind:               EmailProviderKindSMTP,
+							RateLimitPerMinute: 25,
 							Senders: []EmailSender{
 								{
 									ID:    "123e4567-e89b-12d3-a456-426614174000",
@@ -2298,7 +2304,8 @@ func TestCreateIntegrationRequest_Validate(t *testing.T) {
 				Name:        "Test Integration",
 				Type:        IntegrationTypeEmail,
 				Provider: EmailProvider{
-					Kind: EmailProviderKindSMTP,
+					Kind:               EmailProviderKindSMTP,
+					RateLimitPerMinute: 25,
 					Senders: []EmailSender{
 						{
 							ID:    "default",
@@ -2440,7 +2447,8 @@ func TestUpdateIntegrationRequest_Validate(t *testing.T) {
 				IntegrationID: "integration-123",
 				Name:          "Updated Integration",
 				Provider: EmailProvider{
-					Kind: EmailProviderKindSMTP,
+					Kind:               EmailProviderKindSMTP,
+					RateLimitPerMinute: 25,
 					Senders: []EmailSender{
 						{
 							ID:    "default",
@@ -2771,7 +2779,8 @@ func TestWorkspace_BeforeSave(t *testing.T) {
 					Name: "Integration 1",
 					Type: IntegrationTypeEmail,
 					EmailProvider: EmailProvider{
-						Kind: EmailProviderKindSMTP,
+						Kind:               EmailProviderKindSMTP,
+						RateLimitPerMinute: 25,
 						Senders: []EmailSender{
 							{
 								ID:    "default",
@@ -2879,7 +2888,8 @@ func TestWorkspace_AfterLoad(t *testing.T) {
 			Name: "Integration 1",
 			Type: IntegrationTypeEmail,
 			EmailProvider: EmailProvider{
-				Kind: EmailProviderKindSMTP,
+				Kind:               EmailProviderKindSMTP,
+				RateLimitPerMinute: 25,
 				Senders: []EmailSender{
 					{
 						ID:    "123e4567-e89b-12d3-a456-426614174000",
@@ -3058,9 +3068,10 @@ func TestIntegration_Validate(t *testing.T) {
 		Name: "Good",
 		Type: IntegrationTypeEmail,
 		EmailProvider: EmailProvider{
-			Kind:    EmailProviderKindSMTP,
-			Senders: []EmailSender{{ID: "default", Email: "test@example.com", Name: "Sender", IsDefault: true}},
-			SMTP:    &SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "u", Password: "p"},
+			Kind:               EmailProviderKindSMTP,
+			RateLimitPerMinute: 25,
+			Senders:            []EmailSender{{ID: "default", Email: "test@example.com", Name: "Sender", IsDefault: true}},
+			SMTP:               &SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "u", Password: "p"},
 		},
 	}
 	assert.NoError(t, valid.Validate(passphrase))
@@ -3079,8 +3090,9 @@ func TestIntegration_Validate(t *testing.T) {
 		Name: "n",
 		Type: IntegrationTypeEmail,
 		EmailProvider: EmailProvider{
-			Kind:    EmailProviderKindSMTP,
-			Senders: []EmailSender{{ID: "default", Email: "test@example.com", Name: "Sender", IsDefault: true}},
+			Kind:               EmailProviderKindSMTP,
+			RateLimitPerMinute: 25,
+			Senders:            []EmailSender{{ID: "default", Email: "test@example.com", Name: "Sender", IsDefault: true}},
 			// SMTP is nil -> invalid
 		},
 	}

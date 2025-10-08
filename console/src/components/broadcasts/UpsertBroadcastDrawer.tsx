@@ -92,7 +92,6 @@ export function UpsertBroadcastDrawer({
   // Watch campaign name changes using Form.useWatch
   const campaignName = Form.useWatch('name', form)
   const abTestingEnabled = Form.useWatch(['test_settings', 'enabled'], form)
-  const rateLimitPerMinute = Form.useWatch(['audience', 'rate_limit_per_minute'], form)
 
   // Enable tracking when A/B testing is enabled
   useEffect(() => {
@@ -171,8 +170,7 @@ export function UpsertBroadcastDrawer({
           lists: [],
           segments: [],
           exclude_unsubscribed: true,
-          skip_duplicate_emails: true,
-          rate_limit_per_minute: 25
+          skip_duplicate_emails: true
         },
         test_settings: {
           enabled: false,
@@ -298,10 +296,6 @@ export function UpsertBroadcastDrawer({
               <Row gutter={48}>
                 {/* Left Column */}
                 <Col span={12}>
-                  <div className="text-xs mb-6 font-bold border-b border-solid pb-2 border-gray-400 text-gray-900">
-                    Broadcast Settings
-                  </div>
-
                   <Form.Item
                     name="name"
                     label="Broadcast name"
@@ -309,10 +303,6 @@ export function UpsertBroadcastDrawer({
                   >
                     <Input placeholder="E.g. Weekly Newsletter - May 2023" />
                   </Form.Item>
-
-                  <div className="text-xs mt-8 mb-6 font-bold border-b border-solid pb-2 border-gray-400 text-gray-900">
-                    Audience Selection
-                  </div>
 
                   <Form.Item
                     name={['audience', 'lists']}
@@ -337,9 +327,32 @@ export function UpsertBroadcastDrawer({
                     />
                   </Form.Item>
 
+                  <Row gutter={24}>
+                    <Col span={12}>
+                      <Form.Item
+                        name={['audience', 'exclude_unsubscribed']}
+                        label="Exclude unsubscribed recipients"
+                        valuePropName="checked"
+                        initialValue={true}
+                      >
+                        <Switch />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item
+                        name={['audience', 'skip_duplicate_emails']}
+                        label="Skip duplicate emails"
+                        valuePropName="checked"
+                        initialValue={true}
+                      >
+                        <Switch />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+
                   <Form.Item
                     name={['audience', 'segments']}
-                    label="Segments"
+                    label="Belonging to at least one of the following segments"
                     extra="Optionally filter contacts by segments within the selected lists"
                   >
                     <Select
@@ -384,55 +397,35 @@ export function UpsertBroadcastDrawer({
                     />
                   </Form.Item>
 
-                  <div className="text-xs mt-12 mb-4 font-bold border-b border-solid pb-2 border-gray-400 text-gray-900">
-                    Advanced Options
+                  <div className="text-xs mt-12 mb-4 font-bold border-b border-solid border-gray-400 pb-2 text-gray-900">
+                    URL Tracking Parameters
                   </div>
-
+                  <Alert
+                    description="These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to track the performance of your campaign."
+                    type="info"
+                    className="!mb-4"
+                  />
                   <Row gutter={24}>
-                    <Col span={12}>
-                      <Form.Item
-                        name={['audience', 'exclude_unsubscribed']}
-                        label="Exclude unsubscribed recipients"
-                        valuePropName="checked"
-                        initialValue={true}
-                      >
-                        <Switch />
+                    <Col span={8}>
+                      <Form.Item name={['utm_parameters', 'source']} label="utm_source">
+                        <Input placeholder="Your website or company name" />
                       </Form.Item>
                     </Col>
-                    <Col span={12}>
+                    <Col span={8}>
                       <Form.Item
-                        name={['audience', 'skip_duplicate_emails']}
-                        label="Skip duplicate emails"
-                        valuePropName="checked"
-                        initialValue={true}
+                        name={['utm_parameters', 'medium']}
+                        label="utm_medium"
+                        initialValue="email"
                       >
-                        <Switch />
+                        <Input placeholder="email" />
+                      </Form.Item>
+                    </Col>
+                    <Col span={8}>
+                      <Form.Item name={['utm_parameters', 'campaign']} label="utm_campaign">
+                        <Input />
                       </Form.Item>
                     </Col>
                   </Row>
-
-                  <Form.Item
-                    name={['audience', 'rate_limit_per_minute']}
-                    label="Rate limit (emails per minute)"
-                    rules={[
-                      { required: true, message: 'Please enter a rate limit' },
-                      { type: 'number', min: 1, message: 'Rate limit must be at least 1' }
-                    ]}
-                    initialValue={25}
-                  >
-                    <InputNumber min={1} placeholder="25" />
-                  </Form.Item>
-
-                  {(rateLimitPerMinute || 25) > 0 && (
-                    <div className="text-xs text-gray-600 -mt-4 mb-4">
-                      <div>
-                        ≈ {((rateLimitPerMinute || 25) * 60).toLocaleString()} emails per hour
-                      </div>
-                      <div>
-                        ≈ {((rateLimitPerMinute || 25) * 60 * 24).toLocaleString()} emails per day
-                      </div>
-                    </div>
-                  )}
                 </Col>
 
                 {/* Right Column */}
@@ -508,13 +501,13 @@ export function UpsertBroadcastDrawer({
                               {(fields, { add, remove }) => (
                                 <>
                                   {fields.map((field) => (
-                                    <div key={field.key} className="border p-4 mb-4 rounded">
+                                    <div key={field.key} className="">
                                       <Row gutter={24}>
                                         <Col span={22}>
                                           <Form.Item
                                             key={`template-${field.key}`}
                                             name={[field.name, 'template_id']}
-                                            label="Template"
+                                            label={`Template ${field.key + 1}`}
                                             rules={[
                                               { required: true },
                                               ({ getFieldsValue }) => ({
@@ -615,30 +608,6 @@ export function UpsertBroadcastDrawer({
                       )
                     }}
                   </Form.Item>
-                  <div className="text-xs mt-12 mb-4 font-bold border-b border-solid border-gray-400 pb-2 text-gray-900">
-                    URL Tracking Parameters
-                  </div>
-                  <Row gutter={24}>
-                    <Col span={8}>
-                      <Form.Item name={['utm_parameters', 'source']} label="utm_source">
-                        <Input placeholder="Your website or company name" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                      <Form.Item
-                        name={['utm_parameters', 'medium']}
-                        label="utm_medium"
-                        initialValue="email"
-                      >
-                        <Input placeholder="email" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                      <Form.Item name={['utm_parameters', 'campaign']} label="utm_campaign">
-                        <Input />
-                      </Form.Item>
-                    </Col>
-                  </Row>
                 </Col>
               </Row>
             </div>

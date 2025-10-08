@@ -71,7 +71,6 @@ export interface AudienceSettings {
   segments?: string[]
   exclude_unsubscribed: boolean
   skip_duplicate_emails: boolean
-  rate_limit_per_minute?: number
 }
 
 export interface ScheduleSettings {

@@ -52,6 +52,7 @@ export interface EmailProvider {
   mailgun?: MailgunSettings
   mailjet?: MailjetSettings
   senders: Sender[]
+  rate_limit_per_minute: number
 }
 
 export interface AmazonSES {

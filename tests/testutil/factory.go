@@ -373,6 +373,7 @@ func (tdf *TestDataFactory) CreateSMTPIntegration(workspaceID string, opts ...In
 				Password: "",
 				UseTLS:   false,
 			},
+			RateLimitPerMinute: 25,
 		}),
 	}
 
@@ -396,6 +397,7 @@ func (tdf *TestDataFactory) CreateSESIntegration(workspaceID string, opts ...Int
 				AccessKey: "test-key",
 				SecretKey: "test-secret",
 			},
+			RateLimitPerMinute: 25,
 		}),
 	}
 
@@ -421,6 +423,7 @@ func (tdf *TestDataFactory) CreateMailhogSMTPIntegration(workspaceID string, opt
 				Password: "",
 				UseTLS:   false, // Mailhog doesn't use TLS by default
 			},
+			RateLimitPerMinute: 25,
 		}),
 	}
 

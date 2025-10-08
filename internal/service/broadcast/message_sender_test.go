@@ -1501,6 +1501,12 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 		}
 
 		emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+		emailProvider := &domain.EmailProvider{
+			Kind:               domain.EmailProviderKindSMTP,
+			RateLimitPerMinute: 25,
+			Senders:            []domain.EmailSender{emailSender},
+			SMTP:               &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+		}
 		template := &domain.Template{
 			ID: "template-123",
 			Email: &domain.EmailTemplate{
@@ -1518,7 +1524,7 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 		// Use a timeout that's already passed
 		pastTimeout := time.Now().Add(-1 * time.Second)
 
-		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, templates, nil, pastTimeout)
+		sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, templates, emailProvider, pastTimeout)
 
 		// Should return immediately without processing any recipients
 		assert.NoError(t, err)
@@ -2159,13 +2165,21 @@ func TestSendBatch_NoVariations(t *testing.T) {
 		{Contact: &domain.Contact{Email: "test@example.com"}},
 	}
 
+	emailSender := domain.NewEmailSender("sender@example.com", "Sender")
+	emailProvider := &domain.EmailProvider{
+		Kind:               domain.EmailProviderKindSMTP,
+		RateLimitPerMinute: 25,
+		Senders:            []domain.EmailSender{emailSender},
+		SMTP:               &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+	}
+
 	templates := map[string]*domain.Template{} // No templates
 
 	mockBroadcastRepository.EXPECT().
 		GetBroadcast(ctx, workspaceID, broadcastID).
 		Return(broadcast, nil)
 
-	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, templates, nil, timeoutAt)
+	sent, failed, err := sender.SendBatch(ctx, workspaceID, "test-integration-id", "secret-key", "https://api.example.com", true, broadcastID, recipients, templates, emailProvider, timeoutAt)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 0, sent)
@@ -2464,9 +2478,7 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 		broadcast := &domain.Broadcast{
 			ID:          "broadcast-123",
 			WorkspaceID: workspaceID,
-			Audience: domain.AudienceSettings{
-				RateLimitPerMinute: 1200, // 20 per second
-			},
+			Audience:    domain.AudienceSettings{},
 			UTMParameters: &domain.UTMParameters{
 				Source:   "test",
 				Medium:   "email",
@@ -2476,9 +2488,10 @@ func TestPerBroadcastRateLimit(t *testing.T) {
 
 		emailSender := domain.NewEmailSender("sender@example.com", "Sender")
 		emailProvider := &domain.EmailProvider{
-			Kind:    domain.EmailProviderKindSMTP,
-			Senders: []domain.EmailSender{emailSender},
-			SMTP:    &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
+			Kind:               domain.EmailProviderKindSMTP,
+			RateLimitPerMinute: 1200, // 20 per second
+			Senders:            []domain.EmailSender{emailSender},
+			SMTP:               &domain.SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass", UseTLS: true},
 		}
 
 		template := &domain.Template{

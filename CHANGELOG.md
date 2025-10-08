@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [12.0] - 2025-10-08
+
+- Move rate limit configuration from broadcast audience settings to email integration settings
+- Rate limit is now a required field on email integrations (default: 25 emails/minute)
+- Simplifies broadcast configuration and centralizes rate limiting at the integration level
+- Migration v12 automatically sets default rate limit on all existing email integrations
+
 ## [11.0] - 2025-10-08
 
 - New feature: setup wizard for initial configuration

@@ -52,14 +52,15 @@ func NewEmailSender(email, name string) EmailSender {
 
 // EmailProvider contains configuration for an email service provider
 type EmailProvider struct {
-	Kind      EmailProviderKind  `json:"kind"`
-	SES       *AmazonSESSettings `json:"ses,omitempty"`
-	SMTP      *SMTPSettings      `json:"smtp,omitempty"`
-	SparkPost *SparkPostSettings `json:"sparkpost,omitempty"`
-	Postmark  *PostmarkSettings  `json:"postmark,omitempty"`
-	Mailgun   *MailgunSettings   `json:"mailgun,omitempty"`
-	Mailjet   *MailjetSettings   `json:"mailjet,omitempty"`
-	Senders   []EmailSender      `json:"senders"`
+	Kind               EmailProviderKind  `json:"kind"`
+	SES                *AmazonSESSettings `json:"ses,omitempty"`
+	SMTP               *SMTPSettings      `json:"smtp,omitempty"`
+	SparkPost          *SparkPostSettings `json:"sparkpost,omitempty"`
+	Postmark           *PostmarkSettings  `json:"postmark,omitempty"`
+	Mailgun            *MailgunSettings   `json:"mailgun,omitempty"`
+	Mailjet            *MailjetSettings   `json:"mailjet,omitempty"`
+	Senders            []EmailSender      `json:"senders"`
+	RateLimitPerMinute int                `json:"rate_limit_per_minute"`
 }
 
 // Validate validates the email provider settings
@@ -67,6 +68,11 @@ func (e *EmailProvider) Validate(passphrase string) error {
 	// If Kind is empty, consider it as not configured
 	if e.Kind == "" {
 		return nil
+	}
+
+	// Validate rate limit
+	if e.RateLimitPerMinute <= 0 {
+		return fmt.Errorf("rate limit per minute is required and must be greater than 0")
 	}
 
 	// Validate senders

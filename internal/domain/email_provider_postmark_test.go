@@ -192,7 +192,8 @@ func TestEmailProvider_WithPostmarkSettings(t *testing.T) {
 
 	t.Run("Postmark provider encryption/decryption", func(t *testing.T) {
 		provider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindPostmark,
+			Kind:               domain.EmailProviderKindPostmark,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},
@@ -216,7 +217,8 @@ func TestEmailProvider_WithPostmarkSettings(t *testing.T) {
 	t.Run("Postmark provider validation", func(t *testing.T) {
 		// Valid provider
 		provider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindPostmark,
+			Kind:               domain.EmailProviderKindPostmark,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},
@@ -232,7 +234,8 @@ func TestEmailProvider_WithPostmarkSettings(t *testing.T) {
 
 		// Provider with missing Postmark settings
 		invalidProvider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindPostmark,
+			Kind:               domain.EmailProviderKindPostmark,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},

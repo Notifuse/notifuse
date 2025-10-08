@@ -236,7 +236,8 @@ func TestEmailProvider_WithSparkPostSettings(t *testing.T) {
 
 	t.Run("SparkPost provider encryption/decryption", func(t *testing.T) {
 		provider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindSparkPost,
+			Kind:               domain.EmailProviderKindSparkPost,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},
@@ -262,7 +263,8 @@ func TestEmailProvider_WithSparkPostSettings(t *testing.T) {
 	t.Run("SparkPost provider validation", func(t *testing.T) {
 		// Valid provider
 		provider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindSparkPost,
+			Kind:               domain.EmailProviderKindSparkPost,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},
@@ -280,7 +282,8 @@ func TestEmailProvider_WithSparkPostSettings(t *testing.T) {
 
 		// Provider with missing SparkPost settings
 		invalidProvider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindSparkPost,
+			Kind:               domain.EmailProviderKindSparkPost,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},
@@ -294,7 +297,8 @@ func TestEmailProvider_WithSparkPostSettings(t *testing.T) {
 
 	t.Run("SparkPost provider with missing endpoint", func(t *testing.T) {
 		provider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindSparkPost,
+			Kind:               domain.EmailProviderKindSparkPost,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},

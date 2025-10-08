@@ -290,7 +290,8 @@ func TestEmailProvider_WithSESSettings(t *testing.T) {
 
 	t.Run("SES provider encryption/decryption", func(t *testing.T) {
 		provider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindSES,
+			Kind:               domain.EmailProviderKindSES,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},
@@ -316,7 +317,8 @@ func TestEmailProvider_WithSESSettings(t *testing.T) {
 	t.Run("SES provider validation", func(t *testing.T) {
 		// Valid provider
 		provider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindSES,
+			Kind:               domain.EmailProviderKindSES,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},
@@ -334,7 +336,8 @@ func TestEmailProvider_WithSESSettings(t *testing.T) {
 
 		// Provider with missing SES settings
 		invalidProvider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindSES,
+			Kind:               domain.EmailProviderKindSES,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},
@@ -348,7 +351,8 @@ func TestEmailProvider_WithSESSettings(t *testing.T) {
 
 	t.Run("SES provider with missing region", func(t *testing.T) {
 		provider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindSES,
+			Kind:               domain.EmailProviderKindSES,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				{
 					ID:    "123e4567-e89b-12d3-a456-426614174000",
@@ -370,7 +374,8 @@ func TestEmailProvider_WithSESSettings(t *testing.T) {
 
 	t.Run("SES provider with missing access key", func(t *testing.T) {
 		provider := domain.EmailProvider{
-			Kind: domain.EmailProviderKindSES,
+			Kind:               domain.EmailProviderKindSES,
+			RateLimitPerMinute: 25,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("default@example.com", "Default Sender"),
 			},

@@ -1211,7 +1211,6 @@ func TestAudienceSettings_ValueScan(t *testing.T) {
 		Segments:            []string{}, // Empty slice
 		ExcludeUnsubscribed: true,
 		SkipDuplicateEmails: true,
-		RateLimitPerMinute:  100,
 	}
 
 	// Test Value method
@@ -1232,7 +1231,6 @@ func TestAudienceSettings_ValueScan(t *testing.T) {
 	assert.Len(t, scanned.Segments, 0)
 	assert.Equal(t, original.ExcludeUnsubscribed, scanned.ExcludeUnsubscribed)
 	assert.Equal(t, original.SkipDuplicateEmails, scanned.SkipDuplicateEmails)
-	assert.Equal(t, original.RateLimitPerMinute, scanned.RateLimitPerMinute)
 
 	// Test scanning nil value
 	var nilTarget domain.AudienceSettings

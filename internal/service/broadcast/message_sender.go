@@ -149,10 +149,11 @@ func NewMessageSender(broadcastRepo domain.BroadcastRepository, messageHistoryRe
 }
 
 // enforceRateLimit applies rate limiting to message sending
-func (s *messageSender) enforceRateLimit(ctx context.Context, broadcastRateLimit int) error {
-	// Use broadcast rate limit if set, otherwise fall back to config default
-	effectiveRateLimit := broadcastRateLimit
+func (s *messageSender) enforceRateLimit(ctx context.Context, integrationRateLimit int) error {
+	// Use integration rate limit (required field, should always be > 0)
+	effectiveRateLimit := integrationRateLimit
 	if effectiveRateLimit <= 0 {
+		// Fallback to config default if somehow not set (shouldn't happen due to validation)
 		effectiveRateLimit = s.config.DefaultRateLimit
 	}
 
@@ -221,14 +222,13 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 	}
 
 	// Apply rate limiting
-	if err := s.enforceRateLimit(ctx, broadcast.Audience.RateLimitPerMinute); err != nil {
+	if err := s.enforceRateLimit(ctx, emailProvider.RateLimitPerMinute); err != nil {
 		s.logger.WithFields(map[string]interface{}{
-			"broadcast_id":         broadcast.ID,
-			"workspace_id":         workspaceID,
-			"recipient":            email,
-			"broadcast_rate_limit": broadcast.Audience.RateLimitPerMinute,
-			"default_rate_limit":   s.config.DefaultRateLimit,
-			"error":                err.Error(),
+			"broadcast_id":           broadcast.ID,
+			"workspace_id":           workspaceID,
+			"recipient":              email,
+			"integration_rate_limit": emailProvider.RateLimitPerMinute,
+			"error":                  err.Error(),
 		}).Warn("Rate limiting interrupted by context cancellation")
 		return NewBroadcastError(ErrCodeRateLimitExceeded, "rate limiting interrupted", true, err)
 	}
@@ -432,18 +432,16 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 	}
 
 	// Log rate limiting configuration for this broadcast
-	effectiveRateLimit := broadcast.Audience.RateLimitPerMinute
-	if effectiveRateLimit <= 0 {
-		effectiveRateLimit = s.config.DefaultRateLimit
+	integrationRateLimit := emailProvider.RateLimitPerMinute
+	if integrationRateLimit <= 0 {
+		integrationRateLimit = s.config.DefaultRateLimit
 	}
 
 	s.logger.WithFields(map[string]interface{}{
-		"broadcast_id":         broadcastID,
-		"workspace_id":         workspaceID,
-		"broadcast_rate_limit": broadcast.Audience.RateLimitPerMinute,
-		"default_rate_limit":   s.config.DefaultRateLimit,
-		"effective_rate_limit": effectiveRateLimit,
-		"recipients":           len(recipients),
+		"broadcast_id":           broadcastID,
+		"workspace_id":           workspaceID,
+		"integration_rate_limit": integrationRateLimit,
+		"recipients":             len(recipients),
 	}).Info("Starting batch send with rate limiting")
 
 	// Send to each recipient

@@ -135,7 +135,6 @@ type AudienceSettings struct {
 	Segments            []string `json:"segments,omitempty"`
 	ExcludeUnsubscribed bool     `json:"exclude_unsubscribed"`
 	SkipDuplicateEmails bool     `json:"skip_duplicate_emails"`
-	RateLimitPerMinute  int      `json:"rate_limit_per_minute,omitempty"` // Override default rate limit for this broadcast (0 = use system default)
 }
 
 // Value implements the driver.Valuer interface for database serialization
