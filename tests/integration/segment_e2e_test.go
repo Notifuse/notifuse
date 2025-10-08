@@ -32,7 +32,12 @@ func TestSegmentE2E(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	// Add a sleep before cleanup to allow background tasks to complete
+	defer func() {
+		// Wait for any pending async operations to complete
+		time.Sleep(500 * time.Millisecond)
+		suite.Cleanup()
+	}()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -161,7 +166,10 @@ func testSimpleContactSegment(t *testing.T, client *testutil.APIClient, factory 
 			"limit": 10,
 		})
 		require.NoError(t, err)
-		defer execResp.Body.Close()
+		execResp.Body.Close()
+
+		// Wait for task execution to complete
+		time.Sleep(500 * time.Millisecond)
 
 		// Step 6: Verify segment status and users count
 		time.Sleep(1 * time.Second)
@@ -600,10 +608,13 @@ func testSegmentRebuild(t *testing.T, client *testutil.APIClient, factory *testu
 		time.Sleep(1 * time.Second)
 		execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
 		require.NoError(t, err)
-		defer execResp.Body.Close()
+		execResp.Body.Close()
+
+		// Wait for task execution to complete
+		time.Sleep(500 * time.Millisecond)
 
 		// Add more French contacts
-		time.Sleep(1 * time.Second)
+		time.Sleep(500 * time.Millisecond)
 		for i := 3; i < 6; i++ {
 			_, err := factory.CreateContact(workspaceID,
 				testutil.WithContactEmail(fmt.Sprintf("rebuild-test-%d@example.com", i)),
@@ -623,7 +634,10 @@ func testSegmentRebuild(t *testing.T, client *testutil.APIClient, factory *testu
 		time.Sleep(1 * time.Second)
 		execResp2, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
 		require.NoError(t, err)
-		defer execResp2.Body.Close()
+		execResp2.Body.Close()
+
+		// Wait for task execution to complete
+		time.Sleep(500 * time.Millisecond)
 
 		// Verify updated count
 		time.Sleep(1 * time.Second)

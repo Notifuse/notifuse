@@ -69,7 +69,7 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 	cfg := &config.Config{
 		Environment: "test",
 		RootEmail:   "test@example.com",
-		APIEndpoint: "http://localhost:8080",
+		APIEndpoint: "",   // Empty to trigger direct task execution (no HTTP callbacks)
 		IsInstalled: true, // Mark as installed for tests
 		Server: config.ServerConfig{
 			Host: "127.0.0.1",
@@ -147,6 +147,10 @@ func (sm *ServerManager) Start() error {
 	if err := sm.waitForReady(10 * time.Second); err != nil {
 		return fmt.Errorf("server not ready: %w", err)
 	}
+
+	// Note: We intentionally do NOT update the API endpoint in tests
+	// This keeps it empty, which triggers direct task execution instead of HTTP callbacks
+	// Direct execution is faster and more reliable for tests
 
 	sm.isStarted = true
 	return nil
