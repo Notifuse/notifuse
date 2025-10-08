@@ -336,8 +336,9 @@ func createUninstalledTestSuite(t *testing.T) *testutil.IntegrationTestSuite {
 
 	suite := &testutil.IntegrationTestSuite{T: t}
 
-	// Setup database
+	// Setup database WITHOUT seeding installation settings
 	suite.DBManager = testutil.NewDatabaseManager()
+	suite.DBManager.SkipInstallationSeeding() // Skip seeding is_installed=true
 	err := suite.DBManager.Setup()
 	require.NoError(t, err, "Failed to setup test database")
 

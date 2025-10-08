@@ -18,12 +18,13 @@ import (
 
 // DatabaseManager manages test database lifecycle
 type DatabaseManager struct {
-	config         *config.DatabaseConfig
-	db             *sql.DB
-	dbName         string
-	systemDB       *sql.DB
-	isSetup        bool
-	connectionPool *TestConnectionPool
+	config                  *config.DatabaseConfig
+	db                      *sql.DB
+	dbName                  string
+	systemDB                *sql.DB
+	isSetup                 bool
+	connectionPool          *TestConnectionPool
+	skipInstallationSeeding bool // Skip seeding installation settings (for setup wizard tests)
 }
 
 // NewDatabaseManager creates a new database manager for testing
@@ -39,9 +40,16 @@ func NewDatabaseManager() *DatabaseManager {
 	}
 
 	return &DatabaseManager{
-		config:         config,
-		connectionPool: GetGlobalTestPool(),
+		config:                  config,
+		connectionPool:          GetGlobalTestPool(),
+		skipInstallationSeeding: false, // Default to seeding installation settings
 	}
+}
+
+// SkipInstallationSeeding configures the database manager to skip seeding installation settings
+// This is used for setup wizard tests that need an uninstalled system
+func (dm *DatabaseManager) SkipInstallationSeeding() {
+	dm.skipInstallationSeeding = true
 }
 
 // Setup creates the test database and initializes it
@@ -301,10 +309,12 @@ func (dm *DatabaseManager) runMigrations() error {
 		return fmt.Errorf("failed to initialize workspace database: %w", err)
 	}
 
-	// Seed installation settings IMMEDIATELY after migrations
+	// Seed installation settings IMMEDIATELY after migrations (unless skipped for setup wizard tests)
 	// This ensures the app sees the system as installed when it initializes
-	if err := dm.seedInstallationSettings(); err != nil {
-		return fmt.Errorf("failed to seed installation settings: %w", err)
+	if !dm.skipInstallationSeeding {
+		if err := dm.seedInstallationSettings(); err != nil {
+			return fmt.Errorf("failed to seed installation settings: %w", err)
+		}
 	}
 
 	return nil
