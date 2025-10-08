@@ -82,6 +82,10 @@ Notifuse follows clean architecture principles with clear separation of concerns
 
 ## 🚀 Getting Started
 
+### One-click deployment
+
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/aBzOMu?referralCode=73Ps3m)
+
 ### Quick Start with Docker Compose
 
 1. **Clone the repository**:
