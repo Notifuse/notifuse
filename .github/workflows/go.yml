@@ -22,6 +22,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
+          cache: true
 
       - name: Install dependencies
         run: |
@@ -46,7 +47,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           slug: Notifuse/notifuse
-          file: coverage-unit.txt
+          files: coverage-unit.txt
           fail_ci_if_error: false
           verbose: true
           name: codecov-unit-tests
@@ -96,6 +97,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.21'
+          cache: true
 
       - name: Install dependencies
         run: |
