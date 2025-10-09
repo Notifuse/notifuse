@@ -6,7 +6,7 @@ import {
   Table,
   Tooltip,
   Space,
-  Popconfirm,
+  Modal,
   message,
   Segmented,
   Tag,
@@ -209,7 +209,13 @@ export function TemplatesPage() {
       render: (_: any, record: Template) => (
         <Space>
           {workspace && (
-            <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : "Edit Template"}>
+            <Tooltip
+              title={
+                !permissions?.templates?.write
+                  ? "You don't have write permission for templates"
+                  : 'Edit Template'
+              }
+            >
               <div>
                 <CreateTemplateDrawer
                   template={record}
@@ -225,7 +231,13 @@ export function TemplatesPage() {
             </Tooltip>
           )}
           {workspace && (
-            <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : "Clone Template"}>
+            <Tooltip
+              title={
+                !permissions?.templates?.write
+                  ? "You don't have write permission for templates"
+                  : 'Clone Template'
+              }
+            >
               <div>
                 <CreateTemplateDrawer
                   fromTemplate={record}
@@ -240,24 +252,46 @@ export function TemplatesPage() {
               </div>
             </Tooltip>
           )}
-          <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : "Delete Template"}>
-            <Popconfirm
-              title="Delete the template?"
-              description="Are you sure you want to delete this template? All versions will be deleted."
-              onConfirm={() => handleDelete(record.id)}
-              okText="Yes, Delete"
-              cancelText="Cancel"
-              placement="topRight"
-            >
-              <Button
-                type="text"
-                icon={<FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />}
-                loading={deleteMutation.isPending}
-                disabled={!permissions?.templates?.write}
-              />
-            </Popconfirm>
+          <Tooltip
+            title={
+              !permissions?.templates?.write
+                ? "You don't have write permission for templates"
+                : 'Delete Template'
+            }
+          >
+            <Button
+              type="text"
+              icon={<FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />}
+              loading={deleteMutation.isPending}
+              disabled={!permissions?.templates?.write}
+              onClick={() => {
+                Modal.confirm({
+                  title: 'Delete template?',
+                  content: (
+                    <div>
+                      <p>Are you sure you want to delete this template?</p>
+                      <p className="mt-2 text-gray-600">
+                        Note: The template will be soft-deleted to preserve the ability to preview
+                        previously sent broadcasts and messages that used this template. All
+                        versions will be marked as deleted.
+                      </p>
+                    </div>
+                  ),
+                  okText: 'Yes, Delete',
+                  okType: 'danger',
+                  cancelText: 'Cancel',
+                  onOk: () => handleDelete(record.id)
+                })
+              }}
+            />
           </Tooltip>
-          <Tooltip title={!(permissions?.templates?.read && permissions?.contacts?.write) ? "You need read template and write contact permissions to send test emails" : "Send Test Email"}>
+          <Tooltip
+            title={
+              !(permissions?.templates?.read && permissions?.contacts?.write)
+                ? 'You need read template and write contact permissions to send test emails'
+                : 'Send Test Email'
+            }
+          >
             <Button
               type="text"
               icon={<FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />}
@@ -285,7 +319,13 @@ export function TemplatesPage() {
       <div className="flex justify-between items-center mb-6">
         <div className="text-2xl font-medium">Templates</div>
         {workspace && data?.templates && data.templates.length > 0 && (
-          <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : undefined}>
+          <Tooltip
+            title={
+              !permissions?.templates?.write
+                ? "You don't have write permission for templates"
+                : undefined
+            }
+          >
             <div>
               <CreateTemplateDrawer
                 workspace={workspace}
@@ -328,7 +368,13 @@ export function TemplatesPage() {
               <Paragraph type="secondary">Create your first template to get started</Paragraph>
               <div className="mt-4">
                 {workspace && (
-                  <Tooltip title={!permissions?.templates?.write ? "You don't have write permission for templates" : undefined}>
+                  <Tooltip
+                    title={
+                      !permissions?.templates?.write
+                        ? "You don't have write permission for templates"
+                        : undefined
+                    }
+                  >
                     <div>
                       <CreateTemplateDrawer
                         workspace={workspace}

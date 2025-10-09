@@ -106,7 +106,14 @@ export function ContactsPage() {
   // Fetch segments for the current workspace with contact counts
   const { data: segmentsData } = useQuery({
     queryKey: ['segments', workspaceId],
-    queryFn: () => listSegments({ workspace_id: workspaceId, with_count: true })
+    queryFn: () => listSegments({ workspace_id: workspaceId, with_count: true }),
+    refetchInterval: (query) => {
+      // Check if any segment is building
+      const hasBuilding = query.state.data?.segments?.some(
+        (segment: { status?: string }) => segment.status === 'building'
+      )
+      return hasBuilding ? 15000 : false // 15 seconds if building, otherwise no interval
+    }
   })
 
   // Fetch total contacts count
