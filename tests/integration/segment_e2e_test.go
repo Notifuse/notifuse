@@ -58,46 +58,57 @@ func TestSegmentE2E(t *testing.T) {
 	client.SetWorkspaceID(workspace.ID)
 
 	t.Run("Simple Contact Segment", func(t *testing.T) {
+		t.Cleanup(func() { testutil.CleanupAllTasks(t, client, workspace.ID) })
 		testSimpleContactSegment(t, client, factory, workspace.ID)
 	})
 
 	t.Run("Segment Preview", func(t *testing.T) {
+		t.Cleanup(func() { testutil.CleanupAllTasks(t, client, workspace.ID) })
 		testSegmentPreview(t, client, factory, workspace.ID)
 	})
 
 	t.Run("Complex Segment with AND/OR Logic", func(t *testing.T) {
+		t.Cleanup(func() { testutil.CleanupAllTasks(t, client, workspace.ID) })
 		testComplexSegmentTree(t, client, factory, workspace.ID)
 	})
 
 	t.Run("Segment with Contact Lists", func(t *testing.T) {
+		t.Cleanup(func() { testutil.CleanupAllTasks(t, client, workspace.ID) })
 		testSegmentWithContactLists(t, client, factory, workspace.ID)
 	})
 
 	t.Run("Segment with Contact Timeline", func(t *testing.T) {
+		t.Cleanup(func() { testutil.CleanupAllTasks(t, client, workspace.ID) })
 		testSegmentWithContactTimeline(t, client, factory, workspace.ID)
 	})
 
 	t.Run("Segment Rebuild and Membership Updates", func(t *testing.T) {
+		t.Cleanup(func() { testutil.CleanupAllTasks(t, client, workspace.ID) })
 		testSegmentRebuild(t, client, factory, workspace.ID)
 	})
 
 	t.Run("List and Get Segments", func(t *testing.T) {
+		t.Cleanup(func() { testutil.CleanupAllTasks(t, client, workspace.ID) })
 		testListAndGetSegments(t, client, factory, workspace.ID)
 	})
 
 	t.Run("Update and Delete Segments", func(t *testing.T) {
+		t.Cleanup(func() { testutil.CleanupAllTasks(t, client, workspace.ID) })
 		testUpdateAndDeleteSegments(t, client, factory, workspace.ID)
 	})
 
 	t.Run("Segment with Relative Dates - Daily Recompute", func(t *testing.T) {
+		t.Cleanup(func() { testutil.CleanupAllTasks(t, client, workspace.ID) })
 		testSegmentWithRelativeDates(t, client, factory, workspace.ID)
 	})
 
 	t.Run("Check Segment Recompute Task Processor", func(t *testing.T) {
+		t.Cleanup(func() { testutil.CleanupAllTasks(t, client, workspace.ID) })
 		testCheckSegmentRecomputeProcessor(t, client, factory, workspace.ID)
 	})
 
 	t.Run("Contact Property Date Filter with Relative Dates", func(t *testing.T) {
+		t.Cleanup(func() { testutil.CleanupAllTasks(t, client, workspace.ID) })
 		testContactPropertyRelativeDates(t, client, factory, workspace.ID)
 	})
 }

@@ -456,6 +456,13 @@ func WaitForSegmentBuilt(t *testing.T, client *APIClient, workspaceID, segmentID
 	pollInterval := 500 * time.Millisecond
 
 	for time.Now().Before(deadline) {
+		// Execute tasks on each poll to ensure pending tasks are processed
+		// This is important when tests run sequentially and tasks queue up
+		execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
+		if err == nil {
+			execResp.Body.Close()
+		}
+		
 		resp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
 		if err != nil {
 			return "", fmt.Errorf("failed to get segment: %w", err)
@@ -490,6 +497,56 @@ func WaitForSegmentBuilt(t *testing.T, client *APIClient, workspaceID, segmentID
 	}
 
 	return "", fmt.Errorf("timeout waiting for segment to build after %v", timeout)
+}
+
+// CleanupAllTasks deletes all tasks for a workspace
+// This is useful for cleaning up evergreen tasks between tests
+func CleanupAllTasks(t *testing.T, client *APIClient, workspaceID string) error {
+	// List all tasks
+	params := map[string]string{
+		"workspace_id": workspaceID,
+		"limit":        "1000", // High limit to get all tasks
+	}
+	
+	resp, err := client.ListTasks(params)
+	if err != nil {
+		return fmt.Errorf("failed to list tasks: %w", err)
+	}
+	defer resp.Body.Close()
+	
+	var result map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return fmt.Errorf("failed to decode task list: %w", err)
+	}
+	
+	tasks, ok := result["tasks"].([]interface{})
+	if !ok {
+		return nil // No tasks to clean up
+	}
+	
+	// Delete each task
+	deletedCount := 0
+	for _, taskInterface := range tasks {
+		taskData := taskInterface.(map[string]interface{})
+		taskID, ok := taskData["id"].(string)
+		if !ok {
+			continue
+		}
+		
+		deleteResp, err := client.DeleteTask(workspaceID, taskID)
+		if err != nil {
+			t.Logf("Failed to delete task %s: %v", taskID, err)
+			continue
+		}
+		deleteResp.Body.Close()
+		deletedCount++
+	}
+	
+	if deletedCount > 0 {
+		t.Logf("Cleaned up %d tasks for workspace %s", deletedCount, workspaceID)
+	}
+	
+	return nil
 }
 
 // WaitForBuildTaskCreated waits for a build_segment task to be created for a specific segment
