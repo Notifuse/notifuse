@@ -377,8 +377,8 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 		list, err := factory.CreateList(workspaceID)
 		require.NoError(t, err)
 
-		// Create contacts
-		for i := 0; i < 15; i++ {
+		// Create contacts (5 is sufficient to test manual winner selection, and keeps test under 30s timeout)
+		for i := 0; i < 5; i++ {
 			contact, err := factory.CreateContact(workspaceID,
 				testutil.WithContactEmail(fmt.Sprintf("manual%d@example.com", i)))
 			require.NoError(t, err)
@@ -477,19 +477,14 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 		assert.Equal(t, http.StatusOK, winnerResp.StatusCode)
 
 		// Continue execution to process winner selection
-		// Note: This may timeout if broadcast is already sending, which is okay
 		execResp3, err := client.ExecutePendingTasks(10)
-		if err != nil {
-			t.Logf("ExecutePendingTasks after winner selection returned error (may be due to timeout): %v", err)
-		}
-		if execResp3 != nil {
-			execResp3.Body.Close()
-		}
+		require.NoError(t, err)
+		defer execResp3.Body.Close()
 
 		// Verify transition to winner phase
 		finalStatus, err := testutil.WaitForBroadcastStatus(t, client, broadcastID,
 			[]string{"winner_selected", "sending", "sent", "completed"},
-			35*time.Second) // Increased timeout to account for rate limiting
+			25*time.Second)
 		if err != nil {
 			t.Logf("Warning: broadcast did not reach final state: %v", err)
 		}
