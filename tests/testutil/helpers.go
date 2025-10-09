@@ -96,6 +96,56 @@ func (s *IntegrationTestSuite) ResetData() {
 	require.NoError(s.T, err, "Failed to seed test data")
 }
 
+// WaitForBroadcastCompletion waits for a broadcast to reach a terminal state
+// Returns the final broadcast status or error if timeout/failure occurs
+func WaitForBroadcastCompletion(t *testing.T, client *APIClient, broadcastID string, timeout time.Duration) (string, error) {
+	deadline := time.Now().Add(timeout)
+	checkInterval := 500 * time.Millisecond
+
+	for time.Now().Before(deadline) {
+		resp, err := client.GetBroadcast(broadcastID)
+		if err != nil {
+			return "", fmt.Errorf("failed to get broadcast: %w", err)
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			return "", fmt.Errorf("unexpected status code %d when getting broadcast", resp.StatusCode)
+		}
+
+		var result map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			return "", fmt.Errorf("failed to decode broadcast response: %w", err)
+		}
+
+		broadcastData, ok := result["broadcast"].(map[string]interface{})
+		if !ok {
+			return "", fmt.Errorf("invalid broadcast response format")
+		}
+
+		status, ok := broadcastData["status"].(string)
+		if !ok {
+			return "", fmt.Errorf("broadcast status not found or invalid type")
+		}
+
+		// Check for terminal states
+		switch status {
+		case "sent", "completed":
+			return status, nil // Success!
+		case "failed", "cancelled":
+			return status, fmt.Errorf("broadcast reached terminal state: %s", status)
+		case "draft", "scheduled", "sending", "testing", "test_completed", "paused", "winner_selected":
+			// Still in progress, keep waiting
+		default:
+			t.Logf("Unknown broadcast status: %s, continuing to wait", status)
+		}
+
+		time.Sleep(checkInterval)
+	}
+
+	return "", fmt.Errorf("timeout waiting for broadcast completion after %v", timeout)
+}
+
 // WaitForCondition waits for a condition to be true within a timeout
 func WaitForCondition(t *testing.T, condition func() bool, timeout time.Duration, message string) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)

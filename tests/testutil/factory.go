@@ -594,6 +594,12 @@ func WithBroadcastABTesting(templateIDs []string) BroadcastOption {
 	}
 }
 
+func WithBroadcastAudience(audience domain.AudienceSettings) BroadcastOption {
+	return func(b *domain.Broadcast) {
+		b.Audience = audience
+	}
+}
+
 // Message history options
 func WithMessageHistoryContactEmail(email string) MessageHistoryOption {
 	return func(m *domain.MessageHistory) {

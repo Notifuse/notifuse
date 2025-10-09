@@ -2,6 +2,7 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -488,9 +489,52 @@ func testBroadcastEmailProvider(t *testing.T, client *testutil.APIClient, factor
 
 func testBroadcastLifecycle(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
 	t.Run("Schedule Broadcast", func(t *testing.T) {
-		t.Run("should schedule broadcast for immediate sending", func(t *testing.T) {
-			broadcast, err := factory.CreateBroadcast(workspaceID)
+		t.Run("should schedule broadcast for immediate sending with real recipients", func(t *testing.T) {
+			// Create a template for the broadcast
+			template, err := factory.CreateTemplate(workspaceID)
 			require.NoError(t, err)
+
+			// Create a list
+			list, err := factory.CreateList(workspaceID)
+			require.NoError(t, err)
+
+			// Create contacts and add them to the list
+			for i := 0; i < 3; i++ {
+				contact, err := factory.CreateContact(workspaceID,
+					testutil.WithContactEmail(fmt.Sprintf("lifecycle-test-%d@example.com", i)))
+				require.NoError(t, err)
+
+				// Add contact to list with Active status
+				_, err = factory.CreateContactList(workspaceID,
+					testutil.WithContactListEmail(contact.Email),
+					testutil.WithContactListListID(list.ID),
+					testutil.WithContactListStatus(domain.ContactListStatusActive))
+				require.NoError(t, err)
+			}
+
+			// Create broadcast targeting the list with a template
+			broadcast, err := factory.CreateBroadcast(workspaceID,
+				testutil.WithBroadcastAudience(domain.AudienceSettings{
+					Lists:               []string{list.ID},
+					ExcludeUnsubscribed: true,
+					SkipDuplicateEmails: true,
+				}))
+			require.NoError(t, err)
+
+			// Set the template for the broadcast
+			broadcast.TestSettings.Variations[0].TemplateID = template.ID
+			updateReq := map[string]interface{}{
+				"workspace_id": workspaceID,
+				"id":           broadcast.ID,
+				"name":         broadcast.Name,
+				"audience":     broadcast.Audience,
+				"schedule":     broadcast.Schedule,
+				"test_settings": broadcast.TestSettings,
+			}
+			updateResp, err := client.UpdateBroadcast(updateReq)
+			require.NoError(t, err)
+			defer updateResp.Body.Close()
+			require.Equal(t, http.StatusOK, updateResp.StatusCode)
 
 			scheduleRequest := map[string]interface{}{
 				"workspace_id": workspaceID,
@@ -514,6 +558,22 @@ func testBroadcastLifecycle(t *testing.T, client *testutil.APIClient, factory *t
 			} else {
 				t.Logf("Unexpected response format: %+v", result)
 			}
+
+			// Execute pending tasks to start the broadcast
+			time.Sleep(1 * time.Second)
+			execResp, err := client.ExecutePendingTasks(10)
+			require.NoError(t, err)
+			defer execResp.Body.Close()
+
+			// Wait for broadcast to complete and verify it succeeded
+			// This is the critical check that would have caught the SQL scan bug!
+			finalStatus, err := testutil.WaitForBroadcastCompletion(t, client, broadcast.ID, 30*time.Second)
+			if err != nil {
+				t.Fatalf("Broadcast failed or timed out: %v", err)
+			}
+
+			assert.Contains(t, []string{"sent", "completed"}, finalStatus,
+				"Broadcast should complete successfully")
 		})
 
 		t.Run("should schedule broadcast for future sending", func(t *testing.T) {
