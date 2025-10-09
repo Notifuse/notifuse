@@ -1087,17 +1087,35 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 		err = json.NewDecoder(createResp.Body).Decode(&createResult)
 		require.NoError(t, err)
 
-		segmentData := createResult["segment"].(map[string]interface{})
-		segment1ID := segmentData["id"].(string)
+	segmentData := createResult["segment"].(map[string]interface{})
+	segment1ID := segmentData["id"].(string)
 
-	// Manually set recompute_after to the past using the factory
+	// BUILD THE SEGMENT FIRST - segments must be 'active' to be eligible for recompute
+	// The GetSegmentsDueForRecompute query filters by status = 'active'
+	rebuildResp, err := client.Post("/api/segments.rebuild", map[string]interface{}{
+		"workspace_id": workspaceID,
+		"segment_id":   segment1ID,
+	})
+	require.NoError(t, err)
+	rebuildResp.Body.Close()
+
+	// Execute tasks to build the segment
+	execBuildResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
+	require.NoError(t, err)
+	execBuildResp.Body.Close()
+
+	// Wait for segment to become active
+	segmentStatus, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segment1ID, 10*time.Second)
+	require.NoError(t, err)
+	require.Contains(t, []string{"built", "active"}, segmentStatus, "Segment must be active before recompute check")
+
+	// NOW set recompute_after to the past - segment is active and eligible
 	pastTime := time.Now().Add(-1 * time.Hour)
 	err = factory.SetSegmentRecomputeAfter(workspaceID, segment1ID, pastTime)
 	require.NoError(t, err)
 
 	// Wait to ensure the update is persisted and to create a clear time gap
-	// Longer wait to account for system load when running full test suite
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 
 		// Find the check_segment_recompute task for this workspace
 		listResp, err := client.ListTasks(map[string]string{
@@ -1139,10 +1157,10 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 
 	// Note: check_segment_recompute is a recurring task that stays "pending" by design
 	// Wait a bit for it to execute and create build tasks
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 
-	// Wait for build task to be created for segment1
-	buildTaskID, err := testutil.WaitForBuildTaskCreated(t, client, workspaceID, segment1ID, timeBeforeExecution, 15*time.Second)
+	// Wait for build task to be created for segment1 (should be quick now that segment is active)
+	buildTaskID, err := testutil.WaitForBuildTaskCreated(t, client, workspaceID, segment1ID, timeBeforeExecution, 10*time.Second)
 	if err != nil {
 		t.Fatalf("Build task not created for segment due for recompute: %v", err)
 	}
