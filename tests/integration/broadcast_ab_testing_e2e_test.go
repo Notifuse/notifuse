@@ -155,36 +155,20 @@ func testCompleteABTestingFlow(t *testing.T, client *testutil.APIClient, factory
 		defer scheduleResp.Body.Close()
 		assert.Equal(t, http.StatusOK, scheduleResp.StatusCode)
 
-		// Step 5: Wait for test phase to begin and execute
-		time.Sleep(2 * time.Second)
-
-		// Execute pending tasks to start the broadcast
+		// Step 5: Execute pending tasks to start the broadcast and wait for test phase
 		execResp, err := client.ExecutePendingTasks(10)
 		require.NoError(t, err)
 		defer execResp.Body.Close()
 
-		// Step 6: Wait for test phase to complete (short duration)
-		time.Sleep(3 * time.Second)
-
-		// Execute tasks again to complete test phase
-		execResp2, err := client.ExecutePendingTasks(10)
-		require.NoError(t, err)
-		defer execResp2.Body.Close()
-
-		// Step 7: Verify broadcast is in test_completed status
-		getBroadcastResp, err := client.GetBroadcast(broadcastID)
-		require.NoError(t, err)
-		defer getBroadcastResp.Body.Close()
-
-		var getBroadcastResult map[string]interface{}
-		err = json.NewDecoder(getBroadcastResp.Body).Decode(&getBroadcastResult)
-		require.NoError(t, err)
-
-		currentBroadcastData := getBroadcastResult["broadcast"].(map[string]interface{})
-
-		// Should be testing, test_completed or winner_selected depending on timing
-		status := currentBroadcastData["status"].(string)
-		assert.Contains(t, []string{"testing", "test_completed", "winner_selected", "sending"}, status)
+		// Step 6: Wait for broadcast to reach test_completed or winner_selected status
+		status, err := testutil.WaitForBroadcastStatus(t, client, broadcastID,
+			[]string{"test_completed", "winner_selected"},
+			30*time.Second)
+		if err != nil {
+			t.Logf("Broadcast status check failed: %v", err)
+			// Continue to allow manual winner selection even if status is still "testing"
+		}
+		t.Logf("Broadcast status before winner selection: %s", status)
 
 		// Step 8: Get test results
 		testResultsResp, err := client.GetBroadcastTestResults(workspaceID, broadcastID)
@@ -205,14 +189,24 @@ func testCompleteABTestingFlow(t *testing.T, client *testutil.APIClient, factory
 		assert.Equal(t, http.StatusOK, winnerResp.StatusCode)
 
 		// Step 10: Execute tasks to continue with winner phase
-		time.Sleep(1 * time.Second)
 		execResp3, err := client.ExecutePendingTasks(10)
 		require.NoError(t, err)
 		defer execResp3.Body.Close()
 
-		// Step 11: Wait for completion and verify final status
-		time.Sleep(3 * time.Second)
+		// Step 11: Wait for broadcast to complete (sent or completed status)
+		finalStatus, err := testutil.WaitForBroadcastStatus(t, client, broadcastID,
+			[]string{"sent", "completed", "winner_selected"},
+			30*time.Second)
+		if err != nil {
+			// If timeout, check if we're at least progressing
+			t.Logf("Warning: broadcast did not reach final state: %v", err)
+		}
 
+		// Verify broadcast progressed successfully
+		assert.Contains(t, []string{"sent", "completed", "winner_selected"}, finalStatus,
+			"Broadcast should reach sent, completed, or winner_selected state")
+
+		// Verify winning template is set
 		finalBroadcastResp, err := client.GetBroadcast(broadcastID)
 		require.NoError(t, err)
 		defer finalBroadcastResp.Body.Close()
@@ -222,12 +216,6 @@ func testCompleteABTestingFlow(t *testing.T, client *testutil.APIClient, factory
 		require.NoError(t, err)
 
 		finalBroadcastData := finalBroadcastResult["broadcast"].(map[string]interface{})
-		finalStatus := finalBroadcastData["status"].(string)
-
-		// Should eventually reach sent or sending status (or be in intermediate states)
-		assert.Contains(t, []string{"testing", "test_completed", "sent", "sending", "winner_selected"}, finalStatus)
-
-		// Verify winning template is set
 		if winningTemplate, ok := finalBroadcastData["winning_template"]; ok && winningTemplate != nil {
 			assert.Equal(t, template1.ID, winningTemplate.(string))
 		}
@@ -313,36 +301,18 @@ func testRaceConditionPrevention(t *testing.T, client *testutil.APIClient, facto
 		defer scheduleResp.Body.Close()
 
 		// Start execution
-		time.Sleep(500 * time.Millisecond)
 		execResp, err := client.ExecutePendingTasks(10)
 		require.NoError(t, err)
 		defer execResp.Body.Close()
 
-		// Wait for broadcast to enter testing state
-		var currentStatus string
-		for i := 0; i < 5; i++ {
-			time.Sleep(500 * time.Millisecond)
-
-			getBroadcastResp, err := client.GetBroadcast(broadcastID)
-			require.NoError(t, err)
-			defer getBroadcastResp.Body.Close()
-
-			var getBroadcastResult map[string]interface{}
-			err = json.NewDecoder(getBroadcastResp.Body).Decode(&getBroadcastResult)
-			require.NoError(t, err)
-
-			currentBroadcastData := getBroadcastResult["broadcast"].(map[string]interface{})
-			currentStatus = currentBroadcastData["status"].(string)
-
-			if currentStatus == "testing" || currentStatus == "test_completed" || currentStatus == "sending" {
-				break
-			}
-
-			// Continue task execution
-			execResp2, err := client.ExecutePendingTasks(10)
-			require.NoError(t, err)
-			execResp2.Body.Close()
+		// Wait for broadcast to enter testing or test_completed state
+		currentStatus, err := testutil.WaitForBroadcastStatus(t, client, broadcastID,
+			[]string{"testing", "test_completed", "sending"},
+			15*time.Second)
+		if err != nil {
+			t.Fatalf("Failed to wait for broadcast to enter testing phase: %v", err)
 		}
+		t.Logf("Broadcast entered status: %s", currentStatus)
 
 		// Select winner immediately after test starts (race condition scenario)
 		selectWinnerRequest := map[string]interface{}{
@@ -362,12 +332,24 @@ func testRaceConditionPrevention(t *testing.T, client *testutil.APIClient, facto
 		assert.Equal(t, http.StatusOK, winnerResp.StatusCode)
 
 		// Continue execution to ensure task doesn't get stuck
-		time.Sleep(2 * time.Second)
 		execResp3, err := client.ExecutePendingTasks(10)
 		require.NoError(t, err)
 		defer execResp3.Body.Close()
 
-		// Final verification - ensure broadcast progresses correctly
+		// Final verification - wait for broadcast to progress to winner_selected or beyond
+		finalStatus, err := testutil.WaitForBroadcastStatus(t, client, broadcastID,
+			[]string{"winner_selected", "sending", "sent", "completed"},
+			20*time.Second)
+		if err != nil {
+			// If timeout, verify we're at least past race condition state
+			t.Logf("Warning: broadcast did not complete, but checking for race condition: %v", err)
+		}
+
+		// Should be progressing with or have completed winner phase (race condition prevented)
+		assert.Contains(t, []string{"winner_selected", "sending", "sent", "completed"}, finalStatus,
+			"Race condition test: broadcast should progress past test phase")
+
+		// Verify winning template is preserved
 		getBroadcastResp2, err := client.GetBroadcast(broadcastID)
 		require.NoError(t, err)
 		defer getBroadcastResp2.Body.Close()
@@ -377,13 +359,6 @@ func testRaceConditionPrevention(t *testing.T, client *testutil.APIClient, facto
 		require.NoError(t, err)
 
 		finalBroadcastData := getBroadcastResult2["broadcast"].(map[string]interface{})
-		finalStatus := finalBroadcastData["status"].(string)
-
-		// Should be progressing with or have completed winner phase
-		// Note: In test environment with direct execution, may still be in testing/test_completed
-		assert.Contains(t, []string{"testing", "test_completed", "winner_selected", "sending", "sent"}, finalStatus)
-
-		// Verify winning template is preserved
 		if winningTemplate, ok := finalBroadcastData["winning_template"]; ok && winningTemplate != nil {
 			assert.Equal(t, template1.ID, winningTemplate.(string))
 		}
@@ -468,35 +443,16 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 		defer scheduleResp.Body.Close()
 
 		// Start execution
-		time.Sleep(1 * time.Second)
 		execResp, err := client.ExecutePendingTasks(10)
 		require.NoError(t, err)
 		defer execResp.Body.Close()
 
 		// Wait for broadcast to enter testing state
-		var currentStatus string
-		for i := 0; i < 10; i++ {
-			time.Sleep(1 * time.Second)
-
-			getBroadcastResp, err := client.GetBroadcast(broadcastID)
-			require.NoError(t, err)
-			defer getBroadcastResp.Body.Close()
-
-			var getBroadcastResult map[string]interface{}
-			err = json.NewDecoder(getBroadcastResp.Body).Decode(&getBroadcastResult)
-			require.NoError(t, err)
-
-			currentBroadcastData := getBroadcastResult["broadcast"].(map[string]interface{})
-			currentStatus = currentBroadcastData["status"].(string)
-
-			if currentStatus == "testing" || currentStatus == "test_completed" || currentStatus == "sending" {
-				break
-			}
-
-			// Continue task execution if still not in testing state
-			execResp2, err := client.ExecutePendingTasks(10)
-			require.NoError(t, err)
-			execResp2.Body.Close()
+		currentStatus, err := testutil.WaitForBroadcastStatus(t, client, broadcastID,
+			[]string{"testing", "test_completed", "sending"},
+			20*time.Second)
+		if err != nil {
+			t.Fatalf("Failed to wait for broadcast to enter testing phase: %v", err)
 		}
 
 		// Verify we're in a state that allows winner selection
@@ -521,12 +477,28 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 		assert.Equal(t, http.StatusOK, winnerResp.StatusCode)
 
 		// Continue execution to process winner selection
+		// Note: This may timeout if broadcast is already sending, which is okay
 		execResp3, err := client.ExecutePendingTasks(10)
-		require.NoError(t, err)
-		defer execResp3.Body.Close()
+		if err != nil {
+			t.Logf("ExecutePendingTasks after winner selection returned error (may be due to timeout): %v", err)
+		}
+		if execResp3 != nil {
+			execResp3.Body.Close()
+		}
 
 		// Verify transition to winner phase
-		time.Sleep(2 * time.Second)
+		finalStatus, err := testutil.WaitForBroadcastStatus(t, client, broadcastID,
+			[]string{"winner_selected", "sending", "sent", "completed"},
+			35*time.Second) // Increased timeout to account for rate limiting
+		if err != nil {
+			t.Logf("Warning: broadcast did not reach final state: %v", err)
+		}
+
+		// Should be in or past winner phase
+		assert.Contains(t, []string{"winner_selected", "sending", "sent", "completed"}, finalStatus,
+			"Broadcast should progress to winner phase after manual selection")
+
+		// Verify correct winner
 		getBroadcastResp2, err := client.GetBroadcast(broadcastID)
 		require.NoError(t, err)
 		defer getBroadcastResp2.Body.Close()
@@ -536,12 +508,6 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 		require.NoError(t, err)
 
 		finalBroadcastData := getBroadcastResult2["broadcast"].(map[string]interface{})
-		finalStatus := finalBroadcastData["status"].(string)
-
-		// Should be in or past winner phase (may still be in testing/test_completed in test environment)
-		assert.Contains(t, []string{"testing", "test_completed", "winner_selected", "sending", "sent"}, finalStatus)
-
-		// Verify correct winner
 		if winningTemplate, ok := finalBroadcastData["winning_template"]; ok && winningTemplate != nil {
 			assert.Equal(t, template2.ID, winningTemplate.(string))
 		}
@@ -626,15 +592,24 @@ func testAutoWinnerSelectionFlow(t *testing.T, client *testutil.APIClient, facto
 		require.NoError(t, err)
 		defer scheduleResp.Body.Close()
 
-		// Execute through complete flow
-		for i := 0; i < 5; i++ {
-			time.Sleep(1 * time.Second)
-			execResp, err := client.ExecutePendingTasks(10)
-			require.NoError(t, err)
-			execResp.Body.Close()
+		// Execute tasks to start the broadcast
+		execResp, err := client.ExecutePendingTasks(10)
+		require.NoError(t, err)
+		defer execResp.Body.Close()
+
+		// Wait for broadcast to complete the test phase and auto-select winner
+		status, err := testutil.WaitForBroadcastStatus(t, client, broadcastID,
+			[]string{"winner_selected", "sending", "sent", "completed"},
+			30*time.Second)
+		if err != nil {
+			t.Logf("Warning: broadcast did not complete auto winner selection: %v", err)
 		}
 
-		// Check final status
+		// Should complete automatically or be in progress
+		assert.Contains(t, []string{"winner_selected", "sending", "sent", "completed"}, status,
+			"Auto winner selection should progress broadcast automatically")
+
+		// Verify a winner was automatically selected
 		getBroadcastResp, err := client.GetBroadcast(broadcastID)
 		require.NoError(t, err)
 		defer getBroadcastResp.Body.Close()
@@ -644,9 +619,9 @@ func testAutoWinnerSelectionFlow(t *testing.T, client *testutil.APIClient, facto
 		require.NoError(t, err)
 
 		currentBroadcastData := getBroadcastResult["broadcast"].(map[string]interface{})
-		status := currentBroadcastData["status"].(string)
-
-		// Should complete automatically or be in progress
-		assert.Contains(t, []string{"testing", "sent", "sending", "winner_selected", "test_completed"}, status)
+		if winningTemplate, ok := currentBroadcastData["winning_template"]; ok && winningTemplate != nil {
+			t.Logf("Auto-selected winner template: %s", winningTemplate.(string))
+			assert.NotEmpty(t, winningTemplate.(string), "Auto winner selection should set a winning template")
+		}
 	})
 }

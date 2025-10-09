@@ -269,8 +269,10 @@ func WaitAndExecuteTasks(client *APIClient, rounds int, delayBetweenRounds time.
 
 // WaitForBroadcastStatus polls a broadcast until it reaches one of the expected statuses
 // This is useful for A/B testing scenarios where we need to wait for phase transitions
-func WaitForBroadcastStatus(client *APIClient, broadcastID string, expectedStatuses []string, timeout time.Duration, pollInterval time.Duration) (string, error) {
+// Returns the actual status reached, or error if timeout or failure occurs
+func WaitForBroadcastStatus(t *testing.T, client *APIClient, broadcastID string, acceptableStatuses []string, timeout time.Duration) (string, error) {
 	deadline := time.Now().Add(timeout)
+	pollInterval := 500 * time.Millisecond
 
 	for time.Now().Before(deadline) {
 		resp, err := client.GetBroadcast(broadcastID)
@@ -288,10 +290,19 @@ func WaitForBroadcastStatus(client *APIClient, broadcastID string, expectedStatu
 
 		if broadcastData, ok := result["broadcast"].(map[string]interface{}); ok {
 			if status, ok := broadcastData["status"].(string); ok {
-				for _, expected := range expectedStatuses {
-					if status == expected {
+				// Log current status for debugging
+				t.Logf("Broadcast %s current status: %s", broadcastID, status)
+
+				// Check if we've reached an acceptable status
+				for _, acceptable := range acceptableStatuses {
+					if status == acceptable {
 						return status, nil
 					}
+				}
+
+				// Check for failure states
+				if status == "failed" || status == "cancelled" {
+					return status, fmt.Errorf("broadcast reached terminal failure state: %s", status)
 				}
 			}
 		}
@@ -299,7 +310,7 @@ func WaitForBroadcastStatus(client *APIClient, broadcastID string, expectedStatu
 		time.Sleep(pollInterval)
 	}
 
-	return "", fmt.Errorf("timeout waiting for broadcast to reach status %v", expectedStatuses)
+	return "", fmt.Errorf("timeout waiting for broadcast to reach status %v after %v", acceptableStatuses, timeout)
 }
 
 // VerifyBroadcastWinnerTemplate checks that a broadcast has the expected winning template
@@ -331,4 +342,109 @@ func VerifyBroadcastWinnerTemplate(client *APIClient, broadcastID, expectedTempl
 	}
 
 	return nil
+}
+
+// WaitForTaskCompletion waits for a task to reach a terminal state (completed, failed, or cancelled)
+// Returns the final task status and any error that occurred
+func WaitForTaskCompletion(t *testing.T, client *APIClient, workspaceID, taskID string, timeout time.Duration) (string, error) {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 500 * time.Millisecond
+
+	for time.Now().Before(deadline) {
+		resp, err := client.GetTask(workspaceID, taskID)
+		if err != nil {
+			return "", fmt.Errorf("failed to get task: %w", err)
+		}
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		resp.Body.Close()
+
+		if err != nil {
+			return "", fmt.Errorf("failed to decode task response: %w", err)
+		}
+
+		if taskData, ok := result["task"].(map[string]interface{}); ok {
+			if status, ok := taskData["status"].(string); ok {
+				t.Logf("Task %s current status: %s", taskID, status)
+
+				// Check for terminal states
+				switch status {
+				case "completed":
+					return status, nil // Success!
+				case "failed":
+					errorMsg := ""
+					if errMsg, ok := taskData["error_message"].(string); ok {
+						errorMsg = errMsg
+					}
+					return status, fmt.Errorf("task failed: %s", errorMsg)
+				case "cancelled":
+					return status, fmt.Errorf("task was cancelled")
+				case "pending", "running", "paused":
+					// Still in progress, keep waiting
+				default:
+					t.Logf("Unknown task status: %s, continuing to wait", status)
+				}
+			}
+		}
+
+		time.Sleep(pollInterval)
+	}
+
+	return "", fmt.Errorf("timeout waiting for task completion after %v", timeout)
+}
+
+// VerifyTasksProcessed checks that tasks in the given list were attempted to be processed
+// Returns a map of task IDs to their final status
+func VerifyTasksProcessed(t *testing.T, client *APIClient, workspaceID string, taskIDs []string, timeout time.Duration) map[string]string {
+	results := make(map[string]string)
+	deadline := time.Now().Add(timeout)
+	pollInterval := 500 * time.Millisecond
+
+	remainingTasks := make(map[string]bool)
+	for _, id := range taskIDs {
+		remainingTasks[id] = true
+	}
+
+	for time.Now().Before(deadline) && len(remainingTasks) > 0 {
+		for taskID := range remainingTasks {
+			resp, err := client.GetTask(workspaceID, taskID)
+			if err != nil {
+				t.Logf("Failed to get task %s: %v", taskID, err)
+				continue
+			}
+
+			var result map[string]interface{}
+			err = json.NewDecoder(resp.Body).Decode(&result)
+			resp.Body.Close()
+
+			if err != nil {
+				t.Logf("Failed to decode task %s response: %v", taskID, err)
+				continue
+			}
+
+			if taskData, ok := result["task"].(map[string]interface{}); ok {
+				if status, ok := taskData["status"].(string); ok {
+					// Task has been processed if it's no longer "pending"
+					if status != "pending" {
+						results[taskID] = status
+						delete(remainingTasks, taskID)
+						t.Logf("Task %s processed with status: %s", taskID, status)
+					}
+				}
+			}
+		}
+
+		if len(remainingTasks) > 0 {
+			time.Sleep(pollInterval)
+		}
+	}
+
+	// Add any remaining tasks as "pending" (not processed)
+	for taskID := range remainingTasks {
+		results[taskID] = "pending"
+		t.Logf("Task %s remained in pending state", taskID)
+	}
+
+	return results
 }
