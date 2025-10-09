@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [13.1] - 2025-10-09
+
+- Fix SMTP form default `use_tls` not being included in form submissions
+
 ## [13.0] - 2025-10-09
 
 - New feature: segmentation engine now supports relative dates (e.g., "in the last 30 days")

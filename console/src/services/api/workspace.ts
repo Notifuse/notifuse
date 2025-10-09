@@ -60,7 +60,6 @@ export interface AmazonSES {
   access_key: string
   secret_key?: string
   encrypted_secret_key?: string
-  sandbox_mode: boolean
 }
 
 export interface SMTPSettings {

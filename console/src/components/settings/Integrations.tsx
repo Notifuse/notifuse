@@ -925,7 +925,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 </Form.Item>
               </Col>
               <Col span={6}>
-                <Form.Item name={['smtp', 'use_tls']} valuePropName="checked" label="Use TLS">
+                <Form.Item
+                  name={['smtp', 'use_tls']}
+                  valuePropName="checked"
+                  label="Use TLS"
+                  initialValue={true}
+                >
                   <Switch defaultChecked disabled={!isOwner} />
                 </Form.Item>
               </Col>
@@ -972,6 +977,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
               name={['sparkpost', 'sandbox_mode']}
               valuePropName="checked"
               label="Sandbox Mode"
+              initialValue={false}
             >
               <Switch disabled={!isOwner} />
             </Form.Item>
@@ -1025,6 +1031,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
               name={['mailjet', 'sandbox_mode']}
               valuePropName="checked"
               label="Sandbox Mode"
+              initialValue={false}
             >
               <Switch disabled={!isOwner} />
             </Form.Item>

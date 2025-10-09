@@ -271,9 +271,9 @@ export function TemplatesPage() {
                     <div>
                       <p>Are you sure you want to delete this template?</p>
                       <p className="mt-2 text-gray-600">
-                        Note: The template will be soft-deleted to preserve the ability to preview
-                        previously sent broadcasts and messages that used this template. All
-                        versions will be marked as deleted.
+                        Note: The template will be hidden from your workspace but preserved to
+                        maintain the ability to preview previously sent broadcasts and messages that
+                        used this template.
                       </p>
                     </div>
                   ),
