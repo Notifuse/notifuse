@@ -448,3 +448,103 @@ func VerifyTasksProcessed(t *testing.T, client *APIClient, workspaceID string, t
 
 	return results
 }
+
+// WaitForSegmentBuilt waits for a segment to reach "built" status
+// Returns the final status or error if timeout/failure occurs
+func WaitForSegmentBuilt(t *testing.T, client *APIClient, workspaceID, segmentID string, timeout time.Duration) (string, error) {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 500 * time.Millisecond
+
+	for time.Now().Before(deadline) {
+		resp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
+		if err != nil {
+			return "", fmt.Errorf("failed to get segment: %w", err)
+		}
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		resp.Body.Close()
+
+		if err != nil {
+			return "", fmt.Errorf("failed to decode segment response: %w", err)
+		}
+
+		if segmentData, ok := result["segment"].(map[string]interface{}); ok {
+			if status, ok := segmentData["status"].(string); ok {
+				t.Logf("Segment %s current status: %s", segmentID, status)
+
+				switch status {
+				case "built", "active":
+					return status, nil // Success! Segments become "active" after building
+				case "failed":
+					return status, fmt.Errorf("segment build failed")
+				case "building", "pending":
+					// Still in progress, keep waiting
+				default:
+					t.Logf("Unknown segment status: %s, continuing to wait", status)
+				}
+			}
+		}
+
+		time.Sleep(pollInterval)
+	}
+
+	return "", fmt.Errorf("timeout waiting for segment to build after %v", timeout)
+}
+
+// WaitForBuildTaskCreated waits for a build_segment task to be created for a specific segment
+// Returns the task ID or error if timeout occurs
+func WaitForBuildTaskCreated(t *testing.T, client *APIClient, workspaceID, segmentID string, afterTime time.Time, timeout time.Duration) (string, error) {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 500 * time.Millisecond
+
+	for time.Now().Before(deadline) {
+		resp, err := client.ListTasks(map[string]string{
+			"workspace_id": workspaceID,
+			"type":         "build_segment",
+		})
+		if err != nil {
+			return "", fmt.Errorf("failed to list tasks: %w", err)
+		}
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		resp.Body.Close()
+
+		if err != nil {
+			return "", fmt.Errorf("failed to decode tasks response: %w", err)
+		}
+
+		// Safe nil check for tasks array
+		tasks, ok := result["tasks"].([]interface{})
+		if !ok || tasks == nil {
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		for _, taskInterface := range tasks {
+			task := taskInterface.(map[string]interface{})
+
+			// Check if this task is for our segment
+			if state, ok := task["state"].(map[string]interface{}); ok {
+				if buildSegment, ok := state["build_segment"].(map[string]interface{}); ok {
+					if taskSegmentID, ok := buildSegment["segment_id"].(string); ok && taskSegmentID == segmentID {
+						// Check if created after the specified time
+						if createdAtStr, ok := task["created_at"].(string); ok {
+							createdAt, err := time.Parse(time.RFC3339, createdAtStr)
+							if err == nil && createdAt.After(afterTime) {
+								taskID := task["id"].(string)
+								t.Logf("Found build task %s for segment %s", taskID, segmentID)
+								return taskID, nil
+							}
+						}
+					}
+				}
+			}
+		}
+
+		time.Sleep(pollInterval)
+	}
+
+	return "", fmt.Errorf("timeout waiting for build task to be created for segment %s after %v", segmentID, timeout)
+}
