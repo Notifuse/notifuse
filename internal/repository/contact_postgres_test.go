@@ -1348,7 +1348,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			SkipDuplicateEmails: false,
 		}
 
-		// Set up expectations for the database query with all 40 columns (38 contact + 2 list)
+		// Set up expectations for the database query with all 42 columns (40 contact + 2 list)
 		now := time.Now().UTC().Truncate(time.Microsecond)
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language",
@@ -1359,8 +1359,8 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
-			"custom_json_5", "created_at", "updated_at",
-			"list_id", "list_name", // Additional columns for list filtering (makes it 40 total)
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
+			"list_id", "list_name", // Additional columns for list filtering (makes it 42 total)
 		}).
 			AddRow(
 				"test1@example.com", "ext123", "Europe/Paris", "en-US",
@@ -1371,7 +1371,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				42.0, 43.0, 44.0, 45.0, 46.0,
 				now, now, now, now, now,
 				[]byte(`{"key": "value1"}`), []byte(`{"key": "value2"}`), []byte(`{"key": "value3"}`), []byte(`{"key": "value4"}`), []byte(`{"key": "value5"}`),
-				now, now,
+				now, now, now, now,
 				"list1", "Marketing List", // Additional values for list filtering
 			).
 			AddRow(
@@ -1383,7 +1383,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				52.0, 53.0, 54.0, 55.0, 56.0,
 				now, now, now, now, now,
 				[]byte(`{"key": "value1-2"}`), []byte(`{"key": "value2-2"}`), []byte(`{"key": "value3-2"}`), []byte(`{"key": "value4-2"}`), []byte(`{"key": "value5-2"}`),
-				now, now,
+				now, now, now, now,
 				"list2", "Sales List", // Additional values for list filtering
 			)
 
@@ -1433,7 +1433,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			SkipDuplicateEmails: true, // Enable deduplication
 		}
 
-		// Set up expectations for the database query with all 40 columns (38 contact + 2 list)
+		// Set up expectations for the database query with all 42 columns (40 contact + 2 list)
 		now := time.Now().UTC().Truncate(time.Microsecond)
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language",
@@ -1444,8 +1444,8 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4",
-			"custom_json_5", "created_at", "updated_at",
-			"list_id", "list_name", // Additional columns for list filtering (makes it 40 total)
+			"custom_json_5", "created_at", "updated_at", "db_created_at", "db_updated_at",
+			"list_id", "list_name", // Additional columns for list filtering (makes it 42 total)
 		}).
 			AddRow(
 				"test1@example.com", "ext123", "Europe/Paris", "en-US",
@@ -1456,7 +1456,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				42.0, 43.0, 44.0, 45.0, 46.0,
 				now, now, now, now, now,
 				[]byte(`{"key": "value1"}`), []byte(`{"key": "value2"}`), []byte(`{"key": "value3"}`), []byte(`{"key": "value4"}`), []byte(`{"key": "value5"}`),
-				now, now,
+				now, now, now, now,
 				"list1", "Marketing List", // Additional values for list filtering
 			)
 

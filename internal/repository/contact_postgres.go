@@ -1268,7 +1268,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 			var customNumber1, customNumber2, customNumber3, customNumber4, customNumber5 sql.NullFloat64
 			var customDatetime1, customDatetime2, customDatetime3, customDatetime4, customDatetime5 sql.NullTime
 			var customJSON1, customJSON2, customJSON3, customJSON4, customJSON5 sql.NullString
-			var createdAt, updatedAt time.Time
+			var createdAt, updatedAt, dbCreatedAt, dbUpdatedAt time.Time
 
 			// Scan all columns including contact fields + list_id + list_name
 			scanErr = rows.Scan(
@@ -1280,7 +1280,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 				&customNumber1, &customNumber2, &customNumber3, &customNumber4, &customNumber5,
 				&customDatetime1, &customDatetime2, &customDatetime3, &customDatetime4, &customDatetime5,
 				&customJSON1, &customJSON2, &customJSON3, &customJSON4, &customJSON5,
-				&createdAt, &updatedAt,
+				&createdAt, &updatedAt, &dbCreatedAt, &dbUpdatedAt,
 				&listID, &listName, // Additional columns
 			)
 			if scanErr != nil {
@@ -1290,8 +1290,10 @@ func (r *contactRepository) GetContactsForBroadcast(
 			// Convert scanned values to domain.Contact
 			contact = &domain.Contact{
 				Email:       email.String,
-				DBCreatedAt: createdAt,
-				DBUpdatedAt: updatedAt,
+				CreatedAt:   createdAt,
+				UpdatedAt:   updatedAt,
+				DBCreatedAt: dbCreatedAt,
+				DBUpdatedAt: dbUpdatedAt,
 			}
 
 			// Set nullable fields
