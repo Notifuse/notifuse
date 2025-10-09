@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [13.0] - 2025-10-09
+
+- New feature: segmentation engine now supports relative dates (e.g., "in the last 30 days")
+- Segments containing relative dates are automatically refreshed every day at 5am in the segment timezone
+- Fix critical regression introduced in v11 that blocked broadcast sending
+
 ## [12.0] - 2025-10-08
 
 - Move rate limit configuration from broadcast audience settings to email integration settings

@@ -103,11 +103,12 @@ func (qb *QueryBuilder) initializeOperators() {
 		"is_set":     {sql: "IS NOT NULL", requiresValue: false},
 		"is_not_set": {sql: "IS NULL", requiresValue: false},
 
-		// Date range operators (will be handled specially)
-		"in_date_range":     {sql: "BETWEEN", requiresValue: true},
-		"not_in_date_range": {sql: "NOT BETWEEN", requiresValue: true},
-		"before_date":       {sql: "<", requiresValue: true},
-		"after_date":        {sql: ">", requiresValue: true},
+	// Date range operators (will be handled specially)
+	"in_date_range":     {sql: "BETWEEN", requiresValue: true},
+	"not_in_date_range": {sql: "NOT BETWEEN", requiresValue: true},
+	"before_date":       {sql: "<", requiresValue: true},
+	"after_date":        {sql: ">", requiresValue: true},
+	"in_the_last_days":  {sql: "", requiresValue: true}, // Special handling in buildCondition
 	}
 }
 
@@ -289,15 +290,20 @@ func (qb *QueryBuilder) parseFilter(filter *domain.DimensionFilter, argIndex int
 		fieldType = fieldCfg.fieldType // Use whitelist type if not provided
 	}
 
-	switch fieldType {
-	case "string":
+	// Special handling for in_the_last_days: treat as string (days count) not as date
+	if filter.Operator == "in_the_last_days" {
 		values, err = qb.getStringValues(filter)
-	case "number":
-		values, err = qb.getNumberValues(filter)
-	case "time":
-		values, err = qb.getTimeValues(filter)
-	default:
-		return "", nil, argIndex, fmt.Errorf("invalid field type: %s", fieldType)
+	} else {
+		switch fieldType {
+		case "string":
+			values, err = qb.getStringValues(filter)
+		case "number":
+			values, err = qb.getNumberValues(filter)
+		case "time":
+			values, err = qb.getTimeValues(filter)
+		default:
+			return "", nil, argIndex, fmt.Errorf("invalid field type: %s", fieldType)
+		}
 	}
 
 	if err != nil {
@@ -634,6 +640,30 @@ func (qb *QueryBuilder) buildCondition(dbColumn, operator string, sqlOp sqlOpera
 		args = append(args, values[0], values[1])
 		condition := fmt.Sprintf("%s %s $%d AND $%d", dbColumn, sqlOp.sql, argIndex, argIndex+1)
 		return condition, args, argIndex + 2, nil
+
+	case "in_the_last_days":
+		// Special handling for relative date filters
+		if len(values) != 1 {
+			return "", nil, argIndex, fmt.Errorf("in_the_last_days requires 1 value")
+		}
+		var days int
+		switch v := values[0].(type) {
+		case string:
+			_, err := fmt.Sscanf(v, "%d", &days)
+			if err != nil {
+				return "", nil, argIndex, fmt.Errorf("invalid days value: %w", err)
+			}
+		case int:
+			days = v
+		case float64:
+			days = int(v)
+		default:
+			return "", nil, argIndex, fmt.Errorf("invalid days value type")
+		}
+		// Note: Not using parameterized query for interval as PostgreSQL doesn't support it directly
+		// But the value is parsed as int so it's safe from SQL injection
+		condition := fmt.Sprintf("%s > NOW() - INTERVAL '%d days'", dbColumn, days)
+		return condition, args, argIndex, nil
 
 	default:
 		// Standard comparison operators

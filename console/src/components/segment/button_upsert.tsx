@@ -53,7 +53,15 @@ const treeHasRelativeDates = (tree: any): boolean => {
         return true
       }
     }
-    // Could add more checks here for other types of relative date filters
+    // Check contact property filters for relative date operators
+    if (tree.leaf?.contact?.filters) {
+      const hasRelativeDateFilter = tree.leaf.contact.filters.some(
+        (filter: any) => filter.operator === 'in_the_last_days'
+      )
+      if (hasRelativeDateFilter) {
+        return true
+      }
+    }
     return false
   }
 

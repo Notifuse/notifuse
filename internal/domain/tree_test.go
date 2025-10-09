@@ -548,7 +548,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 		assert.False(t, node.HasRelativeDates())
 	})
 
-	t.Run("returns false for contact conditions", func(t *testing.T) {
+	t.Run("returns false for contact conditions without relative dates", func(t *testing.T) {
 		node := &TreeNode{
 			Kind: "leaf",
 			Leaf: &TreeNodeLeaf{
@@ -567,6 +567,54 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 		}
 
 		assert.False(t, node.HasRelativeDates())
+	})
+
+	t.Run("returns true for contact property with in_the_last_days filter", func(t *testing.T) {
+		node := &TreeNode{
+			Kind: "leaf",
+			Leaf: &TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &ContactCondition{
+					Filters: []*DimensionFilter{
+						{
+							FieldName:    "created_at",
+							FieldType:    "time",
+							Operator:     "in_the_last_days",
+							StringValues: []string{"30"},
+						},
+					},
+				},
+			},
+		}
+
+		assert.True(t, node.HasRelativeDates())
+	})
+
+	t.Run("returns true for contact with multiple filters including relative date", func(t *testing.T) {
+		node := &TreeNode{
+			Kind: "leaf",
+			Leaf: &TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &ContactCondition{
+					Filters: []*DimensionFilter{
+						{
+							FieldName:    "country",
+							FieldType:    "string",
+							Operator:     "equals",
+							StringValues: []string{"US"},
+						},
+						{
+							FieldName:    "created_at",
+							FieldType:    "time",
+							Operator:     "in_the_last_days",
+							StringValues: []string{"7"},
+						},
+					},
+				},
+			},
+		}
+
+		assert.True(t, node.HasRelativeDates())
 	})
 
 	t.Run("returns true for branch with relative dates in one leaf", func(t *testing.T) {

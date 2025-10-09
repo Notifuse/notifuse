@@ -37,6 +37,7 @@ export type FilterOperator =
   | 'not_in_date_range'
   | 'before_date'
   | 'after_date'
+  | 'in_the_last_days'
 
 // Contact list operators
 export type ContactListOperator = 'in' | 'not_in'
@@ -144,6 +145,7 @@ export type Operator =
   | 'not_in_date_range'
   | 'before_date'
   | 'after_date'
+  | 'in_the_last_days'
 
 // Field type renderer interfaces
 export interface FieldTypeRenderer {

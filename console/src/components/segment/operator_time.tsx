@@ -1,4 +1,4 @@
-import { DatePicker, Form, FormInstance, Tag } from 'antd'
+import { DatePicker, Form, FormInstance, InputNumber, Tag } from 'antd'
 import { DimensionFilter, FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
 import Messages from './messages'
 import dayjs from 'dayjs'
@@ -132,5 +132,48 @@ export class OperatorNotInDateRange implements IOperator {
 
   renderFormItems(_fieldType: FieldTypeValue, _fieldName: string, _form: FormInstance) {
     return formItemDatetimeRange
+  }
+}
+
+export class OperatorInTheLastDays implements IOperator {
+  type: Operator = 'in_the_last_days'
+  label = 'in the last'
+
+  render(filter: DimensionFilter) {
+    return (
+      <>
+        <span className="opacity-60 pt-0.5">{this.label}</span>
+        <span>
+          <Tag bordered={false} color="blue">
+            {filter.string_values?.[0]}
+          </Tag>
+        </span>
+        <span className="opacity-60 pt-0.5">days</span>
+      </>
+    )
+  }
+
+  renderFormItems(_fieldType: FieldTypeValue, _fieldName: string, _form: FormInstance) {
+    return (
+      <>
+        <Form.Item
+          name={['string_values', 0]}
+          dependencies={['operator']}
+          rules={[{ required: true, message: Messages.RequiredField }]}
+          style={{ display: 'inline-block', marginBottom: 0 }}
+          getValueProps={(value: any) => {
+            // Convert string to number for InputNumber
+            return { value: value ? parseInt(value) : undefined }
+          }}
+          getValueFromEvent={(value: any) => {
+            // Convert number back to string for API
+            return value !== null && value !== undefined ? String(value) : undefined
+          }}
+        >
+          <InputNumber min={1} step={1} placeholder="days" style={{ width: 100 }} />
+        </Form.Item>
+        <span style={{ marginLeft: 8 }}>days</span>
+      </>
+    )
   }
 }

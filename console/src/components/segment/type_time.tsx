@@ -11,7 +11,8 @@ import {
   OperatorBeforeDate,
   OperatorAfterDate,
   OperatorInDateRange,
-  OperatorNotInDateRange
+  OperatorNotInDateRange,
+  OperatorInTheLastDays
 } from './operator_time'
 
 export class FieldTypeTime implements FieldTypeRenderer {
@@ -21,7 +22,8 @@ export class FieldTypeTime implements FieldTypeRenderer {
     new OperatorBeforeDate(),
     new OperatorAfterDate(),
     new OperatorInDateRange(),
-    new OperatorNotInDateRange()
+    new OperatorNotInDateRange(),
+    new OperatorInTheLastDays()
   ]
 
   render(filter: DimensionFilter) {

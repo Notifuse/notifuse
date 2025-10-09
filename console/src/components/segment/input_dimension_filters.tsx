@@ -135,6 +135,7 @@ const AddFilterButton = (props: {
         type={props.btnType || 'primary'}
         ghost={props.btnGhost}
         onClick={onClicked}
+        size="small"
       >
         + Add filter
       </Button>

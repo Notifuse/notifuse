@@ -96,6 +96,10 @@ func TestSegmentE2E(t *testing.T) {
 	t.Run("Check Segment Recompute Task Processor", func(t *testing.T) {
 		testCheckSegmentRecomputeProcessor(t, client, factory, workspace.ID)
 	})
+
+	t.Run("Contact Property Date Filter with Relative Dates", func(t *testing.T) {
+		testContactPropertyRelativeDates(t, client, factory, workspace.ID)
+	})
 }
 
 // testSimpleContactSegment tests creating a simple segment with contact filters
@@ -1438,5 +1442,205 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 		}
 
 		assert.Equal(t, 0, newTasksForDeletedSegment, "Should not create NEW build tasks for deleted segment")
+	})
+}
+
+// testContactPropertyRelativeDates tests segments with relative date filters on contact properties
+func testContactPropertyRelativeDates(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
+	t.Run("should filter contacts by created_at in the last N days", func(t *testing.T) {
+		// Create contacts with different creation dates
+		// Recent contacts (within last 7 days) - should be auto-created with current timestamp
+		recentContact1, err := factory.CreateContact(workspaceID,
+			testutil.WithContactEmail("recent-contact-1@example.com"))
+		require.NoError(t, err)
+
+		recentContact2, err := factory.CreateContact(workspaceID,
+			testutil.WithContactEmail("recent-contact-2@example.com"))
+		require.NoError(t, err)
+
+		// Create segment with relative date filter: contacts created in the last 30 days
+		segment := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           fmt.Sprintf("recentcontacts%d", time.Now().Unix()),
+			"name":         "Recently Created Contacts",
+			"description":  "Contacts created in the last 30 days",
+			"color":        "#FF6B6B",
+			"timezone":     "America/New_York",
+			"tree": map[string]interface{}{
+				"kind": "leaf",
+				"leaf": map[string]interface{}{
+					"table": "contacts",
+					"contact": map[string]interface{}{
+						"filters": []map[string]interface{}{
+							{
+								"field_name":    "created_at",
+								"field_type":    "time",
+								"operator":      "in_the_last_days",
+								"string_values": []string{"30"},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// Create the segment
+		createResp, err := client.Post("/api/segments.create", segment)
+		require.NoError(t, err)
+		defer createResp.Body.Close()
+		assert.Equal(t, http.StatusCreated, createResp.StatusCode)
+
+		var createResult map[string]interface{}
+		err = json.NewDecoder(createResp.Body).Decode(&createResult)
+		require.NoError(t, err)
+
+		segmentData := createResult["segment"].(map[string]interface{})
+		segmentID := segmentData["id"].(string)
+
+		// Verify recompute_after is set for segments with relative date filters
+		if recomputeAfter, ok := segmentData["recompute_after"].(string); ok {
+			assert.NotEmpty(t, recomputeAfter, "recompute_after should be set for segments with relative dates")
+
+			// Parse and verify it's a future timestamp
+			recomputeTime, err := time.Parse(time.RFC3339, recomputeAfter)
+			require.NoError(t, err)
+			assert.True(t, recomputeTime.After(time.Now()), "recompute_after should be in the future")
+		}
+
+		// Build the segment
+		rebuildResp, err := client.Post("/api/segments.rebuild", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"segment_id":   segmentID,
+		})
+		require.NoError(t, err)
+		defer rebuildResp.Body.Close()
+
+		// Execute tasks to build the segment
+		execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
+		require.NoError(t, err)
+		execResp.Body.Close()
+
+		// Wait for segment to be built
+		status, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segmentID, 10*time.Second)
+		if err != nil {
+			t.Fatalf("Segment build failed: %v", err)
+		}
+		assert.Contains(t, []string{"built", "active"}, status, "Segment should be built or active")
+
+		// Verify segment matches the recent contacts
+		getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
+		require.NoError(t, err)
+		defer getResp.Body.Close()
+
+		var getResult map[string]interface{}
+		err = json.NewDecoder(getResp.Body).Decode(&getResult)
+		require.NoError(t, err)
+
+		updatedSegment := getResult["segment"].(map[string]interface{})
+
+		// Should have at least the 2 recent contacts we created
+		if usersCount, ok := updatedSegment["users_count"].(float64); ok {
+			assert.True(t, usersCount >= 2, "Expected at least 2 users, got %v", usersCount)
+		}
+
+		// Verify recompute_after is still set after build
+		if recomputeAfter, ok := updatedSegment["recompute_after"].(string); ok {
+			assert.NotEmpty(t, recomputeAfter, "recompute_after should remain set after build")
+		}
+
+		// Verify the generated SQL contains the relative date logic
+		if generatedSQL, ok := updatedSegment["generated_sql"].(string); ok {
+			assert.Contains(t, generatedSQL, "NOW() - INTERVAL", "Generated SQL should contain relative date interval")
+			assert.Contains(t, generatedSQL, "days", "Generated SQL should reference days")
+		}
+
+		t.Logf("Segment built successfully with %v contacts matching 'created in last 30 days'",
+			updatedSegment["users_count"])
+		t.Logf("Recent contacts: %s, %s", recentContact1.Email, recentContact2.Email)
+	})
+
+	t.Run("should combine relative date filter with other filters", func(t *testing.T) {
+		// Create contacts with different attributes
+		recentUSContact, err := factory.CreateContact(workspaceID,
+			testutil.WithContactEmail("recent-us@example.com"),
+			testutil.WithContactCountry("US"))
+		require.NoError(t, err)
+
+		recentCAContact, err := factory.CreateContact(workspaceID,
+			testutil.WithContactEmail("recent-ca@example.com"),
+			testutil.WithContactCountry("CA"))
+		require.NoError(t, err)
+
+		// Create segment: US contacts created in the last 60 days
+		segment := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           fmt.Sprintf("recentus%d", time.Now().Unix()),
+			"name":         "Recent US Contacts",
+			"description":  "US contacts created recently",
+			"color":        "#4ECDC4",
+			"timezone":     "UTC",
+			"tree": map[string]interface{}{
+				"kind": "branch",
+				"branch": map[string]interface{}{
+					"operator": "and",
+					"leaves": []map[string]interface{}{
+						{
+							"kind": "leaf",
+							"leaf": map[string]interface{}{
+								"table": "contacts",
+								"contact": map[string]interface{}{
+									"filters": []map[string]interface{}{
+										{
+											"field_name":    "country",
+											"field_type":    "string",
+											"operator":      "equals",
+											"string_values": []string{"US"},
+										},
+									},
+								},
+							},
+						},
+						{
+							"kind": "leaf",
+							"leaf": map[string]interface{}{
+								"table": "contacts",
+								"contact": map[string]interface{}{
+									"filters": []map[string]interface{}{
+										{
+											"field_name":    "created_at",
+											"field_type":    "time",
+											"operator":      "in_the_last_days",
+											"string_values": []string{"60"},
+										},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		// Preview the segment
+		previewResp, err := client.Post("/api/segments.preview", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"tree":         segment["tree"],
+			"limit":        20,
+		})
+		require.NoError(t, err)
+		defer previewResp.Body.Close()
+		assert.Equal(t, http.StatusOK, previewResp.StatusCode)
+
+		var previewResult map[string]interface{}
+		err = json.NewDecoder(previewResp.Body).Decode(&previewResult)
+		require.NoError(t, err)
+
+		totalCount := int(previewResult["total_count"].(float64))
+
+		// Should find at least 1 US contact (the one we just created)
+		assert.True(t, totalCount >= 1, "Expected at least 1 US contact created recently")
+
+		t.Logf("Found %d recent US contacts (should include %s but not %s)",
+			totalCount, recentUSContact.Email, recentCAContact.Email)
 	})
 }

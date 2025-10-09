@@ -303,7 +303,14 @@ func (t *TreeNode) HasRelativeDates() bool {
 				return true
 			}
 		}
-		// Could add more checks here for other types of relative date filters
+		// Check contact property filters for relative date operators
+		if t.Leaf.Contact != nil && t.Leaf.Contact.Filters != nil {
+			for _, filter := range t.Leaf.Contact.Filters {
+				if filter.Operator == "in_the_last_days" {
+					return true
+				}
+			}
+		}
 		return false
 
 	default:

@@ -130,6 +130,54 @@ func TestQueryBuilder_BuildSQL_SimpleConditions(t *testing.T) {
 		assert.Contains(t, sql, "created_at BETWEEN $1 AND $2")
 		assert.Len(t, args, 2)
 	})
+
+	t.Run("time in_the_last_days condition", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "created_at",
+							FieldType:    "time",
+							Operator:     "in_the_last_days",
+							StringValues: []string{"30"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "created_at > NOW() - INTERVAL '30 days'")
+		assert.Empty(t, args) // No args needed as days value is embedded in SQL
+	})
+
+	t.Run("time in_the_last_days with numeric value", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "updated_at",
+							FieldType:    "time",
+							Operator:     "in_the_last_days",
+							StringValues: []string{"7"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "updated_at > NOW() - INTERVAL '7 days'")
+		assert.Empty(t, args)
+	})
 }
 
 func TestQueryBuilder_BuildSQL_MultipleFilters(t *testing.T) {
