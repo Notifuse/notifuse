@@ -26,11 +26,12 @@ The function expects JSON payloads matching the following structure:
   "transactional_count": 150,
   "messages_count": 5000,
   "lists_count": 10,
+  "segments_count": 8,
   "api_endpoint": "https://api.example.com",
   "mailgun": true,
   "amazonses": true,
   "mailjet": false,
-  "sendgrid": false,
+  "sparkpost": false,
   "postmark": false,
   "smtp": false
 }
@@ -95,11 +96,12 @@ curl -X POST "$FUNCTION_URL" \
     "transactional_count": 20,
     "messages_count": 500,
     "lists_count": 3,
+    "segments_count": 6,
     "api_endpoint": "https://api.test.com",
     "mailgun": true,
     "amazonses": false,
     "mailjet": false,
-    "sendgrid": false,
+    "sparkpost": false,
     "postmark": false,
     "smtp": false
   }'

@@ -74,6 +74,7 @@ func TestTelemetryService_SendMetricsForAllWorkspaces(t *testing.T) {
 		TransactionalCount: 3,
 		MessagesCount:      25,
 		ListsCount:         2,
+		SegmentsCount:      4,
 		UsersCount:         1,
 		LastMessageAt:      "2023-01-01T00:00:00Z",
 	}, nil)
@@ -83,6 +84,7 @@ func TestTelemetryService_SendMetricsForAllWorkspaces(t *testing.T) {
 		TransactionalCount: 4,
 		MessagesCount:      30,
 		ListsCount:         3,
+		SegmentsCount:      6,
 		UsersCount:         2,
 		LastMessageAt:      "2023-01-02T00:00:00Z",
 	}, nil)
@@ -211,7 +213,7 @@ func TestTelemetryService_SetIntegrationFlags(t *testing.T) {
 	assert.True(t, metrics.AmazonSES, "AmazonSES flag should be true")
 	assert.True(t, metrics.SMTP, "SMTP flag should be true")
 	assert.False(t, metrics.Mailjet, "Mailjet flag should be false")
-	assert.False(t, metrics.SendGrid, "SendGrid flag should be false")
+	assert.False(t, metrics.SparkPost, "SparkPost flag should be false")
 	assert.False(t, metrics.Postmark, "Postmark flag should be false")
 
 	// Test empty workspace
@@ -229,6 +231,6 @@ func TestTelemetryService_SetIntegrationFlags(t *testing.T) {
 	assert.False(t, emptyMetrics.AmazonSES, "All flags should be false for empty workspace")
 	assert.False(t, emptyMetrics.SMTP, "All flags should be false for empty workspace")
 	assert.False(t, emptyMetrics.Mailjet, "All flags should be false for empty workspace")
-	assert.False(t, emptyMetrics.SendGrid, "All flags should be false for empty workspace")
+	assert.False(t, emptyMetrics.SparkPost, "All flags should be false for empty workspace")
 	assert.False(t, emptyMetrics.Postmark, "All flags should be false for empty workspace")
 }

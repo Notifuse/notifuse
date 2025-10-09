@@ -71,6 +71,9 @@ func TestGetWorkspaceMetrics_Success(t *testing.T) {
 	workspaceMock.ExpectQuery(`SELECT COUNT\(\*\) FROM lists`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(10))
 
+	workspaceMock.ExpectQuery(`SELECT COUNT\(\*\) FROM segments`).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(8))
+
 	systemMock.ExpectQuery(`SELECT COUNT\(\*\) FROM user_workspaces WHERE workspace_id = \$1 AND deleted_at IS NULL`).
 		WithArgs("workspace123").
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(3))
@@ -89,6 +92,7 @@ func TestGetWorkspaceMetrics_Success(t *testing.T) {
 	assert.Equal(t, 50, metrics.TransactionalCount)
 	assert.Equal(t, 1500, metrics.MessagesCount)
 	assert.Equal(t, 10, metrics.ListsCount)
+	assert.Equal(t, 8, metrics.SegmentsCount)
 	assert.Equal(t, 3, metrics.UsersCount)
 	assert.Equal(t, lastMessageTime.Format(time.RFC3339), metrics.LastMessageAt)
 
@@ -169,6 +173,9 @@ func TestGetWorkspaceMetrics_PartialFailures(t *testing.T) {
 	workspaceMock.ExpectQuery(`SELECT COUNT\(\*\) FROM lists`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(10))
 
+	workspaceMock.ExpectQuery(`SELECT COUNT\(\*\) FROM segments`).
+		WillReturnError(errors.New("segments query failed"))
+
 	systemMock.ExpectQuery(`SELECT COUNT\(\*\) FROM user_workspaces WHERE workspace_id = \$1 AND deleted_at IS NULL`).
 		WithArgs("workspace123").
 		WillReturnError(errors.New("users query failed"))
@@ -189,6 +196,7 @@ func TestGetWorkspaceMetrics_PartialFailures(t *testing.T) {
 	assert.Equal(t, 50, metrics.TransactionalCount)
 	assert.Equal(t, 0, metrics.MessagesCount) // Failed query, should be 0
 	assert.Equal(t, 10, metrics.ListsCount)
+	assert.Equal(t, 0, metrics.SegmentsCount) // Failed query, should be 0
 	assert.Equal(t, 0, metrics.UsersCount) // Failed query, should be 0
 }
 
@@ -407,6 +415,49 @@ func TestCountLists_Error(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to count lists")
 }
 
+func TestCountSegments_Success(t *testing.T) {
+	db, mock, cleanup := setupTelemetryMockDB(t)
+	defer cleanup()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewTelemetryRepository(workspaceRepo)
+
+	expectedCount := 12
+	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM segments`).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(expectedCount))
+
+	ctx := context.Background()
+	count, err := repo.CountSegments(ctx, db)
+
+	require.NoError(t, err)
+	assert.Equal(t, expectedCount, count)
+	require.NoError(t, mock.ExpectationsWereMet())
+}
+
+func TestCountSegments_Error(t *testing.T) {
+	db, mock, cleanup := setupTelemetryMockDB(t)
+	defer cleanup()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewTelemetryRepository(workspaceRepo)
+
+	mock.ExpectQuery(`SELECT COUNT\(\*\) FROM segments`).
+		WillReturnError(errors.New("database error"))
+
+	ctx := context.Background()
+	count, err := repo.CountSegments(ctx, db)
+
+	assert.Error(t, err)
+	assert.Equal(t, 0, count)
+	assert.Contains(t, err.Error(), "failed to count segments")
+}
+
 func TestCountUsers_Success(t *testing.T) {
 	db, mock, cleanup := setupTelemetryMockDB(t)
 	defer cleanup()
@@ -610,6 +661,9 @@ func TestGetWorkspaceMetrics_EmptyDatabase(t *testing.T) {
 	workspaceMock.ExpectQuery(`SELECT COUNT\(\*\) FROM lists`).
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
+	workspaceMock.ExpectQuery(`SELECT COUNT\(\*\) FROM segments`).
+		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
+
 	systemMock.ExpectQuery(`SELECT COUNT\(\*\) FROM user_workspaces WHERE workspace_id = \$1 AND deleted_at IS NULL`).
 		WithArgs("workspace123").
 		WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
@@ -628,6 +682,7 @@ func TestGetWorkspaceMetrics_EmptyDatabase(t *testing.T) {
 	assert.Equal(t, 0, metrics.TransactionalCount)
 	assert.Equal(t, 0, metrics.MessagesCount)
 	assert.Equal(t, 0, metrics.ListsCount)
+	assert.Equal(t, 0, metrics.SegmentsCount)
 	assert.Equal(t, 0, metrics.UsersCount)
 	assert.Equal(t, "", metrics.LastMessageAt)
 

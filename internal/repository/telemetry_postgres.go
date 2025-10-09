@@ -61,6 +61,11 @@ func (r *telemetryRepository) GetWorkspaceMetrics(ctx context.Context, workspace
 		metrics.ListsCount = listsCount
 	}
 
+	// Count segments
+	if segmentsCount, err := r.CountSegments(ctx, db); err == nil {
+		metrics.SegmentsCount = segmentsCount
+	}
+
 	// Count users (from system database)
 	if usersCount, err := r.CountUsers(ctx, systemDB, workspaceID); err == nil {
 		metrics.UsersCount = usersCount
@@ -125,6 +130,17 @@ func (r *telemetryRepository) CountLists(ctx context.Context, db *sql.DB) (int, 
 	err := db.QueryRowContext(ctx, query).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count lists: %w", err)
+	}
+	return count, nil
+}
+
+// CountSegments counts the total number of segments in a workspace
+func (r *telemetryRepository) CountSegments(ctx context.Context, db *sql.DB) (int, error) {
+	query := `SELECT COUNT(*) FROM segments`
+	var count int
+	err := db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count segments: %w", err)
 	}
 	return count, nil
 }

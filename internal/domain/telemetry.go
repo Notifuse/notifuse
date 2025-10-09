@@ -14,6 +14,7 @@ type TelemetryMetrics struct {
 	TransactionalCount int    `json:"transactional_count"`
 	MessagesCount      int    `json:"messages_count"`
 	ListsCount         int    `json:"lists_count"`
+	SegmentsCount      int    `json:"segments_count"`
 	UsersCount         int    `json:"users_count"`
 	LastMessageAt      string `json:"last_message_at"`
 }
@@ -37,6 +38,9 @@ type TelemetryRepository interface {
 
 	// CountLists counts the total number of lists in a workspace
 	CountLists(ctx context.Context, db *sql.DB) (int, error)
+
+	// CountSegments counts the total number of segments in a workspace
+	CountSegments(ctx context.Context, db *sql.DB) (int, error)
 
 	// CountUsers counts the total number of users in a workspace from the system database
 	CountUsers(ctx context.Context, systemDB *sql.DB, workspaceID string) (int, error)

@@ -25,6 +25,7 @@ type TelemetryMetrics struct {
 	TransactionalCount int    `json:"transactional_count"`
 	MessagesCount      int    `json:"messages_count"`
 	ListsCount         int    `json:"lists_count"`
+	SegmentsCount      int    `json:"segments_count"`
 	UsersCount         int    `json:"users_count"`
 	APIEndpoint        string `json:"api_endpoint"`
 
@@ -32,7 +33,7 @@ type TelemetryMetrics struct {
 	Mailgun   bool `json:"mailgun"`
 	AmazonSES bool `json:"amazonses"`
 	Mailjet   bool `json:"mailjet"`
-	SendGrid  bool `json:"sendgrid"`
+	SparkPost bool `json:"sparkpost"`
 	Postmark  bool `json:"postmark"`
 	SMTP      bool `json:"smtp"`
 	S3        bool `json:"s3"`
@@ -130,6 +131,7 @@ func (t *TelemetryService) sendMetricsForWorkspace(ctx context.Context, workspac
 		metrics.TransactionalCount = telemetryMetrics.TransactionalCount
 		metrics.MessagesCount = telemetryMetrics.MessagesCount
 		metrics.ListsCount = telemetryMetrics.ListsCount
+		metrics.SegmentsCount = telemetryMetrics.SegmentsCount
 		metrics.UsersCount = telemetryMetrics.UsersCount
 		metrics.LastMessageAt = telemetryMetrics.LastMessageAt
 	}
@@ -152,10 +154,10 @@ func (t *TelemetryService) setIntegrationFlagsFromWorkspace(workspace *domain.Wo
 				metrics.Mailjet = true
 			case domain.EmailProviderKindPostmark:
 				metrics.Postmark = true
-			case domain.EmailProviderKindSMTP:
-				metrics.SMTP = true
-			case domain.EmailProviderKindSparkPost:
-				metrics.SendGrid = true // SparkPost maps to SendGrid for telemetry
+		case domain.EmailProviderKindSMTP:
+			metrics.SMTP = true
+		case domain.EmailProviderKindSparkPost:
+			metrics.SparkPost = true
 			}
 		}
 	}

@@ -24,6 +24,7 @@ type TelemetryMetrics struct {
 	TransactionalCount int    `json:"transactional_count"`
 	MessagesCount      int    `json:"messages_count"`
 	ListsCount         int    `json:"lists_count"`
+	SegmentsCount      int    `json:"segments_count"`
 	UsersCount         int    `json:"users_count"`
 	APIEndpoint        string `json:"api_endpoint"`
 
@@ -31,7 +32,7 @@ type TelemetryMetrics struct {
 	Mailgun   bool `json:"mailgun"`
 	AmazonSES bool `json:"amazonses"`
 	Mailjet   bool `json:"mailjet"`
-	SendGrid  bool `json:"sendgrid"`
+	SparkPost bool `json:"sparkpost"`
 	Postmark  bool `json:"postmark"`
 	SMTP      bool `json:"smtp"`
 	S3        bool `json:"s3"`
@@ -49,6 +50,7 @@ type LogEntry struct {
 	TransactionalCount int       `json:"transactional_count"`
 	MessagesCount      int       `json:"messages_count"`
 	ListsCount         int       `json:"lists_count"`
+	SegmentsCount      int       `json:"segments_count"`
 	UsersCount         int       `json:"users_count"`
 	APIEndpoint        string    `json:"api_endpoint"`
 	Source             string    `json:"source"`
@@ -58,7 +60,7 @@ type LogEntry struct {
 	Mailgun   bool `json:"mailgun"`
 	AmazonSES bool `json:"amazonses"`
 	Mailjet   bool `json:"mailjet"`
-	SendGrid  bool `json:"sendgrid"`
+	SparkPost bool `json:"sparkpost"`
 	Postmark  bool `json:"postmark"`
 	SMTP      bool `json:"smtp"`
 	S3        bool `json:"s3"`
@@ -140,13 +142,14 @@ func receiveTelemetry(w http.ResponseWriter, r *http.Request) {
 		TransactionalCount: metrics.TransactionalCount,
 		MessagesCount:      metrics.MessagesCount,
 		ListsCount:         metrics.ListsCount,
+		SegmentsCount:      metrics.SegmentsCount,
 		APIEndpoint:        metrics.APIEndpoint,
 		Source:             "notifuse-platform",
 		EventType:          "telemetry_metrics",
 		Mailgun:            metrics.Mailgun,
 		AmazonSES:          metrics.AmazonSES,
 		Mailjet:            metrics.Mailjet,
-		SendGrid:           metrics.SendGrid,
+		SparkPost:          metrics.SparkPost,
 		Postmark:           metrics.Postmark,
 		SMTP:               metrics.SMTP,
 		S3:                 metrics.S3,

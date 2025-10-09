@@ -398,7 +398,7 @@ func TestWorkspaceRepository_Update(t *testing.T) {
 			Integrations: []domain.Integration{
 				{
 					ID:   "integration-1",
-					Name: "SendGrid Integration",
+					Name: "SMTP Integration",
 					Type: domain.IntegrationTypeEmail,
 					EmailProvider: domain.EmailProvider{
 						Kind: domain.EmailProviderKindSMTP,

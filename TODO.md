@@ -12,7 +12,6 @@
 
 - better design for system email (use MJML for template)
 - add contact_list reason string
-- implement daily segment recompute when having relative dates (in the last... days)
 
 ## Roadmap
 

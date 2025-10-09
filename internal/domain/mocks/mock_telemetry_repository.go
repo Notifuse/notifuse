@@ -96,6 +96,21 @@ func (mr *MockTelemetryRepositoryMockRecorder) CountMessages(arg0, arg1 interfac
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountMessages", reflect.TypeOf((*MockTelemetryRepository)(nil).CountMessages), arg0, arg1)
 }
 
+// CountSegments mocks base method.
+func (m *MockTelemetryRepository) CountSegments(arg0 context.Context, arg1 *sql.DB) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountSegments", arg0, arg1)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountSegments indicates an expected call of CountSegments.
+func (mr *MockTelemetryRepositoryMockRecorder) CountSegments(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountSegments", reflect.TypeOf((*MockTelemetryRepository)(nil).CountSegments), arg0, arg1)
+}
+
 // CountTransactional mocks base method.
 func (m *MockTelemetryRepository) CountTransactional(arg0 context.Context, arg1 *sql.DB) (int, error) {
 	m.ctrl.T.Helper()

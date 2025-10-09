@@ -60,6 +60,12 @@
     "description": "Number of lists in the workspace"
   },
   {
+    "name": "segments_count",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of segments in the workspace"
+  },
+  {
     "name": "users_count",
     "type": "INTEGER",
     "mode": "NULLABLE",
@@ -102,10 +108,10 @@
     "description": "Whether Mailjet integration is active"
   },
   {
-    "name": "sendgrid",
+    "name": "sparkpost",
     "type": "BOOLEAN",
     "mode": "NULLABLE",
-    "description": "Whether SendGrid integration is active"
+    "description": "Whether SparkPost integration is active"
   },
   {
     "name": "postmark",
