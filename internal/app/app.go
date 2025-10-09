@@ -229,6 +229,7 @@ func (a *App) InitDB() error {
 		maskedPassword = fmt.Sprintf("%c...%c", password[0], password[len(password)-1])
 	}
 	a.logger.Info(fmt.Sprintf("Connecting to database %s:%d, user %s, sslmode %s, password: %s, dbname: %s", a.config.Database.Host, a.config.Database.Port, a.config.Database.User, a.config.Database.SSLMode, maskedPassword, a.config.Database.DBName))
+	a.logger.Info(fmt.Sprintf("Database prefix configured: '%s' (workspace databases will be named: %s_ws_*)", a.config.Database.Prefix, a.config.Database.Prefix))
 
 	// Ensure system database exists
 	if err := database.EnsureSystemDatabaseExists(database.GetPostgresDSN(&a.config.Database), a.config.Database.DBName); err != nil {

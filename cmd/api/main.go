@@ -119,6 +119,9 @@ func main() {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}
 
+	// Log the loaded DB_PREFIX for debugging
+	log.Printf("Configuration loaded - DB_PREFIX from config: '%s', DB_PREFIX from environment: '%s'", cfg.Database.Prefix, os.Getenv("DB_PREFIX"))
+
 	// Initialize logger with configured log level
 	appLogger := logger.NewLoggerWithLevel(cfg.LogLevel)
 	appLogger.Info(fmt.Sprintf("Starting API server on %s:%d", cfg.Server.Host, cfg.Server.Port))

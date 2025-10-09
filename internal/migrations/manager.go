@@ -31,6 +31,10 @@ func (c *defaultConnector) connectToWorkspace(cfg *config.DatabaseConfig, worksp
 	// Replace hyphens with underscores for PostgreSQL compatibility
 	safeID := strings.ReplaceAll(workspaceID, "-", "_")
 	dbName := fmt.Sprintf("%s_ws_%s", cfg.Prefix, safeID)
+	
+	// Debug logging to trace prefix usage
+	fmt.Printf("[DEBUG] Migration connector - Using prefix '%s' to connect to workspace '%s' -> database '%s'\n", cfg.Prefix, workspaceID, dbName)
+	
 	dsn := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		cfg.User,
 		cfg.Password,
