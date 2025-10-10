@@ -10,7 +10,7 @@ tmp/
 bin/
 coverage.html
 coverage.out
-/api
+api
 console/public/config.js
 
 notification_center/tsconfig.tsbuildinfo
