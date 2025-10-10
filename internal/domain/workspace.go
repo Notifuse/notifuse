@@ -266,6 +266,7 @@ type WorkspaceSettings struct {
 	EmailTrackingEnabled         bool                `json:"email_tracking_enabled"`
 	TemplateBlocks               []TemplateBlock     `json:"template_blocks,omitempty"`
 	CustomEndpointURL            *string             `json:"custom_endpoint_url,omitempty"`
+	CustomFieldLabels            map[string]string   `json:"custom_field_labels,omitempty"`
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`
@@ -311,6 +312,11 @@ func (ws *WorkspaceSettings) Validate(passphrase string) error {
 		}
 	}
 
+	// Validate custom field labels if any are present
+	if err := ws.ValidateCustomFieldLabels(); err != nil {
+		return fmt.Errorf("invalid custom field labels: %w", err)
+	}
+
 	return nil
 }
 
@@ -332,6 +338,42 @@ func (b *WorkspaceSettings) Scan(value interface{}) error {
 
 	cloned := bytes.Clone(v)
 	return json.Unmarshal(cloned, b)
+}
+
+// ValidateCustomFieldLabels validates custom field label mappings
+func (ws *WorkspaceSettings) ValidateCustomFieldLabels() error {
+	if len(ws.CustomFieldLabels) == 0 {
+		return nil
+	}
+
+	// Define valid custom field names
+	validFields := make(map[string]bool)
+	for i := 1; i <= 5; i++ {
+		validFields[fmt.Sprintf("custom_string_%d", i)] = true
+		validFields[fmt.Sprintf("custom_number_%d", i)] = true
+		validFields[fmt.Sprintf("custom_datetime_%d", i)] = true
+		validFields[fmt.Sprintf("custom_json_%d", i)] = true
+	}
+
+	// Validate each custom field label
+	for fieldKey, label := range ws.CustomFieldLabels {
+		// Check if the field key is valid
+		if !validFields[fieldKey] {
+			return fmt.Errorf("invalid custom field key: %s", fieldKey)
+		}
+
+		// Check if the label is empty
+		if label == "" {
+			return fmt.Errorf("custom field label for '%s' cannot be empty", fieldKey)
+		}
+
+		// Check if the label is too long
+		if len(label) > 100 {
+			return fmt.Errorf("custom field label for '%s' exceeds maximum length of 100 characters", fieldKey)
+		}
+	}
+
+	return nil
 }
 
 type Workspace struct {

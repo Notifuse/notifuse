@@ -26,6 +26,8 @@ import { Contact } from '../../services/api/contacts'
 import { contactsApi } from '../../services/api/contacts'
 import { List } from '../../services/api/types'
 import { listsApi } from '../../services/api/list'
+import { useAuth } from '../../contexts/AuthContext'
+import { getCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
 
 const { Text } = Typography
 const { Option } = Select
@@ -69,46 +71,6 @@ interface SavedProgress {
   timestamp: number
 }
 
-// Define contact fields for mapping
-const contactFields = [
-  { key: 'email', label: 'Email', required: true },
-  { key: 'external_id', label: 'External ID' },
-  { key: 'first_name', label: 'First Name' },
-  { key: 'last_name', label: 'Last Name' },
-  { key: 'phone', label: 'Phone' },
-  { key: 'country', label: 'Country' },
-  { key: 'timezone', label: 'Timezone' },
-  { key: 'language', label: 'Language' },
-  { key: 'address_line_1', label: 'Address Line 1' },
-  { key: 'address_line_2', label: 'Address Line 2' },
-  { key: 'postcode', label: 'Postcode' },
-  { key: 'state', label: 'State' },
-  { key: 'job_title', label: 'Job Title' },
-  { key: 'lifetime_value', label: 'Lifetime Value' },
-  { key: 'orders_count', label: 'Orders Count' },
-  { key: 'last_order_at', label: 'Last Order At' },
-  { key: 'custom_string_1', label: 'Custom String 1' },
-  { key: 'custom_string_2', label: 'Custom String 2' },
-  { key: 'custom_string_3', label: 'Custom String 3' },
-  { key: 'custom_string_4', label: 'Custom String 4' },
-  { key: 'custom_string_5', label: 'Custom String 5' },
-  { key: 'custom_number_1', label: 'Custom Number 1' },
-  { key: 'custom_number_2', label: 'Custom Number 2' },
-  { key: 'custom_number_3', label: 'Custom Number 3' },
-  { key: 'custom_number_4', label: 'Custom Number 4' },
-  { key: 'custom_number_5', label: 'Custom Number 5' },
-  { key: 'custom_datetime_1', label: 'Custom Date 1' },
-  { key: 'custom_datetime_2', label: 'Custom Date 2' },
-  { key: 'custom_datetime_3', label: 'Custom Date 3' },
-  { key: 'custom_datetime_4', label: 'Custom Date 4' },
-  { key: 'custom_datetime_5', label: 'Custom Date 5' },
-  { key: 'custom_json_1', label: 'Custom JSON 1' },
-  { key: 'custom_json_2', label: 'Custom JSON 2' },
-  { key: 'custom_json_3', label: 'Custom JSON 3' },
-  { key: 'custom_json_4', label: 'Custom JSON 4' },
-  { key: 'custom_json_5', label: 'Custom JSON 5' }
-]
-
 export function ContactsCsvUploadDrawer({
   workspaceId,
   lists = [],
@@ -117,6 +79,49 @@ export function ContactsCsvUploadDrawer({
   isVisible,
   onClose
 }: ContactsCsvUploadDrawerProps) {
+  // Get workspace for custom field labels
+  const { workspaces } = useAuth()
+  const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
+
+  // Define contact fields for mapping with custom labels
+  const contactFields = [
+    { key: 'email', label: 'Email', required: true },
+    { key: 'external_id', label: 'External ID' },
+    { key: 'first_name', label: 'First Name' },
+    { key: 'last_name', label: 'Last Name' },
+    { key: 'phone', label: 'Phone' },
+    { key: 'country', label: 'Country' },
+    { key: 'timezone', label: 'Timezone' },
+    { key: 'language', label: 'Language' },
+    { key: 'address_line_1', label: 'Address Line 1' },
+    { key: 'address_line_2', label: 'Address Line 2' },
+    { key: 'postcode', label: 'Postcode' },
+    { key: 'state', label: 'State' },
+    { key: 'job_title', label: 'Job Title' },
+    { key: 'lifetime_value', label: 'Lifetime Value' },
+    { key: 'orders_count', label: 'Orders Count' },
+    { key: 'last_order_at', label: 'Last Order At' },
+    { key: 'custom_string_1', label: getCustomFieldLabel('custom_string_1', currentWorkspace) },
+    { key: 'custom_string_2', label: getCustomFieldLabel('custom_string_2', currentWorkspace) },
+    { key: 'custom_string_3', label: getCustomFieldLabel('custom_string_3', currentWorkspace) },
+    { key: 'custom_string_4', label: getCustomFieldLabel('custom_string_4', currentWorkspace) },
+    { key: 'custom_string_5', label: getCustomFieldLabel('custom_string_5', currentWorkspace) },
+    { key: 'custom_number_1', label: getCustomFieldLabel('custom_number_1', currentWorkspace) },
+    { key: 'custom_number_2', label: getCustomFieldLabel('custom_number_2', currentWorkspace) },
+    { key: 'custom_number_3', label: getCustomFieldLabel('custom_number_3', currentWorkspace) },
+    { key: 'custom_number_4', label: getCustomFieldLabel('custom_number_4', currentWorkspace) },
+    { key: 'custom_number_5', label: getCustomFieldLabel('custom_number_5', currentWorkspace) },
+    { key: 'custom_datetime_1', label: getCustomFieldLabel('custom_datetime_1', currentWorkspace) },
+    { key: 'custom_datetime_2', label: getCustomFieldLabel('custom_datetime_2', currentWorkspace) },
+    { key: 'custom_datetime_3', label: getCustomFieldLabel('custom_datetime_3', currentWorkspace) },
+    { key: 'custom_datetime_4', label: getCustomFieldLabel('custom_datetime_4', currentWorkspace) },
+    { key: 'custom_datetime_5', label: getCustomFieldLabel('custom_datetime_5', currentWorkspace) },
+    { key: 'custom_json_1', label: getCustomFieldLabel('custom_json_1', currentWorkspace) },
+    { key: 'custom_json_2', label: getCustomFieldLabel('custom_json_2', currentWorkspace) },
+    { key: 'custom_json_3', label: getCustomFieldLabel('custom_json_3', currentWorkspace) },
+    { key: 'custom_json_4', label: getCustomFieldLabel('custom_json_4', currentWorkspace) },
+    { key: 'custom_json_5', label: getCustomFieldLabel('custom_json_5', currentWorkspace) }
+  ]
   // Replace form with direct state management
   const [mappings, setMappings] = useState<Record<string, string>>({})
   const [selectedListIds, setSelectedListIds] = useState<string[]>(

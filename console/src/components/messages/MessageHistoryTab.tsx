@@ -22,6 +22,20 @@ import { listsApi } from '../../services/api/list'
 
 const { Title, Text } = Typography
 
+const STORAGE_KEY = 'message_columns_visibility'
+
+const DEFAULT_VISIBLE_COLUMNS = {
+  id: true,
+  external_id: false,
+  contact_email: true,
+  template_id: true,
+  broadcast_id: true,
+  list_ids: true,
+  events: true,
+  error: false,
+  created_at: true
+}
+
 // Simple filter field type
 interface FilterOption {
   key: string
@@ -29,36 +43,8 @@ interface FilterOption {
   options?: { value: string; label: string }[]
 }
 
-// Define filter fields for message history
-const filterOptions: FilterOption[] = [
-  // {
-  //   key: 'status',
-  //   label: 'Status',
-  //   options: Object.entries(statusConfig).map(([value, { label }]) => ({
-  //     value,
-  //     label
-  //   }))
-  // },
-  {
-    key: 'channel',
-    label: 'Channel',
-    options: [
-      { value: 'email', label: 'Email' },
-      { value: 'sms', label: 'SMS' },
-      { value: 'push', label: 'Push' }
-    ]
-  },
-  { key: 'contact_email', label: 'Contact Email' },
-  { key: 'template_id', label: 'Template ID' },
-  { key: 'broadcast_id', label: 'Broadcast ID' },
-  {
-    key: 'has_error',
-    label: 'Has Error',
-    options: [
-      { value: 'true', label: 'With Errors' },
-      { value: 'false', label: 'No Errors' }
-    ]
-  },
+// Define status filter fields (first line)
+const statusFilterOptions: FilterOption[] = [
   {
     key: 'is_sent',
     label: (
@@ -163,6 +149,36 @@ const filterOptions: FilterOption[] = [
   }
 ]
 
+// Define other filter fields (second line)
+const otherFilterOptions: FilterOption[] = [
+  {
+    key: 'channel',
+    label: 'Channel',
+    options: [
+      { value: 'email', label: 'Email' },
+      { value: 'sms', label: 'SMS' },
+      { value: 'push', label: 'Push' }
+    ]
+  },
+  { key: 'contact_email', label: 'Contact Email' },
+  { key: 'id', label: 'Message ID' },
+  { key: 'external_id', label: 'External ID' },
+  { key: 'list_id', label: 'List ID' },
+  { key: 'template_id', label: 'Template ID' },
+  { key: 'broadcast_id', label: 'Broadcast ID' },
+  {
+    key: 'has_error',
+    label: 'Has Error',
+    options: [
+      { value: 'true', label: 'With Errors' },
+      { value: 'false', label: 'No Errors' }
+    ]
+  }
+]
+
+// Combined filter options for lookups
+const filterOptions: FilterOption[] = [...statusFilterOptions, ...otherFilterOptions]
+
 // Simple filter interface
 interface Filter {
   field: string
@@ -185,6 +201,10 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
   const [activeFilters, setActiveFilters] = useState<Filter[]>([])
   const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({})
   const [tempFilterValues, setTempFilterValues] = useState<Record<string, string>>({})
+
+  // State for column visibility
+  const [visibleColumns, setVisibleColumns] =
+    useState<Record<string, boolean>>(DEFAULT_VISIBLE_COLUMNS)
 
   // Fetch broadcasts for the workspace
   const { data: broadcastsData } = useQuery({
@@ -255,6 +275,29 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
 
   // Find the current workspace from the workspaces array
   const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
+
+  // Load saved column visibility from localStorage on mount
+  useEffect(() => {
+    const savedState = localStorage.getItem(STORAGE_KEY)
+    if (savedState) {
+      const parsedState = JSON.parse(savedState)
+      // Merge with defaults to ensure all fields exist
+      setVisibleColumns({
+        ...DEFAULT_VISIBLE_COLUMNS,
+        ...parsedState
+      })
+    }
+  }, [])
+
+  // Handle column visibility change
+  const handleColumnVisibilityChange = (key: string, visible: boolean) => {
+    setVisibleColumns((prev) => {
+      const newState = { ...prev, [key]: visible }
+      // Save to localStorage
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newState))
+      return newState
+    })
+  }
 
   // Load initial filters from URL on mount
   useEffect(() => {
@@ -379,120 +422,136 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
     window.history.pushState({ path: window.location.pathname }, '', window.location.pathname)
   }
 
+  // Render filter buttons for a specific filter group
+  const renderFilterGroup = (options: FilterOption[]) => {
+    return options.map((option) => {
+      const isActive = activeFilters.some((f) => f.field === option.key)
+      const activeFilter = activeFilters.find((f) => f.field === option.key)
+
+      return (
+        <Popover
+          key={option.key}
+          trigger="click"
+          open={openPopovers[option.key]}
+          onOpenChange={(visible) => {
+            // Initialize temp value when opening
+            if (visible && activeFilter) {
+              setTempFilterValues({
+                ...tempFilterValues,
+                [option.key]: activeFilter.value
+              })
+            }
+            setOpenPopovers({ ...openPopovers, [option.key]: visible })
+          }}
+          content={
+            <div style={{ width: 200 }}>
+              {option.options ? (
+                // Check if this is a boolean field (has only Yes/No options)
+                option.options.length === 2 &&
+                option.options.every((opt) => opt.value === 'true' || opt.value === 'false') ? (
+                  <Radio.Group
+                    style={{ width: '100%', marginBottom: 8 }}
+                    value={tempFilterValues[option.key] || undefined}
+                    onChange={(e) =>
+                      setTempFilterValues({
+                        ...tempFilterValues,
+                        [option.key]: e.target.value
+                      })
+                    }
+                  >
+                    <div className="flex flex-col gap-1">
+                      {option.options.map((opt) => (
+                        <Radio key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </Radio>
+                      ))}
+                    </div>
+                  </Radio.Group>
+                ) : (
+                  <Select
+                    style={{ width: '100%', marginBottom: 8 }}
+                    placeholder={`Select ${option.label}`}
+                    value={tempFilterValues[option.key] || undefined}
+                    onChange={(value) =>
+                      setTempFilterValues({
+                        ...tempFilterValues,
+                        [option.key]: value
+                      })
+                    }
+                    options={option.options}
+                    allowClear
+                  />
+                )
+              ) : (
+                <Input
+                  placeholder={`Enter ${option.label}`}
+                  value={tempFilterValues[option.key] || ''}
+                  onChange={(e) =>
+                    setTempFilterValues({
+                      ...tempFilterValues,
+                      [option.key]: e.target.value
+                    })
+                  }
+                  style={{ marginBottom: 8 }}
+                />
+              )}
+
+              <div className="flex gap-2">
+                <Button
+                  type="primary"
+                  size="small"
+                  style={{ flex: 1 }}
+                  onClick={() => applyFilter(option.key, tempFilterValues[option.key] || '')}
+                >
+                  Apply
+                </Button>
+
+                {isActive && (
+                  <Button danger size="small" onClick={() => clearFilter(option.key)}>
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </div>
+          }
+        >
+          <Button type={isActive ? 'primary' : 'default'} size="small">
+            {isActive ? (
+              <span>
+                {option.label}: {activeFilter!.value}
+              </span>
+            ) : (
+              option.label
+            )}
+          </Button>
+        </Popover>
+      )
+    })
+  }
+
   // Render filter buttons
   const renderFilterButtons = () => {
     return (
-      <Space wrap>
-        {filterOptions.map((option) => {
-          const isActive = activeFilters.some((f) => f.field === option.key)
-          const activeFilter = activeFilters.find((f) => f.field === option.key)
+      <div className="flex flex-col gap-2">
+        {/* First line: Status filters */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-600">Status:</span>
+          <Space wrap>{renderFilterGroup(statusFilterOptions)}</Space>
+        </div>
 
-          return (
-            <Popover
-              key={option.key}
-              trigger="click"
-              open={openPopovers[option.key]}
-              onOpenChange={(visible) => {
-                // Initialize temp value when opening
-                if (visible && activeFilter) {
-                  setTempFilterValues({
-                    ...tempFilterValues,
-                    [option.key]: activeFilter.value
-                  })
-                }
-                setOpenPopovers({ ...openPopovers, [option.key]: visible })
-              }}
-              content={
-                <div style={{ width: 200 }}>
-                  {option.options ? (
-                    // Check if this is a boolean field (has only Yes/No options)
-                    option.options.length === 2 &&
-                    option.options.every((opt) => opt.value === 'true' || opt.value === 'false') ? (
-                      <Radio.Group
-                        style={{ width: '100%', marginBottom: 8 }}
-                        value={tempFilterValues[option.key] || undefined}
-                        onChange={(e) =>
-                          setTempFilterValues({
-                            ...tempFilterValues,
-                            [option.key]: e.target.value
-                          })
-                        }
-                      >
-                        <div className="flex flex-col gap-1">
-                          {option.options.map((opt) => (
-                            <Radio key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </Radio>
-                          ))}
-                        </div>
-                      </Radio.Group>
-                    ) : (
-                      <Select
-                        style={{ width: '100%', marginBottom: 8 }}
-                        placeholder={`Select ${option.label}`}
-                        value={tempFilterValues[option.key] || undefined}
-                        onChange={(value) =>
-                          setTempFilterValues({
-                            ...tempFilterValues,
-                            [option.key]: value
-                          })
-                        }
-                        options={option.options}
-                        allowClear
-                      />
-                    )
-                  ) : (
-                    <Input
-                      placeholder={`Enter ${option.label}`}
-                      value={tempFilterValues[option.key] || ''}
-                      onChange={(e) =>
-                        setTempFilterValues({
-                          ...tempFilterValues,
-                          [option.key]: e.target.value
-                        })
-                      }
-                      style={{ marginBottom: 8 }}
-                    />
-                  )}
-
-                  <div className="flex gap-2">
-                    <Button
-                      type="primary"
-                      size="small"
-                      style={{ flex: 1 }}
-                      onClick={() => applyFilter(option.key, tempFilterValues[option.key] || '')}
-                    >
-                      Apply
-                    </Button>
-
-                    {isActive && (
-                      <Button danger size="small" onClick={() => clearFilter(option.key)}>
-                        Clear
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              }
-            >
-              <Button type={isActive ? 'primary' : 'default'} size="small">
-                {isActive ? (
-                  <span>
-                    {option.label}: {activeFilter!.value}
-                  </span>
-                ) : (
-                  option.label
-                )}
+        {/* Second line: Other filters */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-600">Filters:</span>
+          <Space wrap>
+            {renderFilterGroup(otherFilterOptions)}
+            {activeFilters.length > 0 && (
+              <Button size="small" onClick={clearAllFilters}>
+                Clear All
               </Button>
-            </Popover>
-          )
-        })}
-
-        {activeFilters.length > 0 && (
-          <Button size="small" onClick={clearAllFilters}>
-            Clear All
-          </Button>
-        )}
-      </Space>
+            )}
+          </Space>
+        </div>
+      </div>
     )
   }
 
@@ -511,7 +570,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
 
   return (
     <div>
-      <div className="flex justify-between items-center my-6">{renderFilterButtons()}</div>
+      <div className="my-6">{renderFilterButtons()}</div>
 
       <MessageHistoryTable
         messages={allMessages}
@@ -528,6 +587,8 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
         size="middle"
         broadcastMap={broadcastMap}
         listMap={listMap}
+        visibleColumns={visibleColumns}
+        onColumnVisibilityChange={handleColumnVisibilityChange}
       />
     </div>
   )

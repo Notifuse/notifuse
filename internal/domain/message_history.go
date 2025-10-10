@@ -172,6 +172,9 @@ type MessageListParams struct {
 	Limit  int    `json:"limit,omitempty"`
 
 	// Filters
+	ID             string `json:"id,omitempty"`              // filter by message ID
+	ExternalID     string `json:"external_id,omitempty"`     // filter by external ID
+	ListID         string `json:"list_id,omitempty"`         // filter by list ID (array contains)
 	Channel        string `json:"channel,omitempty"`         // email, sms, push, etc.
 	ContactEmail   string `json:"contact_email,omitempty"`   // filter by contact
 	BroadcastID    string `json:"broadcast_id,omitempty"`    // filter by broadcast
@@ -195,6 +198,9 @@ type MessageListParams struct {
 func (p *MessageListParams) FromQuery(query url.Values) error {
 	// Parse cursor and basic string filters
 	p.Cursor = query.Get("cursor")
+	p.ID = query.Get("id")
+	p.ExternalID = query.Get("external_id")
+	p.ListID = query.Get("list_id")
 	p.Channel = query.Get("channel")
 	p.ContactEmail = query.Get("contact_email")
 	p.BroadcastID = query.Get("broadcast_id")

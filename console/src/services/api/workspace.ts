@@ -22,6 +22,7 @@ export interface WorkspaceSettings {
   email_tracking_enabled: boolean
   template_blocks?: TemplateBlock[]
   custom_endpoint_url?: string
+  custom_field_labels?: Record<string, string>
 }
 
 export interface FileManagerSettings {

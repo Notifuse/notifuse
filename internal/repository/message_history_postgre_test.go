@@ -2339,6 +2339,118 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		assert.Equal(t, "", nextCursor)
 	})
 
+	t.Run("successful listing with ID filter", func(t *testing.T) {
+		params := domain.MessageListParams{
+			Limit: 10,
+			ID:    "msg-1",
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		messageData1JSON, _ := json.Marshal(message1.MessageData)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
+			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		}).
+			AddRow(
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
+				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
+				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
+				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
+			)
+
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE id = \$1 ORDER BY created_at DESC, id DESC LIMIT 11`).
+			WithArgs("msg-1").
+			WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 1)
+		assert.Equal(t, "", nextCursor)
+		assert.Equal(t, "msg-1", messages[0].ID)
+	})
+
+	t.Run("successful listing with ExternalID filter", func(t *testing.T) {
+		params := domain.MessageListParams{
+			Limit:      10,
+			ExternalID: "ext-123",
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		messageData1JSON, _ := json.Marshal(message1.MessageData)
+		externalID := "ext-123"
+		message1.ExternalID = &externalID
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
+			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		}).
+			AddRow(
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, "{}", message1.TemplateID, message1.TemplateVersion,
+				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
+				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
+				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
+			)
+
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE external_id = \$1 ORDER BY created_at DESC, id DESC LIMIT 11`).
+			WithArgs("ext-123").
+			WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 1)
+		assert.Equal(t, "", nextCursor)
+		assert.Equal(t, "ext-123", *messages[0].ExternalID)
+	})
+
+	t.Run("successful listing with ListID filter", func(t *testing.T) {
+		params := domain.MessageListParams{
+			Limit:  10,
+			ListID: "list-abc",
+		}
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(gomock.Any(), workspaceID).
+			Return(db, nil)
+
+		messageData1JSON, _ := json.Marshal(message1.MessageData)
+
+		rows := sqlmock.NewRows([]string{
+			"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
+			"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
+			"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
+			"unsubscribed_at", "created_at", "updated_at",
+		}).
+			AddRow(
+				message1.ID, message1.ExternalID, message1.ContactEmail, message1.BroadcastID, `{list-abc,list-xyz}`, message1.TemplateID, message1.TemplateVersion,
+				message1.Channel, message1.StatusInfo, messageData1JSON, []byte("[]"), message1.SentAt, message1.DeliveredAt,
+				message1.FailedAt, message1.OpenedAt, message1.ClickedAt, message1.BouncedAt, message1.ComplainedAt,
+				message1.UnsubscribedAt, message1.CreatedAt, message1.UpdatedAt,
+			)
+
+		// The query should use ANY(list_ids) for array containment check
+		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE \$1 = ANY\(list_ids\) ORDER BY created_at DESC, id DESC LIMIT 11`).
+			WithArgs("list-abc").
+			WillReturnRows(rows)
+
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		require.NoError(t, err)
+		require.Len(t, messages, 1)
+		assert.Equal(t, "", nextCursor)
+		// Verify the list_ids contains the filtered list ID
+		assert.Contains(t, messages[0].ListIDs, "list-abc")
+	})
+
 	t.Run("multiple filters combined", func(t *testing.T) {
 		isDelivered := true
 

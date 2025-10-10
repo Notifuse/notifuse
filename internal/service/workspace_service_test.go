@@ -685,6 +685,67 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 		assert.Nil(t, workspace)
 		assert.Equal(t, assert.AnError, err)
 	})
+
+	t.Run("successful update with custom field labels", func(t *testing.T) {
+		expectedUser := &domain.User{
+			ID: userID,
+		}
+
+		expectedUserWorkspace := &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		customFieldLabels := map[string]string{
+			"custom_string_1":   "Company Name",
+			"custom_number_1":   "Revenue",
+			"custom_datetime_1": "Contract Start",
+			"custom_json_1":     "Metadata",
+		}
+
+		settings := domain.WorkspaceSettings{
+			WebsiteURL: "https://example.com",
+			LogoURL:    "https://example.com/logo.png",
+			CoverURL:   "https://example.com/cover.png",
+			Timezone:   "UTC",
+			FileManager: domain.FileManagerSettings{
+				Endpoint:  "https://s3.amazonaws.com",
+				Bucket:    "my-bucket",
+				AccessKey: "AKIAIOSFODNN7EXAMPLE",
+			},
+			CustomFieldLabels: customFieldLabels,
+		}
+
+		existingWorkspace := &domain.Workspace{
+			ID:   workspaceID,
+			Name: "Original Workspace Name",
+			Settings: domain.WorkspaceSettings{
+				WebsiteURL: "https://old-example.com",
+			},
+			CreatedAt: time.Now().Add(-24 * time.Hour),
+			UpdatedAt: time.Now().Add(-24 * time.Hour),
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existingWorkspace, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			// Verify custom field labels are correctly set
+			assert.NotNil(t, workspace.Settings.CustomFieldLabels)
+			assert.Equal(t, customFieldLabels, workspace.Settings.CustomFieldLabels)
+			assert.Equal(t, "Company Name", workspace.Settings.CustomFieldLabels["custom_string_1"])
+			assert.Equal(t, "Revenue", workspace.Settings.CustomFieldLabels["custom_number_1"])
+			assert.Equal(t, "Contract Start", workspace.Settings.CustomFieldLabels["custom_datetime_1"])
+			assert.Equal(t, "Metadata", workspace.Settings.CustomFieldLabels["custom_json_1"])
+			return nil
+		})
+
+		workspace, err := service.UpdateWorkspace(ctx, workspaceID, "Updated Workspace", settings)
+		require.NoError(t, err)
+		assert.NotNil(t, workspace)
+		assert.Equal(t, customFieldLabels, workspace.Settings.CustomFieldLabels)
+	})
 }
 
 func TestWorkspaceService_DeleteWorkspace(t *testing.T) {

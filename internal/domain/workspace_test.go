@@ -3289,3 +3289,228 @@ func TestSetUserPermissionsRequest_Validate(t *testing.T) {
 		})
 	}
 }
+
+func TestWorkspaceSettings_ValidateCustomFieldLabels(t *testing.T) {
+	testCases := []struct {
+		name      string
+		labels    map[string]string
+		expectErr bool
+		errMsg    string
+	}{
+		{
+			name: "valid custom field labels",
+			labels: map[string]string{
+				"custom_string_1":   "Company Name",
+				"custom_string_2":   "Industry",
+				"custom_number_1":   "Employee Count",
+				"custom_datetime_1": "Contract Start Date",
+				"custom_json_1":     "Metadata",
+			},
+			expectErr: false,
+		},
+		{
+			name:      "empty labels map is valid",
+			labels:    map[string]string{},
+			expectErr: false,
+		},
+		{
+			name:      "nil labels map is valid",
+			labels:    nil,
+			expectErr: false,
+		},
+		{
+			name: "all valid field types",
+			labels: map[string]string{
+				"custom_string_1":   "Field 1",
+				"custom_string_2":   "Field 2",
+				"custom_string_3":   "Field 3",
+				"custom_string_4":   "Field 4",
+				"custom_string_5":   "Field 5",
+				"custom_number_1":   "Number 1",
+				"custom_number_2":   "Number 2",
+				"custom_number_3":   "Number 3",
+				"custom_number_4":   "Number 4",
+				"custom_number_5":   "Number 5",
+				"custom_datetime_1": "Date 1",
+				"custom_datetime_2": "Date 2",
+				"custom_datetime_3": "Date 3",
+				"custom_datetime_4": "Date 4",
+				"custom_datetime_5": "Date 5",
+				"custom_json_1":     "JSON 1",
+				"custom_json_2":     "JSON 2",
+				"custom_json_3":     "JSON 3",
+				"custom_json_4":     "JSON 4",
+				"custom_json_5":     "JSON 5",
+			},
+			expectErr: false,
+		},
+		{
+			name: "invalid field key",
+			labels: map[string]string{
+				"custom_string_1": "Company Name",
+				"invalid_field":   "Invalid",
+			},
+			expectErr: true,
+			errMsg:    "invalid custom field key: invalid_field",
+		},
+		{
+			name: "invalid field key with wrong prefix",
+			labels: map[string]string{
+				"custom_text_1": "Text",
+			},
+			expectErr: true,
+			errMsg:    "invalid custom field key: custom_text_1",
+		},
+		{
+			name: "invalid field key with wrong number",
+			labels: map[string]string{
+				"custom_string_6": "Field 6",
+			},
+			expectErr: true,
+			errMsg:    "invalid custom field key: custom_string_6",
+		},
+		{
+			name: "empty label value",
+			labels: map[string]string{
+				"custom_string_1": "",
+			},
+			expectErr: true,
+			errMsg:    "custom field label for 'custom_string_1' cannot be empty",
+		},
+		{
+			name: "label too long",
+			labels: map[string]string{
+				"custom_string_1": strings.Repeat("a", 101), // 101 characters
+			},
+			expectErr: true,
+			errMsg:    "custom field label for 'custom_string_1' exceeds maximum length of 100 characters",
+		},
+		{
+			name: "label exactly 100 characters is valid",
+			labels: map[string]string{
+				"custom_string_1": strings.Repeat("a", 100), // 100 characters
+			},
+			expectErr: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			ws := WorkspaceSettings{
+				Timezone:          "UTC",
+				CustomFieldLabels: tc.labels,
+			}
+			err := ws.ValidateCustomFieldLabels()
+			if tc.expectErr {
+				assert.Error(t, err)
+				if tc.errMsg != "" {
+					assert.Contains(t, err.Error(), tc.errMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestWorkspaceSettings_CustomFieldLabels_JSONSerialization(t *testing.T) {
+	// Test that custom field labels are properly serialized to/from JSON
+	settings := WorkspaceSettings{
+		Timezone: "UTC",
+		CustomFieldLabels: map[string]string{
+			"custom_string_1": "Company Name",
+			"custom_number_1": "Employee Count",
+		},
+	}
+
+	// Marshal to JSON
+	jsonData, err := json.Marshal(settings)
+	require.NoError(t, err)
+
+	// Unmarshal back
+	var decoded WorkspaceSettings
+	err = json.Unmarshal(jsonData, &decoded)
+	require.NoError(t, err)
+
+	// Verify custom field labels were preserved
+	assert.Equal(t, settings.CustomFieldLabels["custom_string_1"], decoded.CustomFieldLabels["custom_string_1"])
+	assert.Equal(t, settings.CustomFieldLabels["custom_number_1"], decoded.CustomFieldLabels["custom_number_1"])
+	assert.Len(t, decoded.CustomFieldLabels, 2)
+}
+
+func TestWorkspace_Validate_WithCustomFieldLabels(t *testing.T) {
+	passphrase := "test-passphrase"
+
+	testCases := []struct {
+		name      string
+		workspace Workspace
+		expectErr bool
+		errMsg    string
+	}{
+		{
+			name: "valid workspace with custom field labels",
+			workspace: Workspace{
+				ID:   "test123",
+				Name: "Test Workspace",
+				Settings: WorkspaceSettings{
+					Timezone: "UTC",
+					CustomFieldLabels: map[string]string{
+						"custom_string_1": "Company Name",
+						"custom_number_1": "Employee Count",
+					},
+				},
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			expectErr: false,
+		},
+		{
+			name: "workspace with invalid custom field label key",
+			workspace: Workspace{
+				ID:   "test123",
+				Name: "Test Workspace",
+				Settings: WorkspaceSettings{
+					Timezone: "UTC",
+					CustomFieldLabels: map[string]string{
+						"invalid_field": "Invalid",
+					},
+				},
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			expectErr: true,
+			errMsg:    "invalid custom field labels",
+		},
+		{
+			name: "workspace with empty custom field label value",
+			workspace: Workspace{
+				ID:   "test123",
+				Name: "Test Workspace",
+				Settings: WorkspaceSettings{
+					Timezone: "UTC",
+					CustomFieldLabels: map[string]string{
+						"custom_string_1": "",
+					},
+				},
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+			expectErr: true,
+			errMsg:    "invalid custom field labels",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.workspace.Validate(passphrase)
+			if tc.expectErr {
+				assert.Error(t, err)
+				if tc.errMsg != "" {
+					assert.Contains(t, err.Error(), tc.errMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

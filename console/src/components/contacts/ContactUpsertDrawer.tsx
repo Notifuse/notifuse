@@ -12,8 +12,10 @@ import {
   InputNumber,
   DatePicker,
   App,
-  Popconfirm
+  Popconfirm,
+  Tooltip
 } from 'antd'
+import { DeleteOutlined } from '@ant-design/icons'
 import type { InputProps } from 'antd/es/input'
 import type { TextAreaProps } from 'antd/es/input/TextArea'
 import type { SelectProps, DefaultOptionType } from 'antd/es/select'
@@ -121,7 +123,29 @@ const NullableSelect: React.FC<SelectProps & { name: string }> = ({ name, ...pro
   )
 }
 
-const optionalFields = [
+// Helper to format custom field label with technical name in parentheses
+const formatCustomFieldLabel = (fieldKey: string, workspace: Workspace): string => {
+  const getDefaultLabel = (key: string): string => {
+    const parts = key.split('_')
+    if (parts.length >= 3 && parts[0] === 'custom') {
+      const type = parts[1].charAt(0).toUpperCase() + parts[1].slice(1)
+      const number = parts[2]
+      return `Custom ${type} ${number}`
+    }
+    return key
+  }
+
+  const defaultLabel = getDefaultLabel(fieldKey)
+  const customLabel = workspace?.settings?.custom_field_labels?.[fieldKey]
+
+  if (customLabel) {
+    return `${customLabel} (${fieldKey})`
+  }
+  return defaultLabel
+}
+
+// Helper to get optionalFields with workspace-specific custom labels
+const getOptionalFields = (workspace: Workspace) => [
   { key: 'first_name', label: 'First Name' },
   { key: 'last_name', label: 'Last Name' },
   { key: 'phone', label: 'Phone' },
@@ -137,26 +161,26 @@ const optionalFields = [
   { key: 'lifetime_value', label: 'Lifetime Value' },
   { key: 'orders_count', label: 'Orders Count' },
   { key: 'last_order_at', label: 'Last Order At' },
-  { key: 'custom_string_1', label: 'Custom String 1' },
-  { key: 'custom_string_2', label: 'Custom String 2' },
-  { key: 'custom_string_3', label: 'Custom String 3' },
-  { key: 'custom_string_4', label: 'Custom String 4' },
-  { key: 'custom_string_5', label: 'Custom String 5' },
-  { key: 'custom_number_1', label: 'Custom Number 1' },
-  { key: 'custom_number_2', label: 'Custom Number 2' },
-  { key: 'custom_number_3', label: 'Custom Number 3' },
-  { key: 'custom_number_4', label: 'Custom Number 4' },
-  { key: 'custom_number_5', label: 'Custom Number 5' },
-  { key: 'custom_datetime_1', label: 'Custom Date 1' },
-  { key: 'custom_datetime_2', label: 'Custom Date 2' },
-  { key: 'custom_datetime_3', label: 'Custom Date 3' },
-  { key: 'custom_datetime_4', label: 'Custom Date 4' },
-  { key: 'custom_datetime_5', label: 'Custom Date 5' },
-  { key: 'custom_json_1', label: 'Custom JSON 1', type: 'json' },
-  { key: 'custom_json_2', label: 'Custom JSON 2', type: 'json' },
-  { key: 'custom_json_3', label: 'Custom JSON 3', type: 'json' },
-  { key: 'custom_json_4', label: 'Custom JSON 4', type: 'json' },
-  { key: 'custom_json_5', label: 'Custom JSON 5', type: 'json' }
+  { key: 'custom_string_1', label: formatCustomFieldLabel('custom_string_1', workspace) },
+  { key: 'custom_string_2', label: formatCustomFieldLabel('custom_string_2', workspace) },
+  { key: 'custom_string_3', label: formatCustomFieldLabel('custom_string_3', workspace) },
+  { key: 'custom_string_4', label: formatCustomFieldLabel('custom_string_4', workspace) },
+  { key: 'custom_string_5', label: formatCustomFieldLabel('custom_string_5', workspace) },
+  { key: 'custom_number_1', label: formatCustomFieldLabel('custom_number_1', workspace) },
+  { key: 'custom_number_2', label: formatCustomFieldLabel('custom_number_2', workspace) },
+  { key: 'custom_number_3', label: formatCustomFieldLabel('custom_number_3', workspace) },
+  { key: 'custom_number_4', label: formatCustomFieldLabel('custom_number_4', workspace) },
+  { key: 'custom_number_5', label: formatCustomFieldLabel('custom_number_5', workspace) },
+  { key: 'custom_datetime_1', label: formatCustomFieldLabel('custom_datetime_1', workspace) },
+  { key: 'custom_datetime_2', label: formatCustomFieldLabel('custom_datetime_2', workspace) },
+  { key: 'custom_datetime_3', label: formatCustomFieldLabel('custom_datetime_3', workspace) },
+  { key: 'custom_datetime_4', label: formatCustomFieldLabel('custom_datetime_4', workspace) },
+  { key: 'custom_datetime_5', label: formatCustomFieldLabel('custom_datetime_5', workspace) },
+  { key: 'custom_json_1', label: formatCustomFieldLabel('custom_json_1', workspace), type: 'json' },
+  { key: 'custom_json_2', label: formatCustomFieldLabel('custom_json_2', workspace), type: 'json' },
+  { key: 'custom_json_3', label: formatCustomFieldLabel('custom_json_3', workspace), type: 'json' },
+  { key: 'custom_json_4', label: formatCustomFieldLabel('custom_json_4', workspace), type: 'json' },
+  { key: 'custom_json_5', label: formatCustomFieldLabel('custom_json_5', workspace), type: 'json' }
 ]
 
 interface ContactUpsertDrawerProps {
@@ -196,6 +220,9 @@ export function ContactUpsertDrawer({
   const [form] = Form.useForm()
   const [loading, setLoading] = React.useState(false)
   const { message } = App.useApp()
+
+  // Get optional fields with custom labels
+  const optionalFields = getOptionalFields(workspace)
 
   // Use external open state if provided, otherwise use internal state
   const isControlled = externalOpen !== undefined
@@ -467,7 +494,6 @@ export function ContactUpsertDrawer({
         <Alert
           description="If a contact with this email already exists, the provided fields will be overwritten. Fields not included in the form will remain unchanged."
           type="info"
-          showIcon
           style={{ marginBottom: '16px' }}
         />
         <Form form={form} layout="vertical" onFinish={handleSubmit} disabled={loading}>
@@ -500,9 +526,7 @@ export function ContactUpsertDrawer({
                       okText="Yes"
                       cancelText="No"
                     >
-                      <Button type="link" size="small" danger style={{ marginLeft: 'auto' }}>
-                        Remove field
-                      </Button>
+                      <Button type="text" size="small" icon={<DeleteOutlined />} />
                     </Popconfirm>
                   </Space>
                 }
@@ -521,6 +545,12 @@ export function ContactUpsertDrawer({
                 placeholder="Select a field"
                 style={{ width: '100%' }}
                 value={selectedFieldToAdd}
+                showSearch
+                filterOption={(input: string, option: DefaultOptionType | undefined) =>
+                  String(option?.label ?? '')
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
                 onChange={(value) => {
                   if (value && !selectedFields.includes(value)) {
                     setSelectedFields([...selectedFields, value])
@@ -530,11 +560,28 @@ export function ContactUpsertDrawer({
               >
                 {optionalFields
                   .filter((field) => !selectedFields.includes(field.key))
-                  .map((field) => (
-                    <Option key={field.key} value={field.key}>
-                      {field.label}
-                    </Option>
-                  ))}
+                  .map((field) => {
+                    // Check if this is a custom field with a custom label
+                    const isCustomField = field.key.startsWith('custom_')
+                    const hasCustomLabel =
+                      isCustomField && workspace?.settings?.custom_field_labels?.[field.key]
+
+                    if (hasCustomLabel) {
+                      return (
+                        <Option key={field.key} value={field.key} label={field.label}>
+                          <Tooltip title={field.key} placement="left">
+                            {field.label}
+                          </Tooltip>
+                        </Option>
+                      )
+                    }
+
+                    return (
+                      <Option key={field.key} value={field.key} label={field.label}>
+                        {field.label}
+                      </Option>
+                    )
+                  })}
               </Select>
             </div>
           </div>

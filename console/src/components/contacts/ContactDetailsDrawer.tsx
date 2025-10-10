@@ -36,6 +36,7 @@ import { SubscribeToListsRequest } from '../../services/api/types'
 import { MessageHistoryTable } from '../messages/MessageHistoryTable'
 import { ContactTimeline } from '../timeline'
 import { contactTimelineApi, ContactTimelineEntry } from '../../services/api/contact_timeline'
+import { useCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
 
 const { Title, Text } = Typography
 
@@ -508,6 +509,11 @@ export function ContactDetailsDrawer({
     return statusColors[status.toLowerCase()] || 'blue'
   }
 
+  // Helper function to get custom field label with tooltip info
+  const getFieldLabel = (fieldKey: string) => {
+    return useCustomFieldLabel(fieldKey, workspace)
+  }
+
   // Field display definitions without icons
   const contactFields = [
     { key: 'first_name', label: 'First Name', value: contact?.first_name },
@@ -564,79 +570,79 @@ export function ContactDetailsDrawer({
     // Custom string fields
     {
       key: 'custom_string_1',
-      label: 'Custom String 1',
+      ...getFieldLabel('custom_string_1'),
       value: contact?.custom_string_1
     },
     {
       key: 'custom_string_2',
-      label: 'Custom String 2',
+      ...getFieldLabel('custom_string_2'),
       value: contact?.custom_string_2
     },
     {
       key: 'custom_string_3',
-      label: 'Custom String 3',
+      ...getFieldLabel('custom_string_3'),
       value: contact?.custom_string_3
     },
     {
       key: 'custom_string_4',
-      label: 'Custom String 4',
+      ...getFieldLabel('custom_string_4'),
       value: contact?.custom_string_4
     },
     {
       key: 'custom_string_5',
-      label: 'Custom String 5',
+      ...getFieldLabel('custom_string_5'),
       value: contact?.custom_string_5
     },
     // Custom number fields
     {
       key: 'custom_number_1',
-      label: 'Custom Number 1',
+      ...getFieldLabel('custom_number_1'),
       value: contact?.custom_number_1
     },
     {
       key: 'custom_number_2',
-      label: 'Custom Number 2',
+      ...getFieldLabel('custom_number_2'),
       value: contact?.custom_number_2
     },
     {
       key: 'custom_number_3',
-      label: 'Custom Number 3',
+      ...getFieldLabel('custom_number_3'),
       value: contact?.custom_number_3
     },
     {
       key: 'custom_number_4',
-      label: 'Custom Number 4',
+      ...getFieldLabel('custom_number_4'),
       value: contact?.custom_number_4
     },
     {
       key: 'custom_number_5',
-      label: 'Custom Number 5',
+      ...getFieldLabel('custom_number_5'),
       value: contact?.custom_number_5
     },
     // Custom date fields
     {
       key: 'custom_datetime_1',
-      label: 'Custom Date 1',
+      ...getFieldLabel('custom_datetime_1'),
       value: formatDate(contact?.custom_datetime_1)
     },
     {
       key: 'custom_datetime_2',
-      label: 'Custom Date 2',
+      ...getFieldLabel('custom_datetime_2'),
       value: formatDate(contact?.custom_datetime_2)
     },
     {
       key: 'custom_datetime_3',
-      label: 'Custom Date 3',
+      ...getFieldLabel('custom_datetime_3'),
       value: formatDate(contact?.custom_datetime_3)
     },
     {
       key: 'custom_datetime_4',
-      label: 'Custom Date 4',
+      ...getFieldLabel('custom_datetime_4'),
       value: formatDate(contact?.custom_datetime_4)
     },
     {
       key: 'custom_datetime_5',
-      label: 'Custom Date 5',
+      ...getFieldLabel('custom_datetime_5'),
       value: formatDate(contact?.custom_datetime_5)
     }
   ]
@@ -645,31 +651,31 @@ export function ContactDetailsDrawer({
   const jsonFields = [
     {
       key: 'custom_json_1',
-      label: 'Custom JSON 1',
+      ...getFieldLabel('custom_json_1'),
       value: contact?.custom_json_1,
       show: !!contact?.custom_json_1
     },
     {
       key: 'custom_json_2',
-      label: 'Custom JSON 2',
+      ...getFieldLabel('custom_json_2'),
       value: contact?.custom_json_2,
       show: !!contact?.custom_json_2
     },
     {
       key: 'custom_json_3',
-      label: 'Custom JSON 3',
+      ...getFieldLabel('custom_json_3'),
       value: contact?.custom_json_3,
       show: !!contact?.custom_json_3
     },
     {
       key: 'custom_json_4',
-      label: 'Custom JSON 4',
+      ...getFieldLabel('custom_json_4'),
       value: contact?.custom_json_4,
       show: !!contact?.custom_json_4
     },
     {
       key: 'custom_json_5',
-      label: 'Custom JSON 5',
+      ...getFieldLabel('custom_json_5'),
       value: contact?.custom_json_5,
       show: !!contact?.custom_json_5
     }
@@ -871,9 +877,15 @@ export function ContactDetailsDrawer({
                     key={field.key}
                     className="py-2 px-4 grid grid-cols-2 text-xs gap-1 border-b border-dashed border-gray-300"
                   >
-                    <Tooltip title={`Field ID: ${field.key}`}>
-                      <span className="font-semibold text-slate-600">{field.label}</span>
-                    </Tooltip>
+                    {field.showTooltip ? (
+                      <Tooltip title={field.technicalName}>
+                        <span className="font-semibold text-slate-600">{field.displayLabel}</span>
+                      </Tooltip>
+                    ) : (
+                      <span className="font-semibold text-slate-600">
+                        {field.label || field.displayLabel}
+                      </span>
+                    )}
                     <span>{formatValue(field.value)}</span>
                   </div>
                 ))}
@@ -888,9 +900,17 @@ export function ContactDetailsDrawer({
                         key={field.key}
                         className="py-2 px-4 grid grid-cols-2 text-xs gap-1 border-b border-dashed border-gray-300"
                       >
-                        <Tooltip title={`Field ID: ${field.key}`}>
-                          <span className="font-semibold text-slate-600">{field.label}</span>
-                        </Tooltip>
+                        {field.showTooltip ? (
+                          <Tooltip title={field.technicalName}>
+                            <span className="font-semibold text-slate-600">
+                              {field.displayLabel}
+                            </span>
+                          </Tooltip>
+                        ) : (
+                          <span className="font-semibold text-slate-600">
+                            {field.label || field.displayLabel}
+                          </span>
+                        )}
                         {formatJson(field.value)}
                       </div>
                     ))}

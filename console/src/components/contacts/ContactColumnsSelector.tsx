@@ -52,50 +52,66 @@ export function ContactColumnsSelector({
   const content = (
     <div className="flex gap-4">
       <div className="min-w-[200px]">
-        {leftColumns.map((column) => (
-          <div key={column.key} className="py-1">
-            <Checkbox
-              checked={column.visible}
-              onChange={(e) => {
-                onColumnVisibilityChange(column.key as string, e.target.checked)
-                // Save to localStorage
-                const currentState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-                localStorage.setItem(
-                  STORAGE_KEY,
-                  JSON.stringify({
-                    ...currentState,
-                    [column.key]: e.target.checked
-                  })
-                )
-              }}
-            >
-              {column.title}
-            </Checkbox>
-          </div>
-        ))}
+        {leftColumns.map((column) => {
+          const showTooltip = column.key !== 'lists' && column.key !== 'segments'
+
+          return (
+            <div key={column.key} className="py-1">
+              <Tooltip title={showTooltip ? column.key : ''} placement="left">
+                <span style={{ display: 'inline-block' }}>
+                  <Checkbox
+                    checked={column.visible}
+                    onChange={(e) => {
+                      onColumnVisibilityChange(column.key as string, e.target.checked)
+                      // Save to localStorage
+                      const currentState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+                      localStorage.setItem(
+                        STORAGE_KEY,
+                        JSON.stringify({
+                          ...currentState,
+                          [column.key]: e.target.checked
+                        })
+                      )
+                    }}
+                  >
+                    {column.title}
+                  </Checkbox>
+                </span>
+              </Tooltip>
+            </div>
+          )
+        })}
       </div>
       <div className="min-w-[200px] border-l border-gray-200 pl-4">
-        {rightColumns.map((column) => (
-          <div key={column.key} className="py-1">
-            <Checkbox
-              checked={column.visible}
-              onChange={(e) => {
-                onColumnVisibilityChange(column.key as string, e.target.checked)
-                // Save to localStorage
-                const currentState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
-                localStorage.setItem(
-                  STORAGE_KEY,
-                  JSON.stringify({
-                    ...currentState,
-                    [column.key]: e.target.checked
-                  })
-                )
-              }}
-            >
-              {column.title}
-            </Checkbox>
-          </div>
-        ))}
+        {rightColumns.map((column) => {
+          const showTooltip = column.key !== 'lists' && column.key !== 'segments'
+
+          return (
+            <div key={column.key} className="py-1">
+              <Tooltip title={showTooltip ? column.key : ''} placement="left">
+                <span style={{ display: 'inline-block' }}>
+                  <Checkbox
+                    checked={column.visible}
+                    onChange={(e) => {
+                      onColumnVisibilityChange(column.key as string, e.target.checked)
+                      // Save to localStorage
+                      const currentState = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}')
+                      localStorage.setItem(
+                        STORAGE_KEY,
+                        JSON.stringify({
+                          ...currentState,
+                          [column.key]: e.target.checked
+                        })
+                      )
+                    }}
+                  >
+                    {column.title}
+                  </Checkbox>
+                </span>
+              </Tooltip>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -109,7 +125,7 @@ export function ContactColumnsSelector({
         body: 'w-[450px]'
       }}
     >
-      <Tooltip title="Select columns" placement="left">
+      <Tooltip title="Select columns" placement="top">
         <Button size="small" icon={<Columns2 size={16} />} />
       </Tooltip>
     </Popover>

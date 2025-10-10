@@ -574,6 +574,21 @@ func TestMessageListParams_FromQuery(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "with id, external_id, and list_id filters",
+			queryData: map[string][]string{
+				"id":          {"msg-123"},
+				"external_id": {"ext-456"},
+				"list_id":     {"list-789"},
+			},
+			want: MessageListParams{
+				ID:         "msg-123",
+				ExternalID: "ext-456",
+				ListID:     "list-789",
+				Limit:      20, // Default limit
+			},
+			wantErr: false,
+		},
+		{
 			name: "with custom limit",
 			queryData: map[string][]string{
 				"limit": {"50"},
@@ -744,6 +759,9 @@ func TestMessageListParams_FromQuery(t *testing.T) {
 			name: "with all parameters",
 			queryData: map[string][]string{
 				"cursor":          {"next_page"},
+				"id":              {"msg-999"},
+				"external_id":     {"ext-999"},
+				"list_id":         {"list-999"},
 				"channel":         {"email"},
 				"contact_email":   {"contact@example.com"},
 				"broadcast_id":    {"a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d"},
@@ -764,6 +782,9 @@ func TestMessageListParams_FromQuery(t *testing.T) {
 			},
 			want: MessageListParams{
 				Cursor:         "next_page",
+				ID:             "msg-999",
+				ExternalID:     "ext-999",
+				ListID:         "list-999",
 				Channel:        "email",
 				ContactEmail:   "contact@example.com",
 				BroadcastID:    "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",

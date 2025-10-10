@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [13.2] - 2025-10-10
+
+- Add new filters to message history: filter by message ID, external ID, and list ID
+- List ID filter supports searching messages sent to a specific list
+- New feature: customize display names for contact custom fields in workspace settings
+
 ## [13.1] - 2025-10-09
 
 - Fix SMTP form default `use_tls` not being included in form submissions

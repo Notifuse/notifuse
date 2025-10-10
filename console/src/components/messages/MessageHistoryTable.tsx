@@ -1,5 +1,5 @@
 import React from 'react'
-import { Table, Tag, Tooltip, Button, Spin, Empty } from 'antd'
+import { Table, Tag, Tooltip, Button, Spin, Empty, Space } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faPaperPlane,
@@ -19,6 +19,9 @@ import { Workspace } from '../../services/api/types'
 import { useQuery } from '@tanstack/react-query'
 import type { Broadcast } from '../../services/api/broadcast'
 import type { List } from '../../services/api/list'
+import { MessageColumnsSelector } from './MessageColumnsSelector'
+
+const STORAGE_KEY = 'message_columns_visibility'
 
 // Template preview button component that handles its own loading state
 interface TemplatePreviewButtonProps {
@@ -81,6 +84,8 @@ interface MessageHistoryTableProps {
   workspace: Workspace
   broadcastMap?: Map<string, Broadcast>
   listMap?: Map<string, List>
+  visibleColumns?: Record<string, boolean>
+  onColumnVisibilityChange?: (key: string, visible: boolean) => void
 }
 
 export function MessageHistoryTable({
@@ -95,7 +100,9 @@ export function MessageHistoryTable({
   size = 'small',
   workspace,
   broadcastMap = new Map(),
-  listMap = new Map()
+  listMap = new Map(),
+  visibleColumns = {},
+  onColumnVisibilityChange
 }: MessageHistoryTableProps) {
   // Format date using dayjs
   const formatDate = (dateString: string | undefined): string => {
@@ -103,12 +110,26 @@ export function MessageHistoryTable({
     return `${dayjs(dateString).format('lll')} in ${workspace.settings.timezone}`
   }
 
+  // All available columns with their metadata for the selector
+  const allColumns = [
+    { key: 'id', title: 'Message ID' },
+    { key: 'external_id', title: 'External ID' },
+    { key: 'contact_email', title: 'Contact Email' },
+    { key: 'template_id', title: 'Template' },
+    { key: 'broadcast_id', title: 'Broadcast' },
+    { key: 'list_ids', title: 'List IDs' },
+    { key: 'events', title: 'Events' },
+    { key: 'error', title: 'Error' },
+    { key: 'created_at', title: 'Created At' }
+  ]
+
   // Define base columns
   const baseColumns = [
     {
-      title: 'ID',
+      title: 'Message ID',
       dataIndex: 'id',
       key: 'id',
+      hidden: visibleColumns.id === false,
       render: (id: string) => {
         return (
           <Tooltip title={id}>
@@ -118,8 +139,27 @@ export function MessageHistoryTable({
       }
     },
     {
+      title: 'External ID',
+      dataIndex: 'external_id',
+      key: 'external_id',
+      hidden: visibleColumns.external_id === false,
+      render: (externalId: string | undefined) => {
+        if (!externalId) {
+          return <span className="text-xs text-gray-400">-</span>
+        }
+        return (
+          <Tooltip title={externalId}>
+            <span className="text-xs text-gray-500">
+              {externalId.length > 12 ? externalId.substring(0, 12) + '...' : externalId}
+            </span>
+          </Tooltip>
+        )
+      }
+    },
+    {
       title: 'Template',
       key: 'template_id',
+      hidden: visibleColumns.template_id === false,
       render: (record: MessageHistory) => {
         return (
           <>
@@ -133,6 +173,7 @@ export function MessageHistoryTable({
       title: 'Broadcast',
       dataIndex: 'broadcast_id',
       key: 'broadcast_id',
+      hidden: visibleColumns.broadcast_id === false,
       render: (broadcastId: string | undefined) => {
         if (!broadcastId) {
           return <span className="text-xs text-gray-400">-</span>
@@ -174,8 +215,33 @@ export function MessageHistoryTable({
       }
     },
     {
+      title: 'List IDs',
+      key: 'list_ids',
+      hidden: visibleColumns.list_ids === false,
+      render: (record: MessageHistory) => {
+        if (!record.list_ids || record.list_ids.length === 0) {
+          return <span className="text-xs text-gray-400">-</span>
+        }
+
+        // Get list names from listMap
+        const listTags = record.list_ids.map((listId) => {
+          const list = listMap.get(listId)
+          const listName = list?.name || listId
+
+          return (
+            <Tag key={listId} bordered={false} color="blue" className="text-xs">
+              {listName}
+            </Tag>
+          )
+        })
+
+        return <div className="flex flex-wrap gap-1">{listTags}</div>
+      }
+    },
+    {
       title: 'Events',
       key: 'events',
+      hidden: visibleColumns.events === false,
       render: (record: MessageHistory) => {
         const events = []
         if (record.sent_at)
@@ -248,6 +314,7 @@ export function MessageHistoryTable({
     {
       title: 'Error',
       key: 'error',
+      hidden: visibleColumns.error === false,
       render: (record: MessageHistory) => {
         return (
           <div className="text-xs">
@@ -262,6 +329,7 @@ export function MessageHistoryTable({
       title: 'Created At',
       dataIndex: 'created_at',
       key: 'created_at',
+      hidden: visibleColumns.created_at === false,
       render: (date: string) => {
         return <Tooltip title={formatDate(date)}>{dayjs(date).fromNow()}</Tooltip>
       }
@@ -273,46 +341,65 @@ export function MessageHistoryTable({
     title: 'Contact Email',
     dataIndex: 'contact_email',
     key: 'contact_email',
+    hidden: visibleColumns.contact_email === false,
     render: (email: string) => <span className="text-xs">{email}</span>
   }
 
   // Add actions column
   const actionsColumn = {
-    title: onRefresh ? (
-      <Tooltip title="Refresh">
-        <Button
-          type="text"
-          size="small"
-          icon={<FontAwesomeIcon icon={faRefresh} />}
-          onClick={onRefresh}
-          className="opacity-70 hover:opacity-100"
-        />
-      </Tooltip>
-    ) : (
-      ''
+    title: (
+      <Space size="small">
+        {onRefresh && (
+          <Tooltip title="Refresh">
+            <Button
+              type="text"
+              size="small"
+              icon={<FontAwesomeIcon icon={faRefresh} />}
+              onClick={onRefresh}
+              className="opacity-70 hover:opacity-100"
+            />
+          </Tooltip>
+        )}
+        {onColumnVisibilityChange && (
+          <MessageColumnsSelector
+            columns={allColumns.map((col) => ({
+              ...col,
+              visible: visibleColumns[col.key] !== false
+            }))}
+            onColumnVisibilityChange={onColumnVisibilityChange}
+            storageKey={STORAGE_KEY}
+          />
+        )}
+      </Space>
     ),
     key: 'actions',
-    width: 50,
+    width: 100,
+    align: 'right' as const,
     render: (record: MessageHistory) => {
       if (!record.template_id) {
         return null
       }
 
       return (
-        <TemplatePreviewButton
-          templateId={record.template_id}
-          templateVersion={record.template_version}
-          workspace={workspace}
-          templateData={record.message_data.data || {}}
-        />
+        <div className="flex justify-end">
+          <TemplatePreviewButton
+            templateId={record.template_id}
+            templateVersion={record.template_version}
+            workspace={workspace}
+            templateData={record.message_data.data || {}}
+          />
+        </div>
       )
     }
   }
 
   // Build columns array based on show_email prop and add actions column
-  const columns = show_email
+  const allTableColumns = show_email
     ? [emailColumn, ...baseColumns, actionsColumn]
     : [...baseColumns, actionsColumn]
+
+  // Filter out hidden columns
+  const columns = allTableColumns.filter((col) => !col.hidden)
 
   if (loading && !isLoadingMore) {
     return (

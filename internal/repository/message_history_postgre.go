@@ -545,6 +545,19 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 	).From("message_history")
 
 	// Apply filters using squirrel
+	if params.ID != "" {
+		queryBuilder = queryBuilder.Where(sq.Eq{"id": params.ID})
+	}
+
+	if params.ExternalID != "" {
+		queryBuilder = queryBuilder.Where(sq.Eq{"external_id": params.ExternalID})
+	}
+
+	if params.ListID != "" {
+		// Check if the list_ids array contains the specified list ID
+		queryBuilder = queryBuilder.Where(sq.Expr("? = ANY(list_ids)", params.ListID))
+	}
+
 	if params.Channel != "" {
 		queryBuilder = queryBuilder.Where(sq.Eq{"channel": params.Channel})
 	}

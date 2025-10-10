@@ -87,7 +87,7 @@ function CronStatusBanner() {
         position: 'fixed',
         bottom: 16,
         right: 16,
-        width: '500px',
+        width: '800px',
         zIndex: 1000
       }}
     >

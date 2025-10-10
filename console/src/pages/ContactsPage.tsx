@@ -32,6 +32,7 @@ import dayjs from '../lib/dayjs'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import numbro from 'numbro'
 import { PlusOutlined } from '@ant-design/icons'
+import { getCustomFieldLabel } from '../hooks/useCustomFieldLabel'
 
 const STORAGE_KEY = 'contact_columns_visibility'
 
@@ -250,26 +251,26 @@ export function ContactsPage() {
     { key: 'orders_count', title: 'Orders Count' },
     { key: 'last_order_at', title: 'Last Order' },
     { key: 'created_at', title: 'Created At' },
-    { key: 'custom_string_1', title: 'Custom String 1' },
-    { key: 'custom_string_2', title: 'Custom String 2' },
-    { key: 'custom_string_3', title: 'Custom String 3' },
-    { key: 'custom_string_4', title: 'Custom String 4' },
-    { key: 'custom_string_5', title: 'Custom String 5' },
-    { key: 'custom_number_1', title: 'Custom Number 1' },
-    { key: 'custom_number_2', title: 'Custom Number 2' },
-    { key: 'custom_number_3', title: 'Custom Number 3' },
-    { key: 'custom_number_4', title: 'Custom Number 4' },
-    { key: 'custom_number_5', title: 'Custom Number 5' },
-    { key: 'custom_datetime_1', title: 'Custom Date 1' },
-    { key: 'custom_datetime_2', title: 'Custom Date 2' },
-    { key: 'custom_datetime_3', title: 'Custom Date 3' },
-    { key: 'custom_datetime_4', title: 'Custom Date 4' },
-    { key: 'custom_datetime_5', title: 'Custom Date 5' },
-    { key: 'custom_json_1', title: 'Custom JSON 1' },
-    { key: 'custom_json_2', title: 'Custom JSON 2' },
-    { key: 'custom_json_3', title: 'Custom JSON 3' },
-    { key: 'custom_json_4', title: 'Custom JSON 4' },
-    { key: 'custom_json_5', title: 'Custom JSON 5' }
+    { key: 'custom_string_1', title: getCustomFieldLabel('custom_string_1', currentWorkspace) },
+    { key: 'custom_string_2', title: getCustomFieldLabel('custom_string_2', currentWorkspace) },
+    { key: 'custom_string_3', title: getCustomFieldLabel('custom_string_3', currentWorkspace) },
+    { key: 'custom_string_4', title: getCustomFieldLabel('custom_string_4', currentWorkspace) },
+    { key: 'custom_string_5', title: getCustomFieldLabel('custom_string_5', currentWorkspace) },
+    { key: 'custom_number_1', title: getCustomFieldLabel('custom_number_1', currentWorkspace) },
+    { key: 'custom_number_2', title: getCustomFieldLabel('custom_number_2', currentWorkspace) },
+    { key: 'custom_number_3', title: getCustomFieldLabel('custom_number_3', currentWorkspace) },
+    { key: 'custom_number_4', title: getCustomFieldLabel('custom_number_4', currentWorkspace) },
+    { key: 'custom_number_5', title: getCustomFieldLabel('custom_number_5', currentWorkspace) },
+    { key: 'custom_datetime_1', title: getCustomFieldLabel('custom_datetime_1', currentWorkspace) },
+    { key: 'custom_datetime_2', title: getCustomFieldLabel('custom_datetime_2', currentWorkspace) },
+    { key: 'custom_datetime_3', title: getCustomFieldLabel('custom_datetime_3', currentWorkspace) },
+    { key: 'custom_datetime_4', title: getCustomFieldLabel('custom_datetime_4', currentWorkspace) },
+    { key: 'custom_datetime_5', title: getCustomFieldLabel('custom_datetime_5', currentWorkspace) },
+    { key: 'custom_json_1', title: getCustomFieldLabel('custom_json_1', currentWorkspace) },
+    { key: 'custom_json_2', title: getCustomFieldLabel('custom_json_2', currentWorkspace) },
+    { key: 'custom_json_3', title: getCustomFieldLabel('custom_json_3', currentWorkspace) },
+    { key: 'custom_json_4', title: getCustomFieldLabel('custom_json_4', currentWorkspace) },
+    { key: 'custom_json_5', title: getCustomFieldLabel('custom_json_5', currentWorkspace) }
   ]
 
   const activeFilters = React.useMemo(() => {
@@ -785,6 +786,7 @@ export function ContactsPage() {
       key: 'actions',
       width: 120,
       fixed: 'right' as const,
+      align: 'right' as const,
       onHeaderCell: () => ({
         className: '!bg-white'
       }),

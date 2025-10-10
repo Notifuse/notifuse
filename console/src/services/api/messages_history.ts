@@ -7,8 +7,10 @@ export interface MessageData {
 
 export interface MessageHistory {
   id: string
+  external_id?: string
   contact_email: string
   broadcast_id?: string
+  list_ids?: string[]
   template_id: string
   template_version: number
   channel: string
@@ -35,6 +37,9 @@ export interface MessageListParams {
   limit?: number
 
   // Filters
+  id?: string
+  external_id?: string
+  list_id?: string
   channel?: string
   contact_email?: string
   broadcast_id?: string
@@ -76,6 +81,9 @@ export function listMessages(
   // Add all other params that are defined
   if (params.cursor) queryParams.append('cursor', params.cursor)
   if (params.limit) queryParams.append('limit', String(params.limit))
+  if (params.id) queryParams.append('id', params.id)
+  if (params.external_id) queryParams.append('external_id', params.external_id)
+  if (params.list_id) queryParams.append('list_id', params.list_id)
   if (params.channel) queryParams.append('channel', params.channel)
   if (params.contact_email) queryParams.append('contact_email', params.contact_email)
   if (params.broadcast_id) queryParams.append('broadcast_id', params.broadcast_id)

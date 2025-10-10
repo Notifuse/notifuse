@@ -5,6 +5,7 @@ import { Workspace, WorkspaceMember } from '../services/api/types'
 import { WorkspaceMembers } from '../components/settings/WorkspaceMembers'
 import { WorkspaceSettings } from '../components/settings/WorkspaceSettings'
 import { Integrations } from '../components/settings/Integrations'
+import { CustomFieldsConfiguration } from '../components/settings/CustomFieldsConfiguration'
 import { useAuth } from '../contexts/AuthContext'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
 
@@ -67,6 +68,11 @@ export function WorkspaceSettingsPage() {
         workspace={workspace}
         loading={false}
         onSave={handleWorkspaceUpdate}
+        isOwner={isOwner}
+      />
+      <CustomFieldsConfiguration
+        workspace={workspace}
+        onWorkspaceUpdate={handleWorkspaceUpdate}
         isOwner={isOwner}
       />
       <WorkspaceSettings
