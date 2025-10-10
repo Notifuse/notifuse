@@ -1,4 +1,4 @@
-.PHONY: build test-unit run clean keygen test-service test-repo test-http dev coverage docker-build docker-run docker-stop docker-clean docker-logs docker-buildx-setup docker-publish docker-compose-up docker-compose-down docker-compose-build
+.PHONY: build test-unit run clean keygen test-service test-repo test-http test-migrations test-database test-pkg dev coverage docker-build docker-run docker-stop docker-clean docker-logs docker-buildx-setup docker-publish docker-compose-up docker-compose-down docker-compose-build
 
 build:
 	go build -o bin/server ./cmd/api
@@ -20,6 +20,15 @@ test-repo:
 
 test-http:
 	go test -v ./internal/http
+
+test-migrations:
+	go test -v ./internal/migrations
+
+test-database:
+	go test -v ./internal/database ./internal/database/schema
+
+test-pkg:
+	go test -v ./pkg/...
 
 # Comprehensive test coverage command
 coverage:

@@ -695,4 +695,103 @@ GET  /api/contact.list
 - Middleware-based authentication checking
 - Role-based permissions with granular access control
 
+### AI-Assisted Development & Planning
+
+#### Plans Directory
+
+Notifuse uses the `plans/` directory to store AI-generated implementation plans created with Cursor's AI planning tools. This provides a centralized location for tracking feature implementations, bug fixes, and architectural changes.
+
+#### Planning Workflow
+
+When planning a new feature or significant change with Cursor:
+
+1. **Create Plan**: Use Cursor's plan mode to generate a detailed implementation plan
+2. **Save to Plans Directory**: All `.md` plan files should be saved to `/Users/pierre/Sites/notifuse3/code/notifuse/plans/`
+3. **Follow the Plan**: Use the plan as a guide during implementation
+4. **Update as Needed**: Modify the plan if requirements change during development
+
+#### Plan Naming Convention
+
+Use descriptive, kebab-case names for plan files:
+
+- **Features**: `feature-name-plan.md` (e.g., `email-scheduling-plan.md`)
+- **Bug Fixes**: `fix-description-plan.md` (e.g., `fix-contact-import-validation-plan.md`)
+- **Refactoring**: `refactor-component-plan.md` (e.g., `refactor-workspace-service-plan.md`)
+- **Migrations**: `migration-v7-plan.md` (e.g., `migration-v7-permissions-plan.md`)
+
+#### Plan Lifecycle
+
+- **Active Plans**: Plans currently being implemented should remain in the `plans/` directory
+- **Completed Plans**: Keep completed plans for historical reference and documentation
+- **Archived Plans**: If needed, create a `plans/archive/` subdirectory for old or cancelled plans
+
+#### Testing Requirements in Plans
+
+All implementation plans must include comprehensive testing strategy:
+
+**Backend Testing (Go)**:
+
+- **Unit Tests**: Every touched backend file must have corresponding unit tests
+  - Domain layer: Test entity validation and business logic
+  - Service layer: Test business operations with mocked dependencies
+  - Repository layer: Test data access with sqlmock
+  - HTTP layer: Test handlers and middleware
+- **Integration Tests**: Add integration tests for new features that exercise the full stack
+  - Database interactions with test database
+  - API endpoint testing end-to-end
+  - Cross-service integration scenarios
+
+**Frontend Testing (React/TypeScript)**:
+
+- Component tests for new or modified UI components
+- Integration tests for complex user flows
+- API interaction tests with mocked responses
+
+**Test Execution in Plans**:
+
+Every plan must include a dedicated step to run the updated tests after implementation:
+
+1. **Write/Update Tests**: Create or modify test files for all touched code
+2. **Run Unit Tests**: Execute layer-specific unit tests to verify changes
+3. **Run Integration Tests**: Execute integration tests for end-to-end validation
+4. **Verify Coverage**: Ensure adequate test coverage for new code
+
+Plans should include specific test commands to run based on the changes made.
+
+**Test Commands**:
+
+All backend test commands are defined in the `Makefile`. Use the appropriate command for the layer(s) you modified:
+
+```bash
+# Backend (see Makefile for full details)
+make test-unit              # Run all unit tests
+make test-domain            # Domain layer tests
+make test-service           # Service layer tests
+make test-repo              # Repository tests
+make test-http              # HTTP handler tests
+make test-migrations        # Migrations tests
+make test-database          # Database layer tests
+make test-pkg               # Package layer tests (logger, mailer, tracing, etc.)
+make test-integration       # Integration tests
+make coverage               # Comprehensive coverage report with HTML output
+
+# Frontend
+cd console && npm test      # Run frontend tests
+```
+
+Refer to the `Makefile` for the most up-to-date test commands and their configurations.
+
+#### Best Practices
+
+- Include specific file paths and code snippets in plans
+- Break down complex features into clear, actionable steps
+- Reference existing architectural patterns documented in this file
+- Update plans if implementation differs significantly from original design
+- Use plans to coordinate work across frontend and backend changes
+- **Always include test files in the plan**: For each implementation file, specify the corresponding test file and test cases to add
+
+This structured approach to AI-assisted planning ensures all team members and AI tools have clear context about implementation strategies and design decisions.
+
+---
+
 These coding standards ensure consistency, maintainability, and reliability across the entire Notifuse codebase.
