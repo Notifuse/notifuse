@@ -618,67 +618,67 @@ export function ContactsPage() {
       hidden: !visibleColumns.created_at
     },
     {
-      title: 'Custom String 1',
+      title: getCustomFieldLabel('custom_string_1', currentWorkspace),
       dataIndex: 'custom_string_1',
       key: 'custom_string_1',
       hidden: !visibleColumns.custom_string_1
     },
     {
-      title: 'Custom String 2',
+      title: getCustomFieldLabel('custom_string_2', currentWorkspace),
       dataIndex: 'custom_string_2',
       key: 'custom_string_2',
       hidden: !visibleColumns.custom_string_2
     },
     {
-      title: 'Custom String 3',
+      title: getCustomFieldLabel('custom_string_3', currentWorkspace),
       dataIndex: 'custom_string_3',
       key: 'custom_string_3',
       hidden: !visibleColumns.custom_string_3
     },
     {
-      title: 'Custom String 4',
+      title: getCustomFieldLabel('custom_string_4', currentWorkspace),
       dataIndex: 'custom_string_4',
       key: 'custom_string_4',
       hidden: !visibleColumns.custom_string_4
     },
     {
-      title: 'Custom String 5',
+      title: getCustomFieldLabel('custom_string_5', currentWorkspace),
       dataIndex: 'custom_string_5',
       key: 'custom_string_5',
       hidden: !visibleColumns.custom_string_5
     },
     {
-      title: 'Custom Number 1',
+      title: getCustomFieldLabel('custom_number_1', currentWorkspace),
       dataIndex: 'custom_number_1',
       key: 'custom_number_1',
       hidden: !visibleColumns.custom_number_1
     },
     {
-      title: 'Custom Number 2',
+      title: getCustomFieldLabel('custom_number_2', currentWorkspace),
       dataIndex: 'custom_number_2',
       key: 'custom_number_2',
       hidden: !visibleColumns.custom_number_2
     },
     {
-      title: 'Custom Number 3',
+      title: getCustomFieldLabel('custom_number_3', currentWorkspace),
       dataIndex: 'custom_number_3',
       key: 'custom_number_3',
       hidden: !visibleColumns.custom_number_3
     },
     {
-      title: 'Custom Number 4',
+      title: getCustomFieldLabel('custom_number_4', currentWorkspace),
       dataIndex: 'custom_number_4',
       key: 'custom_number_4',
       hidden: !visibleColumns.custom_number_4
     },
     {
-      title: 'Custom Number 5',
+      title: getCustomFieldLabel('custom_number_5', currentWorkspace),
       dataIndex: 'custom_number_5',
       key: 'custom_number_5',
       hidden: !visibleColumns.custom_number_5
     },
     {
-      title: 'Custom Date 1',
+      title: getCustomFieldLabel('custom_datetime_1', currentWorkspace),
       dataIndex: 'custom_datetime_1',
       key: 'custom_datetime_1',
       render: (_: unknown, record: Contact) =>
@@ -686,7 +686,7 @@ export function ContactsPage() {
       hidden: !visibleColumns.custom_datetime_1
     },
     {
-      title: 'Custom Date 2',
+      title: getCustomFieldLabel('custom_datetime_2', currentWorkspace),
       dataIndex: 'custom_datetime_2',
       key: 'custom_datetime_2',
       render: (_: unknown, record: Contact) =>
@@ -694,7 +694,7 @@ export function ContactsPage() {
       hidden: !visibleColumns.custom_datetime_2
     },
     {
-      title: 'Custom Date 3',
+      title: getCustomFieldLabel('custom_datetime_3', currentWorkspace),
       dataIndex: 'custom_datetime_3',
       key: 'custom_datetime_3',
       render: (_: unknown, record: Contact) =>
@@ -702,7 +702,7 @@ export function ContactsPage() {
       hidden: !visibleColumns.custom_datetime_3
     },
     {
-      title: 'Custom Date 4',
+      title: getCustomFieldLabel('custom_datetime_4', currentWorkspace),
       dataIndex: 'custom_datetime_4',
       key: 'custom_datetime_4',
       render: (_: unknown, record: Contact) =>
@@ -710,7 +710,7 @@ export function ContactsPage() {
       hidden: !visibleColumns.custom_datetime_4
     },
     {
-      title: 'Custom Date 5',
+      title: getCustomFieldLabel('custom_datetime_5', currentWorkspace),
       dataIndex: 'custom_datetime_5',
       key: 'custom_datetime_5',
       render: (_: unknown, record: Contact) =>
@@ -718,7 +718,7 @@ export function ContactsPage() {
       hidden: !visibleColumns.custom_datetime_5
     },
     {
-      title: 'Custom JSON 1',
+      title: getCustomFieldLabel('custom_json_1', currentWorkspace),
       dataIndex: 'custom_json_1',
       key: 'custom_json_1',
       render: (_: unknown, record: Contact) => (
@@ -727,7 +727,7 @@ export function ContactsPage() {
       hidden: !visibleColumns.custom_json_1
     },
     {
-      title: 'Custom JSON 2',
+      title: getCustomFieldLabel('custom_json_2', currentWorkspace),
       dataIndex: 'custom_json_2',
       key: 'custom_json_2',
       render: (_: unknown, record: Contact) => (
@@ -736,7 +736,7 @@ export function ContactsPage() {
       hidden: !visibleColumns.custom_json_2
     },
     {
-      title: 'Custom JSON 3',
+      title: getCustomFieldLabel('custom_json_3', currentWorkspace),
       dataIndex: 'custom_json_3',
       key: 'custom_json_3',
       render: (_: unknown, record: Contact) => (
@@ -745,7 +745,7 @@ export function ContactsPage() {
       hidden: !visibleColumns.custom_json_3
     },
     {
-      title: 'Custom JSON 4',
+      title: getCustomFieldLabel('custom_json_4', currentWorkspace),
       dataIndex: 'custom_json_4',
       key: 'custom_json_4',
       render: (_: unknown, record: Contact) => (
@@ -754,7 +754,7 @@ export function ContactsPage() {
       hidden: !visibleColumns.custom_json_4
     },
     {
-      title: 'Custom JSON 5',
+      title: getCustomFieldLabel('custom_json_5', currentWorkspace),
       dataIndex: 'custom_json_5',
       key: 'custom_json_5',
       render: (_: unknown, record: Contact) => (
