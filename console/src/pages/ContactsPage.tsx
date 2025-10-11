@@ -722,7 +722,7 @@ export function ContactsPage() {
       dataIndex: 'custom_json_1',
       key: 'custom_json_1',
       render: (_: unknown, record: Contact) => (
-        <JsonViewer json={record.custom_json_1} title="Custom JSON 1" />
+        <JsonViewer json={record.custom_json_1} title={getCustomFieldLabel('custom_json_1', currentWorkspace)} />
       ),
       hidden: !visibleColumns.custom_json_1
     },
@@ -731,7 +731,7 @@ export function ContactsPage() {
       dataIndex: 'custom_json_2',
       key: 'custom_json_2',
       render: (_: unknown, record: Contact) => (
-        <JsonViewer json={record.custom_json_2} title="Custom JSON 2" />
+        <JsonViewer json={record.custom_json_2} title={getCustomFieldLabel('custom_json_2', currentWorkspace)} />
       ),
       hidden: !visibleColumns.custom_json_2
     },
@@ -740,7 +740,7 @@ export function ContactsPage() {
       dataIndex: 'custom_json_3',
       key: 'custom_json_3',
       render: (_: unknown, record: Contact) => (
-        <JsonViewer json={record.custom_json_3} title="Custom JSON 3" />
+        <JsonViewer json={record.custom_json_3} title={getCustomFieldLabel('custom_json_3', currentWorkspace)} />
       ),
       hidden: !visibleColumns.custom_json_3
     },
@@ -749,7 +749,7 @@ export function ContactsPage() {
       dataIndex: 'custom_json_4',
       key: 'custom_json_4',
       render: (_: unknown, record: Contact) => (
-        <JsonViewer json={record.custom_json_4} title="Custom JSON 4" />
+        <JsonViewer json={record.custom_json_4} title={getCustomFieldLabel('custom_json_4', currentWorkspace)} />
       ),
       hidden: !visibleColumns.custom_json_4
     },
@@ -758,7 +758,7 @@ export function ContactsPage() {
       dataIndex: 'custom_json_5',
       key: 'custom_json_5',
       render: (_: unknown, record: Contact) => (
-        <JsonViewer json={record.custom_json_5} title="Custom JSON 5" />
+        <JsonViewer json={record.custom_json_5} title={getCustomFieldLabel('custom_json_5', currentWorkspace)} />
       ),
       hidden: !visibleColumns.custom_json_5
     },
