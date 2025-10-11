@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix: custom field labels now display consistently in contacts table column headers
 - Contacts table columns now use custom field labels from workspace settings instead of generic defaults
+- Fix: resolve React Rules of Hooks violation in useCustomFieldLabel by extracting logic into pure utility function
 
 ## [13.2] - 2025-10-10
 
