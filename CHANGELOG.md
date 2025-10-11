@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [13.3] - 2025-10-11
+
+- Fix: custom field labels now display consistently in contacts table column headers and JSON viewer popups
+- Contacts table columns now use custom field labels from workspace settings instead of generic defaults
+- JSON custom fields now show custom labels in their popover titles
+
 ## [13.2] - 2025-10-10
 
 - Add new filters to message history: filter by message ID, external ID, and list ID
