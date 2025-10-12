@@ -87,7 +87,8 @@ CREATE TABLE IF NOT EXISTS automation_executions (
     
     -- Completion tracking (no exit node needed)
     completed_at_node_id VARCHAR(36), -- Last node executed before completion
-    completion_reason VARCHAR(50), -- natural_end, condition_branch, timeout, error
+    completion_reason VARCHAR(50), -- natural_end, list_unsubscribed, filter_no_longer_matches, global_unsubscribe, timeout, error
+    triggered_by_list_id VARCHAR(36), -- Which list triggered this (if list-triggered)
     
     -- Test mode tracking
     is_test_run BOOLEAN DEFAULT false,
@@ -253,6 +254,7 @@ func (m *V7Migration) UpdateWorkspace(ctx context.Context, config *config.Config
             execution_context JSONB,
             completed_at_node_id VARCHAR(36),
             completion_reason VARCHAR(50),
+            triggered_by_list_id VARCHAR(36),
             is_test_run BOOLEAN DEFAULT false,
             scheduled_at TIMESTAMP WITH TIME ZONE,
             started_at TIMESTAMP WITH TIME ZONE,
@@ -599,7 +601,8 @@ type AutomationExecution struct {
     
     // Completion tracking (no exit node needed - track where flow naturally ended)
     CompletedAtNodeID *string `json:"completed_at_node_id,omitempty"` // Last node executed before completion
-    CompletionReason  *string `json:"completion_reason,omitempty"`    // "natural_end", "condition_branch", "timeout", "error"
+    CompletionReason  *string `json:"completion_reason,omitempty"`    // "natural_end", "list_unsubscribed", "filter_no_longer_matches", "global_unsubscribe", "timeout", "error"
+    TriggeredByListID *string `json:"triggered_by_list_id,omitempty"` // Which list triggered this execution (if list-triggered)
     
     // Scheduling
     ScheduledAt *time.Time `json:"scheduled_at,omitempty"`
@@ -726,6 +729,8 @@ type AutomationRepository interface {
     GetActiveAutomationsByTrigger(ctx context.Context, workspaceID string, triggerType TriggerType) ([]*Automation, error)
     GetPendingExecutions(ctx context.Context, workspaceID string, limit int) ([]*AutomationExecution, error)
     GetExecutionsWaitingForEvent(ctx context.Context, workspaceID string, eventType string) ([]*AutomationExecution, error)
+    GetActiveExecutionsByList(ctx context.Context, workspaceID, listID, contactEmail string) ([]*AutomationExecution, error)
+    CancelExecution(ctx context.Context, workspaceID, executionID, reason string) error
     
     // Statistics
     IncrementExecutionCount(ctx context.Context, workspaceID, automationID string) error
@@ -1253,12 +1258,17 @@ func (p *AutomationExecutionProcessor) Process(ctx context.Context, task *domain
     // 2. Get automation definition
     // 3. Get contact
     // 4. Initialize execution context if first run
-    // 5. Execute nodes sequentially following edges
-    // 6. Handle delays by pausing task
-    // 7. Handle wait_for_event by changing status
-    // 8. Save execution state and context
-    // 9. Track analytics (node-level and automation-level)
-    // 10. Return completion status
+    // 5. Check list subscription status BEFORE executing node (Klaviyo-style)
+    //    - If triggered_by_list_id is set, verify contact still subscribed
+    //    - If not, exit with reason "list_unsubscribed"
+    // 6. Check trigger audience filters still match (segment/list filters)
+    //    - If no longer match, exit with reason "filter_no_longer_matches"
+    // 7. Execute nodes sequentially following edges
+    // 8. Handle delays by pausing task
+    // 9. Handle wait_for_event by changing status
+    // 10. Save execution state and context
+    // 11. Track analytics (node-level and automation-level)
+    // 12. Return completion status
 }
 ```
 
@@ -1273,6 +1283,7 @@ Node execution logic:
 - **Webhook**: HTTP POST to configured URL (store response in variables)
 - **Wait for Event**: Set status to waiting_for_event, store event type and timeout
 - **Natural Completion**: When a node returns empty NextNodeIDs, execution completes (marks completed_at_node_id and completion_reason)
+- **List Subscription Check** (Klaviyo-style): Before EACH node execution, verify contact still subscribed to triggering list - exit if not
 
 ### Node Executors
 
@@ -1532,6 +1543,7 @@ export interface AutomationExecution {
   is_test_run: boolean
   completed_at_node_id?: string  // Last node before natural completion
   completion_reason?: string     // How the automation ended
+  triggered_by_list_id?: string  // Which list triggered this (if list-triggered)
   scheduled_at?: string
   started_at?: string
   completed_at?: string
@@ -2008,7 +2020,7 @@ Add routes:
 - `internal/app/app.go` - Initialize automation services and processors
 - `internal/service/workspace_service.go` - Ensure automation check task on creation
 - `internal/service/contact_service.go` - Emit contact events
-- `internal/service/list_service.go` - Emit list subscription events
+- `internal/service/list_service.go` - Emit list subscription events AND cancel automation executions on unsubscribe (Klaviyo-style)
 - `config/config.go` - Update VERSION constant
 
 ### Frontend
@@ -2035,6 +2047,8 @@ Add routes:
 15. **Permissions**: Granular access control for automation management
 16. **UI/UX**: Intuitive drag-and-drop with clear visual feedback
 17. **Documentation**: Clear examples for each node type
+18. **List Subscription Compliance** (Klaviyo-style): Check list subscription at EVERY node, exit immediately if unsubscribed
+19. **Legal Compliance**: CAN-SPAM, GDPR, CASL compliant unsubscribe handling
 
 ## Audience Filtering Use Cases
 
@@ -2081,6 +2095,130 @@ Only contacts in the "Inactive 30 Days" segment enter the re-engagement flow.
 - **Both specified**: Contact must match segments (ANY) AND lists (ANY)
 
 This allows precise targeting without creating separate automations for each audience segment.
+
+---
+
+## List Unsubscribe Behavior (Industry Standard)
+
+### How Unsubscribes Affect Automations
+
+Following Klaviyo, Mailchimp, and ActiveCampaign standards:
+
+#### 1. **List-Triggered Automations**
+
+When automation is triggered by `list_subscribed`:
+
+```
+Trigger: Subscribed to "Newsletter" list
+→ Welcome Email (Day 0)
+→ Delay 3 days
+→ Tips Email (Day 3)
+```
+
+**If contact unsubscribes from Newsletter**:
+- ✅ Contact exits automation at next node check
+- ✅ No more emails from this automation
+- ✅ tracked as `completion_reason: "list_unsubscribed"`
+- ✅ Legally required for compliance
+
+#### 2. **Continuous Subscription Validation**
+
+Subscription status is checked:
+- At automation entry
+- **Before EACH node execution** (Klaviyo-style)
+- Before every email send
+- After every delay
+
+```go
+// Checked before every node
+if execution.TriggeredByListID != nil {
+    stillSubscribed := IsContactSubscribedToList(execution.TriggeredByListID)
+    if !stillSubscribed {
+        ExitAutomation(reason: "list_unsubscribed")
+    }
+}
+```
+
+#### 3. **Multi-List Scenarios**
+
+**Trigger with list filters**:
+```
+Trigger: contact_created
+Audience Filter: subscribed_lists = ["list_a", "list_b"]
+```
+
+**Behavior**:
+- Contact must be subscribed to at least ONE list to stay in automation
+- If unsubscribe from all filtered lists → exit
+- If still on one list → continue
+
+#### 4. **Global Unsubscribe**
+
+If contact globally unsubscribes:
+- ✅ Immediately exit ALL automations
+- ✅ Cannot receive ANY marketing emails
+- ✅ Checked before every email node
+
+#### 5. **Re-entry After Re-subscribe**
+
+If contact re-subscribes to list:
+- If `entry_rules.allow_multiple = true` → can re-enter
+- If `entry_rules.allow_multiple = false` → blocked (already entered once)
+- Respects cooldown period
+
+### Implementation Requirements
+
+**Repository Methods**:
+```go
+GetActiveExecutionsByList(ctx, workspaceID, listID, contactEmail) ([]*AutomationExecution, error)
+CancelExecution(ctx, workspaceID, executionID, reason string) error
+IsContactSubscribedToList(ctx, workspaceID, contactEmail, listID string) (bool, error)
+```
+
+**Service Updates**:
+```go
+// In ListService.Unsubscribe
+// 1. Update list status
+// 2. Find and cancel active executions for this list
+// 3. Emit unsubscribe event
+
+// In AutomationExecutionProcessor.Process
+// 1. Check list subscription BEFORE each node
+// 2. Exit if no longer subscribed
+// 3. Check audience filters still match
+```
+
+**Completion Reasons**:
+- `"natural_end"` - Reached end of flow
+- `"list_unsubscribed"` - Unsubscribed from triggering list
+- `"filter_no_longer_matches"` - No longer meets audience filters
+- `"global_unsubscribe"` - Globally unsubscribed
+- `"timeout"` - Wait for event timed out
+- `"error"` - Execution error
+
+**Analytics Tracking**:
+Track exit reasons to understand:
+- How many complete naturally vs unsubscribe
+- Which node users typically unsubscribe at
+- Effectiveness of content
+
+### Legal Compliance Notes
+
+**CAN-SPAM Act (US)**:
+- Must honor unsubscribe within 10 business days
+- Must stop ALL related emails
+- Includes automated sequences
+
+**GDPR (EU)**:
+- Right to withdraw consent
+- Must stop processing immediately
+- Applies to all marketing communications
+
+**CASL (Canada)**:
+- Unsubscribe must work within 10 days
+- Clear identification of what they're unsubscribing from
+
+**Best Practice**: Process unsubscribes **immediately** (not waiting 10 days) and exit automations **at next node check** (within seconds/minutes).
 
 ## Success Metrics
 
@@ -2148,5 +2286,143 @@ Based on analysis of Loops.co's Loop Builder (see `/workspace/research/loops-co-
 
 ---
 
+## List Unsubscribe Handling (Critical Compliance Feature)
+
+Based on industry standard (Klaviyo, Mailchimp, ActiveCampaign):
+
+### The Answer: Unsubscribe from BOTH List AND Automation
+
+**When contact unsubscribes from a list**:
+
+1. ✅ **Update list status** to "unsubscribed"
+2. ✅ **Cancel ALL active automation executions** where:
+   - `triggered_by_list_id` matches the list
+   - OR `trigger_config.list_id` matches the list  
+   - OR `trigger_config.subscribed_lists` includes the list
+3. ✅ **Mark executions** as completed with `completion_reason: "list_unsubscribed"`
+4. ✅ **Check at EVERY node** - verify subscription before executing (Klaviyo pattern)
+
+### Why Both?
+
+**Legal Requirements**:
+- CAN-SPAM Act: Must honor unsubscribe for ALL related communications
+- GDPR: Right to withdraw consent applies to automated sequences
+- CASL: Unsubscribe must stop all related messages
+
+**User Expectations**:
+- "I clicked unsubscribe" = "Stop ALL emails from this"
+- Not just campaigns, but automations too
+- Anything related to that list
+
+**Industry Standard**:
+- Klaviyo does this
+- Mailchimp does this
+- ActiveCampaign does this
+- Loops.co does this
+
+### Implementation in ListService
+
+```go
+func (s *ListService) Unsubscribe(ctx context.Context, workspaceID, listID, contactEmail string) error {
+    // 1. Update list status
+    err := s.listRepo.UpdateStatus(ctx, workspaceID, contactEmail, listID, "unsubscribed")
+    if err != nil {
+        return err
+    }
+    
+    // 2. Cancel active automation executions
+    executions, err := s.automationRepo.GetActiveExecutionsByList(ctx, workspaceID, listID, contactEmail)
+    if err != nil {
+        s.logger.Warn("Failed to get executions during unsubscribe: " + err.Error())
+    } else {
+        for _, execution := range executions {
+            s.automationRepo.CancelExecution(ctx, workspaceID, execution.ID, "list_unsubscribed")
+        }
+    }
+    
+    // 3. Emit event
+    s.eventBus.Publish(ctx, EventPayload{
+        Type: EventContactListUnsubscribed,
+        WorkspaceID: workspaceID,
+        EntityID: contactEmail,
+        Data: map[string]interface{}{"list_id": listID},
+    })
+    
+    return nil
+}
+```
+
+### Continuous Validation Pattern
+
+```go
+// In AutomationExecutionProcessor - BEFORE each node
+func (p *AutomationExecutionProcessor) validateSubscription(ctx context.Context, execution *AutomationExecution) error {
+    // Check if triggered by a list
+    if execution.TriggeredByListID != nil {
+        subscribed, err := p.listService.IsContactSubscribed(
+            ctx, 
+            workspaceID, 
+            execution.ContactEmail, 
+            *execution.TriggeredByListID,
+        )
+        if err != nil {
+            return err
+        }
+        
+        if !subscribed {
+            return p.exitExecution(ctx, execution, "list_unsubscribed")
+        }
+    }
+    
+    return nil
+}
+```
+
+### UI Warnings
+
+**In Flow Builder**:
+```
+⚠️ List Subscription Requirement
+
+This automation is triggered by "Newsletter" list.
+
+When a contact unsubscribes from this list, they will be 
+automatically removed from the automation at the next step.
+
+This ensures compliance with CAN-SPAM, GDPR, and CASL.
+```
+
+**In Email Unsubscribe Page**:
+```
+Unsubscribing from "Newsletter" will:
+✓ Remove you from the Newsletter mailing list
+✓ Stop the welcome series automation
+✓ Stop all future Newsletter broadcasts
+✓ You may still receive emails from other lists you're subscribed to
+```
+
+### Analytics Impact
+
+Track in automation analytics:
+```json
+{
+  "completion_reasons": {
+    "natural_end": 1245,
+    "list_unsubscribed": 234,  // Track how many unsubscribe
+    "filter_no_longer_matches": 45,
+    "global_unsubscribe": 12,
+    "timeout": 8,
+    "error": 5
+  }
+}
+```
+
+This helps identify:
+- Content quality issues (high unsubscribe rate)
+- Which emails in sequence cause unsubscribes
+- Overall engagement quality
+
+---
+
 **Last Updated**: 2025-10-12
-**Status**: Planning Complete with Competitive Enhancements from Loops.co Analysis, Ready for Implementation
+**Status**: Planning Complete with Competitive Enhancements from Loops.co Analysis + Klaviyo Compliance Patterns, Ready for Implementation
