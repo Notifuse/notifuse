@@ -419,10 +419,15 @@ type FlowEdge struct {
 
 // TriggerConfig contains trigger-specific configuration
 type TriggerConfig struct {
-    ListID      *string                `json:"list_id,omitempty"`      // For list triggers
-    EventName   *string                `json:"event_name,omitempty"`   // For custom event triggers
-    Conditions  []TriggerCondition     `json:"conditions,omitempty"`   // Additional filtering
-    Metadata    map[string]interface{} `json:"metadata,omitempty"`
+    ListID          *string                `json:"list_id,omitempty"`          // For list triggers (list_subscribed/unsubscribed)
+    EventName       *string                `json:"event_name,omitempty"`       // For custom event triggers
+    Conditions      []TriggerCondition     `json:"conditions,omitempty"`       // Additional filtering conditions
+    
+    // Audience filtering - restrict trigger to specific contacts
+    SegmentIDs      []string               `json:"segment_ids,omitempty"`      // Only trigger for contacts in these segments (ANY match)
+    SubscribedLists []string               `json:"subscribed_lists,omitempty"` // Only trigger for contacts subscribed to these lists (ANY match)
+    
+    Metadata        map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // Value implements driver.Valuer for database storage
@@ -643,6 +648,7 @@ type AutomationService interface {
     
     // Execution management
     TriggerExecution(ctx context.Context, workspaceID, automationID, contactEmail string, eventData map[string]interface{}) error
+    CheckTriggerAudience(ctx context.Context, workspaceID string, triggerConfig *TriggerConfig, contactEmail string) (bool, error)
     GetExecution(ctx context.Context, workspaceID, executionID string) (*AutomationExecution, error)
     ListExecutions(ctx context.Context, workspaceID, automationID string, filter ExecutionFilter) (*ExecutionListResponse, error)
     
@@ -702,6 +708,10 @@ type AutomationRepository interface {
     
     // Entry deduplication check
     CanContactEnter(ctx context.Context, workspaceID, automationID, contactEmail string, entryRules EntryRules) (bool, error)
+    
+    // Audience filtering checks
+    IsContactInSegments(ctx context.Context, workspaceID, contactEmail string, segmentIDs []string) (bool, error)
+    IsContactSubscribedToLists(ctx context.Context, workspaceID, contactEmail string, listIDs []string) (bool, error)
 }
 
 // AutomationFilter for listing automations
@@ -1064,9 +1074,54 @@ Key methods:
 - `GetPendingExecutions` - gets executions scheduled to run now
 - `GetExecutionsWaitingForEvent` - gets executions waiting for specific event
 - `CanContactEnter` - checks entry rules and deduplication
+- `IsContactInSegments` - checks if contact is in any of the specified segments (queries contact_segments table)
+- `IsContactSubscribedToLists` - checks if contact is subscribed to any of the specified lists (queries contact_lists table with status='subscribed')
 - Statistics increment methods
 - Analytics CRUD
 - Audit log CRUD
+
+**Audience Filtering Queries**:
+
+```go
+// IsContactInSegments checks if contact is in any of the segments
+func (r *AutomationPostgresRepository) IsContactInSegments(ctx context.Context, workspaceID, contactEmail string, segmentIDs []string) (bool, error) {
+    if len(segmentIDs) == 0 {
+        return false, nil
+    }
+    
+    query := squirrel.Select("COUNT(*)").
+        From("contact_segments").
+        Where(squirrel.Eq{
+            "contact_email": contactEmail,
+            "segment_id":    segmentIDs,
+        }).
+        Limit(1)
+    
+    var count int
+    err := query.RunWith(db).QueryRowContext(ctx).Scan(&count)
+    return count > 0, err
+}
+
+// IsContactSubscribedToLists checks if contact is subscribed to any of the lists
+func (r *AutomationPostgresRepository) IsContactSubscribedToLists(ctx context.Context, workspaceID, contactEmail string, listIDs []string) (bool, error) {
+    if len(listIDs) == 0 {
+        return false, nil
+    }
+    
+    query := squirrel.Select("COUNT(*)").
+        From("contact_lists").
+        Where(squirrel.Eq{
+            "contact_email": contactEmail,
+            "list_id":       listIDs,
+            "status":        "subscribed",
+        }).
+        Limit(1)
+    
+    var count int
+    err := query.RunWith(db).QueryRowContext(ctx).Scan(&count)
+    return count > 0, err
+}
+```
 
 ## Backend Service Layer
 
@@ -1080,8 +1135,9 @@ Implements business logic and orchestration:
 type AutomationService struct {
     automationRepo   domain.AutomationRepository
     contactRepo      domain.ContactRepository
-    transactionalSvc domain.TransactionalService
+    segmentRepo      domain.SegmentRepository
     listService      domain.ListService
+    transactionalSvc domain.TransactionalService
     taskService      domain.TaskService
     eventBus         domain.EventBus
     logger           logger.Logger
@@ -1092,10 +1148,58 @@ type AutomationService struct {
 // - Activate, Pause (status management with permissions check)
 // - RollbackVersion (restore previous flow_definition)
 // - TestRun (execute automation in test mode)
-// - TriggerExecution (creates automation execution record with entry rules check)
+// - TriggerExecution (creates automation execution record with entry rules check and audience filtering)
+// - CheckTriggerAudience (validates contact matches segment/list filters)
 // - SubscribeToContactEvents (listens for trigger events and wait_for_event completions)
 // - GetAnalytics (retrieve analytics data)
 // - GetAuditLog (retrieve audit log)
+```
+
+**Audience Filtering Logic**:
+
+When an event occurs that could trigger an automation:
+
+1. Get all active automations for that trigger type
+2. For each automation:
+   - Check entry rules (deduplication)
+   - Check trigger audience filters:
+     - If `segment_ids` specified: Check if contact is in ANY of the segments
+     - If `subscribed_lists` specified: Check if contact is subscribed to ANY of the lists
+     - If both specified: Contact must match BOTH conditions (segments AND lists)
+     - If neither specified: All contacts match
+   - If all checks pass, create execution
+
+```go
+func (s *AutomationService) CheckTriggerAudience(ctx context.Context, workspaceID string, triggerConfig *TriggerConfig, contactEmail string) (bool, error) {
+    // If no audience filters, all contacts match
+    if len(triggerConfig.SegmentIDs) == 0 && len(triggerConfig.SubscribedLists) == 0 {
+        return true, nil
+    }
+    
+    // Check segment membership
+    if len(triggerConfig.SegmentIDs) > 0 {
+        inSegment, err := s.automationRepo.IsContactInSegments(ctx, workspaceID, contactEmail, triggerConfig.SegmentIDs)
+        if err != nil {
+            return false, err
+        }
+        if !inSegment {
+            return false, nil
+        }
+    }
+    
+    // Check list subscription
+    if len(triggerConfig.SubscribedLists) > 0 {
+        subscribed, err := s.automationRepo.IsContactSubscribedToLists(ctx, workspaceID, contactEmail, triggerConfig.SubscribedLists)
+        if err != nil {
+            return false, err
+        }
+        if !subscribed {
+            return false, nil
+        }
+    }
+    
+    return true, nil
+}
 ```
 
 ### Automation Execution Processor
@@ -1285,6 +1389,8 @@ export interface TriggerConfig {
   list_id?: string
   event_name?: string
   conditions?: TriggerCondition[]
+  segment_ids?: string[]         // Restrict to contacts in these segments
+  subscribed_lists?: string[]    // Restrict to contacts subscribed to these lists
   metadata?: Record<string, any>
 }
 
@@ -1454,7 +1560,7 @@ export const AutomationBuilder = () => {
 
 Each node type has a custom React component:
 
-- `TriggerNode.tsx` - Entry point, shows trigger type
+- `TriggerNode.tsx` - Entry point, shows trigger type and audience filters (segments/lists)
 - `DelayNode.tsx` - Shows delay duration and timezone setting
 - `SplitTestNode.tsx` - Shows A/B split configuration
 - `ConditionNode.tsx` - Shows condition rules
@@ -1497,6 +1603,12 @@ Shows execution history for an automation:
 
 Configuration drawer for selected node with forms for:
 
+- **Trigger Node**: 
+  - Event type selector (contact_created, contact_updated, etc.)
+  - Segment multi-select (restrict to contacts in selected segments)
+  - List multi-select (restrict to contacts subscribed to selected lists)
+  - Additional conditions builder
+  - Help text explaining filter logic (segments AND lists if both specified)
 - **Delay Node**: Duration input (hours, minutes), timezone toggle, send at hour selector
 - **Split Test Node**: Split percentage, branch labels
 - **Condition Node**: Condition builder (field, operator, value), logic selector (AND/OR)
@@ -1632,6 +1744,7 @@ Add routes:
    - Query filtering
    - Execution state management
    - Entry deduplication checks
+   - Audience filtering queries (IsContactInSegments, IsContactSubscribedToLists)
    - Analytics operations
    - Audit log operations
 
@@ -1639,6 +1752,8 @@ Add routes:
    - Business logic
    - Event handling
    - Trigger execution with entry rules
+   - Audience filtering (segment and list checks)
+   - CheckTriggerAudience method with various filter combinations
    - Version control
    - Test run functionality
    - Permissions checking
@@ -1787,12 +1902,60 @@ Add routes:
 16. **UI/UX**: Intuitive drag-and-drop with clear visual feedback
 17. **Documentation**: Clear examples for each node type
 
+## Audience Filtering Use Cases
+
+The audience filtering on triggers enables powerful targeting scenarios:
+
+### Example 1: VIP Welcome Series
+```
+Trigger: contact_created
+Audience Filter: segment_ids = ["vip_customers"]
+Flow: Send personalized welcome email → Wait 2 days → Send exclusive offer
+```
+Only contacts in the "VIP Customers" segment receive this automation.
+
+### Example 2: Newsletter Engagement
+```
+Trigger: contact_updated (when email_opened property changes)
+Audience Filter: subscribed_lists = ["weekly_newsletter"]
+Flow: Check if opened > 5 times → Send "Top Reader" badge email
+```
+Only contacts subscribed to the newsletter list are considered.
+
+### Example 3: Combined Filtering
+```
+Trigger: list_subscribed
+Audience Filter: 
+  - segment_ids = ["high_value", "engaged"]
+  - subscribed_lists = ["product_updates"]
+Flow: Send welcome email → Wait for purchase event (7 days) → Send discount
+```
+Contact must be in "high_value" OR "engaged" segment AND subscribed to "product_updates" list.
+
+### Example 4: Re-engagement Campaign
+```
+Trigger: contact_updated (when last_activity changes)
+Audience Filter: segment_ids = ["inactive_30_days"]
+Flow: Wait 7 days → Send re-engagement email → If no open, send discount
+```
+Only contacts in the "Inactive 30 Days" segment enter the re-engagement flow.
+
+### Filter Logic Summary
+- **No filters**: All contacts trigger the automation
+- **Segments only**: Contact must be in ANY of the specified segments
+- **Lists only**: Contact must be subscribed to ANY of the specified lists  
+- **Both specified**: Contact must match segments (ANY) AND lists (ANY)
+
+This allows precise targeting without creating separate automations for each audience segment.
+
 ## Success Metrics
 
 - Automations can be created and activated without errors
 - Flow validation prevents invalid automation structures
 - Contact events trigger automation executions
 - Entry rules prevent duplicate executions
+- Audience filtering correctly restricts triggers to matching contacts
+- Segment and list filters work independently and combined
 - All node types execute correctly (including conditional logic)
 - Variables flow correctly between nodes
 - State is preserved across task pauses
