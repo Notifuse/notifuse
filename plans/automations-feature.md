@@ -4,6 +4,8 @@
 
 This plan implements a comprehensive automation system for Notifuse that allows users to create visual workflow automations triggered by contact timeline events. Automations run asynchronously using the existing task system (similar to segments) and provide a drag-and-drop visual interface built with ReactFlow.
 
+**Updated with competitive insights from Loops.co analysis** - incorporating industry best practices for pause protection, parallel branching, and advanced A/B testing while maintaining our enterprise-grade features.
+
 ## Architecture Overview
 
 Automations follow the same async processing pattern as segments:
@@ -44,6 +46,10 @@ CREATE TABLE IF NOT EXISTS automations (
     -- Version control
     version INTEGER DEFAULT 1,
     previous_version JSONB, -- Stores previous flow_definition for rollback
+    
+    -- Pause management (from Loops.co insight)
+    paused_at TIMESTAMP WITH TIME ZONE, -- When automation was paused
+    pause_warning_sent BOOLEAN DEFAULT false, -- Whether 24h warning was sent
     
     -- Statistics
     executions_count INTEGER DEFAULT 0,
@@ -205,6 +211,8 @@ func (m *V7Migration) UpdateWorkspace(ctx context.Context, config *config.Config
             test_mode BOOLEAN DEFAULT false,
             version INTEGER DEFAULT 1,
             previous_version JSONB,
+            paused_at TIMESTAMP WITH TIME ZONE,
+            pause_warning_sent BOOLEAN DEFAULT false,
             executions_count INTEGER DEFAULT 0,
             successes_count INTEGER DEFAULT 0,
             failures_count INTEGER DEFAULT 0,
@@ -398,7 +406,7 @@ func (f *FlowDefinition) Scan(value interface{}) error {
 // FlowNode represents a node in the automation flow
 type FlowNode struct {
     ID       string                 `json:"id"`
-    Type     string                 `json:"type"` // trigger, delay, split_test, send_email, update_property, update_list_status, webhook, condition, exit, wait_for_event
+    Type     string                 `json:"type"` // trigger, delay, split_test, send_email, update_property, update_list_status, webhook, condition, exit, wait_for_event, parallel_condition
     Position NodePosition           `json:"position"`
     Data     map[string]interface{} `json:"data"`
 }
@@ -492,6 +500,10 @@ type Automation struct {
     Version         int              `json:"version"`
     PreviousVersion *FlowDefinition  `json:"previous_version,omitempty"`
     
+    // Pause management (from Loops.co insight)
+    PausedAt          *time.Time `json:"paused_at,omitempty"`
+    PauseWarningSent  bool       `json:"pause_warning_sent"`
+    
     // Statistics
     ExecutionsCount int `json:"executions_count"`
     SuccessesCount  int `json:"successes_count"`
@@ -503,6 +515,14 @@ type Automation struct {
     LastExecutedAt  *time.Time `json:"last_executed_at,omitempty"`
     CreatedBy       *string    `json:"created_by,omitempty"`
     UpdatedBy       *string    `json:"updated_by,omitempty"`
+}
+
+// IsPausedTooLong checks if automation has been paused for more than 24 hours
+func (a *Automation) IsPausedTooLong() bool {
+    if a.Status != AutomationStatusPaused || a.PausedAt == nil {
+        return false
+    }
+    return time.Since(*a.PausedAt) > 24*time.Hour
 }
 
 // Validate ensures the automation has all required fields
@@ -639,6 +659,10 @@ type AutomationService interface {
     // Activation
     Activate(ctx context.Context, workspaceID, id string, userID string) error
     Pause(ctx context.Context, workspaceID, id string, userID string) error
+    
+    // Pause management (from Loops.co insight)
+    CheckPauseTimeout(ctx context.Context, workspaceID, id string) error
+    SendPauseWarning(ctx context.Context, workspaceID, id string) error
     
     // Version control
     RollbackVersion(ctx context.Context, workspaceID, id string, userID string) error
@@ -1275,14 +1299,54 @@ type NodeExecutionResult struct {
 // Implement executors:
 // - TriggerExecutor
 // - DelayExecutor (with timezone awareness)
-// - SplitTestExecutor
-// - ConditionExecutor (evaluate rules against context)
+// - SplitTestExecutor (enhanced with sample size from Loops.co insight)
+// - ConditionExecutor (evaluate rules against context, with continuous monitoring)
+// - ParallelConditionExecutor (NEW from Loops.co insight - returns multiple paths)
 // - SendEmailExecutor
 // - UpdatePropertyExecutor
 // - UpdateListStatusExecutor
 // - WebhookExecutor (HTTP client with retry)
 // - ExitExecutor
 // - WaitForEventExecutor
+```
+
+**Enhanced Node Data Structures** (from Loops.co insights):
+
+```go
+// Enhanced SplitTestNodeData with sample size control
+type SplitTestNodeData struct {
+    SampleSize    int                `json:"sample_size"`     // 0-100 percentage
+    Variants      []SplitTestVariant `json:"variants"`
+    HasControl    bool               `json:"has_control"`
+    ControlWeight int                `json:"control_weight"`  // If no control, remaining % exits
+}
+
+type SplitTestVariant struct {
+    ID     string `json:"id"`
+    Label  string `json:"label"`
+    Weight int    `json:"weight"` // Percentage within sample
+}
+
+// Enhanced ConditionNodeData with continuous monitoring
+type ConditionNodeData struct {
+    Conditions      []ConditionRule `json:"conditions"`
+    Logic           string          `json:"logic"` // "AND" or "OR"
+    ContinuousCheck bool            `json:"continuous_check"` // Monitor downstream
+    ApplyToNextOnly bool            `json:"apply_to_next_only"` // Only check at next node
+}
+
+// NEW: Parallel condition node (from Loops.co insight)
+type ParallelConditionNodeData struct {
+    Branches []ParallelBranch `json:"branches"`
+    // Contact follows ALL matching branches, not just first match
+}
+
+type ParallelBranch struct {
+    ID         string          `json:"id"`
+    Label      string          `json:"label"`
+    Conditions []ConditionRule `json:"conditions"`
+    Logic      string          `json:"logic"` // "AND" or "OR"
+}
 ```
 
 ### Automation Check Task Processor
@@ -1314,6 +1378,33 @@ func (p *AutomationCheckTaskProcessor) Process(ctx context.Context, task *domain
 // Helper function to ensure task exists for workspace
 func EnsureAutomationCheckTask(ctx context.Context, taskRepo domain.TaskRepository, workspaceID string) error {
     // Similar to EnsureSegmentRecomputeTask
+}
+```
+
+### Pause Timeout Checker (NEW from Loops.co insight)
+
+**File**: `internal/service/automation_pause_checker.go` (create new)
+
+Background job to check for automations paused > 24 hours:
+
+```go
+type AutomationPauseChecker struct {
+    automationRepo   domain.AutomationRepository
+    notificationSvc  NotificationService // Email service
+    logger           logger.Logger
+}
+
+// CheckPausedAutomations runs periodically (e.g., hourly)
+func (c *AutomationPauseChecker) CheckPausedAutomations(ctx context.Context) error {
+    // 1. Get all paused automations across all workspaces
+    // 2. For each automation:
+    //    - Check if paused > 24 hours
+    //    - If yes and warning not sent:
+    //      - Send warning email to owner
+    //      - Set pause_warning_sent = true
+    //    - If yes and > 48 hours:
+    //      - Consider auto-stopping (optional)
+    return nil
 }
 ```
 
@@ -1368,7 +1459,7 @@ Add ReactFlow to `console/package.json`:
 ```typescript
 export interface FlowNode {
   id: string
-  type: string // 'trigger' | 'delay' | 'split_test' | 'send_email' | 'update_property' | 'update_list_status' | 'webhook' | 'condition' | 'exit' | 'wait_for_event'
+  type: string // 'trigger' | 'delay' | 'split_test' | 'send_email' | 'update_property' | 'update_list_status' | 'webhook' | 'condition' | 'exit' | 'wait_for_event' | 'parallel_condition'
   position: { x: number; y: number }
   data: Record<string, any>
 }
@@ -1417,6 +1508,8 @@ export interface Automation {
   test_mode: boolean
   version: number
   previous_version?: FlowDefinition
+  paused_at?: string              // NEW from Loops.co insight
+  pause_warning_sent: boolean     // NEW from Loops.co insight
   executions_count: number
   successes_count: number
   failures_count: number
@@ -1562,8 +1655,9 @@ Each node type has a custom React component:
 
 - `TriggerNode.tsx` - Entry point, shows trigger type and audience filters (segments/lists)
 - `DelayNode.tsx` - Shows delay duration and timezone setting
-- `SplitTestNode.tsx` - Shows A/B split configuration
-- `ConditionNode.tsx` - Shows condition rules
+- `SplitTestNode.tsx` - Shows A/B split configuration with sample size indicator (enhanced from Loops.co)
+- `ConditionNode.tsx` - Shows condition rules with continuous monitoring indicator
+- `ParallelConditionNode.tsx` - NEW from Loops.co - Shows multiple branches with "parallel" badge
 - `SendEmailNode.tsx` - Shows template selection
 - `UpdatePropertyNode.tsx` - Shows property and value
 - `UpdateListStatusNode.tsx` - Shows list and status
@@ -1577,6 +1671,7 @@ Each node type has a custom React component:
 
 Table view of all automations with:
 - Status badges (draft, active, paused)
+- **Pause warning indicator** (NEW from Loops.co) - shows if paused > 24h
 - Test mode indicator
 - Version number
 - Statistics (executions, success rate)
@@ -1610,8 +1705,22 @@ Configuration drawer for selected node with forms for:
   - Additional conditions builder
   - Help text explaining filter logic (segments AND lists if both specified)
 - **Delay Node**: Duration input (hours, minutes), timezone toggle, send at hour selector
-- **Split Test Node**: Split percentage, branch labels
-- **Condition Node**: Condition builder (field, operator, value), logic selector (AND/OR)
+- **Split Test Node** (enhanced from Loops.co): 
+  - Sample size slider (0-100%)
+  - Variant configuration with weights
+  - Control branch toggle
+  - Warning if sample < 100% and no control
+  - Visual distribution preview
+- **Condition Node**: 
+  - Condition builder (field, operator, value)
+  - Logic selector (AND/OR)
+  - Continuous monitoring toggle (from Loops.co "All following nodes")
+  - "Apply to next only" option
+- **Parallel Condition Node** (NEW from Loops.co):
+  - Multiple branch builder
+  - Each branch has its own conditions
+  - Visual indicator showing "parallel execution"
+  - Help text: "Contact follows ALL matching branches"
 - **Send Email Node**: Transactional template selector
 - **Update Property Node**: Property selector, value input with variable support
 - **Update List Status Node**: List selector, status radio (subscribed/unsubscribed)
@@ -1650,6 +1759,16 @@ Test automation execution:
 - Execution log display
 - Node-by-node results
 - Success/failure indicator
+
+### Pause Warning Modal (NEW from Loops.co)
+
+**File**: `console/src/components/automations/PauseWarningModal.tsx` (create new)
+
+Displays when automation paused > 24 hours:
+- Warning message about outdated triggers
+- Time since paused
+- Option to resume or stop
+- Checkbox: "Don't show again for this automation"
 
 ## Task Integration
 
@@ -1794,35 +1913,40 @@ Add routes:
 ## Implementation Order
 
 1. ✅ **Create TODO list** - Track all implementation tasks
-2. **Database Migration** - Create v7 migration with all tables and indexes
-3. **Domain Models** - Create automation domain types with validation
+2. **Database Migration** - Create v7 migration with all tables and indexes (including pause fields)
+3. **Domain Models** - Create automation domain types with validation (including enhanced nodes from Loops.co)
 4. **Flow Validator** - Implement comprehensive flow validation
 5. **Event Types** - Add contact event types for triggers
 6. **Permissions** - Add automations to permission system
-7. **Repository Layer** - Implement PostgreSQL operations
-8. **Service Layer** - Implement automation service with audit logging
-9. **Node Executors** - Implement each node type execution logic
-10. **Execution Processor** - Implement task processor for running automations
-11. **Check Task Processor** - Implement evergreen checker task
-12. **HTTP Handlers** - Create API endpoints with permissions
-13. **App Integration** - Wire up services and processors
-14. **Workspace Integration** - Ensure check task on workspace creation
-15. **Frontend Dependencies** - Add ReactFlow to package.json
-16. **Frontend Types** - Create TypeScript interfaces
-17. **Frontend API Client** - Implement API functions
-18. **Custom Node Components** - Create React components for each node type
-19. **Automation Builder** - Create main builder page with ReactFlow and validation
-20. **Node Config Panel** - Create configuration UI for nodes
-21. **Automations List** - Create list view page with filters
-22. **Execution History** - Create execution viewer
-23. **Analytics Dashboard** - Create analytics visualization
-24. **Audit Log Viewer** - Create audit log interface
-25. **Test Run Panel** - Create test execution interface
-26. **Frontend Routing** - Add automation routes
-27. **Backend Tests** - Write comprehensive test suite
-28. **Frontend Tests** - Write component and integration tests
-29. **Integration Testing** - Test end-to-end flows
-30. **Documentation** - Update CHANGELOG.md
+7. **Repository Layer** - Implement PostgreSQL operations (including pause timeout queries)
+8. **Service Layer** - Implement automation service with audit logging and pause management
+9. **Node Executors** - Implement each node type execution logic (including parallel condition)
+10. **Enhanced Node Data Structures** - Implement split test with sample size, condition with continuous check
+11. **Execution Processor** - Implement task processor for running automations
+12. **Check Task Processor** - Implement evergreen checker task
+13. **Pause Timeout Checker** - Implement 24-hour pause warning system (NEW from Loops.co)
+14. **HTTP Handlers** - Create API endpoints with permissions
+15. **App Integration** - Wire up services and processors
+16. **Workspace Integration** - Ensure check task on workspace creation
+17. **Frontend Dependencies** - Add ReactFlow to package.json
+18. **Frontend Types** - Create TypeScript interfaces (including pause fields and enhanced nodes)
+19. **Frontend API Client** - Implement API functions
+20. **Custom Node Components** - Create React components for each node type (including parallel condition)
+21. **Enhanced Split Test Config** - Sample size slider and variant weights UI
+22. **Continuous Monitoring Toggle** - Add to condition node config
+23. **Automation Builder** - Create main builder page with ReactFlow and validation
+24. **Node Config Panel** - Create configuration UI for nodes (with enhancements)
+25. **Automations List** - Create list view page with filters and pause warnings
+26. **Pause Warning Modal** - Create 24-hour pause warning UI (NEW from Loops.co)
+27. **Execution History** - Create execution viewer
+28. **Analytics Dashboard** - Create analytics visualization
+29. **Audit Log Viewer** - Create audit log interface
+30. **Test Run Panel** - Create test execution interface
+31. **Frontend Routing** - Add automation routes
+32. **Backend Tests** - Write comprehensive test suite (including pause logic and enhanced nodes)
+33. **Frontend Tests** - Write component and integration tests
+34. **Integration Testing** - Test end-to-end flows (including pause warnings)
+35. **Documentation** - Update CHANGELOG.md
 
 ## Files to Create
 
@@ -1840,6 +1964,8 @@ Add routes:
 - `internal/service/automation_execution_processor_test.go`
 - `internal/service/automation_check_task_processor.go`
 - `internal/service/automation_check_task_processor_test.go`
+- `internal/service/automation_pause_checker.go` - NEW from Loops.co insight
+- `internal/service/automation_pause_checker_test.go` - NEW
 - `internal/service/automation_node_executors.go`
 - `internal/service/automation_node_executors_test.go`
 - `internal/http/automation_handler.go`
@@ -1853,6 +1979,7 @@ Add routes:
 - `console/src/components/automations/nodes/DelayNode.tsx`
 - `console/src/components/automations/nodes/SplitTestNode.tsx`
 - `console/src/components/automations/nodes/ConditionNode.tsx`
+- `console/src/components/automations/nodes/ParallelConditionNode.tsx` - NEW from Loops.co insight
 - `console/src/components/automations/nodes/SendEmailNode.tsx`
 - `console/src/components/automations/nodes/UpdatePropertyNode.tsx`
 - `console/src/components/automations/nodes/UpdateListStatusNode.tsx`
@@ -1864,6 +1991,9 @@ Add routes:
 - `console/src/components/automations/AnalyticsDashboard.tsx`
 - `console/src/components/automations/AuditLogDrawer.tsx`
 - `console/src/components/automations/TestRunPanel.tsx`
+- `console/src/components/automations/PauseWarningModal.tsx` - NEW from Loops.co insight
+- `console/src/components/automations/EnhancedSplitTestConfig.tsx` - NEW from Loops.co insight
+- `console/src/components/automations/ContinuousMonitorToggle.tsx` - NEW from Loops.co insight
 - `console/src/components/automations/AutomationStats.tsx`
 
 ## Files to Modify
@@ -1972,5 +2102,47 @@ This allows precise targeting without creating separate automations for each aud
 
 ---
 
+---
+
+## Competitive Insights from Loops.co
+
+Based on analysis of Loops.co's Loop Builder (see `/workspace/research/loops-co-analysis.md`), we've incorporated 4 critical enhancements:
+
+### 1. ✅ 24-Hour Pause Protection
+- **Problem**: Paused automations can send outdated emails (e.g., "Welcome!" 3 months after signup)
+- **Solution**: 
+  - Track `paused_at` timestamp
+  - Send warning email after 24 hours
+  - Show warning badge in UI
+  - Block new entries after 24 hours (prevents stale triggers)
+
+### 2. ✅ Enhanced Split Testing
+- **Problem**: Basic 50/50 split is too limited
+- **Solution**: 
+  - Sample size control (0-100%)
+  - Variant weights (e.g., 60% A, 40% B)
+  - Optional control branch
+  - Warning if sample < 100% and no control
+
+### 3. ✅ Parallel Branching
+- **Problem**: Condition nodes force single path (either/or)
+- **Solution**: 
+  - New `parallel_condition` node type
+  - Contacts follow ALL matching branches
+  - Example: Send both "VIP Welcome" AND "Newsletter" if match both
+
+### 4. ✅ Continuous Audience Monitoring
+- **Problem**: One-time checks can't react to changing contact properties
+- **Solution**: 
+  - Add `continuous_check` flag to condition nodes
+  - Contacts auto-exit if stop matching
+  - Example: Contact leaves "VIP" segment → exits VIP automation
+
+**Result**: We now have **both** Loops.co's smart safeguards **and** our advanced features (webhooks, variables, version control, audit trail, test mode).
+
+**Positioning**: **"Enterprise Automation Platform"** vs Loops.co's **"Simple Marketing Automation"**
+
+---
+
 **Last Updated**: 2025-10-12
-**Status**: Planning Complete with Enhanced Features, Ready for Implementation
+**Status**: Planning Complete with Competitive Enhancements from Loops.co Analysis, Ready for Implementation
