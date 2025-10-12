@@ -85,6 +85,10 @@ CREATE TABLE IF NOT EXISTS automation_executions (
     execution_path JSONB, -- Array of node IDs that have been executed
     execution_context JSONB, -- Full execution context with variables
     
+    -- Completion tracking (no exit node needed)
+    completed_at_node_id VARCHAR(36), -- Last node executed before completion
+    completion_reason VARCHAR(50), -- natural_end, condition_branch, timeout, error
+    
     -- Test mode tracking
     is_test_run BOOLEAN DEFAULT false,
     
@@ -247,6 +251,8 @@ func (m *V7Migration) UpdateWorkspace(ctx context.Context, config *config.Config
             current_node_id VARCHAR(36),
             execution_path JSONB,
             execution_context JSONB,
+            completed_at_node_id VARCHAR(36),
+            completion_reason VARCHAR(50),
             is_test_run BOOLEAN DEFAULT false,
             scheduled_at TIMESTAMP WITH TIME ZONE,
             started_at TIMESTAMP WITH TIME ZONE,
@@ -406,7 +412,7 @@ func (f *FlowDefinition) Scan(value interface{}) error {
 // FlowNode represents a node in the automation flow
 type FlowNode struct {
     ID       string                 `json:"id"`
-    Type     string                 `json:"type"` // trigger, delay, split_test, send_email, update_property, update_list_status, webhook, condition, exit, wait_for_event, parallel_condition
+    Type     string                 `json:"type"` // trigger, delay, split_test, send_email, update_property, update_list_status, webhook, condition, wait_for_event, parallel_condition
     Position NodePosition           `json:"position"`
     Data     map[string]interface{} `json:"data"`
 }
@@ -590,6 +596,10 @@ type AutomationExecution struct {
     ExecutionPath    []string         `json:"execution_path,omitempty"`
     ExecutionContext ExecutionContext `json:"execution_context"`
     IsTestRun        bool             `json:"is_test_run"`
+    
+    // Completion tracking (no exit node needed - track where flow naturally ended)
+    CompletedAtNodeID *string `json:"completed_at_node_id,omitempty"` // Last node executed before completion
+    CompletionReason  *string `json:"completion_reason,omitempty"`    // "natural_end", "condition_branch", "timeout", "error"
     
     // Scheduling
     ScheduledAt *time.Time `json:"scheduled_at,omitempty"`
@@ -953,16 +963,7 @@ func (v *FlowValidator) Validate(flow FlowDefinition) []ValidationError {
             }
         }
         
-        // Exit nodes should have no outgoing edges
-        if node.Type == "exit" {
-            outgoingCount := edgesBySource[node.ID]
-            if outgoingCount > 0 {
-                errors = append(errors, ValidationError{
-                    Field:   "nodes",
-                    Message: fmt.Sprintf("Exit node '%s' should not have outgoing edges", node.ID),
-                })
-            }
-        }
+        // Note: Removed exit node - automations complete naturally when no more edges
     }
     
     return errors
@@ -1270,8 +1271,8 @@ Node execution logic:
 - **Update Contact Property**: Call contact service (store result)
 - **Update List Status**: Call list service (store result)
 - **Webhook**: HTTP POST to configured URL (store response in variables)
-- **Exit**: Mark execution as completed with exit reason
 - **Wait for Event**: Set status to waiting_for_event, store event type and timeout
+- **Natural Completion**: When a node returns empty NextNodeIDs, execution completes (marks completed_at_node_id and completion_reason)
 
 ### Node Executors
 
@@ -1287,13 +1288,12 @@ type NodeExecutor interface {
 
 // NodeExecutionResult contains the result of executing a node
 type NodeExecutionResult struct {
-    NextNodeIDs []string               // IDs of next nodes to execute
+    NextNodeIDs []string               // IDs of next nodes to execute (empty = natural completion)
     PauseUntil  *time.Time             // If set, pause execution until this time
     WaitForEvent *string               // If set, wait for this event type
     WaitTimeout  *time.Time            // Timeout for wait_for_event
     ResultData   map[string]interface{} // Data to store in node_results
     Variables    map[string]interface{} // Data to store in variables
-    ExitReason   *string               // If exit node, reason for exit
 }
 
 // Implement executors:
@@ -1306,8 +1306,9 @@ type NodeExecutionResult struct {
 // - UpdatePropertyExecutor
 // - UpdateListStatusExecutor
 // - WebhookExecutor (HTTP client with retry)
-// - ExitExecutor
 // - WaitForEventExecutor
+
+// Note: No ExitExecutor needed - automations complete naturally when NextNodeIDs is empty
 ```
 
 **Enhanced Node Data Structures** (from Loops.co insights):
@@ -1459,7 +1460,7 @@ Add ReactFlow to `console/package.json`:
 ```typescript
 export interface FlowNode {
   id: string
-  type: string // 'trigger' | 'delay' | 'split_test' | 'send_email' | 'update_property' | 'update_list_status' | 'webhook' | 'condition' | 'exit' | 'wait_for_event' | 'parallel_condition'
+  type: string // 'trigger' | 'delay' | 'split_test' | 'send_email' | 'update_property' | 'update_list_status' | 'webhook' | 'condition' | 'wait_for_event' | 'parallel_condition'
   position: { x: number; y: number }
   data: Record<string, any>
 }
@@ -1529,6 +1530,8 @@ export interface AutomationExecution {
   execution_path?: string[]
   execution_context?: ExecutionContext
   is_test_run: boolean
+  completed_at_node_id?: string  // Last node before natural completion
+  completion_reason?: string     // How the automation ended
   scheduled_at?: string
   started_at?: string
   completed_at?: string
@@ -1662,8 +1665,9 @@ Each node type has a custom React component:
 - `UpdatePropertyNode.tsx` - Shows property and value
 - `UpdateListStatusNode.tsx` - Shows list and status
 - `WebhookNode.tsx` - Shows URL and method
-- `ExitNode.tsx` - Shows exit reason
 - `WaitForEventNode.tsx` - Shows event type and timeout
+
+**Note**: No ExitNode needed - nodes without outgoing edges naturally complete the automation. UI shows terminal nodes with special styling.
 
 ### Automation List Page
 
@@ -1725,8 +1729,9 @@ Configuration drawer for selected node with forms for:
 - **Update Property Node**: Property selector, value input with variable support
 - **Update List Status Node**: List selector, status radio (subscribed/unsubscribed)
 - **Webhook Node**: URL input, method selector, headers, body template with variables
-- **Exit Node**: Exit reason input
 - **Wait for Event Node**: Event type selector, timeout hours
+
+**Note**: No Exit Node configuration needed. Nodes automatically complete when they have no outgoing edges. The UI can show a visual indicator for terminal nodes.
 
 ### Analytics Dashboard
 
@@ -1984,7 +1989,6 @@ Add routes:
 - `console/src/components/automations/nodes/UpdatePropertyNode.tsx`
 - `console/src/components/automations/nodes/UpdateListStatusNode.tsx`
 - `console/src/components/automations/nodes/WebhookNode.tsx`
-- `console/src/components/automations/nodes/ExitNode.tsx`
 - `console/src/components/automations/nodes/WaitForEventNode.tsx`
 - `console/src/components/automations/NodeConfigPanel.tsx`
 - `console/src/components/automations/ExecutionHistoryDrawer.tsx`
