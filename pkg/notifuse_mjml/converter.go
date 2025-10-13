@@ -394,9 +394,11 @@ func camelToKebab(str string) string {
 // All ampersands must be escaped as &amp; per XML specification
 // The MJML compiler will handle converting them back to & in the final HTML
 func escapeAttributeValue(value string, attributeName string) string {
-	// Always escape ampersands first, even in URLs
-	// MJML is XML and must follow XML escaping rules
-	value = strings.ReplaceAll(value, "&", "&amp;")
+	// Escape ampersands, but don't double-escape already-escaped entities
+	// Don't escape if already part of an entity: &amp;, &lt;, &gt;, &quot;, &apos;, &#123;, &#xAB;
+	re := regexp.MustCompile(`&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)`)
+	value = re.ReplaceAllString(value, "&amp;")
+	
 	value = strings.ReplaceAll(value, "\"", "&quot;")
 	value = strings.ReplaceAll(value, "'", "&#39;")
 	value = strings.ReplaceAll(value, "<", "&lt;")
