@@ -1,0 +1,70 @@
+# Makefile for Sender Name Audit Tools
+# Include this in your main Makefile or run directly: make -f Makefile.audit audit
+
+.PHONY: audit-senders audit-sql fix-senders help
+
+help:
+	@echo "Sender Name Audit Tools"
+	@echo "======================="
+	@echo ""
+	@echo "Available commands:"
+	@echo "  make audit-senders    - Run Go-based sender audit tool"
+	@echo "  make audit-sql        - Run SQL-based sender audit"
+	@echo "  make fix-senders      - Apply automated fixes (with backup)"
+	@echo "  make test-from-name   - Run all From name unit tests"
+	@echo ""
+	@echo "Before running fix-senders, always:"
+	@echo "  1. Backup your database"
+	@echo "  2. Test in a non-production environment"
+	@echo "  3. Review audit results carefully"
+
+# Run the Go-based audit tool
+audit-senders:
+	@echo "🔍 Running sender name audit..."
+	@go run cmd/tools/audit_senders.go
+
+# Run SQL-based audit (requires psql)
+audit-sql:
+	@echo "🔍 Running SQL-based sender audit..."
+	@if [ -z "$$DATABASE_URL" ]; then \
+		echo "Error: DATABASE_URL environment variable not set"; \
+		exit 1; \
+	fi
+	@psql $$DATABASE_URL -f scripts/audit_sender_names.sql
+
+# Apply automated fixes (with safety checks)
+fix-senders:
+	@echo "⚠️  WARNING: This will modify your database!"
+	@echo "   Have you backed up your database? (y/n)"
+	@read -r confirm; \
+	if [ "$$confirm" != "y" ]; then \
+		echo "Aborting. Please backup your database first."; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "This will set empty sender names to their email addresses."
+	@echo "Continue? (y/n)"
+	@read -r confirm2; \
+	if [ "$$confirm2" != "y" ]; then \
+		echo "Aborting."; \
+		exit 1; \
+	fi
+	@echo ""
+	@echo "Creating backup..."
+	@pg_dump $$DATABASE_URL > backup_senders_$(shell date +%Y%m%d_%H%M%S).sql
+	@echo "Backup created: backup_senders_$(shell date +%Y%m%d_%H%M%S).sql"
+	@echo ""
+	@echo "Applying fixes..."
+	@psql $$DATABASE_URL -f scripts/fix_empty_sender_names.sql
+	@echo ""
+	@echo "✅ Fixes applied. Run 'make audit-senders' to verify."
+
+# Run all From name related tests
+test-from-name:
+	@echo "🧪 Running From name unit tests..."
+	@go test -v ./internal/service -run "FromFormat|FromName|SenderName"
+
+# Quick check - just count issues
+quick-check:
+	@echo "Quick sender name check..."
+	@psql $$DATABASE_URL -c "SELECT COUNT(*) as empty_sender_names FROM workspaces w, jsonb_array_elements(w.integrations) as integration, jsonb_array_elements(integration->'email_provider'->'senders') as sender WHERE sender->>'name' = '' OR sender->>'name' IS NULL;"

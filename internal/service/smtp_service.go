@@ -95,6 +95,12 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 	// Create and configure the message
 	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())
 
+	// Validate that sender name is not empty before calling go-mail
+	if request.FromName == "" {
+		return fmt.Errorf("sender name is required but was empty (from address: %s)", request.FromAddress)
+	}
+
+	// Call go-mail FromFormat with validated sender name
 	if err := msg.FromFormat(request.FromName, request.FromAddress); err != nil {
 		return fmt.Errorf("invalid sender: %w", err)
 	}
