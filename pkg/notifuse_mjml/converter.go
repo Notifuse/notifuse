@@ -396,14 +396,46 @@ func camelToKebab(str string) string {
 func escapeAttributeValue(value string, attributeName string) string {
 	// Escape ampersands, but don't double-escape already-escaped entities
 	// Don't escape if already part of an entity: &amp;, &lt;, &gt;, &quot;, &apos;, &#123;, &#xAB;
-	re := regexp.MustCompile(`&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)`)
-	value = re.ReplaceAllString(value, "&amp;")
+	// Go's regexp doesn't support negative lookahead, so we use a custom function
+	value = escapeUnescapedAmpersands(value)
 	
 	value = strings.ReplaceAll(value, "\"", "&quot;")
 	value = strings.ReplaceAll(value, "'", "&#39;")
 	value = strings.ReplaceAll(value, "<", "&lt;")
 	value = strings.ReplaceAll(value, ">", "&gt;")
 	return value
+}
+
+// escapeUnescapedAmpersands escapes only unescaped ampersands in a string
+// It skips ampersands that are already part of XML entities like &amp;, &lt;, &#123;, etc.
+func escapeUnescapedAmpersands(value string) string {
+	// Pattern matches XML/HTML entities: &amp; &lt; &gt; &quot; &apos; &#123; &#xAB; etc.
+	entityPattern := regexp.MustCompile(`&(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);`)
+	
+	var result strings.Builder
+	lastEnd := 0
+	
+	// Find all entities and preserve them
+	matches := entityPattern.FindAllStringIndex(value, -1)
+	
+	for _, match := range matches {
+		start, end := match[0], match[1]
+		
+		// Process the part before this entity
+		beforeEntity := value[lastEnd:start]
+		result.WriteString(strings.ReplaceAll(beforeEntity, "&", "&amp;"))
+		
+		// Add the entity as-is (it's already escaped)
+		result.WriteString(value[start:end])
+		
+		lastEnd = end
+	}
+	
+	// Process the remaining part after the last entity
+	remaining := value[lastEnd:]
+	result.WriteString(strings.ReplaceAll(remaining, "&", "&amp;"))
+	
+	return result.String()
 }
 
 // escapeContent escapes content for safe HTML output
