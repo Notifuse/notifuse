@@ -36,10 +36,10 @@ func logSenderDetails(ctx context.Context, log logger.Logger, sender *domain.Ema
 }
 
 // ValidateSenderHasName checks if a sender has a name and logs a warning if not
-func validateSenderHasName(log logger.Logger, sender *domain.EmailSender, context string) error {
+func validateSenderHasName(log logger.Logger, sender *domain.EmailSender, context string) {
 	if sender == nil {
 		log.WithField("context", context).Error("Sender is nil")
-		return domain.ErrInvalidInput
+		return
 	}
 
 	if sender.Name == "" {
@@ -49,8 +49,6 @@ func validateSenderHasName(log logger.Logger, sender *domain.EmailSender, contex
 			"sender_email": sender.Email,
 		}).Warn("⚠️ Sender has empty name - emails will be sent without From name")
 	}
-
-	return nil
 }
 
 // DebugEmailProviderSenders logs all senders in an email provider
