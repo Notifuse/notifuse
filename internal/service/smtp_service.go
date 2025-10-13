@@ -95,6 +95,13 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 	// Create and configure the message
 	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())
 
+	// Debug logging to track FromName value
+	s.logger.WithFields(map[string]interface{}{
+		"from_name":    request.FromName,
+		"from_address": request.FromAddress,
+		"message_id":   request.MessageID,
+	}).Info("🔍 DEBUG: Setting From header in SMTP service")
+
 	if err := msg.FromFormat(request.FromName, request.FromAddress); err != nil {
 		return fmt.Errorf("invalid sender: %w", err)
 	}

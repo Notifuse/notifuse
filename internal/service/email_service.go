@@ -109,6 +109,14 @@ func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string
 	// Use the first sender in the list
 	defaultSender := provider.Senders[0]
 
+	// Debug logging to see what sender we're using
+	s.logger.WithFields(map[string]interface{}{
+		"sender_id":    defaultSender.ID,
+		"sender_email": defaultSender.Email,
+		"sender_name":  defaultSender.Name,
+		"is_default":   defaultSender.IsDefault,
+	}).Info("🔍 DEBUG: TestEmailProvider using sender")
+
 	// Ensure sender has ID
 	if defaultSender.ID == "" {
 		defaultSender.ID = uuid.New().String()
@@ -139,6 +147,15 @@ func (s *EmailService) TestEmailProvider(ctx context.Context, workspaceID string
 			BCC:     nil,
 		},
 	}
+
+	// Debug logging for the request
+	s.logger.WithFields(map[string]interface{}{
+		"workspace_id": request.WorkspaceID,
+		"message_id":   request.MessageID,
+		"from_address": request.FromAddress,
+		"from_name":    request.FromName,
+		"to":           request.To,
+	}).Info("🔍 DEBUG: Sending test email with SendEmailProviderRequest")
 
 	err = s.SendEmail(ctx, request, false)
 
