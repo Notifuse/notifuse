@@ -102,6 +102,11 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 		"message_id":   request.MessageID,
 	}).Info("🔍 DEBUG: Setting From header in SMTP service")
 
+	// Validate that sender name is not empty
+	if request.FromName == "" {
+		return fmt.Errorf("sender name is required but was empty (from address: %s)", request.FromAddress)
+	}
+
 	if err := msg.FromFormat(request.FromName, request.FromAddress); err != nil {
 		return fmt.Errorf("invalid sender: %w", err)
 	}
