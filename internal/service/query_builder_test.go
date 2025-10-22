@@ -107,6 +107,59 @@ func TestQueryBuilder_BuildSQL_SimpleConditions(t *testing.T) {
 		assert.Equal(t, []interface{}{"%@example.com%"}, args)
 	})
 
+	t.Run("contains with multiple values (OR logic)", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "country",
+							FieldType:    "string",
+							Operator:     "contains",
+							StringValues: []string{"United", "States", "America"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "country ILIKE $1")
+		assert.Contains(t, sql, "country ILIKE $2")
+		assert.Contains(t, sql, "country ILIKE $3")
+		assert.Contains(t, sql, " OR ")
+		assert.Equal(t, []interface{}{"%United%", "%States%", "%America%"}, args)
+	})
+
+	t.Run("not_contains with multiple values (OR logic)", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "email",
+							FieldType:    "string",
+							Operator:     "not_contains",
+							StringValues: []string{"spam", "test"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "email NOT ILIKE $1")
+		assert.Contains(t, sql, "email NOT ILIKE $2")
+		assert.Contains(t, sql, " OR ")
+		assert.Equal(t, []interface{}{"%spam%", "%test%"}, args)
+	})
+
 	t.Run("time in_date_range condition", func(t *testing.T) {
 		tree := &domain.TreeNode{
 			Kind: "leaf",
@@ -213,6 +266,102 @@ func TestQueryBuilder_BuildSQL_MultipleFilters(t *testing.T) {
 		assert.Contains(t, sql, "orders_count >= $2")
 		assert.Contains(t, sql, " AND ")
 		assert.Equal(t, []interface{}{"US", 5.0}, args)
+	})
+
+	t.Run("contains with multiple values combined with other filter", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "country",
+							FieldType:    "string",
+							Operator:     "contains",
+							StringValues: []string{"United", "States"},
+						},
+						{
+							FieldName:    "orders_count",
+							FieldType:    "number",
+							Operator:     "gte",
+							NumberValues: []float64{5.0},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		// Contains with multiple values should be wrapped in parentheses
+		assert.Contains(t, sql, "(country ILIKE $1 OR country ILIKE $2)")
+		assert.Contains(t, sql, "orders_count >= $3")
+		assert.Contains(t, sql, " AND ")
+		assert.Equal(t, []interface{}{"%United%", "%States%", 5.0}, args)
+	})
+}
+
+func TestQueryBuilder_BuildSQL_MultipleValuesContains(t *testing.T) {
+	qb := NewQueryBuilder()
+
+	t.Run("OR branch with contains having multiple values", func(t *testing.T) {
+		// Test realistic scenario: country contains "USA" OR "Canada" OR "Mexico"
+		// combined with another OR branch for different criteria
+		tree := &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "or",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "contains",
+										StringValues: []string{"USA", "Canada", "Mexico"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Table: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "email",
+										FieldType:    "string",
+										Operator:     "contains",
+										StringValues: []string{"@vip.com", "@premium.com"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+
+		// Should have proper parentheses structure
+		assert.Contains(t, sql, "(country ILIKE $1 OR country ILIKE $2 OR country ILIKE $3)")
+		assert.Contains(t, sql, "(email ILIKE $4 OR email ILIKE $5)")
+		assert.Contains(t, sql, " OR ")
+
+		// Check args are properly ordered
+		assert.Equal(t, []interface{}{
+			"%USA%", "%Canada%", "%Mexico%",
+			"%@vip.com%", "%@premium.com%",
+		}, args)
 	})
 }
 
@@ -565,6 +714,30 @@ func TestQueryBuilder_BuildSQL_Validation(t *testing.T) {
 		_, _, err := qb.BuildSQL(tree)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid table")
+	})
+
+	t.Run("contains with no values", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "country",
+							FieldType:    "string",
+							Operator:     "contains",
+							StringValues: []string{},
+						},
+					},
+				},
+			},
+		}
+
+		_, _, err := qb.BuildSQL(tree)
+		require.Error(t, err)
+		// Error comes from tree validation, not from buildCondition
+		assert.Contains(t, err.Error(), "must have 'string_values'")
 	})
 }
 

@@ -621,16 +621,35 @@ func (qb *QueryBuilder) buildCondition(dbColumn, operator string, sqlOp sqlOpera
 	switch operator {
 	case "contains", "not_contains":
 		// ILIKE requires % wildcards
-		if len(values) != 1 {
-			return "", nil, argIndex, fmt.Errorf("contains/not_contains requires exactly one value")
+		if len(values) == 0 {
+			return "", nil, argIndex, fmt.Errorf("contains/not_contains requires at least one value")
 		}
-		str, ok := values[0].(string)
-		if !ok {
-			return "", nil, argIndex, fmt.Errorf("contains/not_contains requires string value")
+		
+		// Single value case - simpler SQL
+		if len(values) == 1 {
+			str, ok := values[0].(string)
+			if !ok {
+				return "", nil, argIndex, fmt.Errorf("contains/not_contains requires string value")
+			}
+			args = append(args, "%"+str+"%")
+			condition := fmt.Sprintf("%s %s $%d", dbColumn, sqlOp.sql, argIndex)
+			return condition, args, argIndex + 1, nil
 		}
-		args = append(args, "%"+str+"%")
-		condition := fmt.Sprintf("%s %s $%d", dbColumn, sqlOp.sql, argIndex)
-		return condition, args, argIndex + 1, nil
+		
+		// Multiple values case - generate OR conditions
+		var orConditions []string
+		for _, val := range values {
+			str, ok := val.(string)
+			if !ok {
+				return "", nil, argIndex, fmt.Errorf("contains/not_contains requires string values")
+			}
+			args = append(args, "%"+str+"%")
+			orConditions = append(orConditions, fmt.Sprintf("%s %s $%d", dbColumn, sqlOp.sql, argIndex))
+			argIndex++
+		}
+		// Wrap multiple conditions in parentheses with OR
+		condition := "(" + strings.Join(orConditions, " OR ") + ")"
+		return condition, args, argIndex, nil
 
 	case "in_date_range", "not_in_date_range":
 		// BETWEEN requires exactly 2 values
