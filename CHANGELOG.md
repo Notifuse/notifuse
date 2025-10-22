@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [13.4] - 2025-10-22
+
+- Fix: segment filters now support multiple values for contains/not_contains operators
+- Multiple values are combined with OR logic as indicated in the UI
+
 ## [13.3] - 2025-10-11
 
 - Fix: custom field labels now display consistently in contacts table column headers and JSON viewer popups
