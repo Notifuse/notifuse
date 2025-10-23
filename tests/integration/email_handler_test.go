@@ -506,6 +506,88 @@ func TestEmailHandler_SMTPFromNameInHeaders(t *testing.T) {
 
 		t.Log("✅ Successfully verified from_name is included in SMTP email headers")
 	})
+
+	t.Run("test email provider uses default sender name when provided", func(t *testing.T) {
+		// Clear Mailhog before test
+		err := testutil.ClearMailhogMessages(t)
+		if err != nil {
+			t.Logf("Warning: Could not clear Mailhog messages: %v", err)
+		}
+
+		fromEmail := "default-sender@example.com"
+		fromName := "Default Sender Name"
+		recipientEmail := testutil.GenerateTestEmail()
+
+		t.Logf("Test configuration:")
+		t.Logf("  Workspace ID: %s", workspaceID)
+		t.Logf("  Default From: %s <%s>", fromName, fromEmail)
+		t.Logf("  To: %s", recipientEmail)
+
+		reqBody := domain.TestEmailProviderRequest{
+			WorkspaceID: workspaceID,
+			To:          recipientEmail,
+			Provider: domain.EmailProvider{
+				Kind: domain.EmailProviderKindSMTP,
+				Senders: []domain.EmailSender{
+					domain.NewEmailSender(fromEmail, fromName),
+				},
+				SMTP: &domain.SMTPSettings{
+					Host:     "localhost",
+					Port:     1025, // MailHog port
+					Username: "",   // No auth for MailHog
+					Password: "",
+					UseTLS:   false,
+				},
+			},
+		}
+
+		var resp domain.TestEmailProviderResponse
+		err = suite.APIClient.PostJSON("/api/email.testProvider", reqBody, &resp)
+		require.NoError(t, err, "Failed to send test email")
+
+		// The response should indicate success
+		if !resp.Success {
+			t.Logf("❌ Email provider test failed with error: %s", resp.Error)
+			t.Fatalf("Email provider test should succeed. Error: %s", resp.Error)
+		}
+		t.Logf("✅ Email provider test succeeded")
+
+		t.Log("Waiting for email to be delivered to MailHog...")
+		time.Sleep(2 * time.Second)
+
+		// Wait for the message to appear in Mailhog
+		messageID, err := testutil.WaitForMailhogMessageWithSubject(t, "Notifuse: Test Email Provider", 10*time.Second)
+		require.NoError(t, err, "Failed to find test email in Mailhog")
+
+		t.Logf("Found message in Mailhog with ID: %s", messageID)
+
+		// Fetch the message with full headers
+		message, err := testutil.GetMailhogMessageWithHeaders(t, messageID)
+		require.NoError(t, err, "Failed to fetch message details from Mailhog")
+
+		// Check the From header in the message headers
+		fromHeaders, ok := message.Content.Headers["From"]
+		require.True(t, ok, "From header should exist in email")
+		require.Greater(t, len(fromHeaders), 0, "From header should have at least one value")
+
+		fromHeader := fromHeaders[0]
+		t.Logf("From header value: %s", fromHeader)
+
+		// Verify the default sender name is included in the From header
+		assert.Contains(t, fromHeader, fromName, 
+			"From header should contain the default sender name: '%s'", fromName)
+		assert.Contains(t, fromHeader, fromEmail, 
+			"From header should contain the sender email: '%s'", fromEmail)
+
+		// Also check the raw SMTP data
+		rawData := message.Raw.Data
+		assert.Contains(t, rawData, fromName, 
+			"Raw SMTP data should contain From header with default sender name: '%s'", fromName)
+
+		// Verify the expected format is present
+		t.Logf("✅ Successfully verified default sender name '%s' is used in test email provider", fromName)
+		t.Log("✅ Default sender name is properly included in SMTP headers from test email endpoint")
+	})
 }
 
 func TestEmailHandler_ConcurrentRequests(t *testing.T) {

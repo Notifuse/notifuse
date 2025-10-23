@@ -2,6 +2,7 @@ package integration
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -1018,5 +1019,146 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		assert.Contains(t, rawData, expectedFromName, "Raw SMTP data should contain From header with from_name")
 
 		t.Log("✅ Successfully verified from_name is included in transactional SMTP email headers")
+	})
+
+	t.Run("should use default sender name from email provider when from_name is not overridden", func(t *testing.T) {
+		// Clear Mailhog before test
+		err := testutil.ClearMailhogMessages(t)
+		if err != nil {
+			t.Logf("Warning: Could not clear Mailhog messages: %v", err)
+		}
+
+		// Get the workspace to find the email provider
+		workspaceResp, err := client.Get("/api/workspaces.get", map[string]string{
+			"id": workspaceID,
+		})
+		require.NoError(t, err)
+		defer workspaceResp.Body.Close()
+
+		var workspaceResult map[string]interface{}
+		err = json.NewDecoder(workspaceResp.Body).Decode(&workspaceResult)
+		require.NoError(t, err)
+
+		workspaceData := workspaceResult["workspace"].(map[string]interface{})
+		integrations := workspaceData["integrations"].([]interface{})
+		
+		// Find the email integration and get the default sender name
+		var defaultSenderName string
+		var defaultSenderEmail string
+		for _, integration := range integrations {
+			integData := integration.(map[string]interface{})
+			if integData["type"] == "email" {
+				emailProvider := integData["email_provider"].(map[string]interface{})
+				senders := emailProvider["senders"].([]interface{})
+				if len(senders) > 0 {
+					firstSender := senders[0].(map[string]interface{})
+					defaultSenderName = firstSender["name"].(string)
+					defaultSenderEmail = firstSender["email"].(string)
+					break
+				}
+			}
+		}
+
+		require.NotEmpty(t, defaultSenderName, "Default sender name should be found in email integration")
+		require.NotEmpty(t, defaultSenderEmail, "Default sender email should be found in email integration")
+
+		t.Logf("Found default sender: %s <%s>", defaultSenderName, defaultSenderEmail)
+
+		// Create a template
+		template, err := factory.CreateTemplate(workspaceID)
+		require.NoError(t, err)
+
+		// Create a transactional notification WITHOUT from_name override in settings
+		notification, err := factory.CreateTransactionalNotification(workspaceID,
+			testutil.WithTransactionalNotificationID("default-from-name-test"),
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: domain.ChannelTemplate{
+					TemplateID: template.ID,
+					Settings:   map[string]interface{}{
+						// NO from_name override - should use default sender name
+					},
+				},
+			}),
+		)
+		require.NoError(t, err)
+
+		// Send the notification
+		recipientEmail := "test-default-from@mail.com"
+		sendRequest := map[string]interface{}{
+			"id": notification.ID,
+			"contact": map[string]interface{}{
+				"email":      recipientEmail,
+				"first_name": "Test",
+				"last_name":  "User",
+			},
+			"channels": []string{"email"},
+			"data": map[string]interface{}{
+				"test_message": "Testing default from_name from email provider",
+			},
+		}
+
+		t.Log("Sending transactional notification without from_name override...")
+		resp, err := client.SendTransactionalNotification(sendRequest)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Check response
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			t.Logf("Failed to send notification. Status: %d, Body: %s", resp.StatusCode, string(body))
+		}
+		require.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(t, err)
+
+		// Verify we got a message ID
+		require.Contains(t, result, "message_id", "Response should contain message_id")
+		messageID := result["message_id"].(string)
+		assert.NotEmpty(t, messageID, "Message ID should not be empty")
+
+		t.Logf("Email sent successfully with message ID: %s", messageID)
+
+		// Wait for SMTP server to process the email
+		t.Log("Waiting for email to be delivered to MailHog...")
+		time.Sleep(3 * time.Second)
+
+		// Wait for the message to appear in Mailhog
+		mailhogMessageID, err := testutil.WaitForMailhogMessageWithSubject(t, "Test Email Subject", 10*time.Second)
+		require.NoError(t, err, "Failed to find email in Mailhog")
+
+		t.Logf("Found message in Mailhog with ID: %s", mailhogMessageID)
+
+		// Fetch the message with full headers
+		message, err := testutil.GetMailhogMessageWithHeaders(t, mailhogMessageID)
+		require.NoError(t, err, "Failed to fetch message details from Mailhog")
+
+		// Check the From header in the message headers
+		fromHeaders, ok := message.Content.Headers["From"]
+		require.True(t, ok, "From header should exist in email")
+		require.Greater(t, len(fromHeaders), 0, "From header should have at least one value")
+
+		fromHeader := fromHeaders[0]
+		t.Logf("From header value: %s", fromHeader)
+
+		// Verify the DEFAULT sender name is included in the From header
+		assert.Contains(t, fromHeader, defaultSenderName, 
+			"From header should contain the default sender name from email provider: '%s'", defaultSenderName)
+		assert.Contains(t, fromHeader, defaultSenderEmail,
+			"From header should contain the default sender email: '%s'", defaultSenderEmail)
+
+		// Also check the raw SMTP data
+		rawData := message.Raw.Data
+		assert.Contains(t, rawData, defaultSenderName, 
+			"Raw SMTP data should contain From header with default sender name: '%s'", defaultSenderName)
+
+		// Verify the expected format: "Sender Name <email@example.com>"
+		expectedFormat := fmt.Sprintf("%s <%s>", defaultSenderName, defaultSenderEmail)
+		assert.Contains(t, fromHeader, defaultSenderName,
+			"From header should include default sender name in expected format: '%s'", expectedFormat)
+
+		t.Logf("✅ Successfully verified default sender name '%s' is used when from_name is not overridden", defaultSenderName)
+		t.Log("✅ Default sender name is properly included in SMTP email headers")
 	})
 }
