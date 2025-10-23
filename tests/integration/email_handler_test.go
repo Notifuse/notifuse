@@ -439,6 +439,11 @@ func TestEmailHandler_SMTPFromNameInHeaders(t *testing.T) {
 		fromName := "Test Sender Name"
 		recipientEmail := testutil.GenerateTestEmail()
 
+		t.Logf("Test configuration:")
+		t.Logf("  Workspace ID: %s", workspaceID)
+		t.Logf("  From: %s <%s>", fromName, fromEmail)
+		t.Logf("  To: %s", recipientEmail)
+
 		reqBody := domain.TestEmailProviderRequest{
 			WorkspaceID: workspaceID,
 			To:          recipientEmail,
@@ -462,13 +467,18 @@ func TestEmailHandler_SMTPFromNameInHeaders(t *testing.T) {
 		require.NoError(t, err, "Failed to send test email")
 
 		// The response should indicate success
-		assert.True(t, resp.Success, "Email provider test should succeed")
+		if !resp.Success {
+			t.Logf("❌ Email provider test failed with error: %s", resp.Error)
+			t.Fatalf("Email provider test should succeed. Error: %s", resp.Error)
+		}
+		t.Logf("✅ Email provider test succeeded")
 
 		t.Log("Waiting for email to be delivered to MailHog...")
 		time.Sleep(2 * time.Second)
 
 		// Wait for the message to appear in Mailhog
-		messageID, err := testutil.WaitForMailhogMessageWithSubject(t, "Test Email from Notifuse", 10*time.Second)
+		// The subject is set in email_service.go line 119: "Notifuse: Test Email Provider"
+		messageID, err := testutil.WaitForMailhogMessageWithSubject(t, "Notifuse: Test Email Provider", 10*time.Second)
 		require.NoError(t, err, "Failed to find test email in Mailhog")
 
 		t.Logf("Found message in Mailhog with ID: %s", messageID)

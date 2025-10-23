@@ -2,6 +2,7 @@ package integration
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -966,14 +967,21 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		defer resp.Body.Close()
 
 		// Check response
-		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			t.Logf("Failed to send notification. Status: %d, Body: %s", resp.StatusCode, string(body))
+		}
+		require.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
 
 		var result map[string]interface{}
 		err = json.NewDecoder(resp.Body).Decode(&result)
 		require.NoError(t, err)
 
 		// Verify we got a message ID
-		assert.Contains(t, result, "message_id")
+		if !assert.Contains(t, result, "message_id") {
+			t.Logf("Response body: %+v", result)
+		}
+		require.Contains(t, result, "message_id", "Response should contain message_id")
 		messageID := result["message_id"].(string)
 		assert.NotEmpty(t, messageID, "Message ID should not be empty")
 
