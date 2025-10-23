@@ -5,7 +5,9 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -604,4 +606,158 @@ func WaitForBuildTaskCreated(t *testing.T, client *APIClient, workspaceID, segme
 	}
 
 	return "", fmt.Errorf("timeout waiting for build task to be created for segment %s after %v", segmentID, timeout)
+}
+
+// MailhogMessage represents a simplified email message from Mailhog API
+type MailhogMessage struct {
+	ID      string `json:"ID"`
+	From    struct {
+		Mailbox string `json:"Mailbox"`
+		Domain  string `json:"Domain"`
+	} `json:"From"`
+	To []struct {
+		Mailbox string `json:"Mailbox"`
+		Domain  string `json:"Domain"`
+	} `json:"To"`
+	Content struct {
+		Headers map[string][]string `json:"Headers"`
+		Body    string              `json:"Body"`
+	} `json:"Content"`
+	Created time.Time `json:"Created"`
+}
+
+// MailhogAPIResponse represents the response from Mailhog's messages API
+type MailhogAPIResponse struct {
+	Total    int              `json:"total"`
+	Count    int              `json:"count"`
+	Start    int              `json:"start"`
+	Items    []MailhogMessage `json:"items"`
+}
+
+// CheckMailhogForRecipients checks if an email was sent to all expected recipients via Mailhog
+// Returns a map of recipient email addresses to whether they received the email
+func CheckMailhogForRecipients(t *testing.T, subject string, expectedRecipients []string, timeout time.Duration) (map[string]bool, error) {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 500 * time.Millisecond
+	mailhogURL := "http://localhost:8025/api/v2/messages"
+
+	results := make(map[string]bool)
+	for _, recipient := range expectedRecipients {
+		results[recipient] = false
+	}
+
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+
+	for time.Now().Before(deadline) {
+		resp, err := httpClient.Get(mailhogURL)
+		if err != nil {
+			t.Logf("Failed to connect to Mailhog API: %v", err)
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		var apiResp MailhogAPIResponse
+		err = json.NewDecoder(resp.Body).Decode(&apiResp)
+		resp.Body.Close()
+
+		if err != nil {
+			t.Logf("Failed to decode Mailhog response: %v", err)
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		// Check each message for matching subject and recipients
+		for _, msg := range apiResp.Items {
+			subjectHeaders := msg.Content.Headers["Subject"]
+			if len(subjectHeaders) == 0 {
+				continue
+			}
+
+			// Check if this message matches our subject
+			if !strings.Contains(subjectHeaders[0], subject) {
+				continue
+			}
+
+			// Check To recipients
+			for _, to := range msg.To {
+				email := strings.ToLower(fmt.Sprintf("%s@%s", to.Mailbox, to.Domain))
+				for _, expected := range expectedRecipients {
+					if strings.ToLower(expected) == email {
+						results[expected] = true
+						t.Logf("Found email for recipient: %s", expected)
+					}
+				}
+			}
+
+			// Check CC recipients
+			if ccHeaders, ok := msg.Content.Headers["Cc"]; ok {
+				for _, ccHeader := range ccHeaders {
+					email := strings.ToLower(extractEmailFromHeader(ccHeader))
+					for _, expected := range expectedRecipients {
+						if strings.ToLower(expected) == email {
+							results[expected] = true
+							t.Logf("Found email for CC recipient: %s", expected)
+						}
+					}
+				}
+			}
+
+			// Note: BCC recipients won't appear in headers (that's the point of BCC)
+			// but they should still receive the email, so we need to check individual messages
+		}
+
+		// Check if all recipients have been found
+		allFound := true
+		for _, found := range results {
+			if !found {
+				allFound = false
+				break
+			}
+		}
+
+		if allFound {
+			return results, nil
+		}
+
+		time.Sleep(pollInterval)
+	}
+
+	// Return what we found even if not all recipients received the email
+	return results, nil
+}
+
+// extractEmailFromHeader extracts email address from a header value like "Name <email@example.com>"
+func extractEmailFromHeader(header string) string {
+	// Check if email is in angle brackets
+	start := strings.Index(header, "<")
+	end := strings.Index(header, ">")
+	
+	if start != -1 && end != -1 && end > start {
+		return strings.TrimSpace(header[start+1 : end])
+	}
+	
+	// Otherwise return the whole header trimmed
+	return strings.TrimSpace(header)
+}
+
+// ClearMailhogMessages deletes all messages from Mailhog
+func ClearMailhogMessages(t *testing.T) error {
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+	req, err := http.NewRequest("DELETE", "http://localhost:8025/api/v1/messages", nil)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+
+	resp, err := httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to clear Mailhog messages: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code from Mailhog: %d", resp.StatusCode)
+	}
+
+	t.Log("Cleared all Mailhog messages")
+	return nil
 }
