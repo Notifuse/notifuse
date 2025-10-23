@@ -722,9 +722,11 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		require.NoError(t, err)
 
 		// Verify we got a message ID
-		assert.Contains(t, result, "message_id")
-		messageID := result["message_id"].(string)
-		assert.NotEmpty(t, messageID, "Message ID should not be empty")
+		require.Contains(t, result, "message_id", "Response should contain message_id")
+		require.NotNil(t, result["message_id"], "message_id should not be nil")
+		messageID, ok := result["message_id"].(string)
+		require.True(t, ok, "message_id should be a string")
+		require.NotEmpty(t, messageID, "Message ID should not be empty")
 
 		t.Logf("Email sent successfully with message ID: %s", messageID)
 
