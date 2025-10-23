@@ -687,11 +687,6 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		ccRecipients := []string{"test1@mail.com", "test2@mail.com"}
 		bccRecipients := []string{"test3@mail.com", "test4@mail.com"}
 
-		// Build list of all expected recipients
-		allRecipients := []string{mainRecipient}
-		allRecipients = append(allRecipients, ccRecipients...)
-		allRecipients = append(allRecipients, bccRecipients...)
-
 		// Send the notification with CC and BCC
 		sendRequest := map[string]interface{}{
 			"id": notification.ID,
