@@ -981,6 +981,72 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 		require.NoError(t, err)
 	})
 
+	t.Run("Successfully sends email with from_name override from channel settings", func(t *testing.T) {
+		// Setup workspace mock
+		workspace := &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				CustomEndpointURL: nil,
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
+		// Create template config with from_name in settings
+		templateConfigWithFromName := domain.ChannelTemplate{
+			TemplateID: "template-789",
+			Settings: domain.MapOfAny{
+				"from_name": "Custom Support Team",
+			},
+		}
+
+		// Setup template service mock
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateConfigWithFromName.TemplateID, int64(0)).
+			Return(emailTemplate, nil)
+
+		// Setup compile template mock
+		mockTemplateService.EXPECT().
+			CompileTemplate(gomock.Any(), gomock.Any()).
+			Return(compileResult, nil)
+
+		// Setup message repository mock
+		mockMessageRepo.EXPECT().
+			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Return(nil)
+
+		// Setup email provider mock - verify it receives the custom from_name
+		mockSESService.EXPECT().
+			SendEmail(
+				gomock.Any(),
+				gomock.Any(),
+			).DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
+				// Verify the from_name is overridden from channel settings
+				assert.Equal(t, "Custom Support Team", req.FromName, "FromName should be overridden from channel settings")
+				assert.Equal(t, "sender@example.com", req.FromAddress, "FromAddress should remain from email sender")
+				return nil
+			})
+
+		// Call method under test
+		request := domain.SendEmailRequest{
+			WorkspaceID:      workspaceID,
+			IntegrationID:    "test-integration-id",
+			MessageID:        messageID,
+			ExternalID:       nil,
+			Contact:          contact,
+			TemplateConfig:   templateConfigWithFromName,
+			MessageData:      messageData,
+			TrackingSettings: trackingSettings,
+			EmailProvider:    emailProvider,
+			EmailOptions:     options,
+		}
+		err := emailService.SendEmailForTemplate(ctx, request)
+
+		// Assertions
+		require.NoError(t, err)
+	})
+
 	t.Run("Error getting template", func(t *testing.T) {
 		// Setup template service mock to return an error
 		mockTemplateService.EXPECT().

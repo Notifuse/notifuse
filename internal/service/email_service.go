@@ -337,6 +337,15 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	fromEmail := emailSender.Email
 	fromName := emailSender.Name
 
+	// Override from_name if provided in channel settings
+	if request.TemplateConfig.Settings != nil {
+		if fromNameSetting, ok := request.TemplateConfig.Settings["from_name"]; ok {
+			if fromNameStr, ok := fromNameSetting.(string); ok && fromNameStr != "" {
+				fromName = fromNameStr
+			}
+		}
+	}
+
 	// Process subject line through Liquid templating if it contains Liquid tags
 	subject, err := notifuse_mjml.ProcessLiquidTemplate(
 		template.Email.Subject,
