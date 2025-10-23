@@ -831,7 +831,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "Should reject invalid BCC email")
 	})
 
-	t.Run("should handle empty strings in CC and BCC arrays", func(t *testing.T) {
+	t.Run("should reject empty strings in CC and BCC arrays", func(t *testing.T) {
 		// Create a template and notification
 		template, err := factory.CreateTemplate(workspaceID)
 		require.NoError(t, err)
@@ -847,7 +847,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		)
 		require.NoError(t, err)
 
-		// Send with empty strings in CC/BCC (should be filtered out)
+		// Send with empty strings in CC - should be rejected
 		sendRequest := map[string]interface{}{
 			"id": notification.ID,
 			"contact": map[string]interface{}{
@@ -855,8 +855,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 			},
 			"channels": []string{"email"},
 			"email_options": map[string]interface{}{
-				"cc":  []string{"", "valid@mail.com", ""},
-				"bcc": []string{"", "", "another@mail.com"},
+				"cc": []string{"", "valid@mail.com"},
 			},
 		}
 
@@ -864,14 +863,15 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		// Should succeed - empty strings are filtered out by the code
-		assert.Equal(t, http.StatusOK, resp.StatusCode, "Should accept arrays with empty strings")
+		// Should fail validation - empty strings are not allowed
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "Should reject empty strings in CC")
 
 		var result map[string]interface{}
 		err = json.NewDecoder(resp.Body).Decode(&result)
 		require.NoError(t, err)
 
-		assert.Contains(t, result, "message_id")
-		t.Log("✅ Empty strings in CC/BCC arrays are properly filtered out")
+		assert.Contains(t, result, "error")
+		assert.Contains(t, result["error"].(string), "cc")
+		t.Log("✅ Empty strings in CC/BCC arrays are properly rejected")
 	})
 }
