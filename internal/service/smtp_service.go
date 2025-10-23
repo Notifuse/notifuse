@@ -102,20 +102,32 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 		return fmt.Errorf("invalid recipient: %w", err)
 	}
 
-	// Add CC recipients if specified
-	for _, ccAddr := range request.EmailOptions.CC {
-		if ccAddr != "" {
-			if err := msg.Cc(ccAddr); err != nil {
-				return fmt.Errorf("invalid CC recipient: %w", err)
+	// Add CC recipients if specified (filter out empty strings)
+	if len(request.EmailOptions.CC) > 0 {
+		validCC := make([]string, 0, len(request.EmailOptions.CC))
+		for _, ccAddr := range request.EmailOptions.CC {
+			if ccAddr != "" {
+				validCC = append(validCC, ccAddr)
+			}
+		}
+		if len(validCC) > 0 {
+			if err := msg.Cc(validCC...); err != nil {
+				return fmt.Errorf("invalid CC recipients: %w", err)
 			}
 		}
 	}
 
-	// Add BCC recipients if specified
-	for _, bccAddr := range request.EmailOptions.BCC {
-		if bccAddr != "" {
-			if err := msg.Bcc(bccAddr); err != nil {
-				return fmt.Errorf("invalid BCC recipient: %w", err)
+	// Add BCC recipients if specified (filter out empty strings)
+	if len(request.EmailOptions.BCC) > 0 {
+		validBCC := make([]string, 0, len(request.EmailOptions.BCC))
+		for _, bccAddr := range request.EmailOptions.BCC {
+			if bccAddr != "" {
+				validBCC = append(validBCC, bccAddr)
+			}
+		}
+		if len(validBCC) > 0 {
+			if err := msg.Bcc(validBCC...); err != nil {
+				return fmt.Errorf("invalid BCC recipients: %w", err)
 			}
 		}
 	}

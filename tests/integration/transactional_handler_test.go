@@ -3,6 +3,7 @@ package integration
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -681,10 +682,10 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		)
 		require.NoError(t, err)
 
-		// Define all recipients
+		// Define all recipients - 7 total emails expected
 		mainRecipient := "receiver@mail.com"
-		ccRecipients := []string{"test1@mail.com", "test2@mail.com"}
-		bccRecipients := []string{"test3@mail.com", "test4@mail.com"}
+		ccRecipients := []string{"cc1@mail.com", "cc2@mail.com", "cc3@mail.com"}
+		bccRecipients := []string{"bcc1@mail.com", "bcc2@mail.com", "bcc3@mail.com"}
 
 		// Build list of all expected recipients
 		allRecipients := []string{mainRecipient}
@@ -732,18 +733,69 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 
 		t.Logf("Email sent successfully with message ID: %s", messageID)
 
-		// Wait and check Mailhog for all recipients
-		// Note: This checks if the email was sent to SMTP server, not delivery confirmation
-		t.Log("Checking Mailhog for email delivery to all recipients...")
-		
-		// Since Mailhog stores each recipient's copy as a separate message for BCC,
-		// we need to check the SMTP server logs or individual messages
-		// For now, we'll verify via message history and logs
-		
-		// Give the SMTP server a moment to process
-		time.Sleep(2 * time.Second)
+		// Wait for SMTP server to process all emails
+		t.Log("Waiting for emails to be delivered to MailHog...")
+		time.Sleep(3 * time.Second)
 
-		// Verify message history was created
+		// Check MailHog to verify all 7 emails were received
+		t.Log("Checking MailHog API for email count...")
+		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
+		require.NoError(t, err, "Failed to connect to MailHog API")
+		defer mailhogResp.Body.Close()
+
+		var mailhogData struct {
+			Total int `json:"total"`
+			Items []struct {
+				To []struct {
+					Mailbox string `json:"Mailbox"`
+					Domain  string `json:"Domain"`
+				} `json:"To"`
+				Content struct {
+					Headers map[string][]string `json:"Headers"`
+				} `json:"Content"`
+			} `json:"items"`
+		}
+		
+		err = json.NewDecoder(mailhogResp.Body).Decode(&mailhogData)
+		require.NoError(t, err, "Failed to decode MailHog response")
+
+		t.Logf("MailHog reports %d total emails", mailhogData.Total)
+
+		// Count emails that match our message (by checking for the Test Email Subject)
+		emailsForOurMessage := 0
+		recipientsFound := make(map[string]bool)
+		
+		for _, msg := range mailhogData.Items {
+			// Check if this is our email by looking at the subject
+			subjects := msg.Content.Headers["Subject"]
+			if len(subjects) > 0 && strings.Contains(subjects[0], "Test Email Subject") {
+				emailsForOurMessage++
+				
+				// Track which recipient received this
+				for _, to := range msg.To {
+					recipientEmail := to.Mailbox + "@" + to.Domain
+					recipientsFound[recipientEmail] = true
+					t.Logf("  Found email to: %s", recipientEmail)
+				}
+			}
+		}
+
+		t.Logf("Found %d emails with our subject in MailHog", emailsForOurMessage)
+		
+		// Verify we have exactly 7 emails (1 main + 3 CC + 3 BCC)
+		assert.Equal(t, 7, emailsForOurMessage, "Expected 7 separate emails in MailHog (1 main + 3 CC + 3 BCC)")
+
+		// Verify all expected recipients are present
+		t.Log("\n=== Recipient Verification ===")
+		for _, expectedRecipient := range allRecipients {
+			if recipientsFound[expectedRecipient] {
+				t.Logf("  ✅ %s - received email", expectedRecipient)
+			} else {
+				t.Errorf("  ❌ %s - DID NOT receive email", expectedRecipient)
+			}
+		}
+
+		// Verify message history was created for the main recipient
 		messageResp, err := client.Get("/api/messages.list?workspace_id=" + workspaceID + "&id=" + messageID)
 		require.NoError(t, err)
 		defer messageResp.Body.Close()
@@ -762,27 +814,14 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		message := messages[0].(map[string]interface{})
 		assert.Equal(t, mainRecipient, message["contact_email"], "Message should be recorded for main recipient")
 
-		t.Log("✅ Message history created successfully")
-		t.Log("⚠️  Note: CC and BCC recipients are handled by the SMTP server")
-		t.Log("   Message history only tracks the primary recipient as per design")
-		t.Log("   To verify CC/BCC delivery, check Mailhog UI at http://localhost:8025")
-		
-		// Log summary
-		t.Logf("\n=== Test Summary ===")
-		t.Logf("Expected behavior:")
-		t.Logf("  - 1 message to: %s (main recipient)", mainRecipient)
-		t.Logf("  - 2 messages to: %v (CC)", ccRecipients)
-		t.Logf("  - 2 messages to: %v (BCC)", bccRecipients)
-		t.Logf("  - Total: 5 recipients should receive the email")
-		t.Logf("\nActual behavior:")
-		t.Logf("  - API accepted the request: ✅")
-		t.Logf("  - Message ID returned: %s ✅", messageID)
-		t.Logf("  - Message history created: ✅")
-		t.Logf("\nTo manually verify all recipients received the email:")
-		t.Logf("  1. Open Mailhog UI: http://localhost:8025")
-		t.Logf("  2. Look for emails with subject containing the template content")
-		t.Logf("  3. Verify 5 separate message deliveries (1 main + 2 CC + 2 BCC)")
-		t.Logf("  4. Note: CC recipients appear in headers, BCC do not")
+		// Final summary
+		t.Log("\n=== Final Test Summary ===")
+		t.Logf("✅ API accepted the request and returned message ID: %s", messageID)
+		t.Logf("✅ MailHog received exactly 7 emails (1 main + 3 CC + 3 BCC)")
+		t.Logf("✅ All 7 recipients received their copy of the email")
+		t.Logf("✅ Message history created for primary recipient")
+		t.Log("\nNote: Each recipient (including CC and BCC) receives their own copy of the email.")
+		t.Log("This is the correct SMTP behavior - BCC recipients are hidden from headers.")
 	})
 
 	t.Run("should validate email addresses in CC and BCC", func(t *testing.T) {
