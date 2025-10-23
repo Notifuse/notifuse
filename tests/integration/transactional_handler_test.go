@@ -780,20 +780,26 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 			}
 		}
 
-		t.Logf("Found %d emails with our subject in MailHog", emailsForOurMessage)
+		t.Logf("Found %d email(s) with our subject in MailHog", emailsForOurMessage)
 		
-		// Verify we have exactly 7 emails (1 main + 3 CC + 3 BCC)
-		assert.Equal(t, 7, emailsForOurMessage, "Expected 7 separate emails in MailHog (1 main + 3 CC + 3 BCC)")
+		// Verify we have exactly 1 email (SMTP sends 1 message to multiple recipients, not separate messages)
+		assert.Equal(t, 1, emailsForOurMessage, "Expected 1 email in MailHog with 7 recipients")
 
-		// Verify all expected recipients are present
+		// Verify all 7 expected recipients are present in that 1 email
 		t.Log("\n=== Recipient Verification ===")
+		allRecipientsFound := true
 		for _, expectedRecipient := range allRecipients {
 			if recipientsFound[expectedRecipient] {
 				t.Logf("  ✅ %s - received email", expectedRecipient)
 			} else {
 				t.Errorf("  ❌ %s - DID NOT receive email", expectedRecipient)
+				allRecipientsFound = false
 			}
 		}
+		
+		// Verify we found exactly 7 recipients
+		assert.Equal(t, 7, len(recipientsFound), "Expected exactly 7 recipients in the email")
+		assert.True(t, allRecipientsFound, "All 7 recipients should be present in the email")
 
 		// Verify message history was created for the main recipient
 		messageResp, err := client.Get("/api/messages.list?workspace_id=" + workspaceID + "&id=" + messageID)
@@ -817,11 +823,11 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		// Final summary
 		t.Log("\n=== Final Test Summary ===")
 		t.Logf("✅ API accepted the request and returned message ID: %s", messageID)
-		t.Logf("✅ MailHog received exactly 7 emails (1 main + 3 CC + 3 BCC)")
-		t.Logf("✅ All 7 recipients received their copy of the email")
+		t.Logf("✅ MailHog received 1 email with 7 recipients (1 main + 3 CC + 3 BCC)")
+		t.Logf("✅ All 7 recipients are included in the email envelope")
 		t.Logf("✅ Message history created for primary recipient")
-		t.Log("\nNote: Each recipient (including CC and BCC) receives their own copy of the email.")
-		t.Log("This is the correct SMTP behavior - BCC recipients are hidden from headers.")
+		t.Log("\nNote: SMTP sends 1 email to multiple recipients, not separate emails.")
+		t.Log("The CC recipients are visible in the Cc header, BCC recipients are hidden.")
 	})
 
 	t.Run("should validate email addresses in CC and BCC", func(t *testing.T) {
