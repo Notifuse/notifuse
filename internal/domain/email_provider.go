@@ -272,6 +272,28 @@ type EmailOptions struct {
 	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
+// FilterEmptyStrings removes empty strings from CC and BCC arrays
+func (eo *EmailOptions) FilterEmptyStrings() {
+	if eo.CC != nil {
+		filtered := make([]string, 0, len(eo.CC))
+		for _, addr := range eo.CC {
+			if addr != "" {
+				filtered = append(filtered, addr)
+			}
+		}
+		eo.CC = filtered
+	}
+	if eo.BCC != nil {
+		filtered := make([]string, 0, len(eo.BCC))
+		for _, addr := range eo.BCC {
+			if addr != "" {
+				filtered = append(filtered, addr)
+			}
+		}
+		eo.BCC = filtered
+	}
+}
+
 // SendEmailProviderRequest encapsulates all parameters needed to send an email via a provider
 type SendEmailProviderRequest struct {
 	WorkspaceID   string         `validate:"required"`

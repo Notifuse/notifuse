@@ -231,6 +231,9 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		return fmt.Errorf("invalid request: %w", err)
 	}
 
+	// Filter out empty strings from CC and BCC arrays
+	request.EmailOptions.FilterEmptyStrings()
+
 	span.AddAttributes(
 		trace.StringAttribute("workspace", request.WorkspaceID),
 		trace.StringAttribute("message_id", request.MessageID),
