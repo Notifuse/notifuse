@@ -433,7 +433,7 @@ func (tdf *TestDataFactory) CreateMailhogSMTPIntegration(workspaceID string, opt
 	return tdf.CreateIntegration(workspaceID, mailhogOpts...)
 }
 
-// SetupWorkspaceWithSMTPProvider creates a workspace with an SMTP email provider and sets it as the marketing provider
+// SetupWorkspaceWithSMTPProvider creates a workspace with an SMTP email provider and sets it as the marketing and transactional provider
 func (tdf *TestDataFactory) SetupWorkspaceWithSMTPProvider(workspaceID string, opts ...IntegrationOption) (*domain.Integration, error) {
 	// Create Mailhog SMTP integration
 	integration, err := tdf.CreateMailhogSMTPIntegration(workspaceID, opts...)
@@ -441,7 +441,7 @@ func (tdf *TestDataFactory) SetupWorkspaceWithSMTPProvider(workspaceID string, o
 		return nil, fmt.Errorf("failed to create SMTP integration: %w", err)
 	}
 
-	// Get workspace and update settings to use this integration as marketing provider
+	// Get workspace and update settings to use this integration as marketing and transactional provider
 	workspace, err := tdf.workspaceRepo.GetByID(context.Background(), workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workspace: %w", err)
@@ -449,6 +449,9 @@ func (tdf *TestDataFactory) SetupWorkspaceWithSMTPProvider(workspaceID string, o
 
 	// Set the integration as the marketing email provider
 	workspace.Settings.MarketingEmailProviderID = integration.ID
+	
+	// Set the integration as the transactional email provider
+	workspace.Settings.TransactionalEmailProviderID = integration.ID
 
 	// Update workspace
 	err = tdf.workspaceRepo.Update(context.Background(), workspace)
