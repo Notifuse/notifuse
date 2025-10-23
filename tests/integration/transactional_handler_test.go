@@ -397,16 +397,15 @@ func testTransactionalSend(t *testing.T, client *testutil.APIClient, factory *te
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
-			// In test environment, expect 500 due to missing email provider configuration
-			// In production, this would be 200 with proper email provider setup
-			assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+			// With proper SMTP email provider setup, should succeed
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 			var result map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&result)
 			require.NoError(t, err)
 
-			assert.Contains(t, result, "error")
-			assert.Equal(t, "Failed to send notification", result["error"])
+			assert.Contains(t, result, "message_id")
+			assert.NotEmpty(t, result["message_id"], "Message ID should not be empty")
 		})
 
 		t.Run("should validate required fields", func(t *testing.T) {

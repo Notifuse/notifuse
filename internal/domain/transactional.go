@@ -367,15 +367,15 @@ func (req *SendTransactionalRequest) Validate() error {
 		return NewValidationError("notification must have at least one channel")
 	}
 
-	// validate optional cc and bcc
+	// validate optional cc and bcc (skip empty strings)
 	for _, cc := range req.Notification.EmailOptions.CC {
-		if !govalidator.IsEmail(cc) {
+		if cc != "" && !govalidator.IsEmail(cc) {
 			return NewValidationError(fmt.Sprintf("cc '%s' must be a valid email address", cc))
 		}
 	}
 
 	for _, bcc := range req.Notification.EmailOptions.BCC {
-		if !govalidator.IsEmail(bcc) {
+		if bcc != "" && !govalidator.IsEmail(bcc) {
 			return NewValidationError(fmt.Sprintf("bcc '%s' must be a valid email address", bcc))
 		}
 	}
