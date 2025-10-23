@@ -761,3 +761,136 @@ func ClearMailhogMessages(t *testing.T) error {
 	t.Log("Cleared all Mailhog messages")
 	return nil
 }
+
+// GetMailhogRawMessage retrieves the raw MIME content of a specific email from Mailhog
+func GetMailhogRawMessage(t *testing.T, messageID string) (string, error) {
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+	url := fmt.Sprintf("http://localhost:8025/api/v1/messages/%s", messageID)
+	
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		return "", fmt.Errorf("failed to get message from Mailhog: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("unexpected status code from Mailhog: %d", resp.StatusCode)
+	}
+
+	var msg struct {
+		MIME struct {
+			Parts []struct {
+				Headers map[string][]string `json:"Headers"`
+				Body    string              `json:"Body"`
+			} `json:"Parts"`
+		} `json:"MIME"`
+		Raw struct {
+			From string `json:"From"`
+			To   []string `json:"To"`
+			Data string `json:"Data"`
+		} `json:"Raw"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&msg); err != nil {
+		return "", fmt.Errorf("failed to decode Mailhog message: %w", err)
+	}
+
+	// Return the raw SMTP data which includes all headers
+	return msg.Raw.Data, nil
+}
+
+// MailhogMessageDetail represents detailed information about a Mailhog message including raw headers
+type MailhogMessageDetail struct {
+	ID      string                 `json:"ID"`
+	From    struct {
+		Mailbox string `json:"Mailbox"`
+		Domain  string `json:"Domain"`
+		Params  string `json:"Params"`
+	} `json:"From"`
+	To []struct {
+		Mailbox string `json:"Mailbox"`
+		Domain  string `json:"Domain"`
+		Params  string `json:"Params"`
+	} `json:"To"`
+	Content struct {
+		Headers map[string][]string `json:"Headers"`
+		Body    string              `json:"Body"`
+		Size    int                 `json:"Size"`
+	} `json:"Content"`
+	Raw struct {
+		From string   `json:"From"`
+		To   []string `json:"To"`
+		Data string   `json:"Data"`
+	} `json:"Raw"`
+	Created time.Time `json:"Created"`
+}
+
+// GetMailhogMessageWithHeaders fetches a specific message by ID with full header details
+func GetMailhogMessageWithHeaders(t *testing.T, messageID string) (*MailhogMessageDetail, error) {
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+	url := fmt.Sprintf("http://localhost:8025/api/v1/messages/%s", messageID)
+	
+	resp, err := httpClient.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get message from Mailhog: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code from Mailhog: %d", resp.StatusCode)
+	}
+
+	var msg MailhogMessageDetail
+	if err := json.NewDecoder(resp.Body).Decode(&msg); err != nil {
+		return nil, fmt.Errorf("failed to decode Mailhog message: %w", err)
+	}
+
+	return &msg, nil
+}
+
+// WaitForMailhogMessageWithSubject waits for an email with a specific subject to appear in Mailhog
+// Returns the message ID or error if timeout occurs
+func WaitForMailhogMessageWithSubject(t *testing.T, subject string, timeout time.Duration) (string, error) {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 500 * time.Millisecond
+	mailhogURL := "http://localhost:8025/api/v2/messages"
+
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+
+	for time.Now().Before(deadline) {
+		resp, err := httpClient.Get(mailhogURL)
+		if err != nil {
+			t.Logf("Failed to connect to Mailhog API: %v", err)
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		var apiResp MailhogAPIResponse
+		err = json.NewDecoder(resp.Body).Decode(&apiResp)
+		resp.Body.Close()
+
+		if err != nil {
+			t.Logf("Failed to decode Mailhog response: %v", err)
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		// Check each message for matching subject
+		for _, msg := range apiResp.Items {
+			subjectHeaders := msg.Content.Headers["Subject"]
+			if len(subjectHeaders) == 0 {
+				continue
+			}
+
+			// Check if this message matches our subject
+			if strings.Contains(subjectHeaders[0], subject) {
+				t.Logf("Found message with subject '%s' (ID: %s)", subject, msg.ID)
+				return msg.ID, nil
+			}
+		}
+
+		time.Sleep(pollInterval)
+	}
+
+	return "", fmt.Errorf("timeout waiting for message with subject '%s' after %v", subject, timeout)
+}

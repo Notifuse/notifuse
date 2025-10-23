@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/tests/testutil"
@@ -406,6 +407,94 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 		defer resp.Body.Close()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	})
+}
+
+func TestEmailHandler_SMTPFromNameInHeaders(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer suite.Cleanup()
+
+	client := suite.APIClient
+
+	// Create and authenticate a user, then create a workspace
+	email := "testuser@example.com"
+	token := performCompleteSignInFlow(t, client, email)
+	client.SetToken(token)
+
+	workspaceID := createTestWorkspace(t, client, "From Name Test Workspace")
+	client.SetWorkspaceID(workspaceID)
+
+	t.Run("test email provider includes from_name in SMTP headers", func(t *testing.T) {
+		// Clear Mailhog before test
+		err := testutil.ClearMailhogMessages(t)
+		if err != nil {
+			t.Logf("Warning: Could not clear Mailhog messages: %v", err)
+		}
+
+		fromEmail := "sender@example.com"
+		fromName := "Test Sender Name"
+		recipientEmail := testutil.GenerateTestEmail()
+
+		reqBody := domain.TestEmailProviderRequest{
+			WorkspaceID: workspaceID,
+			To:          recipientEmail,
+			Provider: domain.EmailProvider{
+				Kind: domain.EmailProviderKindSMTP,
+				Senders: []domain.EmailSender{
+					domain.NewEmailSender(fromEmail, fromName),
+				},
+				SMTP: &domain.SMTPSettings{
+					Host:     "localhost",
+					Port:     1025, // MailHog port
+					Username: "",   // No auth for MailHog
+					Password: "",
+					UseTLS:   false,
+				},
+			},
+		}
+
+		var resp domain.TestEmailProviderResponse
+		err = suite.APIClient.PostJSON("/api/email.testProvider", reqBody, &resp)
+		require.NoError(t, err, "Failed to send test email")
+
+		// The response should indicate success
+		assert.True(t, resp.Success, "Email provider test should succeed")
+
+		t.Log("Waiting for email to be delivered to MailHog...")
+		time.Sleep(2 * time.Second)
+
+		// Wait for the message to appear in Mailhog
+		messageID, err := testutil.WaitForMailhogMessageWithSubject(t, "Test Email from Notifuse", 10*time.Second)
+		require.NoError(t, err, "Failed to find test email in Mailhog")
+
+		t.Logf("Found message in Mailhog with ID: %s", messageID)
+
+		// Fetch the message with full headers
+		message, err := testutil.GetMailhogMessageWithHeaders(t, messageID)
+		require.NoError(t, err, "Failed to fetch message details from Mailhog")
+
+		// Check the From header in the message headers
+		fromHeaders, ok := message.Content.Headers["From"]
+		require.True(t, ok, "From header should exist in email")
+		require.Greater(t, len(fromHeaders), 0, "From header should have at least one value")
+
+		fromHeader := fromHeaders[0]
+		t.Logf("From header value: %s", fromHeader)
+
+		// Verify the from_name is included in the From header
+		// The From header should be in format: "Name <email@example.com>" or just "email@example.com"
+		assert.Contains(t, fromHeader, fromName, "From header should contain the from_name")
+		assert.Contains(t, fromHeader, fromEmail, "From header should contain the from_email")
+
+		// Also check the raw SMTP data
+		rawData := message.Raw.Data
+		assert.Contains(t, rawData, fmt.Sprintf("From: %s", fromName), "Raw SMTP data should contain From header with from_name")
+
+		t.Log("✅ Successfully verified from_name is included in SMTP email headers")
 	})
 }
 

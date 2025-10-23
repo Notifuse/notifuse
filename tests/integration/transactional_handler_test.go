@@ -919,4 +919,96 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		assert.Contains(t, result["error"].(string), "cc")
 		t.Log("✅ Empty strings in CC/BCC arrays are properly rejected")
 	})
+
+	t.Run("should include from_name in SMTP email headers", func(t *testing.T) {
+		// Clear Mailhog before test
+		err := testutil.ClearMailhogMessages(t)
+		if err != nil {
+			t.Logf("Warning: Could not clear Mailhog messages: %v", err)
+		}
+
+		// Create a template
+		template, err := factory.CreateTemplate(workspaceID)
+		require.NoError(t, err)
+
+		// Create a transactional notification
+		notification, err := factory.CreateTransactionalNotification(workspaceID,
+			testutil.WithTransactionalNotificationID("from-name-test"),
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: domain.ChannelTemplate{
+					TemplateID: template.ID,
+					Settings: map[string]interface{}{
+						"from_name": "Support Team",
+					},
+				},
+			}),
+		)
+		require.NoError(t, err)
+
+		// Send the notification
+		recipientEmail := "test-from-name@mail.com"
+		sendRequest := map[string]interface{}{
+			"id": notification.ID,
+			"contact": map[string]interface{}{
+				"email":      recipientEmail,
+				"first_name": "Test",
+				"last_name":  "User",
+			},
+			"channels": []string{"email"},
+			"data": map[string]interface{}{
+				"test_message": "Testing from_name in headers",
+			},
+		}
+
+		t.Log("Sending transactional notification...")
+		resp, err := client.SendTransactionalNotification(sendRequest)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Check response
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(t, err)
+
+		// Verify we got a message ID
+		assert.Contains(t, result, "message_id")
+		messageID := result["message_id"].(string)
+		assert.NotEmpty(t, messageID, "Message ID should not be empty")
+
+		t.Logf("Email sent successfully with message ID: %s", messageID)
+
+		// Wait for SMTP server to process the email
+		t.Log("Waiting for email to be delivered to MailHog...")
+		time.Sleep(3 * time.Second)
+
+		// Wait for the message to appear in Mailhog
+		mailhogMessageID, err := testutil.WaitForMailhogMessageWithSubject(t, "Test Email Subject", 10*time.Second)
+		require.NoError(t, err, "Failed to find email in Mailhog")
+
+		t.Logf("Found message in Mailhog with ID: %s", mailhogMessageID)
+
+		// Fetch the message with full headers
+		message, err := testutil.GetMailhogMessageWithHeaders(t, mailhogMessageID)
+		require.NoError(t, err, "Failed to fetch message details from Mailhog")
+
+		// Check the From header in the message headers
+		fromHeaders, ok := message.Content.Headers["From"]
+		require.True(t, ok, "From header should exist in email")
+		require.Greater(t, len(fromHeaders), 0, "From header should have at least one value")
+
+		fromHeader := fromHeaders[0]
+		t.Logf("From header value: %s", fromHeader)
+
+		// Verify the from_name is included in the From header
+		expectedFromName := "Support Team"
+		assert.Contains(t, fromHeader, expectedFromName, "From header should contain the from_name 'Support Team'")
+
+		// Also check the raw SMTP data
+		rawData := message.Raw.Data
+		assert.Contains(t, rawData, expectedFromName, "Raw SMTP data should contain From header with from_name")
+
+		t.Log("✅ Successfully verified from_name is included in transactional SMTP email headers")
+	})
 }
