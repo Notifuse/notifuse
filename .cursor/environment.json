@@ -1,3 +1,4 @@
 {
+  "install": "curl -fsSL https://get.docker.com -o get-docker.sh && sudo sh get-docker.sh && sudo usermod -aG docker $USER && rm get-docker.sh",
   "start": "sudo service docker start && sleep 5 && until docker info > /dev/null 2>&1; do sleep 1; done && docker compose version"
 }
