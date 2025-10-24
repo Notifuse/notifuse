@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [13.6] - 2025-10-24
+
+- Upgrade github.com/wneessen/go-mail from v0.7.1 to v0.7.2
+
 ## [13.5] - 2025-10-23
 
 - Fix: SMTP transport now supports multiple CC and BCC recipients

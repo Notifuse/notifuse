@@ -122,7 +122,7 @@ func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, d
 
 - **Email Engine**: Multiple provider support:
   - Amazon SES (AWS SDK v1.55.7)
-  - SMTP (go-mail v0.6.2)
+  - SMTP (go-mail v0.7.2)
   - Mailgun, Mailjet, Postmark, SparkPost integrations
 - **Template Engine**: Liquid templating (osteele/liquid v1.7.0)
 - **MJML Support**: MJML-Go v0.15.0 for email rendering
