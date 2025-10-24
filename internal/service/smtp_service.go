@@ -67,6 +67,15 @@ func NewSMTPService(logger logger.Logger) *SMTPService {
 
 // SendEmail sends an email using SMTP
 func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailProviderRequest) error {
+	// Log the request details at the start
+	s.logger.WithFields(map[string]interface{}{
+		"from_name":    request.FromName,
+		"from_address": request.FromAddress,
+		"to":           request.To,
+		"subject":      request.Subject,
+		"message_id":   request.MessageID,
+	}).Info("SMTP service received send request")
+
 	// Validate the request
 	if err := request.Validate(); err != nil {
 		return fmt.Errorf("invalid request: %w", err)
@@ -94,6 +103,11 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 
 	// Create and configure the message
 	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())
+
+	s.logger.WithFields(map[string]interface{}{
+		"from_name":    request.FromName,
+		"from_address": request.FromAddress,
+	}).Info("Setting From header using FromFormat")
 
 	if err := msg.FromFormat(request.FromName, request.FromAddress); err != nil {
 		return fmt.Errorf("invalid sender: %w", err)

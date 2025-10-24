@@ -278,7 +278,7 @@ type SendEmailProviderRequest struct {
 	IntegrationID string         `validate:"required"`
 	MessageID     string         `validate:"required"`
 	FromAddress   string         `validate:"required"`
-	FromName      string         `validate:"required"`
+	FromName      string         // Optional - will use sender's name if empty
 	To            string         `validate:"required"`
 	Subject       string         `validate:"required"`
 	Content       string         `validate:"required"`
@@ -300,9 +300,10 @@ func (r *SendEmailProviderRequest) Validate() error {
 	if r.FromAddress == "" {
 		return fmt.Errorf("from address is required")
 	}
-	if r.FromName == "" {
-		return fmt.Errorf("from name is required")
-	}
+	// FromName is optional - it can be empty and will be set by the email service fallback
+	// if r.FromName == "" {
+	// 	return fmt.Errorf("from name is required")
+	// }
 	if r.To == "" {
 		return fmt.Errorf("to address is required")
 	}
