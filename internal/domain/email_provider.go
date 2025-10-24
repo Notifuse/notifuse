@@ -300,10 +300,9 @@ func (r *SendEmailProviderRequest) Validate() error {
 	if r.FromAddress == "" {
 		return fmt.Errorf("from address is required")
 	}
-	// FromName is optional - it can be empty and will be set by the email service fallback
-	// if r.FromName == "" {
-	// 	return fmt.Errorf("from name is required")
-	// }
+	if r.FromName == "" {
+		return fmt.Errorf("from name is required")
+	}
 	if r.To == "" {
 		return fmt.Errorf("to address is required")
 	}
