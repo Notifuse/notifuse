@@ -262,7 +262,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	s.logger.WithFields(map[string]interface{}{
 		"template_sender_id": template.Email.SenderID,
 		"provider_senders_count": len(request.EmailProvider.Senders),
-	}).Debug("Looking up email sender")
+	}).Info("Looking up email sender")
 
 	// Log all senders for debugging
 	for i, sender := range request.EmailProvider.Senders {
@@ -272,7 +272,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 			"sender_email": sender.Email,
 			"sender_name": sender.Name,
 			"is_default": sender.IsDefault,
-		}).Debug("Available sender")
+		}).Info("Available sender")
 	}
 
 	emailSender := request.EmailProvider.GetSender(template.Email.SenderID)
@@ -289,7 +289,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		"selected_sender_id": emailSender.ID,
 		"selected_sender_email": emailSender.Email,
 		"selected_sender_name": emailSender.Name,
-	}).Debug("Selected email sender")
+	}).Info("Selected email sender")
 
 	span.AddAttributes(
 		trace.StringAttribute("template.subject", template.Email.Subject),
@@ -363,14 +363,28 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	fromEmail := emailSender.Email
 	fromName := emailSender.Name
 
+	s.logger.WithFields(map[string]interface{}{
+		"from_email": fromEmail,
+		"from_name_initial": fromName,
+		"has_channel_settings": request.TemplateConfig.Settings != nil,
+	}).Info("Email sender details before override")
+
 	// Override from_name if provided in channel settings
 	if request.TemplateConfig.Settings != nil {
 		if fromNameSetting, ok := request.TemplateConfig.Settings["from_name"]; ok {
 			if fromNameStr, ok := fromNameSetting.(string); ok && fromNameStr != "" {
+				s.logger.WithFields(map[string]interface{}{
+					"from_name_override": fromNameStr,
+				}).Info("Applying from_name override from channel settings")
 				fromName = fromNameStr
 			}
 		}
 	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"from_email_final": fromEmail,
+		"from_name_final": fromName,
+	}).Info("Final email sender details")
 
 	// Process subject line through Liquid templating if it contains Liquid tags
 	subject, err := notifuse_mjml.ProcessLiquidTemplate(
