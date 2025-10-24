@@ -3514,3 +3514,103 @@ func TestWorkspace_Validate_WithCustomFieldLabels(t *testing.T) {
 		})
 	}
 }
+
+func TestIntegration_JSONSerialization_PreservesIsDefault(t *testing.T) {
+	// Test that IsDefault flag on senders is preserved through JSON serialization
+	// This simulates what happens when Integration is stored to and loaded from database
+	sender := NewEmailSender("test@example.com", "Test Sender")
+	
+	integration := Integration{
+		ID:   "int-123",
+		Name: "Test Integration",
+		Type: IntegrationTypeEmail,
+		EmailProvider: EmailProvider{
+			Kind: EmailProviderKindSMTP,
+			Senders: []EmailSender{sender},
+			SMTP: &SMTPSettings{
+				Host: "localhost",
+				Port: 1025,
+			},
+			RateLimitPerMinute: 10,
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	// Verify sender has IsDefault before serialization
+	assert.True(t, integration.EmailProvider.Senders[0].IsDefault, 
+		"Sender should have IsDefault=true before serialization")
+
+	// Serialize to JSON (simulating database storage)
+	jsonData, err := json.Marshal(integration)
+	require.NoError(t, err, "Should marshal Integration to JSON")
+
+	t.Logf("Serialized JSON: %s", string(jsonData))
+
+	// Deserialize from JSON (simulating database retrieval)
+	var restored Integration
+	err = json.Unmarshal(jsonData, &restored)
+	require.NoError(t, err, "Should unmarshal Integration from JSON")
+
+	// Verify IsDefault flag is preserved
+	require.Equal(t, 1, len(restored.EmailProvider.Senders), "Should have one sender")
+	assert.True(t, restored.EmailProvider.Senders[0].IsDefault, 
+		"IsDefault flag should be preserved after JSON round-trip")
+	assert.Equal(t, "Test Sender", restored.EmailProvider.Senders[0].Name,
+		"Sender name should be preserved")
+
+	// Verify GetSender with empty string works
+	result := restored.EmailProvider.GetSender("")
+	assert.NotNil(t, result, "GetSender with empty string should return default sender")
+	assert.Equal(t, "Test Sender", result.Name, "Should return correct sender name")
+}
+
+func TestWorkspace_GetEmailProvider_PreservesIsDefault(t *testing.T) {
+	// Test the full workspace flow to ensure IsDefault is preserved
+	sender := NewEmailSender("default@test.com", "Default Sender")
+	
+	integration := Integration{
+		ID:   "int-456",
+		Name: "Email Integration",
+		Type: IntegrationTypeEmail,
+		EmailProvider: EmailProvider{
+			Kind: EmailProviderKindSMTP,
+			Senders: []EmailSender{sender},
+			SMTP: &SMTPSettings{
+				Host: "localhost",
+				Port: 1025,
+			},
+			RateLimitPerMinute: 10,
+		},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	workspace := Workspace{
+		ID:   "ws-789",
+		Name: "Test Workspace",
+		Settings: WorkspaceSettings{
+			TransactionalEmailProviderID: "int-456",
+			EncryptedSecretKey: "dummy",
+		},
+		Integrations: []Integration{integration},
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	// Get the email provider
+	emailProvider, integrationID, err := workspace.GetEmailProviderWithIntegrationID(false)
+	require.NoError(t, err)
+	require.NotNil(t, emailProvider)
+	assert.Equal(t, "int-456", integrationID)
+
+	// Verify sender still has IsDefault
+	require.Equal(t, 1, len(emailProvider.Senders))
+	assert.True(t, emailProvider.Senders[0].IsDefault, 
+		"IsDefault should be preserved when getting email provider from workspace")
+
+	// Verify GetSender with empty string works
+	result := emailProvider.GetSender("")
+	assert.NotNil(t, result, "GetSender with empty string should return default sender")
+	assert.Equal(t, "Default Sender", result.Name, "Should return correct sender name")
+}

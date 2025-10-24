@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -1238,6 +1239,52 @@ func TestEmailProvider_GetSender_Behavior(t *testing.T) {
 	// nil when no senders
 	empty := &EmailProvider{}
 	assert.Nil(t, empty.GetSender(""))
+}
+
+func TestEmailProvider_GetSender_EmptyStringReturnsDefault(t *testing.T) {
+	// Test that empty string correctly returns the default sender
+	sender := NewEmailSender("default@test.com", "Default Name")
+	ep := EmailProvider{
+		Senders: []EmailSender{sender},
+	}
+
+	// Verify sender has IsDefault set to true by NewEmailSender
+	assert.True(t, sender.IsDefault, "NewEmailSender should set IsDefault to true")
+
+	// Test getting sender with empty string (should fallback to default)
+	result := ep.GetSender("")
+	assert.NotNil(t, result, "GetSender with empty string should return default sender")
+	assert.Equal(t, sender.ID, result.ID, "Should return the default sender ID")
+	assert.Equal(t, "Default Name", result.Name, "Should return the default sender name")
+	assert.Equal(t, "default@test.com", result.Email, "Should return the default sender email")
+}
+
+func TestEmailProvider_GetSender_AfterJSONSerialization(t *testing.T) {
+	// Test that IsDefault flag survives JSON serialization/deserialization
+	sender := NewEmailSender("test@example.com", "Test Sender")
+	original := EmailProvider{
+		Kind: EmailProviderKindSMTP,
+		Senders: []EmailSender{sender},
+		RateLimitPerMinute: 10,
+	}
+
+	// Serialize to JSON
+	jsonData, err := json.Marshal(original)
+	require.NoError(t, err, "Should marshal EmailProvider to JSON")
+
+	// Deserialize from JSON
+	var restored EmailProvider
+	err = json.Unmarshal(jsonData, &restored)
+	require.NoError(t, err, "Should unmarshal EmailProvider from JSON")
+
+	// Verify IsDefault flag is preserved
+	assert.Equal(t, 1, len(restored.Senders), "Should have one sender")
+	assert.True(t, restored.Senders[0].IsDefault, "IsDefault flag should be preserved after JSON round-trip")
+
+	// Verify GetSender with empty string works after deserialization
+	result := restored.GetSender("")
+	assert.NotNil(t, result, "GetSender with empty string should work after JSON deserialization")
+	assert.Equal(t, "Test Sender", result.Name, "Should return correct sender name")
 }
 
 func TestSendEmailRequest_Validate_Cases(t *testing.T) {

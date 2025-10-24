@@ -156,33 +156,13 @@ func (tdf *TestDataFactory) CreateList(workspaceID string, opts ...ListOption) (
 
 // CreateTemplate creates a test template using the template repository
 func (tdf *TestDataFactory) CreateTemplate(workspaceID string, opts ...TemplateOption) (*domain.Template, error) {
-	// Get workspace to find the default email sender
-	workspace, err := tdf.workspaceRepo.GetByID(context.Background(), workspaceID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get workspace: %w", err)
-	}
-
-	// Find the first sender from workspace integrations to use as default
-	var defaultSenderID string
-	if len(workspace.Integrations) > 0 {
-		for _, integration := range workspace.Integrations {
-			if integration.Type == domain.IntegrationTypeEmail && len(integration.EmailProvider.Senders) > 0 {
-				defaultSenderID = integration.EmailProvider.Senders[0].ID
-				break
-			}
-		}
-	}
-
-	emailTemplate := createDefaultEmailTemplate()
-	emailTemplate.SenderID = defaultSenderID // Set the sender ID from workspace integration
-
 	template := &domain.Template{
 		ID:        fmt.Sprintf("tmpl%s", uuid.New().String()[:8]), // Keep it under 32 chars
 		Name:      fmt.Sprintf("Test Template %s", uuid.New().String()[:8]),
 		Version:   1,
 		Channel:   "email",
 		Category:  "marketing",
-		Email:     emailTemplate,
+		Email:     createDefaultEmailTemplate(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	}
@@ -192,7 +172,7 @@ func (tdf *TestDataFactory) CreateTemplate(workspaceID string, opts ...TemplateO
 		opt(template)
 	}
 
-	err = tdf.templateRepo.CreateTemplate(context.Background(), workspaceID, template)
+	err := tdf.templateRepo.CreateTemplate(context.Background(), workspaceID, template)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create template via repository: %w", err)
 	}

@@ -259,11 +259,37 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	}
 
 	// Find the emailSender
+	s.logger.WithFields(map[string]interface{}{
+		"template_sender_id": template.Email.SenderID,
+		"provider_senders_count": len(request.EmailProvider.Senders),
+	}).Debug("Looking up email sender")
+
+	// Log all senders for debugging
+	for i, sender := range request.EmailProvider.Senders {
+		s.logger.WithFields(map[string]interface{}{
+			"sender_index": i,
+			"sender_id": sender.ID,
+			"sender_email": sender.Email,
+			"sender_name": sender.Name,
+			"is_default": sender.IsDefault,
+		}).Debug("Available sender")
+	}
+
 	emailSender := request.EmailProvider.GetSender(template.Email.SenderID)
 
 	if emailSender == nil {
+		s.logger.WithFields(map[string]interface{}{
+			"template_sender_id": template.Email.SenderID,
+			"provider_kind": request.EmailProvider.Kind,
+		}).Error("Sender not found")
 		return fmt.Errorf("sender not found: %s", template.Email.SenderID)
 	}
+
+	s.logger.WithFields(map[string]interface{}{
+		"selected_sender_id": emailSender.ID,
+		"selected_sender_email": emailSender.Email,
+		"selected_sender_name": emailSender.Name,
+	}).Debug("Selected email sender")
 
 	span.AddAttributes(
 		trace.StringAttribute("template.subject", template.Email.Subject),
