@@ -190,6 +190,12 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 		}
 	}
 
+	// Log the From header right before sending
+	fromAddrs := msg.GetFromString()
+	s.logger.WithFields(map[string]interface{}{
+		"from_header_string": fromAddrs,
+	}).Info("From header as string right before sending")
+
 	// Send the email directly
 	if err := client.DialAndSend(msg); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
