@@ -74,7 +74,7 @@ func TestGoMailDirectSendToMailhog(t *testing.T) {
 		require.True(t, ok, "From header should exist in Mailhog message")
 
 		t.Logf("From header in Mailhog: %s", fromHeader)
-		t.Logf("Raw SMTP data: %s", message.Raw.Data[:500]) // First 500 chars
+		t.Logf("Raw SMTP data: %s", message.Raw.Data[:min(500, len(message.Raw.Data))]) // First 500 chars
 
 		// Check if display name is present in From header
 		assert.Contains(t, fromHeader[0], fromName, 
@@ -147,7 +147,7 @@ func TestGoMailDirectSendToMailhog(t *testing.T) {
 		require.True(t, ok, "From header should exist in Mailhog message")
 
 		t.Logf("From header in Mailhog: %s", fromHeader)
-		t.Logf("Raw SMTP data: %s", message.Raw.Data[:500]) // First 500 chars
+		t.Logf("Raw SMTP data: %s", message.Raw.Data[:min(500, len(message.Raw.Data))]) // First 500 chars
 
 		// Check if display name is present in From header
 		assert.Contains(t, fromHeader[0], fromName, 
