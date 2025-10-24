@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [13.5] - 2025-10-23
+
+- Fix: SMTP transport now supports multiple CC and BCC recipients
+
 ## [13.4] - 2025-10-22
 
 - Fix: segment filters now support multiple values for contains/not_contains operators
