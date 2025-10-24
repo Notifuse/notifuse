@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [13.5] - 2025-10-24
+
+- Upgrade github.com/wneessen/go-mail from v0.7.1 to v0.7.2
+
 ## [13.4] - 2025-10-22
 
 - Fix: segment filters now support multiple values for contains/not_contains operators
