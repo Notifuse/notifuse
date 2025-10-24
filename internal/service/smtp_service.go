@@ -107,9 +107,22 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 	s.logger.WithFields(map[string]interface{}{
 		"from_name":    request.FromName,
 		"from_address": request.FromAddress,
-	}).Info("Setting From header using FromFormat")
+	}).Info("Setting From header using From")
 
-	if err := msg.FromFormat(request.FromName, request.FromAddress); err != nil {
+	// Create properly formatted From address
+	// Use RFC 5322 format: "Name" <email@domain.com>
+	var fromAddr string
+	if request.FromName != "" {
+		fromAddr = fmt.Sprintf("\"%s\" <%s>", request.FromName, request.FromAddress)
+	} else {
+		fromAddr = request.FromAddress
+	}
+	
+	s.logger.WithFields(map[string]interface{}{
+		"from_formatted": fromAddr,
+	}).Info("Formatted From address")
+
+	if err := msg.From(fromAddr); err != nil {
 		return fmt.Errorf("invalid sender: %w", err)
 	}
 	if err := msg.To(request.To); err != nil {
