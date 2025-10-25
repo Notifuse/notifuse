@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -1307,4 +1308,121 @@ func TestSendEmailProviderRequest_Validate(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestEmailOptions_FromNameField(t *testing.T) {
+	t.Run("EmailOptions with no from_name", func(t *testing.T) {
+		options := EmailOptions{
+			CC:      []string{"cc@example.com"},
+			BCC:     []string{"bcc@example.com"},
+			ReplyTo: "reply@example.com",
+		}
+
+		assert.Nil(t, options.FromName)
+		assert.Equal(t, 1, len(options.CC))
+		assert.Equal(t, 1, len(options.BCC))
+	})
+
+	t.Run("EmailOptions with from_name set", func(t *testing.T) {
+		fromName := "Custom Sender Name"
+		options := EmailOptions{
+			FromName: &fromName,
+			CC:       []string{"cc@example.com"},
+		}
+
+		assert.NotNil(t, options.FromName)
+		assert.Equal(t, "Custom Sender Name", *options.FromName)
+	})
+
+	t.Run("EmailOptions with empty from_name", func(t *testing.T) {
+		fromName := ""
+		options := EmailOptions{
+			FromName: &fromName,
+		}
+
+		assert.NotNil(t, options.FromName)
+		assert.Equal(t, "", *options.FromName)
+	})
+}
+
+func TestEmailOptions_JSONMarshaling(t *testing.T) {
+	t.Run("JSON marshal without from_name", func(t *testing.T) {
+		options := EmailOptions{
+			CC:      []string{"cc@example.com"},
+			ReplyTo: "reply@example.com",
+		}
+
+		jsonBytes, err := json.Marshal(options)
+		require.NoError(t, err)
+
+		// Unmarshal to verify
+		var unmarshaled EmailOptions
+		err = json.Unmarshal(jsonBytes, &unmarshaled)
+		require.NoError(t, err)
+
+		assert.Nil(t, unmarshaled.FromName)
+		assert.Equal(t, options.CC, unmarshaled.CC)
+		assert.Equal(t, options.ReplyTo, unmarshaled.ReplyTo)
+	})
+
+	t.Run("JSON marshal with from_name", func(t *testing.T) {
+		fromName := "Test Sender"
+		options := EmailOptions{
+			FromName: &fromName,
+			CC:       []string{"cc@example.com"},
+			ReplyTo:  "reply@example.com",
+		}
+
+		jsonBytes, err := json.Marshal(options)
+		require.NoError(t, err)
+
+		// Verify from_name is in JSON
+		jsonString := string(jsonBytes)
+		assert.Contains(t, jsonString, "from_name")
+		assert.Contains(t, jsonString, "Test Sender")
+
+		// Unmarshal to verify
+		var unmarshaled EmailOptions
+		err = json.Unmarshal(jsonBytes, &unmarshaled)
+		require.NoError(t, err)
+
+		assert.NotNil(t, unmarshaled.FromName)
+		assert.Equal(t, "Test Sender", *unmarshaled.FromName)
+		assert.Equal(t, options.CC, unmarshaled.CC)
+		assert.Equal(t, options.ReplyTo, unmarshaled.ReplyTo)
+	})
+
+	t.Run("JSON unmarshal with null from_name", func(t *testing.T) {
+		jsonString := `{"from_name": null, "cc": ["cc@example.com"]}`
+
+		var options EmailOptions
+		err := json.Unmarshal([]byte(jsonString), &options)
+		require.NoError(t, err)
+
+		assert.Nil(t, options.FromName)
+		assert.Equal(t, 1, len(options.CC))
+	})
+
+	t.Run("JSON unmarshal without from_name field", func(t *testing.T) {
+		jsonString := `{"cc": ["cc@example.com"], "reply_to": "reply@example.com"}`
+
+		var options EmailOptions
+		err := json.Unmarshal([]byte(jsonString), &options)
+		require.NoError(t, err)
+
+		assert.Nil(t, options.FromName)
+		assert.Equal(t, 1, len(options.CC))
+		assert.Equal(t, "reply@example.com", options.ReplyTo)
+	})
+
+	t.Run("JSON unmarshal with empty string from_name", func(t *testing.T) {
+		jsonString := `{"from_name": "", "cc": ["cc@example.com"]}`
+
+		var options EmailOptions
+		err := json.Unmarshal([]byte(jsonString), &options)
+		require.NoError(t, err)
+
+		assert.NotNil(t, options.FromName)
+		assert.Equal(t, "", *options.FromName)
+	})
 }

@@ -785,6 +785,11 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		EmailOptions:  emailOptions,
 	}
 
+	// Allow override of from name via email options
+	if emailOptions.FromName != nil && *emailOptions.FromName != "" {
+		emailRequest.FromName = *emailOptions.FromName
+	}
+
 	// Send the email
 	err = s.emailService.SendEmail(ctx, emailRequest, false)
 
