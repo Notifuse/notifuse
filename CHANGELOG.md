@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [13.7] - 2025-10-25
+
+- New feature: transactional email API now supports `from_name` parameter to override the default sender name
+
 ## [13.6] - 2025-10-24
 
 - Upgrade github.com/wneessen/go-mail from v0.7.1 to v0.7.2
