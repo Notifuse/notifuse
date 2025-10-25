@@ -266,6 +266,7 @@ func (e *EmailProvider) DecryptSecretKeys(passphrase string) error {
 }
 
 type EmailOptions struct {
+	FromName    *string      `json:"from_name,omitempty"` // Override default sender from name
 	CC          []string     `json:"cc,omitempty"`
 	BCC         []string     `json:"bcc,omitempty"`
 	ReplyTo     string       `json:"reply_to,omitempty"`

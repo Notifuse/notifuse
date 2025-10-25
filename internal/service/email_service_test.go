@@ -1287,4 +1287,197 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to send email")
 	})
+
+	t.Run("Successfully sends email with from_name override", func(t *testing.T) {
+		// Create custom from_name
+		customFromName := "Custom Support Team"
+
+		// Setup workspace mock
+		workspace := &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				CustomEndpointURL: nil,
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
+		// Setup template service mock
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
+			Return(emailTemplate, nil)
+
+		// Setup compile template mock
+		mockTemplateService.EXPECT().
+			CompileTemplate(gomock.Any(), gomock.Any()).
+			Return(compileResult, nil)
+
+		// Setup message repository mock
+		mockMessageRepo.EXPECT().
+			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Return(nil)
+
+		// Setup email provider mock with custom matcher to verify from_name override
+		mockSESService.EXPECT().
+			SendEmail(
+				gomock.Any(),
+				gomock.Any(),
+			).DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
+				// Verify that from_name was overridden
+				assert.Equal(t, customFromName, req.FromName, "FromName should be overridden with custom value")
+				assert.Equal(t, emailSender.Email, req.FromAddress, "FromAddress should remain unchanged")
+				return nil
+			})
+
+		// Call method under test with from_name override
+		optionsWithOverride := domain.EmailOptions{
+			FromName: &customFromName,
+			ReplyTo:  emailTemplate.Email.ReplyTo,
+		}
+
+		request := domain.SendEmailRequest{
+			WorkspaceID:      workspaceID,
+			IntegrationID:    "test-integration-id",
+			MessageID:        messageID,
+			ExternalID:       nil,
+			Contact:          contact,
+			TemplateConfig:   templateConfig,
+			MessageData:      messageData,
+			TrackingSettings: trackingSettings,
+			EmailProvider:    emailProvider,
+			EmailOptions:     optionsWithOverride,
+		}
+		err := emailService.SendEmailForTemplate(ctx, request)
+
+		// Assertions
+		require.NoError(t, err)
+	})
+
+	t.Run("Uses default from_name when override is nil", func(t *testing.T) {
+		// Setup workspace mock
+		workspace := &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				CustomEndpointURL: nil,
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
+		// Setup template service mock
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
+			Return(emailTemplate, nil)
+
+		// Setup compile template mock
+		mockTemplateService.EXPECT().
+			CompileTemplate(gomock.Any(), gomock.Any()).
+			Return(compileResult, nil)
+
+		// Setup message repository mock
+		mockMessageRepo.EXPECT().
+			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Return(nil)
+
+		// Setup email provider mock to verify default from_name is used
+		mockSESService.EXPECT().
+			SendEmail(
+				gomock.Any(),
+				gomock.Any(),
+			).DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
+				// Verify that default sender name is used
+				assert.Equal(t, emailSender.Name, req.FromName, "FromName should use default sender name")
+				assert.Equal(t, emailSender.Email, req.FromAddress, "FromAddress should remain unchanged")
+				return nil
+			})
+
+		// Call method under test without from_name override
+		optionsWithoutOverride := domain.EmailOptions{
+			FromName: nil, // Explicitly nil
+			ReplyTo:  emailTemplate.Email.ReplyTo,
+		}
+
+		request := domain.SendEmailRequest{
+			WorkspaceID:      workspaceID,
+			IntegrationID:    "test-integration-id",
+			MessageID:        messageID,
+			ExternalID:       nil,
+			Contact:          contact,
+			TemplateConfig:   templateConfig,
+			MessageData:      messageData,
+			TrackingSettings: trackingSettings,
+			EmailProvider:    emailProvider,
+			EmailOptions:     optionsWithoutOverride,
+		}
+		err := emailService.SendEmailForTemplate(ctx, request)
+
+		// Assertions
+		require.NoError(t, err)
+	})
+
+	t.Run("Uses default from_name when override is empty string", func(t *testing.T) {
+		emptyFromName := ""
+
+		// Setup workspace mock
+		workspace := &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				CustomEndpointURL: nil,
+			},
+		}
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), workspaceID).
+			Return(workspace, nil)
+
+		// Setup template service mock
+		mockTemplateService.EXPECT().
+			GetTemplateByID(gomock.Any(), workspaceID, templateConfig.TemplateID, int64(0)).
+			Return(emailTemplate, nil)
+
+		// Setup compile template mock
+		mockTemplateService.EXPECT().
+			CompileTemplate(gomock.Any(), gomock.Any()).
+			Return(compileResult, nil)
+
+		// Setup message repository mock
+		mockMessageRepo.EXPECT().
+			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Return(nil)
+
+		// Setup email provider mock to verify default from_name is used when empty string
+		mockSESService.EXPECT().
+			SendEmail(
+				gomock.Any(),
+				gomock.Any(),
+			).DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
+				// Verify that default sender name is used (empty string should not override)
+				assert.Equal(t, emailSender.Name, req.FromName, "FromName should use default sender name when override is empty string")
+				return nil
+			})
+
+		// Call method under test with empty string from_name
+		optionsWithEmptyOverride := domain.EmailOptions{
+			FromName: &emptyFromName, // Empty string pointer
+			ReplyTo:  emailTemplate.Email.ReplyTo,
+		}
+
+		request := domain.SendEmailRequest{
+			WorkspaceID:      workspaceID,
+			IntegrationID:    "test-integration-id",
+			MessageID:        messageID,
+			ExternalID:       nil,
+			Contact:          contact,
+			TemplateConfig:   templateConfig,
+			MessageData:      messageData,
+			TrackingSettings: trackingSettings,
+			EmailProvider:    emailProvider,
+			EmailOptions:     optionsWithEmptyOverride,
+		}
+		err := emailService.SendEmailForTemplate(ctx, request)
+
+		// Assertions
+		require.NoError(t, err)
+	})
 }

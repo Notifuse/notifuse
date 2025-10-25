@@ -337,6 +337,16 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	fromEmail := emailSender.Email
 	fromName := emailSender.Name
 
+	// Allow override of from name via email options
+	if request.EmailOptions.FromName != nil && *request.EmailOptions.FromName != "" {
+		s.logger.WithFields(map[string]interface{}{
+			"message_id":         request.MessageID,
+			"default_from_name":  emailSender.Name,
+			"override_from_name": *request.EmailOptions.FromName,
+		}).Debug("Using from_name override")
+		fromName = *request.EmailOptions.FromName
+	}
+
 	// Process subject line through Liquid templating if it contains Liquid tags
 	subject, err := notifuse_mjml.ProcessLiquidTemplate(
 		template.Email.Subject,
