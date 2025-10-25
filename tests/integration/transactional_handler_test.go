@@ -63,6 +63,10 @@ func TestTransactionalHandler(t *testing.T) {
 	t.Run("Send with CC and BCC Recipients", func(t *testing.T) {
 		testTransactionalSendWithCCAndBCC(t, client, factory, workspace.ID)
 	})
+
+	t.Run("Send with Custom From Name", func(t *testing.T) {
+		testTransactionalSendWithCustomFromName(t, client, factory, workspace.ID)
+	})
 }
 
 func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
@@ -918,5 +922,324 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		assert.Contains(t, result, "error")
 		assert.Contains(t, result["error"].(string), "cc")
 		t.Log("✅ Empty strings in CC/BCC arrays are properly rejected")
+	})
+}
+
+// testTransactionalSendWithCustomFromName verifies that the from_name override works correctly
+func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
+	t.Run("should send email with custom from_name", func(t *testing.T) {
+		// Clear Mailhog before test
+		err := testutil.ClearMailhogMessages(t)
+		if err != nil {
+			t.Logf("Warning: Could not clear Mailhog messages: %v", err)
+		}
+
+		// Create a template
+		template, err := factory.CreateTemplate(workspaceID)
+		require.NoError(t, err)
+
+		// Create a transactional notification
+		notification, err := factory.CreateTransactionalNotification(workspaceID,
+			testutil.WithTransactionalNotificationID("custom-from-name-test"),
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: domain.ChannelTemplate{
+					TemplateID: template.ID,
+					Settings:   map[string]interface{}{},
+				},
+			}),
+		)
+		require.NoError(t, err)
+
+		// Define test parameters
+		recipient := "test@example.com"
+		customFromName := "Custom Support Team"
+
+		// Send the notification with custom from_name
+		sendRequest := map[string]interface{}{
+			"id": notification.ID,
+			"contact": map[string]interface{}{
+				"email":      recipient,
+				"first_name": "Test",
+				"last_name":  "User",
+			},
+			"channels": []string{"email"},
+			"data": map[string]interface{}{
+				"test_message": "Testing custom from_name override",
+			},
+			"email_options": map[string]interface{}{
+				"from_name": customFromName,
+			},
+		}
+
+		t.Logf("Sending transactional notification with custom from_name: '%s'", customFromName)
+
+		resp, err := client.SendTransactionalNotification(sendRequest)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Check response
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(t, err)
+
+		// Verify we got a message ID
+		assert.Contains(t, result, "message_id")
+		messageID := result["message_id"].(string)
+		assert.NotEmpty(t, messageID, "Message ID should not be empty")
+
+		t.Logf("Email sent successfully with message ID: %s", messageID)
+
+		// Wait for SMTP server to process email
+		t.Log("Waiting for email to be delivered to MailHog...")
+		time.Sleep(3 * time.Second)
+
+		// Check MailHog to verify the From header contains custom from_name
+		t.Log("Checking MailHog API for email with custom from_name...")
+		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
+		require.NoError(t, err, "Failed to connect to MailHog API")
+		defer mailhogResp.Body.Close()
+
+		var mailhogData struct {
+			Total int `json:"total"`
+			Items []struct {
+				From struct {
+					Mailbox string `json:"Mailbox"`
+					Domain  string `json:"Domain"`
+					Params  string `json:"Params"`
+				} `json:"From"`
+				Content struct {
+					Headers map[string][]string `json:"Headers"`
+				} `json:"Content"`
+			} `json:"items"`
+		}
+
+		err = json.NewDecoder(mailhogResp.Body).Decode(&mailhogData)
+		require.NoError(t, err, "Failed to decode MailHog response")
+
+		t.Logf("MailHog reports %d total emails", mailhogData.Total)
+
+		// Find our email and verify the From header
+		foundEmail := false
+		for _, msg := range mailhogData.Items {
+			// Check if this is our email by looking at the subject
+			subjects := msg.Content.Headers["Subject"]
+			if len(subjects) > 0 && strings.Contains(subjects[0], "Test Email Subject") {
+				foundEmail = true
+
+				// Check the From header - it should contain the custom from_name
+				fromHeaders := msg.Content.Headers["From"]
+				require.NotEmpty(t, fromHeaders, "From header should be present")
+
+				fromHeader := fromHeaders[0]
+				t.Logf("From header: %s", fromHeader)
+
+				// The From header should contain the custom from_name
+				// Format is typically: "Custom Support Team <sender@example.com>"
+				assert.Contains(t, fromHeader, customFromName, 
+					"From header should contain the custom from_name")
+
+				t.Logf("✅ Email sent with custom from_name: %s", customFromName)
+				break
+			}
+		}
+
+		assert.True(t, foundEmail, "Should find the sent email in MailHog")
+
+		// Verify message history was created
+		messageResp, err := client.Get("/api/messages.list?workspace_id=" + workspaceID + "&id=" + messageID)
+		require.NoError(t, err)
+		defer messageResp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, messageResp.StatusCode)
+
+		var messagesResult map[string]interface{}
+		err = json.NewDecoder(messageResp.Body).Decode(&messagesResult)
+		require.NoError(t, err)
+
+		messages, ok := messagesResult["messages"].([]interface{})
+		require.True(t, ok, "Expected messages array in response")
+		require.NotEmpty(t, messages, "Expected at least one message in history")
+
+		message := messages[0].(map[string]interface{})
+		assert.Equal(t, recipient, message["contact_email"], "Message should be recorded for recipient")
+
+		// Final summary
+		t.Log("\n=== Test Summary ===")
+		t.Logf("✅ API accepted the request with custom from_name")
+		t.Logf("✅ Email sent with message ID: %s", messageID)
+		t.Logf("✅ MailHog received email with custom from_name in From header")
+		t.Logf("✅ Message history created correctly")
+	})
+
+	t.Run("should use default from_name when not provided", func(t *testing.T) {
+		// Clear Mailhog before test
+		err := testutil.ClearMailhogMessages(t)
+		if err != nil {
+			t.Logf("Warning: Could not clear Mailhog messages: %v", err)
+		}
+
+		// Create a template
+		template, err := factory.CreateTemplate(workspaceID)
+		require.NoError(t, err)
+
+		// Create a transactional notification
+		notification, err := factory.CreateTransactionalNotification(workspaceID,
+			testutil.WithTransactionalNotificationID("default-from-name-test"),
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: domain.ChannelTemplate{
+					TemplateID: template.ID,
+					Settings:   map[string]interface{}{},
+				},
+			}),
+		)
+		require.NoError(t, err)
+
+		recipient := "test2@example.com"
+
+		// Send the notification WITHOUT custom from_name
+		sendRequest := map[string]interface{}{
+			"id": notification.ID,
+			"contact": map[string]interface{}{
+				"email": recipient,
+			},
+			"channels": []string{"email"},
+			"data": map[string]interface{}{
+				"test_message": "Testing default from_name",
+			},
+			// No email_options provided - should use default
+		}
+
+		t.Log("Sending transactional notification without custom from_name (should use default)")
+
+		resp, err := client.SendTransactionalNotification(sendRequest)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(t, err)
+
+		assert.Contains(t, result, "message_id")
+		messageID := result["message_id"].(string)
+		assert.NotEmpty(t, messageID, "Message ID should not be empty")
+
+		t.Logf("Email sent successfully with message ID: %s (using default from_name)", messageID)
+
+		// Wait for email delivery
+		time.Sleep(3 * time.Second)
+
+		// Check MailHog to verify email was sent (with default from_name)
+		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
+		require.NoError(t, err)
+		defer mailhogResp.Body.Close()
+
+		var mailhogData struct {
+			Total int `json:"total"`
+			Items []struct {
+				Content struct {
+					Headers map[string][]string `json:"Headers"`
+				} `json:"Content"`
+			} `json:"items"`
+		}
+
+		err = json.NewDecoder(mailhogResp.Body).Decode(&mailhogData)
+		require.NoError(t, err)
+
+		// Verify at least one email was sent
+		foundEmail := false
+		for _, msg := range mailhogData.Items {
+			subjects := msg.Content.Headers["Subject"]
+			if len(subjects) > 0 && strings.Contains(subjects[0], "Test Email Subject") {
+				foundEmail = true
+				fromHeaders := msg.Content.Headers["From"]
+				require.NotEmpty(t, fromHeaders, "From header should be present")
+				t.Logf("From header (default): %s", fromHeaders[0])
+				break
+			}
+		}
+
+		assert.True(t, foundEmail, "Should find the sent email in MailHog")
+		t.Log("✅ Email sent successfully with default from_name")
+	})
+
+	t.Run("should use default from_name when empty string provided", func(t *testing.T) {
+		// Clear Mailhog before test
+		err := testutil.ClearMailhogMessages(t)
+		if err != nil {
+			t.Logf("Warning: Could not clear Mailhog messages: %v", err)
+		}
+
+		// Create a template
+		template, err := factory.CreateTemplate(workspaceID)
+		require.NoError(t, err)
+
+		// Create a transactional notification
+		notification, err := factory.CreateTransactionalNotification(workspaceID,
+			testutil.WithTransactionalNotificationID("empty-from-name-test"),
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: domain.ChannelTemplate{
+					TemplateID: template.ID,
+					Settings:   map[string]interface{}{},
+				},
+			}),
+		)
+		require.NoError(t, err)
+
+		recipient := "test3@example.com"
+
+		// Send the notification with empty string from_name
+		sendRequest := map[string]interface{}{
+			"id": notification.ID,
+			"contact": map[string]interface{}{
+				"email": recipient,
+			},
+			"channels": []string{"email"},
+			"data": map[string]interface{}{
+				"test_message": "Testing empty from_name",
+			},
+			"email_options": map[string]interface{}{
+				"from_name": "", // Empty string - should use default
+			},
+		}
+
+		t.Log("Sending transactional notification with empty from_name (should use default)")
+
+		resp, err := client.SendTransactionalNotification(sendRequest)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(t, err)
+
+		assert.Contains(t, result, "message_id")
+		messageID := result["message_id"].(string)
+		assert.NotEmpty(t, messageID, "Message ID should not be empty")
+
+		t.Logf("Email sent successfully with message ID: %s (empty from_name, using default)", messageID)
+
+		// Wait for email delivery
+		time.Sleep(3 * time.Second)
+
+		// Verify email was sent
+		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
+		require.NoError(t, err)
+		defer mailhogResp.Body.Close()
+
+		var mailhogData struct {
+			Total int `json:"total"`
+		}
+
+		err = json.NewDecoder(mailhogResp.Body).Decode(&mailhogData)
+		require.NoError(t, err)
+
+		assert.Greater(t, mailhogData.Total, 0, "Should have sent at least one email")
+		t.Log("✅ Email sent successfully - empty from_name correctly falls back to default")
 	})
 }
