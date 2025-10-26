@@ -1193,6 +1193,101 @@ func assertBoolPtr(t *testing.T, name string, expected, actual *bool) {
 	}
 }
 
+func TestChannelOptions_Value(t *testing.T) {
+	t.Run("converts to JSON for database storage", func(t *testing.T) {
+		fromName := "Test Sender"
+		options := ChannelOptions{
+			FromName: &fromName,
+			CC:       []string{"cc1@example.com", "cc2@example.com"},
+			BCC:      []string{"bcc@example.com"},
+			ReplyTo:  "reply@example.com",
+		}
+
+		value, err := options.Value()
+		require.NoError(t, err)
+		require.NotNil(t, value)
+
+		// Verify it's valid JSON
+		jsonBytes, ok := value.([]byte)
+		require.True(t, ok)
+
+		var decoded ChannelOptions
+		err = json.Unmarshal(jsonBytes, &decoded)
+		require.NoError(t, err)
+		assert.Equal(t, "Test Sender", *decoded.FromName)
+		assert.Equal(t, 2, len(decoded.CC))
+	})
+
+	t.Run("returns nil for empty options", func(t *testing.T) {
+		options := ChannelOptions{}
+
+		value, err := options.Value()
+		require.NoError(t, err)
+		assert.Nil(t, value)
+	})
+}
+
+func TestChannelOptions_Scan(t *testing.T) {
+	t.Run("scans from JSON bytes", func(t *testing.T) {
+		jsonData := []byte(`{
+			"from_name": "Test Sender",
+			"cc": ["cc@example.com"],
+			"bcc": ["bcc@example.com"],
+			"reply_to": "reply@example.com"
+		}`)
+
+		var options ChannelOptions
+		err := options.Scan(jsonData)
+		require.NoError(t, err)
+
+		assert.Equal(t, "Test Sender", *options.FromName)
+		assert.Equal(t, 1, len(options.CC))
+		assert.Equal(t, "cc@example.com", options.CC[0])
+	})
+
+	t.Run("handles nil value", func(t *testing.T) {
+		var options ChannelOptions
+		err := options.Scan(nil)
+		require.NoError(t, err)
+		assert.True(t, options.IsEmpty())
+	})
+
+	t.Run("error on invalid type", func(t *testing.T) {
+		var options ChannelOptions
+		err := options.Scan(123)
+		assert.Error(t, err)
+		assert.Equal(t, sql.ErrNoRows, err)
+	})
+}
+
+func TestChannelOptions_IsEmpty(t *testing.T) {
+	t.Run("returns true for empty options", func(t *testing.T) {
+		options := ChannelOptions{}
+		assert.True(t, options.IsEmpty())
+	})
+
+	t.Run("returns false when from_name is set", func(t *testing.T) {
+		fromName := "Test"
+		options := ChannelOptions{FromName: &fromName}
+		assert.False(t, options.IsEmpty())
+	})
+
+	t.Run("returns false when CC is set", func(t *testing.T) {
+		options := ChannelOptions{CC: []string{"test@example.com"}}
+		assert.False(t, options.IsEmpty())
+	})
+
+	t.Run("returns false when BCC is set", func(t *testing.T) {
+		options := ChannelOptions{BCC: []string{"test@example.com"}}
+		assert.False(t, options.IsEmpty())
+	})
+
+	t.Run("returns false when ReplyTo is set", func(t *testing.T) {
+		options := ChannelOptions{ReplyTo: "test@example.com"}
+		assert.False(t, options.IsEmpty())
+	})
+}
+
 // Helper function to assert time pointer values
 func assertTimePtr(t *testing.T, name string, expected, actual *time.Time) {
 	if expected == nil {

@@ -29,13 +29,15 @@ interface TemplatePreviewButtonProps {
   templateVersion?: number
   workspace: Workspace
   templateData: Record<string, any>
+  messageHistory: MessageHistory
 }
 
 const TemplatePreviewButton: React.FC<TemplatePreviewButtonProps> = ({
   templateId,
   templateVersion,
   workspace,
-  templateData
+  templateData,
+  messageHistory
 }) => {
   // Use React Query to fetch the template data
   const { data, isLoading } = useQuery({
@@ -63,7 +65,12 @@ const TemplatePreviewButton: React.FC<TemplatePreviewButtonProps> = ({
   }
 
   return (
-    <TemplatePreviewDrawer record={data} workspace={workspace} templateData={templateData}>
+    <TemplatePreviewDrawer
+      record={data}
+      workspace={workspace}
+      templateData={templateData}
+      messageHistory={messageHistory}
+    >
       <Tooltip title="Preview message">
         <Button type="text" className="opacity-70" icon={<FontAwesomeIcon icon={faEye} />} />
       </Tooltip>
@@ -387,6 +394,7 @@ export function MessageHistoryTable({
             templateVersion={record.template_version}
             workspace={workspace}
             templateData={record.message_data.data || {}}
+            messageHistory={record}
           />
         </div>
       )

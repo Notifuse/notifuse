@@ -26,11 +26,11 @@ func NewMessageHistoryRepository(workspaceRepo domain.WorkspaceRepository) *Mess
 	}
 }
 
-// scanMessage scans a message history row including attachments
+// scanMessage scans a message history row including channel options and attachments
 func scanMessage(scanner interface {
 	Scan(dest ...interface{}) error
 }, message *domain.MessageHistory) error {
-	var attachmentsJSON []byte
+	var channelOptionsJSON, attachmentsJSON []byte
 	err := scanner.Scan(
 		&message.ID,
 		&message.ExternalID,
@@ -42,6 +42,7 @@ func scanMessage(scanner interface {
 		&message.Channel,
 		&message.StatusInfo,
 		&message.MessageData,
+		&channelOptionsJSON,
 		&attachmentsJSON,
 		&message.SentAt,
 		&message.DeliveredAt,
@@ -59,6 +60,16 @@ func scanMessage(scanner interface {
 		return err
 	}
 
+	// Unmarshal channel_options if present
+	if len(channelOptionsJSON) > 0 {
+		var options domain.ChannelOptions
+		if err := json.Unmarshal(channelOptionsJSON, &options); err == nil {
+			if !options.IsEmpty() {
+				message.ChannelOptions = &options
+			}
+		}
+	}
+
 	// Unmarshal attachments if present
 	if len(attachmentsJSON) > 0 {
 		if err := json.Unmarshal(attachmentsJSON, &message.Attachments); err != nil {
@@ -72,7 +83,7 @@ func scanMessage(scanner interface {
 // messageHistorySelectFields returns the common SELECT fields for message history queries
 func messageHistorySelectFields() string {
 	return `id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, 
-			channel, status_info, message_data, attachments, sent_at, delivered_at, 
+			channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, 
 			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
 			unsubscribed_at, created_at, updated_at`
 }
@@ -85,6 +96,12 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
+	// Serialize channel_options to JSON for storage
+	var channelOptionsJSON interface{}
+	if message.ChannelOptions != nil && !message.ChannelOptions.IsEmpty() {
+		channelOptionsJSON = message.ChannelOptions
+	}
+
 	// Serialize attachments to JSON for storage
 	var attachmentsJSON interface{}
 	if len(message.Attachments) > 0 {
@@ -94,14 +111,14 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 	query := `
 		INSERT INTO message_history (
 			id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, 
-			channel, status_info, message_data, attachments, sent_at, delivered_at, 
+			channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, 
 			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
 			unsubscribed_at, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, 
-			$8, LEFT($9, 255), $10, $11, $12, $13, 
-			$14, $15, $16, $17, $18, 
-			$19, $20, $21
+			$8, LEFT($9, 255), $10, $11, $12, $13, $14, 
+			$15, $16, $17, $18, $19, 
+			$20, $21, $22
 		)
 	`
 
@@ -118,6 +135,7 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 		message.Channel,
 		message.StatusInfo,
 		message.MessageData,
+		channelOptionsJSON,
 		attachmentsJSON,
 		message.SentAt,
 		message.DeliveredAt,
@@ -146,6 +164,12 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 		return fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
+	// Serialize channel_options to JSON for storage
+	var channelOptionsJSON interface{}
+	if message.ChannelOptions != nil && !message.ChannelOptions.IsEmpty() {
+		channelOptionsJSON = message.ChannelOptions
+	}
+
 	// Serialize attachments to JSON for storage
 	var attachmentsJSON interface{}
 	if len(message.Attachments) > 0 {
@@ -163,16 +187,17 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 			channel = $8,
 			status_info = LEFT($9, 255),
 			message_data = $10,
-			attachments = $11,
-			sent_at = $12,
-			delivered_at = $13,
-			failed_at = $14,
-			opened_at = $15,	
-			clicked_at = $16,
-			bounced_at = $17,
-			complained_at = $18,
-			unsubscribed_at = $19,
-			updated_at = $20
+			channel_options = $11,
+			attachments = $12,
+			sent_at = $13,
+			delivered_at = $14,
+			failed_at = $15,
+			opened_at = $16,	
+			clicked_at = $17,
+			bounced_at = $18,
+			complained_at = $19,
+			unsubscribed_at = $20,
+			updated_at = $21
 		WHERE id = $1
 	`
 
@@ -189,6 +214,7 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 		message.Channel,
 		message.StatusInfo,
 		message.MessageData,
+		channelOptionsJSON,
 		attachmentsJSON,
 		message.SentAt,
 		message.DeliveredAt,
@@ -539,7 +565,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	queryBuilder := psql.Select(
 		"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
-		"channel", "status_info", "message_data", "attachments", "sent_at", "delivered_at",
+		"channel", "status_info", "message_data", "channel_options", "attachments", "sent_at", "delivered_at",
 		"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 		"unsubscribed_at", "created_at", "updated_at",
 	).From("message_history")
@@ -731,12 +757,12 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 		var externalID sql.NullString
 		var broadcastID sql.NullString
 		var statusInfo sql.NullString
-		var attachmentsJSON []byte
+		var channelOptionsJSON, attachmentsJSON []byte
 		var deliveredAt, failedAt, openedAt, clickedAt, bouncedAt, complainedAt, unsubscribedAt sql.NullTime
 
 		err := rows.Scan(
 			&message.ID, &externalID, &message.ContactEmail, &broadcastID, &message.ListIDs, &message.TemplateID, &message.TemplateVersion,
-			&message.Channel, &statusInfo, &message.MessageData, &attachmentsJSON,
+			&message.Channel, &statusInfo, &message.MessageData, &channelOptionsJSON, &attachmentsJSON,
 			&message.SentAt, &deliveredAt, &failedAt, &openedAt,
 			&clickedAt, &bouncedAt, &complainedAt, &unsubscribedAt,
 			&message.CreatedAt, &message.UpdatedAt,
@@ -788,6 +814,16 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 
 		if unsubscribedAt.Valid {
 			message.UnsubscribedAt = &unsubscribedAt.Time
+		}
+
+		// Unmarshal channel_options if present
+		if len(channelOptionsJSON) > 0 {
+			var options domain.ChannelOptions
+			if err := json.Unmarshal(channelOptionsJSON, &options); err == nil {
+				if !options.IsEmpty() {
+					message.ChannelOptions = &options
+				}
+			}
 		}
 
 		// Unmarshal attachments if present

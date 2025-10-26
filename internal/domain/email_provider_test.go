@@ -1426,3 +1426,92 @@ func TestEmailOptions_JSONMarshaling(t *testing.T) {
 		assert.Equal(t, "", *options.FromName)
 	})
 }
+
+func TestEmailOptions_IsEmpty(t *testing.T) {
+	t.Run("returns true for empty options", func(t *testing.T) {
+		options := EmailOptions{}
+		assert.True(t, options.IsEmpty())
+	})
+
+	t.Run("returns false when from_name is set", func(t *testing.T) {
+		fromName := "Test"
+		options := EmailOptions{FromName: &fromName}
+		assert.False(t, options.IsEmpty())
+	})
+
+	t.Run("returns false when CC is set", func(t *testing.T) {
+		options := EmailOptions{CC: []string{"test@example.com"}}
+		assert.False(t, options.IsEmpty())
+	})
+
+	t.Run("returns false when BCC is set", func(t *testing.T) {
+		options := EmailOptions{BCC: []string{"test@example.com"}}
+		assert.False(t, options.IsEmpty())
+	})
+
+	t.Run("returns false when ReplyTo is set", func(t *testing.T) {
+		options := EmailOptions{ReplyTo: "test@example.com"}
+		assert.False(t, options.IsEmpty())
+	})
+
+	t.Run("returns true when arrays are empty", func(t *testing.T) {
+		options := EmailOptions{
+			CC:  []string{},
+			BCC: []string{},
+		}
+		assert.True(t, options.IsEmpty())
+	})
+}
+
+func TestEmailOptions_ToChannelOptions(t *testing.T) {
+	t.Run("converts email options to channel options", func(t *testing.T) {
+		fromName := "Test Sender"
+		emailOptions := EmailOptions{
+			FromName: &fromName,
+			CC:       []string{"cc@example.com"},
+			BCC:      []string{"bcc@example.com"},
+			ReplyTo:  "reply@example.com",
+		}
+
+		channelOptions := emailOptions.ToChannelOptions()
+		require.NotNil(t, channelOptions)
+		assert.Equal(t, "Test Sender", *channelOptions.FromName)
+		assert.Equal(t, 1, len(channelOptions.CC))
+		assert.Equal(t, "cc@example.com", channelOptions.CC[0])
+		assert.Equal(t, 1, len(channelOptions.BCC))
+		assert.Equal(t, "reply@example.com", channelOptions.ReplyTo)
+	})
+
+	t.Run("returns nil for empty email options", func(t *testing.T) {
+		emailOptions := EmailOptions{}
+		channelOptions := emailOptions.ToChannelOptions()
+		assert.Nil(t, channelOptions)
+	})
+
+	t.Run("converts partial email options", func(t *testing.T) {
+		emailOptions := EmailOptions{
+			CC: []string{"cc@example.com"},
+		}
+
+		channelOptions := emailOptions.ToChannelOptions()
+		require.NotNil(t, channelOptions)
+		assert.Nil(t, channelOptions.FromName)
+		assert.Equal(t, 1, len(channelOptions.CC))
+		assert.Equal(t, 0, len(channelOptions.BCC))
+	})
+
+	t.Run("does not copy attachments", func(t *testing.T) {
+		fromName := "Test"
+		emailOptions := EmailOptions{
+			FromName: &fromName,
+			Attachments: []Attachment{
+				{Filename: "test.pdf", Content: "base64content"},
+			},
+		}
+
+		channelOptions := emailOptions.ToChannelOptions()
+		require.NotNil(t, channelOptions)
+		assert.Equal(t, "Test", *channelOptions.FromName)
+		// Attachments are stored separately in MessageHistory, not in ChannelOptions
+	})
+}

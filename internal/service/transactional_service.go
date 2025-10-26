@@ -798,6 +798,12 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 	}
 
 	// record the message history
+	// Convert EmailOptions to ChannelOptions for storage
+	var channelOptions *domain.ChannelOptions
+	if !emailOptions.IsEmpty() {
+		channelOptions = emailOptions.ToChannelOptions()
+	}
+
 	return s.messageHistoryRepo.Create(ctx, workspaceID, &domain.MessageHistory{
 		ID:              messageID,
 		ExternalID:      nil, // No external ID for test messages
@@ -808,7 +814,8 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		MessageData: domain.MessageData{
 			Data: messageData,
 		},
-		SentAt:    time.Now().UTC(),
+		ChannelOptions: channelOptions,
+		SentAt:         time.Now().UTC(),
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
 	})

@@ -367,17 +367,24 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	htmlContent := *compiledTemplate.HTML
 	now := time.Now().UTC()
 
+	// Convert EmailOptions to ChannelOptions for storage
+	var channelOptions *domain.ChannelOptions
+	if !request.EmailOptions.IsEmpty() {
+		channelOptions = request.EmailOptions.ToChannelOptions()
+	}
+
 	// Create message history record
 	messageHistory := &domain.MessageHistory{
-		ID:           request.MessageID,
-		ExternalID:   request.ExternalID,
-		ContactEmail: request.Contact.Email,
-		TemplateID:   request.TemplateConfig.TemplateID,
-		Channel:      "email",
-		MessageData:  request.MessageData,
-		SentAt:       now,
-		CreatedAt:    now,
-		UpdatedAt:    now,
+		ID:             request.MessageID,
+		ExternalID:     request.ExternalID,
+		ContactEmail:   request.Contact.Email,
+		TemplateID:     request.TemplateConfig.TemplateID,
+		Channel:        "email",
+		MessageData:    request.MessageData,
+		ChannelOptions: channelOptions,
+		SentAt:         now,
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 
 	// Save to message history

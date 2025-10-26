@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [14.0] - 2025-10-26
+
+### Database Schema Changes
+- Added `channel_options` JSONB column to `message_history` table
+  - Updated `internal/database/init.go` for new workspaces
+  - Created migration `v14.go` for existing workspaces
+- Created GIN index on `channel_options` for efficient querying
+- JSONB structure allows future SMS/push options without schema changes
+
+### Features
+- Message history now stores email delivery options:
+  - CC (carbon copy recipients)
+  - BCC (blind carbon copy recipients)
+  - FromName (sender display name override)
+  - ReplyTo (reply-to address override)
+- Message preview drawer displays email delivery options when present
+- Only stores email options in this version (SMS/push to be added later)
+
+### Migration Notes
+- Existing messages will have `channel_options = NULL` (no backfill)
+- Migration is idempotent and safe to run multiple times
+- Estimated migration time: < 1 second per workspace
+
 ## [13.7] - 2025-10-25
 
 - New feature: transactional email API now supports `from_name` parameter to override the default sender name

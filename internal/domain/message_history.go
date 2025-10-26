@@ -71,6 +71,47 @@ func (d *MessageData) Scan(value interface{}) error {
 	return json.Unmarshal(cloned, &d)
 }
 
+// ChannelOptions represents channel-specific delivery configuration for email
+// Stored as JSONB to allow future extension without schema changes
+type ChannelOptions struct {
+	// Email-specific options
+	FromName *string  `json:"from_name,omitempty"` // Override sender display name
+	CC       []string `json:"cc,omitempty"`        // Carbon copy recipients
+	BCC      []string `json:"bcc,omitempty"`       // Blind carbon copy recipients
+	ReplyTo  string   `json:"reply_to,omitempty"`  // Reply-to address
+}
+
+// Value implements the driver.Valuer interface for database storage
+func (co ChannelOptions) Value() (driver.Value, error) {
+	if co.IsEmpty() {
+		return nil, nil
+	}
+	return json.Marshal(co)
+}
+
+// Scan implements the sql.Scanner interface for database retrieval
+func (co *ChannelOptions) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	b, ok := value.([]byte)
+	if !ok {
+		return sql.ErrNoRows
+	}
+
+	cloned := bytes.Clone(b)
+	return json.Unmarshal(cloned, co)
+}
+
+// IsEmpty returns true if no options are set
+func (co ChannelOptions) IsEmpty() bool {
+	return co.FromName == nil &&
+		len(co.CC) == 0 &&
+		len(co.BCC) == 0 &&
+		co.ReplyTo == ""
+}
+
 // MessageHistory represents a record of a message sent to a contact
 type MessageHistory struct {
 	ID              string               `json:"id"`
@@ -83,6 +124,7 @@ type MessageHistory struct {
 	Channel         string               `json:"channel"` // email, sms, push, etc.
 	StatusInfo      *string              `json:"status_info,omitempty"`
 	MessageData     MessageData          `json:"message_data"`
+	ChannelOptions  *ChannelOptions      `json:"channel_options,omitempty"`
 	Attachments     []AttachmentMetadata `json:"attachments,omitempty"`
 
 	// Event timestamps
