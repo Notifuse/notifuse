@@ -444,6 +444,232 @@ func TestMessageHistoryAuthentication(t *testing.T) {
 	})
 }
 
+func TestMessageHistoryChannelOptions(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	// Create test user and workspace
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+
+	// Add user to workspace as owner
+	err = factory.AddUserToWorkspace(user.ID, workspace.ID, "owner")
+	require.NoError(t, err)
+
+	// Set up SMTP email provider for testing
+	_, err = factory.SetupWorkspaceWithSMTPProvider(workspace.ID)
+	require.NoError(t, err)
+
+	// Login to get auth token
+	err = client.Login(user.Email, "password")
+	require.NoError(t, err)
+	client.SetWorkspaceID(workspace.ID)
+
+	t.Run("should store and retrieve channel_options in message history", func(t *testing.T) {
+		// Create a template
+		template, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+
+		// Create a transactional notification
+		notification, err := factory.CreateTransactionalNotification(workspace.ID,
+			testutil.WithTransactionalNotificationID("channel-options-test"),
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: domain.ChannelTemplate{
+					TemplateID: template.ID,
+					Settings:   map[string]interface{}{},
+				},
+			}),
+		)
+		require.NoError(t, err)
+
+		// Define email options
+		mainRecipient := "main@example.com"
+		ccRecipients := []string{"cc1@example.com", "cc2@example.com"}
+		bccRecipients := []string{"bcc1@example.com"}
+		customFromName := "Test Sender Name"
+		replyTo := "reply@example.com"
+
+		// Send notification with all email options
+		sendRequest := map[string]interface{}{
+			"id": notification.ID,
+			"contact": map[string]interface{}{
+				"email":      mainRecipient,
+				"first_name": "Test",
+				"last_name":  "User",
+			},
+			"channels": []string{"email"},
+			"data": map[string]interface{}{
+				"message": "Testing channel_options storage",
+			},
+			"email_options": map[string]interface{}{
+				"cc":        ccRecipients,
+				"bcc":       bccRecipients,
+				"from_name": customFromName,
+				"reply_to":  replyTo,
+			},
+		}
+
+		t.Log("Sending transactional notification with email options")
+
+		resp, err := client.SendTransactionalNotification(sendRequest)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(t, err)
+
+		messageID := result["message_id"].(string)
+		assert.NotEmpty(t, messageID)
+
+		t.Logf("Message sent with ID: %s", messageID)
+
+		// Wait a moment for message to be saved
+		time.Sleep(1 * time.Second)
+
+		// Retrieve message history to verify channel_options was stored
+		t.Log("Retrieving message history to verify channel_options storage")
+
+		messageResp, err := client.Get("/api/messages.list", map[string]string{
+			"workspace_id": workspace.ID,
+			"id":           messageID,
+		})
+		require.NoError(t, err)
+		defer messageResp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, messageResp.StatusCode)
+
+		var messagesResult domain.MessageListResult
+		err = json.NewDecoder(messageResp.Body).Decode(&messagesResult)
+		require.NoError(t, err)
+
+		require.NotEmpty(t, messagesResult.Messages, "Expected message in history")
+
+		message := messagesResult.Messages[0]
+
+		// Verify basic message fields
+		assert.Equal(t, messageID, message.ID)
+		assert.Equal(t, mainRecipient, message.ContactEmail)
+
+		// Verify channel_options was stored correctly
+		require.NotNil(t, message.ChannelOptions, "channel_options should be stored")
+
+		t.Log("\n=== Verifying Channel Options ===")
+
+		// Verify FromName
+		require.NotNil(t, message.ChannelOptions.FromName, "from_name should be stored")
+		assert.Equal(t, customFromName, *message.ChannelOptions.FromName)
+		t.Logf("✅ FromName: %s", *message.ChannelOptions.FromName)
+
+		// Verify CC
+		require.NotNil(t, message.ChannelOptions.CC, "cc should be stored")
+		assert.Equal(t, 2, len(message.ChannelOptions.CC))
+		assert.Contains(t, message.ChannelOptions.CC, "cc1@example.com")
+		assert.Contains(t, message.ChannelOptions.CC, "cc2@example.com")
+		t.Logf("✅ CC: %v", message.ChannelOptions.CC)
+
+		// Verify BCC
+		require.NotNil(t, message.ChannelOptions.BCC, "bcc should be stored")
+		assert.Equal(t, 1, len(message.ChannelOptions.BCC))
+		assert.Contains(t, message.ChannelOptions.BCC, "bcc1@example.com")
+		t.Logf("✅ BCC: %v", message.ChannelOptions.BCC)
+
+		// Verify ReplyTo
+		assert.Equal(t, replyTo, message.ChannelOptions.ReplyTo)
+		t.Logf("✅ ReplyTo: %s", message.ChannelOptions.ReplyTo)
+
+		t.Log("\n=== Test Summary ===")
+		t.Log("✅ Email sent successfully with email_options")
+		t.Log("✅ Message history created with channel_options")
+		t.Log("✅ All channel_options fields stored correctly:")
+		t.Log("   - from_name: stored and retrieved")
+		t.Log("   - cc: stored and retrieved")
+		t.Log("   - bcc: stored and retrieved")
+		t.Log("   - reply_to: stored and retrieved")
+	})
+
+	t.Run("should handle messages without channel_options", func(t *testing.T) {
+		// Create a template
+		template, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+
+		// Create a transactional notification
+		notification, err := factory.CreateTransactionalNotification(workspace.ID,
+			testutil.WithTransactionalNotificationID("no-options-test"),
+			testutil.WithTransactionalNotificationChannels(domain.ChannelTemplates{
+				domain.TransactionalChannelEmail: domain.ChannelTemplate{
+					TemplateID: template.ID,
+					Settings:   map[string]interface{}{},
+				},
+			}),
+		)
+		require.NoError(t, err)
+
+		// Send notification WITHOUT email options
+		sendRequest := map[string]interface{}{
+			"id": notification.ID,
+			"contact": map[string]interface{}{
+				"email":      "simple@example.com",
+				"first_name": "Simple",
+				"last_name":  "User",
+			},
+			"channels": []string{"email"},
+			"data": map[string]interface{}{
+				"message": "Simple message without options",
+			},
+			// No email_options provided
+		}
+
+		resp, err := client.SendTransactionalNotification(sendRequest)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(t, err)
+
+		messageID := result["message_id"].(string)
+
+		// Wait for message to be saved
+		time.Sleep(1 * time.Second)
+
+		// Retrieve message history
+		messageResp, err := client.Get("/api/messages.list", map[string]string{
+			"workspace_id": workspace.ID,
+			"id":           messageID,
+		})
+		require.NoError(t, err)
+		defer messageResp.Body.Close()
+
+		var messagesResult domain.MessageListResult
+		err = json.NewDecoder(messageResp.Body).Decode(&messagesResult)
+		require.NoError(t, err)
+
+		require.NotEmpty(t, messagesResult.Messages)
+		message := messagesResult.Messages[0]
+
+		// Verify channel_options is nil for messages without options
+		assert.Nil(t, message.ChannelOptions, "channel_options should be nil when no options provided")
+
+		t.Log("✅ Message without channel_options stored correctly (NULL value)")
+	})
+}
+
 func TestMessageHistoryDataFactory(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
