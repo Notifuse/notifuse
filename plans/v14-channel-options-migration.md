@@ -4,6 +4,16 @@
 **Date:** 2025-10-26  
 **Status:** Planning  
 **Author:** AI Assistant  
+**Scope:** Email options only (CC, BCC, FromName, ReplyTo)
+
+---
+
+## ⚠️ Critical Reminders
+
+1. **Update `internal/database/init.go`** - Add `channel_options JSONB` column and index
+2. **Create `internal/migrations/v14.go`** - Migration for existing workspaces
+3. **Update `config/config.go`** - Change VERSION to "14.0"
+4. **Email only** - No SMS/push fields in this version (JSONB allows future extension)  
 
 ---
 
@@ -25,32 +35,44 @@
 
 ## Overview
 
-This migration adds support for storing channel-specific delivery options (CC, BCC, FromName for email; future SMS/push options) in the `message_history` table. The implementation uses a generic `channel_options` JSONB column to support multiple communication channels without requiring future schema changes.
+This migration adds support for storing email-specific delivery options (CC, BCC, FromName, ReplyTo) in the `message_history` table. The implementation uses a generic `channel_options` JSONB column to allow future extension for SMS/push channels without requiring schema changes.
 
 ### Current State
 - **Database Version:** 13.7
 - **Message History Schema:** Basic message tracking without delivery options
-- **Channels Supported:** Email (SMS planned for future)
+- **Channels Supported:** Email only
 
 ### Target State
 - **Database Version:** 14.0
 - **Message History Schema:** Includes `channel_options` JSONB column
-- **Preview UI:** Displays CC, BCC, FromName in message preview drawer
+- **Stored Fields:** Email options only (FromName, CC, BCC, ReplyTo)
+- **Preview UI:** Displays email delivery options in message preview drawer
+
+### Critical: Two Schema Updates Required
+
+⚠️ **IMPORTANT:** This migration requires updates in TWO places:
+
+1. **`internal/database/init.go`** - Base schema for NEW workspaces
+2. **`internal/migrations/v14.go`** - Migration for EXISTING workspaces
+
+Both must include the `channel_options JSONB` column and GIN index.
 
 ---
 
 ## Objectives
 
 ### Primary Goals
-- ✅ Store email delivery options (CC, BCC, FromName) with each message
+- ✅ Store email delivery options (CC, BCC, FromName, ReplyTo) with each message
 - ✅ Enable message preview to show these options
-- ✅ Future-proof for SMS and other channels
+- ✅ Update both `init.go` (new workspaces) and migration (existing workspaces)
+- ✅ Use JSONB structure that allows future extension for SMS/push
 - ✅ Maintain backward compatibility with existing messages
 
 ### Non-Goals
 - ❌ Migrate/backfill existing message records (they'll remain NULL)
-- ❌ Implement SMS channel in this migration
+- ❌ Implement SMS/push channel options in this migration (email only)
 - ❌ Change existing message sending logic (only storage)
+- ❌ Add SMS/push fields to ChannelOptions struct (can be added later without schema changes)
 
 ---
 
@@ -95,20 +117,14 @@ ON message_history USING gin(channel_options);
 }
 ```
 
-**SMS Channel (Future):**
-```json
-{
-  "sender_id": "MyCompany",
-  "callback_url": "https://api.example.com/sms/status",
-  "unicode": true
-}
-```
-
 **Null/Empty Cases:**
 ```json
 null  // No options specified
 {}    // Empty options object
 ```
+
+**Future Extensibility:**
+The JSONB column design allows adding SMS/push fields later without schema changes.
 
 ### Migration Implementation
 
@@ -153,10 +169,10 @@ func (m *V14Migration) UpdateSystem(ctx context.Context, config *config.Config, 
 // UpdateWorkspace executes workspace-level migration changes
 func (m *V14Migration) UpdateWorkspace(ctx context.Context, config *config.Config, workspace *domain.Workspace, db DBExecutor) error {
 	// Add channel_options column to message_history table
-	// This column stores channel-specific delivery options:
-	// - Email: CC, BCC, FromName overrides, ReplyTo
-	// - SMS (future): SenderID, CallbackURL, Unicode
-	// - Push (future): Priority, Badge, Sound
+	// This column stores channel-specific delivery options for email:
+	// - CC, BCC: Additional recipients
+	// - FromName: Override sender display name
+	// - ReplyTo: Reply-to address override
 	_, err := db.ExecContext(ctx, `
 		ALTER TABLE message_history
 		ADD COLUMN IF NOT EXISTS channel_options JSONB DEFAULT NULL
@@ -167,9 +183,8 @@ func (m *V14Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 
 	// Create GIN index for channel_options JSONB column
 	// Enables efficient querying like:
-	// - Find all messages with CC
-	// - Find messages sent with specific from_name
-	// - Future SMS queries by sender_id
+	// - Find all messages with CC recipients
+	// - Find messages sent with specific from_name override
 	_, err = db.ExecContext(ctx, `
 		CREATE INDEX IF NOT EXISTS idx_message_history_channel_options 
 		ON message_history USING gin(channel_options)
@@ -185,6 +200,47 @@ func (m *V14Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 func init() {
 	Register(&V14Migration{})
 }
+```
+
+### Database Init Schema Update
+
+**File:** `/workspace/internal/database/init.go`
+
+**Update message_history table creation (around line 179):**
+
+Add `channel_options JSONB` column after `message_data`:
+
+```go
+`CREATE TABLE IF NOT EXISTS message_history (
+	id VARCHAR(255) NOT NULL PRIMARY KEY,
+	contact_email VARCHAR(255) NOT NULL,
+	external_id VARCHAR(255),
+	broadcast_id VARCHAR(255),
+	list_ids TEXT[],
+	template_id VARCHAR(32) NOT NULL,
+	template_version INTEGER NOT NULL,
+	channel VARCHAR(20) NOT NULL,
+	status_info VARCHAR(255),
+	message_data JSONB NOT NULL,
+	channel_options JSONB,  -- NEW: Add this line
+	attachments JSONB,
+	sent_at TIMESTAMP WITH TIME ZONE NOT NULL,
+	delivered_at TIMESTAMP WITH TIME ZONE,
+	failed_at TIMESTAMP WITH TIME ZONE,
+	opened_at TIMESTAMP WITH TIME ZONE,
+	clicked_at TIMESTAMP WITH TIME ZONE,
+	bounced_at TIMESTAMP WITH TIME ZONE,
+	complained_at TIMESTAMP WITH TIME ZONE,
+	unsubscribed_at TIMESTAMP WITH TIME ZONE,
+	created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+)`,
+```
+
+**Add index after existing message_history indexes (after line 205):**
+
+```go
+`CREATE INDEX IF NOT EXISTS idx_message_history_channel_options ON message_history USING gin(channel_options)`,
 ```
 
 ### Configuration Update
@@ -208,19 +264,26 @@ const VERSION = "14.0"
 ## v14.0 - 2025-10-26
 
 ### Database Schema Changes
-- Added `channel_options` JSONB column to `message_history` table (workspace databases)
+- Added `channel_options` JSONB column to `message_history` table
+  - Updated `internal/database/init.go` for new workspaces
+  - Created migration `v14.go` for existing workspaces
 - Created GIN index on `channel_options` for efficient querying
-- Future-proofs message storage for SMS and other communication channels
+- JSONB structure allows future SMS/push options without schema changes
 
 ### Features
-- Message history now stores email delivery options (CC, BCC, FromName)
+- Message history now stores email delivery options:
+  - CC (carbon copy recipients)
+  - BCC (blind carbon copy recipients)
+  - FromName (sender display name override)
+  - ReplyTo (reply-to address override)
 - Message preview drawer displays email delivery options
-- Generic channel_options structure supports future SMS/push channels
+- Only stores email options in this version (SMS/push to be added later)
 
 ### Migration Notes
 - Existing messages will have `channel_options = NULL` (no backfill)
 - Migration is idempotent and safe to run multiple times
 - Estimated migration time: < 1 second per workspace
+- **Critical:** Both `init.go` and `v14.go` migration must be updated
 ```
 
 ---
@@ -236,24 +299,14 @@ const VERSION = "14.0"
 1. **Add ChannelOptions type definitions**
 
 ```go
-// ChannelOptions represents channel-specific delivery configuration
-// Stored as JSONB to support multiple channel types without schema changes
+// ChannelOptions represents channel-specific delivery configuration for email
+// Stored as JSONB to allow future extension without schema changes
 type ChannelOptions struct {
 	// Email-specific options
 	FromName *string  `json:"from_name,omitempty"` // Override sender display name
 	CC       []string `json:"cc,omitempty"`        // Carbon copy recipients
 	BCC      []string `json:"bcc,omitempty"`       // Blind carbon copy recipients
 	ReplyTo  string   `json:"reply_to,omitempty"`  // Reply-to address
-
-	// SMS-specific options (future use)
-	SenderID    *string `json:"sender_id,omitempty"`     // SMS sender ID
-	CallbackURL *string `json:"callback_url,omitempty"`  // Delivery receipt URL
-	Unicode     *bool   `json:"unicode,omitempty"`       // Enable unicode characters
-
-	// Push notification options (future use)
-	Priority *string `json:"priority,omitempty"` // high, normal, low
-	Badge    *int    `json:"badge,omitempty"`    // Badge number
-	Sound    *string `json:"sound,omitempty"`    // Notification sound
 }
 
 // Value implements the driver.Valuer interface for database storage
@@ -284,13 +337,7 @@ func (co ChannelOptions) IsEmpty() bool {
 	return co.FromName == nil &&
 		len(co.CC) == 0 &&
 		len(co.BCC) == 0 &&
-		co.ReplyTo == "" &&
-		co.SenderID == nil &&
-		co.CallbackURL == nil &&
-		co.Unicode == nil &&
-		co.Priority == nil &&
-		co.Badge == nil &&
-		co.Sound == nil
+		co.ReplyTo == ""
 }
 ```
 
@@ -355,6 +402,7 @@ func (eo EmailOptions) ToChannelOptions() *ChannelOptions {
 
 | File | Action | Description |
 |------|--------|-------------|
+| `internal/database/init.go` | Modify | Add channel_options column and index to schema |
 | `internal/domain/message_history.go` | Modify | Add ChannelOptions type and update MessageHistory struct |
 | `internal/domain/email_provider.go` | Modify | Add ToChannelOptions helper method |
 | `internal/domain/message_history_test.go` | Modify | Add tests for ChannelOptions serialization |
@@ -770,7 +818,8 @@ func (s *TransactionalNotificationService) Send(ctx context.Context, params doma
 
 ```typescript
 /**
- * Channel-specific delivery options
+ * Channel-specific delivery options for email
+ * Structure allows future extension for SMS/push without breaking changes
  */
 export interface ChannelOptions {
   // Email options
@@ -778,16 +827,6 @@ export interface ChannelOptions {
   cc?: string[]
   bcc?: string[]
   reply_to?: string
-
-  // SMS options (future)
-  sender_id?: string
-  callback_url?: string
-  unicode?: boolean
-
-  // Push options (future)
-  priority?: 'high' | 'normal' | 'low'
-  badge?: number
-  sound?: string
 }
 
 export interface MessageData {
@@ -1688,6 +1727,7 @@ make test-integration  # Full end-to-end tests
 
 ### Pre-Deployment Checklist
 
+- [ ] **`internal/database/init.go` updated** with channel_options column and index
 - [ ] All backend unit tests passing (`make test-unit`)
 - [ ] All frontend tests passing (`cd console && npm test`)
 - [ ] Migration tested on staging database
@@ -1713,7 +1753,22 @@ The migration will run automatically on application startup:
 - Migration time: ~1 second per workspace
 - Zero downtime (column is nullable, existing code works)
 
-#### Step 2: Deploy Backend
+#### Step 2: Verify Init Schema Update
+
+Before deploying, verify the init.go schema includes channel_options:
+
+```bash
+# Check that init.go has been updated
+grep "channel_options JSONB" internal/database/init.go
+
+# Should see:
+# channel_options JSONB,
+
+# Check index is present
+grep "idx_message_history_channel_options" internal/database/init.go
+```
+
+#### Step 3: Deploy Backend
 
 ```bash
 # Build new version
@@ -1734,7 +1789,7 @@ psql -h localhost -U postgres -d notifuse_workspace_xxx
 # Should show channel_options column
 ```
 
-#### Step 3: Deploy Frontend
+#### Step 4: Deploy Frontend
 
 ```bash
 # Build frontend
@@ -1890,6 +1945,7 @@ psql -c "UPDATE settings SET value = '13.7' WHERE key = 'version';"
 
 | Phase | Task | Estimated Time | Owner |
 |-------|------|----------------|-------|
+| **Phase 1** | Update init.go schema | 15 mins | Backend Dev |
 | **Phase 1** | Create migration v14.go | 1 hour | Backend Dev |
 | **Phase 1** | Create migration tests | 1 hour | Backend Dev |
 | **Phase 1** | Update config.go version | 5 mins | Backend Dev |
@@ -1906,7 +1962,7 @@ psql -c "UPDATE settings SET value = '13.7' WHERE key = 'version';"
 | **Phase 7** | Documentation | 1 hour | Tech Writer |
 | **Phase 8** | Code review | 2 hours | Team |
 | **Phase 9** | Deployment prep | 1 hour | DevOps |
-| **Total** | | **23 hours** | |
+| **Total** | | **23.25 hours** | |
 
 ### Suggested Schedule
 
