@@ -409,6 +409,7 @@ func (tdf *TestDataFactory) CreateSESIntegration(workspaceID string, opts ...Int
 
 // CreateMailhogSMTPIntegration creates an SMTP integration configured for Mailhog
 func (tdf *TestDataFactory) CreateMailhogSMTPIntegration(workspaceID string, opts ...IntegrationOption) (*domain.Integration, error) {
+	mailhogHost := getEnvOrDefault("MAILHOG_HOST", "localhost")
 	mailhogOpts := []IntegrationOption{
 		WithIntegrationName("Mailhog SMTP"),
 		WithIntegrationEmailProvider(domain.EmailProvider{
@@ -417,7 +418,7 @@ func (tdf *TestDataFactory) CreateMailhogSMTPIntegration(workspaceID string, opt
 				domain.NewEmailSender("noreply@notifuse.test", "Notifuse Test"),
 			},
 			SMTP: &domain.SMTPSettings{
-				Host:     "localhost", // Mailhog SMTP server
+				Host:     mailhogHost, // Mailhog SMTP server
 				Port:     1025,        // Mailhog SMTP port
 				Username: "",          // Mailhog doesn't require auth
 				Password: "",

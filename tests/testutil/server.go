@@ -84,10 +84,10 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 			PasetoPublicKeyBytes:  keys.PublicKeyBytes,
 		},
 		SMTP: config.SMTPConfig{
-			Host:      "localhost",
-			Port:      1025,
-			FromEmail: "test@example.com",
-			FromName:  "Test Notifuse",
+		Host:      getEnvOrDefault("MAILHOG_HOST", "localhost"),
+		Port:      1025,
+		FromEmail: "test@example.com",
+		FromName:  "Test Notifuse",
 		},
 		Broadcast: config.BroadcastConfig{
 			DefaultRateLimit: 6000, // 6000 per minute = 100 per second (no rate limiting for tests)

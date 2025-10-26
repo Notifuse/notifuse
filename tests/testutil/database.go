@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/Notifuse/notifuse/config"
@@ -29,9 +30,15 @@ type DatabaseManager struct {
 
 // NewDatabaseManager creates a new database manager for testing
 func NewDatabaseManager() *DatabaseManager {
+	port := 5433
+	if portStr := os.Getenv("TEST_DB_PORT"); portStr != "" {
+		if p, err := strconv.Atoi(portStr); err == nil {
+			port = p
+		}
+	}
 	config := &config.DatabaseConfig{
 		Host:     getEnvOrDefault("TEST_DB_HOST", "localhost"),
-		Port:     5433, // Different port for test DB
+		Port:     port, // Different port for test DB
 		User:     getEnvOrDefault("TEST_DB_USER", "notifuse_test"),
 		Password: getEnvOrDefault("TEST_DB_PASSWORD", "test_password"),
 		DBName:   fmt.Sprintf("notifuse_test_%d", time.Now().UnixNano()),
@@ -350,7 +357,7 @@ func (dm *DatabaseManager) seedInstallationSettings() error {
 		{"api_endpoint", ""}, // Empty to trigger direct task execution in tests
 		{"encrypted_paseto_private_key", encryptedPrivateKey},
 		{"encrypted_paseto_public_key", encryptedPublicKey},
-		{"smtp_host", "localhost"},
+		{"smtp_host", getEnvOrDefault("MAILHOG_HOST", "localhost")},
 		{"smtp_port", "1025"},
 		{"smtp_from_email", "test@example.com"},
 		{"smtp_from_name", "Test Notifuse"},

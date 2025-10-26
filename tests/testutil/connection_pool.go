@@ -3,6 +3,8 @@ package testutil
 import (
 	"database/sql"
 	"fmt"
+	"os"
+	"strconv"
 	"sync"
 	"time"
 
@@ -208,9 +210,15 @@ var poolOnce sync.Once
 // GetGlobalTestPool returns a singleton connection pool for all tests
 func GetGlobalTestPool() *TestConnectionPool {
 	poolOnce.Do(func() {
+		port := 5433
+		if portStr := os.Getenv("TEST_DB_PORT"); portStr != "" {
+			if p, err := strconv.Atoi(portStr); err == nil {
+				port = p
+			}
+		}
 		config := &config.DatabaseConfig{
 			Host:     getEnvOrDefault("TEST_DB_HOST", "localhost"),
-			Port:     5433,
+			Port:     port,
 			User:     getEnvOrDefault("TEST_DB_USER", "notifuse_test"),
 			Password: getEnvOrDefault("TEST_DB_PASSWORD", "test_password"),
 			Prefix:   "notifuse_test",

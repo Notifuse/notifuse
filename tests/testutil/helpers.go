@@ -223,12 +223,23 @@ func RequireEnvironmentVar(t *testing.T, envVar string) string {
 }
 
 // SetupTestEnvironment sets up environment variables for testing
+// Only sets values if they are not already set, allowing override from command line
 func SetupTestEnvironment() {
-	os.Setenv("TEST_DB_HOST", "localhost")
-	os.Setenv("TEST_DB_PORT", "5433")
-	os.Setenv("TEST_DB_USER", "notifuse_test")
-	os.Setenv("TEST_DB_PASSWORD", "test_password")
-	os.Setenv("ENVIRONMENT", "test")
+	if os.Getenv("TEST_DB_HOST") == "" {
+		os.Setenv("TEST_DB_HOST", "localhost")
+	}
+	if os.Getenv("TEST_DB_PORT") == "" {
+		os.Setenv("TEST_DB_PORT", "5433")
+	}
+	if os.Getenv("TEST_DB_USER") == "" {
+		os.Setenv("TEST_DB_USER", "notifuse_test")
+	}
+	if os.Getenv("TEST_DB_PASSWORD") == "" {
+		os.Setenv("TEST_DB_PASSWORD", "test_password")
+	}
+	if os.Getenv("ENVIRONMENT") == "" {
+		os.Setenv("ENVIRONMENT", "test")
+	}
 }
 
 // CleanupTestEnvironment cleans up test environment variables
