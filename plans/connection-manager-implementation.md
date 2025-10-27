@@ -1,4 +1,57 @@
-# Shared Connection Pool Manager Implementation Plan
+# Connection Manager Implementation Plan
+## FINAL SOLUTION - Shared Connection Pool Architecture
+
+> **Status:** ✅ This is the approved implementation plan  
+> **Supersedes:** connection-manager-singleton-OLD.md (per-workspace pools - doesn't scale)  
+> **Key Insight:** Don't reserve pools per workspace - use small shared pools per workspace DATABASE
+
+---
+
+## Executive Summary
+
+**Problem:** Database "too many connections" errors with PostgreSQL max_connections=100
+
+**Root Cause:** 
+- Each workspace has its own PostgreSQL database
+- Current code creates 25 connections per workspace database
+- Math fails: 4 workspaces × 25 = 100 connections (limit reached with just 4 workspaces!)
+
+**Solution:**
+- Shared connection pools (2-3 connections per workspace DATABASE)
+- LRU eviction of idle pools
+- Supports UNLIMITED workspaces with fixed 100 connection limit
+
+**Capacity:**
+```
+DB_MAX_CONNECTIONS=100
+DB_MAX_CONNECTIONS_PER_DB=3
+
+Result:
+✅ System DB: 10 connections
+✅ Available for workspaces: 90 connections
+✅ Concurrent active workspace DBs: 30 (90 ÷ 3)
+✅ Total workspaces supported: UNLIMITED (100, 500, 1000+)
+```
+
+---
+
+## What Changed from Original Plan
+
+| Aspect | ❌ Original Plan | ✅ Current Plan |
+|--------|-----------------|----------------|
+| **Pool strategy** | Reserved 5-25 connections per workspace | 2-3 connections per workspace DATABASE |
+| **Workspace limit** | ~10 workspaces max | Unlimited workspaces |
+| **Pool creation** | On first workspace access | On first workspace DB access |
+| **Pool lifetime** | Permanent until workspace deleted | LRU eviction when idle |
+| **Scalability** | Doesn't scale | Scales to 100+ workspaces |
+| **Connection efficiency** | Wastes connections on idle workspaces | Only active DBs have pools |
+
+**Key Questions Answered:**
+1. ✅ "What if we have more workspaces than connections?" - **LRU eviction handles it**
+2. ✅ "What if all connections are in use?" - **503 error with clear message, client retries**
+3. ✅ "Is pooling better than per-query connections?" - **Yes, 10-100x faster** (see connection-pooling-vs-per-query.md)
+
+---
 
 ## Overview
 Implement a shared connection pool manager that handles connections for unlimited workspaces without per-workspace reservation.
