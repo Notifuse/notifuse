@@ -536,3 +536,242 @@ func TestTrackingPixelWithoutBodyTag(t *testing.T) {
 		t.Error("Expected tracking pixel to be at the end when no body tag is present")
 	}
 }
+
+func TestDecodeHTMLEntitiesInURLAttributes(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "href with query parameters containing &amp;",
+			input:    `<a href="https://example.com/confirm?action=confirm&amp;email=test@example.com&amp;token=abc123">Link</a>`,
+			expected: `<a href="https://example.com/confirm?action=confirm&email=test@example.com&token=abc123">Link</a>`,
+		},
+		{
+			name:     "button href with multiple &amp; entities",
+			input:    `<a href="https://mailing.example.com/notification-center?action=confirm&amp;email=mymail%40gmail.com&amp;email_hmac=fd6&amp;lid=mylist&amp;lname=MyList&amp;mid=fb9&amp;wid=myworkspace">Confirm</a>`,
+			expected: `<a href="https://mailing.example.com/notification-center?action=confirm&email=mymail%40gmail.com&email_hmac=fd6&lid=mylist&lname=MyList&mid=fb9&wid=myworkspace">Confirm</a>`,
+		},
+		{
+			name:     "src attribute with &amp;",
+			input:    `<img src="https://example.com/image.png?w=100&amp;h=200" alt="test">`,
+			expected: `<img src="https://example.com/image.png?w=100&h=200" alt="test">`,
+		},
+		{
+			name:     "action attribute with &amp;",
+			input:    `<form action="https://example.com/submit?id=1&amp;type=2">`,
+			expected: `<form action="https://example.com/submit?id=1&type=2">`,
+		},
+		{
+			name:     "multiple attributes in same tag",
+			input:    `<a href="https://example.com?a=1&amp;b=2" class="btn" id="link">Text</a>`,
+			expected: `<a href="https://example.com?a=1&b=2" class="btn" id="link">Text</a>`,
+		},
+		{
+			name:     "href with other HTML entities",
+			input:    `<a href="https://example.com?name=&quot;John&quot;&amp;age=30">Link</a>`,
+			expected: `<a href="https://example.com?name="John"&age=30">Link</a>`,
+		},
+		{
+			name:     "no entities to decode",
+			input:    `<a href="https://example.com/simple">Link</a>`,
+			expected: `<a href="https://example.com/simple">Link</a>`,
+		},
+		{
+			name:     "single quotes in attribute",
+			input:    `<a href='https://example.com?a=1&amp;b=2'>Link</a>`,
+			expected: `<a href='https://example.com?a=1&b=2'>Link</a>`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := decodeHTMLEntitiesInURLAttributes(tt.input)
+			if result != tt.expected {
+				t.Errorf("Expected:\n%s\nGot:\n%s", tt.expected, result)
+			}
+		})
+	}
+}
+
+func TestCompileTemplateWithButtonQueryParameters(t *testing.T) {
+	// Test the complete flow: button with confirm_subscription_url containing query parameters
+	
+	// Create a button with a URL containing query parameters
+	confirmURL := "https://mailing.example.com/notification-center?action=confirm&email=test@example.com&email_hmac=abc123&lid=newsletter&lname=Newsletter&mid=msg123&wid=workspace123"
+	
+	buttonBlock := &MJButtonBlock{
+		BaseBlock: BaseBlock{
+			ID:   "confirm-button",
+			Type: MJMLComponentMjButton,
+			Attributes: map[string]interface{}{
+				"href":             "{{ confirm_subscription_url }}",
+				"background-color": "#007bff",
+				"color":            "#ffffff",
+			},
+		},
+		Content: stringPtr("Confirm Subscription"),
+	}
+
+	// Create complete MJML structure
+	column := &MJColumnBlock{
+		BaseBlock: BaseBlock{
+			ID:       "column-1",
+			Type:     MJMLComponentMjColumn,
+			Children: []interface{}{buttonBlock},
+		},
+	}
+
+	section := &MJSectionBlock{
+		BaseBlock: BaseBlock{
+			ID:       "section-1",
+			Type:     MJMLComponentMjSection,
+			Children: []interface{}{column},
+		},
+	}
+
+	body := &MJBodyBlock{
+		BaseBlock: BaseBlock{
+			ID:       "body-1",
+			Type:     MJMLComponentMjBody,
+			Children: []interface{}{section},
+		},
+	}
+
+	mjml := &MJMLBlock{
+		BaseBlock: BaseBlock{
+			ID:       "mjml-1",
+			Type:     MJMLComponentMjml,
+			Children: []interface{}{body},
+		},
+	}
+
+	// Compile template with template data
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TemplateData: MapOfAny{
+			"confirm_subscription_url": confirmURL,
+		},
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false, // Disable tracking to test just the entity decoding
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+	}
+
+	if resp.HTML == nil {
+		t.Fatal("Expected HTML in response")
+	}
+
+	// Verify that the HTML contains the decoded URL (with & not &amp;)
+	if !strings.Contains(*resp.HTML, "action=confirm&email=test@example.com") {
+		t.Errorf("Expected HTML to contain decoded query parameters with '&', but got:\n%s", *resp.HTML)
+	}
+
+	// Verify that &amp; is NOT in the href attribute
+	if strings.Contains(*resp.HTML, "href=\"https://mailing.example.com/notification-center?action=confirm&amp;email") {
+		t.Errorf("HTML still contains &amp; in href attribute, entity decoding failed:\n%s", *resp.HTML)
+	}
+
+	t.Logf("Generated HTML (excerpt):\n%s", *resp.HTML)
+}
+
+func TestCompileTemplateButtonVsTextURL(t *testing.T) {
+	// Verify that both button href and text content handle URLs correctly
+	confirmURL := "https://example.com/confirm?action=confirm&email=test@example.com&token=abc"
+
+	// Button with URL in href attribute
+	buttonBlock := &MJButtonBlock{
+		BaseBlock: BaseBlock{
+			ID:   "button-1",
+			Type: MJMLComponentMjButton,
+			Attributes: map[string]interface{}{
+				"href": "{{ confirm_url }}",
+			},
+		},
+		Content: stringPtr("Confirm via Button"),
+	}
+
+	// Text block with URL in content
+	textContent := `<a href="{{ confirm_url }}">Confirm via Text Link</a>`
+	textBlock := &MJTextBlock{
+		BaseBlock: BaseBlock{
+			ID:   "text-1",
+			Type: MJMLComponentMjText,
+		},
+		Content: &textContent,
+	}
+
+	// Create complete structure
+	column := &MJColumnBlock{
+		BaseBlock: BaseBlock{
+			ID:       "column-1",
+			Type:     MJMLComponentMjColumn,
+			Children: []interface{}{buttonBlock, textBlock},
+		},
+	}
+
+	section := &MJSectionBlock{
+		BaseBlock: BaseBlock{
+			ID:       "section-1",
+			Type:     MJMLComponentMjSection,
+			Children: []interface{}{column},
+		},
+	}
+
+	body := &MJBodyBlock{
+		BaseBlock: BaseBlock{
+			ID:       "body-1",
+			Type:     MJMLComponentMjBody,
+			Children: []interface{}{section},
+		},
+	}
+
+	mjml := &MJMLBlock{
+		BaseBlock: BaseBlock{
+			ID:       "mjml-1",
+			Type:     MJMLComponentMjml,
+			Children: []interface{}{body},
+		},
+	}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TemplateData: MapOfAny{
+			"confirm_url": confirmURL,
+		},
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false,
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation")
+	}
+
+	// Both should have properly decoded URLs with & not &amp;
+	expectedURLPart := "action=confirm&email=test@example.com"
+	occurrences := strings.Count(*resp.HTML, expectedURLPart)
+	
+	if occurrences < 2 {
+		t.Errorf("Expected at least 2 occurrences of properly decoded URL (button + text), got %d\nHTML:\n%s", 
+			occurrences, *resp.HTML)
+	}
+}

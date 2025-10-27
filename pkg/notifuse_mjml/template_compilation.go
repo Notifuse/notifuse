@@ -240,6 +240,10 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		}, nil
 	}
 
+	// Decode HTML entities in href attributes to fix broken URLs with query parameters
+	// The MJML-to-HTML compiler doesn't always decode &amp; back to & in href attributes
+	htmlResult = decodeHTMLEntitiesInURLAttributes(htmlResult)
+
 	// Apply link tracking to the HTML output
 	trackedHTML, err := TrackLinks(htmlResult, req.TrackingSettings)
 	if err != nil {
@@ -253,6 +257,38 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		HTML:    &trackedHTML,
 		Error:   nil,
 	}, nil
+}
+
+// decodeHTMLEntitiesInURLAttributes decodes HTML entities (&amp;, &quot;, etc.)
+// in href, src, and other URL attributes to ensure clickable links work correctly.
+// The MJML-to-HTML compiler doesn't always decode these entities properly in attributes,
+// which breaks URLs with query parameters (e.g., ?action=confirm&email=... becomes &amp;email=...)
+func decodeHTMLEntitiesInURLAttributes(html string) string {
+	// Pattern matches href="...", src="...", action="..." attributes
+	// Captures: (attribute=") (url content) (")
+	urlAttrRegex := regexp.MustCompile(`((?:href|src|action)=["'])([^"']+)(["'])`)
+
+	return urlAttrRegex.ReplaceAllStringFunc(html, func(match string) string {
+		parts := urlAttrRegex.FindStringSubmatch(match)
+		if len(parts) != 4 {
+			return match // Return original if parsing fails
+		}
+
+		beforeURL := parts[1] // href=" or src=" or action="
+		encodedURL := parts[2] // the URL with HTML entities
+		afterURL := parts[3]   // closing "
+
+		// Decode common HTML entities that appear in URLs
+		// Note: We only decode entities that are safe to decode in URL context
+		decodedURL := encodedURL
+		decodedURL = strings.ReplaceAll(decodedURL, "&amp;", "&")
+		decodedURL = strings.ReplaceAll(decodedURL, "&quot;", "\"")
+		decodedURL = strings.ReplaceAll(decodedURL, "&#39;", "'")
+		decodedURL = strings.ReplaceAll(decodedURL, "&lt;", "<")
+		decodedURL = strings.ReplaceAll(decodedURL, "&gt;", ">")
+
+		return beforeURL + decodedURL + afterURL
+	})
 }
 
 func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHTML string, err error) {
