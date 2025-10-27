@@ -66,13 +66,17 @@ type ServerConfig struct {
 }
 
 type DatabaseConfig struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	DBName   string
-	Prefix   string
-	SSLMode  string
+	Host                  string
+	Port                  int
+	User                  string
+	Password              string
+	DBName                string
+	Prefix                string
+	SSLMode               string
+	MaxConnections        int           // Total max connections across all databases
+	MaxConnectionsPerDB   int           // Max connections per individual workspace database
+	ConnectionMaxLifetime time.Duration // Maximum lifetime of a connection
+	ConnectionMaxIdleTime time.Duration // Maximum idle time before closing
 }
 
 type SecurityConfig struct {
@@ -295,6 +299,10 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("DB_PREFIX", "notifuse")
 	v.SetDefault("DB_NAME", "notifuse_system")
 	v.SetDefault("DB_SSLMODE", "require")
+	v.SetDefault("DB_MAX_CONNECTIONS", 100)
+	v.SetDefault("DB_MAX_CONNECTIONS_PER_DB", 3)
+	v.SetDefault("DB_CONNECTION_MAX_LIFETIME", "10m")
+	v.SetDefault("DB_CONNECTION_MAX_IDLE_TIME", "5m")
 	v.SetDefault("ENVIRONMENT", "production")
 	v.SetDefault("LOG_LEVEL", "info")
 	v.SetDefault("VERSION", VERSION)
@@ -365,13 +373,31 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 
 	// Build database config first (needed to load system settings)
 	dbConfig := DatabaseConfig{
-		Host:     v.GetString("DB_HOST"),
-		Port:     v.GetInt("DB_PORT"),
-		User:     v.GetString("DB_USER"),
-		Password: v.GetString("DB_PASSWORD"),
-		DBName:   v.GetString("DB_NAME"),
-		Prefix:   v.GetString("DB_PREFIX"),
-		SSLMode:  v.GetString("DB_SSLMODE"),
+		Host:                  v.GetString("DB_HOST"),
+		Port:                  v.GetInt("DB_PORT"),
+		User:                  v.GetString("DB_USER"),
+		Password:              v.GetString("DB_PASSWORD"),
+		DBName:                v.GetString("DB_NAME"),
+		Prefix:                v.GetString("DB_PREFIX"),
+		SSLMode:               v.GetString("DB_SSLMODE"),
+		MaxConnections:        v.GetInt("DB_MAX_CONNECTIONS"),
+		MaxConnectionsPerDB:   v.GetInt("DB_MAX_CONNECTIONS_PER_DB"),
+		ConnectionMaxLifetime: v.GetDuration("DB_CONNECTION_MAX_LIFETIME"),
+		ConnectionMaxIdleTime: v.GetDuration("DB_CONNECTION_MAX_IDLE_TIME"),
+	}
+
+	// Validate database connection settings
+	if dbConfig.MaxConnections < 20 {
+		return nil, fmt.Errorf("DB_MAX_CONNECTIONS must be at least 20 (got %d)", dbConfig.MaxConnections)
+	}
+	if dbConfig.MaxConnections > 10000 {
+		return nil, fmt.Errorf("DB_MAX_CONNECTIONS cannot exceed 10000 (got %d)", dbConfig.MaxConnections)
+	}
+	if dbConfig.MaxConnectionsPerDB < 1 {
+		return nil, fmt.Errorf("DB_MAX_CONNECTIONS_PER_DB must be at least 1 (got %d)", dbConfig.MaxConnectionsPerDB)
+	}
+	if dbConfig.MaxConnectionsPerDB > 50 {
+		return nil, fmt.Errorf("DB_MAX_CONNECTIONS_PER_DB cannot exceed 50 (got %d)", dbConfig.MaxConnectionsPerDB)
 	}
 
 	// SECRET_KEY resolution (CRITICAL for decryption)

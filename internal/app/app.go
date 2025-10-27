@@ -19,6 +19,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/repository"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/internal/service/broadcast"
+	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/mailer"
 	"github.com/Notifuse/notifuse/pkg/tracing"
@@ -282,6 +283,17 @@ func (a *App) InitDB() error {
 	db.SetConnMaxLifetime(maxLifetime)
 
 	a.db = db
+
+	// Initialize connection manager singleton
+	if err := pkgDatabase.InitializeConnectionManager(a.config, db); err != nil {
+		db.Close()
+		return fmt.Errorf("failed to initialize connection manager: %w", err)
+	}
+
+	a.logger.WithField("max_connections", a.config.Database.MaxConnections).
+		WithField("max_connections_per_db", a.config.Database.MaxConnectionsPerDB).
+		Info("Connection manager initialized")
+
 	return nil
 }
 
@@ -319,11 +331,17 @@ func (a *App) InitRepositories() error {
 		return fmt.Errorf("database must be initialized before repositories")
 	}
 
+	// Get connection manager
+	connManager, err := pkgDatabase.GetConnectionManager()
+	if err != nil {
+		return fmt.Errorf("failed to get connection manager: %w", err)
+	}
+
 	a.userRepo = repository.NewUserRepository(a.db)
 	a.taskRepo = repository.NewTaskRepository(a.db)
 	a.authRepo = repository.NewSQLAuthRepository(a.db)
 	a.settingRepo = repository.NewSQLSettingRepository(a.db)
-	a.workspaceRepo = repository.NewWorkspaceRepository(a.db, &a.config.Database, a.config.Security.SecretKey)
+	a.workspaceRepo = repository.NewWorkspaceRepository(a.db, &a.config.Database, a.config.Security.SecretKey, connManager)
 	a.contactRepo = repository.NewContactRepository(a.workspaceRepo)
 	a.listRepo = repository.NewListRepository(a.workspaceRepo)
 	a.contactListRepo = repository.NewContactListRepository(a.workspaceRepo)
@@ -778,6 +796,7 @@ func (a *App) InitHandlers() error {
 		getPublicKey,
 		a.logger,
 	)
+	connectionStatsHandler := httpHandler.NewConnectionStatsHandler(a.logger)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -804,6 +823,7 @@ func (a *App) InitHandlers() error {
 	contactTimelineHandler.RegisterRoutes(a.mux)
 	segmentHandler.RegisterRoutes(a.mux)
 	a.mux.HandleFunc("/api/detect-favicon", faviconHandler.DetectFavicon)
+	a.mux.HandleFunc("/api/admin.connectionStats", connectionStatsHandler.GetConnectionStats)
 
 	return nil
 }
@@ -991,6 +1011,16 @@ func (a *App) Shutdown(ctx context.Context) error {
 // cleanupResources handles cleanup of database and other resources
 func (a *App) cleanupResources(_ context.Context) error {
 	a.logger.Info("Cleaning up resources...")
+
+	// Close connection manager before closing database
+	if connManager, err := pkgDatabase.GetConnectionManager(); err == nil {
+		a.logger.Info("Closing connection manager")
+		if err := connManager.Close(); err != nil {
+			a.logger.WithField("error", err).Error("Error closing connection manager")
+		} else {
+			a.logger.Info("Connection manager closed successfully")
+		}
+	}
 
 	// Close database connection if it exists
 	if a.db != nil {

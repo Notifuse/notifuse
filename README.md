@@ -150,6 +150,26 @@ The docker-compose includes a PostgreSQL container for quick testing. Simply run
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` - Email provider settings
 - `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` - From address and name
 
+**Database Connection Management:**
+
+Notifuse uses a smart connection pooling system to efficiently manage database connections across unlimited workspaces:
+
+- `DB_MAX_CONNECTIONS=100` - Total maximum connections across all databases (default: 100)
+- `DB_MAX_CONNECTIONS_PER_DB=3` - Max connections per workspace database (default: 3)
+- `DB_CONNECTION_MAX_LIFETIME=10m` - Maximum lifetime of a connection (default: 10m)
+- `DB_CONNECTION_MAX_IDLE_TIME=5m` - Maximum idle time before closing (default: 5m)
+
+**Connection Capacity:**
+- With default settings (100 max, 3 per DB), supports ~30 concurrent active workspace databases
+- Total workspaces supported: **unlimited** (100, 500, 1000+)
+- Idle workspace connections are automatically closed (LRU eviction)
+- Monitor real-time connection usage via `/api/admin.connectionStats`
+
+**Tuning Guidelines:**
+- Set `DB_MAX_CONNECTIONS` to 80-90% of your PostgreSQL `max_connections` setting
+- Lower `DB_MAX_CONNECTIONS_PER_DB` (to 2) for more concurrent workspaces
+- Increase `DB_MAX_CONNECTIONS_PER_DB` (to 5-7) if queries are long-running
+
 **Note:** Environment variables always take precedence over database settings configured via the setup wizard.
 
 For detailed installation instructions, configuration options, and setup guides, visit **[docs.notifuse.com](https://docs.notifuse.com)**.

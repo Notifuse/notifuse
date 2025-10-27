@@ -6,29 +6,33 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
+	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 )
 
 type workspaceRepository struct {
-	systemDB  *sql.DB
-	dbConfig  *config.DatabaseConfig
-	secretKey string
-
-	// Connection pool for workspace databases
-	connectionPools sync.Map
+	systemDB          *sql.DB
+	dbConfig          *config.DatabaseConfig
+	secretKey         string
+	connectionManager pkgDatabase.ConnectionManager
 }
 
 // NewWorkspaceRepository creates a new PostgreSQL workspace repository
-func NewWorkspaceRepository(systemDB *sql.DB, dbConfig *config.DatabaseConfig, secretKey string) domain.WorkspaceRepository {
+func NewWorkspaceRepository(
+	systemDB *sql.DB,
+	dbConfig *config.DatabaseConfig,
+	secretKey string,
+	connectionManager pkgDatabase.ConnectionManager,
+) domain.WorkspaceRepository {
 	return &workspaceRepository{
-		systemDB:  systemDB,
-		dbConfig:  dbConfig,
-		secretKey: secretKey,
+		systemDB:          systemDB,
+		dbConfig:          dbConfig,
+		secretKey:         secretKey,
+		connectionManager: connectionManager,
 	}
 }
 
@@ -213,26 +217,7 @@ func (r *workspaceRepository) Delete(ctx context.Context, id string) error {
 
 // GetConnection returns a connection to the workspace database
 func (r *workspaceRepository) GetConnection(ctx context.Context, workspaceID string) (*sql.DB, error) {
-	// Check if we already have a connection
-	if conn, ok := r.connectionPools.Load(workspaceID); ok {
-		db := conn.(*sql.DB)
-		// Test the connection
-		if err := db.PingContext(ctx); err == nil {
-			return db, nil
-		}
-		// If ping fails, remove the connection and create a new one
-		r.connectionPools.Delete(workspaceID)
-	}
-
-	// Create a new connection
-	db, err := database.ConnectToWorkspace(r.dbConfig, workspaceID)
-	if err != nil {
-		return nil, err
-	}
-
-	// Store the connection
-	r.connectionPools.Store(workspaceID, db)
-	return db, nil
+	return r.connectionManager.GetWorkspaceConnection(ctx, workspaceID)
 }
 
 // GetSystemConnection returns a connection to the system database
@@ -283,13 +268,10 @@ func (r *workspaceRepository) DeleteDatabase(ctx context.Context, workspaceID st
 	safeID := strings.ReplaceAll(workspaceID, "-", "_")
 	dbName := fmt.Sprintf("%s_ws_%s", r.dbConfig.Prefix, safeID)
 
-	// Get our own connection to close it
-	if conn, ok := r.connectionPools.Load(workspaceID); ok {
-		db := conn.(*sql.DB)
-		// Close our connection to the workspace database
-		db.Close()
-		// Remove from the pool
-		r.connectionPools.Delete(workspaceID)
+	// Close the workspace connection pool
+	if err := r.connectionManager.CloseWorkspaceConnection(workspaceID); err != nil {
+		// Log error but continue with database deletion
+		fmt.Printf("Warning: failed to close workspace connection: %v\n", err)
 	}
 
 	// First, revoke all privileges to prevent new connections
