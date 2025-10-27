@@ -156,6 +156,10 @@ func WithMockDB(db *sql.DB) AppOption {
 }
 
 // WithMockMailer configures the app to use a mock mailer
+// Note: If Initialize() or InitMailer() is called after setting a mock,
+// the mock will be replaced with a real mailer. To keep the mock, either:
+// 1. Don't call Initialize()/InitMailer(), OR
+// 2. Set the mock again after calling Initialize()
 func WithMockMailer(m mailer.Mailer) AppOption {
 	return func(a *App) {
 		a.mailer = m
@@ -286,12 +290,11 @@ func (a *App) InitDB() error {
 }
 
 // InitMailer initializes the mailer service
+// This method can be called multiple times to reinitialize the mailer with updated configuration
 func (a *App) InitMailer() error {
-	// Skip if mailer already set (e.g., by mock)
-	if a.mailer != nil {
-		return nil
-	}
-
+	// Always initialize/reinitialize the mailer
+	// This allows config changes (e.g., after setup wizard) to take effect
+	
 	if a.config.IsDevelopment() {
 		// Use console mailer in development
 		a.mailer = mailer.NewConsoleMailer()
