@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -1115,6 +1116,16 @@ func (a *App) GetConfig() *config.Config {
 // ReloadConfig reloads the configuration from the database and updates services
 func (a *App) ReloadConfig(ctx context.Context) error {
 	a.logger.Info("Reloading configuration from database...")
+
+	// Set up environment variables needed for config loading
+	// Use existing values from current config to ensure consistency
+	os.Setenv("SECRET_KEY", a.config.Security.SecretKey)
+	os.Setenv("DB_HOST", a.config.Database.Host)
+	os.Setenv("DB_PORT", fmt.Sprintf("%d", a.config.Database.Port))
+	os.Setenv("DB_USER", a.config.Database.User)
+	os.Setenv("DB_PASSWORD", a.config.Database.Password)
+	os.Setenv("DB_NAME", a.config.Database.DBName)
+	os.Setenv("DB_SSLMODE", a.config.Database.SSLMode)
 
 	// Reload the configuration
 	newConfig, err := config.Load()

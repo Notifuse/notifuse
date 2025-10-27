@@ -1,6 +1,6 @@
 # Fix Implementation Summary: Signin Mail Parsing Error After Setup
 
-## ✅ Status: **IMPLEMENTED AND TESTED**
+## ✅ Status: **IMPLEMENTED - Additional Issue Found**
 
 Date: 2025-10-27
 
@@ -13,7 +13,10 @@ Date: 2025-10-27
 failed to set email from address: failed to parse mail address "\"Notifuse\" <>": mail: invalid string
 ```
 
-**Root Cause**: The `InitMailer()` function had an early return that prevented mailer reinitialization after the setup wizard saved new SMTP configuration to the database.
+**Root Causes** (Two Issues Found):
+
+1. **InitMailer Early Return** (Fixed ✅): The `InitMailer()` function had an early return that prevented mailer reinitialization
+2. **ReloadConfig Failing** (Fixed ✅): `ReloadConfig()` was failing because `config.Load()` required environment variables that weren't set in the test/callback context
 
 ---
 
@@ -28,7 +31,18 @@ Instead of adding type-checking logic to detect mocks vs production mailers, we 
 
 ### Code Changes
 
-#### 1. **File: `internal/app/app.go`** (Lines 288-313)
+#### 1. **File: `internal/app/app.go`** (Lines 3-28) - Added `os` import
+
+**Added**:
+```go
+import (
+    // ... existing imports
+    "os"   // NEW: Added for environment variable handling
+    // ... rest of imports
+)
+```
+
+#### 2. **File: `internal/app/app.go`** (Lines 288-313)
 
 **Before** (Buggy code):
 ```go
@@ -96,7 +110,60 @@ func WithMockMailer(m mailer.Mailer) AppOption {
 }
 ```
 
-#### 3. **File: `internal/app/app_test.go`** (Lines 113-190)
+#### 3. **File: `internal/app/app.go`** (Lines 1115-1150) - Fixed `ReloadConfig()`
+
+**Critical Discovery from GitHub Actions**: Integration tests revealed that `ReloadConfig()` was failing!
+
+**Error from logs**:
+```
+{"level":"error","error":{},"message":"Failed to reload configuration after setup"}
+```
+
+**Problem**: `config.Load()` requires `SECRET_KEY` environment variable, but this wasn't set when called from the setup callback.
+
+**Before** (Failing):
+```go
+func (a *App) ReloadConfig(ctx context.Context) error {
+    a.logger.Info("Reloading configuration from database...")
+    
+    // This fails because environment variables aren't set!
+    newConfig, err := config.Load()  // ❌ Requires SECRET_KEY env var
+    if err != nil {
+        return fmt.Errorf("failed to reload config: %w", err)
+    }
+    // ...
+}
+```
+
+**After** (Fixed):
+```go
+func (a *App) ReloadConfig(ctx context.Context) error {
+    a.logger.Info("Reloading configuration from database...")
+    
+    // Set up environment variables from current config
+    os.Setenv("SECRET_KEY", a.config.Security.SecretKey)
+    os.Setenv("DB_HOST", a.config.Database.Host)
+    os.Setenv("DB_PORT", fmt.Sprintf("%d", a.config.Database.Port))
+    os.Setenv("DB_USER", a.config.Database.User)
+    os.Setenv("DB_PASSWORD", a.config.Database.Password)
+    os.Setenv("DB_NAME", a.config.Database.DBName)
+    os.Setenv("DB_SSLMODE", a.config.Database.SSLMode)
+    
+    // Now this works!
+    newConfig, err := config.Load()  // ✅ Has required env vars
+    if err != nil {
+        return fmt.Errorf("failed to reload config: %w", err)
+    }
+    // ...
+}
+```
+
+**Why This Fix is Critical**:
+- Without environment variables, `config.Load()` fails with "SECRET_KEY must be set"
+- This caused the entire `ReloadConfig()` to fail silently (logged but not propagated)
+- Even with `InitMailer()` fixed, mailer would never be reinitialized because `ReloadConfig()` never completed
+
+#### 4. **File: `internal/app/app_test.go`** (Lines 113-190)
 
 **Completely rewrote** `TestAppInitMailer` with 3 new subtests:
 
@@ -225,8 +292,10 @@ cfg.SMTP.FromName = "Notifuse"  // Default name only
 
 | File | Lines | Change |
 |------|-------|--------|
+| `internal/app/app.go` | 3-28 | Added `os` import for environment variables |
 | `internal/app/app.go` | 288-313 | Removed nil check in `InitMailer()` |
 | `internal/app/app.go` | 158-167 | Updated `WithMockMailer()` docs |
+| `internal/app/app.go` | 1115-1150 | **CRITICAL**: Fixed `ReloadConfig()` to set env vars |
 | `internal/app/app_test.go` | 113-190 | Rewrote `TestAppInitMailer` with 3 subtests |
 | `tests/integration/setup_wizard_test.go` | 459-479 | Updated test config to reproduce bug |
 
