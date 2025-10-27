@@ -646,3 +646,75 @@ func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, pasetoPublicKey, paseto
 		c.envValues.SMTPFromName,
 		c.envValues.SMTPPort
 }
+
+// ReloadDatabaseSettings reloads settings from the database without re-reading environment variables
+// This is used when configuration changes at runtime (e.g., after setup wizard)
+// It only updates database-sourced settings, preserving environment variable configuration
+func (c *Config) ReloadDatabaseSettings() error {
+	// Use existing database configuration to connect
+	db, err := sql.Open("postgres", getSystemDSN(&c.Database))
+	if err != nil {
+		return fmt.Errorf("failed to connect to database: %w", err)
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping database: %w", err)
+	}
+
+	// Load settings from database using existing secret key
+	systemSettings, err := loadSystemSettings(db, c.Security.SecretKey)
+	if err != nil {
+		return fmt.Errorf("failed to load system settings: %w", err)
+	}
+
+	if systemSettings == nil {
+		return fmt.Errorf("no system settings found")
+	}
+
+	// Update only the database-sourced settings
+	c.IsInstalled = systemSettings.IsInstalled
+	c.RootEmail = systemSettings.RootEmail
+	c.APIEndpoint = systemSettings.APIEndpoint
+
+	// Update SMTP configuration
+	c.SMTP.Host = systemSettings.SMTPHost
+	c.SMTP.Port = systemSettings.SMTPPort
+	c.SMTP.Username = systemSettings.SMTPUsername
+	c.SMTP.Password = systemSettings.SMTPPassword
+	c.SMTP.FromEmail = systemSettings.SMTPFromEmail
+	c.SMTP.FromName = systemSettings.SMTPFromName
+
+	// Update PASETO keys if present
+	if systemSettings.PasetoPrivateKey != "" && systemSettings.PasetoPublicKey != "" {
+		// Decode base64 keys
+		privateKeyBytes, err := base64.StdEncoding.DecodeString(systemSettings.PasetoPrivateKey)
+		if err != nil {
+			return fmt.Errorf("error decoding PASETO private key: %w", err)
+		}
+
+		publicKeyBytes, err := base64.StdEncoding.DecodeString(systemSettings.PasetoPublicKey)
+		if err != nil {
+			return fmt.Errorf("error decoding PASETO public key: %w", err)
+		}
+
+		// Convert bytes to PASETO key types
+		privateKey, err := paseto.NewV4AsymmetricSecretKeyFromBytes(privateKeyBytes)
+		if err != nil {
+			return fmt.Errorf("error creating PASETO private key: %w", err)
+		}
+
+		publicKey, err := paseto.NewV4AsymmetricPublicKeyFromBytes(publicKeyBytes)
+		if err != nil {
+			return fmt.Errorf("error creating PASETO public key: %w", err)
+		}
+
+		// Update config with parsed keys
+		c.Security.PasetoPrivateKey = privateKey
+		c.Security.PasetoPublicKey = publicKey
+		c.Security.PasetoPrivateKeyBytes = privateKeyBytes
+		c.Security.PasetoPublicKeyBytes = publicKeyBytes
+	}
+
+	return nil
+}
