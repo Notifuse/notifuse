@@ -44,6 +44,117 @@ Create a singleton `ConnectionManager` that:
 └─────────────────────────────────────────────────────┘
 ```
 
+## Connection Exhaustion Strategy
+
+### What Happens When All Connections Are Used?
+
+When a new workspace needs a connection and we're at the global limit:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ New workspace requests connection                       │
+└─────────────────────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────┐
+│ Check: Do we have existing connection for workspace?    │
+│   YES → Return existing connection                      │
+│   NO  → Continue to capacity check                      │
+└─────────────────────────────────────────────────────────┘
+                        │
+                        ▼
+┌─────────────────────────────────────────────────────────┐
+│ Check: Do we have capacity for new workspace pool?      │
+│   Current + WorkspacePoolSize <= 90% of MaxConnections  │
+└─────────────────────────────────────────────────────────┘
+                        │
+            ┌───────────┴───────────┐
+            │                       │
+           YES                     NO
+            │                       │
+            ▼                       ▼
+    ┌──────────────┐      ┌────────────────────┐
+    │ Create Pool  │      │ Reclaim Idle       │
+    │ Return DB    │      │ Connections        │
+    └──────────────┘      └────────────────────┘
+                                    │
+                        ┌───────────┴───────────┐
+                        │                       │
+                  RECLAIMED                 NOTHING
+                        │                       │
+                        ▼                       ▼
+                ┌──────────────┐      ┌─────────────────┐
+                │ Retry        │      │ Return Error    │
+                │ Capacity     │      │ 503 Service     │
+                │ Check        │      │ Unavailable     │
+                └──────────────┘      └─────────────────┘
+```
+
+### Strategy Details
+
+#### 1. **Capacity Check (Before Creating Pool)**
+```go
+currentConnections := getTotalConnectionCount()
+projectedConnections := currentConnections + workspacePoolSize
+
+// Leave 10% buffer to avoid hitting PostgreSQL max_connections exactly
+if projectedConnections > (maxConnections * 0.9) {
+    // At capacity, try to reclaim
+}
+```
+
+#### 2. **Idle Connection Reclamation**
+When at capacity, automatically close connection pools for workspaces with:
+- **Zero active queries** (`InUse == 0`)
+- **Some idle connections** (`Idle > 0`)
+
+These workspaces haven't been accessed recently and can be closed. When they're accessed again, a new pool will be created (potentially reclaiming from another idle workspace).
+
+#### 3. **Error Response**
+If reclamation fails (all workspaces are actively being used):
+```go
+return &ConnectionLimitError{
+    MaxConnections:     100,
+    CurrentConnections: 95,
+    WorkspaceID:        "new-workspace-123",
+}
+// Error: "connection limit reached: 95/100 connections in use, 
+//         cannot create pool for workspace new-workspace-123"
+```
+
+The API returns **HTTP 503 Service Unavailable** with a clear message.
+
+#### 4. **Client Retry Logic**
+Clients should:
+- Detect `503` status code
+- Wait 1-5 seconds (with exponential backoff)
+- Retry the request
+- By then, idle connections may have been reclaimed
+
+### Why This Approach?
+
+**Pros:**
+- ✅ Never exceeds PostgreSQL connection limit
+- ✅ Automatic resource management (idle reclamation)
+- ✅ No silent blocking/timeouts
+- ✅ Clear error messages for debugging
+- ✅ Workspaces "borrow" capacity from idle ones
+
+**Alternatives Considered:**
+- ❌ **Blocking/waiting**: Could cause deadlocks, poor UX
+- ❌ **Queueing requests**: Complex, memory overhead, still needs timeout
+- ❌ **Connection sharing**: Breaks transaction isolation, too risky
+- ❌ **Dynamic pool resizing**: Could lead to fragmentation, hard to predict
+
+### Buffer Strategy
+
+We maintain a **10% buffer** below the max:
+- If `DB_MAX_CONNECTIONS=100`, we stop creating new pools at 90 connections
+- This prevents:
+  - Race conditions where multiple pools create connections simultaneously
+  - Hitting PostgreSQL's hard limit (which causes connection failures)
+  - Allows room for admin tools, monitoring, migrations
+
 ---
 
 ## Implementation Steps
@@ -286,6 +397,28 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
         return conn, nil
     }
     
+    // Check if we have capacity for a new workspace connection pool
+    if !cm.hasCapacityForNewWorkspace() {
+        // Try to reclaim connections from idle workspaces
+        if cm.reclaimIdleConnections() {
+            // Successfully reclaimed, retry capacity check
+            if !cm.hasCapacityForNewWorkspace() {
+                return nil, &ConnectionLimitError{
+                    MaxConnections:     cm.maxConnections,
+                    CurrentConnections: cm.getTotalConnectionCount(),
+                    WorkspaceID:        workspaceID,
+                }
+            }
+        } else {
+            // Cannot create new workspace pool - at capacity
+            return nil, &ConnectionLimitError{
+                MaxConnections:     cm.maxConnections,
+                CurrentConnections: cm.getTotalConnectionCount(),
+                WorkspaceID:        workspaceID,
+            }
+        }
+    }
+    
     // Create workspace connection
     db, err := cm.createWorkspaceConnection(workspaceID)
     if err != nil {
@@ -412,6 +545,92 @@ func (cm *connectionManager) Close() error {
     
     return nil
 }
+
+// hasCapacityForNewWorkspace checks if we have capacity for a new workspace pool
+// Must be called with write lock held
+func (cm *connectionManager) hasCapacityForNewWorkspace() bool {
+    currentTotal := cm.getTotalConnectionCount()
+    
+    // Calculate how many connections a new workspace would need
+    // We reserve space for at least the workspace pool size
+    projectedTotal := currentTotal + cm.workspacePoolSize
+    
+    // Leave 10% buffer to avoid hitting exact limit
+    maxAllowed := int(float64(cm.maxConnections) * 0.9)
+    
+    return projectedTotal <= maxAllowed
+}
+
+// getTotalConnectionCount returns the current total connection count
+// Must be called with lock held (read or write)
+func (cm *connectionManager) getTotalConnectionCount() int {
+    total := 0
+    
+    // Count system connections
+    if cm.systemDB != nil {
+        stats := cm.systemDB.Stats()
+        total += stats.OpenConnections
+    }
+    
+    // Count workspace connections
+    for _, db := range cm.workspacePools {
+        stats := db.Stats()
+        total += stats.OpenConnections
+    }
+    
+    return total
+}
+
+// reclaimIdleConnections attempts to close idle workspace connections
+// Returns true if any connections were reclaimed
+// Must be called with write lock held
+func (cm *connectionManager) reclaimIdleConnections() bool {
+    var reclaimed bool
+    var toRemove []string
+    
+    // Find workspaces with only idle connections (no active queries)
+    for workspaceID, db := range cm.workspacePools {
+        stats := db.Stats()
+        
+        // If all connections are idle, this workspace is not actively being used
+        if stats.InUse == 0 && stats.Idle > 0 {
+            toRemove = append(toRemove, workspaceID)
+        }
+    }
+    
+    // Remove idle workspace connections
+    for _, workspaceID := range toRemove {
+        if db, ok := cm.workspacePools[workspaceID]; ok {
+            db.Close()
+            delete(cm.workspacePools, workspaceID)
+            reclaimed = true
+        }
+    }
+    
+    return reclaimed
+}
+
+// ConnectionLimitError is returned when connection limit is reached
+type ConnectionLimitError struct {
+    MaxConnections     int
+    CurrentConnections int
+    WorkspaceID        string
+}
+
+func (e *ConnectionLimitError) Error() string {
+    return fmt.Sprintf(
+        "connection limit reached: %d/%d connections in use, cannot create pool for workspace %s",
+        e.CurrentConnections,
+        e.MaxConnections,
+        e.WorkspaceID,
+    )
+}
+
+// IsConnectionLimitError checks if an error is a connection limit error
+func IsConnectionLimitError(err error) bool {
+    _, ok := err.(*ConnectionLimitError)
+    return ok
+}
 ```
 
 **Test File:** `pkg/database/connection_manager_test.go` (NEW)
@@ -426,11 +645,17 @@ func (cm *connectionManager) Close() error {
 7. `TestGetWorkspaceConnection_CreatesNew` - Creates new workspace connection
 8. `TestGetWorkspaceConnection_ReusesExisting` - Reuses existing connection
 9. `TestGetWorkspaceConnection_RecreatesStale` - Recreates stale connection
-10. `TestRemoveWorkspaceConnection` - Removes and closes connection
-11. `TestGetStats_EmptyPools` - Returns stats with no workspaces
-12. `TestGetStats_WithWorkspaces` - Returns accurate stats
-13. `TestClose_ClosesAllWorkspaces` - Closes all workspace connections
-14. `TestConcurrentAccess` - Test thread safety with concurrent goroutines
+10. `TestGetWorkspaceConnection_AtCapacity` - **NEW: Returns error when at limit**
+11. `TestGetWorkspaceConnection_ReclaimsIdle` - **NEW: Reclaims idle connections**
+12. `TestHasCapacityForNewWorkspace` - **NEW: Capacity check logic**
+13. `TestGetTotalConnectionCount` - **NEW: Accurate connection counting**
+14. `TestReclaimIdleConnections` - **NEW: Idle connection reclamation**
+15. `TestConnectionLimitError` - **NEW: Error type and message**
+16. `TestRemoveWorkspaceConnection` - Removes and closes connection
+17. `TestGetStats_EmptyPools` - Returns stats with no workspaces
+18. `TestGetStats_WithWorkspaces` - Returns accurate stats
+19. `TestClose_ClosesAllWorkspaces` - Closes all workspace connections
+20. `TestConcurrentAccess` - Test thread safety with concurrent goroutines
 
 ---
 
@@ -471,7 +696,18 @@ func NewWorkspaceRepository(
 
 // GetConnection returns a connection to the workspace database
 func (r *workspaceRepository) GetConnection(ctx context.Context, workspaceID string) (*sql.DB, error) {
-    return r.connectionManager.GetWorkspaceConnection(ctx, workspaceID)
+    db, err := r.connectionManager.GetWorkspaceConnection(ctx, workspaceID)
+    if err != nil {
+        // Log connection limit errors with details
+        if database.IsConnectionLimitError(err) {
+            r.logger.WithFields(map[string]interface{}{
+                "workspace_id": workspaceID,
+                "error": err.Error(),
+            }).Warn("Connection limit reached")
+        }
+        return nil, err
+    }
+    return db, nil
 }
 
 // GetSystemConnection returns a connection to the system database
@@ -553,7 +789,75 @@ if connManager, err := database.GetConnectionManager(); err == nil {
 
 ---
 
-### Phase 5: Add Monitoring Endpoint
+### Phase 5: Update Error Handling in HTTP Layer
+
+#### Step 5.1: Add Helper for Connection Limit Errors
+**File:** `internal/http/helpers.go` (update existing or create)
+
+**Add function to detect and handle connection limit errors:**
+```go
+// HandleDatabaseError checks for specific database errors and returns appropriate HTTP response
+func HandleDatabaseError(w http.ResponseWriter, err error, logger logger.Logger) bool {
+    // Check for connection limit error
+    if database.IsConnectionLimitError(err) {
+        logger.WithField("error", err.Error()).Warn("Connection limit reached")
+        http.Error(w, fmt.Sprintf("Service temporarily unavailable: %s. Please retry in a few seconds.", err.Error()), http.StatusServiceUnavailable)
+        return true
+    }
+    
+    // Not a handled error type
+    return false
+}
+```
+
+#### Step 5.2: Update Repository Methods
+**Files:** All repository methods that call `GetConnection()`
+
+**Pattern to apply in all handlers:**
+```go
+// Example in contact handler
+func (h *ContactHandler) CreateContact(w http.ResponseWriter, r *http.Request) {
+    // ... parse request ...
+    
+    // This call might return ConnectionLimitError
+    contact, err := h.contactService.Create(ctx, workspaceID, createReq)
+    if err != nil {
+        // Check for connection limit error first
+        if HandleDatabaseError(w, err, h.logger) {
+            return  // 503 already sent
+        }
+        
+        // Handle other errors normally
+        if errors.Is(err, domain.ErrContactAlreadyExists) {
+            http.Error(w, "Contact already exists", http.StatusConflict)
+            return
+        }
+        
+        h.logger.Error("Failed to create contact")
+        http.Error(w, "Internal server error", http.StatusInternalServerError)
+        return
+    }
+    
+    // ... success response ...
+}
+```
+
+**Files to update:**
+- `internal/http/contact_handler.go` - All methods accessing contacts
+- `internal/http/list_handler.go` - All methods accessing lists
+- `internal/http/template_handler.go` - All methods accessing templates
+- `internal/http/broadcast_handler.go` - All methods accessing broadcasts
+- `internal/http/message_history_handler.go` - All methods accessing message history
+- `internal/http/transactional_handler.go` - All methods accessing transactionals
+- `internal/http/webhook_event_handler.go` - All methods accessing webhook events
+
+**Test Updates:**
+- Add test cases for `503 Service Unavailable` when connection limit reached
+- Mock ConnectionManager to simulate limit errors
+
+---
+
+### Phase 6: Add Monitoring Endpoint
 
 #### Step 5.1: Create Connection Stats Handler
 **File:** `internal/http/connection_stats_handler.go` (NEW)
@@ -753,6 +1057,31 @@ func TestConnectionManager_Integration(t *testing.T) {
         // Simulate database restart (stale connection)
         // Verify connection is recreated on next access
     })
+    
+    t.Run("rejects new workspace at capacity", func(t *testing.T) {
+        // Set DB_MAX_CONNECTIONS=50
+        // Create and access enough workspaces to reach 90% capacity
+        // Try to access a new workspace
+        // Verify ConnectionLimitError is returned
+        // Verify total connections stays under limit
+    })
+    
+    t.Run("reclaims idle connections when at capacity", func(t *testing.T) {
+        // Set DB_MAX_CONNECTIONS=40
+        // Create 5 workspaces, access them all (fills to capacity)
+        // Stop using 2 workspaces (let them go idle)
+        // Access a new 6th workspace
+        // Verify: idle workspaces were reclaimed, new workspace succeeds
+        // Verify: connection count stays under limit
+    })
+    
+    t.Run("API returns 503 when at capacity", func(t *testing.T) {
+        // Set DB_MAX_CONNECTIONS=35
+        // Fill to capacity with active workspaces
+        // Make API request for new workspace
+        // Verify: HTTP 503 status code
+        // Verify: Error message includes connection limit details
+    })
 }
 ```
 
@@ -945,8 +1274,23 @@ None - no public API changes
 ### Code Changes
 - [ ] Update `config/config.go` - Add MaxConnections field
 - [ ] Create `pkg/database/connection_manager.go` - Singleton implementation
+  - [ ] Add `ConnectionLimitError` type
+  - [ ] Add `hasCapacityForNewWorkspace()` method
+  - [ ] Add `getTotalConnectionCount()` method  
+  - [ ] Add `reclaimIdleConnections()` method
+  - [ ] Add capacity checks in `GetWorkspaceConnection()`
 - [ ] Update `internal/repository/workspace_postgres.go` - Use ConnectionManager
+  - [ ] Add logging for connection limit errors
 - [ ] Update `internal/app/app.go` - Initialize ConnectionManager
+- [ ] Update `internal/http/helpers.go` - Add `HandleDatabaseError()` function
+- [ ] Update all HTTP handlers - Handle ConnectionLimitError (503 response)
+  - [ ] `internal/http/contact_handler.go`
+  - [ ] `internal/http/list_handler.go`
+  - [ ] `internal/http/template_handler.go`
+  - [ ] `internal/http/broadcast_handler.go`
+  - [ ] `internal/http/message_history_handler.go`
+  - [ ] `internal/http/transactional_handler.go`
+  - [ ] `internal/http/webhook_event_handler.go`
 - [ ] Create `internal/http/connection_stats_handler.go` - Stats endpoint
 - [ ] Update `internal/http/routes.go` - Register stats endpoint
 
@@ -1028,6 +1372,40 @@ This plan implements a robust, testable connection manager that:
 4. Includes comprehensive testing
 5. Enables future enhancements
 
-**Estimated effort:** 3-5 days development + testing
+### Key Question Answered: What Happens When All Connections Are Used?
+
+**Short Answer:** The system gracefully handles connection exhaustion with automatic idle connection reclamation and clear error responses.
+
+**Detailed Flow:**
+1. **New workspace requests connection** while at 90% of `DB_MAX_CONNECTIONS`
+2. **Capacity check fails** - not enough room for a new workspace pool
+3. **Automatic reclamation** - Close connection pools from idle workspaces (no active queries)
+4. **Retry capacity check:**
+   - **If reclaimed:** Create new workspace pool, return connection ✅
+   - **If still at capacity:** Return `ConnectionLimitError` with details ❌
+5. **HTTP layer** detects error, returns **503 Service Unavailable**
+6. **Client retries** after 1-5 seconds (idle connections likely freed by then)
+
+**Example Error Message:**
+```
+HTTP 503 Service Unavailable
+Service temporarily unavailable: connection limit reached: 95/100 connections in use, 
+cannot create pool for workspace ws-abc123. Please retry in a few seconds.
+```
+
+**Why This Works:**
+- ✅ **Never exceeds limit** - Proactive capacity checks with 10% buffer
+- ✅ **Self-healing** - Idle workspaces automatically reclaimed
+- ✅ **Transparent** - Clear error messages, not silent timeouts
+- ✅ **Recoverable** - Clients can retry and will likely succeed
+- ✅ **Fair** - Active workspaces keep their connections, idle ones don't
+
+**Edge Cases Handled:**
+- All workspaces actively used → Clear 503 error
+- Race conditions → 10% buffer prevents simultaneous pool creation issues
+- Stale connections → Health checks + automatic reconnection
+- Workspace deletion → Connections properly closed and removed
+
+**Estimated effort:** 4-6 days development + testing
 **Risk level:** Low
-**Impact:** High - solves production connection limit issues
+**Impact:** High - solves production connection limit issues with graceful degradation
