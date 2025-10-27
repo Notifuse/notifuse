@@ -34,6 +34,7 @@ Created a new method that reloads **only database-sourced settings** without tou
 
 ```go
 // GOOD: New implementation
+// CRITICAL: Environment variables ALWAYS take precedence over database values
 func (c *Config) ReloadDatabaseSettings() error {
     // 1. Use existing DB config to connect
     db, err := sql.Open("postgres", getSystemDSN(&c.Database))
@@ -41,15 +42,23 @@ func (c *Config) ReloadDatabaseSettings() error {
     // 2. Load settings from database using existing secret key
     systemSettings, err := loadSystemSettings(db, c.Security.SecretKey)
     
-    // 3. Update ONLY database-sourced settings
+    // 3. Update ONLY database-sourced settings, RESPECTING ENV VAR PRECEDENCE
     c.IsInstalled = systemSettings.IsInstalled
-    c.SMTP.Host = systemSettings.SMTPHost
-    c.SMTP.FromEmail = systemSettings.SMTPFromEmail
-    // ... other DB settings
     
-    // 4. Parse PASETO keys properly
-    privateKey, _ := paseto.NewV4AsymmetricSecretKeyFromBytes(privateKeyBytes)
-    c.Security.PasetoPrivateKey = privateKey
+    // Only update if NOT set via environment variable
+    if c.envValues.SMTPHost == "" {
+        c.SMTP.Host = systemSettings.SMTPHost
+    }
+    if c.envValues.SMTPFromEmail == "" {
+        c.SMTP.FromEmail = systemSettings.SMTPFromEmail
+    }
+    // ... apply same pattern for all settings
+    
+    // 4. Parse PASETO keys properly (if not from env vars)
+    if c.envValues.PasetoPrivateKey == "" && c.envValues.PasetoPublicKey == "" {
+        privateKey, _ := paseto.NewV4AsymmetricSecretKeyFromBytes(privateKeyBytes)
+        c.Security.PasetoPrivateKey = privateKey
+    }
     
     return nil
 }
@@ -100,22 +109,56 @@ config.Load()
 - Properly parses PASETO keys from base64 strings
 - Uses correct types throughout (`paseto.V4AsymmetricSecretKey`, not `string`)
 
+### 6. **Environment Variable Precedence (CRITICAL)**
+- **Rule**: Environment variables ALWAYS override database values
+- **Why**: Production security (SMTP credentials via env vars)
+- **How**: Check `c.envValues` before applying database values
+- **Benefit**: Admin can enforce configuration via env vars that can't be changed via UI
+
 ## What Gets Reloaded
 
-### From Database (Reloaded)
-- ✅ `IsInstalled` flag
-- ✅ `RootEmail`
-- ✅ `APIEndpoint`
-- ✅ SMTP configuration (host, port, credentials, from email)
-- ✅ PASETO keys (if changed)
+### Always Updated from Database
+- ✅ `IsInstalled` flag (state, not configuration)
 
-### From Environment Variables (Preserved)
+### From Database (ONLY if not set via env var)
+- ⚙️ `RootEmail` (env var takes precedence)
+- ⚙️ `APIEndpoint` (env var takes precedence)
+- ⚙️ SMTP Host (env var takes precedence)
+- ⚙️ SMTP Port (env var takes precedence)
+- ⚙️ SMTP Username (env var takes precedence)
+- ⚙️ SMTP Password (env var takes precedence)
+- ⚙️ SMTP From Email (env var takes precedence)
+- ⚙️ SMTP From Name (env var takes precedence)
+- ⚙️ PASETO keys (env var takes precedence)
+
+### Never Reloaded (Startup Only)
 - 🔒 `SECRET_KEY` (encryption key)
 - 🔒 Database connection settings
 - 🔒 Server port and host
 - 🔒 Tracing configuration
 - 🔒 Log level
-- 🔒 All other env-based settings
+
+### Precedence Rule
+```
+Environment Variable > Database Value > Default Value
+```
+
+**Example Scenarios:**
+
+1. **SMTP Host via Env Var**:
+   - Env: `SMTP_HOST=smtp.production.com`
+   - DB: `smtp_host=smtp.database.com`
+   - **Result**: Uses `smtp.production.com` (env var wins)
+
+2. **SMTP Host via Database Only**:
+   - Env: Not set
+   - DB: `smtp_host=smtp.database.com`
+   - **Result**: Uses `smtp.database.com` (database used)
+
+3. **SMTP Port Not Set Anywhere**:
+   - Env: Not set
+   - DB: Not set
+   - **Result**: Uses `587` (default)
 
 ## Use Cases
 
@@ -157,7 +200,23 @@ config.Load()
 ✅ TestAppInitMailer - PASS
 ✅ TestNewApp - PASS
 ✅ TestSetupWizardSigninImmediatelyAfterCompletion - PASS
+✅ TestReloadDatabaseSettings_EnvVarPrecedence - PASS (NEW)
+✅ TestReloadDatabaseSettings_DatabaseOnlyValues - PASS (NEW)
 ```
+
+### New Tests for Environment Variable Precedence
+
+**`TestReloadDatabaseSettings_EnvVarPrecedence`**:
+- Sets env vars for some SMTP settings
+- Saves different values to database
+- Reloads configuration
+- **Verifies**: Env vars are preserved, database fills gaps
+
+**`TestReloadDatabaseSettings_DatabaseOnlyValues`**:
+- No env vars set
+- Saves values to database only
+- Reloads configuration
+- **Verifies**: Database values are used, defaults applied when needed
 
 ## Design Principles Applied
 
