@@ -347,11 +347,51 @@ make test-unit
 - Existing tests should pass
 - Mock behavior preserved
 
+## Test Implementation Status
+
+### Integration Test Created
+
+An integration test has been added to verify this bug:
+
+**File**: `tests/integration/setup_wizard_test.go`
+
+**Test Function**: `TestSetupWizardSigninImmediatelyAfterCompletion`
+
+This test:
+1. Creates an uninstalled test environment
+2. Completes setup wizard with full SMTP configuration
+3. Immediately attempts signin WITHOUT restarting the service
+4. Verifies no "failed to parse mail address" errors occur
+5. Confirms mailer was properly reinitialized after setup
+
+The test specifically checks for the bug symptoms:
+- `"failed to parse mail address"`
+- `"mail: invalid string"`
+- `"failed to set email from address"`
+
+This test will **FAIL** with the current code (demonstrating the bug) and will **PASS** after implementing the fix in `internal/app/app.go`.
+
+### Expected Test Behavior
+
+**Before Fix** (Current State):
+- Test completes setup successfully
+- Test attempts signin
+- Signin fails with: `"failed to set email from address: failed to parse mail address \"Notifuse\" <>: mail: invalid string"`
+- Test detects the error and fails ✓ (Bug confirmed)
+
+**After Fix** (Expected):
+- Test completes setup successfully
+- Mailer is reinitialized with new SMTP settings
+- Test attempts signin
+- Signin succeeds (magic code sent/returned)
+- No mail parsing errors detected
+- Test passes ✓ (Bug fixed)
+
 ## Verification Checklist
 
-- [ ] Code changes implemented
-- [ ] Unit tests added and passing
-- [ ] Integration test added and passing
+- [ ] Code changes implemented in `internal/app/app.go`
+- [ ] Unit tests added for `InitMailer()` reinitialization
+- [ ] Integration test `TestSetupWizardSigninImmediatelyAfterCompletion` passing
 - [ ] Existing tests still passing
 - [ ] Manual testing completed successfully
 - [ ] No linter errors

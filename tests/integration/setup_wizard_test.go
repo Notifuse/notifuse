@@ -326,6 +326,115 @@ func TestSetupWizardEnvironmentOverrides(t *testing.T) {
 	t.Skip("Environment override testing requires complex test infrastructure")
 }
 
+// TestSetupWizardSigninImmediatelyAfterCompletion tests that signin works immediately after setup
+// This test verifies the bug fix where mailer wasn't being reinitialized after setup completion
+func TestSetupWizardSigninImmediatelyAfterCompletion(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := createUninstalledTestSuite(t)
+	defer suite.Cleanup()
+
+	client := suite.APIClient
+
+	t.Run("Complete Setup and Signin Without Restart", func(t *testing.T) {
+		// Step 1: Complete setup wizard with full SMTP configuration
+		rootEmail := "admin@example.com"
+		initReq := map[string]interface{}{
+			"root_email":           rootEmail,
+			"api_endpoint":         suite.ServerManager.GetURL(),
+			"generate_paseto_keys": true,
+			"smtp_host":            "localhost",
+			"smtp_port":            1025,
+			"smtp_username":        "testuser",
+			"smtp_password":        "testpass",
+			"smtp_from_email":      "noreply@example.com", // Important: non-empty from email
+			"smtp_from_name":       "Test System",
+		}
+
+		resp, err := client.Post("/api/setup.initialize", initReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "Setup should succeed")
+
+		var setupResp map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&setupResp)
+		require.NoError(t, err)
+
+		assert.True(t, setupResp["success"].(bool), "Setup should succeed")
+
+		// Step 2: Immediately attempt signin (WITHOUT restarting the service)
+		// This is where the bug manifests - mailer still has empty FromEmail
+		signinReq := map[string]interface{}{
+			"email": rootEmail,
+		}
+
+		signinResp, err := client.Post("/api/user.signin", signinReq)
+		require.NoError(t, err)
+		defer signinResp.Body.Close()
+
+		// Read response body for debugging
+		var signinResult map[string]interface{}
+		err = json.NewDecoder(signinResp.Body).Decode(&signinResult)
+		require.NoError(t, err)
+
+		// Step 3: Verify no mail parsing error
+		// Bug symptom: "failed to parse mail address \"Notifuse\" <>"
+		if errorMsg, ok := signinResult["error"].(string); ok {
+			assert.NotContains(t, errorMsg, "failed to parse mail address",
+				"Should not have mail address parsing error after setup")
+			assert.NotContains(t, errorMsg, "mail: invalid string",
+				"Should not have invalid mail string error after setup")
+			assert.NotContains(t, errorMsg, "failed to set email from address",
+				"Should not have email from address error after setup")
+		}
+
+		// Step 4: Verify signin succeeded or properly failed (not with mail error)
+		// In development mode, magic code is returned directly
+		// In production mode, we just verify no mail errors occurred
+		if signinResp.StatusCode == http.StatusOK {
+			// Success - magic code sent or returned
+			t.Log("Signin succeeded - mailer was properly reinitialized")
+		} else {
+			// If it failed, make sure it's not due to mail configuration
+			t.Logf("Signin status: %d, response: %v", signinResp.StatusCode, signinResult)
+			
+			// Even if signin failed for other reasons (user not found, etc.),
+			// it should NOT be due to mail parsing errors
+			if errorMsg, ok := signinResult["error"].(string); ok {
+				require.NotContains(t, errorMsg, "parse mail address",
+					"Signin should not fail due to mail address parsing errors")
+			}
+		}
+	})
+
+	t.Run("Verify Mailer Config Updated After Setup", func(t *testing.T) {
+		// Additional verification: Check that subsequent mail operations work
+		// by attempting another signin operation
+		signinReq := map[string]interface{}{
+			"email": "admin@example.com",
+		}
+
+		resp, err := client.Post("/api/user.signin", signinReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		require.NoError(t, err)
+
+		// Verify no mail-related errors
+		if errorMsg, ok := result["error"].(string); ok {
+			assert.NotContains(t, errorMsg, "failed to parse mail address",
+				"Subsequent signin should also work without mail errors")
+			assert.NotContains(t, errorMsg, "failed to set email from address",
+				"Subsequent signin should also work without mail errors")
+		}
+	})
+}
+
 // createUninstalledTestSuite creates a test suite without seeding installation data
 // This allows testing the setup wizard from a clean state
 func createUninstalledTestSuite(t *testing.T) *testutil.IntegrationTestSuite {
