@@ -461,6 +461,20 @@ func createUninstalledTestSuite(t *testing.T) *testutil.IntegrationTestSuite {
 		cfg.IsInstalled = false
 		cfg.Security.PasetoPrivateKeyBytes = nil
 		cfg.Security.PasetoPublicKeyBytes = nil
+		
+		// CRITICAL: Set to production environment to use SMTPMailer (not ConsoleMailer)
+		// This replicates the real bug scenario
+		cfg.Environment = "production"
+		
+		// CRITICAL: Empty SMTP config to replicate production bug scenario
+		// In production, before setup, there's no SMTP config in database
+		cfg.SMTP.FromEmail = ""  // Empty email will cause parsing error
+		cfg.SMTP.FromName = "Notifuse"  // Default name only
+		cfg.SMTP.Host = "localhost"  // Minimal config to allow app to start
+		cfg.SMTP.Port = 1025
+		cfg.SMTP.Username = ""
+		cfg.SMTP.Password = ""
+		
 		return app.NewApp(cfg)
 	}, suite.DBManager)
 

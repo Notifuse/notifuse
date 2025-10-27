@@ -87,22 +87,45 @@ func (a *App) InitMailer() error {
 }
 ```
 
-## Test Created
+## Test Created and Updated
 
 An integration test has been added to verify this bug:
 
 **File**: `tests/integration/setup_wizard_test.go`  
 **Function**: `TestSetupWizardSigninImmediatelyAfterCompletion`
 
-The test:
-1. Creates uninstalled test environment
-2. Completes setup wizard with SMTP configuration
-3. Immediately attempts signin (NO restart)
-4. Verifies no mail parsing errors
+### Important Discovery
+
+The test initially **passed incorrectly** because the test environment was configured with valid SMTP settings from the start (`FromEmail: "test@example.com"`), not replicating the production scenario.
+
+### Test Fixed
+
+The test has been updated to properly reproduce the bug:
+
+```go
+cfg.Environment = "production"  // Use SMTPMailer (not ConsoleMailer)
+cfg.SMTP.FromEmail = ""         // Empty email (like production before setup)
+cfg.SMTP.FromName = "Notifuse"  // Default name only
+```
+
+The test now:
+1. Creates uninstalled test environment **with empty SMTP config**
+2. Uses **production environment** to trigger SMTPMailer
+3. Completes setup wizard with SMTP configuration
+4. Immediately attempts signin (NO restart)
+5. Verifies no mail parsing errors
 
 **Expected Behavior**:
 - **Before Fix**: Test fails with mail parsing error ✓ (Bug confirmed)
 - **After Fix**: Test passes, signin succeeds ✓ (Bug fixed)
+
+### Why The Original Test Passed
+
+| Scenario | FromEmail at Start | After Setup | Signin Result |
+|----------|-------------------|-------------|---------------|
+| **Production** | `""` (empty) | `"noreply@example.com"` | ❌ Parse error (bug!) |
+| **Original Test** | `"test@example.com"` | `"noreply@example.com"` | ✓ Works (wrong email, but valid) |
+| **Updated Test** | `""` (empty) | `"noreply@example.com"` | ❌ Parse error (bug reproduced!) |
 
 ## Files Analyzed
 

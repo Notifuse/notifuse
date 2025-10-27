@@ -357,19 +357,35 @@ An integration test has been added to verify this bug:
 
 **Test Function**: `TestSetupWizardSigninImmediatelyAfterCompletion`
 
-This test:
-1. Creates an uninstalled test environment
-2. Completes setup wizard with full SMTP configuration
-3. Immediately attempts signin WITHOUT restarting the service
-4. Verifies no "failed to parse mail address" errors occur
-5. Confirms mailer was properly reinitialized after setup
+### Critical Test Configuration
+
+The test was initially passing because it didn't properly replicate the production bug scenario. **The test has been updated** to correctly reproduce the bug:
+
+**Key Changes Made**:
+```go
+cfg.Environment = "production"  // Use SMTPMailer, not ConsoleMailer
+cfg.SMTP.FromEmail = ""         // Empty email (like production pre-setup)
+cfg.SMTP.FromName = "Notifuse"  // Default name only
+```
+
+**Why This Matters**:
+- **Original test**: Started with valid `FromEmail: "test@example.com"` → No parsing error
+- **Updated test**: Starts with empty `FromEmail: ""` → Parsing error on signin (bug reproduced)
+
+This test now properly:
+1. Creates an uninstalled test environment with **empty SMTP config**
+2. Uses **production environment** (SMTPMailer, not ConsoleMailer)
+3. Completes setup wizard with full SMTP configuration
+4. Immediately attempts signin WITHOUT restarting the service
+5. Verifies no "failed to parse mail address" errors occur
+6. Confirms mailer was properly reinitialized after setup
 
 The test specifically checks for the bug symptoms:
 - `"failed to parse mail address"`
 - `"mail: invalid string"`
 - `"failed to set email from address"`
 
-This test will **FAIL** with the current code (demonstrating the bug) and will **PASS** after implementing the fix in `internal/app/app.go`.
+This test will now **FAIL** with the current code (demonstrating the bug) and will **PASS** after implementing the fix in `internal/app/app.go`.
 
 ### Expected Test Behavior
 
