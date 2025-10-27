@@ -270,15 +270,24 @@ func (m *SMTPMailer) createSMTPClient() (*mail.Client, error) {
 		return nil, nil
 	}
 
-	client, err := mail.NewClient(m.config.SMTPHost,
+	// Build client options
+	clientOptions := []mail.Option{
 		mail.WithPort(m.config.SMTPPort),
-		mail.WithSMTPAuth(mail.SMTPAuthPlain),
-		mail.WithUsername(m.config.SMTPUsername),
-		mail.WithPassword(m.config.SMTPPassword),
 		mail.WithTLSPolicy(mail.TLSOpportunistic),
-		mail.WithTimeout(10*time.Second),
-	)
+		mail.WithTimeout(10 * time.Second),
+	}
 
+	// Only add authentication if username and password are provided
+	// This allows for unauthenticated SMTP servers (e.g., local relays, port 25)
+	if m.config.SMTPUsername != "" && m.config.SMTPPassword != "" {
+		clientOptions = append(clientOptions,
+			mail.WithUsername(m.config.SMTPUsername),
+			mail.WithPassword(m.config.SMTPPassword),
+			mail.WithSMTPAuth(mail.SMTPAuthPlain),
+		)
+	}
+
+	client, err := mail.NewClient(m.config.SMTPHost, clientOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create SMTP client: %w", err)
 	}

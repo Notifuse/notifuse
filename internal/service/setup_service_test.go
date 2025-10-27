@@ -261,12 +261,42 @@ func TestSetupService_TestSMTPConnection(t *testing.T) {
 			wantError: true,
 		},
 		{
-			name: "valid config but connection fails",
+			name: "valid config with authentication but connection fails",
 			config: &service.SMTPTestConfig{
 				Host:     "invalid-smtp-host.example.com",
 				Port:     587,
 				Username: "user",
 				Password: "pass",
+			},
+			wantError: true, // Will fail to connect to invalid host
+		},
+		{
+			name: "valid config without authentication but connection fails",
+			config: &service.SMTPTestConfig{
+				Host:     "invalid-smtp-host.example.com",
+				Port:     25,
+				Username: "", // No username
+				Password: "", // No password
+			},
+			wantError: true, // Will fail to connect to invalid host
+		},
+		{
+			name: "valid config with empty username only",
+			config: &service.SMTPTestConfig{
+				Host:     "invalid-smtp-host.example.com",
+				Port:     25,
+				Username: "",   // No username
+				Password: "pwd", // Password provided but no username
+			},
+			wantError: true, // Will fail to connect to invalid host
+		},
+		{
+			name: "valid config with empty password only",
+			config: &service.SMTPTestConfig{
+				Host:     "invalid-smtp-host.example.com",
+				Port:     25,
+				Username: "user", // Username provided but no password
+				Password: "",     // No password
 			},
 			wantError: true, // Will fail to connect to invalid host
 		},

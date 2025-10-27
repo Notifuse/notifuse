@@ -1122,15 +1122,16 @@ func TestDefaultGoMailFactory_CreateClient(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to create mail client")
 	})
 
-	t.Run("empty username", func(t *testing.T) {
+	t.Run("empty username with password (partial credentials)", func(t *testing.T) {
 		client, err := factory.CreateClient("smtp.example.com", 587, "", "password", true)
 
-		// The go-mail library allows empty username at client creation time
-		// The error would occur during authentication when actually sending
+		// With only password (no username), auth should not be configured
+		// Client creation should succeed, but the actual SMTP connection would fail
+		// since we're not connected to a real server in tests
 		if err != nil {
+			// Connection error is expected since we're not connected to a real server
 			assert.Contains(t, err.Error(), "failed to create mail client")
 		} else {
-			// Client creation succeeds but would fail during authentication
 			assert.NotNil(t, client)
 			if client != nil {
 				client.Close()
@@ -1138,15 +1139,34 @@ func TestDefaultGoMailFactory_CreateClient(t *testing.T) {
 		}
 	})
 
-	t.Run("empty password", func(t *testing.T) {
+	t.Run("empty password with username (partial credentials)", func(t *testing.T) {
 		client, err := factory.CreateClient("smtp.example.com", 587, "user@example.com", "", true)
 
-		// The go-mail library allows empty password at client creation time
-		// The error would occur during authentication when actually sending
+		// With only username (no password), auth should not be configured
+		// Client creation should succeed, but the actual SMTP connection would fail
+		// since we're not connected to a real server in tests
 		if err != nil {
+			// Connection error is expected since we're not connected to a real server
 			assert.Contains(t, err.Error(), "failed to create mail client")
 		} else {
-			// Client creation succeeds but would fail during authentication
+			assert.NotNil(t, client)
+			if client != nil {
+				client.Close()
+			}
+		}
+	})
+
+	t.Run("both username and password empty (unauthenticated SMTP)", func(t *testing.T) {
+		client, err := factory.CreateClient("smtp.example.com", 25, "", "", false)
+
+		// With both credentials empty, no auth should be configured
+		// This is the unauthenticated SMTP scenario (e.g., port 25 local relay)
+		// Client creation should succeed, but the actual SMTP connection would fail
+		// since we're not connected to a real server in tests
+		if err != nil {
+			// Connection error is expected since we're not connected to a real server
+			assert.Contains(t, err.Error(), "failed to create mail client")
+		} else {
 			assert.NotNil(t, client)
 			if client != nil {
 				client.Close()
