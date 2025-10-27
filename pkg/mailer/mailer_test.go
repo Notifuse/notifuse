@@ -757,7 +757,7 @@ func TestSMTPMailer_createSMTPClient(t *testing.T) {
 		}
 	})
 
-	t.Run("production mode creates client", func(t *testing.T) {
+	t.Run("production mode creates client with authentication", func(t *testing.T) {
 		config := &Config{
 			SMTPHost:     "smtp.example.com",
 			SMTPPort:     587,
@@ -780,6 +780,53 @@ func TestSMTPMailer_createSMTPClient(t *testing.T) {
 		}
 		if client != nil && err != nil {
 			t.Error("Expected either client or error, got both non-nil")
+		}
+	})
+
+	t.Run("production mode creates client without authentication", func(t *testing.T) {
+		config := &Config{
+			SMTPHost:     "smtp.example.com",
+			SMTPPort:     25, // Port 25 typically doesn't require auth
+			SMTPUsername: "", // No username
+			SMTPPassword: "", // No password
+			FromEmail:    "noreply@example.com",
+			FromName:     "Notifuse",
+			APIEndpoint:  "https://example.com",
+		}
+
+		mailer := NewSMTPMailer(config)
+
+		// This will attempt to create a real client without authentication
+		client, err := mailer.createSMTPClient()
+
+		// We expect either a client or an error, but not both nil/non-nil
+		if client == nil && err == nil {
+			t.Error("Expected either client or error, got both nil")
+		}
+		if client != nil && err != nil {
+			t.Error("Expected either client or error, got both non-nil")
+		}
+	})
+
+	t.Run("test mode with empty credentials returns nil client", func(t *testing.T) {
+		config := &Config{
+			SMTPHost:     "smtp.example.com",
+			SMTPPort:     25,
+			SMTPUsername: "", // No username
+			SMTPPassword: "", // No password
+			FromEmail:    "noreply@example.com",
+			FromName:     "Notifuse",
+			APIEndpoint:  "https://example.com",
+		}
+
+		mailer := NewTestSMTPMailer(config)
+		client, err := mailer.createSMTPClient()
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+		if client != nil {
+			t.Error("Expected nil client in test mode, got non-nil")
 		}
 	})
 
