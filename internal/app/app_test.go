@@ -117,6 +117,8 @@ func TestAppInitMailer(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
 
 	t.Run("Development environment uses ConsoleMailer", func(t *testing.T) {
 		cfg := &config.Config{

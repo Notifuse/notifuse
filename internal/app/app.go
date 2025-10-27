@@ -302,7 +302,7 @@ func (a *App) InitMailer() error {
 		a.logger.Info("Using console mailer for development")
 	} else {
 		// Use SMTP mailer in production
-		a.mailer = mailer.NewSMTPMailer(&mailer.Config{
+		mailerConfig := &mailer.Config{
 			SMTPHost:     a.config.SMTP.Host,
 			SMTPPort:     a.config.SMTP.Port,
 			SMTPUsername: a.config.SMTP.Username,
@@ -310,7 +310,9 @@ func (a *App) InitMailer() error {
 			FromEmail:    a.config.SMTP.FromEmail,
 			FromName:     a.config.SMTP.FromName,
 			APIEndpoint:  a.config.APIEndpoint,
-		})
+		}
+		
+		a.mailer = mailer.NewSMTPMailer(mailerConfig)
 		a.logger.Info("Using SMTP mailer for production")
 	}
 
@@ -1140,6 +1142,18 @@ func (a *App) ReloadConfig(ctx context.Context) error {
 	// Reinitialize mailer with new SMTP settings
 	if err := a.InitMailer(); err != nil {
 		return fmt.Errorf("failed to reinitialize mailer: %w", err)
+	}
+
+	// Update mailer references in services that use it
+	// These services store a copy of the mailer reference, so they need to be updated
+	if a.userService != nil {
+		a.userService.SetEmailSender(a.mailer)
+	}
+	if a.workspaceService != nil {
+		a.workspaceService.SetMailer(a.mailer)
+	}
+	if a.systemNotificationService != nil {
+		a.systemNotificationService.SetMailer(a.mailer)
 	}
 
 	// Invalidate auth service key cache so it reloads keys from new config on next use

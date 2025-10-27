@@ -55,6 +55,12 @@ func NewUserService(cfg UserServiceConfig) (*UserService, error) {
 	}, nil
 }
 
+// SetEmailSender updates the email sender (mailer) instance
+// This is used when the mailer configuration changes (e.g., after setup wizard)
+func (s *UserService) SetEmailSender(emailSender EmailSender) {
+	s.emailSender = emailSender
+}
+
 // Ensure UserService implements UserServiceInterface
 var _ domain.UserServiceInterface = (*UserService)(nil)
 

@@ -31,6 +31,12 @@ func NewSystemNotificationService(
 	}
 }
 
+// SetMailer updates the mailer instance
+// This is used when the mailer configuration changes (e.g., after setup wizard)
+func (s *SystemNotificationService) SetMailer(mailerInstance mailer.Mailer) {
+	s.mailer = mailerInstance
+}
+
 // HandleCircuitBreakerEvent processes circuit breaker events and sends email notifications
 func (s *SystemNotificationService) HandleCircuitBreakerEvent(ctx context.Context, payload domain.EventPayload) {
 	s.logger.WithFields(map[string]interface{}{

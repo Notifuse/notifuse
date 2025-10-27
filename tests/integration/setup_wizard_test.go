@@ -3,6 +3,7 @@ package integration
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/Notifuse/notifuse/config"
@@ -341,11 +342,19 @@ func TestSetupWizardSigninImmediatelyAfterCompletion(t *testing.T) {
 	t.Run("Complete Setup and Signin Without Restart", func(t *testing.T) {
 		// Step 1: Complete setup wizard with full SMTP configuration
 		rootEmail := "admin@example.com"
+		
+		// Use environment variable for SMTP host (for containerized test environments)
+		// Default to localhost for non-containerized environments
+		smtpHost := os.Getenv("TEST_SMTP_HOST")
+		if smtpHost == "" {
+			smtpHost = "localhost"
+		}
+		
 		initReq := map[string]interface{}{
 			"root_email":           rootEmail,
 			"api_endpoint":         suite.ServerManager.GetURL(),
 			"generate_paseto_keys": true,
-			"smtp_host":            "localhost",
+			"smtp_host":            smtpHost,
 			"smtp_port":            1025,
 			"smtp_username":        "testuser",
 			"smtp_password":        "testpass",
