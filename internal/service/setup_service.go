@@ -320,15 +320,24 @@ func (s *SetupService) TestSMTPConnection(ctx context.Context, config *SMTPTestC
 		return fmt.Errorf("SMTP port is required")
 	}
 
-	// Create mail client with timeout from context
-	client, err := mail.NewClient(
-		config.Host,
+	// Build client options
+	clientOptions := []mail.Option{
 		mail.WithPort(config.Port),
-		mail.WithSMTPAuth(mail.SMTPAuthPlain),
-		mail.WithUsername(config.Username),
-		mail.WithPassword(config.Password),
 		mail.WithTLSPolicy(mail.TLSMandatory),
-	)
+	}
+
+	// Only add authentication if username and password are provided
+	// This allows for unauthenticated SMTP servers (e.g., local relays, port 25)
+	if config.Username != "" && config.Password != "" {
+		clientOptions = append(clientOptions,
+			mail.WithUsername(config.Username),
+			mail.WithPassword(config.Password),
+			mail.WithSMTPAuth(mail.SMTPAuthPlain),
+		)
+	}
+
+	// Create mail client with timeout from context
+	client, err := mail.NewClient(config.Host, clientOptions...)
 	if err != nil {
 		return fmt.Errorf("failed to create SMTP client: %w", err)
 	}
