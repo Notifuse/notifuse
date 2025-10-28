@@ -5,6 +5,7 @@ import { InfoCircleOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { workspaceService } from '../services/api/workspace'
 import { useAuth } from '../contexts/AuthContext'
 import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
+import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 
 const { Title } = Typography
 
@@ -50,8 +51,8 @@ export function CreateWorkspacePage() {
         }
       }
 
-      // Get user's timezone
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+      // Get user's timezone (normalized to canonical IANA name)
+      const timezone = getBrowserTimezone()
 
       // Create workspace with API
       await workspaceService.create({

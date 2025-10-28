@@ -5,6 +5,7 @@ import dayjs from 'dayjs'
 import { useAuth } from '../contexts/AuthContext'
 import { AnalyticsDashboard } from '../components/analytics/AnalyticsDashboard'
 import { TimezonesForSelect } from '../lib/countries_timezones'
+import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 
 type TimePeriod = '7D' | '14D' | '30D' | '90D'
 
@@ -17,9 +18,9 @@ export function AnalyticsPage() {
 
   const workspace = workspaces.find((w) => w.id === workspaceId)
 
-  // Get browser timezone on component mount
+  // Get browser timezone on component mount (normalized to canonical IANA name)
   useEffect(() => {
-    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    const browserTimezone = getBrowserTimezone()
     setSelectedTimezone(browserTimezone)
   }, [])
 
