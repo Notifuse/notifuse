@@ -4,7 +4,6 @@ All notable changes to this project will be documented in this file.
 
 ## [13.8] - Unreleased
 
-- New feature: transactional email API now supports `from_name` parameter to override the default sender name
 - Fix: SMTP now supports unauthenticated/anonymous connections (e.g., local mail relays on port 25)
 - Magic code emails, workspace invitations, and circuit breaker alerts now work without SMTP credentials
 - SMTP authentication is only configured when both username and password are provided
@@ -12,7 +11,7 @@ All notable changes to this project will be documented in this file.
 
 ## [13.7] - 2025-10-25
 
-- Published release with from_name feature
+- New feature: transactional email API now supports `from_name` parameter to override the default sender name
 
 ## [13.6] - 2025-10-24
 
