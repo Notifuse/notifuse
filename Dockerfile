@@ -37,14 +37,10 @@ RUN npm run build
 # Stage 3: Build the Go binary
 FROM golang:1.24-alpine AS backend-builder
 
-# Build arguments for flexibility
-ARG CGO_ENABLED=0
-ARG GOAMD64=v1
-
 # Set working directory
 WORKDIR /build
 
-# Install git (gcc/musl-dev not needed for CGO_ENABLED=0)
+# Install git
 RUN apk add --no-cache git
 
 # Copy go.mod and go.sum files
@@ -59,14 +55,9 @@ COPY config/ config/
 COPY internal/ internal/
 COPY pkg/ pkg/
 
-# Build the application with maximum CPU compatibility
-# CGO_ENABLED=0: Pure Go static binary (no C dependencies)
-# GOAMD64=v1: Baseline x86-64 instruction set (compatible with all x86-64 CPUs from 2003+)
-# -ldflags="-w -s": Strip debug info for smaller binary
-RUN CGO_ENABLED=${CGO_ENABLED} GOOS=linux GOAMD64=${GOAMD64} go build \
-    -ldflags="-w -s" \
-    -o /tmp/server \
-    ./cmd/api
+# Build the application
+# CGO_ENABLED=0: Pure Go static binary for maximum portability
+RUN CGO_ENABLED=0 GOOS=linux go build -o /tmp/server ./cmd/api
 
 # Stage 4: Create the runtime container
 FROM alpine:latest

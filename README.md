@@ -154,29 +154,6 @@ The docker-compose includes a PostgreSQL container for quick testing. Simply run
 
 For detailed installation instructions, configuration options, and setup guides, visit **[docs.notifuse.com](https://docs.notifuse.com)**.
 
-## 🐳 Docker Image Architecture
-
-Notifuse Docker images are built for **maximum CPU compatibility**:
-
-- **CPU Support**: Compatible with all x86-64 processors from 2003+ (baseline instruction set)
-- **Multi-Platform**: Available for `linux/amd64` and `linux/arm64`
-- **Static Binary**: Pure Go with no CGO dependencies for better portability
-- **Optimized Size**: Debug symbols stripped for smaller image size
-
-### Custom Builds
-
-If you need to build for specific CPU features:
-
-```bash
-# Default: Maximum compatibility (recommended)
-make docker-build
-
-# Optimized for modern CPUs with AVX2+ (2013+)
-make docker-build-optimized
-```
-
-The default build uses `GOAMD64=v1` which ensures compatibility with older x86-64 CPUs while maintaining excellent performance.
-
 ## 📚 Documentation
 
 - **[Complete Documentation](https://docs.notifuse.com)** - Comprehensive guides and tutorials
