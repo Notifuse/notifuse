@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+- **Critical**: Fixed SIGILL (illegal instruction) crash on older x86-64 CPUs during batch email sending (Issue #89)
+  - Docker images now built with `CGO_ENABLED=0` and `GOAMD64=v1` for maximum CPU compatibility
+  - Compatible with all x86-64 processors from 2003+ (baseline instruction set)
+  - Removed unnecessary CGO dependency for better portability and smaller image size
+  - Added build arguments to Dockerfile for flexible CPU targeting
+
 ## [13.7] - 2025-10-25
 
 - New feature: transactional email API now supports `from_name` parameter to override the default sender name

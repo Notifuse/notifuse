@@ -53,8 +53,18 @@ keygen:
 
 # Docker commands
 docker-build:
-	@echo "Building Docker image..."
-	docker build -t notifuse:latest .
+	@echo "Building portable Docker image (compatible with all x86-64 CPUs)..."
+	docker build \
+		--build-arg CGO_ENABLED=0 \
+		--build-arg GOAMD64=v1 \
+		-t notifuse:latest .
+
+docker-build-optimized:
+	@echo "Building optimized Docker image (for modern CPUs with AVX2+)..."
+	docker build \
+		--build-arg CGO_ENABLED=0 \
+		--build-arg GOAMD64=v3 \
+		-t notifuse:optimized .
 
 docker-run:
 	@echo "Running Docker container..."
@@ -89,12 +99,23 @@ docker-buildx-setup:
 
 docker-publish:
 	@echo "Building and publishing multi-platform Docker image to Docker Hub..."
+	@echo "Using CPU-compatible settings (GOAMD64=v1) for maximum compatibility..."
 	@if [ -z "$(word 2,$(MAKECMDGOALS))" ]; then \
 		echo "Building with tag: latest for amd64 and arm64"; \
-		docker buildx build --platform linux/amd64,linux/arm64 -t notifuse/notifuse:latest --push .; \
+		docker buildx build \
+			--platform linux/amd64,linux/arm64 \
+			--build-arg CGO_ENABLED=0 \
+			--build-arg GOAMD64=v1 \
+			-t notifuse/notifuse:latest \
+			--push .; \
 	else \
 		echo "Building with tag: $(word 2,$(MAKECMDGOALS)) for amd64 and arm64"; \
-		docker buildx build --platform linux/amd64,linux/arm64 -t notifuse/notifuse:$(word 2,$(MAKECMDGOALS)) --push .; \
+		docker buildx build \
+			--platform linux/amd64,linux/arm64 \
+			--build-arg CGO_ENABLED=0 \
+			--build-arg GOAMD64=v1 \
+			-t notifuse/notifuse:$(word 2,$(MAKECMDGOALS)) \
+			--push .; \
 	fi
 
 # This prevents make from trying to run the tag as a target
