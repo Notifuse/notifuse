@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - Fix: SMTP now supports unauthenticated/anonymous connections (e.g., local mail relays on port 25)
 - Magic code emails, workspace invitations, and circuit breaker alerts now work without SMTP credentials
 - SMTP authentication is only configured when both username and password are provided
+- Fix: Docker images now built with CGO disabled to prevent SIGILL crashes on older CPUs
 
 ## [13.6] - 2025-10-24
 

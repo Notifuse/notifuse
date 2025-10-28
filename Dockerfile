@@ -40,8 +40,8 @@ FROM golang:1.24-alpine AS backend-builder
 # Set working directory
 WORKDIR /build
 
-# Install dependencies
-RUN apk add --no-cache git gcc musl-dev
+# Install git
+RUN apk add --no-cache git
 
 # Copy go.mod and go.sum files
 COPY go.mod go.sum ./
@@ -56,7 +56,8 @@ COPY internal/ internal/
 COPY pkg/ pkg/
 
 # Build the application
-RUN CGO_ENABLED=1 GOOS=linux go build -o /tmp/server ./cmd/api
+# CGO_ENABLED=0: Pure Go static binary for maximum portability
+RUN CGO_ENABLED=0 GOOS=linux go build -o /tmp/server ./cmd/api
 
 # Stage 4: Create the runtime container
 FROM alpine:latest
