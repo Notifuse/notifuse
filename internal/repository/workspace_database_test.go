@@ -127,7 +127,8 @@ func TestWorkspaceRepository_DeleteDatabase(t *testing.T) {
 		Prefix:   "notifuse",
 	}
 
-	repo := NewWorkspaceRepository(db, dbConfig, "secret-key")
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr)
 	workspaceID := "testworkspace"
 
 	// Test database drop error
@@ -188,7 +189,8 @@ func TestWorkspaceRepository_GetConnection(t *testing.T) {
 	defer cleanup()
 
 	// Create a repository instance
-	repo := NewWorkspaceRepository(mockDB, dbConfig, "secret-key").(*workspaceRepository)
+	connMgr := newMockConnectionManager(mockDB)
+	repo := NewWorkspaceRepository(mockDB, dbConfig, "secret-key", connMgr).(*workspaceRepository)
 
 	ctx := context.Background()
 	workspaceID := "test-workspace"
@@ -197,32 +199,30 @@ func TestWorkspaceRepository_GetConnection(t *testing.T) {
 	mockWorkspaceDB, _, mockWorkspaceCleanup := testutil.SetupMockDB(t)
 	defer mockWorkspaceCleanup()
 
-	// Store the mock connection in the repository's connection map directly
-	repo.connectionPools.Store(workspaceID, mockWorkspaceDB)
+	// Store the mock connection in the connection manager
+	connMgr.AddWorkspaceDB(workspaceID, mockWorkspaceDB)
 
 	// Test case 1: Getting a connection that already exists
 	db1, err := repo.GetConnection(ctx, workspaceID)
 	assert.NoError(t, err)
 	assert.Equal(t, mockWorkspaceDB, db1)
 
-	// Test case 2: Error case can't be fully tested due to monkey patching limitations
-	// But we can test that a non-existent connection returns an error
-	_, err = repo.GetConnection(ctx, "non-existent-workspace")
-	assert.Error(t, err)
+	// Test case 2: Non-existent workspace returns the system DB (mock fallback)
+	db2, err := repo.GetConnection(ctx, "non-existent-workspace")
+	assert.NoError(t, err)
+	assert.NotNil(t, db2) // Mock returns system DB as fallback
 
-	// Test case 3: Add a fake connection to the connection pool and verify it's there
+	// Test case 3: Add a workspace connection to the manager and verify we can get it
 	newWorkspaceDB, _, newWorkspaceCleanup := testutil.SetupMockDB(t)
 	defer newWorkspaceCleanup()
 
 	newWorkspaceID := "new-workspace"
-	repo.connectionPools.Store(newWorkspaceID, newWorkspaceDB)
+	connMgr.AddWorkspaceDB(newWorkspaceID, newWorkspaceDB)
 
-	// Verify the connection is in the pool
-	_, exists := repo.connectionPools.Load(newWorkspaceID)
-	assert.True(t, exists, "Connection should be in the pool")
-
-	// GetConnection call (may or may not error depending on the environment)
-	repo.GetConnection(context.Background(), newWorkspaceID)
+	// GetConnection should return the workspace DB
+	db3, err := repo.GetConnection(context.Background(), newWorkspaceID)
+	assert.NoError(t, err)
+	assert.Equal(t, newWorkspaceDB, db3)
 }
 
 // mockInternalRepository implements the workspaceRepository but doesn't actually connect to the database

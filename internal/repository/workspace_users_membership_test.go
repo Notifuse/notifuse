@@ -21,7 +21,8 @@ func TestWorkspaceRepository_IsUserWorkspaceMember(t *testing.T) {
 		Prefix: "notifuse",
 	}
 
-	repo := NewWorkspaceRepository(db, dbConfig, "secret-key")
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr)
 	userID := "user-123"
 	workspaceID := "ws-123"
 

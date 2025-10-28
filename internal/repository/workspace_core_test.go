@@ -20,7 +20,50 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/internal/repository/testutil"
 	"github.com/Notifuse/notifuse/pkg/crypto"
+	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 )
+
+// mockConnectionManager is a simple mock for testing
+type mockConnectionManager struct {
+	workspaceDBs map[string]*sql.DB
+	systemDB     *sql.DB
+}
+
+func newMockConnectionManager(systemDB *sql.DB) *mockConnectionManager {
+	return &mockConnectionManager{
+		workspaceDBs: make(map[string]*sql.DB),
+		systemDB:     systemDB,
+	}
+}
+
+func (m *mockConnectionManager) GetSystemConnection() *sql.DB {
+	return m.systemDB
+}
+
+func (m *mockConnectionManager) GetWorkspaceConnection(ctx context.Context, workspaceID string) (*sql.DB, error) {
+	if db, ok := m.workspaceDBs[workspaceID]; ok {
+		return db, nil
+	}
+	// For tests, return the system DB as a fallback
+	return m.systemDB, nil
+}
+
+func (m *mockConnectionManager) CloseWorkspaceConnection(workspaceID string) error {
+	delete(m.workspaceDBs, workspaceID)
+	return nil
+}
+
+func (m *mockConnectionManager) GetStats() pkgDatabase.ConnectionStats {
+	return pkgDatabase.ConnectionStats{}
+}
+
+func (m *mockConnectionManager) Close() error {
+	return nil
+}
+
+func (m *mockConnectionManager) AddWorkspaceDB(workspaceID string, db *sql.DB) {
+	m.workspaceDBs[workspaceID] = db
+}
 
 func TestWorkspaceRepository_GetByID(t *testing.T) {
 	ctrl := gomock.NewController(t)
@@ -501,7 +544,8 @@ func TestWorkspaceRepository_GetByID_Postgres(t *testing.T) {
 	defer cleanup()
 
 	dbConfig := &config.DatabaseConfig{Prefix: "notifuse"}
-	repo := NewWorkspaceRepository(db, dbConfig, "secret-key")
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr)
 
 	workspaceID := "ws_123"
 	createdAt := time.Now().Truncate(time.Second)
@@ -552,7 +596,8 @@ func TestWorkspaceRepository_List_Postgres(t *testing.T) {
 	defer cleanup()
 
 	dbConfig := &config.DatabaseConfig{Prefix: "notifuse"}
-	repo := NewWorkspaceRepository(db, dbConfig, "secret-key")
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr)
 
 	enc1, err := crypto.EncryptString("s1", "secret-key")
 	require.NoError(t, err)
@@ -603,7 +648,8 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 	defer cleanup()
 
 	dbConfig := &config.DatabaseConfig{Prefix: "notifuse"}
-	repo := NewWorkspaceRepository(db, dbConfig, "secret-key")
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr)
 
 	w := &domain.Workspace{
 		ID:   "ws1",
@@ -663,7 +709,8 @@ func TestWorkspaceRepository_checkWorkspaceIDExists_Postgres(t *testing.T) {
 	db, mock, cleanup := testutil.SetupMockDB(t)
 	defer cleanup()
 
-	repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, "secret-key").(*workspaceRepository)
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, "secret-key", connMgr).(*workspaceRepository)
 
 	// exists = true
 	mock.ExpectQuery(`SELECT EXISTS\(SELECT 1 FROM workspaces WHERE id = \$1\)`).
@@ -693,7 +740,8 @@ func TestWorkspaceRepository_Create_Postgres_ErrorsBeforeDBCreation(t *testing.T
 	db, mock, cleanup := testutil.SetupMockDB(t)
 	defer cleanup()
 
-	repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, "secret-key").(*workspaceRepository)
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, &config.DatabaseConfig{Prefix: "notifuse"}, "secret-key", connMgr).(*workspaceRepository)
 
 	// 1) ID already exists -> early error
 	mock.ExpectQuery(`SELECT EXISTS\(SELECT 1 FROM workspaces WHERE id = \$1\)`).
@@ -731,7 +779,8 @@ func TestWorkspaceRepository_Delete_Postgres(t *testing.T) {
 	defer cleanup()
 
 	dbConfig := &config.DatabaseConfig{User: "postgres", Prefix: "notifuse"}
-	repo := NewWorkspaceRepository(db, dbConfig, "secret-key").(*workspaceRepository)
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr).(*workspaceRepository)
 
 	workspaceID := "ws1"
 	safeID := strings.ReplaceAll(workspaceID, "-", "_")
@@ -855,14 +904,15 @@ func TestWorkspaceRepository_WithWorkspaceTransaction(t *testing.T) {
 	systemDB, _, cleanup := testutil.SetupMockDB(t)
 	defer cleanup()
 
-	repo := NewWorkspaceRepository(systemDB, &config.DatabaseConfig{Prefix: "notifuse"}, "secret-key").(*workspaceRepository)
+	connMgr := newMockConnectionManager(systemDB)
+	repo := NewWorkspaceRepository(systemDB, &config.DatabaseConfig{Prefix: "notifuse"}, "secret-key", connMgr).(*workspaceRepository)
 	workspaceID := "ws_tx"
 
-	// Create a mock workspace DB and put it in the connection pool
+	// Create a mock workspace DB and put it in the connection manager
 	wsDB, wsMock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer wsDB.Close()
-	repo.connectionPools.Store(workspaceID, wsDB)
+	connMgr.AddWorkspaceDB(workspaceID, wsDB)
 
 	ctx := context.Background()
 
