@@ -4,31 +4,31 @@ build:
 	go build -o bin/server ./cmd/api
 
 test-unit:
-	go test -v ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database
+	go test -race -v ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database
 
 test-integration:
-	INTEGRATION_TESTS=true go test -timeout 9m ./tests/integration/ -v
+	INTEGRATION_TESTS=true go test -race -timeout 9m ./tests/integration/ -v
 
 test-domain:
-	go test -v ./internal/domain
+	go test -race -v ./internal/domain
 
 test-service:
-	go test -v ./internal/service ./internal/service/broadcast
+	go test -race -v ./internal/service ./internal/service/broadcast
 
 test-repo:
-	go test -v ./internal/repository
+	go test -race -v ./internal/repository
 
 test-http:
-	go test -v ./internal/http
+	go test -race -v ./internal/http
 
 test-migrations:
-	go test -v ./internal/migrations
+	go test -race -v ./internal/migrations
 
 test-database:
-	go test -v ./internal/database ./internal/database/schema
+	go test -race -v ./internal/database ./internal/database/schema
 
 test-pkg:
-	go test -v ./pkg/...
+	go test -race -v ./pkg/...
 
 # Comprehensive test coverage command
 coverage:
