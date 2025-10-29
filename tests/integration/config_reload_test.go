@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
@@ -27,14 +28,20 @@ func TestReloadDatabaseSettings_EnvVarPrecedence(t *testing.T) {
 	if dbHost == "" {
 		dbHost = "localhost"
 	}
-	dbPort := os.Getenv("TEST_DB_PORT")
-	if dbPort == "" {
-		dbPort = "5433"
+	dbPortStr := os.Getenv("TEST_DB_PORT")
+	if dbPortStr == "" {
+		dbPortStr = "5433"
+	}
+	
+	// Parse port for both DSN (string) and Config struct (int)
+	dbPortInt := 5433
+	if p, err := strconv.Atoi(dbPortStr); err == nil {
+		dbPortInt = p
 	}
 
 	testDBName := fmt.Sprintf("test_config_reload_%d", time.Now().UnixNano())
 	systemDSN := fmt.Sprintf("host=%s port=%s user=notifuse_test password=test_password dbname=postgres sslmode=disable",
-		dbHost, dbPort)
+		dbHost, dbPortStr)
 
 	db, err := sql.Open("postgres", systemDSN)
 	require.NoError(t, err)
@@ -47,7 +54,7 @@ func TestReloadDatabaseSettings_EnvVarPrecedence(t *testing.T) {
 
 	// Connect to test database
 	testDSN := fmt.Sprintf("host=%s port=%s user=notifuse_test password=test_password dbname=%s sslmode=disable",
-		dbHost, dbPort, testDBName)
+		dbHost, dbPortStr, testDBName)
 	testDB, err := sql.Open("postgres", testDSN)
 	require.NoError(t, err)
 	defer testDB.Close()
@@ -90,7 +97,7 @@ func TestReloadDatabaseSettings_EnvVarPrecedence(t *testing.T) {
 	cfg := &config.Config{
 		Database: config.DatabaseConfig{
 			Host:     dbHost,
-			Port:     5432,
+			Port:     dbPortInt,
 			User:     "notifuse_test",
 			Password: "test_password",
 			DBName:   testDBName,
@@ -160,14 +167,20 @@ func TestReloadDatabaseSettings_DatabaseOnlyValues(t *testing.T) {
 	if dbHost == "" {
 		dbHost = "localhost"
 	}
-	dbPort := os.Getenv("TEST_DB_PORT")
-	if dbPort == "" {
-		dbPort = "5433"
+	dbPortStr := os.Getenv("TEST_DB_PORT")
+	if dbPortStr == "" {
+		dbPortStr = "5433"
+	}
+	
+	// Parse port for both DSN (string) and Config struct (int)
+	dbPortInt := 5433
+	if p, err := strconv.Atoi(dbPortStr); err == nil {
+		dbPortInt = p
 	}
 
 	testDBName := fmt.Sprintf("test_config_reload_db_%d", time.Now().UnixNano())
 	systemDSN := fmt.Sprintf("host=%s port=%s user=notifuse_test password=test_password dbname=postgres sslmode=disable",
-		dbHost, dbPort)
+		dbHost, dbPortStr)
 
 	db, err := sql.Open("postgres", systemDSN)
 	require.NoError(t, err)
@@ -179,7 +192,7 @@ func TestReloadDatabaseSettings_DatabaseOnlyValues(t *testing.T) {
 	defer db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", testDBName))
 
 	testDSN := fmt.Sprintf("host=%s port=%s user=notifuse_test password=test_password dbname=%s sslmode=disable",
-		dbHost, dbPort, testDBName)
+		dbHost, dbPortStr, testDBName)
 	testDB, err := sql.Open("postgres", testDSN)
 	require.NoError(t, err)
 	defer testDB.Close()
@@ -204,7 +217,7 @@ func TestReloadDatabaseSettings_DatabaseOnlyValues(t *testing.T) {
 	cfg := &config.Config{
 		Database: config.DatabaseConfig{
 			Host:     dbHost,
-			Port:     5432,
+			Port:     dbPortInt,
 			User:     "notifuse_test",
 			Password: "test_password",
 			DBName:   testDBName,
