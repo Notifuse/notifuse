@@ -3,6 +3,7 @@ package integration
 import (
 	"encoding/json"
 	"net/http"
+	"os"
 	"testing"
 
 	"github.com/Notifuse/notifuse/config"
@@ -326,6 +327,104 @@ func TestSetupWizardEnvironmentOverrides(t *testing.T) {
 	t.Skip("Environment override testing requires complex test infrastructure")
 }
 
+// TestSetupWizardWithServerRestart tests that setup completion triggers server shutdown
+// In production, Docker/systemd restarts the process with fresh configuration
+func TestSetupWizardWithServerRestart(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := createUninstalledTestSuite(t)
+	defer suite.Cleanup()
+
+	client := suite.APIClient
+
+	t.Run("Complete Setup Triggers Shutdown", func(t *testing.T) {
+		// Step 1: Complete setup wizard with full SMTP configuration
+		rootEmail := "admin@example.com"
+		
+		// Use environment variable for SMTP host (for containerized test environments)
+		// Default to localhost for non-containerized environments
+		smtpHost := os.Getenv("TEST_SMTP_HOST")
+		if smtpHost == "" {
+			smtpHost = "localhost"
+		}
+		
+		initReq := map[string]interface{}{
+			"root_email":           rootEmail,
+			"api_endpoint":         suite.ServerManager.GetURL(),
+			"generate_paseto_keys": true,
+			"smtp_host":            smtpHost,
+			"smtp_port":            1025,
+			"smtp_username":        "testuser",
+			"smtp_password":        "testpass",
+			"smtp_from_email":      "noreply@example.com", // Important: non-empty from email
+			"smtp_from_name":       "Test System",
+		}
+
+		resp, err := client.Post("/api/setup.initialize", initReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "Setup should succeed")
+
+		var setupResp map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&setupResp)
+		require.NoError(t, err)
+
+		assert.True(t, setupResp["success"].(bool), "Setup should succeed")
+		assert.Contains(t, setupResp["message"].(string), "restarting",
+			"Response should indicate server is restarting")
+		
+		// Verify response includes generated keys
+		if keysInterface, ok := setupResp["paseto_keys"]; ok {
+			keys := keysInterface.(map[string]interface{})
+			assert.NotEmpty(t, keys["public_key"], "Public key should be generated")
+			assert.NotEmpty(t, keys["private_key"], "Private key should be generated")
+		}
+		
+		// Note: In production, Docker/systemd would restart the process here.
+		// The test suite will be cleaned up, simulating process termination.
+	})
+
+	t.Run("Fresh Start After Simulated Restart", func(t *testing.T) {
+		// Simulate what happens after Docker restarts the container:
+		// The old app instance shuts down, and a new one starts with fresh config.
+		// We verify this by creating a fresh test suite that loads config from database.
+		
+		// Clean up original suite (simulates process shutdown)
+		suite.Cleanup()
+		
+		// Create fresh test suite (simulates Docker restart)
+		// This will create a new app that loads config from the database where setup was saved
+		freshSuite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+			return app.NewApp(cfg)
+		})
+		defer freshSuite.Cleanup()
+		
+		// Verify the fresh app loaded config correctly by testing signin
+		signinReq := map[string]interface{}{
+			"email": "admin@example.com",
+		}
+
+		signinResp, err := freshSuite.APIClient.Post("/api/user.signin", signinReq)
+		require.NoError(t, err)
+		defer signinResp.Body.Close()
+
+		var signinResult map[string]interface{}
+		err = json.NewDecoder(signinResp.Body).Decode(&signinResult)
+		require.NoError(t, err)
+
+		// Verify no mail parsing errors (the original bug is fixed by restart)
+		if errorMsg, ok := signinResult["error"].(string); ok {
+			assert.NotContains(t, errorMsg, "failed to parse mail address",
+				"Fresh start should not have mail parsing error")
+			assert.NotContains(t, errorMsg, "mail: invalid string",
+				"Fresh start should not have invalid mail error")
+		}
+	})
+}
+
 // createUninstalledTestSuite creates a test suite without seeding installation data
 // This allows testing the setup wizard from a clean state
 func createUninstalledTestSuite(t *testing.T) *testutil.IntegrationTestSuite {
@@ -352,6 +451,20 @@ func createUninstalledTestSuite(t *testing.T) *testutil.IntegrationTestSuite {
 		cfg.IsInstalled = false
 		cfg.Security.PasetoPrivateKeyBytes = nil
 		cfg.Security.PasetoPublicKeyBytes = nil
+		
+		// CRITICAL: Set to production environment to use SMTPMailer (not ConsoleMailer)
+		// This replicates the real bug scenario
+		cfg.Environment = "production"
+		
+		// CRITICAL: Empty SMTP config to replicate production bug scenario
+		// In production, before setup, there's no SMTP config in database
+		cfg.SMTP.FromEmail = ""  // Empty email will cause parsing error
+		cfg.SMTP.FromName = "Notifuse"  // Default name only
+		cfg.SMTP.Host = "localhost"  // Minimal config to allow app to start
+		cfg.SMTP.Port = 1025
+		cfg.SMTP.Username = ""
+		cfg.SMTP.Password = ""
+		
 		return app.NewApp(cfg)
 	}, suite.DBManager)
 

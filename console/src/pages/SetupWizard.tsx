@@ -155,12 +155,81 @@ export default function SetupWizard() {
         setGeneratedKeys(result.paseto_keys)
       }
 
+      // Show loading message for server restart
+      const hideRestartMessage = message.loading({
+        content: 'Setup completed! Server is restarting with new configuration...',
+        duration: 0, // Don't auto-dismiss
+        key: 'server-restart'
+      })
+
+      // Wait for server to restart
+      try {
+        await waitForServerRestart()
+        
+        // Success - server is back up
+        message.success({
+          content: 'Server restarted successfully!',
+          key: 'server-restart',
+          duration: 2
+        })
+        
+        // Wait a moment then redirect
+        setTimeout(() => {
+          window.location.href = '/signin'
+        }, 1000)
+      } catch (error) {
+        hideRestartMessage()
+        message.error({
+          content: 'Server restart timeout. Please refresh the page manually.',
+          key: 'server-restart',
+          duration: 0
+        })
+      }
+
       setSetupComplete(true)
       setLoading(false)
     } catch (err) {
       message.error(err instanceof Error ? err.message : 'Failed to complete setup')
       setLoading(false)
     }
+  }
+
+  /**
+   * Wait for the server to restart after setup completion
+   * Polls the health endpoint until server is back online
+   */
+  const waitForServerRestart = async (): Promise<void> => {
+    const maxAttempts = 60 // 60 seconds max wait
+    const delayMs = 1000   // Check every second
+    
+    // Wait for server to start shutting down
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // Poll health endpoint
+    for (let i = 0; i < maxAttempts; i++) {
+      try {
+        const response = await fetch('/api/setup.status', { 
+          method: 'GET',
+          cache: 'no-cache',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        })
+        
+        if (response.ok) {
+          // Server is back!
+          console.log(`Server restarted successfully after ${i + 1} attempts`)
+          return
+        }
+      } catch (error) {
+        // Expected during restart - server is down
+        console.log(`Waiting for server... attempt ${i + 1}/${maxAttempts}`)
+      }
+      
+      await new Promise(resolve => setTimeout(resolve, delayMs))
+    }
+    
+    throw new Error('Server restart timeout')
   }
 
   const handleCopyKey = (key: string, keyType: string) => {

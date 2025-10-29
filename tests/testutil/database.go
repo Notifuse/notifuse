@@ -29,9 +29,24 @@ type DatabaseManager struct {
 
 // NewDatabaseManager creates a new database manager for testing
 func NewDatabaseManager() *DatabaseManager {
+	defaultHost := "localhost"
+	defaultPort := 5433
+	
+	// Use environment variables if set (for containerized environments)
+	testHost := getEnvOrDefault("TEST_DB_HOST", defaultHost)
+	testPort := defaultPort
+	if testHost != defaultHost {
+		// Custom host likely means internal port
+		if portStr := os.Getenv("TEST_DB_PORT"); portStr != "" {
+			fmt.Sscanf(portStr, "%d", &testPort)
+		} else {
+			testPort = 5432
+		}
+	}
+	
 	config := &config.DatabaseConfig{
-		Host:     getEnvOrDefault("TEST_DB_HOST", "localhost"),
-		Port:     5433, // Different port for test DB
+		Host:     testHost,
+		Port:     testPort,
 		User:     getEnvOrDefault("TEST_DB_USER", "notifuse_test"),
 		Password: getEnvOrDefault("TEST_DB_PASSWORD", "test_password"),
 		DBName:   fmt.Sprintf("notifuse_test_%d", time.Now().UnixNano()),

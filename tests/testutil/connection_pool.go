@@ -3,6 +3,7 @@ package testutil
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"sync"
 	"time"
 
@@ -208,9 +209,28 @@ var poolOnce sync.Once
 // GetGlobalTestPool returns a singleton connection pool for all tests
 func GetGlobalTestPool() *TestConnectionPool {
 	poolOnce.Do(func() {
+		// Default to localhost for normal environments
+		// In containerized environments (like Cursor), set TEST_DB_HOST env var
+		// to the actual container IP or accessible hostname
+		defaultHost := "localhost"
+		defaultPort := 5433
+		
+		// Check if we're likely in a containerized environment
+		// If TEST_DB_HOST is explicitly set, use it with its port
+		testHost := getEnvOrDefault("TEST_DB_HOST", defaultHost)
+		testPort := defaultPort
+		if testHost != defaultHost {
+			// If custom host is set, likely need internal port
+			if os.Getenv("TEST_DB_PORT") != "" {
+				fmt.Sscanf(os.Getenv("TEST_DB_PORT"), "%d", &testPort)
+			} else {
+				testPort = 5432 // Default to internal port when using custom host
+			}
+		}
+		
 		config := &config.DatabaseConfig{
-			Host:     getEnvOrDefault("TEST_DB_HOST", "localhost"),
-			Port:     5433,
+			Host:     testHost,
+			Port:     testPort,
 			User:     getEnvOrDefault("TEST_DB_USER", "notifuse_test"),
 			Password: getEnvOrDefault("TEST_DB_PASSWORD", "test_password"),
 			Prefix:   "notifuse_test",

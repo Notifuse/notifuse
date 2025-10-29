@@ -224,8 +224,10 @@ func RequireEnvironmentVar(t *testing.T, envVar string) string {
 
 // SetupTestEnvironment sets up environment variables for testing
 func SetupTestEnvironment() {
-	os.Setenv("TEST_DB_HOST", "localhost")
-	os.Setenv("TEST_DB_PORT", "5433")
+	// Don't set TEST_DB_HOST here - let it use the default or be set externally
+	// This allows for flexibility between local and containerized environments
+	// os.Setenv("TEST_DB_HOST", "localhost") // Default handled in connection_pool.go
+	// os.Setenv("TEST_DB_PORT", "5433")      // Default handled in connection_pool.go
 	os.Setenv("TEST_DB_USER", "notifuse_test")
 	os.Setenv("TEST_DB_PASSWORD", "test_password")
 	os.Setenv("ENVIRONMENT", "test")

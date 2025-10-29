@@ -111,33 +111,84 @@ func TestNewApp(t *testing.T) {
 }
 
 func TestAppInitMailer(t *testing.T) {
-	// Create a minimal config for testing
-	cfg := &config.Config{
-		Environment: "development",
-	}
-
-	// Test without pre-existing mailer
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
-	app := NewApp(cfg, WithLogger(mockLogger))
-	err := app.InitMailer()
-	assert.NoError(t, err)
-	assert.NotNil(t, app.GetMailer())
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
 
-	// Check if correctly used development mailer
-	_, isConsoleMailer := app.GetMailer().(*mailer.ConsoleMailer)
-	assert.True(t, isConsoleMailer)
+	t.Run("Development environment uses ConsoleMailer", func(t *testing.T) {
+		cfg := &config.Config{
+			Environment: "development",
+		}
 
-	// Test with pre-existing mailer (should be skipped)
-	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	app = NewApp(cfg, WithLogger(mockLogger), WithMockMailer(mockMailer))
-	err = app.InitMailer()
-	assert.NoError(t, err)
-	assert.Equal(t, mockMailer, app.GetMailer()) // Should still be the mock mailer
+		app := NewApp(cfg, WithLogger(mockLogger))
+		err := app.InitMailer()
+		assert.NoError(t, err)
+		assert.NotNil(t, app.GetMailer())
+
+		// Check if correctly used development mailer
+		_, isConsoleMailer := app.GetMailer().(*mailer.ConsoleMailer)
+		assert.True(t, isConsoleMailer)
+	})
+
+	t.Run("Production environment uses SMTPMailer", func(t *testing.T) {
+		cfg := &config.Config{
+			Environment: "production",
+			SMTP: config.SMTPConfig{
+				Host:      "smtp.example.com",
+				Port:      587,
+				FromEmail: "test@example.com",
+				FromName:  "Test Mailer",
+			},
+		}
+
+		app := NewApp(cfg, WithLogger(mockLogger))
+		err := app.InitMailer()
+		assert.NoError(t, err)
+		assert.NotNil(t, app.GetMailer())
+
+		// Check if correctly used SMTP mailer
+		_, isSMTPMailer := app.GetMailer().(*mailer.SMTPMailer)
+		assert.True(t, isSMTPMailer)
+	})
+
+	t.Run("Reinitialization with updated config", func(t *testing.T) {
+		cfg := &config.Config{
+			Environment: "production",
+			SMTP: config.SMTPConfig{
+				Host:      "smtp1.example.com",
+				Port:      587,
+				FromEmail: "old@example.com",
+				FromName:  "Old Mailer",
+			},
+		}
+
+		app := NewApp(cfg, WithLogger(mockLogger))
+		
+		// First initialization
+		err := app.InitMailer()
+		assert.NoError(t, err)
+		firstMailer := app.GetMailer()
+		assert.NotNil(t, firstMailer)
+
+		// Update config (simulating what happens after setup wizard)
+		cfg.SMTP.Host = "smtp2.example.com"
+		cfg.SMTP.FromEmail = "new@example.com"
+		cfg.SMTP.FromName = "New Mailer"
+
+		// Reinitialize with updated config
+		err = app.InitMailer()
+		assert.NoError(t, err)
+		secondMailer := app.GetMailer()
+		assert.NotNil(t, secondMailer)
+
+		// Mailer should be reinitialized (new instance with new config)
+		assert.NotEqual(t, firstMailer, secondMailer, "Mailer should be reinitialized with new instance")
+	})
 }
 
 func TestAppShutdown(t *testing.T) {

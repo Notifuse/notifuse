@@ -156,6 +156,10 @@ func WithMockDB(db *sql.DB) AppOption {
 }
 
 // WithMockMailer configures the app to use a mock mailer
+// Note: If Initialize() or InitMailer() is called after setting a mock,
+// the mock will be replaced with a real mailer. To keep the mock, either:
+// 1. Don't call Initialize()/InitMailer(), OR
+// 2. Set the mock again after calling Initialize()
 func WithMockMailer(m mailer.Mailer) AppOption {
 	return func(a *App) {
 		a.mailer = m
@@ -286,19 +290,18 @@ func (a *App) InitDB() error {
 }
 
 // InitMailer initializes the mailer service
+// This method can be called multiple times to reinitialize the mailer with updated configuration
 func (a *App) InitMailer() error {
-	// Skip if mailer already set (e.g., by mock)
-	if a.mailer != nil {
-		return nil
-	}
-
+	// Always initialize/reinitialize the mailer
+	// This allows config changes (e.g., after setup wizard) to take effect
+	
 	if a.config.IsDevelopment() {
 		// Use console mailer in development
 		a.mailer = mailer.NewConsoleMailer()
 		a.logger.Info("Using console mailer for development")
 	} else {
 		// Use SMTP mailer in production
-		a.mailer = mailer.NewSMTPMailer(&mailer.Config{
+		mailerConfig := &mailer.Config{
 			SMTPHost:     a.config.SMTP.Host,
 			SMTPPort:     a.config.SMTP.Port,
 			SMTPUsername: a.config.SMTP.Username,
@@ -306,7 +309,9 @@ func (a *App) InitMailer() error {
 			FromEmail:    a.config.SMTP.FromEmail,
 			FromName:     a.config.SMTP.FromName,
 			APIEndpoint:  a.config.APIEndpoint,
-		})
+		}
+		
+		a.mailer = mailer.NewSMTPMailer(mailerConfig)
 		a.logger.Info("Using SMTP mailer for production")
 	}
 
@@ -405,11 +410,7 @@ func (a *App) InitServices() error {
 		a.userRepo,
 		a.logger,
 		a.config.Security.SecretKey,
-		func() error {
-			// Reload config after setup completes
-			ctx := context.Background()
-			return a.ReloadConfig(ctx)
-		},
+		nil, // No callback needed - server restarts after setup
 		envConfig,
 	)
 
@@ -727,6 +728,7 @@ func (a *App) InitHandlers() error {
 		a.setupService,
 		a.settingService,
 		a.logger,
+		a, // Pass app for shutdown capability
 	)
 	workspaceHandler := httpHandler.NewWorkspaceHandler(
 		a.workspaceService,
@@ -1107,33 +1109,6 @@ func (a *App) Initialize() error {
 // GetConfig returns the app's configuration
 func (a *App) GetConfig() *config.Config {
 	return a.config
-}
-
-// ReloadConfig reloads the configuration from the database and updates services
-func (a *App) ReloadConfig(ctx context.Context) error {
-	a.logger.Info("Reloading configuration from database...")
-
-	// Reload the configuration
-	newConfig, err := config.Load()
-	if err != nil {
-		return fmt.Errorf("failed to reload config: %w", err)
-	}
-
-	// Update the config
-	a.config = newConfig
-	a.isInstalled = newConfig.IsInstalled
-
-	// Reinitialize mailer with new SMTP settings
-	if err := a.InitMailer(); err != nil {
-		return fmt.Errorf("failed to reinitialize mailer: %w", err)
-	}
-
-	// Invalidate auth service key cache so it reloads keys from new config on next use
-	// No need to reinitialize the entire service - the callback will fetch fresh keys
-	a.authService.InvalidateKeyCache()
-
-	a.logger.Info("Configuration reloaded successfully - PASETO keys will be reloaded on next use")
-	return nil
 }
 
 // GetLogger returns the app's logger

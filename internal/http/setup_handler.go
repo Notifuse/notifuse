@@ -1,19 +1,27 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
+
+// AppShutdowner defines the interface for triggering app shutdown
+type AppShutdowner interface {
+	Shutdown(ctx context.Context) error
+}
 
 // SetupHandler handles setup wizard endpoints
 type SetupHandler struct {
 	setupService   *service.SetupService
 	settingService *service.SettingService
 	logger         logger.Logger
+	app            AppShutdowner
 }
 
 // NewSetupHandler creates a new setup handler
@@ -21,11 +29,13 @@ func NewSetupHandler(
 	setupService *service.SetupService,
 	settingService *service.SettingService,
 	logger logger.Logger,
+	app AppShutdowner,
 ) *SetupHandler {
 	return &SetupHandler{
 		setupService:   setupService,
 		settingService: settingService,
 		logger:         logger,
+		app:            app,
 	}
 }
 
@@ -181,7 +191,7 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 
 	response := InitializeResponse{
 		Success: true,
-		Message: "Setup completed successfully. You can now sign in with your email.",
+		Message: "Setup completed successfully. Server is restarting with new configuration...",
 	}
 
 	// Include generated keys in response if they were generated
@@ -195,6 +205,21 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(response)
+
+	// Flush the response to ensure client receives it before shutdown
+	if flusher, ok := w.(http.Flusher); ok {
+		flusher.Flush()
+	}
+
+	// Trigger graceful shutdown in background after a brief delay
+	// This allows the response to reach the client
+	go func() {
+		time.Sleep(500 * time.Millisecond)
+		h.logger.Info("Setup completed - initiating graceful shutdown for configuration reload")
+		if err := h.app.Shutdown(context.Background()); err != nil {
+			h.logger.WithField("error", err).Error("Error during graceful shutdown")
+		}
+	}()
 }
 
 // TestSMTP tests the SMTP connection with the provided configuration
