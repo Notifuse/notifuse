@@ -343,6 +343,18 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		},
 	}
 
+	// Check context one final time before sending
+	// This catches cancellations that occurred during template compilation/processing
+	if ctx.Err() != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"workspace_id": workspaceID,
+			"recipient":    email,
+			"error":        ctx.Err().Error(),
+		}).Warn("Context cancelled before send")
+		return NewBroadcastError(ErrCodeRateLimitExceeded, "context cancelled", true, ctx.Err())
+	}
+
 	// Now send email directly using compiled HTML rather than passing template to broadcastRepo
 	err = s.emailService.SendEmail(ctx, emailRequest, true)
 
