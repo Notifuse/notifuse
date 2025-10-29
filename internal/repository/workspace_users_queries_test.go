@@ -24,7 +24,8 @@ func TestWorkspaceRepository_GetUserWorkspaces(t *testing.T) {
 		Prefix: "notifuse",
 	}
 
-	repo := NewWorkspaceRepository(db, dbConfig, "secret-key")
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr)
 	userID := "user123"
 
 	// Test success case
@@ -77,7 +78,8 @@ func TestWorkspaceRepository_GetUserWorkspace(t *testing.T) {
 		Prefix: "notifuse",
 	}
 
-	repo := NewWorkspaceRepository(db, dbConfig, "secret-key")
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr)
 	userID := "user123"
 	workspaceID := "workspace123"
 

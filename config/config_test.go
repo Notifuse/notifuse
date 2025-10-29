@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -212,3 +213,107 @@ func TestLoad(t *testing.T) {
 		assert.Equal(t, "test@example.com", cfg.RootEmail)
 	}
 }
+
+func TestDatabaseConnectionConfig_Defaults(t *testing.T) {
+	// Set minimal required env vars
+	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	os.Setenv("DB_PASSWORD", "testpass")
+	defer os.Unsetenv("SECRET_KEY")
+	defer os.Unsetenv("DB_PASSWORD")
+
+	cfg, err := LoadWithOptions(LoadOptions{})
+	require.NoError(t, err)
+
+	// Test default values
+	assert.Equal(t, 100, cfg.Database.MaxConnections)
+	assert.Equal(t, 3, cfg.Database.MaxConnectionsPerDB)
+	assert.Equal(t, 10*time.Minute, cfg.Database.ConnectionMaxLifetime)
+	assert.Equal(t, 5*time.Minute, cfg.Database.ConnectionMaxIdleTime)
+}
+
+func TestDatabaseConnectionConfig_CustomValues(t *testing.T) {
+	// Set custom connection configuration
+	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	os.Setenv("DB_PASSWORD", "testpass")
+	os.Setenv("DB_MAX_CONNECTIONS", "200")
+	os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "5")
+	os.Setenv("DB_CONNECTION_MAX_LIFETIME", "20m")
+	os.Setenv("DB_CONNECTION_MAX_IDLE_TIME", "10m")
+	
+	defer os.Unsetenv("SECRET_KEY")
+	defer os.Unsetenv("DB_PASSWORD")
+	defer os.Unsetenv("DB_MAX_CONNECTIONS")
+	defer os.Unsetenv("DB_MAX_CONNECTIONS_PER_DB")
+	defer os.Unsetenv("DB_CONNECTION_MAX_LIFETIME")
+	defer os.Unsetenv("DB_CONNECTION_MAX_IDLE_TIME")
+
+	cfg, err := LoadWithOptions(LoadOptions{})
+	require.NoError(t, err)
+
+	// Test custom values
+	assert.Equal(t, 200, cfg.Database.MaxConnections)
+	assert.Equal(t, 5, cfg.Database.MaxConnectionsPerDB)
+	assert.Equal(t, 20*time.Minute, cfg.Database.ConnectionMaxLifetime)
+	assert.Equal(t, 10*time.Minute, cfg.Database.ConnectionMaxIdleTime)
+}
+
+func TestDatabaseConnectionConfig_ValidationMinimum(t *testing.T) {
+	// Test that MaxConnections below minimum fails
+	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	os.Setenv("DB_PASSWORD", "testpass")
+	os.Setenv("DB_MAX_CONNECTIONS", "10") // Below minimum of 20
+	
+	defer os.Unsetenv("SECRET_KEY")
+	defer os.Unsetenv("DB_PASSWORD")
+	defer os.Unsetenv("DB_MAX_CONNECTIONS")
+
+	_, err := LoadWithOptions(LoadOptions{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "DB_MAX_CONNECTIONS must be at least 20")
+}
+
+func TestDatabaseConnectionConfig_ValidationMaximum(t *testing.T) {
+	// Test that MaxConnections above maximum fails
+	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	os.Setenv("DB_PASSWORD", "testpass")
+	os.Setenv("DB_MAX_CONNECTIONS", "15000") // Above maximum of 10000
+	
+	defer os.Unsetenv("SECRET_KEY")
+	defer os.Unsetenv("DB_PASSWORD")
+	defer os.Unsetenv("DB_MAX_CONNECTIONS")
+
+	_, err := LoadWithOptions(LoadOptions{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "DB_MAX_CONNECTIONS cannot exceed 10000")
+}
+
+func TestDatabaseConnectionConfig_ValidationPerDBMinimum(t *testing.T) {
+	// Test that MaxConnectionsPerDB below minimum fails
+	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	os.Setenv("DB_PASSWORD", "testpass")
+	os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "0") // Below minimum of 1
+	
+	defer os.Unsetenv("SECRET_KEY")
+	defer os.Unsetenv("DB_PASSWORD")
+	defer os.Unsetenv("DB_MAX_CONNECTIONS_PER_DB")
+
+	_, err := LoadWithOptions(LoadOptions{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "DB_MAX_CONNECTIONS_PER_DB must be at least 1")
+}
+
+func TestDatabaseConnectionConfig_ValidationPerDBMaximum(t *testing.T) {
+	// Test that MaxConnectionsPerDB above maximum fails
+	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	os.Setenv("DB_PASSWORD", "testpass")
+	os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "60") // Above maximum of 50
+	
+	defer os.Unsetenv("SECRET_KEY")
+	defer os.Unsetenv("DB_PASSWORD")
+	defer os.Unsetenv("DB_MAX_CONNECTIONS_PER_DB")
+
+	_, err := LoadWithOptions(LoadOptions{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "DB_MAX_CONNECTIONS_PER_DB cannot exceed 50")
+}
+

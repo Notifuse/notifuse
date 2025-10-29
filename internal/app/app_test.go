@@ -19,6 +19,7 @@ import (
 
 	"github.com/DATA-DOG/go-sqlmock"
 	"github.com/Notifuse/notifuse/config"
+	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/mailer"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/testkeys"
@@ -236,7 +237,14 @@ func TestAppInitRepositories(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
 	app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB))
+
+	// Initialize connection manager before repositories
+	err = pkgDatabase.InitializeConnectionManager(cfg, mockDB)
+	require.NoError(t, err)
+	defer pkgDatabase.ResetConnectionManager()
 
 	// Test repository initialization
 	err = app.InitRepositories()
@@ -498,6 +506,11 @@ func TestAppInitServices(t *testing.T) {
 
 	app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB))
 
+	// Initialize connection manager before repositories
+	err = pkgDatabase.InitializeConnectionManager(cfg, mockDB)
+	require.NoError(t, err)
+	defer pkgDatabase.ResetConnectionManager()
+
 	// Setup repositories (required for services)
 	err = app.InitRepositories()
 	assert.NoError(t, err)
@@ -558,6 +571,11 @@ func TestAppInitHandlers(t *testing.T) {
 	mockLogger.EXPECT().Fatal(gomock.Any()).AnyTimes()
 
 	app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB))
+
+	// Initialize connection manager before repositories
+	err = pkgDatabase.InitializeConnectionManager(cfg, mockDB)
+	require.NoError(t, err)
+	defer pkgDatabase.ResetConnectionManager()
 
 	// Setup repositories (required for services)
 	err = app.InitRepositories()
