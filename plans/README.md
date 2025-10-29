@@ -2,74 +2,51 @@
 
 This directory contains implementation plans for features and architectural changes.
 
-## Current Plans
+## Implemented Features
 
-### ✅ Completed Implementations
+### Database Connection Manager
 
-1. **[database-connection-manager-complete.md](./database-connection-manager-complete.md)** - **CONSOLIDATED COMPLETE DOCUMENTATION**
-   - **Status:** ✅ COMPLETED & PRODUCTION READY (October 2025)
-   - **Purpose:** Comprehensive document covering entire connection manager implementation
-   - **What it includes:**
-     - Executive summary and problem analysis
-     - Complete solution architecture
-     - All implementation details (8 phases)
-     - Configuration and usage guides
-     - Testing strategy and results (all tests passing)
-     - Deployment guide and monitoring
-     - Troubleshooting and advanced topics
-   - **Result:** From 4 workspaces max → UNLIMITED workspaces with 100 connection limit
-   
-### 📋 Implementation Plans (Reference)
+**[database-connection-manager-complete.md](./database-connection-manager-complete.md)** - ✅ COMPLETED & PRODUCTION READY
 
-2. **[connection-manager-implementation.md](./connection-manager-implementation.md)**
-   - **Status:** Implemented (see consolidated doc above)
-   - **Purpose:** Original detailed implementation plan
-   - **Key approach:** Small pools (2-3 connections) per workspace database with LRU eviction
-   
-### 📚 Supporting Documentation
+**Status:** Fully implemented (October 2025)
 
-3. **[connection-pooling-vs-per-query.md](./connection-pooling-vs-per-query.md)**
-   - **Purpose:** Technical analysis comparing connection pooling vs per-query connections
-   - **Key finding:** Connection pooling is 10-100x faster than creating connections per query
-   - **Includes:** Benchmarks, load test results, cost analysis
+**Summary:** Solves "too many connections" errors by implementing a smart connection pool manager that supports unlimited workspaces with a fixed connection limit.
 
-### 🗄️ Archived Plans
+**Key Changes:**
+- **Configuration:** Added 4 new environment variables (`DB_MAX_CONNECTIONS`, `DB_MAX_CONNECTIONS_PER_DB`, etc.)
+- **New Files:**
+  - `pkg/database/connection_manager.go` - Singleton connection manager (599 lines)
+  - `pkg/database/connection_manager_test.go` - Unit tests (7 tests)
+  - `internal/http/connection_stats_handler.go` - Monitoring endpoint
+- **Updated Files:**
+  - `config/config.go` - Added connection pool configuration
+  - `internal/repository/workspace_postgres.go` - Uses ConnectionManager
+  - `internal/app/app.go` - Initializes ConnectionManager
+  - All repository tests - Updated with mock ConnectionManager
 
-4. **[connection-manager-singleton-OLD.md](./connection-manager-singleton-OLD.md)**
-   - **Status:** Superseded by shared pool implementation
-   - **Why archived:** Original approach didn't scale (reserved too many connections per workspace)
-   - **Keep for:** Historical reference and to understand evolution of solution
+**Results:**
+- From 4 workspaces max → UNLIMITED workspaces
+- 10-100x performance improvement vs per-query connections
+- All tests passing (22 packages, 0 failures)
 
-## Plan Status Legend
+**The document includes:**
+- Problem analysis and solution architecture
+- Complete implementation details (all 8 phases)
+- Configuration and usage guides
+- Testing strategy and results
+- Deployment guide and monitoring
+- Troubleshooting and advanced topics
 
-- ✅ **Active** - Ready for or currently being implemented
-- 📚 **Documentation** - Supporting technical analysis
-- 🗄️ **Archived** - Superseded or historical reference
+## Other Features
 
-## How to Use Plans
+- [Transactional API From Name Override](transactional-api-from-name-override.md)
+- [Web Publication Feature](web-publication-feature.md)
 
-### For Connection Manager Implementation
-
-**Start here:** [database-connection-manager-complete.md](./database-connection-manager-complete.md)
-
-This consolidated document contains everything you need:
-- ✅ Complete implementation details
-- ✅ Configuration and usage guides  
-- ✅ Testing results (all passing)
-- ✅ Deployment guide
-- ✅ Troubleshooting
-
-### General Guidelines
-
-1. **For completed features:** Read the consolidated completion document
-2. **For active implementations:** Use the detailed plan documents
-3. **For understanding decisions:** Read the supporting analysis documents
-4. **For history:** Review archived plans to see what changed and why
-
-## Plan Creation Guidelines
+## Plan Guidelines
 
 When creating new plans:
-1. Use descriptive kebab-case filenames (e.g., `feature-name-plan.md`)
-2. Include clear status at the top (active, draft, archived)
-3. Update this README when adding new plans
-4. Archive old plans instead of deleting them
+1. Use descriptive kebab-case filenames (e.g., `feature-name-implementation.md`)
+2. Include implementation status and date at the top
+3. Document all code changes with file paths
+4. Include testing results
+5. Update this README when adding new plans
