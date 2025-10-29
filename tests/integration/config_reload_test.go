@@ -1,4 +1,4 @@
-package config
+package integration
 
 import (
 	"database/sql"
@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -86,8 +87,8 @@ func TestReloadDatabaseSettings_EnvVarPrecedence(t *testing.T) {
 	}
 
 	// Create config with ENV VALUES set (simulating environment variables)
-	config := &Config{
-		Database: DatabaseConfig{
+	cfg := &config.Config{
+		Database: config.DatabaseConfig{
 			Host:     dbHost,
 			Port:     5432,
 			User:     "notifuse_test",
@@ -95,11 +96,11 @@ func TestReloadDatabaseSettings_EnvVarPrecedence(t *testing.T) {
 			DBName:   testDBName,
 			SSLMode:  "disable",
 		},
-		Security: SecurityConfig{
+		Security: config.SecurityConfig{
 			SecretKey: "test-secret-key-32-characters!",
 		},
 		// Simulate env values being set
-		envValues: envValues{
+		EnvValues: config.EnvValues{
 			RootEmail:      "env@example.com",       // ENV VAR SET
 			APIEndpoint:    "https://env.example.com", // ENV VAR SET
 			SMTPHost:       "smtp.env.example.com",    // ENV VAR SET
@@ -110,7 +111,7 @@ func TestReloadDatabaseSettings_EnvVarPrecedence(t *testing.T) {
 		// Initial config values (from env vars)
 		RootEmail:   "env@example.com",
 		APIEndpoint: "https://env.example.com",
-		SMTP: SMTPConfig{
+		SMTP: config.SMTPConfig{
 			Host:      "smtp.env.example.com",
 			Port:      2525,
 			FromEmail: "env@example.com",
@@ -119,31 +120,31 @@ func TestReloadDatabaseSettings_EnvVarPrecedence(t *testing.T) {
 	}
 
 	// Reload database settings
-	err = config.ReloadDatabaseSettings()
+	err = cfg.ReloadDatabaseSettings()
 	require.NoError(t, err)
 
 	// Verify ENV VARS are PRESERVED (not overwritten by database)
-	assert.Equal(t, "env@example.com", config.RootEmail, 
+	assert.Equal(t, "env@example.com", cfg.RootEmail, 
 		"Root email should preserve env var value")
-	assert.Equal(t, "https://env.example.com", config.APIEndpoint, 
+	assert.Equal(t, "https://env.example.com", cfg.APIEndpoint, 
 		"API endpoint should preserve env var value")
-	assert.Equal(t, "smtp.env.example.com", config.SMTP.Host, 
+	assert.Equal(t, "smtp.env.example.com", cfg.SMTP.Host, 
 		"SMTP host should preserve env var value")
-	assert.Equal(t, 2525, config.SMTP.Port, 
+	assert.Equal(t, 2525, cfg.SMTP.Port, 
 		"SMTP port should preserve env var value")
-	assert.Equal(t, "env@example.com", config.SMTP.FromEmail, 
+	assert.Equal(t, "env@example.com", cfg.SMTP.FromEmail, 
 		"SMTP from email should preserve env var value")
 
 	// Verify DATABASE VALUES are used for fields NOT set in env
-	assert.Equal(t, "db_user", config.SMTP.Username, 
+	assert.Equal(t, "db_user", cfg.SMTP.Username, 
 		"SMTP username should use database value when env var not set")
-	assert.Equal(t, "db_pass", config.SMTP.Password, 
+	assert.Equal(t, "db_pass", cfg.SMTP.Password, 
 		"SMTP password should use database value when env var not set")
-	assert.Equal(t, "DB Mailer", config.SMTP.FromName, 
+	assert.Equal(t, "DB Mailer", cfg.SMTP.FromName, 
 		"SMTP from name should use database value when env var not set")
 
 	// Verify IsInstalled is always updated (it's not an env var)
-	assert.True(t, config.IsInstalled, "IsInstalled should be updated from database")
+	assert.True(t, cfg.IsInstalled, "IsInstalled should be updated from database")
 }
 
 // TestReloadDatabaseSettings_DatabaseOnlyValues verifies that database values
@@ -200,8 +201,8 @@ func TestReloadDatabaseSettings_DatabaseOnlyValues(t *testing.T) {
 	}
 
 	// Create config with NO env values set
-	config := &Config{
-		Database: DatabaseConfig{
+	cfg := &config.Config{
+		Database: config.DatabaseConfig{
 			Host:     dbHost,
 			Port:     5432,
 			User:     "notifuse_test",
@@ -209,25 +210,25 @@ func TestReloadDatabaseSettings_DatabaseOnlyValues(t *testing.T) {
 			DBName:   testDBName,
 			SSLMode:  "disable",
 		},
-		Security: SecurityConfig{
+		Security: config.SecurityConfig{
 			SecretKey: "test-secret-key-32-characters!",
 		},
-		envValues: envValues{}, // NO environment variables set
+		EnvValues: config.EnvValues{}, // NO environment variables set
 	}
 
 	// Reload database settings
-	err = config.ReloadDatabaseSettings()
+	err = cfg.ReloadDatabaseSettings()
 	require.NoError(t, err)
 
 	// Verify all values come from database
-	assert.Equal(t, "dbonly@example.com", config.RootEmail, 
+	assert.Equal(t, "dbonly@example.com", cfg.RootEmail, 
 		"Root email should use database value when env var not set")
-	assert.Equal(t, "dbonly@example.com", config.SMTP.FromEmail, 
+	assert.Equal(t, "dbonly@example.com", cfg.SMTP.FromEmail, 
 		"SMTP from email should use database value when env var not set")
-	assert.Equal(t, "DB Only Mailer", config.SMTP.FromName, 
+	assert.Equal(t, "DB Only Mailer", cfg.SMTP.FromName, 
 		"SMTP from name should use database value when env var not set")
 
 	// Verify defaults are applied for missing values
-	assert.Equal(t, 587, config.SMTP.Port, 
+	assert.Equal(t, 587, cfg.SMTP.Port, 
 		"SMTP port should use default when neither env var nor database value set")
 }

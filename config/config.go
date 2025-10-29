@@ -35,11 +35,11 @@ type Config struct {
 	IsInstalled     bool // NEW: Indicates if setup wizard has been completed
 
 	// Track which values came from actual environment variables (not database, not generated)
-	envValues envValues
+	EnvValues EnvValues
 }
 
-// envValues tracks configuration that came from actual environment variables
-type envValues struct {
+// EnvValues tracks configuration that came from actual environment variables
+type EnvValues struct {
 	RootEmail        string
 	APIEndpoint      string
 	PasetoPublicKey  string
@@ -403,7 +403,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 
 	// Track env var values from viper (before any database fallbacks are applied)
 	// Note: These come from environment variables or .env file, not from defaults or database
-	envVals := envValues{
+	envVals := EnvValues{
 		RootEmail:        v.GetString("ROOT_EMAIL"),
 		APIEndpoint:      v.GetString("API_ENDPOINT"),
 		PasetoPublicKey:  v.GetString("PASETO_PUBLIC_KEY"),
@@ -609,7 +609,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		LogLevel:        v.GetString("LOG_LEVEL"),
 		Version:         v.GetString("VERSION"),
 		IsInstalled:     isInstalled,
-		envValues:       envVals, // Store env values for setup service
+		EnvValues:       envVals, // Store env values for setup service
 	}
 
 	if config.WebhookEndpoint == "" {
@@ -635,16 +635,16 @@ func (c *Config) IsProduction() bool {
 // GetEnvValues returns configuration values that came from actual environment variables
 // This is used by the setup service to determine which settings are already configured
 func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, pasetoPublicKey, pasetoPrivateKey, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string, smtpPort int) {
-	return c.envValues.RootEmail,
-		c.envValues.APIEndpoint,
-		c.envValues.PasetoPublicKey,
-		c.envValues.PasetoPrivateKey,
-		c.envValues.SMTPHost,
-		c.envValues.SMTPUsername,
-		c.envValues.SMTPPassword,
-		c.envValues.SMTPFromEmail,
-		c.envValues.SMTPFromName,
-		c.envValues.SMTPPort
+	return c.EnvValues.RootEmail,
+		c.EnvValues.APIEndpoint,
+		c.EnvValues.PasetoPublicKey,
+		c.EnvValues.PasetoPrivateKey,
+		c.EnvValues.SMTPHost,
+		c.EnvValues.SMTPUsername,
+		c.EnvValues.SMTPPassword,
+		c.EnvValues.SMTPFromEmail,
+		c.EnvValues.SMTPFromName,
+		c.EnvValues.SMTPPort
 }
 
 // ReloadDatabaseSettings reloads settings from the database without re-reading environment variables
@@ -676,33 +676,33 @@ func (c *Config) ReloadDatabaseSettings() error {
 	c.IsInstalled = systemSettings.IsInstalled
 
 	// Root email: env var takes precedence
-	if c.envValues.RootEmail == "" {
+	if c.EnvValues.RootEmail == "" {
 		c.RootEmail = systemSettings.RootEmail
 	}
 
 	// API endpoint: env var takes precedence
-	if c.envValues.APIEndpoint == "" {
+	if c.EnvValues.APIEndpoint == "" {
 		c.APIEndpoint = systemSettings.APIEndpoint
 	}
 
 	// SMTP configuration: env vars take precedence over database
 	// Only update fields that are NOT set via environment variables
-	if c.envValues.SMTPHost == "" {
+	if c.EnvValues.SMTPHost == "" {
 		c.SMTP.Host = systemSettings.SMTPHost
 	}
-	if c.envValues.SMTPPort == 0 {
+	if c.EnvValues.SMTPPort == 0 {
 		c.SMTP.Port = systemSettings.SMTPPort
 	}
-	if c.envValues.SMTPUsername == "" {
+	if c.EnvValues.SMTPUsername == "" {
 		c.SMTP.Username = systemSettings.SMTPUsername
 	}
-	if c.envValues.SMTPPassword == "" {
+	if c.EnvValues.SMTPPassword == "" {
 		c.SMTP.Password = systemSettings.SMTPPassword
 	}
-	if c.envValues.SMTPFromEmail == "" {
+	if c.EnvValues.SMTPFromEmail == "" {
 		c.SMTP.FromEmail = systemSettings.SMTPFromEmail
 	}
-	if c.envValues.SMTPFromName == "" {
+	if c.EnvValues.SMTPFromName == "" {
 		c.SMTP.FromName = systemSettings.SMTPFromName
 	}
 
@@ -716,8 +716,8 @@ func (c *Config) ReloadDatabaseSettings() error {
 
 	// Update PASETO keys if present and not set via env vars
 	// Note: PASETO keys from env vars are loaded during initial config.Load()
-	// and stored in envValues. Only reload from DB if not set via env.
-	if c.envValues.PasetoPrivateKey == "" && c.envValues.PasetoPublicKey == "" {
+	// and stored in EnvValues. Only reload from DB if not set via env.
+	if c.EnvValues.PasetoPrivateKey == "" && c.EnvValues.PasetoPublicKey == "" {
 		if systemSettings.PasetoPrivateKey != "" && systemSettings.PasetoPublicKey != "" {
 			// Decode base64 keys
 			privateKeyBytes, err := base64.StdEncoding.DecodeString(systemSettings.PasetoPrivateKey)
