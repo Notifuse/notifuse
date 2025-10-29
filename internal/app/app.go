@@ -410,11 +410,7 @@ func (a *App) InitServices() error {
 		a.userRepo,
 		a.logger,
 		a.config.Security.SecretKey,
-		func() error {
-			// Reload config after setup completes
-			ctx := context.Background()
-			return a.ReloadConfig(ctx)
-		},
+		nil, // No callback needed - server restarts after setup
 		envConfig,
 	)
 
@@ -732,6 +728,7 @@ func (a *App) InitHandlers() error {
 		a.setupService,
 		a.settingService,
 		a.logger,
+		a, // Pass app for shutdown capability
 	)
 	workspaceHandler := httpHandler.NewWorkspaceHandler(
 		a.workspaceService,
@@ -1112,44 +1109,6 @@ func (a *App) Initialize() error {
 // GetConfig returns the app's configuration
 func (a *App) GetConfig() *config.Config {
 	return a.config
-}
-
-// ReloadConfig reloads the configuration from the database and updates services
-// This method updates only database-sourced settings without re-reading environment variables
-func (a *App) ReloadConfig(ctx context.Context) error {
-	a.logger.Info("Reloading configuration from database...")
-
-	// Reload database settings using the new method that doesn't require env vars
-	if err := a.config.ReloadDatabaseSettings(); err != nil {
-		return fmt.Errorf("failed to reload database settings: %w", err)
-	}
-
-	// Update installation status
-	a.isInstalled = a.config.IsInstalled
-
-	// Reinitialize mailer with new SMTP settings
-	if err := a.InitMailer(); err != nil {
-		return fmt.Errorf("failed to reinitialize mailer: %w", err)
-	}
-
-	// Update mailer references in services that use it
-	// These services store a copy of the mailer reference, so they need to be updated
-	if a.userService != nil {
-		a.userService.SetEmailSender(a.mailer)
-	}
-	if a.workspaceService != nil {
-		a.workspaceService.SetMailer(a.mailer)
-	}
-	if a.systemNotificationService != nil {
-		a.systemNotificationService.SetMailer(a.mailer)
-	}
-
-	// Invalidate auth service key cache so it reloads keys from new config on next use
-	// No need to reinitialize the entire service - the callback will fetch fresh keys
-	a.authService.InvalidateKeyCache()
-
-	a.logger.Info("Configuration reloaded successfully - PASETO keys will be reloaded on next use")
-	return nil
 }
 
 // GetLogger returns the app's logger

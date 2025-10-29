@@ -327,9 +327,9 @@ func TestSetupWizardEnvironmentOverrides(t *testing.T) {
 	t.Skip("Environment override testing requires complex test infrastructure")
 }
 
-// TestSetupWizardSigninImmediatelyAfterCompletion tests that signin works immediately after setup
-// This test verifies the bug fix where mailer wasn't being reinitialized after setup completion
-func TestSetupWizardSigninImmediatelyAfterCompletion(t *testing.T) {
+// TestSetupWizardWithServerRestart tests that setup completion triggers server shutdown
+// In production, Docker/systemd restarts the process with fresh configuration
+func TestSetupWizardWithServerRestart(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
@@ -339,7 +339,7 @@ func TestSetupWizardSigninImmediatelyAfterCompletion(t *testing.T) {
 
 	client := suite.APIClient
 
-	t.Run("Complete Setup and Signin Without Restart", func(t *testing.T) {
+	t.Run("Complete Setup Triggers Shutdown", func(t *testing.T) {
 		// Step 1: Complete setup wizard with full SMTP configuration
 		rootEmail := "admin@example.com"
 		
@@ -373,73 +373,54 @@ func TestSetupWizardSigninImmediatelyAfterCompletion(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.True(t, setupResp["success"].(bool), "Setup should succeed")
-
-		// Step 2: Immediately attempt signin (WITHOUT restarting the service)
-		// This is where the bug manifests - mailer still has empty FromEmail
-		signinReq := map[string]interface{}{
-			"email": rootEmail,
+		assert.Contains(t, setupResp["message"].(string), "restarting",
+			"Response should indicate server is restarting")
+		
+		// Verify response includes generated keys
+		if keysInterface, ok := setupResp["paseto_keys"]; ok {
+			keys := keysInterface.(map[string]interface{})
+			assert.NotEmpty(t, keys["public_key"], "Public key should be generated")
+			assert.NotEmpty(t, keys["private_key"], "Private key should be generated")
 		}
-
-		signinResp, err := client.Post("/api/user.signin", signinReq)
-		require.NoError(t, err)
-		defer signinResp.Body.Close()
-
-		// Read response body for debugging
-		var signinResult map[string]interface{}
-		err = json.NewDecoder(signinResp.Body).Decode(&signinResult)
-		require.NoError(t, err)
-
-		// Step 3: Verify no mail parsing error
-		// Bug symptom: "failed to parse mail address \"Notifuse\" <>"
-		if errorMsg, ok := signinResult["error"].(string); ok {
-			assert.NotContains(t, errorMsg, "failed to parse mail address",
-				"Should not have mail address parsing error after setup")
-			assert.NotContains(t, errorMsg, "mail: invalid string",
-				"Should not have invalid mail string error after setup")
-			assert.NotContains(t, errorMsg, "failed to set email from address",
-				"Should not have email from address error after setup")
-		}
-
-		// Step 4: Verify signin succeeded or properly failed (not with mail error)
-		// In development mode, magic code is returned directly
-		// In production mode, we just verify no mail errors occurred
-		if signinResp.StatusCode == http.StatusOK {
-			// Success - magic code sent or returned
-			t.Log("Signin succeeded - mailer was properly reinitialized")
-		} else {
-			// If it failed, make sure it's not due to mail configuration
-			t.Logf("Signin status: %d, response: %v", signinResp.StatusCode, signinResult)
-			
-			// Even if signin failed for other reasons (user not found, etc.),
-			// it should NOT be due to mail parsing errors
-			if errorMsg, ok := signinResult["error"].(string); ok {
-				require.NotContains(t, errorMsg, "parse mail address",
-					"Signin should not fail due to mail address parsing errors")
-			}
-		}
+		
+		// Note: In production, Docker/systemd would restart the process here.
+		// The test suite will be cleaned up, simulating process termination.
 	})
 
-	t.Run("Verify Mailer Config Updated After Setup", func(t *testing.T) {
-		// Additional verification: Check that subsequent mail operations work
-		// by attempting another signin operation
+	t.Run("Fresh Start After Simulated Restart", func(t *testing.T) {
+		// Simulate what happens after Docker restarts the container:
+		// The old app instance shuts down, and a new one starts with fresh config.
+		// We verify this by creating a fresh test suite that loads config from database.
+		
+		// Clean up original suite (simulates process shutdown)
+		suite.Cleanup()
+		
+		// Create fresh test suite (simulates Docker restart)
+		// This will create a new app that loads config from the database where setup was saved
+		freshSuite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+			return app.NewApp(cfg)
+		})
+		defer freshSuite.Cleanup()
+		
+		// Verify the fresh app loaded config correctly by testing signin
 		signinReq := map[string]interface{}{
 			"email": "admin@example.com",
 		}
 
-		resp, err := client.Post("/api/user.signin", signinReq)
+		signinResp, err := freshSuite.APIClient.Post("/api/user.signin", signinReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer signinResp.Body.Close()
 
-		var result map[string]interface{}
-		err = json.NewDecoder(resp.Body).Decode(&result)
+		var signinResult map[string]interface{}
+		err = json.NewDecoder(signinResp.Body).Decode(&signinResult)
 		require.NoError(t, err)
 
-		// Verify no mail-related errors
-		if errorMsg, ok := result["error"].(string); ok {
+		// Verify no mail parsing errors (the original bug is fixed by restart)
+		if errorMsg, ok := signinResult["error"].(string); ok {
 			assert.NotContains(t, errorMsg, "failed to parse mail address",
-				"Subsequent signin should also work without mail errors")
-			assert.NotContains(t, errorMsg, "failed to set email from address",
-				"Subsequent signin should also work without mail errors")
+				"Fresh start should not have mail parsing error")
+			assert.NotContains(t, errorMsg, "mail: invalid string",
+				"Fresh start should not have invalid mail error")
 		}
 	})
 }

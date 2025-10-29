@@ -68,12 +68,6 @@ func NewWorkspaceService(
 	}
 }
 
-// SetMailer updates the mailer instance
-// This is used when the mailer configuration changes (e.g., after setup wizard)
-func (s *WorkspaceService) SetMailer(mailerInstance mailer.Mailer) {
-	s.mailer = mailerInstance
-}
-
 // ListWorkspaces returns all workspaces for a user
 func (s *WorkspaceService) ListWorkspaces(ctx context.Context) ([]*domain.Workspace, error) {
 	user, err := s.authService.AuthenticateUserFromContext(ctx)

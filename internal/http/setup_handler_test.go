@@ -16,6 +16,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// mockAppShutdowner implements AppShutdowner for testing
+type mockAppShutdowner struct {
+	shutdownCalled bool
+	shutdownError  error
+}
+
+func (m *mockAppShutdowner) Shutdown(ctx context.Context) error {
+	m.shutdownCalled = true
+	return m.shutdownError
+}
+
+func newMockAppShutdowner() *mockAppShutdowner {
+	return &mockAppShutdowner{}
+}
+
 // mockSettingRepository is a mock implementation of domain.SettingRepository
 type mockSettingRepository struct {
 	settings map[string]string
@@ -157,6 +172,7 @@ func TestSetupHandler_Status(t *testing.T) {
 				setupService,
 				settingService,
 				logger.NewLogger(),
+				newMockAppShutdowner(),
 			)
 
 			// Create request
@@ -239,6 +255,7 @@ func TestSetupHandler_TestSMTP(t *testing.T) {
 				setupService,
 				settingService,
 				logger.NewLogger(),
+				newMockAppShutdowner(),
 			)
 
 			// Create request
@@ -352,6 +369,7 @@ func TestSetupHandler_Initialize(t *testing.T) {
 				setupService,
 				settingService,
 				logger.NewLogger(),
+				newMockAppShutdowner(),
 			)
 
 			// Create request
@@ -412,6 +430,7 @@ func TestSetupHandler_RegisterRoutes(t *testing.T) {
 		setupService,
 		settingService,
 		logger.NewLogger(),
+		newMockAppShutdowner(),
 	)
 
 	mux := http.NewServeMux()
