@@ -1345,6 +1345,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
 		mockLogger.EXPECT().Debug(gomock.Any()).Return().AnyTimes()
 		mockLogger.EXPECT().Warn(gomock.Any()).Return().AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).Return().AnyTimes()
 
 		// Create a config with low rate limit
 		config := &Config{
