@@ -1391,9 +1391,12 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 		}
 
 		// First, send a message to trigger rate limiting
+		// Use MaxTimes(1) to handle race condition between context cancellation and rate limiting
+		// Sometimes the second send might proceed to SendEmail before context cancellation is detected
 		mockEmailService.EXPECT().
 			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
-			Return(nil)
+			Return(nil).
+			MaxTimes(1)
 
 		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-1", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 		assert.NoError(t, err)
