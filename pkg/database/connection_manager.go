@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -59,7 +60,8 @@ type connectionManager struct {
 	mu                  sync.RWMutex
 	config              *config.Config
 	systemDB            *sql.DB
-	workspacePools      map[string]*sql.DB // workspaceID -> connection pool
+	workspacePools      map[string]*sql.DB    // workspaceID -> connection pool
+	poolAccessTimes     map[string]time.Time  // workspaceID -> last access time
 	maxConnections      int
 	maxConnectionsPerDB int
 }
@@ -81,6 +83,7 @@ func InitializeConnectionManager(cfg *config.Config, systemDB *sql.DB) error {
 			config:              cfg,
 			systemDB:            systemDB,
 			workspacePools:      make(map[string]*sql.DB),
+			poolAccessTimes:     make(map[string]time.Time),
 			maxConnections:      cfg.Database.MaxConnections,
 			maxConnectionsPerDB: cfg.Database.MaxConnectionsPerDB,
 		}
@@ -135,31 +138,58 @@ func (cm *connectionManager) GetSystemConnection() *sql.DB {
 
 // GetWorkspaceConnection returns a connection pool for a workspace database
 func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspaceID string) (*sql.DB, error) {
+	// Check if context is already cancelled before doing any work
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	// Check if we already have a connection pool for this workspace
 	cm.mu.RLock()
-	if pool, ok := cm.workspacePools[workspaceID]; ok {
-		cm.mu.RUnlock()
+	pool, ok := cm.workspacePools[workspaceID]
+	cm.mu.RUnlock()
 
+	if ok {
 		// Test the connection pool is still valid
 		if err := pool.PingContext(ctx); err == nil {
-			return pool, nil
+			// Double-check it's still in the map (not closed by another goroutine)
+			cm.mu.RLock()
+			stillExists := cm.workspacePools[workspaceID] == pool
+			cm.mu.RUnlock()
+
+			if stillExists {
+				// Update access time for LRU tracking
+				cm.mu.Lock()
+				cm.poolAccessTimes[workspaceID] = time.Now()
+				cm.mu.Unlock()
+				return pool, nil
+			}
 		}
 
-		// Pool is stale, remove it
+		// Pool is stale or was closed, try to clean it up safely
 		cm.mu.Lock()
-		delete(cm.workspacePools, workspaceID)
-		pool.Close()
+		// Only delete if it's still the same pool instance
+		if cm.workspacePools[workspaceID] == pool {
+			delete(cm.workspacePools, workspaceID)
+			delete(cm.poolAccessTimes, workspaceID)
+			pool.Close()
+		}
 		cm.mu.Unlock()
-	} else {
-		cm.mu.RUnlock()
+	}
+
+	// Check context again before expensive pool creation
+	if ctx.Err() != nil {
+		return nil, ctx.Err()
 	}
 
 	// Need to create a new pool
 	cm.mu.Lock()
 	defer cm.mu.Unlock()
 
-	// Double-check after acquiring write lock
+	// Double-check after acquiring write lock (another goroutine may have created it)
 	if pool, ok := cm.workspacePools[workspaceID]; ok {
+		cm.poolAccessTimes[workspaceID] = time.Now()
 		return pool, nil
 	}
 
@@ -186,19 +216,20 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
 	}
 
 	// Create new workspace connection pool
-	pool, err := cm.createWorkspacePool(workspaceID)
+	pool, err := cm.createWorkspacePool(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create workspace pool: %w", err)
 	}
 
-	// Store in map
+	// Store in map with current access time
 	cm.workspacePools[workspaceID] = pool
+	cm.poolAccessTimes[workspaceID] = time.Now()
 
 	return pool, nil
 }
 
 // createWorkspacePool creates a new connection pool for a workspace database
-func (cm *connectionManager) createWorkspacePool(workspaceID string) (*sql.DB, error) {
+func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceID string) (*sql.DB, error) {
 	// Build workspace DSN
 	safeID := strings.ReplaceAll(workspaceID, "-", "_")
 	dbName := fmt.Sprintf("%s_ws_%s", cm.config.Database.Prefix, safeID)
@@ -220,13 +251,22 @@ func (cm *connectionManager) createWorkspacePool(workspaceID string) (*sql.DB, e
 	// Open connection pool
 	db, err := sql.Open("postgres", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open connection: %w", err)
+		// Don't include dsn in error (contains password)
+		return nil, fmt.Errorf("failed to open connection to workspace %s: %w", workspaceID, err)
 	}
 
-	// Test connection
-	if err := db.Ping(); err != nil {
+	// Test connection with context
+	if err := db.PingContext(ctx); err != nil {
 		db.Close()
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		// Don't include dsn in error (contains password)
+		return nil, fmt.Errorf("failed to connect to workspace %s database: %w", workspaceID, err)
+	}
+
+	// Verify pool actually works with a test query
+	var result int
+	if err := db.QueryRowContext(ctx, "SELECT 1").Scan(&result); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("failed to verify database access for workspace %s: %w", workspaceID, err)
 	}
 
 	// Configure small pool for this workspace database
@@ -277,29 +317,46 @@ func (cm *connectionManager) getTotalConnectionCount() int {
 // Returns the number of pools actually closed
 // Must be called with write lock held
 func (cm *connectionManager) closeLRUIdlePools(count int) int {
-	var closed int
-	var toClose []string
+	type candidate struct {
+		workspaceID string
+		lastAccess  time.Time
+	}
 
-	// Find pools with no active connections (all idle)
+	var candidates []candidate
+
+	// Find all idle pools with their access times
 	for workspaceID, pool := range cm.workspacePools {
-		if closed >= count {
-			break
-		}
-
 		stats := pool.Stats()
 
 		// If no connections are in use, this pool can be closed
 		if stats.InUse == 0 && stats.OpenConnections > 0 {
-			toClose = append(toClose, workspaceID)
-			closed++
+			accessTime := cm.poolAccessTimes[workspaceID]
+			candidates = append(candidates, candidate{
+				workspaceID: workspaceID,
+				lastAccess:  accessTime,
+			})
 		}
 	}
 
-	// Close selected pools
-	for _, workspaceID := range toClose {
+	// If no candidates, return early
+	if len(candidates) == 0 {
+		return 0
+	}
+
+	// Sort by access time (oldest first) - this is true LRU
+	sort.Slice(candidates, func(i, j int) bool {
+		return candidates[i].lastAccess.Before(candidates[j].lastAccess)
+	})
+
+	// Close up to 'count' oldest idle pools
+	closed := 0
+	for i := 0; i < len(candidates) && i < count; i++ {
+		workspaceID := candidates[i].workspaceID
 		if pool, ok := cm.workspacePools[workspaceID]; ok {
 			pool.Close()
 			delete(cm.workspacePools, workspaceID)
+			delete(cm.poolAccessTimes, workspaceID)
+			closed++
 		}
 	}
 
@@ -313,6 +370,7 @@ func (cm *connectionManager) CloseWorkspaceConnection(workspaceID string) error 
 
 	if pool, ok := cm.workspacePools[workspaceID]; ok {
 		delete(cm.workspacePools, workspaceID)
+		delete(cm.poolAccessTimes, workspaceID)
 		return pool.Close()
 	}
 
@@ -380,6 +438,7 @@ func (cm *connectionManager) Close() error {
 			errors = append(errors, fmt.Errorf("failed to close workspace %s: %w", workspaceID, err))
 		}
 		delete(cm.workspacePools, workspaceID)
+		delete(cm.poolAccessTimes, workspaceID)
 	}
 
 	// Note: systemDB is closed by the application

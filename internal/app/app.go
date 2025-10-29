@@ -276,15 +276,10 @@ func (a *App) InitDB() error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
-	// Set connection pool settings based on environment
-	maxOpen, maxIdle, maxLifetime := database.GetConnectionPoolSettings()
-	db.SetMaxOpenConns(maxOpen)
-	db.SetMaxIdleConns(maxIdle)
-	db.SetConnMaxLifetime(maxLifetime)
-
 	a.db = db
 
 	// Initialize connection manager singleton
+	// This will configure the system DB pool settings appropriately
 	if err := pkgDatabase.InitializeConnectionManager(a.config, db); err != nil {
 		db.Close()
 		return fmt.Errorf("failed to initialize connection manager: %w", err)
@@ -796,7 +791,7 @@ func (a *App) InitHandlers() error {
 		getPublicKey,
 		a.logger,
 	)
-	connectionStatsHandler := httpHandler.NewConnectionStatsHandler(a.logger)
+	connectionStatsHandler := httpHandler.NewConnectionStatsHandler(a.logger, getPublicKey)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -822,8 +817,8 @@ func (a *App) InitHandlers() error {
 	analyticsHandler.RegisterRoutes(a.mux)
 	contactTimelineHandler.RegisterRoutes(a.mux)
 	segmentHandler.RegisterRoutes(a.mux)
+	connectionStatsHandler.RegisterRoutes(a.mux)
 	a.mux.HandleFunc("/api/detect-favicon", faviconHandler.DetectFavicon)
-	a.mux.HandleFunc("/api/admin.connectionStats", connectionStatsHandler.GetConnectionStats)
 
 	return nil
 }
