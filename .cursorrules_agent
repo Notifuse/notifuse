@@ -1,0 +1,53 @@
+# Cursor Agent-Specific Rules
+
+## Test Execution Protocol for Background Agents
+
+**CRITICAL: When running unit tests as a background agent, ALWAYS use the agent-optimized command:**
+
+```bash
+make test-agent
+```
+
+**NEVER use:**
+- `make test-unit` (too verbose, causes hanging/crashes)
+- `go test -v ...` (verbose output overwhelms buffer)
+
+### Why This Rule Exists
+
+The standard `test-unit` command uses `-v` (verbose) flag which outputs every single test case. With 190+ test files, this generates massive output that:
+1. Overwhelms the agent's output buffer
+2. Causes the agent to hang or crash
+3. Makes it impossible to spot actual failures in the noise
+
+### What `make test-agent` Does
+
+- ✅ Runs all unit tests with 5-minute timeout
+- ✅ Filters output to show ONLY failures and summaries
+- ✅ No verbose output (prevents buffer overflow)
+- ✅ Shows final test summary for quick overview
+- ✅ Clean, actionable output that won't crash the agent
+
+### Usage Examples
+
+```bash
+# Run all unit tests (agent-safe)
+make test-agent
+
+# Run specific layer tests (these are safe with -v since fewer tests)
+make test-domain
+make test-service
+make test-repo
+make test-http
+
+# Run with custom grep pattern if needed
+go test -timeout 5m ./internal/... 2>&1 | grep -E "FAIL|error"
+```
+
+### Exception Cases
+
+You MAY use verbose tests for single layers when debugging:
+- `make test-domain` - Safe (domain tests only)
+- `make test-service` - Safe (service tests only)  
+- `make test-repo` - Safe (repository tests only)
+
+But for ALL tests combined, ALWAYS use `make test-agent`.
