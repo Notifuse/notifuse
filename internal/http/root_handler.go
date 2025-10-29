@@ -8,6 +8,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
@@ -77,12 +78,20 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 		isInstalledStr = "true"
 	}
 
+	// Serialize timezones to JSON
+	timezonesJSON, err := json.Marshal(domain.Timezones)
+	if err != nil {
+		h.logger.WithField("error", err).Error("Failed to marshal timezones")
+		timezonesJSON = []byte("[]")
+	}
+
 	configJS := fmt.Sprintf(
-		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;",
+		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;\nwindow.TIMEZONES = %s;",
 		h.apiEndpoint,
 		h.version,
 		h.rootEmail,
 		isInstalledStr,
+		string(timezonesJSON),
 	)
 	w.Write([]byte(configJS))
 }

@@ -1,24 +1,39 @@
-import { describe, it, expect } from 'vitest'
-import { 
-  VALID_TIMEZONES, 
-  TIMEZONE_OPTIONS, 
-  isValidTimezone, 
-  TIMEZONE_COUNT,
-  type TimezoneIdentifier 
-} from './timezones'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 describe('Timezones', () => {
-  describe('VALID_TIMEZONES', () => {
-    it('should have 594 timezones', () => {
-      expect(VALID_TIMEZONES).toHaveLength(594)
-      expect(TIMEZONE_COUNT).toBe(594)
-    })
+  beforeEach(() => {
+    // Mock window.TIMEZONES with a sample list
+    window.TIMEZONES = [
+      'UTC',
+      'GMT',
+      'America/New_York',
+      'America/Chicago',
+      'America/Los_Angeles',
+      'Europe/London',
+      'Europe/Paris',
+      'Asia/Tokyo',
+      'Asia/Shanghai',
+      'Australia/Sydney',
+      'Africa/Cairo',
+      'Pacific/Auckland',
+      'US/Eastern',
+      'Asia/Calcutta',
+      'Asia/Kolkata'
+    ]
+    
+    // Re-import the module to pick up the mocked window.TIMEZONES
+    vi.resetModules()
+  })
 
-    it('should include UTC', () => {
+  describe('VALID_TIMEZONES', () => {
+    it('should load timezones from window.TIMEZONES', async () => {
+      const { VALID_TIMEZONES } = await import('./timezones')
+      expect(VALID_TIMEZONES.length).toBeGreaterThan(0)
       expect(VALID_TIMEZONES).toContain('UTC')
     })
 
-    it('should include major timezones', () => {
+    it('should include major timezones', async () => {
+      const { VALID_TIMEZONES } = await import('./timezones')
       const majorTimezones = [
         'America/New_York',
         'America/Chicago',
@@ -26,10 +41,6 @@ describe('Timezones', () => {
         'Europe/London',
         'Europe/Paris',
         'Asia/Tokyo',
-        'Asia/Shanghai',
-        'Australia/Sydney',
-        'Africa/Cairo',
-        'Pacific/Auckland'
       ]
 
       majorTimezones.forEach(tz => {
@@ -37,7 +48,9 @@ describe('Timezones', () => {
       })
     })
 
-    it('should include both canonical and alias zones', () => {
+    it('should include both canonical and alias zones', async () => {
+      const { VALID_TIMEZONES } = await import('./timezones')
+      
       // Canonical
       expect(VALID_TIMEZONES).toContain('America/New_York')
       expect(VALID_TIMEZONES).toContain('Asia/Kolkata')
@@ -47,103 +60,103 @@ describe('Timezones', () => {
       expect(VALID_TIMEZONES).toContain('US/Eastern')
       expect(VALID_TIMEZONES).toContain('Asia/Calcutta')
     })
-
-    it('should not have duplicates', () => {
-      const uniqueTimezones = new Set(VALID_TIMEZONES)
-      expect(uniqueTimezones.size).toBe(VALID_TIMEZONES.length)
-    })
-
-    it('should have all non-empty strings', () => {
-      VALID_TIMEZONES.forEach(tz => {
-        expect(tz).toBeTruthy()
-        expect(typeof tz).toBe('string')
-        expect(tz.length).toBeGreaterThan(0)
-      })
-    })
   })
 
   describe('TIMEZONE_OPTIONS', () => {
-    it('should have same length as VALID_TIMEZONES', () => {
-      expect(TIMEZONE_OPTIONS).toHaveLength(VALID_TIMEZONES.length)
-    })
-
-    it('should have correct structure for Ant Design Select', () => {
+    it('should have correct structure for Ant Design Select', async () => {
+      const { TIMEZONE_OPTIONS } = await import('./timezones')
+      
+      expect(TIMEZONE_OPTIONS.length).toBeGreaterThan(0)
+      
       TIMEZONE_OPTIONS.forEach(option => {
         expect(option).toHaveProperty('value')
         expect(option).toHaveProperty('label')
         expect(option.value).toBe(option.label)
       })
     })
-
-    it('should match VALID_TIMEZONES values', () => {
-      const optionValues = TIMEZONE_OPTIONS.map(opt => opt.value)
-      expect(optionValues).toEqual([...VALID_TIMEZONES])
-    })
   })
 
   describe('isValidTimezone', () => {
-    it('should return true for valid timezones', () => {
+    it('should return true for valid timezones', async () => {
+      const { isValidTimezone } = await import('./timezones')
+      
       expect(isValidTimezone('UTC')).toBe(true)
       expect(isValidTimezone('America/New_York')).toBe(true)
       expect(isValidTimezone('Europe/London')).toBe(true)
       expect(isValidTimezone('Asia/Tokyo')).toBe(true)
     })
 
-    it('should return false for invalid timezones', () => {
+    it('should return false for invalid timezones', async () => {
+      const { isValidTimezone } = await import('./timezones')
+      
       expect(isValidTimezone('')).toBe(false)
       expect(isValidTimezone('Invalid/Timezone')).toBe(false)
       expect(isValidTimezone('NotReal/City')).toBe(false)
       expect(isValidTimezone('America/FakeCity')).toBe(false)
     })
 
-    it('should be case sensitive', () => {
+    it('should be case sensitive', async () => {
+      const { isValidTimezone } = await import('./timezones')
+      
       expect(isValidTimezone('UTC')).toBe(true)
       expect(isValidTimezone('utc')).toBe(false)
       expect(isValidTimezone('america/new_york')).toBe(false)
     })
 
-    it('should handle aliases', () => {
+    it('should handle aliases', async () => {
+      const { isValidTimezone } = await import('./timezones')
+      
       expect(isValidTimezone('GMT')).toBe(true)
       expect(isValidTimezone('US/Eastern')).toBe(true)
       expect(isValidTimezone('Asia/Calcutta')).toBe(true)
     })
-
-    it('should work as type guard', () => {
-      const timezone: string = 'America/New_York'
-      
-      if (isValidTimezone(timezone)) {
-        // TypeScript should know timezone is TimezoneIdentifier here
-        const typed: TimezoneIdentifier = timezone
-        expect(typed).toBe('America/New_York')
-      }
-    })
   })
 
-  describe('TimezoneIdentifier type', () => {
-    it('should accept valid timezone strings', () => {
-      const tz1: TimezoneIdentifier = 'UTC'
-      const tz2: TimezoneIdentifier = 'America/New_York'
-      const tz3: TimezoneIdentifier = 'Europe/London'
+  describe('areTimezonesLoaded', () => {
+    it('should return true when timezones are loaded', async () => {
+      const { areTimezonesLoaded, TIMEZONE_COUNT } = await import('./timezones')
       
-      expect(tz1).toBe('UTC')
-      expect(tz2).toBe('America/New_York')
-      expect(tz3).toBe('Europe/London')
+      expect(areTimezonesLoaded()).toBe(true)
+      expect(TIMEZONE_COUNT).toBeGreaterThan(0)
+    })
+
+    it('should return false when timezones are not loaded', async () => {
+      window.TIMEZONES = []
+      vi.resetModules()
+      
+      const { areTimezonesLoaded, TIMEZONE_COUNT } = await import('./timezones')
+      
+      expect(areTimezonesLoaded()).toBe(false)
+      expect(TIMEZONE_COUNT).toBe(0)
+    })
+
+    it('should return false when window.TIMEZONES is undefined', async () => {
+      window.TIMEZONES = undefined
+      vi.resetModules()
+      
+      const { areTimezonesLoaded } = await import('./timezones')
+      
+      expect(areTimezonesLoaded()).toBe(false)
     })
   })
 
   describe('Backend synchronization', () => {
-    it('should match the backend timezone count', () => {
-      // Backend has 594 timezones
-      expect(TIMEZONE_COUNT).toBe(594)
+    it('should use timezones from backend config.js', async () => {
+      const { VALID_TIMEZONES } = await import('./timezones')
+      
+      // These should match what the backend provides
+      expect(VALID_TIMEZONES).toEqual(window.TIMEZONES)
     })
 
-    it('should include zones from all major regions', () => {
-      const regions = ['Africa', 'America', 'Antarctica', 'Asia', 'Atlantic', 'Australia', 'Europe', 'Indian', 'Pacific']
+    it('should handle empty timezone list gracefully', async () => {
+      window.TIMEZONES = []
+      vi.resetModules()
       
-      regions.forEach(region => {
-        const hasZone = VALID_TIMEZONES.some(tz => tz.startsWith(`${region}/`))
-        expect(hasZone).toBe(true)
-      })
+      const { VALID_TIMEZONES, TIMEZONE_OPTIONS, isValidTimezone } = await import('./timezones')
+      
+      expect(VALID_TIMEZONES).toEqual([])
+      expect(TIMEZONE_OPTIONS).toEqual([])
+      expect(isValidTimezone('UTC')).toBe(false)
     })
   })
 })
