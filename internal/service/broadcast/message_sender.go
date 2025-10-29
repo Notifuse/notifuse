@@ -332,6 +332,9 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 	}
 
 	// Now send email directly using compiled HTML rather than passing template to broadcastRepo
+	// Note: Context is checked by SendEmail; in rare cancellation cases we may complete
+	// template compilation (~50-100ms) before detecting cancellation. This is acceptable
+	// as cancellations are infrequent and the work minimal.
 	err = s.emailService.SendEmail(ctx, emailRequest, true)
 
 	if err != nil {
