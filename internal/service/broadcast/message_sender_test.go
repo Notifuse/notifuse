@@ -1390,15 +1390,11 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			},
 		}
 
-		// First, send a message to trigger rate limiting
-		// Allow up to 2 SendEmail calls due to timing race between context cancellation and template processing:
-		// - First call (message-1): Always succeeds
-		// - Second call (message-2): May complete template compilation before cancellation is detected
-		// This is acceptable: cancellations are rare, and ~50-100ms of wasted work is negligible
+		// First, send a message successfully
 		mockEmailService.EXPECT().
 			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
 			Return(nil).
-			MaxTimes(2)
+			Times(1)
 
 		err := sender.SendToRecipient(ctx, workspaceID, "test-integration-id", tracking, broadcast, "message-1", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 		assert.NoError(t, err)
@@ -1410,12 +1406,24 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			cancel()
 		}()
 
-		// Second message should fail due to context cancellation during rate limiting
+		// Mock for the second message: return context.Canceled error if SendEmail is called
+		mockEmailService.EXPECT().
+			SendEmail(gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(context.Canceled).
+			MaxTimes(1)
+
+		// Second message should fail due to context cancellation
+		// Note: Error could be ErrCodeRateLimitExceeded (cancelled during rate limiting) 
+		// or ErrCodeSendFailed (cancelled during email send)
 		err = sender.SendToRecipient(cancelCtx, workspaceID, "test-integration-id", tracking, broadcast, "message-2", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 		assert.Error(t, err)
 		broadcastErr, ok := err.(*BroadcastError)
-		assert.True(t, ok)
-		assert.Equal(t, ErrCodeRateLimitExceeded, broadcastErr.Code)
+		if assert.True(t, ok, "Expected error to be a BroadcastError but got: %T", err) {
+			// Accept either rate limit error or send failed error depending on when cancellation occurs
+			validCodes := []ErrorCode{ErrCodeRateLimitExceeded, ErrCodeSendFailed}
+			assert.Contains(t, validCodes, broadcastErr.Code,
+				"Expected error code to be either ErrCodeRateLimitExceeded or ErrCodeSendFailed, got: %s", broadcastErr.Code)
+		}
 	})
 }
 
