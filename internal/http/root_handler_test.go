@@ -132,8 +132,17 @@ func TestRootHandler_ServeConfigJS(t *testing.T) {
 	assert.Equal(t, "0", rr.Header().Get("Expires"))
 
 	// Check the body contains the expected JavaScript
-	expectedJS := "window.API_ENDPOINT = \"https://api.example.com\";\nwindow.VERSION = \"1.0\";\nwindow.ROOT_EMAIL = \"root@example.com\";\nwindow.IS_INSTALLED = false;"
-	assert.Equal(t, expectedJS, rr.Body.String())
+	body := rr.Body.String()
+	assert.Contains(t, body, "window.API_ENDPOINT = \"https://api.example.com\"")
+	assert.Contains(t, body, "window.VERSION = \"1.0\"")
+	assert.Contains(t, body, "window.ROOT_EMAIL = \"root@example.com\"")
+	assert.Contains(t, body, "window.IS_INSTALLED = false")
+	assert.Contains(t, body, "window.TIMEZONES = [", "Should contain TIMEZONES array")
+	
+	// Verify some known timezones are in the list
+	assert.Contains(t, body, "\"UTC\"", "Should contain UTC timezone")
+	assert.Contains(t, body, "\"America/New_York\"", "Should contain America/New_York timezone")
+	assert.Contains(t, body, "\"Europe/London\"", "Should contain Europe/London timezone")
 }
 
 func TestRootHandler_Handle_ConfigJS(t *testing.T) {
@@ -158,8 +167,16 @@ func TestRootHandler_Handle_ConfigJS(t *testing.T) {
 	assert.Equal(t, "application/javascript", rr.Header().Get("Content-Type"))
 
 	// Check the body contains the expected JavaScript
-	expectedJS := "window.API_ENDPOINT = \"https://api.example.com\";\nwindow.VERSION = \"1.0\";\nwindow.ROOT_EMAIL = \"root@example.com\";\nwindow.IS_INSTALLED = false;"
-	assert.Equal(t, expectedJS, rr.Body.String())
+	body := rr.Body.String()
+	assert.Contains(t, body, "window.API_ENDPOINT = \"https://api.example.com\"")
+	assert.Contains(t, body, "window.VERSION = \"1.0\"")
+	assert.Contains(t, body, "window.ROOT_EMAIL = \"root@example.com\"")
+	assert.Contains(t, body, "window.IS_INSTALLED = false")
+	assert.Contains(t, body, "window.TIMEZONES = [")
+	
+	// Verify some known timezones are in the list
+	assert.Contains(t, body, "\"UTC\"")
+	assert.Contains(t, body, "\"America/New_York\"")
 }
 
 func TestRootHandler_ServeNotificationCenter(t *testing.T) {

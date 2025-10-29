@@ -10,6 +10,7 @@ func TestIsValidTimezone(t *testing.T) {
 	t.Run("Valid timezones", func(t *testing.T) {
 		validTimezones := []string{
 			"UTC",
+			"GMT",
 			"America/New_York",
 			"America/Los_Angeles",
 			"Europe/London",
@@ -38,7 +39,6 @@ func TestIsValidTimezone(t *testing.T) {
 			"Random_String",
 			"123/456",
 			"UTC+5", // This format is not in the list
-			"GMT",   // This format is not in the list
 		}
 
 		for _, tz := range invalidTimezones {
