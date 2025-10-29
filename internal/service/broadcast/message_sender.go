@@ -233,18 +233,6 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		return NewBroadcastError(ErrCodeRateLimitExceeded, "rate limiting interrupted", true, err)
 	}
 
-	// Check context before expensive template compilation
-	// This avoids wasting CPU if context was cancelled after rate limiting
-	if ctx.Err() != nil {
-		s.logger.WithFields(map[string]interface{}{
-			"broadcast_id": broadcast.ID,
-			"workspace_id": workspaceID,
-			"recipient":    email,
-			"error":        ctx.Err().Error(),
-		}).Warn("Context cancelled before template compilation")
-		return NewBroadcastError(ErrCodeRateLimitExceeded, "context cancelled", true, ctx.Err())
-	}
-
 	if broadcast.UTMParameters.Content == "" {
 		broadcast.UTMParameters.Content = template.ID
 	}
@@ -343,19 +331,10 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		},
 	}
 
-	// Check context one final time before sending
-	// This catches cancellations that occurred during template compilation/processing
-	if ctx.Err() != nil {
-		s.logger.WithFields(map[string]interface{}{
-			"broadcast_id": broadcast.ID,
-			"workspace_id": workspaceID,
-			"recipient":    email,
-			"error":        ctx.Err().Error(),
-		}).Warn("Context cancelled before send")
-		return NewBroadcastError(ErrCodeRateLimitExceeded, "context cancelled", true, ctx.Err())
-	}
-
 	// Now send email directly using compiled HTML rather than passing template to broadcastRepo
+	// Note: Context is checked by SendEmail; in rare cancellation cases we may complete
+	// template compilation (~50-100ms) before detecting cancellation. This is acceptable
+	// as cancellations are infrequent and the work minimal.
 	err = s.emailService.SendEmail(ctx, emailRequest, true)
 
 	if err != nil {
