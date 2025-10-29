@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.24'
           cache: true
 
       - name: Install dependencies
@@ -37,10 +37,7 @@ jobs:
           echo "ROOT_EMAIL=admin@example.com" >> .env.test
 
           # Run unit tests (exclude integration tests)
-          go test -race -coverprofile=coverage-unit.txt -covermode=atomic $(go list ./... | grep -v '/tests/integration') -v 
-
-          # Copy to repo root for codecov action
-          cp coverage-unit.txt ../
+          go test -race -coverprofile=coverage-unit.txt -covermode=atomic $(go list ./... | grep -v '/tests/integration') -v
 
       - name: Upload unit test coverage to Codecov
         uses: codecov/codecov-action@v5
@@ -96,7 +93,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.21'
+          go-version: '1.24'
           cache: true
 
       - name: Install dependencies
@@ -151,10 +148,7 @@ jobs:
           done
 
           # Run integration tests only with more timeout
-          go test -race -coverprofile=coverage-integration.txt -covermode=atomic -timeout=15m ./tests/integration/... -v 
-
-          # Copy to repo root for codecov action
-          cp coverage-integration.txt ../
+          go test -race -coverprofile=coverage-integration.txt -covermode=atomic -timeout=15m ./tests/integration/... -v
 
       # - name: Upload integration test coverage to Codecov
       #   uses: codecov/codecov-action@v3

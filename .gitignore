@@ -10,6 +10,9 @@ tmp/
 bin/
 coverage.html
 coverage.out
+coverage.txt
+coverage-unit.txt
+coverage-integration.txt
 api
 console/public/config.js
 
