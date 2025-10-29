@@ -10,6 +10,12 @@
  * This utility ensures compatibility by normalizing timezone names before
  * sending them to the backend.
  * 
+ * NOTE: The backend now accepts both canonical zones AND aliases (594 total).
+ * This normalizer is kept for browser compatibility and to provide canonical
+ * names when preferred.
+ * 
+ * For the complete list of valid timezones, see: ./timezones.ts
+ * 
  * Reference: https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
  */
 
