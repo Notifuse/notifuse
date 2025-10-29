@@ -233,6 +233,18 @@ func (s *messageSender) SendToRecipient(ctx context.Context, workspaceID string,
 		return NewBroadcastError(ErrCodeRateLimitExceeded, "rate limiting interrupted", true, err)
 	}
 
+	// Check context before expensive template compilation
+	// This avoids wasting CPU if context was cancelled after rate limiting
+	if ctx.Err() != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"broadcast_id": broadcast.ID,
+			"workspace_id": workspaceID,
+			"recipient":    email,
+			"error":        ctx.Err().Error(),
+		}).Warn("Context cancelled before template compilation")
+		return NewBroadcastError(ErrCodeRateLimitExceeded, "context cancelled", true, ctx.Err())
+	}
+
 	if broadcast.UTMParameters.Content == "" {
 		broadcast.UTMParameters.Content = template.ID
 	}
