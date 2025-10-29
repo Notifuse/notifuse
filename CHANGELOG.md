@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 - Magic code emails, workspace invitations, and circuit breaker alerts now work without SMTP credentials
 - SMTP authentication is only configured when both username and password are provided
 - Fix: Docker images now built with CGO disabled to prevent SIGILL crashes on older CPUs
+- Fix: Server now properly restarts after setup wizard completion to reload all configuration settings
+- Fix: Signin emails and other system emails now work correctly after initial setup
+- Fix: Decode HTML entities in URL attributes to ensure links with query parameters work correctly in MJML-compiled emails
+- Fix: Normalize browser timezone names to canonical IANA format to prevent timezone mismatch errors
 
 ## [13.7] - 2025-10-25
 
