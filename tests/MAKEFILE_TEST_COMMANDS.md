@@ -143,33 +143,52 @@ make test-connection-pools-performance    # Performance tests only
 ## End-to-End Testing (Cursor Agent / CI/CD Optimized)
 
 ### `make e2e-test-within-cursor-agent` ✅ RECOMMENDED FOR CURSOR AGENT
-**Description**: Runs unit tests + connection pool integration tests  
+**Description**: Runs connection pool integration tests only (non-verbose)  
 **Components**:
-1. Unit tests (all layers) - filtered output
-2. Connection pool integration tests (sequential)
+- All 5 connection pool integration test suites (sequential)
 
-**Output**: Concise, shows failures and summaries only  
-**Duration**: ~3-5 minutes  
+**Output**: Non-verbose, shows only PASS/FAIL/test names  
+**Duration**: ~2-3 minutes  
 **Use Case**: 
 - Cursor Agent automated testing
 - CI/CD pipelines
-- Comprehensive validation before deployment
+- Quick integration validation
 
 **What it does**:
-1. Runs all unit tests with filtered output (FAIL/PASS only)
-2. Shows unit test summary (last 10 lines)
-3. Runs all connection pool integration tests sequentially
-4. Reports all results
+1. Runs TestConnectionPoolLifecycle (non-verbose)
+2. Waits 3 seconds
+3. Runs TestConnectionPoolConcurrency (non-verbose)
+4. Waits 3 seconds
+5. Runs TestConnectionPoolLimits (non-verbose)
+6. Waits 3 seconds
+7. Runs TestConnectionPoolFailureRecovery (non-verbose)
+8. Waits 3 seconds
+9. Runs TestConnectionPoolPerformance (non-verbose)
+10. Reports completion
+
+**Example Output**:
+```bash
+Running connection pool integration tests (non-verbose)...
+=== RUN   TestConnectionPoolLifecycle
+--- PASS: TestConnectionPoolLifecycle (8.45s)
+ok      github.com/Notifuse/notifuse/tests/integration
+
+=== RUN   TestConnectionPoolConcurrency
+--- PASS: TestConnectionPoolConcurrency (16.91s)
+ok      github.com/Notifuse/notifuse/tests/integration
+
+✅ All integration tests completed
+```
 
 **Example Usage**:
 ```bash
-# Cursor Agent
+# Cursor Agent (recommended)
 make e2e-test-within-cursor-agent
 
 # GitHub Actions
 - name: Run E2E Tests
   run: make e2e-test-within-cursor-agent
-  timeout-minutes: 10
+  timeout-minutes: 5
 ```
 
 ---
@@ -328,10 +347,11 @@ docker-compose -f docker-compose.test.yml up -d
 | Command | Duration | Use Case |
 |---------|----------|----------|
 | `make test-unit` | 30-60s | Fast unit test feedback |
-| `make e2e-test-within-cursor-agent` | 3-5min | Cursor Agent / CI/CD comprehensive testing |
-| `make test-connection-pools` | 2-3min | Full integration test suite |
+| `make e2e-test-within-cursor-agent` | 2-3min | Cursor Agent integration tests (non-verbose) |
+| `make test-connection-pools` | 2-3min | Full integration test suite (verbose) |
 | `make test-connection-pools-short` | 15-20s | Quick integration validation |
 | `make test-connection-pools-race` | 3-5min | Race condition detection |
 | `make coverage` | 1-2min | Coverage report generation |
 
-**Recommended for Cursor Agent / CI/CD**: `make e2e-test-within-cursor-agent` ✅
+**Recommended for Cursor Agent**: `make e2e-test-within-cursor-agent` ✅  
+**Recommended for detailed debugging**: `make test-connection-pools` ✅

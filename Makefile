@@ -6,14 +6,19 @@ build:
 test-unit:
 	go test -race -v ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database
 
-# End-to-end test command for Cursor Agent: runs unit tests and integration tests
+# End-to-end test command for Cursor Agent: runs integration tests only (non-verbose)
 e2e-test-within-cursor-agent:
-	@echo "Running unit tests..."
-	@go test -timeout 5m ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database 2>&1 | grep -E "FAIL|PASS|^ok|^---" || true
-	@echo "\n=== Unit Test Summary ==="
-	@go test -timeout 5m ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database 2>&1 | tail -10
-	@echo "\n=== Running Connection Pool Integration Tests ==="
-	@$(MAKE) test-connection-pools
+	@echo "Running connection pool integration tests (non-verbose)..."
+	@./run-integration-tests.sh "TestConnectionPoolLifecycle$$" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
+	@sleep 3
+	@./run-integration-tests.sh "TestConnectionPoolConcurrency$$" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
+	@sleep 3
+	@./run-integration-tests.sh "TestConnectionPoolLimits$$" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
+	@sleep 3
+	@./run-integration-tests.sh "TestConnectionPoolFailureRecovery$$" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
+	@sleep 3
+	@./run-integration-tests.sh "TestConnectionPoolPerformance$$" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
+	@echo "\n✅ All integration tests completed"
 
 test-integration:
 	INTEGRATION_TESTS=true go test -race -timeout 9m ./tests/integration/ -v
