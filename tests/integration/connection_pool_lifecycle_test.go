@@ -238,12 +238,14 @@ func TestConnectionPoolManagerIsolation(t *testing.T) {
 		pool1 := manager.GetOrCreatePool("test1", config)
 		pool2 := manager.GetOrCreatePool("test2", config)
 
-		// Should be different pool instances
-		assert.NotEqual(t, pool1, pool2, "Different test IDs should get different pools")
+		// Should be different pool instances (check pointer addresses)
+		require.NotNil(t, pool1, "Pool1 should not be nil")
+		require.NotNil(t, pool2, "Pool2 should not be nil")
+		assert.NotSame(t, pool1, pool2, "Different test IDs should get different pool instances")
 
 		// Same test ID should get same pool
 		pool1Again := manager.GetOrCreatePool("test1", config)
-		assert.Equal(t, pool1, pool1Again, "Same test ID should get same pool")
+		assert.Same(t, pool1, pool1Again, "Same test ID should get same pool instance")
 
 		// Manager should track both pools
 		assert.Equal(t, 2, manager.GetPoolCount())
