@@ -19,13 +19,7 @@ All notable changes to this project will be documented in this file.
 - Message preview drawer displays email delivery options when present
 - Only stores email options in this version (SMS/push to be added later)
 
-### Migration Notes
-- Existing messages will have `channel_options = NULL` (no backfill)
-- Migration is idempotent and safe to run multiple times
-- Estimated migration time: < 1 second per workspace
-
-## [13.8] - Unreleased
-
+### Fixes
 - Fix: SMTP now supports unauthenticated/anonymous connections (e.g., local mail relays on port 25)
 - Magic code emails, workspace invitations, and circuit breaker alerts now work without SMTP credentials
 - SMTP authentication is only configured when both username and password are provided
@@ -34,6 +28,11 @@ All notable changes to this project will be documented in this file.
 - Fix: Signin emails and other system emails now work correctly after initial setup
 - Fix: Decode HTML entities in URL attributes to ensure links with query parameters work correctly in MJML-compiled emails
 - Fix: Normalize browser timezone names to canonical IANA format to prevent timezone mismatch errors
+
+### Migration Notes
+- Existing messages will have `channel_options = NULL` (no backfill)
+- Migration is idempotent and safe to run multiple times
+- Estimated migration time: < 1 second per workspace
 
 ## [13.7] - 2025-10-25
 
