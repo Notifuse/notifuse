@@ -6,12 +6,14 @@ build:
 test-unit:
 	go test -race -v ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database
 
-# Agent-optimized test command: no verbose, only show failures, with timeout
+# Agent-optimized test command: runs unit tests and integration tests
 test-agent:
-	@echo "Running tests (agent mode: showing failures only)..."
+	@echo "Running unit tests..."
 	@go test -timeout 5m ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database 2>&1 | grep -E "FAIL|PASS|^ok|^---" || true
-	@echo "\n=== Test Summary ==="
-	@go test -timeout 5m ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database 2>&1 | tail -20
+	@echo "\n=== Unit Test Summary ==="
+	@go test -timeout 5m ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database 2>&1 | tail -10
+	@echo "\n=== Running Connection Pool Integration Tests ==="
+	@$(MAKE) test-connection-pools
 
 test-integration:
 	INTEGRATION_TESTS=true go test -race -timeout 9m ./tests/integration/ -v
