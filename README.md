@@ -80,99 +80,11 @@ Notifuse follows clean architecture principles with clear separation of concerns
 └── config/                # Configuration files
 ```
 
-## 🚀 Getting Started
+## 🚀 Installation
 
-### One-click deployment
+For installation instructions, configuration options, and deployment guides, see:
 
-[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/aBzOMu?referralCode=73Ps3m)
-
-### Quick Start with Docker Compose
-
-1. **Clone the repository**:
-
-   ```bash
-   git clone https://github.com/Notifuse/notifuse.git
-   cd notifuse
-   ```
-
-2. **Configure required environment variables**:
-
-   ```bash
-   cp env.example .env
-   # Edit .env with database credentials and SECRET_KEY
-   ```
-
-   **Minimum required variables**: `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `SECRET_KEY`
-
-3. **Start the services**:
-
-   ```bash
-   docker-compose up -d
-   ```
-
-4. **Access the application and complete setup**:
-   - Open http://localhost:8080
-   - Follow the interactive **Setup Wizard** to configure:
-     - Root administrator email
-     - API endpoint
-     - SMTP settings
-     - PASETO keys (automatically generated)
-   - Save the generated keys securely!
-
-**Alternative**: You can skip the setup wizard by pre-configuring all environment variables in your `.env` file. Generate PASETO keys at [paseto.notifuse.com](https://paseto.notifuse.com) or use `make keygen`.
-
-### Environment Configuration
-
-**⚠️ Important**: The included `docker-compose.yml` is designed for **testing and development only**. For production deployments:
-
-- **Use a separate PostgreSQL database** (managed service recommended)
-- **Configure external storage** for file uploads
-- **Set up proper SSL/TLS termination**
-- **Use a reverse proxy** (nginx, Traefik, etc.)
-
-#### Development Setup
-
-The docker-compose includes a PostgreSQL container for quick testing. Simply run `docker-compose up -d` to get started, then complete the setup wizard in your browser.
-
-#### Production Setup
-
-**Required Environment Variables:**
-
-- `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` - External PostgreSQL database
-- `SECRET_KEY` - Secret key for encrypting sensitive data (or `PASETO_PRIVATE_KEY` as fallback)
-- `DB_SSLMODE=require` - For secure database connections
-
-**Optional (can be configured via Setup Wizard or environment variables):**
-
-- `ROOT_EMAIL` - Root administrator email
-- `API_ENDPOINT` - Public API endpoint URL
-- `PASETO_PRIVATE_KEY`, `PASETO_PUBLIC_KEY` - Authentication keys (auto-generated in wizard)
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD` - Email provider settings
-- `SMTP_FROM_EMAIL`, `SMTP_FROM_NAME` - From address and name
-
-**Database Connection Management:**
-
-Notifuse uses a smart connection pooling system to efficiently manage database connections across unlimited workspaces:
-
-- `DB_MAX_CONNECTIONS=100` - Total maximum connections across all databases (default: 100)
-- `DB_MAX_CONNECTIONS_PER_DB=3` - Max connections per workspace database (default: 3)
-- `DB_CONNECTION_MAX_LIFETIME=10m` - Maximum lifetime of a connection (default: 10m)
-- `DB_CONNECTION_MAX_IDLE_TIME=5m` - Maximum idle time before closing (default: 5m)
-
-**Connection Capacity:**
-- With default settings (100 max, 3 per DB), supports ~30 concurrent active workspace databases
-- Total workspaces supported: **unlimited** (100, 500, 1000+)
-- Idle workspace connections are automatically closed (LRU eviction)
-- Monitor real-time connection usage via `/api/admin.connectionStats`
-
-**Tuning Guidelines:**
-- Set `DB_MAX_CONNECTIONS` to 80-90% of your PostgreSQL `max_connections` setting
-- Lower `DB_MAX_CONNECTIONS_PER_DB` (to 2) for more concurrent workspaces
-- Increase `DB_MAX_CONNECTIONS_PER_DB` (to 5-7) if queries are long-running
-
-**Note:** Environment variables always take precedence over database settings configured via the setup wizard.
-
-For detailed installation instructions, configuration options, and setup guides, visit **[docs.notifuse.com](https://docs.notifuse.com)**.
+👉 **[docs.notifuse.com/installation](https://docs.notifuse.com/installation)**
 
 ## 📚 Documentation
 

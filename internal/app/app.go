@@ -123,6 +123,7 @@ type App struct {
 	segmentService                   *service.SegmentService
 	settingService                   *service.SettingService
 	setupService                     *service.SetupService
+	taskScheduler                    *service.TaskScheduler
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -715,6 +716,14 @@ func (a *App) InitServices() error {
 	// Initialize contact timeline service
 	a.contactTimelineService = service.NewContactTimelineService(a.contactTimelineRepo)
 
+	// Initialize task scheduler
+	a.taskScheduler = service.NewTaskScheduler(
+		a.taskService,
+		a.logger,
+		a.config.TaskScheduler.Interval,
+		a.config.TaskScheduler.MaxTasks,
+	)
+
 	return nil
 }
 
@@ -870,6 +879,12 @@ func (a *App) Start() error {
 	// Signal that the server has been created and is about to start
 	close(serverStarted)
 
+	// Start internal task scheduler if enabled
+	if a.config.TaskScheduler.Enabled && a.taskScheduler != nil {
+		ctx := a.GetShutdownContext()
+		a.taskScheduler.Start(ctx)
+	}
+
 	// Start daily telemetry scheduler
 	if a.telemetryService != nil {
 		ctx := context.Background()
@@ -891,6 +906,11 @@ func (a *App) Shutdown(ctx context.Context) error {
 
 	// Signal shutdown to all components
 	a.shutdownCancel()
+
+	// Stop task scheduler first (before stopping server)
+	if a.taskScheduler != nil {
+		a.taskScheduler.Stop()
+	}
 
 	// Get server reference
 	a.serverMu.RLock()

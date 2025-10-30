@@ -1,4 +1,4 @@
-import { Layout, Menu, Select, Space, Button, Dropdown, message, Alert, Typography } from 'antd'
+import { Layout, Menu, Select, Space, Button, Dropdown, message } from 'antd'
 import { Outlet, Link, useParams, useMatches, useNavigate } from '@tanstack/react-router'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -25,117 +25,8 @@ import { FileManagerProvider } from '../components/file_manager/context'
 import { FileManagerSettings } from '../components/file_manager/interfaces'
 import { workspaceService } from '../services/api/workspace'
 import { isRootUser } from '../services/api/auth'
-import { useQuery } from '@tanstack/react-query'
 
 const { Content, Sider } = Layout
-const { Paragraph } = Typography
-
-interface CronStatusResponse {
-  success: boolean
-  last_run: string | null
-  last_run_unix: number | null
-  time_since_last_run: string | null
-  time_since_last_run_seconds: number | null
-  message?: string
-}
-
-function CronStatusBanner() {
-  const [apiEndpoint, setApiEndpoint] = useState<string>('')
-
-  useEffect(() => {
-    // Get API endpoint from window object
-    setApiEndpoint((window as any).API_ENDPOINT || '')
-  }, [])
-
-  const { data: cronStatus, isError } = useQuery<CronStatusResponse>({
-    queryKey: ['cronStatus'],
-    queryFn: async () => {
-      const response = await fetch(`${apiEndpoint}/api/cron.status`)
-      if (!response.ok) {
-        throw new Error('Failed to fetch cron status')
-      }
-      return response.json()
-    },
-    refetchInterval: 3600000, // Refetch every hour
-    enabled: !!apiEndpoint // Only run query if we have an API endpoint
-  })
-
-  // Don't show banner if we can't fetch status or if there's an error
-  if (!cronStatus || isError) {
-    return null
-  }
-
-  // Check if last run was more than 90 seconds ago
-  const needsCronSetup =
-    !cronStatus.last_run ||
-    (cronStatus.time_since_last_run_seconds && cronStatus.time_since_last_run_seconds > 90)
-
-  if (!needsCronSetup) {
-    return null
-  }
-
-  const cronCommand = `* * * * * curl ${apiEndpoint}/api/cron > /dev/null 2>&1`
-
-  const handleCopyCronCommand = () => {
-    navigator.clipboard.writeText(cronCommand)
-    message.success('Cron command copied to clipboard!')
-  }
-
-  return (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 16,
-        right: 16,
-        width: '800px',
-        zIndex: 1000
-      }}
-    >
-      <Alert
-        message="Cron Job Setup Required"
-        description={
-          <Space direction="vertical" style={{ width: '100%' }}>
-            <div>
-              {cronStatus.last_run
-                ? `Last cron run was ${Math.floor((cronStatus.time_since_last_run_seconds || 0) / 60)} minutes ago. `
-                : 'No cron run detected. '}
-              Add this cron job to your server to enable automatic task processing:{' '}
-              <a
-                href="https://docs.notifuse.com/installation#a-cron-scheduler"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ color: '#7763F1' }}
-              >
-                Learn more
-              </a>
-            </div>
-            <Paragraph
-              copyable={{
-                text: cronCommand,
-                onCopy: handleCopyCronCommand
-              }}
-              style={{
-                backgroundColor: '#f5f5f5',
-                padding: '8px',
-                border: '1px solid #d9d9d9',
-                borderRadius: '4px',
-                fontFamily: 'monospace',
-                fontSize: '12px',
-                marginBottom: 0,
-                whiteSpace: 'pre-wrap'
-              }}
-            >
-              {cronCommand}
-            </Paragraph>
-          </Space>
-        }
-        type="warning"
-        showIcon
-        closable
-      />
-    </div>
-  )
-}
 
 export function WorkspaceLayout() {
   const { workspaceId } = useParams({ from: '/workspace/$workspaceId' })
@@ -367,7 +258,6 @@ export function WorkspaceLayout() {
   return (
     <ContactsCsvUploadProvider>
       <Layout style={{ minHeight: '100vh' }}>
-        <CronStatusBanner />
         <Layout>
           <Sider
             width={250}
