@@ -1,11 +1,11 @@
 package integration
 
 import (
-	"database/sql"
 	"fmt"
 	"testing"
 	"time"
 
+	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -283,12 +283,12 @@ func TestConnectionPoolSystemConnectionFailure(t *testing.T) {
 	})
 
 	t.Run("workspace operations fail gracefully without system connection", func(t *testing.T) {
-		config := testutil.GetTestDatabaseConfig()
+		cfg := testutil.GetTestDatabaseConfig()
 
 		// Create pool with invalid connection details
 		invalidConfig := &config.DatabaseConfig{
-			Host:     config.Host,
-			Port:     config.Port,
+			Host:     cfg.Host,
+			Port:     cfg.Port,
 			User:     "invalid_user_xyz",
 			Password: "invalid_password",
 			Prefix:   "notifuse_test",

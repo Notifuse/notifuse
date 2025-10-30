@@ -1,8 +1,8 @@
 package integration
 
 import (
+	"fmt"
 	"testing"
-	"time"
 
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/stretchr/testify/assert"
