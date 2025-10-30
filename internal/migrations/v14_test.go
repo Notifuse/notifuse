@@ -110,19 +110,6 @@ func TestV14Migration_UpdateWorkspace(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, columnExists, "channel_options column should exist after migration")
 
-	// Verify the index was created
-	var indexExists bool
-	err = workspaceDB.QueryRowContext(ctx, `
-		SELECT EXISTS (
-			SELECT 1
-			FROM pg_indexes
-			WHERE tablename = 'message_history'
-			AND indexname = 'idx_message_history_channel_options'
-		)
-	`).Scan(&indexExists)
-	require.NoError(t, err)
-	assert.True(t, indexExists, "GIN index on channel_options should exist after migration")
-
 	// Test idempotency - running migration again should not error
 	err = migration.UpdateWorkspace(ctx, cfg, workspace, workspaceDB)
 	assert.NoError(t, err, "Migration should be idempotent")

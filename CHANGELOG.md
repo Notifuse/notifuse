@@ -8,7 +8,6 @@ All notable changes to this project will be documented in this file.
 - Added `channel_options` JSONB column to `message_history` table
   - Updated `internal/database/init.go` for new workspaces
   - Created migration `v14.go` for existing workspaces
-- Created GIN index on `channel_options` for efficient querying
 - JSONB structure allows future SMS/push options without schema changes
 
 ### Features

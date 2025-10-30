@@ -84,7 +84,6 @@ This directory contains implementation plans for features and architectural chan
 
 **Key Changes:**
 - Added `channel_options` JSONB column to `message_history` table
-- Created GIN index for efficient JSONB queries
 - Updated domain types with `ChannelOptions` struct
 - Enhanced UI to display channel options in message preview drawer
 - Added conversion methods: `EmailOptions.ToChannelOptions()`

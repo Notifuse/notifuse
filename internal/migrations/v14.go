@@ -39,15 +39,6 @@ func (m *V14Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		return fmt.Errorf("failed to add channel_options column: %w", err)
 	}
 
-	// Create GIN index on channel_options for efficient querying
-	_, err = db.ExecContext(ctx, `
-		CREATE INDEX IF NOT EXISTS idx_message_history_channel_options
-		ON message_history USING gin(channel_options)
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to create index on channel_options: %w", err)
-	}
-
 	return nil
 }
 

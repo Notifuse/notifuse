@@ -10,7 +10,6 @@ Version 14.0 adds a `channel_options` JSONB column to the `message_history` tabl
 
 **Table: `message_history`**
 - Added column: `channel_options JSONB` (nullable)
-- Added index: `idx_message_history_channel_options` (GIN index for efficient JSONB queries)
 
 **Migration Strategy:**
 - Migration is idempotent using `IF NOT EXISTS` clauses
@@ -97,7 +96,6 @@ The template preview drawer now displays channel options when viewing message hi
 1. **`internal/migrations/v14.go`**
    - Implements `V14Migration` struct
    - Adds `channel_options` column to workspace databases
-   - Creates GIN index for efficient querying
    - Version: 14.0, Workspace-only migration
 
 2. **`internal/migrations/v14_test.go`**
@@ -108,7 +106,6 @@ The template preview drawer now displays channel options when viewing message hi
 3. **`internal/database/init.go`**
    - Updated workspace database initialization
    - Includes `channel_options` column for new workspaces
-   - Includes GIN index creation
 
 ## Testing
 
@@ -128,7 +125,6 @@ The template preview drawer now displays channel options when viewing message hi
 **File: `internal/migrations/v14_test.go`**
 - Verifies migration metadata (version, flags)
 - Tests workspace database column addition
-- Tests GIN index creation
 - Verifies idempotency
 
 **File: `internal/migrations/manager_test.go`**
@@ -150,9 +146,8 @@ The template preview drawer now displays channel options when viewing message hi
 ## Performance Considerations
 
 ### Database
-- **GIN Index**: Efficient JSONB queries on `channel_options`
 - **Nullable Column**: No storage overhead for messages without options
-- **Index Type**: GIN chosen for flexible JSONB queries
+- **JSONB Storage**: Efficient binary JSON format
 
 ### Application
 - **Minimal Overhead**: Only converts options when provided
