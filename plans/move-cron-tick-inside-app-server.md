@@ -285,10 +285,10 @@ func (a *App) Shutdown(ctx context.Context) error {
 }
 ```
 
-### Step 4: Remove HTTP Endpoints
+### Step 4: Keep HTTP Endpoints (For Now)
 **File**: `internal/http/task_handler.go`
 
-Remove the cron-related endpoints that are no longer needed:
+Keep the cron endpoints for backward compatibility, but they become secondary to the internal scheduler:
 
 ```go
 func (h *TaskHandler) RegisterRoutes(mux *http.ServeMux) {
@@ -303,22 +303,56 @@ func (h *TaskHandler) RegisterRoutes(mux *http.ServeMux) {
     mux.Handle("/api/tasks.delete", requireAuth(http.HandlerFunc(h.DeleteTask)))
     mux.Handle("/api/tasks.execute", http.HandlerFunc(h.ExecuteTask))
     
-    // REMOVE these endpoints:
-    // mux.Handle("/api/cron", http.HandlerFunc(h.ExecutePendingTasks))
-    // mux.Handle("/api/cron.status", http.HandlerFunc(h.GetCronStatus))
+    // Keep these for backward compatibility (but not shown in UI):
+    mux.Handle("/api/cron", http.HandlerFunc(h.ExecutePendingTasks))
+    mux.Handle("/api/cron.status", http.HandlerFunc(h.GetCronStatus))
 }
 ```
 
-**Remove these methods**:
-- `ExecutePendingTasks` (handler method)
-- `GetCronStatus` (handler method)
+**Update handler to log manual usage**:
 
-**Why Remove Completely?**:
-- Internal scheduler handles all task execution
-- No need for external triggering
-- Simpler API surface
-- No confusion about which method to use
-- Cleaner codebase
+```go
+func (h *TaskHandler) ExecutePendingTasks(w http.ResponseWriter, r *http.Request) {
+    if r.Method != http.MethodGet {
+        WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+        return
+    }
+
+    // Log that manual trigger is being used (internal scheduler should handle this)
+    h.logger.Info("Manual cron trigger via HTTP endpoint - internal scheduler should handle this automatically")
+
+    startTime := time.Now()
+
+    var executeRequest domain.ExecutePendingTasksRequest
+    if err := executeRequest.FromURLParams(r.URL.Query()); err != nil {
+        WriteJSONError(w, err.Error(), http.StatusBadRequest)
+        return
+    }
+
+    // Execute tasks (same as internal scheduler does)
+    if err := h.taskService.ExecutePendingTasks(r.Context(), executeRequest.MaxTasks); err != nil {
+        h.logger.WithField("error", err.Error()).Error("Failed to execute tasks")
+        WriteJSONError(w, "Failed to execute tasks", http.StatusInternalServerError)
+        return
+    }
+
+    elapsed := time.Since(startTime)
+
+    writeJSON(w, http.StatusOK, map[string]interface{}{
+        "success":   true,
+        "message":   "Task execution initiated (manual trigger)",
+        "max_tasks": executeRequest.MaxTasks,
+        "elapsed":   elapsed.String(),
+    })
+}
+```
+
+**Why Keep the Endpoints?**:
+- Backward compatibility for existing deployments
+- Useful for manual triggering during debugging
+- Can be deprecated and removed in a future version
+- No harm in keeping them - internal scheduler is primary
+- Allows gradual migration for users
 
 ### Step 5: Update Configuration Loading
 **File**: `config/config.go`
@@ -604,10 +638,13 @@ TASK_SCHEDULER_MAX_TASKS=100
 - Faster task processing (30s vs 60s minimum)
 
 ### Removed
-- `/api/cron` HTTP endpoint (replaced by internal scheduler)
-- `/api/cron.status` HTTP endpoint (no longer needed)
 - Cron setup instructions from setup wizard
 - Cron status warning banner from UI
+- Cron setup from onboarding flow
+
+### Deprecated (kept for backward compatibility)
+- `/api/cron` HTTP endpoint (internal scheduler is primary)
+- `/api/cron.status` HTTP endpoint (still functional)
 
 ### Migration Notes
 - **Action Required**: Remove external cron job if you have one configured
@@ -646,10 +683,10 @@ Test scenarios:
 - `internal/http/task_handler_test.go`
 - `tests/testutil/client.go`
 
-Remove tests for:
-- ❌ `ExecutePendingTasks` HTTP handler
-- ❌ `GetCronStatus` HTTP handler
-- ❌ `/api/cron` endpoint calls
+Keep existing tests for:
+- ✅ `ExecutePendingTasks` HTTP handler (still works)
+- ✅ `GetCronStatus` HTTP handler (still works)
+- ✅ `/api/cron` endpoint calls (for backward compatibility)
 
 ### Frontend Tests
 **Files**: 
@@ -702,16 +739,18 @@ Remove tests for:
 5. Test migrations (remove external cron)
 6. Deploy to production
 
-## Breaking Changes
+## Changes for Users
 
 ### For Users with External Cron
-- **Must remove external cron job** - it will fail since endpoint is removed
-- `/api/cron` endpoint no longer exists
-- `/api/cron.status` endpoint no longer exists
-- Tasks execute automatically - no action needed
+- External cron job is **no longer required** (but still works if kept)
+- `/api/cron` endpoint still functional (deprecated)
+- `/api/cron.status` endpoint still functional (deprecated)
+- Tasks now execute automatically every 30s via internal scheduler
+- **Recommended**: Remove external cron job (internal scheduler is faster)
 
 ### For New Users
 - No cron setup required during installation
+- No cron setup shown in setup wizard
 - Scheduler starts automatically
 - Simpler onboarding experience
 - Works out of the box
@@ -782,7 +821,7 @@ Remove tests for:
 - ✅ All tests pass (unit + integration)
 - ✅ Documentation updated (README, CHANGELOG)
 - ✅ No performance degradation
-- ✅ Cron endpoints removed from API
+- ✅ Cron endpoints kept but deprecated (not shown in UI)
 - ✅ Cron UI removed from frontend
 - ✅ Setup wizard simplified (no cron step)
 - ✅ No cron warning banners in UI
@@ -814,22 +853,23 @@ Remove tests for:
 ### Modified Files
 - `config/config.go` - Add TaskSchedulerConfig
 - `internal/app/app.go` - Integrate scheduler
-- `internal/http/task_handler.go` - Remove cron endpoints and handlers
-- `internal/service/task_service.go` - Remove cron-related comments
+- `internal/http/task_handler.go` - Add logging to manual cron endpoint usage
 - `console/src/pages/SetupWizard.tsx` - Remove cron setup UI
 - `console/src/layouts/WorkspaceLayout.tsx` - Remove cron status banner
-- `CHANGELOG.md` - Document breaking changes
-- `README.md` - Remove cron setup instructions
+- `CHANGELOG.md` - Document changes
+- `README.md` - Remove cron setup instructions (note endpoints still work)
 - `env.example` - Add scheduler config
 
-### Removed Code
-- `ExecutePendingTasks` HTTP handler (from task_handler.go)
-- `GetCronStatus` HTTP handler (from task_handler.go)
-- `/api/cron` route registration
-- `/api/cron.status` route registration
+### Removed Code (Frontend Only)
 - Cron setup section (from SetupWizard.tsx)
 - `CronStatusBanner` component (from WorkspaceLayout.tsx)
-- Related test code for removed endpoints
+- Related UI tests for cron setup/warnings
+
+### Kept for Backward Compatibility
+- `/api/cron` endpoint (still functional, not advertised)
+- `/api/cron.status` endpoint (still functional, not advertised)
+- `ExecutePendingTasks` handler (with logging)
+- `GetCronStatus` handler (unchanged)
 
 ## Estimated Effort
 - Backend Implementation: 4-6 hours
@@ -867,8 +907,13 @@ Remove tests for:
 
 ### For Users Upgrading from v13.x to v14.0
 
-#### 1. Remove External Cron Job
+#### 1. Remove External Cron Job (Recommended)
 ```bash
+# The endpoint still works, but internal scheduler is better:
+# - Faster (30s vs 60s)
+# - No external dependencies
+# - Automatic monitoring
+
 # Remove this line from your crontab:
 # * * * * * curl https://your-domain.com/api/cron > /dev/null 2>&1
 
@@ -876,6 +921,9 @@ Remove tests for:
 crontab -e
 
 # Delete or comment out the Notifuse cron line
+
+# Note: If you keep it, both will run (internal scheduler + external cron)
+# This is harmless but redundant
 ```
 
 #### 2. Update Configuration (Optional)
@@ -919,9 +967,10 @@ grep "Starting internal task scheduler" /var/log/notifuse.log
 - Set `TASK_SCHEDULER_INTERVAL=60s` (or higher)
 - Default 30s is faster than old 60s cron
 
-**Want to disable?**
+**Want to disable internal scheduler?**
 - Set `TASK_SCHEDULER_ENABLED=false`
-- Not recommended unless using custom orchestration
+- External cron via `/api/cron` will still work
+- Not recommended - internal scheduler is faster and more reliable
 
 ## Conclusion
 
@@ -936,14 +985,20 @@ This plan provides a comprehensive approach to moving the external cron tick ins
 - ✅ **Cleaner UI** - No confusing cron setup instructions
 - ✅ **Better UX** - Faster task execution = better user experience
 
-### Breaking Changes
-- ❌ `/api/cron` endpoint removed
-- ❌ `/api/cron.status` endpoint removed
-- ⚠️ External cron job must be removed by users
+### UI Changes (Not Breaking)
+- ❌ Cron setup removed from setup wizard
+- ❌ Cron status banner removed from workspace
+- ✅ Cleaner, simpler user experience
+
+### API Changes (Backward Compatible)
+- ✅ `/api/cron` endpoint still works (deprecated, not advertised)
+- ✅ `/api/cron.status` endpoint still works (deprecated, not advertised)
+- ℹ️ External cron job can be removed (optional, recommended)
 
 ### Migration Impact
+- **Zero breaking changes** - All existing endpoints still work
 - **Low risk** - Scheduler is straightforward and well-tested
-- **Easy migration** - Just remove external cron job
-- **Better for users** - Simpler setup, faster execution
+- **Easy migration** - Can remove external cron job (optional)
+- **Better for users** - Simpler setup, faster execution, cleaner UI
 
 The scheduler is production-ready, well-tested, and designed for reliability. This is a significant UX improvement for the Notifuse platform.
