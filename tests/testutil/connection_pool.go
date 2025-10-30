@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -38,7 +39,7 @@ func (pool *TestConnectionPool) GetSystemConnection() (*sql.DB, error) {
 	defer pool.poolMutex.Unlock()
 
 	if pool.systemPool == nil {
-		systemDSN := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=postgres sslmode=%s",
+		systemDSN := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=postgres sslmode=%s connect_timeout=30",
 			pool.config.Host, pool.config.Port, pool.config.User, pool.config.Password, pool.config.SSLMode)
 
 		db, err := sql.Open("postgres", systemDSN)
@@ -52,7 +53,11 @@ func (pool *TestConnectionPool) GetSystemConnection() (*sql.DB, error) {
 		db.SetConnMaxLifetime(pool.maxIdleTime)
 		db.SetConnMaxIdleTime(pool.maxIdleTime / 2)
 
-		if err := db.Ping(); err != nil {
+		// Use context with timeout for ping
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := db.PingContext(ctx); err != nil {
 			db.Close()
 			return nil, fmt.Errorf("failed to ping system database: %w", err)
 		}
@@ -82,7 +87,7 @@ func (pool *TestConnectionPool) GetWorkspaceConnection(workspaceID string) (*sql
 
 	// Create new connection
 	workspaceDBName := fmt.Sprintf("%s_ws_%s", pool.config.Prefix, workspaceID)
-	workspaceDSN := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+	workspaceDSN := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=30",
 		pool.config.Host, pool.config.Port, pool.config.User, pool.config.Password, workspaceDBName, pool.config.SSLMode)
 
 	db, err := sql.Open("postgres", workspaceDSN)
@@ -96,7 +101,11 @@ func (pool *TestConnectionPool) GetWorkspaceConnection(workspaceID string) (*sql
 	db.SetConnMaxLifetime(pool.maxIdleTime)
 	db.SetConnMaxIdleTime(pool.maxIdleTime / 2)
 
-	if err := db.Ping(); err != nil {
+	// Use context with timeout for ping
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to ping workspace database: %w", err)
 	}
@@ -160,8 +169,8 @@ func (pool *TestConnectionPool) CleanupWorkspace(workspaceID string) error {
 
 		pool.systemPool.Exec(terminateQuery)
 
-		// Small delay for connections to close
-		time.Sleep(100 * time.Millisecond)
+		// Increased delay for connections to fully close
+		time.Sleep(200 * time.Millisecond)
 
 		// Drop the database
 		dropQuery := fmt.Sprintf("DROP DATABASE IF EXISTS %s", workspaceDBName)
@@ -181,24 +190,80 @@ func (pool *TestConnectionPool) GetConnectionCount() int {
 	return pool.connectionCount
 }
 
-// Cleanup closes all connections in the pool
+// Cleanup closes all connections in the pool with proper verification
 func (pool *TestConnectionPool) Cleanup() error {
 	pool.poolMutex.Lock()
 	defer pool.poolMutex.Unlock()
 
-	// Close all workspace connections
+	var errors []error
+
+	// Step 1: Close all workspace connections first
+	workspaceDBNames := make([]string, 0, len(pool.workspacePools))
 	for workspaceID, db := range pool.workspacePools {
-		db.Close()
+		workspaceDBName := fmt.Sprintf("%s_ws_%s", pool.config.Prefix, workspaceID)
+		workspaceDBNames = append(workspaceDBNames, workspaceDBName)
+
+		if err := db.Close(); err != nil {
+			errors = append(errors, fmt.Errorf("error closing workspace pool %s: %w", workspaceID, err))
+		}
 		delete(pool.workspacePools, workspaceID)
 	}
 
-	// Close system connection
+	// Step 2: Wait for connections to actually close
+	// Increased delay to ensure PostgreSQL releases connections
+	time.Sleep(500 * time.Millisecond)
+
+	// Step 3: Drop workspace databases using system connection
 	if pool.systemPool != nil {
-		pool.systemPool.Close()
+		for _, workspaceDBName := range workspaceDBNames {
+			if err := pool.dropDatabaseIfExists(workspaceDBName); err != nil {
+				errors = append(errors, fmt.Errorf("error dropping database %s: %w", workspaceDBName, err))
+			}
+		}
+	}
+
+	// Step 4: Close system connection last
+	if pool.systemPool != nil {
+		if err := pool.systemPool.Close(); err != nil {
+			errors = append(errors, fmt.Errorf("error closing system pool: %w", err))
+		}
 		pool.systemPool = nil
 	}
 
 	pool.connectionCount = 0
+
+	if len(errors) > 0 {
+		return fmt.Errorf("cleanup errors: %v", errors)
+	}
+
+	return nil
+}
+
+// dropDatabaseIfExists drops a database if it exists (helper for cleanup)
+func (pool *TestConnectionPool) dropDatabaseIfExists(dbName string) error {
+	// Terminate any remaining connections to the database
+	terminateQuery := fmt.Sprintf(`
+		SELECT pg_terminate_backend(pid) 
+		FROM pg_stat_activity 
+		WHERE datname = '%s' 
+		  AND pid <> pg_backend_pid()`, dbName)
+
+	_, err := pool.systemPool.Exec(terminateQuery)
+	if err != nil {
+		// Log but don't fail - database might not exist
+		return nil
+	}
+
+	// Small delay for connections to close
+	time.Sleep(100 * time.Millisecond)
+
+	// Drop the database
+	dropQuery := fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName)
+	_, err = pool.systemPool.Exec(dropQuery)
+	if err != nil {
+		return fmt.Errorf("failed to drop database: %w", err)
+	}
+
 	return nil
 }
 
@@ -242,15 +307,30 @@ func GetGlobalTestPool() *TestConnectionPool {
 }
 
 // CleanupGlobalTestPool cleans up the global test pool
+// This should be called at the end of test runs to ensure no connections leak
 func CleanupGlobalTestPool() error {
-	if globalTestPool != nil {
-		err := globalTestPool.Cleanup()
-		globalTestPool = nil
-		// Reset the sync.Once so the pool can be re-initialized in the next test
-		poolOnce = sync.Once{}
-		// Give PostgreSQL time to release connections
-		time.Sleep(500 * time.Millisecond)
-		return err
+	if globalTestPool == nil {
+		return nil
 	}
-	return nil
+
+	// Cleanup the pool
+	err := globalTestPool.Cleanup()
+
+	// Reset global state
+	globalTestPool = nil
+	poolOnce = sync.Once{}
+
+	// Give PostgreSQL extra time to release connections when running multiple tests
+	// This prevents connection exhaustion between test suites
+	time.Sleep(1 * time.Second)
+
+	return err
+}
+
+// GetGlobalPoolConnectionCount returns the connection count from the global pool
+func GetGlobalPoolConnectionCount() int {
+	if globalTestPool == nil {
+		return 0
+	}
+	return globalTestPool.GetConnectionCount()
 }

@@ -6,12 +6,11 @@ build:
 test-unit:
 	go test -race -v ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database
 
-# Agent-optimized test command: no verbose, only show failures, with timeout
-test-agent:
-	@echo "Running tests (agent mode: showing failures only)..."
-	@go test -timeout 5m ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database 2>&1 | grep -E "FAIL|PASS|^ok|^---" || true
-	@echo "\n=== Test Summary ==="
-	@go test -timeout 5m ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database 2>&1 | tail -20
+# End-to-end test command for Cursor Agent: runs all integration tests (non-verbose)
+e2e-test-within-cursor-agent:
+	@echo "Running all integration tests (non-verbose)..."
+	@./run-integration-tests.sh "Test" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
+	@echo "\n✅ All integration tests completed"
 
 test-integration:
 	INTEGRATION_TESTS=true go test -race -timeout 9m ./tests/integration/ -v
