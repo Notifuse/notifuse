@@ -68,6 +68,7 @@ func (s *TaskScheduler) Stop() {
 		s.mu.Unlock()
 		return
 	}
+	s.running = false
 	s.mu.Unlock()
 
 	s.logger.Info("Stopping task scheduler...")
