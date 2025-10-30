@@ -599,16 +599,33 @@ function CronStatusBanner() {...}
 ### Step 8: Update Documentation
 
 **Update README**:
-- **Remove all cron mentions** - don't mention it at all
-- Document the internal scheduler as the default (no user action needed)
-- Note that task execution is automatic
-- Optional: Mention scheduler configuration for advanced users
+- **Remove installation section** - replace with link to docs
+- **Remove environment variables section** - replace with link to docs
+- Keep: Overview, features, quick links
+- Add link: "See [full documentation](https://docs.notifuse.com) for installation and configuration"
 
-**Update Deployment Guides**:
+**Example README structure**:
+```markdown
+# Notifuse
+
+[Overview and features...]
+
+## Documentation
+
+For installation, configuration, and deployment guides, see:
+👉 **[docs.notifuse.com](https://docs.notifuse.com)**
+
+## Quick Links
+- [Installation Guide](https://docs.notifuse.com/installation)
+- [Configuration Reference](https://docs.notifuse.com/configuration)
+- [Deployment Guide](https://docs.notifuse.com/deployment)
+```
+
+**Update docs.notifuse.com**:
 - **Remove all cron setup instructions**
-- Don't mention cron at all
-- Task execution happens automatically (no explanation needed)
-- Optional: Add scheduler configuration for advanced tuning
+- Document internal scheduler as default behavior
+- Add scheduler configuration to advanced section
+- Task execution happens automatically (no user action needed)
 
 **Update env.example**:
 ```bash
@@ -728,11 +745,11 @@ Keep existing tests for:
 5. Performance testing with many tasks
 
 ### Phase 4: Documentation
-1. Update README (remove all cron mentions, document scheduler)
-2. Update deployment guides (remove cron references)
+1. Update README (remove installation/env vars, add link to docs)
+2. Update docs.notifuse.com (remove cron, document scheduler)
 3. Update CHANGELOG (note UI changes and deprecations)
 4. Update env.example (add scheduler config)
-5. Create migration guide for existing users (separate doc)
+5. Create migration guide for existing users (in docs or MIGRATION.md)
 
 ### Phase 5: Deployment
 1. Deploy to staging environment
@@ -860,7 +877,7 @@ Keep existing tests for:
 - `console/src/pages/SetupWizard.tsx` - Remove cron setup UI
 - `console/src/layouts/WorkspaceLayout.tsx` - Remove cron status banner
 - `CHANGELOG.md` - Document changes
-- `README.md` - Remove all cron mentions, document internal scheduler
+- `README.md` - Remove installation/env sections, add docs link
 - `env.example` - Add scheduler config
 
 ### Removed Code (Frontend Only)
@@ -907,7 +924,7 @@ Keep existing tests for:
 - [ ] Success criteria established
 
 ## Migration Guide for Existing Users
-**Note**: This migration guide can be a separate document (MIGRATION.md) or in release notes, not in README
+**Note**: This goes in docs.notifuse.com or MIGRATION.md, **NOT in README**
 
 ### For Users Upgrading from v13.x to v14.0
 
