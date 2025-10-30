@@ -601,8 +601,8 @@ function CronStatusBanner() {...}
 **Update README**:
 - **Remove installation section** - replace with link to docs
 - **Remove environment variables section** - replace with link to docs
-- Keep: Overview, features, quick links
-- Add link: "See [full documentation](https://docs.notifuse.com) for installation and configuration"
+- Keep: Overview, features
+- Simple link to installation docs
 
 **Example README structure**:
 ```markdown
@@ -610,15 +610,9 @@ function CronStatusBanner() {...}
 
 [Overview and features...]
 
-## Documentation
+## Installation
 
-For installation, configuration, and deployment guides, see:
-👉 **[docs.notifuse.com](https://docs.notifuse.com)**
-
-## Quick Links
-- [Installation Guide](https://docs.notifuse.com/installation)
-- [Configuration Reference](https://docs.notifuse.com/configuration)
-- [Deployment Guide](https://docs.notifuse.com/deployment)
+See the [installation guide](https://docs.notifuse.com/installation)
 ```
 
 **Update docs.notifuse.com**:
