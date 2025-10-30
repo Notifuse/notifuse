@@ -599,18 +599,21 @@ function CronStatusBanner() {...}
 ### Step 8: Update Documentation
 
 **Update README**:
-- Document that external cron is **no longer required**
-- Explain the internal scheduler (automatic)
-- Note the breaking change from previous versions
+- **Remove all cron mentions** - don't mention it at all
+- Document the internal scheduler as the default (no user action needed)
+- Note that task execution is automatic
+- Optional: Mention scheduler configuration for advanced users
 
 **Update Deployment Guides**:
 - **Remove all cron setup instructions**
-- Add scheduler configuration options (optional)
-- Explain that task execution is automatic
+- Don't mention cron at all
+- Task execution happens automatically (no explanation needed)
+- Optional: Add scheduler configuration for advanced tuning
 
 **Update env.example**:
 ```bash
 # Task Scheduler Configuration (Optional - uses defaults if not set)
+# The internal scheduler handles task execution automatically
 TASK_SCHEDULER_ENABLED=true
 TASK_SCHEDULER_INTERVAL=30s
 TASK_SCHEDULER_MAX_TASKS=100
@@ -725,11 +728,11 @@ Keep existing tests for:
 5. Performance testing with many tasks
 
 ### Phase 4: Documentation
-1. Update README (remove cron instructions)
-2. Update deployment guides
-3. Update CHANGELOG (breaking changes)
-4. Update env.example
-5. Create migration guide for existing users
+1. Update README (remove all cron mentions, document scheduler)
+2. Update deployment guides (remove cron references)
+3. Update CHANGELOG (note UI changes and deprecations)
+4. Update env.example (add scheduler config)
+5. Create migration guide for existing users (separate doc)
 
 ### Phase 5: Deployment
 1. Deploy to staging environment
@@ -857,7 +860,7 @@ Keep existing tests for:
 - `console/src/pages/SetupWizard.tsx` - Remove cron setup UI
 - `console/src/layouts/WorkspaceLayout.tsx` - Remove cron status banner
 - `CHANGELOG.md` - Document changes
-- `README.md` - Remove cron setup instructions (note endpoints still work)
+- `README.md` - Remove all cron mentions, document internal scheduler
 - `env.example` - Add scheduler config
 
 ### Removed Code (Frontend Only)
@@ -904,11 +907,13 @@ Keep existing tests for:
 - [ ] Success criteria established
 
 ## Migration Guide for Existing Users
+**Note**: This migration guide can be a separate document (MIGRATION.md) or in release notes, not in README
 
 ### For Users Upgrading from v13.x to v14.0
 
 #### 1. Remove External Cron Job (Recommended)
 ```bash
+# If you previously configured external cron for Notifuse:
 # The endpoint still works, but internal scheduler is better:
 # - Faster (30s vs 60s)
 # - No external dependencies
@@ -950,11 +955,16 @@ grep "Starting internal task scheduler" /var/log/notifuse.log
 # "Task scheduler tick - executing pending tasks"
 ```
 
-#### 5. What Changed in UI
+#### 5. What Changed
+**UI Changes**:
 - ✅ Setup wizard no longer shows cron setup step
-- ✅ No warning banner about missing cron
+- ✅ No warning banner about cron
 - ✅ Simpler onboarding for new users
-- ✅ Existing functionality works exactly the same
+
+**Functionality**:
+- ✅ Tasks execute automatically every 30s (was 60s with external cron)
+- ✅ Faster task processing
+- ✅ No external dependencies
 
 ### Troubleshooting
 
