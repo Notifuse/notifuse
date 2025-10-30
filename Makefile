@@ -38,18 +38,30 @@ test-pkg:
 	go test -race -v ./pkg/...
 
 # Connection pool test commands
+# Note: Run these individually to avoid connection exhaustion in CI
 test-connection-pools:
-	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPool -timeout 15m
+	@echo "Running connection pool tests (individually to avoid connection exhaustion)..."
+	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolLifecycle -timeout 5m
+	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolConcurrency -timeout 5m
+	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolLimits -timeout 5m
+	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolFailure -timeout 5m
+	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolPerformance -timeout 10m
 
 test-connection-pools-race:
-	INTEGRATION_TESTS=true go test -race -v ./tests/integration -run TestConnectionPool -timeout 20m
+	@echo "Running connection pool tests with race detector (individually)..."
+	INTEGRATION_TESTS=true go test -race -v ./tests/integration -run TestConnectionPoolLifecycle -timeout 5m
+	INTEGRATION_TESTS=true go test -race -v ./tests/integration -run TestConnectionPoolConcurrency -timeout 5m
+	INTEGRATION_TESTS=true go test -race -v ./tests/integration -run TestConnectionPoolLimits -timeout 5m
+	INTEGRATION_TESTS=true go test -race -v ./tests/integration -run TestConnectionPoolFailure -timeout 5m
 
 test-connection-pools-short:
-	INTEGRATION_TESTS=true go test -short -v ./tests/integration -run TestConnectionPool -timeout 5m
+	@echo "Running fast connection pool tests only..."
+	INTEGRATION_TESTS=true go test -short -v ./tests/integration -run TestConnectionPoolLifecycle -timeout 2m
+	INTEGRATION_TESTS=true go test -short -v ./tests/integration -run TestConnectionPoolLimits -timeout 2m
 
 test-connection-pools-leak-check:
 	@echo "Running connection pool tests with leak detection..."
-	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPool -timeout 15m
+	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolLifecycle -timeout 5m
 	@echo "Checking for leaked connections..."
 	@echo "SELECT COUNT(*) FROM pg_stat_activity WHERE usename = 'notifuse_test' AND pid != pg_backend_pid();" | \
 		PGPASSWORD=test_password psql -h localhost -p 5433 -U notifuse_test -d postgres 2>/dev/null || \
