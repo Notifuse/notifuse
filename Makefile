@@ -6,8 +6,8 @@ build:
 test-unit:
 	go test -race -v ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database
 
-# Agent-optimized test command: runs unit tests and integration tests
-test-agent:
+# End-to-end test command for Cursor Agent: runs unit tests and integration tests
+e2e-test-within-cursor-agent:
 	@echo "Running unit tests..."
 	@go test -timeout 5m ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database 2>&1 | grep -E "FAIL|PASS|^ok|^---" || true
 	@echo "\n=== Unit Test Summary ==="

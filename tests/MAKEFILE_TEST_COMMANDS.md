@@ -17,8 +17,8 @@ make test-unit
 # Run connection pool integration tests (recommended)
 make test-connection-pools
 
-# Run tests in agent mode (unit + integration)
-make test-agent
+# Run end-to-end tests within Cursor Agent (unit + integration)
+make e2e-test-within-cursor-agent
 
 # Run with race detector
 make test-connection-pools-race
@@ -140,9 +140,9 @@ make test-connection-pools-performance    # Performance tests only
 
 ---
 
-## Agent Mode (CI/CD Optimized)
+## End-to-End Testing (Cursor Agent / CI/CD Optimized)
 
-### `make test-agent` ✅ RECOMMENDED FOR CI
+### `make e2e-test-within-cursor-agent` ✅ RECOMMENDED FOR CURSOR AGENT
 **Description**: Runs unit tests + connection pool integration tests  
 **Components**:
 1. Unit tests (all layers) - filtered output
@@ -150,7 +150,10 @@ make test-connection-pools-performance    # Performance tests only
 
 **Output**: Concise, shows failures and summaries only  
 **Duration**: ~3-5 minutes  
-**Use Case**: Automated testing in CI/CD pipelines
+**Use Case**: 
+- Cursor Agent automated testing
+- CI/CD pipelines
+- Comprehensive validation before deployment
 
 **What it does**:
 1. Runs all unit tests with filtered output (FAIL/PASS only)
@@ -158,11 +161,14 @@ make test-connection-pools-performance    # Performance tests only
 3. Runs all connection pool integration tests sequentially
 4. Reports all results
 
-**Example Usage in CI**:
-```yaml
+**Example Usage**:
+```bash
+# Cursor Agent
+make e2e-test-within-cursor-agent
+
 # GitHub Actions
-- name: Run Tests
-  run: make test-agent
+- name: Run E2E Tests
+  run: make e2e-test-within-cursor-agent
   timeout-minutes: 10
 ```
 
@@ -239,13 +245,13 @@ make test-service
 make test-connection-pools-short
 
 # 4. Run full test suite before committing
-make test-agent
+make e2e-test-within-cursor-agent
 ```
 
 ### CI/CD Pipeline Workflow
 ```bash
 # Single command for comprehensive testing
-make test-agent
+make e2e-test-within-cursor-agent
 
 # Or break it down:
 make test-unit                    # Fast feedback (30s)
@@ -308,11 +314,12 @@ docker-compose -f docker-compose.test.yml up -d
 ## Best Practices
 
 1. **During Development**: Use `make test-unit` for fast feedback
-2. **Before Commit**: Run `make test-agent` for comprehensive validation
-3. **In CI/CD**: Use `make test-agent` with 10-minute timeout
-4. **Debugging**: Use individual test suite commands for targeted testing
-5. **Performance**: Use `make test-connection-pools-short` for quick checks
-6. **Race Detection**: Run `make test-connection-pools-race` periodically
+2. **Before Commit**: Run `make e2e-test-within-cursor-agent` for comprehensive validation
+3. **In CI/CD**: Use `make e2e-test-within-cursor-agent` with 10-minute timeout
+4. **In Cursor Agent**: Use `make e2e-test-within-cursor-agent` for automated testing
+5. **Debugging**: Use individual test suite commands for targeted testing
+6. **Performance**: Use `make test-connection-pools-short` for quick checks
+7. **Race Detection**: Run `make test-connection-pools-race` periodically
 
 ---
 
@@ -321,10 +328,10 @@ docker-compose -f docker-compose.test.yml up -d
 | Command | Duration | Use Case |
 |---------|----------|----------|
 | `make test-unit` | 30-60s | Fast unit test feedback |
-| `make test-agent` | 3-5min | CI/CD comprehensive testing |
+| `make e2e-test-within-cursor-agent` | 3-5min | Cursor Agent / CI/CD comprehensive testing |
 | `make test-connection-pools` | 2-3min | Full integration test suite |
 | `make test-connection-pools-short` | 15-20s | Quick integration validation |
 | `make test-connection-pools-race` | 3-5min | Race condition detection |
 | `make coverage` | 1-2min | Coverage report generation |
 
-**Recommended for CI/CD**: `make test-agent` ✅
+**Recommended for Cursor Agent / CI/CD**: `make e2e-test-within-cursor-agent` ✅
