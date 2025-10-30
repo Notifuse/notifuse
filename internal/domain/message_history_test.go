@@ -1404,8 +1404,3 @@ func TestChannelOptions_Scan_SQLErrors(t *testing.T) {
 		assert.Equal(t, sql.ErrNoRows, err)
 	})
 }
-
-// Helper function for string pointer
-func stringPtr(s string) *string {
-	return &s
-}
