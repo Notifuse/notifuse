@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
@@ -171,7 +172,7 @@ func GetTestDatabaseConfig() *config.DatabaseConfig {
 		}
 	}
 
-	return &config.DatabaseConfig{
+	cfg := &config.DatabaseConfig{
 		Host:     testHost,
 		Port:     testPort,
 		User:     getEnvOrDefault("TEST_DB_USER", "notifuse_test"),
@@ -179,6 +180,13 @@ func GetTestDatabaseConfig() *config.DatabaseConfig {
 		Prefix:   "notifuse_test",
 		SSLMode:  "disable",
 	}
+	
+	// Debug logging to troubleshoot connection issues
+	if os.Getenv("DEBUG_TEST_CONFIG") == "true" {
+		fmt.Printf("[DEBUG] Test DB Config: host=%s port=%d user=%s\n", cfg.Host, cfg.Port, cfg.User)
+	}
+	
+	return cfg
 }
 
 // TerminateAllConnections terminates all connections to a database (for testing)

@@ -18,7 +18,11 @@ func TestConnectionPoolFailureRecovery(t *testing.T) {
 	}
 
 	testutil.SetupTestEnvironment()
-	defer testutil.CleanupTestEnvironment()
+	defer func() {
+		testutil.CleanupTestEnvironment()
+		// Extra delay to ensure PostgreSQL releases all connections before next test suite
+		time.Sleep(2 * time.Second)
+	}()
 
 	t.Run("stale connection detection", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
