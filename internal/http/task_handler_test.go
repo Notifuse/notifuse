@@ -729,6 +729,7 @@ func TestTaskHandler_ExecutePendingTasks(t *testing.T) {
 	mockLoggerWithField := pkgmocks.NewMockLogger(ctrl)
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLoggerWithField).AnyTimes()
 	mockLoggerWithField.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes() // For manual trigger logging
 
 	secretKey := "test-secret-key"
 
