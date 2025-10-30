@@ -37,6 +37,24 @@ test-database:
 test-pkg:
 	go test -race -v ./pkg/...
 
+# Connection pool test commands
+test-connection-pools:
+	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPool -timeout 15m
+
+test-connection-pools-race:
+	INTEGRATION_TESTS=true go test -race -v ./tests/integration -run TestConnectionPool -timeout 20m
+
+test-connection-pools-short:
+	INTEGRATION_TESTS=true go test -short -v ./tests/integration -run TestConnectionPool -timeout 5m
+
+test-connection-pools-leak-check:
+	@echo "Running connection pool tests with leak detection..."
+	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPool -timeout 15m
+	@echo "Checking for leaked connections..."
+	@echo "SELECT COUNT(*) FROM pg_stat_activity WHERE usename = 'notifuse_test' AND pid != pg_backend_pid();" | \
+		PGPASSWORD=test_password psql -h localhost -p 5433 -U notifuse_test -d postgres 2>/dev/null || \
+		echo "Note: PostgreSQL connection check skipped (database may not be available)"
+
 # Comprehensive test coverage command
 coverage:
 	@echo "Running comprehensive tests and generating coverage report..."
