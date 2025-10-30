@@ -233,8 +233,11 @@ func SetupTestEnvironment() {
 	os.Setenv("ENVIRONMENT", "test")
 }
 
-// CleanupTestEnvironment cleans up test environment variables
+// CleanupTestEnvironment cleans up test environment variables and connections
 func CleanupTestEnvironment() {
+	// Clean up the global connection pool to prevent connection leaks between tests
+	CleanupAllTestConnections()
+	
 	os.Unsetenv("TEST_DB_HOST")
 	os.Unsetenv("TEST_DB_PORT")
 	os.Unsetenv("TEST_DB_USER")

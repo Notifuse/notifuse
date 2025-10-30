@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react'
-import { Drawer, Typography, Spin, Alert, Tabs } from 'antd'
+import { Drawer, Typography, Spin, Alert, Tabs, Tag, Space, Divider } from 'antd'
 import type { Template, MjmlCompileError, Workspace } from '../../services/api/types'
 import { templatesApi } from '../../services/api/template'
 import type { EmailBlock } from '../email_builder/types'
 import { Highlight, themes } from 'prism-react-renderer'
 import { Liquid } from 'liquidjs'
+import type { MessageHistory } from '../../services/api/messages_history'
 
 const { Text } = Typography
 
@@ -12,6 +13,7 @@ interface TemplatePreviewDrawerProps {
   record: Template
   workspace: Workspace
   templateData?: Record<string, any>
+  messageHistory?: MessageHistory
   children: React.ReactNode
 }
 
@@ -19,6 +21,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   record,
   workspace,
   templateData,
+  messageHistory,
   children
 }) => {
   const [previewHtml, setPreviewHtml] = useState<string | null>(null)
@@ -235,6 +238,67 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
             <Text strong>Subject preview: </Text>
             <Text type="secondary">{record.email.subject_preview}</Text>
           </div>
+        )}
+
+        {/* Channel Options Display */}
+        {messageHistory?.channel_options && (
+          <>
+            <Divider className="my-3" />
+            <Text strong className="block mb-2">
+              Message Delivery Options:
+            </Text>
+
+            {messageHistory.channel_options.from_name && (
+              <div className="ml-2">
+                <Text strong className="text-xs">
+                  From Name Override:{' '}
+                </Text>
+                <Text className="text-xs">{messageHistory.channel_options.from_name}</Text>
+              </div>
+            )}
+
+            {messageHistory.channel_options.cc && messageHistory.channel_options.cc.length > 0 && (
+              <div className="ml-2">
+                <Text strong className="text-xs">
+                  CC:{' '}
+                </Text>
+                <Space size={[0, 4]} wrap className="inline-flex">
+                  {messageHistory.channel_options.cc.map((email, idx) => (
+                    <Tag key={idx} color="blue" className="text-xs m-0">
+                      {email}
+                    </Tag>
+                  ))}
+                </Space>
+              </div>
+            )}
+
+            {messageHistory.channel_options.bcc &&
+              messageHistory.channel_options.bcc.length > 0 && (
+                <div className="ml-2">
+                  <Text strong className="text-xs">
+                    BCC:{' '}
+                  </Text>
+                  <Space size={[0, 4]} wrap className="inline-flex">
+                    {messageHistory.channel_options.bcc.map((email, idx) => (
+                      <Tag key={idx} color="purple" className="text-xs m-0">
+                        {email}
+                      </Tag>
+                    ))}
+                  </Space>
+                </div>
+              )}
+
+            {messageHistory.channel_options.reply_to && (
+              <div className="ml-2">
+                <Text strong className="text-xs">
+                  Reply To Override:{' '}
+                </Text>
+                <Text type="secondary" className="text-xs">
+                  {messageHistory.channel_options.reply_to}
+                </Text>
+              </div>
+            )}
+          </>
         )}
       </div>
       {/* Main content area */}

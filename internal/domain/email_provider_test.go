@@ -1426,3 +1426,103 @@ func TestEmailOptions_JSONMarshaling(t *testing.T) {
 		assert.Equal(t, "", *options.FromName)
 	})
 }
+
+func TestEmailOptions_IsEmpty(t *testing.T) {
+	t.Run("Empty EmailOptions", func(t *testing.T) {
+		options := EmailOptions{}
+		assert.True(t, options.IsEmpty())
+	})
+
+	t.Run("EmailOptions with FromName", func(t *testing.T) {
+		fromName := "Test Sender"
+		options := EmailOptions{
+			FromName: &fromName,
+		}
+		assert.False(t, options.IsEmpty())
+	})
+
+	t.Run("EmailOptions with CC", func(t *testing.T) {
+		options := EmailOptions{
+			CC: []string{"cc@example.com"},
+		}
+		assert.False(t, options.IsEmpty())
+	})
+
+	t.Run("EmailOptions with BCC", func(t *testing.T) {
+		options := EmailOptions{
+			BCC: []string{"bcc@example.com"},
+		}
+		assert.False(t, options.IsEmpty())
+	})
+
+	t.Run("EmailOptions with ReplyTo", func(t *testing.T) {
+		options := EmailOptions{
+			ReplyTo: "reply@example.com",
+		}
+		assert.False(t, options.IsEmpty())
+	})
+
+	t.Run("EmailOptions with all fields", func(t *testing.T) {
+		fromName := "Test Sender"
+		options := EmailOptions{
+			FromName: &fromName,
+			CC:       []string{"cc@example.com"},
+			BCC:      []string{"bcc@example.com"},
+			ReplyTo:  "reply@example.com",
+		}
+		assert.False(t, options.IsEmpty())
+	})
+}
+
+func TestEmailOptions_ToChannelOptions(t *testing.T) {
+	t.Run("Empty EmailOptions returns nil", func(t *testing.T) {
+		options := EmailOptions{}
+		channelOptions := options.ToChannelOptions()
+		assert.Nil(t, channelOptions)
+	})
+
+	t.Run("EmailOptions with FromName only", func(t *testing.T) {
+		fromName := "Test Sender"
+		options := EmailOptions{
+			FromName: &fromName,
+		}
+		channelOptions := options.ToChannelOptions()
+		require.NotNil(t, channelOptions)
+		assert.Equal(t, fromName, *channelOptions.FromName)
+		assert.Empty(t, channelOptions.CC)
+		assert.Empty(t, channelOptions.BCC)
+		assert.Empty(t, channelOptions.ReplyTo)
+	})
+
+	t.Run("EmailOptions with all fields", func(t *testing.T) {
+		fromName := "Test Sender"
+		options := EmailOptions{
+			FromName: &fromName,
+			CC:       []string{"cc1@example.com", "cc2@example.com"},
+			BCC:      []string{"bcc@example.com"},
+			ReplyTo:  "reply@example.com",
+		}
+		channelOptions := options.ToChannelOptions()
+		require.NotNil(t, channelOptions)
+		assert.Equal(t, fromName, *channelOptions.FromName)
+		assert.Equal(t, 2, len(channelOptions.CC))
+		assert.Contains(t, channelOptions.CC, "cc1@example.com")
+		assert.Contains(t, channelOptions.CC, "cc2@example.com")
+		assert.Equal(t, 1, len(channelOptions.BCC))
+		assert.Contains(t, channelOptions.BCC, "bcc@example.com")
+		assert.Equal(t, "reply@example.com", channelOptions.ReplyTo)
+	})
+
+	t.Run("EmailOptions with only CC and BCC", func(t *testing.T) {
+		options := EmailOptions{
+			CC:  []string{"cc@example.com"},
+			BCC: []string{"bcc@example.com"},
+		}
+		channelOptions := options.ToChannelOptions()
+		require.NotNil(t, channelOptions)
+		assert.Nil(t, channelOptions.FromName)
+		assert.Equal(t, 1, len(channelOptions.CC))
+		assert.Equal(t, 1, len(channelOptions.BCC))
+		assert.Empty(t, channelOptions.ReplyTo)
+	})
+}

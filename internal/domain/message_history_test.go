@@ -1202,3 +1202,205 @@ func assertTimePtr(t *testing.T, name string, expected, actual *time.Time) {
 		assert.True(t, expected.Equal(*actual), "%s time mismatch: expected %v, got %v", name, *expected, *actual)
 	}
 }
+
+func TestChannelOptions_Value(t *testing.T) {
+	tests := []struct {
+		name     string
+		options  ChannelOptions
+		expected string
+		wantErr  bool
+	}{
+		{
+			name:     "empty options",
+			options:  ChannelOptions{},
+			expected: `{}`,
+			wantErr:  false,
+		},
+		{
+			name: "with from_name only",
+			options: ChannelOptions{
+				FromName: stringPtr("Custom Sender"),
+			},
+			expected: `{"from_name":"Custom Sender"}`,
+			wantErr:  false,
+		},
+		{
+			name: "with cc only",
+			options: ChannelOptions{
+				CC: []string{"cc1@example.com", "cc2@example.com"},
+			},
+			expected: `{"cc":["cc1@example.com","cc2@example.com"]}`,
+			wantErr:  false,
+		},
+		{
+			name: "with bcc only",
+			options: ChannelOptions{
+				BCC: []string{"bcc@example.com"},
+			},
+			expected: `{"bcc":["bcc@example.com"]}`,
+			wantErr:  false,
+		},
+		{
+			name: "with reply_to only",
+			options: ChannelOptions{
+				ReplyTo: "reply@example.com",
+			},
+			expected: `{"reply_to":"reply@example.com"}`,
+			wantErr:  false,
+		},
+		{
+			name: "with all fields",
+			options: ChannelOptions{
+				FromName: stringPtr("Test Sender"),
+				CC:       []string{"cc@example.com"},
+				BCC:      []string{"bcc@example.com"},
+				ReplyTo:  "reply@example.com",
+			},
+			expected: `{"from_name":"Test Sender","cc":["cc@example.com"],"bcc":["bcc@example.com"],"reply_to":"reply@example.com"}`,
+			wantErr:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.options.Value()
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			// Convert result to string for comparison
+			gotBytes, ok := got.([]byte)
+			require.True(t, ok)
+
+			// Verify it's valid JSON
+			var result map[string]interface{}
+			err = json.Unmarshal(gotBytes, &result)
+			require.NoError(t, err)
+
+			// Compare with expected
+			var expected map[string]interface{}
+			err = json.Unmarshal([]byte(tt.expected), &expected)
+			require.NoError(t, err)
+			assert.Equal(t, expected, result)
+		})
+	}
+}
+
+func TestChannelOptions_Scan(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   interface{}
+		want    *ChannelOptions
+		wantErr bool
+	}{
+		{
+			name:  "nil input",
+			input: nil,
+			want:  &ChannelOptions{},
+		},
+		{
+			name:    "invalid type - integer",
+			input:   123,
+			wantErr: true,
+		},
+		{
+			name:    "invalid type - string",
+			input:   "not json bytes",
+			wantErr: true,
+		},
+		{
+			name:  "valid json - empty",
+			input: []byte(`{}`),
+			want:  &ChannelOptions{},
+		},
+		{
+			name:  "valid json - with from_name",
+			input: []byte(`{"from_name":"Test Sender"}`),
+			want: &ChannelOptions{
+				FromName: stringPtr("Test Sender"),
+			},
+		},
+		{
+			name:  "valid json - with cc",
+			input: []byte(`{"cc":["cc1@example.com","cc2@example.com"]}`),
+			want: &ChannelOptions{
+				CC: []string{"cc1@example.com", "cc2@example.com"},
+			},
+		},
+		{
+			name:  "valid json - with bcc",
+			input: []byte(`{"bcc":["bcc@example.com"]}`),
+			want: &ChannelOptions{
+				BCC: []string{"bcc@example.com"},
+			},
+		},
+		{
+			name:  "valid json - with reply_to",
+			input: []byte(`{"reply_to":"reply@example.com"}`),
+			want: &ChannelOptions{
+				ReplyTo: "reply@example.com",
+			},
+		},
+		{
+			name:  "valid json - with all fields",
+			input: []byte(`{"from_name":"Test Sender","cc":["cc@example.com"],"bcc":["bcc@example.com"],"reply_to":"reply@example.com"}`),
+			want: &ChannelOptions{
+				FromName: stringPtr("Test Sender"),
+				CC:       []string{"cc@example.com"},
+				BCC:      []string{"bcc@example.com"},
+				ReplyTo:  "reply@example.com",
+			},
+		},
+		{
+			name:    "invalid json",
+			input:   []byte(`{"from_name":"Test`),
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var co ChannelOptions
+			err := co.Scan(tt.input)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			if tt.input == nil {
+				assert.Nil(t, co.FromName)
+				assert.Empty(t, co.CC)
+				assert.Empty(t, co.BCC)
+				assert.Empty(t, co.ReplyTo)
+				return
+			}
+
+			if tt.want.FromName == nil {
+				assert.Nil(t, co.FromName)
+			} else {
+				require.NotNil(t, co.FromName)
+				assert.Equal(t, *tt.want.FromName, *co.FromName)
+			}
+
+			assert.Equal(t, tt.want.CC, co.CC)
+			assert.Equal(t, tt.want.BCC, co.BCC)
+			assert.Equal(t, tt.want.ReplyTo, co.ReplyTo)
+		})
+	}
+}
+
+func TestChannelOptions_Scan_SQLErrors(t *testing.T) {
+	t.Run("sql.ErrNoRows for non-byte input", func(t *testing.T) {
+		var co ChannelOptions
+		err := co.Scan("string input")
+
+		assert.Error(t, err)
+		assert.Equal(t, sql.ErrNoRows, err)
+	})
+}

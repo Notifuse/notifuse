@@ -273,6 +273,29 @@ type EmailOptions struct {
 	Attachments []Attachment `json:"attachments,omitempty"`
 }
 
+// IsEmpty returns true if no email options are set
+func (eo EmailOptions) IsEmpty() bool {
+	return eo.FromName == nil &&
+		len(eo.CC) == 0 &&
+		len(eo.BCC) == 0 &&
+		eo.ReplyTo == ""
+}
+
+// ToChannelOptions converts EmailOptions to ChannelOptions for storage
+func (eo EmailOptions) ToChannelOptions() *ChannelOptions {
+	// Don't create ChannelOptions if all fields are empty
+	if eo.IsEmpty() {
+		return nil
+	}
+
+	return &ChannelOptions{
+		FromName: eo.FromName,
+		CC:       eo.CC,
+		BCC:      eo.BCC,
+		ReplyTo:  eo.ReplyTo,
+	}
+}
+
 // SendEmailProviderRequest encapsulates all parameters needed to send an email via a provider
 type SendEmailProviderRequest struct {
 	WorkspaceID   string         `validate:"required"`

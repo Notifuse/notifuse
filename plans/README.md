@@ -70,6 +70,69 @@ This directory contains implementation plans for features and architectural chan
 - Deployment guide and monitoring
 - Troubleshooting and advanced topics
 
+## Database Migrations
+
+### V14: Channel Options Storage
+
+**[v14-channel-options-migration.md](./v14-channel-options-migration.md)** - ✅ **IMPLEMENTED**
+
+**Status:** ✅ Fully implemented (October 30, 2025)  
+**Version:** 14.0  
+**Type:** Workspace database migration
+
+**Summary:** Adds `channel_options` JSONB column to `message_history` table for storing email delivery options (CC, BCC, FromName, ReplyTo). Enables message preview UI to display these options and provides future-proof structure for SMS/push options.
+
+**Key Changes:**
+- Added `channel_options` JSONB column to `message_history` table
+- Updated domain types with `ChannelOptions` struct
+- Enhanced UI to display channel options in message preview drawer
+- Added conversion methods: `EmailOptions.ToChannelOptions()`
+
+**Migration Strategy:**
+- Idempotent (can run multiple times safely)
+- Existing messages: `channel_options = NULL` (no backfill)
+- New messages: Options stored when provided via API
+- Migration time: < 1 second per workspace
+
+## Testing & Quality
+
+### Connection Pool Integration Tests Improvement
+
+**[connection-pool-integration-tests-improvement.md](./connection-pool-integration-tests-improvement.md)** - 📋 **PLANNING**
+
+**Status:** 📋 Planning phase (October 30, 2025)  
+**Priority:** High (Production stability)  
+**Type:** Test infrastructure improvement
+
+**Summary:** Comprehensive plan to improve connection pool integration test coverage and fix critical test infrastructure issues. The production connection manager has excellent unit tests, but integration tests have gaps leading to test hangs, connection leaks, and unreliable execution.
+
+**Current Issues:**
+- ❌ `TestAPIServerShutdown` times out after 2 minutes
+- ❌ Connection leaks between tests  
+- ❌ Global pool not properly cleaned up
+- ❌ Missing stress tests and error recovery tests
+- ❌ No performance validation
+
+**Planned Improvements:**
+- ✅ Isolate connection pools per test
+- ✅ Proper lifecycle management with verification
+- ✅ 25+ new integration test cases
+- ✅ Concurrency, limits, and failure recovery tests
+- ✅ Performance benchmarks and leak detection
+- ✅ CI/CD integration with automated leak checks
+
+**Timeline:** 3 weeks (Nov 4-22, 2025)
+- Week 1: Fix critical issues (cleanup, isolation)
+- Week 2: Add comprehensive test coverage
+- Week 3: Documentation and monitoring
+
+**Success Metrics:**
+- 0% flaky tests
+- 100% pass rate
+- 0 connection leaks
+- < 60s total execution time
+- 25+ integration test cases
+
 ## Other Features
 
 - [Transactional API From Name Override](transactional-api-from-name-override.md)
