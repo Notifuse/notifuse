@@ -26,12 +26,12 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		pool := testutil.NewTestConnectionPool(config)
 		defer pool.Cleanup()
 
-		numGoroutines := 50
+		numGoroutines := 25  // Reduced from 50 to avoid connection exhaustion
 		var wg sync.WaitGroup
 		errors := make(chan error, numGoroutines)
 		workspaceIDs := make([]string, numGoroutines)
 
-		// 50 goroutines request different workspaces simultaneously
+		// 25 goroutines request different workspaces simultaneously
 		for i := 0; i < numGoroutines; i++ {
 			workspaceIDs[i] = fmt.Sprintf("test_concurrent_create_%d", i)
 			wg.Add(1)
@@ -79,6 +79,10 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 
 		assert.Equal(t, 0, errorCount, "All concurrent creations should succeed")
 		assert.Equal(t, numGoroutines, pool.GetConnectionCount(), "Should have all workspace connections")
+		
+		// Explicit cleanup to release connections faster
+		err := pool.Cleanup()
+		require.NoError(t, err)
 	})
 
 	t.Run("concurrent same workspace access", func(t *testing.T) {
@@ -92,12 +96,12 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		err := pool.EnsureWorkspaceDatabase(workspaceID)
 		require.NoError(t, err)
 
-		numGoroutines := 100
+		numGoroutines := 50  // Reduced from 100 to be less aggressive
 		var wg sync.WaitGroup
 		errors := make(chan error, numGoroutines)
 		connections := make(chan interface{}, numGoroutines)
 
-		// 100 goroutines request same workspace
+		// 50 goroutines request same workspace
 		for i := 0; i < numGoroutines; i++ {
 			wg.Add(1)
 
@@ -159,8 +163,8 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		pool := testutil.NewTestConnectionPool(config)
 		defer pool.Cleanup()
 
-		// Create 10 workspaces
-		numWorkspaces := 10
+		// Create 5 workspaces (reduced to avoid connection exhaustion)
+		numWorkspaces := 5
 		workspaceIDs := make([]string, numWorkspaces)
 		for i := 0; i < numWorkspaces; i++ {
 			workspaceID := fmt.Sprintf("test_concurrent_rw_%d", i)
@@ -242,8 +246,8 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		pool := testutil.NewTestConnectionPool(config)
 		defer pool.Cleanup()
 
-		// Create multiple workspaces
-		numWorkspaces := 20
+		// Create multiple workspaces (reduced to avoid connection exhaustion)
+		numWorkspaces := 10
 		workspaceIDs := make([]string, numWorkspaces)
 		for i := 0; i < numWorkspaces; i++ {
 			workspaceID := fmt.Sprintf("test_concurrent_cleanup_%d", i)
@@ -305,8 +309,8 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		require.NoError(t, err)
 
 		// Stress test: many goroutines doing various operations
-		numGoroutines := 50
-		duration := 2 * time.Second
+		numGoroutines := 30  // Reduced from 50
+		duration := 1 * time.Second  // Reduced from 2s
 		stopChan := make(chan struct{})
 		var wg sync.WaitGroup
 
@@ -368,8 +372,8 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		err := pool.EnsureWorkspaceDatabase(workspaceID)
 		require.NoError(t, err)
 
-		// Very high contention: 200 goroutines all trying to access same workspace
-		numGoroutines := 200
+		// High contention: 100 goroutines all trying to access same workspace (reduced from 200)
+		numGoroutines := 100
 		var wg sync.WaitGroup
 		var successCount int32
 

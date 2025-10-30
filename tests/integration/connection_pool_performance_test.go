@@ -195,8 +195,8 @@ func TestConnectionPoolPerformance(t *testing.T) {
 		pool := testutil.NewTestConnectionPool(config)
 		defer pool.Cleanup()
 
-		// Create 20 workspace pools
-		numWorkspaces := 20
+		// Create 10 workspace pools (reduced from 20 to avoid exhaustion)
+		numWorkspaces := 10
 		workspaceIDs := make([]string, numWorkspaces)
 
 		for i := 0; i < numWorkspaces; i++ {

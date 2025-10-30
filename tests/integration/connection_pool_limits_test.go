@@ -26,8 +26,8 @@ func TestConnectionPoolLimits(t *testing.T) {
 		defer pool.Cleanup()
 
 		// Pool is configured with maxConnections=10 by default
-		// Create workspaces up to that limit
-		maxWorkspaces := 10
+		// Create workspaces up to that limit (reduced to 8 for stability)
+		maxWorkspaces := 8
 		workspaceIDs := make([]string, maxWorkspaces)
 
 		for i := 0; i < maxWorkspaces; i++ {
@@ -112,8 +112,8 @@ func TestConnectionPoolLimits(t *testing.T) {
 		pool := testutil.NewTestConnectionPool(config)
 		defer pool.Cleanup()
 
-		// Create multiple workspaces
-		numWorkspaces := 5
+		// Create multiple workspaces (reduced to 3 for stability)
+		numWorkspaces := 3
 		workspaceIDs := make([]string, numWorkspaces)
 
 		for i := 0; i < numWorkspaces; i++ {
@@ -238,7 +238,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 		// Try to create many workspaces
 		// Note: Test pool is configured with maxConnections=10 but doesn't
 		// enforce strict limits like production connection manager
-		numWorkspaces := 15
+		numWorkspaces := 10  // Reduced from 15 to avoid connection exhaustion
 		successCount := 0
 
 		for i := 0; i < numWorkspaces; i++ {

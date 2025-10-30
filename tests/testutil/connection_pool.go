@@ -1,6 +1,7 @@
 package testutil
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -38,7 +39,7 @@ func (pool *TestConnectionPool) GetSystemConnection() (*sql.DB, error) {
 	defer pool.poolMutex.Unlock()
 
 	if pool.systemPool == nil {
-		systemDSN := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=postgres sslmode=%s",
+		systemDSN := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=postgres sslmode=%s connect_timeout=30",
 			pool.config.Host, pool.config.Port, pool.config.User, pool.config.Password, pool.config.SSLMode)
 
 		db, err := sql.Open("postgres", systemDSN)
@@ -52,7 +53,11 @@ func (pool *TestConnectionPool) GetSystemConnection() (*sql.DB, error) {
 		db.SetConnMaxLifetime(pool.maxIdleTime)
 		db.SetConnMaxIdleTime(pool.maxIdleTime / 2)
 
-		if err := db.Ping(); err != nil {
+		// Use context with timeout for ping
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+
+		if err := db.PingContext(ctx); err != nil {
 			db.Close()
 			return nil, fmt.Errorf("failed to ping system database: %w", err)
 		}
@@ -82,7 +87,7 @@ func (pool *TestConnectionPool) GetWorkspaceConnection(workspaceID string) (*sql
 
 	// Create new connection
 	workspaceDBName := fmt.Sprintf("%s_ws_%s", pool.config.Prefix, workspaceID)
-	workspaceDSN := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+	workspaceDSN := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s connect_timeout=30",
 		pool.config.Host, pool.config.Port, pool.config.User, pool.config.Password, workspaceDBName, pool.config.SSLMode)
 
 	db, err := sql.Open("postgres", workspaceDSN)
@@ -96,7 +101,11 @@ func (pool *TestConnectionPool) GetWorkspaceConnection(workspaceID string) (*sql
 	db.SetConnMaxLifetime(pool.maxIdleTime)
 	db.SetConnMaxIdleTime(pool.maxIdleTime / 2)
 
-	if err := db.Ping(); err != nil {
+	// Use context with timeout for ping
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if err := db.PingContext(ctx); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("failed to ping workspace database: %w", err)
 	}
@@ -160,8 +169,8 @@ func (pool *TestConnectionPool) CleanupWorkspace(workspaceID string) error {
 
 		pool.systemPool.Exec(terminateQuery)
 
-		// Small delay for connections to close
-		time.Sleep(100 * time.Millisecond)
+		// Increased delay for connections to fully close
+		time.Sleep(200 * time.Millisecond)
 
 		// Drop the database
 		dropQuery := fmt.Sprintf("DROP DATABASE IF EXISTS %s", workspaceDBName)
@@ -201,7 +210,8 @@ func (pool *TestConnectionPool) Cleanup() error {
 	}
 
 	// Step 2: Wait for connections to actually close
-	time.Sleep(200 * time.Millisecond)
+	// Increased delay to ensure PostgreSQL releases connections
+	time.Sleep(500 * time.Millisecond)
 
 	// Step 3: Drop workspace databases using system connection
 	if pool.systemPool != nil {
@@ -310,8 +320,9 @@ func CleanupGlobalTestPool() error {
 	globalTestPool = nil
 	poolOnce = sync.Once{}
 
-	// Give PostgreSQL time to release connections
-	time.Sleep(500 * time.Millisecond)
+	// Give PostgreSQL extra time to release connections when running multiple tests
+	// This prevents connection exhaustion between test suites
+	time.Sleep(1 * time.Second)
 
 	return err
 }
