@@ -10,31 +10,36 @@ import (
 )
 
 // TaskScheduler manages periodic task execution
+// TaskExecutor defines the interface for executing tasks
+type TaskExecutor interface {
+	ExecutePendingTasks(ctx context.Context, maxTasks int) error
+}
+
 type TaskScheduler struct {
-	taskService *TaskService
-	logger      logger.Logger
-	interval    time.Duration
-	maxTasks    int
-	stopChan    chan struct{}
-	stoppedChan chan struct{}
-	mu          sync.Mutex
-	running     bool
+	taskExecutor TaskExecutor
+	logger       logger.Logger
+	interval     time.Duration
+	maxTasks     int
+	stopChan     chan struct{}
+	stoppedChan  chan struct{}
+	mu           sync.Mutex
+	running      bool
 }
 
 // NewTaskScheduler creates a new task scheduler
 func NewTaskScheduler(
-	taskService *TaskService,
+	taskExecutor TaskExecutor,
 	logger logger.Logger,
 	interval time.Duration,
 	maxTasks int,
 ) *TaskScheduler {
 	return &TaskScheduler{
-		taskService: taskService,
-		logger:      logger,
-		interval:    interval,
-		maxTasks:    maxTasks,
-		stopChan:    make(chan struct{}),
-		stoppedChan: make(chan struct{}),
+		taskExecutor: taskExecutor,
+		logger:       logger,
+		interval:     interval,
+		maxTasks:     maxTasks,
+		stopChan:     make(chan struct{}),
+		stoppedChan:  make(chan struct{}),
 	}
 }
 
@@ -116,7 +121,7 @@ func (s *TaskScheduler) executeTasks(ctx context.Context) {
 	s.logger.Debug("Task scheduler tick - executing pending tasks")
 
 	startTime := time.Now()
-	err := s.taskService.ExecutePendingTasks(execCtx, s.maxTasks)
+	err := s.taskExecutor.ExecutePendingTasks(execCtx, s.maxTasks)
 	elapsed := time.Since(startTime)
 
 	if err != nil {
