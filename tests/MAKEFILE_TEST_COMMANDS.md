@@ -14,14 +14,11 @@ The Makefile provides comprehensive test commands for running unit tests, integr
 # Run all unit tests
 make test-unit
 
-# Run connection pool integration tests (recommended)
-make test-connection-pools
-
-# Run end-to-end tests within Cursor Agent (unit + integration)
+# Run all integration tests within Cursor Agent (non-verbose)
 make e2e-test-within-cursor-agent
 
-# Run with race detector
-make test-connection-pools-race
+# Run all integration tests (verbose)
+make test-integration
 ```
 
 ---
@@ -74,107 +71,41 @@ make test-connection-pools-race
 ## Integration Test Commands
 
 ### `make test-integration`
-**Description**: Runs all integration tests (may have connection issues)  
+**Description**: Runs all integration tests (verbose)  
 **Scope**: `./tests/integration/`  
 **Flags**: `-race -timeout 9m -v`  
 **Environment**: `INTEGRATION_TESTS=true`  
-**Note**: ⚠️ May encounter PostgreSQL connection exhaustion
-
----
-
-## Connection Pool Integration Tests
-
-### `make test-connection-pools` ✅ RECOMMENDED
-**Description**: Runs all connection pool tests sequentially with delays  
 **Duration**: ~2-3 minutes  
-**Test Suites**:
-1. TestConnectionPoolLifecycle (9s)
-2. TestConnectionPoolConcurrency (17s)
-3. TestConnectionPoolLimits (18s)
-4. TestConnectionPoolFailureRecovery (11s)
-5. TestConnectionPoolPerformance (48s)
-
-**Delays**: 3 seconds between each test suite  
-**Uses**: `./run-integration-tests.sh` script  
-**Success Rate**: 100% ✅
-
-**Example Output**:
-```bash
-Running connection pool tests (individually to avoid connection exhaustion)...
-✅ TestConnectionPoolLifecycle - PASS (9.0s)
-✅ TestConnectionPoolConcurrency - PASS (17.4s)
-✅ TestConnectionPoolLimits - PASS (18.1s)
-✅ TestConnectionPoolFailureRecovery - PASS (11.2s)
-✅ TestConnectionPoolPerformance - PASS (48.1s)
-```
-
-### `make test-connection-pools-race`
-**Description**: Runs connection pool tests with race detector  
-**Duration**: ~3-5 minutes (slower due to race detector)  
-**Flags**: `-race`  
-**Use Case**: Detecting race conditions in concurrent code
-
-### `make test-connection-pools-short`
-**Description**: Runs fast connection pool tests only  
-**Test Suites**:
-- TestConnectionPoolLifecycle
-- TestConnectionPoolLimits
-
-**Duration**: ~15-20 seconds  
-**Use Case**: Quick validation during development
-
-### `make test-connection-pools-leak-check`
-**Description**: Runs lifecycle tests with connection leak detection  
-**Post-Test**: Queries PostgreSQL for leaked connections  
-**Use Case**: Debugging connection leaks
-
-### Individual Connection Pool Test Suites
-
-```bash
-make test-connection-pools-lifecycle      # Lifecycle tests only
-make test-connection-pools-concurrency    # Concurrency tests only
-make test-connection-pools-limits         # Limits tests only
-make test-connection-pools-failure        # Failure recovery tests only
-make test-connection-pools-performance    # Performance tests only
-```
+**Use Case**: Detailed debugging with full output
 
 ---
 
 ## End-to-End Testing (Cursor Agent / CI/CD Optimized)
 
 ### `make e2e-test-within-cursor-agent` ✅ RECOMMENDED FOR CURSOR AGENT
-**Description**: Runs connection pool integration tests only (non-verbose)  
-**Components**:
-- All 5 connection pool integration test suites (sequential)
-
+**Description**: Runs all integration tests (non-verbose)  
+**Scope**: All tests in `./tests/integration/`  
 **Output**: Non-verbose, shows only PASS/FAIL/test names  
 **Duration**: ~2-3 minutes  
 **Use Case**: 
 - Cursor Agent automated testing
 - CI/CD pipelines
-- Quick integration validation
+- Quick validation with clean output
 
 **What it does**:
-1. Runs TestConnectionPoolLifecycle (non-verbose)
-2. Waits 3 seconds
-3. Runs TestConnectionPoolConcurrency (non-verbose)
-4. Waits 3 seconds
-5. Runs TestConnectionPoolLimits (non-verbose)
-6. Waits 3 seconds
-7. Runs TestConnectionPoolFailureRecovery (non-verbose)
-8. Waits 3 seconds
-9. Runs TestConnectionPoolPerformance (non-verbose)
-10. Reports completion
+1. Uses `./run-integration-tests.sh` to run all integration tests
+2. Filters output to show only test names, PASS/FAIL, and timing
+3. Reports completion status
 
 **Example Output**:
 ```bash
-Running connection pool integration tests (non-verbose)...
+Running all integration tests (non-verbose)...
 === RUN   TestConnectionPoolLifecycle
 --- PASS: TestConnectionPoolLifecycle (8.45s)
-ok      github.com/Notifuse/notifuse/tests/integration
-
 === RUN   TestConnectionPoolConcurrency
 --- PASS: TestConnectionPoolConcurrency (16.91s)
+=== RUN   TestAPIServerShutdown
+--- PASS: TestAPIServerShutdown (2.15s)
 ok      github.com/Notifuse/notifuse/tests/integration
 
 ✅ All integration tests completed
@@ -260,10 +191,7 @@ make test-unit
 # 2. Run specific layer tests
 make test-service
 
-# 3. Run connection pool tests when working on database code
-make test-connection-pools-short
-
-# 4. Run full test suite before committing
+# 3. Run integration tests before committing
 make e2e-test-within-cursor-agent
 ```
 
@@ -274,7 +202,7 @@ make e2e-test-within-cursor-agent
 
 # Or break it down:
 make test-unit                    # Fast feedback (30s)
-make test-connection-pools        # Thorough integration tests (3min)
+make test-integration             # Verbose integration tests (3min)
 make coverage                     # Generate coverage reports
 ```
 
@@ -334,11 +262,10 @@ docker-compose -f docker-compose.test.yml up -d
 
 1. **During Development**: Use `make test-unit` for fast feedback
 2. **Before Commit**: Run `make e2e-test-within-cursor-agent` for comprehensive validation
-3. **In CI/CD**: Use `make e2e-test-within-cursor-agent` with 10-minute timeout
+3. **In CI/CD**: Use `make e2e-test-within-cursor-agent` with 5-minute timeout
 4. **In Cursor Agent**: Use `make e2e-test-within-cursor-agent` for automated testing
-5. **Debugging**: Use individual test suite commands for targeted testing
-6. **Performance**: Use `make test-connection-pools-short` for quick checks
-7. **Race Detection**: Run `make test-connection-pools-race` periodically
+5. **Debugging**: Use `make test-integration` for verbose output
+6. **Coverage**: Run `make coverage` to generate coverage reports
 
 ---
 
@@ -347,11 +274,9 @@ docker-compose -f docker-compose.test.yml up -d
 | Command | Duration | Use Case |
 |---------|----------|----------|
 | `make test-unit` | 30-60s | Fast unit test feedback |
-| `make e2e-test-within-cursor-agent` | 2-3min | Cursor Agent integration tests (non-verbose) |
-| `make test-connection-pools` | 2-3min | Full integration test suite (verbose) |
-| `make test-connection-pools-short` | 15-20s | Quick integration validation |
-| `make test-connection-pools-race` | 3-5min | Race condition detection |
+| `make e2e-test-within-cursor-agent` | 2-3min | All integration tests (non-verbose, Cursor Agent) |
+| `make test-integration` | 2-3min | All integration tests (verbose, debugging) |
 | `make coverage` | 1-2min | Coverage report generation |
 
-**Recommended for Cursor Agent**: `make e2e-test-within-cursor-agent` ✅  
-**Recommended for detailed debugging**: `make test-connection-pools` ✅
+**Recommended for Cursor Agent / CI/CD**: `make e2e-test-within-cursor-agent` ✅  
+**Recommended for detailed debugging**: `make test-integration` ✅

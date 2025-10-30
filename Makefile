@@ -6,18 +6,10 @@ build:
 test-unit:
 	go test -race -v ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database
 
-# End-to-end test command for Cursor Agent: runs integration tests only (non-verbose)
+# End-to-end test command for Cursor Agent: runs all integration tests (non-verbose)
 e2e-test-within-cursor-agent:
-	@echo "Running connection pool integration tests (non-verbose)..."
-	@./run-integration-tests.sh "TestConnectionPoolLifecycle$$" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
-	@sleep 3
-	@./run-integration-tests.sh "TestConnectionPoolConcurrency$$" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
-	@sleep 3
-	@./run-integration-tests.sh "TestConnectionPoolLimits$$" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
-	@sleep 3
-	@./run-integration-tests.sh "TestConnectionPoolFailureRecovery$$" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
-	@sleep 3
-	@./run-integration-tests.sh "TestConnectionPoolPerformance$$" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
+	@echo "Running all integration tests (non-verbose)..."
+	@./run-integration-tests.sh "Test" 2>&1 | grep -E "PASS|FAIL|^ok|===|^---" || true
 	@echo "\n✅ All integration tests completed"
 
 test-integration:
@@ -43,44 +35,6 @@ test-database:
 
 test-pkg:
 	go test -race -v ./pkg/...
-
-# Connection pool test commands
-# Note: Run these individually to avoid connection exhaustion in CI
-test-connection-pools:
-	@echo "Running connection pool tests (individually to avoid connection exhaustion)..."
-	@./run-integration-tests.sh "TestConnectionPoolLifecycle$$"
-	@sleep 3
-	@./run-integration-tests.sh "TestConnectionPoolConcurrency$$"
-	@sleep 3
-	@./run-integration-tests.sh "TestConnectionPoolLimits$$"
-	@sleep 3
-	@./run-integration-tests.sh "TestConnectionPoolFailureRecovery$$"
-	@sleep 3
-	@./run-integration-tests.sh "TestConnectionPoolPerformance$$"
-
-test-connection-pools-race:
-	@echo "Running connection pool tests with race detector (individually)..."
-	@GOFLAGS="-race" ./run-integration-tests.sh "TestConnectionPoolLifecycle$$"
-	@sleep 3
-	@GOFLAGS="-race" ./run-integration-tests.sh "TestConnectionPoolConcurrency$$"
-	@sleep 3
-	@GOFLAGS="-race" ./run-integration-tests.sh "TestConnectionPoolLimits$$"
-	@sleep 3
-	@GOFLAGS="-race" ./run-integration-tests.sh "TestConnectionPoolFailureRecovery$$"
-
-test-connection-pools-short:
-	@echo "Running fast connection pool tests only..."
-	@./run-integration-tests.sh "TestConnectionPoolLifecycle$$"
-	@sleep 2
-	@./run-integration-tests.sh "TestConnectionPoolLimits$$"
-
-test-connection-pools-leak-check:
-	@echo "Running connection pool tests with leak detection..."
-	@./run-integration-tests.sh "TestConnectionPoolLifecycle$$"
-	@echo "Checking for leaked connections..."
-	@docker exec tests-postgres-test-1 psql -U notifuse_test -d postgres -c \
-		"SELECT COUNT(*) as leaked_connections FROM pg_stat_activity WHERE usename = 'notifuse_test' AND state != 'idle' AND pid != pg_backend_pid();" 2>/dev/null || \
-		echo "Note: PostgreSQL connection check skipped (database may not be available)"
 
 # Comprehensive test coverage command
 coverage:
