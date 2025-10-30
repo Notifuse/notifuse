@@ -94,6 +94,45 @@ This directory contains implementation plans for features and architectural chan
 - New messages: Options stored when provided via API
 - Migration time: < 1 second per workspace
 
+## Testing & Quality
+
+### Connection Pool Integration Tests Improvement
+
+**[connection-pool-integration-tests-improvement.md](./connection-pool-integration-tests-improvement.md)** - 📋 **PLANNING**
+
+**Status:** 📋 Planning phase (October 30, 2025)  
+**Priority:** High (Production stability)  
+**Type:** Test infrastructure improvement
+
+**Summary:** Comprehensive plan to improve connection pool integration test coverage and fix critical test infrastructure issues. The production connection manager has excellent unit tests, but integration tests have gaps leading to test hangs, connection leaks, and unreliable execution.
+
+**Current Issues:**
+- ❌ `TestAPIServerShutdown` times out after 2 minutes
+- ❌ Connection leaks between tests  
+- ❌ Global pool not properly cleaned up
+- ❌ Missing stress tests and error recovery tests
+- ❌ No performance validation
+
+**Planned Improvements:**
+- ✅ Isolate connection pools per test
+- ✅ Proper lifecycle management with verification
+- ✅ 25+ new integration test cases
+- ✅ Concurrency, limits, and failure recovery tests
+- ✅ Performance benchmarks and leak detection
+- ✅ CI/CD integration with automated leak checks
+
+**Timeline:** 3 weeks (Nov 4-22, 2025)
+- Week 1: Fix critical issues (cleanup, isolation)
+- Week 2: Add comprehensive test coverage
+- Week 3: Documentation and monitoring
+
+**Success Metrics:**
+- 0% flaky tests
+- 100% pass rate
+- 0 connection leaks
+- < 60s total execution time
+- 25+ integration test cases
+
 ## Other Features
 
 - [Transactional API From Name Override](transactional-api-from-name-override.md)
