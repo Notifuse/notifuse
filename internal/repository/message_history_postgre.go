@@ -26,7 +26,7 @@ func NewMessageHistoryRepository(workspaceRepo domain.WorkspaceRepository) *Mess
 	}
 }
 
-// scanMessage scans a message history row including attachments
+// scanMessage scans a message history row including attachments and channel options
 func scanMessage(scanner interface {
 	Scan(dest ...interface{}) error
 }, message *domain.MessageHistory) error {
@@ -42,6 +42,7 @@ func scanMessage(scanner interface {
 		&message.Channel,
 		&message.StatusInfo,
 		&message.MessageData,
+		&message.ChannelOptions,
 		&attachmentsJSON,
 		&message.SentAt,
 		&message.DeliveredAt,
@@ -72,7 +73,7 @@ func scanMessage(scanner interface {
 // messageHistorySelectFields returns the common SELECT fields for message history queries
 func messageHistorySelectFields() string {
 	return `id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, 
-			channel, status_info, message_data, attachments, sent_at, delivered_at, 
+			channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, 
 			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
 			unsubscribed_at, created_at, updated_at`
 }
@@ -94,14 +95,14 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 	query := `
 		INSERT INTO message_history (
 			id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, 
-			channel, status_info, message_data, attachments, sent_at, delivered_at, 
+			channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, 
 			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
 			unsubscribed_at, created_at, updated_at
 		) VALUES (
 			$1, $2, $3, $4, $5, $6, $7, 
-			$8, LEFT($9, 255), $10, $11, $12, $13, 
-			$14, $15, $16, $17, $18, 
-			$19, $20, $21
+			$8, LEFT($9, 255), $10, $11, $12, $13, $14, 
+			$15, $16, $17, $18, $19, 
+			$20, $21, $22
 		)
 	`
 
@@ -118,6 +119,7 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 		message.Channel,
 		message.StatusInfo,
 		message.MessageData,
+		message.ChannelOptions,
 		attachmentsJSON,
 		message.SentAt,
 		message.DeliveredAt,

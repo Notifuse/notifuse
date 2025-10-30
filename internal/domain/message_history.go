@@ -43,6 +43,39 @@ type MessageEventUpdate struct {
 	StatusInfo *string      `json:"status_info,omitempty"`
 }
 
+// ChannelOptions represents channel-specific delivery options
+// This structure allows future extension for SMS/push without breaking changes
+type ChannelOptions struct {
+	// Email-specific options
+	FromName *string  `json:"from_name,omitempty"`
+	CC       []string `json:"cc,omitempty"`
+	BCC      []string `json:"bcc,omitempty"`
+	ReplyTo  string   `json:"reply_to,omitempty"`
+
+	// Future: SMS options would go here
+	// Future: Push notification options would go here
+}
+
+// Value implements the driver.Valuer interface for database storage
+func (co ChannelOptions) Value() (driver.Value, error) {
+	return json.Marshal(co)
+}
+
+// Scan implements the sql.Scanner interface for database retrieval
+func (co *ChannelOptions) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	b, ok := value.([]byte)
+	if !ok {
+		return sql.ErrNoRows
+	}
+
+	cloned := bytes.Clone(b)
+	return json.Unmarshal(cloned, co)
+}
+
 // MessageData represents the JSON data used to compile a template
 type MessageData struct {
 	// Custom fields used in template compilation
@@ -83,6 +116,7 @@ type MessageHistory struct {
 	Channel         string               `json:"channel"` // email, sms, push, etc.
 	StatusInfo      *string              `json:"status_info,omitempty"`
 	MessageData     MessageData          `json:"message_data"`
+	ChannelOptions  *ChannelOptions      `json:"channel_options,omitempty"` // Channel-specific delivery options
 	Attachments     []AttachmentMetadata `json:"attachments,omitempty"`
 
 	// Event timestamps

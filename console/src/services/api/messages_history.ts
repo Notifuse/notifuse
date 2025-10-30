@@ -1,5 +1,17 @@
 import { api } from './client'
 
+/**
+ * Channel-specific delivery options for email
+ * Structure allows future extension for SMS/push without breaking changes
+ */
+export interface ChannelOptions {
+  // Email options
+  from_name?: string
+  cc?: string[]
+  bcc?: string[]
+  reply_to?: string
+}
+
 export interface MessageData {
   data: Record<string, any>
   metadata?: Record<string, any>
@@ -16,6 +28,7 @@ export interface MessageHistory {
   channel: string
   error?: string
   message_data: MessageData
+  channel_options?: ChannelOptions
 
   // Event timestamps
   sent_at: string
