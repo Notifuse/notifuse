@@ -244,7 +244,13 @@ func GetGlobalTestPool() *TestConnectionPool {
 // CleanupGlobalTestPool cleans up the global test pool
 func CleanupGlobalTestPool() error {
 	if globalTestPool != nil {
-		return globalTestPool.Cleanup()
+		err := globalTestPool.Cleanup()
+		globalTestPool = nil
+		// Reset the sync.Once so the pool can be re-initialized in the next test
+		poolOnce = sync.Once{}
+		// Give PostgreSQL time to release connections
+		time.Sleep(500 * time.Millisecond)
+		return err
 	}
 	return nil
 }
