@@ -171,6 +171,9 @@ func (h *TaskHandler) ExecutePendingTasks(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	// Log that manual trigger is being used (internal scheduler should handle this)
+	h.logger.Info("Manual cron trigger via HTTP endpoint - internal scheduler should handle this automatically")
+
 	startTime := time.Now()
 
 	var executeRequest domain.ExecutePendingTasksRequest

@@ -11,21 +11,18 @@ import {
   Divider,
   Row,
   Col,
-  Alert,
-  Typography
+  Alert
 } from 'antd'
 import {
   ApiOutlined,
   CheckOutlined,
   CopyOutlined,
-  ArrowRightOutlined,
-  ClockCircleOutlined
+  ArrowRightOutlined
 } from '@ant-design/icons'
 import { setupApi } from '../services/api/setup'
 import type { SetupConfig } from '../types/setup'
 
 const { TextArea } = Input
-const { Paragraph } = Typography
 
 declare global {
   interface Window {
@@ -237,12 +234,6 @@ export default function SetupWizard() {
     message.success(`${keyType} copied to clipboard!`)
   }
 
-  const handleCopyCronCommand = () => {
-    const cronCommand = `* * * * * curl ${apiEndpoint}/api/cron > /dev/null 2>&1`
-    navigator.clipboard.writeText(cronCommand)
-    message.success('Cron command copied to clipboard!')
-  }
-
   const handleDone = () => {
     // Force a full page reload to fetch fresh config from /config.js
     // This ensures window.IS_INSTALLED is properly set from the backend
@@ -343,53 +334,6 @@ export default function SetupWizard() {
                     </Row>
                   </div>
                 )}
-
-                {/* Cron Job Setup Instructions */}
-                <div className="mt-8">
-                  <Alert
-                    message={
-                      <span>
-                        <ClockCircleOutlined style={{ marginRight: 8 }} />
-                        Cron Job Setup Required
-                      </span>
-                    }
-                    description={
-                      <div>
-                        <p className="mb-3">
-                          To enable automatic task processing, add this cron job to your server. It
-                          should run every minute.{' '}
-                          <a
-                            href="https://docs.notifuse.com/installation#a-cron-scheduler"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ color: '#7763F1' }}
-                          >
-                            Learn more
-                          </a>
-                        </p>
-                        <Paragraph
-                          copyable={{
-                            text: `* * * * * curl ${apiEndpoint}/api/cron > /dev/null 2>&1`,
-                            onCopy: handleCopyCronCommand
-                          }}
-                          style={{
-                            backgroundColor: '#f5f5f5',
-                            padding: '12px',
-                            borderRadius: '4px',
-                            fontFamily: 'monospace',
-                            fontSize: '12px',
-                            marginBottom: 0,
-                            border: '1px solid #d9d9d9'
-                          }}
-                        >
-                          * * * * * curl {apiEndpoint}/api/cron {'>'} /dev/null 2{'>'}&1
-                        </Paragraph>
-                      </div>
-                    }
-                    type="info"
-                    showIcon
-                  />
-                </div>
 
                 <div className="mt-8 text-center">
                   <Button

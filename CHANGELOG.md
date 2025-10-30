@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [14.0] - 2025-10-26
+## [14.0] - 2025-10-30
 
 ### Database Schema Changes
 - Added `channel_options` JSONB column to `message_history` table
@@ -11,6 +11,11 @@ All notable changes to this project will be documented in this file.
 - JSONB structure allows future SMS/push options without schema changes
 
 ### Features
+- **Internal Task Scheduler**: Tasks now execute automatically every 30 seconds
+  - No external cron job required
+  - Configurable via `TASK_SCHEDULER_ENABLED`, `TASK_SCHEDULER_INTERVAL`, `TASK_SCHEDULER_MAX_TASKS`
+  - Starts automatically with the app, stops gracefully on shutdown
+  - Faster task processing (30s vs 60s minimum with external cron)
 - Message history now stores email delivery options:
   - CC (carbon copy recipients)
   - BCC (blind carbon copy recipients)
@@ -18,6 +23,15 @@ All notable changes to this project will be documented in this file.
   - ReplyTo (reply-to address override)
 - Message preview drawer displays email delivery options when present
 - Only stores email options in this version (SMS/push to be added later)
+
+### UI Changes
+- Removed cron setup instructions from setup wizard
+- Removed cron status warning banner from workspace layout
+- Simpler onboarding experience - no manual cron configuration needed
+
+### Deprecated (kept for backward compatibility)
+- `/api/cron` HTTP endpoint (internal scheduler is now primary)
+- `/api/cron.status` HTTP endpoint (still functional but not advertised)
 
 ### Fixes
 - Fix: SMTP now supports unauthenticated/anonymous connections (e.g., local mail relays on port 25)
