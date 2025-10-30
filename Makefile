@@ -41,30 +41,38 @@ test-pkg:
 # Note: Run these individually to avoid connection exhaustion in CI
 test-connection-pools:
 	@echo "Running connection pool tests (individually to avoid connection exhaustion)..."
-	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolLifecycle -timeout 5m
-	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolConcurrency -timeout 5m
-	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolLimits -timeout 5m
-	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolFailure -timeout 5m
-	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolPerformance -timeout 10m
+	@./run-integration-tests.sh "TestConnectionPoolLifecycle$$"
+	@sleep 3
+	@./run-integration-tests.sh "TestConnectionPoolConcurrency$$"
+	@sleep 3
+	@./run-integration-tests.sh "TestConnectionPoolLimits$$"
+	@sleep 3
+	@./run-integration-tests.sh "TestConnectionPoolFailureRecovery$$"
+	@sleep 3
+	@./run-integration-tests.sh "TestConnectionPoolPerformance$$"
 
 test-connection-pools-race:
 	@echo "Running connection pool tests with race detector (individually)..."
-	INTEGRATION_TESTS=true go test -race -v ./tests/integration -run TestConnectionPoolLifecycle -timeout 5m
-	INTEGRATION_TESTS=true go test -race -v ./tests/integration -run TestConnectionPoolConcurrency -timeout 5m
-	INTEGRATION_TESTS=true go test -race -v ./tests/integration -run TestConnectionPoolLimits -timeout 5m
-	INTEGRATION_TESTS=true go test -race -v ./tests/integration -run TestConnectionPoolFailure -timeout 5m
+	@GOFLAGS="-race" ./run-integration-tests.sh "TestConnectionPoolLifecycle$$"
+	@sleep 3
+	@GOFLAGS="-race" ./run-integration-tests.sh "TestConnectionPoolConcurrency$$"
+	@sleep 3
+	@GOFLAGS="-race" ./run-integration-tests.sh "TestConnectionPoolLimits$$"
+	@sleep 3
+	@GOFLAGS="-race" ./run-integration-tests.sh "TestConnectionPoolFailureRecovery$$"
 
 test-connection-pools-short:
 	@echo "Running fast connection pool tests only..."
-	INTEGRATION_TESTS=true go test -short -v ./tests/integration -run TestConnectionPoolLifecycle -timeout 2m
-	INTEGRATION_TESTS=true go test -short -v ./tests/integration -run TestConnectionPoolLimits -timeout 2m
+	@./run-integration-tests.sh "TestConnectionPoolLifecycle$$"
+	@sleep 2
+	@./run-integration-tests.sh "TestConnectionPoolLimits$$"
 
 test-connection-pools-leak-check:
 	@echo "Running connection pool tests with leak detection..."
-	INTEGRATION_TESTS=true go test -v ./tests/integration -run TestConnectionPoolLifecycle -timeout 5m
+	@./run-integration-tests.sh "TestConnectionPoolLifecycle$$"
 	@echo "Checking for leaked connections..."
-	@echo "SELECT COUNT(*) FROM pg_stat_activity WHERE usename = 'notifuse_test' AND pid != pg_backend_pid();" | \
-		PGPASSWORD=test_password psql -h localhost -p 5433 -U notifuse_test -d postgres 2>/dev/null || \
+	@docker exec tests-postgres-test-1 psql -U notifuse_test -d postgres -c \
+		"SELECT COUNT(*) as leaked_connections FROM pg_stat_activity WHERE usename = 'notifuse_test' AND state != 'idle' AND pid != pg_backend_pid();" 2>/dev/null || \
 		echo "Note: PostgreSQL connection check skipped (database may not be available)"
 
 # Comprehensive test coverage command
