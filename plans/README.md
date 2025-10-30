@@ -70,6 +70,31 @@ This directory contains implementation plans for features and architectural chan
 - Deployment guide and monitoring
 - Troubleshooting and advanced topics
 
+## Database Migrations
+
+### V14: Channel Options Storage
+
+**[v14-channel-options-migration.md](./v14-channel-options-migration.md)** - ✅ **IMPLEMENTED**
+
+**Status:** ✅ Fully implemented (October 30, 2025)  
+**Version:** 14.0  
+**Type:** Workspace database migration
+
+**Summary:** Adds `channel_options` JSONB column to `message_history` table for storing email delivery options (CC, BCC, FromName, ReplyTo). Enables message preview UI to display these options and provides future-proof structure for SMS/push options.
+
+**Key Changes:**
+- Added `channel_options` JSONB column to `message_history` table
+- Created GIN index for efficient JSONB queries
+- Updated domain types with `ChannelOptions` struct
+- Enhanced UI to display channel options in message preview drawer
+- Added conversion methods: `EmailOptions.ToChannelOptions()`
+
+**Migration Strategy:**
+- Idempotent (can run multiple times safely)
+- Existing messages: `channel_options = NULL` (no backfill)
+- New messages: Options stored when provided via API
+- Migration time: < 1 second per workspace
+
 ## Other Features
 
 - [Transactional API From Name Override](transactional-api-from-name-override.md)
