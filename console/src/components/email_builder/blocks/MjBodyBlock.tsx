@@ -1,4 +1,5 @@
 import React from 'react'
+import { Alert } from 'antd'
 import type { MJMLComponentType, EmailBlock, MJBodyAttributes } from '../types'
 import {
   BaseEmailBlock,
@@ -54,6 +55,17 @@ export class MjBodyBlock extends BaseEmailBlock {
     emailTree?: EmailBlock
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJBodyAttributes
+
+    // Parse width to check if it exceeds 650px
+    const parseWidth = (width?: string): number | undefined => {
+      if (!width) return undefined
+      const match = width.match(/^(\d+(?:\.\d+)?)px?$/)
+      return match ? parseFloat(match[1]) : undefined
+    }
+
+    const widthValue = parseWidth(currentAttributes.width || blockDefaults.width)
+    const showWarning = widthValue !== undefined && widthValue > 650
+
     return (
       <PanelLayout title="Body Attributes">
         <InputLayout label="Width">
@@ -61,9 +73,17 @@ export class MjBodyBlock extends BaseEmailBlock {
             value={currentAttributes.width}
             onChange={(value) => onUpdate({ width: value })}
             placeholder={blockDefaults.width || '600px'}
+            max={999}
           />
         </InputLayout>
 
+        {showWarning && (
+          <Alert
+            message="Email widths above 650px may not display correctly in some email clients"
+            type="warning"
+            style={{ marginTop: '8px' }}
+          />
+        )}
         <InputLayout label="Background Color">
           <ColorPickerWithPresets
             value={currentAttributes.backgroundColor || undefined}
