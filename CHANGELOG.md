@@ -34,6 +34,7 @@ All notable changes to this project will be documented in this file.
 - Removed cron setup instructions from setup wizard
 - Removed cron status warning banner from workspace layout
 - Simpler onboarding experience - no manual cron configuration needed
+- Added preview mode to notification center
 - **Setup Wizard Improvements**:
   - Added newsletter subscription option
   - PASETO keys configuration moved to collapsible "Advanced Settings" section
