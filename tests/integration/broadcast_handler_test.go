@@ -524,11 +524,11 @@ func testBroadcastLifecycle(t *testing.T, client *testutil.APIClient, factory *t
 			// Set the template for the broadcast
 			broadcast.TestSettings.Variations[0].TemplateID = template.ID
 			updateReq := map[string]interface{}{
-				"workspace_id": workspaceID,
-				"id":           broadcast.ID,
-				"name":         broadcast.Name,
-				"audience":     broadcast.Audience,
-				"schedule":     broadcast.Schedule,
+				"workspace_id":  workspaceID,
+				"id":            broadcast.ID,
+				"name":          broadcast.Name,
+				"audience":      broadcast.Audience,
+				"schedule":      broadcast.Schedule,
 				"test_settings": broadcast.TestSettings,
 			}
 			updateResp, err := client.UpdateBroadcast(updateReq)
