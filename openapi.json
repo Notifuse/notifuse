@@ -690,6 +690,12 @@
             "type": "object",
             "description": "Email-specific options",
             "properties": {
+              "from_name": {
+                "type": "string",
+                "nullable": true,
+                "description": "Override default sender from name",
+                "example": "Support Team"
+              },
               "cc": {
                 "type": "array",
                 "description": "CC email addresses",
