@@ -26,6 +26,11 @@ func (m *V4Migration) HasWorkspaceUpdate() bool {
 	return false
 }
 
+// ShouldRestartServer indicates if the server should restart after this migration
+func (m *V4Migration) ShouldRestartServer() bool {
+	return false
+}
+
 // UpdateSystem executes system-level migration changes
 func (m *V4Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
 	// Verify database connection by querying system table

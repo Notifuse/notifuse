@@ -8,11 +8,6 @@ type Country = {
   zones: string[]
 }
 
-export const Timezones = map(CountriesTimezonesData.zones, (x) => x)
-export const TimezonesForSelect = map(CountriesTimezonesData.zones, (tz) => ({
-  label: tz.name,
-  value: tz.name
-}))
 export const CountriesMap: Record<string, Country> = CountriesTimezonesData.countries
 export const Countries = map(CountriesTimezonesData.countries, (x) => x)
 export const CountriesFormOptions = map(CountriesTimezonesData.countries, (x) => {

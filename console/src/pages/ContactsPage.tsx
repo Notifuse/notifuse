@@ -12,8 +12,8 @@ import { Filter } from '../components/filters/Filter'
 import { ContactUpsertDrawer } from '../components/contacts/ContactUpsertDrawer'
 import { ImportContactsButton } from '../components/contacts/ImportContactsButton'
 import { BulkUpdateDrawer } from '../components/contacts/BulkUpdateDrawer'
-import { CountriesFormOptions } from '../components/utils/countries_timezones'
-import { Languages } from '../components/utils/languages'
+import { CountriesFormOptions } from '../lib/countries_timezones'
+import { Languages } from '../lib/languages'
 import { FilterField } from '../components/filters/types'
 import { ContactColumnsSelector, JsonViewer } from '../components/contacts/ContactColumnsSelector'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -722,7 +722,10 @@ export function ContactsPage() {
       dataIndex: 'custom_json_1',
       key: 'custom_json_1',
       render: (_: unknown, record: Contact) => (
-        <JsonViewer json={record.custom_json_1} title={getCustomFieldLabel('custom_json_1', currentWorkspace)} />
+        <JsonViewer
+          json={record.custom_json_1}
+          title={getCustomFieldLabel('custom_json_1', currentWorkspace)}
+        />
       ),
       hidden: !visibleColumns.custom_json_1
     },
@@ -731,7 +734,10 @@ export function ContactsPage() {
       dataIndex: 'custom_json_2',
       key: 'custom_json_2',
       render: (_: unknown, record: Contact) => (
-        <JsonViewer json={record.custom_json_2} title={getCustomFieldLabel('custom_json_2', currentWorkspace)} />
+        <JsonViewer
+          json={record.custom_json_2}
+          title={getCustomFieldLabel('custom_json_2', currentWorkspace)}
+        />
       ),
       hidden: !visibleColumns.custom_json_2
     },
@@ -740,7 +746,10 @@ export function ContactsPage() {
       dataIndex: 'custom_json_3',
       key: 'custom_json_3',
       render: (_: unknown, record: Contact) => (
-        <JsonViewer json={record.custom_json_3} title={getCustomFieldLabel('custom_json_3', currentWorkspace)} />
+        <JsonViewer
+          json={record.custom_json_3}
+          title={getCustomFieldLabel('custom_json_3', currentWorkspace)}
+        />
       ),
       hidden: !visibleColumns.custom_json_3
     },
@@ -749,7 +758,10 @@ export function ContactsPage() {
       dataIndex: 'custom_json_4',
       key: 'custom_json_4',
       render: (_: unknown, record: Contact) => (
-        <JsonViewer json={record.custom_json_4} title={getCustomFieldLabel('custom_json_4', currentWorkspace)} />
+        <JsonViewer
+          json={record.custom_json_4}
+          title={getCustomFieldLabel('custom_json_4', currentWorkspace)}
+        />
       ),
       hidden: !visibleColumns.custom_json_4
     },
@@ -758,7 +770,10 @@ export function ContactsPage() {
       dataIndex: 'custom_json_5',
       key: 'custom_json_5',
       render: (_: unknown, record: Contact) => (
-        <JsonViewer json={record.custom_json_5} title={getCustomFieldLabel('custom_json_5', currentWorkspace)} />
+        <JsonViewer
+          json={record.custom_json_5}
+          title={getCustomFieldLabel('custom_json_5', currentWorkspace)}
+        />
       ),
       hidden: !visibleColumns.custom_json_5
     },

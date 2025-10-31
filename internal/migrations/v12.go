@@ -28,6 +28,11 @@ func (m *V12Migration) HasWorkspaceUpdate() bool {
 	return false // No workspace database changes needed
 }
 
+// ShouldRestartServer indicates if the server should restart after this migration
+func (m *V12Migration) ShouldRestartServer() bool {
+	return false
+}
+
 // workspaceIntegrationData holds workspace data for migration
 type workspaceIntegrationData struct {
 	ID                  string

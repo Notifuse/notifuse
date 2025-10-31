@@ -26,6 +26,11 @@ func (m *V6Migration) HasWorkspaceUpdate() bool {
 	return false
 }
 
+// ShouldRestartServer indicates if the server should restart after this migration
+func (m *V6Migration) ShouldRestartServer() bool {
+	return false
+}
+
 // UpdateSystem executes system-level migration changes
 func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
 	// Add permissions column to workspace_invitations table

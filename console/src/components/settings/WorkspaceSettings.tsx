@@ -4,7 +4,7 @@ import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { Section } from './Section'
-import { TimezonesFormOptions } from '../utils/countries_timezones'
+import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { LogoInput } from './LogoInput'
 
 interface WorkspaceSettingsProps {
@@ -167,7 +167,7 @@ export function WorkspaceSettings({
             label="Timezone"
             rules={[{ required: true, message: 'Please select a timezone' }]}
           >
-            <Select options={TimezonesFormOptions} showSearch optionFilterProp="label" />
+            <Select options={TIMEZONE_OPTIONS} showSearch optionFilterProp="label" />
           </Form.Item>
 
           <Form.Item

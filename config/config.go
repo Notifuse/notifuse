@@ -27,6 +27,7 @@ type Config struct {
 	Broadcast       BroadcastConfig
 	TaskScheduler   TaskSchedulerConfig
 	Telemetry       bool
+	CheckForUpdates bool
 	RootEmail       string
 	Environment     string
 	APIEndpoint     string
@@ -171,6 +172,8 @@ type SystemSettings struct {
 	SMTPPassword     string
 	SMTPFromEmail    string
 	SMTPFromName     string
+	TelemetryEnabled bool
+	CheckForUpdates  bool
 }
 
 // getSystemDSN constructs the database connection string for the system database
@@ -281,6 +284,16 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 				settings.SMTPPassword = decrypted
 			}
 		}
+
+		// Load telemetry setting
+		if telemetry, ok := settingsMap["telemetry_enabled"]; ok {
+			settings.TelemetryEnabled = telemetry == "true"
+		}
+
+		// Load check for updates setting
+		if checkUpdates, ok := settingsMap["check_for_updates"]; ok {
+			settings.CheckForUpdates = checkUpdates == "true"
+		}
 	}
 
 	return settings, nil
@@ -350,9 +363,6 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	// Default metrics exporter config
 	v.SetDefault("TRACING_METRICS_EXPORTER", "none")
 	v.SetDefault("TRACING_PROMETHEUS_PORT", 9464)
-
-	// Default telemetry config
-	v.SetDefault("TELEMETRY", true)
 
 	// Task scheduler defaults
 	v.SetDefault("TASK_SCHEDULER_ENABLED", true)
@@ -579,6 +589,27 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		}
 	}
 
+	// Telemetry and check for updates settings - env var overrides database
+	var telemetryEnabled, checkForUpdates bool
+	if isInstalled && systemSettings != nil {
+		// Check if env var is set (IsSet checks if the key exists, not if it's true)
+		if v.IsSet("TELEMETRY") {
+			telemetryEnabled = v.GetBool("TELEMETRY")
+		} else {
+			telemetryEnabled = systemSettings.TelemetryEnabled
+		}
+
+		if v.IsSet("CHECK_FOR_UPDATES") {
+			checkForUpdates = v.GetBool("CHECK_FOR_UPDATES")
+		} else {
+			checkForUpdates = systemSettings.CheckForUpdates
+		}
+	} else {
+		// First-run: use env vars only (defaults to false if not set)
+		telemetryEnabled = v.GetBool("TELEMETRY")
+		checkForUpdates = v.GetBool("CHECK_FOR_UPDATES")
+	}
+
 	config := &Config{
 		Server: ServerConfig{
 			Port: v.GetInt("SERVER_PORT"),
@@ -604,7 +635,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			FileManagerAccessKey: v.GetString("DEMO_FILE_MANAGER_ACCESS_KEY"),
 			FileManagerSecretKey: v.GetString("DEMO_FILE_MANAGER_SECRET_KEY"),
 		},
-		Telemetry: v.GetBool("TELEMETRY"),
+		Telemetry:       telemetryEnabled,
+		CheckForUpdates: checkForUpdates,
 		Tracing: TracingConfig{
 			Enabled:             v.GetBool("TRACING_ENABLED"),
 			ServiceName:         v.GetString("TRACING_SERVICE_NAME"),
@@ -635,28 +667,28 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			// General agent endpoint (for exporters that support a common agent)
 			AgentEndpoint: v.GetString("TRACING_AGENT_ENDPOINT"),
 
-		// Metrics exporter configuration
-		MetricsExporter: v.GetString("TRACING_METRICS_EXPORTER"),
-		PrometheusPort:  v.GetInt("TRACING_PROMETHEUS_PORT"),
-	},
-	Broadcast: BroadcastConfig{
-		DefaultRateLimit: v.GetInt("BROADCAST_DEFAULT_RATE_LIMIT"),
-	},
-	TaskScheduler: TaskSchedulerConfig{
-		Enabled:  v.GetBool("TASK_SCHEDULER_ENABLED"),
-		Interval: v.GetDuration("TASK_SCHEDULER_INTERVAL"),
-		MaxTasks: v.GetInt("TASK_SCHEDULER_MAX_TASKS"),
-	},
+			// Metrics exporter configuration
+			MetricsExporter: v.GetString("TRACING_METRICS_EXPORTER"),
+			PrometheusPort:  v.GetInt("TRACING_PROMETHEUS_PORT"),
+		},
+		Broadcast: BroadcastConfig{
+			DefaultRateLimit: v.GetInt("BROADCAST_DEFAULT_RATE_LIMIT"),
+		},
+		TaskScheduler: TaskSchedulerConfig{
+			Enabled:  v.GetBool("TASK_SCHEDULER_ENABLED"),
+			Interval: v.GetDuration("TASK_SCHEDULER_INTERVAL"),
+			MaxTasks: v.GetInt("TASK_SCHEDULER_MAX_TASKS"),
+		},
 
-	RootEmail:       rootEmail,
-	Environment:     v.GetString("ENVIRONMENT"),
-	APIEndpoint:     apiEndpoint,
-	WebhookEndpoint: v.GetString("WEBHOOK_ENDPOINT"),
-	LogLevel:        v.GetString("LOG_LEVEL"),
-	Version:         v.GetString("VERSION"),
-	IsInstalled:     isInstalled,
-	EnvValues:       envVals, // Store env values for setup service
-}
+		RootEmail:       rootEmail,
+		Environment:     v.GetString("ENVIRONMENT"),
+		APIEndpoint:     apiEndpoint,
+		WebhookEndpoint: v.GetString("WEBHOOK_ENDPOINT"),
+		LogLevel:        v.GetString("LOG_LEVEL"),
+		Version:         v.GetString("VERSION"),
+		IsInstalled:     isInstalled,
+		EnvValues:       envVals, // Store env values for setup service
+	}
 
 	if config.WebhookEndpoint == "" {
 		config.WebhookEndpoint = config.APIEndpoint

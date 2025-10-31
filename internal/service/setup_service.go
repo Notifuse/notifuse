@@ -33,6 +33,8 @@ type SetupConfig struct {
 	SMTPPassword       string
 	SMTPFromEmail      string
 	SMTPFromName       string
+	TelemetryEnabled   bool
+	CheckForUpdates    bool
 }
 
 // SMTPTestConfig represents SMTP configuration for testing
@@ -271,6 +273,8 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) (*Pa
 		SMTPPassword:     smtpPassword,
 		SMTPFromEmail:    smtpFromEmail,
 		SMTPFromName:     smtpFromName,
+		TelemetryEnabled: config.TelemetryEnabled,
+		CheckForUpdates:  config.CheckForUpdates,
 	}
 
 	if err := s.settingService.SetSystemConfig(ctx, systemConfig, s.secretKey); err != nil {

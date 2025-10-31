@@ -21,8 +21,9 @@ import type { TextAreaProps } from 'antd/es/input/TextArea'
 import type { SelectProps, DefaultOptionType } from 'antd/es/select'
 import type { DatePickerProps } from 'antd/es/date-picker'
 import type { InputNumberProps } from 'antd/es/input-number'
-import { CountriesFormOptions, TimezonesFormOptions } from '../utils/countries_timezones'
-import { Languages } from '../utils/languages'
+import { CountriesFormOptions } from '../../lib/countries_timezones'
+import { Languages } from '../../lib/languages'
+import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { Contact, UpsertContactOperationAction } from '../../services/api/contacts'
 import { contactsApi } from '../../services/api/contacts'
 import dayjs from '../../lib/dayjs'
@@ -417,7 +418,7 @@ export function ContactUpsertDrawer({
         <NullableSelect
           name={field}
           placeholder="Select timezone"
-          options={TimezonesFormOptions}
+          options={TIMEZONE_OPTIONS}
           showSearch
           filterOption={(input: string, option: DefaultOptionType | undefined) =>
             String(option?.label ?? '')

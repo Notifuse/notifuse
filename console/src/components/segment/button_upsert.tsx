@@ -30,7 +30,7 @@ import {
   UpdateSegmentRequest,
   PreviewSegmentRequest
 } from '../../services/api/segment'
-import { TimezonesForSelect } from '../../lib/countries_timezones'
+import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { TableSchemas } from './table_schemas'
 import { Workspace } from '../../services/api/types'
 
@@ -418,7 +418,8 @@ const DrawerSegment = (props: {
                     const label = option.label || option.value || ''
                     return label.toString().toLowerCase().includes(input.toLowerCase())
                   }}
-                  options={TimezonesForSelect}
+                  optionFilterProp="label"
+                  options={TIMEZONE_OPTIONS}
                 />
               </Form.Item>
 

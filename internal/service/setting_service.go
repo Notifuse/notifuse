@@ -22,6 +22,8 @@ type SystemConfig struct {
 	SMTPPassword     string
 	SMTPFromEmail    string
 	SMTPFromName     string
+	TelemetryEnabled bool
+	CheckForUpdates  bool
 }
 
 // SettingService provides methods for managing system settings
@@ -123,6 +125,16 @@ func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) 
 		config.SMTPPassword = decrypted
 	}
 
+	// Load telemetry setting
+	if setting, err := s.repo.Get(ctx, "telemetry_enabled"); err == nil {
+		config.TelemetryEnabled = setting.Value == "true"
+	}
+
+	// Load check for updates setting
+	if setting, err := s.repo.Get(ctx, "check_for_updates"); err == nil {
+		config.CheckForUpdates = setting.Value == "true"
+	}
+
 	return config, nil
 }
 
@@ -218,6 +230,24 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		if err := s.repo.Set(ctx, "encrypted_smtp_password", encrypted); err != nil {
 			return fmt.Errorf("failed to set encrypted_smtp_password: %w", err)
 		}
+	}
+
+	// Set telemetry enabled
+	telemetryValue := "false"
+	if config.TelemetryEnabled {
+		telemetryValue = "true"
+	}
+	if err := s.repo.Set(ctx, "telemetry_enabled", telemetryValue); err != nil {
+		return fmt.Errorf("failed to set telemetry_enabled: %w", err)
+	}
+
+	// Set check for updates
+	checkUpdatesValue := "false"
+	if config.CheckForUpdates {
+		checkUpdatesValue = "true"
+	}
+	if err := s.repo.Set(ctx, "check_for_updates", checkUpdatesValue); err != nil {
+		return fmt.Errorf("failed to set check_for_updates: %w", err)
 	}
 
 	return nil

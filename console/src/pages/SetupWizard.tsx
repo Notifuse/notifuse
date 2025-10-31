@@ -11,14 +11,11 @@ import {
   Divider,
   Row,
   Col,
-  Alert
+  Alert,
+  Collapse,
+  Switch
 } from 'antd'
-import {
-  ApiOutlined,
-  CheckOutlined,
-  CopyOutlined,
-  ArrowRightOutlined
-} from '@ant-design/icons'
+import { ApiOutlined, CheckOutlined, CopyOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { setupApi } from '../services/api/setup'
 import type { SetupConfig } from '../types/setup'
 
@@ -145,16 +142,62 @@ export default function SetupWizard() {
         setupConfig.smtp_from_name = values.smtp_from_name || 'Notifuse'
       }
 
+      // Telemetry and check for updates settings
+      setupConfig.telemetry_enabled = values.telemetry_enabled || false
+      setupConfig.check_for_updates = values.check_for_updates || false
+
       const result = await setupApi.initialize(setupConfig)
+
+      // Subscribe to newsletter if checked (fail silently)
+      if (values.subscribe_newsletter && values.root_email) {
+        try {
+          const contact: any = {
+            email: values.root_email
+          }
+
+          // Only include custom fields if values are available
+          const endpoint = values.api_endpoint || apiEndpoint
+          if (endpoint) {
+            contact.custom_string_1 = endpoint
+          }
+
+          if (values.check_for_updates !== undefined) {
+            contact.custom_string_2 = values.check_for_updates ? 'true' : 'false'
+          }
+
+          if (values.telemetry_enabled !== undefined) {
+            contact.custom_string_3 = values.telemetry_enabled ? 'true' : 'false'
+          }
+
+          await fetch('https://email.notifuse.com/subscribe', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              workspace_id: 'notifuse',
+              contact,
+              list_ids: ['newsletter']
+            })
+          })
+        } catch (error) {
+          // Fail silently - don't block setup if newsletter subscription fails
+          console.error('Newsletter subscription failed:', error)
+        }
+      }
 
       // If keys were generated and returned, show them to the user
       if (result.paseto_keys) {
         setGeneratedKeys(result.paseto_keys)
       }
 
+      // Show setup complete screen immediately with keys
+      setSetupComplete(true)
+
+      // Keep loading state active while server restarts
       // Show loading message for server restart
       const hideRestartMessage = message.loading({
-        content: 'Setup completed! Server is restarting with new configuration...',
+        content: 'Server is restarting with new configuration...',
         duration: 0, // Don't auto-dismiss
         key: 'server-restart'
       })
@@ -162,18 +205,16 @@ export default function SetupWizard() {
       // Wait for server to restart
       try {
         await waitForServerRestart()
-        
+
         // Success - server is back up
         message.success({
-          content: 'Server restarted successfully!',
+          content: 'Server restarted successfully! You can now sign in.',
           key: 'server-restart',
-          duration: 2
+          duration: 3
         })
-        
-        // Wait a moment then redirect
-        setTimeout(() => {
-          window.location.href = '/signin'
-        }, 1000)
+
+        // Don't redirect automatically - let user click the button
+        setLoading(false)
       } catch (error) {
         hideRestartMessage()
         message.error({
@@ -181,10 +222,8 @@ export default function SetupWizard() {
           key: 'server-restart',
           duration: 0
         })
+        setLoading(false)
       }
-
-      setSetupComplete(true)
-      setLoading(false)
     } catch (err) {
       message.error(err instanceof Error ? err.message : 'Failed to complete setup')
       setLoading(false)
@@ -197,22 +236,22 @@ export default function SetupWizard() {
    */
   const waitForServerRestart = async (): Promise<void> => {
     const maxAttempts = 60 // 60 seconds max wait
-    const delayMs = 1000   // Check every second
-    
+    const delayMs = 1000 // Check every second
+
     // Wait for server to start shutting down
-    await new Promise(resolve => setTimeout(resolve, 2000))
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000))
+
     // Poll health endpoint
     for (let i = 0; i < maxAttempts; i++) {
       try {
-        const response = await fetch('/api/setup.status', { 
+        const response = await fetch('/api/setup.status', {
           method: 'GET',
           cache: 'no-cache',
           headers: {
             'Cache-Control': 'no-cache'
           }
         })
-        
+
         if (response.ok) {
           // Server is back!
           console.log(`Server restarted successfully after ${i + 1} attempts`)
@@ -222,10 +261,10 @@ export default function SetupWizard() {
         // Expected during restart - server is down
         console.log(`Waiting for server... attempt ${i + 1}/${maxAttempts}`)
       }
-      
-      await new Promise(resolve => setTimeout(resolve, delayMs))
+
+      await new Promise((resolve) => setTimeout(resolve, delayMs))
     }
-    
+
     throw new Error('Server restart timeout')
   }
 
@@ -341,10 +380,12 @@ export default function SetupWizard() {
                     size="large"
                     block
                     onClick={handleDone}
-                    icon={<ArrowRightOutlined />}
+                    loading={loading}
+                    icon={!loading && <ArrowRightOutlined />}
                     iconPosition="end"
+                    disabled={loading}
                   >
-                    Go to Sign In
+                    {loading ? 'Waiting for server restart...' : 'Go to Sign In'}
                   </Button>
                 </div>
               </div>
@@ -360,7 +401,10 @@ export default function SetupWizard() {
                   onFinish={handleSubmit}
                   initialValues={{
                     smtp_port: 587,
-                    smtp_from_name: 'Notifuse'
+                    smtp_from_name: 'Notifuse',
+                    subscribe_newsletter: true,
+                    telemetry_enabled: true,
+                    check_for_updates: true
                   }}
                 >
                   {(!configStatus.root_email_configured ||
@@ -395,82 +439,15 @@ export default function SetupWizard() {
                     </div>
                   )}
 
-                  {/* PASETO Keys Section */}
-                  {!configStatus.paseto_configured && (
-                    <>
-                      <Divider orientation="center" style={{ marginBottom: 24 }}>
-                        PASETO Keys
-                      </Divider>
-
-                      <div className="mb-4">
-                        <Alert
-                          description={
-                            <>
-                              <strong>Important:</strong> PASETO keys are used to generate and
-                              validate API keys for your workspaces. Save them securely after setup
-                              - they cannot be recovered if lost. Losing these keys will force you
-                              to regenerate all workspace API keys, which will break existing
-                              integrations.
-                              <br />
-                              <br />
-                              💡 Need to generate PASETO keys? Use our online tool:{' '}
-                              <a
-                                href="https://paseto.notifuse.com"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline font-medium hover:text-blue-900"
-                              >
-                                paseto.notifuse.com
-                              </a>
-                            </>
-                          }
-                          type="warning"
-                          showIcon={false}
-                        />
-                      </div>
-
-                      <Form.Item>
-                        <Radio.Group
-                          value={keyMode}
-                          onChange={(e) => setKeyMode(e.target.value)}
-                          block
-                        >
-                          <Radio.Button value="generate">
-                            Generate New Keys Automatically
-                          </Radio.Button>
-                          <Radio.Button value="existing">Use Existing Keys</Radio.Button>
-                        </Radio.Group>
-                      </Form.Item>
-
-                      {keyMode === 'existing' && (
-                        <>
-                          <Form.Item
-                            label="Public Key"
-                            name="paseto_public_key"
-                            rules={[{ required: true, message: 'Public key is required' }]}
-                          >
-                            <TextArea
-                              rows={3}
-                              placeholder="Paste your base64-encoded PASETO public key here..."
-                              style={{ fontFamily: 'monospace', fontSize: '12px' }}
-                            />
-                          </Form.Item>
-
-                          <Form.Item
-                            label="Private Key"
-                            name="paseto_private_key"
-                            rules={[{ required: true, message: 'Private key is required' }]}
-                          >
-                            <TextArea
-                              rows={3}
-                              placeholder="Paste your base64-encoded PASETO private key here..."
-                              style={{ fontFamily: 'monospace', fontSize: '12px' }}
-                            />
-                          </Form.Item>
-                        </>
-                      )}
-                    </>
-                  )}
+                  {/* Newsletter Subscription */}
+                  <Form.Item
+                    name="subscribe_newsletter"
+                    valuePropName="checked"
+                    label="Subscribe to the newsletter (new features...)"
+                    style={{ marginTop: 24 }}
+                  >
+                    <Switch />
+                  </Form.Item>
 
                   {/* SMTP Configuration Section */}
                   {!configStatus.smtp_configured && (
@@ -591,6 +568,133 @@ export default function SetupWizard() {
                       </div>
                     </>
                   )}
+
+                  {/* Advanced Settings Collapse */}
+                  <Collapse
+                    ghost
+                    style={{ marginTop: 32 }}
+                    items={[
+                      {
+                        key: 'advanced',
+                        label: 'Advanced Settings',
+                        children: (
+                          <>
+                            {/* PASETO Keys Section */}
+                            {!configStatus.paseto_configured && (
+                              <>
+                                <Divider orientation="center" style={{ marginBottom: 24 }}>
+                                  PASETO Keys
+                                </Divider>
+
+                                <div className="mb-4">
+                                  <Alert
+                                    description={
+                                      <>
+                                        <strong>Important:</strong> PASETO keys are used to generate
+                                        and validate API keys for your workspaces. Save them
+                                        securely after setup - they cannot be recovered if lost.
+                                        Losing these keys will force you to regenerate all workspace
+                                        API keys, which will break existing integrations.
+                                        <br />
+                                        <br />
+                                        💡 Need to generate PASETO keys? Use our online tool:{' '}
+                                        <a
+                                          href="https://paseto.notifuse.com"
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="underline font-medium hover:text-blue-900"
+                                        >
+                                          paseto.notifuse.com
+                                        </a>
+                                      </>
+                                    }
+                                    type="warning"
+                                    showIcon={false}
+                                  />
+                                </div>
+
+                                <Form.Item>
+                                  <Radio.Group
+                                    value={keyMode}
+                                    onChange={(e) => setKeyMode(e.target.value)}
+                                    block
+                                  >
+                                    <Radio.Button value="generate">
+                                      Generate New Keys Automatically
+                                    </Radio.Button>
+                                    <Radio.Button value="existing">Use Existing Keys</Radio.Button>
+                                  </Radio.Group>
+                                </Form.Item>
+
+                                {keyMode === 'existing' && (
+                                  <>
+                                    <Form.Item
+                                      label="Public Key"
+                                      name="paseto_public_key"
+                                      rules={[
+                                        { required: true, message: 'Public key is required' }
+                                      ]}
+                                    >
+                                      <TextArea
+                                        rows={3}
+                                        placeholder="Paste your base64-encoded PASETO public key here..."
+                                        style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                                      />
+                                    </Form.Item>
+
+                                    <Form.Item
+                                      label="Private Key"
+                                      name="paseto_private_key"
+                                      rules={[
+                                        { required: true, message: 'Private key is required' }
+                                      ]}
+                                    >
+                                      <TextArea
+                                        rows={3}
+                                        placeholder="Paste your base64-encoded PASETO private key here..."
+                                        style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                                      />
+                                    </Form.Item>
+                                  </>
+                                )}
+                              </>
+                            )}
+
+                            {/* Telemetry Setting */}
+                            <Divider
+                              orientation="center"
+                              style={{ marginTop: 32, marginBottom: 24 }}
+                            >
+                              Privacy Settings
+                            </Divider>
+
+                            <Row gutter={16}>
+                              <Col span={12}>
+                                <Form.Item
+                                  name="telemetry_enabled"
+                                  valuePropName="checked"
+                                  label="Enable Anonymous Telemetry"
+                                  tooltip="Help us improve Notifuse by sending anonymous usage statistics. No personal data or message content is collected."
+                                >
+                                  <Switch />
+                                </Form.Item>
+                              </Col>
+                              <Col span={12}>
+                                <Form.Item
+                                  name="check_for_updates"
+                                  valuePropName="checked"
+                                  label="Check for Updates"
+                                  tooltip="Periodically check for new Notifuse versions and security updates. A popup will list new versions available."
+                                >
+                                  <Switch />
+                                </Form.Item>
+                              </Col>
+                            </Row>
+                          </>
+                        )
+                      }
+                    ]}
+                  />
 
                   {/* Submit Button */}
                   <Divider style={{ marginTop: 32, marginBottom: 24 }} />

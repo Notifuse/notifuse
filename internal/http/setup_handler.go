@@ -67,6 +67,8 @@ type InitializeRequest struct {
 	SMTPPassword       string `json:"smtp_password"`
 	SMTPFromEmail      string `json:"smtp_from_email"`
 	SMTPFromName       string `json:"smtp_from_name"`
+	TelemetryEnabled   bool   `json:"telemetry_enabled"`
+	CheckForUpdates    bool   `json:"check_for_updates"`
 }
 
 // InitializeResponse represents the setup completion response
@@ -179,6 +181,8 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 		SMTPPassword:       req.SMTPPassword,
 		SMTPFromEmail:      req.SMTPFromEmail,
 		SMTPFromName:       req.SMTPFromName,
+		TelemetryEnabled:   req.TelemetryEnabled,
+		CheckForUpdates:    req.CheckForUpdates,
 	}
 
 	// Initialize using service (callback will be called in service)

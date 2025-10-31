@@ -71,9 +71,12 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 		// Capture the current code version to ensure it's higher than database version
 		assert.Greater(t, currentCodeVersion, 3.0, "Code version should be higher than database version")
 
-		// Run migrations
-		err = migrationManager.RunMigrations(ctx, testConfig, db)
+	// Run migrations
+	err = migrationManager.RunMigrations(ctx, testConfig, db)
+	// Migration may return ErrRestartRequired if any migration requires a restart, which is not an error
+	if err != nil && err != migrations.ErrRestartRequired {
 		require.NoError(t, err, "Migration should succeed when database version is lower than code version")
+	}
 
 		// Step 5: Verify the database version was updated to current code version
 		var updatedDbVersion string
@@ -123,9 +126,12 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 		migrationManager := migrations.NewManager(testLogger)
 		ctx := context.Background()
 
-		// Run migrations
-		err = migrationManager.RunMigrations(ctx, testConfig, db)
+	// Run migrations
+	err = migrationManager.RunMigrations(ctx, testConfig, db)
+	// Migration may return ErrRestartRequired if any migration requires a restart, which is not an error
+	if err != nil && err != migrations.ErrRestartRequired {
 		require.NoError(t, err, "Migration should succeed even when no migrations need to run")
+	}
 
 		// Step 4: Verify the database version remains the same
 		var afterVersion string
@@ -167,8 +173,11 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 		migrationManager := migrations.NewManager(testLogger)
 		ctx := context.Background()
 
-		err = migrationManager.RunMigrations(ctx, testConfig, db)
+	err = migrationManager.RunMigrations(ctx, testConfig, db)
+	// Migration may return ErrRestartRequired if any migration requires a restart, which is not an error
+	if err != nil && err != migrations.ErrRestartRequired {
 		require.NoError(t, err, "Migration should succeed on first run")
+	}
 
 		// Step 5: Verify the database version was initialized to current code version
 		currentCodeVersion, err := migrations.GetCurrentCodeVersion()

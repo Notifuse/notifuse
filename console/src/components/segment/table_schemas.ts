@@ -1,6 +1,7 @@
 import { TableSchema } from '../../services/api/segment'
-import { CountriesFormOptions, Timezones } from '../utils/countries_timezones'
-import { Languages } from '../utils/languages'
+import { CountriesFormOptions } from '../../lib/countries_timezones'
+import { TIMEZONE_OPTIONS } from '../../lib/timezones'
+import { Languages } from '../../lib/languages'
 import { faUser, faFolderOpen } from '@fortawesome/free-regular-svg-icons'
 import { faMousePointer } from '@fortawesome/free-solid-svg-icons'
 
@@ -72,7 +73,7 @@ export const ContactsTableSchema: TableSchema = {
       description: 'Contact timezone',
       type: 'string',
       shown: true,
-      options: Timezones.map((tz) => ({ value: tz.name, label: tz.name }))
+      options: TIMEZONE_OPTIONS
     },
     address_line_1: {
       name: 'address_line_1',

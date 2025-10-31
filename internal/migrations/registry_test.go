@@ -29,6 +29,10 @@ func (m *mockMigration) HasWorkspaceUpdate() bool {
 	return m.hasWorkspaceUpdate
 }
 
+func (m *mockMigration) ShouldRestartServer() bool {
+	return false
+}
+
 func (m *mockMigration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
 	return nil
 }

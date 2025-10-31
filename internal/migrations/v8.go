@@ -28,6 +28,11 @@ func (m *V8Migration) HasWorkspaceUpdate() bool {
 	return true
 }
 
+// ShouldRestartServer indicates if the server should restart after this migration
+func (m *V8Migration) ShouldRestartServer() bool {
+	return false
+}
+
 // UpdateSystem executes system-level migration changes
 func (m *V8Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
 	// Get all workspaces to create queue processing tasks

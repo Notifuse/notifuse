@@ -16,6 +16,7 @@ import { Broadcast } from '../../services/api/broadcast'
 import { broadcastApi } from '../../services/api/broadcast'
 import type { Workspace } from '../../services/api/types'
 import dayjs from '../../lib/dayjs'
+import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 
 // Feature flag for recipient timezone functionality
 const ENABLE_RECIPIENT_TIMEZONE = false
@@ -264,25 +265,9 @@ export function SendOrScheduleModal({
                     showSearch
                     style={{ width: '100%' }}
                     placeholder="Select timezone"
-                    optionFilterProp="children"
-                  >
-                    {[
-                      'UTC',
-                      'America/New_York',
-                      'America/Chicago',
-                      'America/Denver',
-                      'America/Los_Angeles',
-                      'Europe/London',
-                      'Europe/Paris',
-                      'Asia/Tokyo',
-                      'Asia/Shanghai',
-                      'Australia/Sydney'
-                    ].map((tz) => (
-                      <Select.Option key={tz} value={tz}>
-                        {tz}
-                      </Select.Option>
-                    ))}
-                  </Select>
+                    optionFilterProp="label"
+                    options={TIMEZONE_OPTIONS}
+                  />
                 </Form.Item>
               </Col>
               {/* Feature flag for recipient timezone - disabled until backend implementation is complete */}

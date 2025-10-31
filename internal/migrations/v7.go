@@ -27,6 +27,11 @@ func (m *V7Migration) HasWorkspaceUpdate() bool {
 	return true
 }
 
+// ShouldRestartServer indicates if the server should restart after this migration
+func (m *V7Migration) ShouldRestartServer() bool {
+	return false
+}
+
 // UpdateSystem executes system-level migration changes
 func (m *V7Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
 	// No system-level changes for v7

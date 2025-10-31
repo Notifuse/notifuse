@@ -20,6 +20,7 @@ type MajorMigrationInterface interface {
 	GetMajorVersion() float64
 	HasSystemUpdate() bool
 	HasWorkspaceUpdate() bool
+	ShouldRestartServer() bool
 	UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error
 	UpdateWorkspace(ctx context.Context, config *config.Config, workspace *domain.Workspace, db DBExecutor) error
 }

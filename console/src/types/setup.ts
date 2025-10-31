@@ -10,6 +10,8 @@ export interface SetupConfig {
   smtp_password?: string
   smtp_from_email?: string
   smtp_from_name?: string
+  telemetry_enabled?: boolean
+  check_for_updates?: boolean
 }
 
 export interface SetupStatus {

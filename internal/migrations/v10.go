@@ -27,6 +27,11 @@ func (m *V10Migration) HasWorkspaceUpdate() bool {
 	return true // Adds column and triggers to workspace databases
 }
 
+// ShouldRestartServer indicates if the server should restart after this migration
+func (m *V10Migration) ShouldRestartServer() bool {
+	return false
+}
+
 // UpdateSystem executes system-level migration changes (none for v10)
 func (m *V10Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
 	return nil

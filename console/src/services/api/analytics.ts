@@ -1,3 +1,5 @@
+import { api } from './client'
+
 // Analytics types
 export interface AnalyticsQuery {
   schema: string // Predefined schema name (required)
@@ -51,7 +53,7 @@ export interface AnalyticsResponse {
   data: Array<Record<string, any>>
   meta: {
     total: number
-    executionTime: number
+    executionTime?: number
     query: string // Generated SQL for debugging
     params: any[] // Database parameters for debugging
   }
@@ -79,7 +81,6 @@ interface QueueItem {
 // Analytics Service Configuration
 interface AnalyticsServiceConfig {
   maxConcurrency?: number
-  baseUrl?: string
   cacheTTL?: number // Cache time-to-live in milliseconds (default: 30000ms = 30 seconds)
 }
 
@@ -89,13 +90,11 @@ class AnalyticsService {
   private queue: QueueItem[] = []
   private activeRequests: number = 0
   private maxConcurrency: number = 1
-  private baseUrl: string
   private cache: Map<string, CacheItem> = new Map()
   private cacheTTL: number = 30000 // 30 seconds default
 
   private constructor(config: AnalyticsServiceConfig = {}) {
     this.maxConcurrency = config.maxConcurrency ?? 1
-    this.baseUrl = config.baseUrl ?? (window.API_ENDPOINT || 'http://localhost:3000')
     this.cacheTTL = config.cacheTTL ?? 30000
   }
 
@@ -108,7 +107,6 @@ class AnalyticsService {
 
   public configure(config: AnalyticsServiceConfig): void {
     this.maxConcurrency = config.maxConcurrency ?? this.maxConcurrency
-    this.baseUrl = config.baseUrl ?? this.baseUrl
     this.cacheTTL = config.cacheTTL ?? this.cacheTTL
   }
 
@@ -195,27 +193,7 @@ class AnalyticsService {
   }
 
   private async executeQuery(queryRequest: AnalyticsQueryRequest): Promise<AnalyticsResponse> {
-    const authToken = localStorage.getItem('auth_token')
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json'
-    }
-
-    if (authToken) {
-      headers.Authorization = `Bearer ${authToken}`
-    }
-
-    const response = await fetch(`${this.baseUrl}/api/analytics.query`, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(queryRequest)
-    })
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null)
-      throw new Error(errorData?.error || `Analytics query failed with status ${response.status}`)
-    }
-
-    return response.json()
+    return api.post<AnalyticsResponse>('/api/analytics.query', queryRequest)
   }
 
   // Clear expired cache entries

@@ -5,17 +5,25 @@ All notable changes to this project will be documented in this file.
 ## [14.0] - 2025-10-30
 
 ### Database Schema Changes
+
 - Added `channel_options` JSONB column to `message_history` table
   - Updated `internal/database/init.go` for new workspaces
   - Created migration `v14.go` for existing workspaces
 - JSONB structure allows future SMS/push options without schema changes
 
 ### Features
+
 - **Internal Task Scheduler**: Tasks now execute automatically every 30 seconds
   - No external cron job required
   - Configurable via `TASK_SCHEDULER_ENABLED`, `TASK_SCHEDULER_INTERVAL`, `TASK_SCHEDULER_MAX_TASKS`
   - Starts automatically with the app, stops gracefully on shutdown
   - Faster task processing (30s vs 60s minimum with external cron)
+- **Privacy Settings**: New optional configuration for telemetry and update checks
+  - `TELEMETRY` environment variable (optional) - Send anonymous usage statistics
+  - `CHECK_FOR_UPDATES` environment variable (optional) - Check for new versions
+  - Both can be configured via setup wizard if not set as environment variables
+  - For existing installations: migration v14 sets both to `true` by default (respects env vars if set)
+  - Environment variables always take precedence over database settings
 - Message history now stores email delivery options:
   - CC (carbon copy recipients)
   - BCC (blind carbon copy recipients)
@@ -25,15 +33,30 @@ All notable changes to this project will be documented in this file.
 - Only stores email options in this version (SMS/push to be added later)
 
 ### UI Changes
+
 - Removed cron setup instructions from setup wizard
 - Removed cron status warning banner from workspace layout
 - Simpler onboarding experience - no manual cron configuration needed
+- **Setup Wizard Improvements**:
+  - Added newsletter subscription option
+  - PASETO keys configuration moved to collapsible "Advanced Settings" section
+  - Added "Privacy Settings" section for telemetry and update check configuration
+  - Improved restart handling: displays setup completion screen immediately while server restarts
+  - User can review generated keys before manually redirecting to signin
+
+### Migration System Enhancement
+
+- Added `ShouldRestartServer()` method to migration interface
+- Migrations can now trigger automatic server restart when config reload is needed
+- Server exits gracefully after migrations requiring restart (process manager handles restart)
 
 ### Deprecated (kept for backward compatibility)
+
 - `/api/cron` HTTP endpoint (internal scheduler is now primary)
 - `/api/cron.status` HTTP endpoint (still functional but not advertised)
 
 ### Fixes
+
 - Fix: SMTP now supports unauthenticated/anonymous connections (e.g., local mail relays on port 25)
 - Magic code emails, workspace invitations, and circuit breaker alerts now work without SMTP credentials
 - SMTP authentication is only configured when both username and password are provided
@@ -44,9 +67,12 @@ All notable changes to this project will be documented in this file.
 - Fix: Normalize browser timezone names to canonical IANA format to prevent timezone mismatch errors
 
 ### Migration Notes
+
 - Existing messages will have `channel_options = NULL` (no backfill)
+- Migration v14 adds default telemetry and update check settings for existing installations (both default to `true`)
 - Migration is idempotent and safe to run multiple times
 - Estimated migration time: < 1 second per workspace
+- Server will automatically restart after migration to reload telemetry configuration
 
 ## [13.7] - 2025-10-25
 

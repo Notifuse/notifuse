@@ -3,8 +3,10 @@ package app
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -277,6 +279,23 @@ func (a *App) InitDB() error {
 	migrationManager := migrations.NewManager(a.logger)
 	ctx := context.Background()
 	if err := migrationManager.RunMigrations(ctx, a.config, db); err != nil {
+		// Check if this is a restart-required signal
+		if errors.Is(err, migrations.ErrRestartRequired) {
+			a.logger.Info("Migration completed successfully - server restart required to reload configuration")
+			a.logger.Info("Closing database connection and exiting for restart...")
+
+			// Close database connection before exit
+			if closeErr := db.Close(); closeErr != nil {
+				a.logger.WithField("error", closeErr).Warn("Error closing database during restart")
+			}
+
+			// Give logs time to flush
+			time.Sleep(200 * time.Millisecond)
+
+			// Exit to trigger process manager restart (Air, systemd, Docker, etc.)
+			a.logger.Info("Exiting now - process manager should restart the server")
+			os.Exit(0)
+		}
 		db.Close()
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
@@ -302,7 +321,7 @@ func (a *App) InitDB() error {
 func (a *App) InitMailer() error {
 	// Always initialize/reinitialize the mailer
 	// This allows config changes (e.g., after setup wizard) to take effect
-	
+
 	if a.config.IsDevelopment() {
 		// Use console mailer in development
 		a.mailer = mailer.NewConsoleMailer()
@@ -318,7 +337,7 @@ func (a *App) InitMailer() error {
 			FromName:     a.config.SMTP.FromName,
 			APIEndpoint:  a.config.APIEndpoint,
 		}
-		
+
 		a.mailer = mailer.NewSMTPMailer(mailerConfig)
 		a.logger.Info("Using SMTP mailer for production")
 	}

@@ -26,7 +26,7 @@ import type { Workspace } from '../../services/api/types'
 import TemplateSelectorInput from '../templates/TemplateSelectorInput'
 import { DeleteOutlined } from '@ant-design/icons'
 import React from 'react'
-import extractTLD from '../utils/tld'
+import extractTLD from '../../lib/tld'
 
 // Custom component to handle A/B testing configuration
 const ABTestingConfig = ({ form, trackingEnabled }: { form: any; trackingEnabled: boolean }) => {

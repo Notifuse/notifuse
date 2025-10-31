@@ -3,6 +3,7 @@ package migrations
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -12,6 +13,9 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
+
+// ErrRestartRequired is returned when a migration requires a server restart
+var ErrRestartRequired = errors.New("migration completed successfully - server restart required")
 
 // workspaceConnector interface for connecting to workspace databases
 type workspaceConnector interface {
@@ -157,10 +161,18 @@ func (m *Manager) RunMigrations(ctx context.Context, cfg *config.Config, db *sql
 
 	m.logger.WithField("count", len(migrationsToRun)).Info("Migrations to execute")
 
+	// Track if any migration requires a restart
+	requiresRestart := false
+
 	// Execute migrations in order
 	for _, migration := range migrationsToRun {
 		if err := m.executeMigration(ctx, cfg, db, migration); err != nil {
 			return fmt.Errorf("migration failed for version %.0f: %w", migration.GetMajorVersion(), err)
+		}
+
+		// Check if this migration requires a restart
+		if migration.ShouldRestartServer() {
+			requiresRestart = true
 		}
 	}
 
@@ -170,6 +182,13 @@ func (m *Manager) RunMigrations(ctx context.Context, cfg *config.Config, db *sql
 	}
 
 	m.logger.WithField("version", fmt.Sprintf("%.0f", currentCodeVersion)).Info("Migration process completed successfully")
+
+	// Return restart signal if needed
+	if requiresRestart {
+		m.logger.Info("Migrations completed - server restart required to reload configuration")
+		return ErrRestartRequired
+	}
+
 	return nil
 }
 

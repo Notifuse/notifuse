@@ -10,7 +10,7 @@ import {
 import type { Workspace } from '../../services/api/types'
 import TemplateSelectorInput from '../templates/TemplateSelectorInput'
 import React from 'react'
-import extractTLD from '../utils/tld'
+import extractTLD from '../../lib/tld'
 
 // Helper function to generate a valid API ID from a name
 const generateApiId = (name: string): string => {

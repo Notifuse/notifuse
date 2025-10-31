@@ -3,8 +3,9 @@ import { Rule } from 'antd/lib/form'
 import Messages from './messages'
 import { DimensionFilter, FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
 import { Currencies, Currency } from '../../lib/currencies'
-import { CountriesFormOptions, Timezones } from '../../lib/countries_timezones'
+import { CountriesFormOptions } from '../../lib/countries_timezones'
 import { Languages } from '../../lib/languages'
+import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 
 export type OperatorContainsProps = {
   value: string | undefined
@@ -128,11 +129,8 @@ export class OperatorContains implements IOperator {
                   searchText !== '' && option.name.toLowerCase().includes(searchText.toLowerCase())
                 )
               }}
-              options={Timezones}
-              fieldNames={{
-                label: 'name',
-                value: 'name'
-              }}
+              optionFilterProp="label"
+              options={TIMEZONE_OPTIONS}
             />
           )
         }

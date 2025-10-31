@@ -28,6 +28,11 @@ func (m *V11Migration) HasWorkspaceUpdate() bool {
 	return false // No workspace-level changes needed
 }
 
+// ShouldRestartServer indicates if the server should restart after this migration
+func (m *V11Migration) ShouldRestartServer() bool {
+	return false
+}
+
 // UpdateSystem executes system-level migration changes
 // Marks existing installations as installed without migrating env vars to database
 // With v11+, env vars always take precedence and should NOT be stored in database
