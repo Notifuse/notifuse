@@ -682,11 +682,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                 cancelText="Cancel"
                 disabled={!permissions?.broadcasts?.write}
               >
-                <Button
-                  type="text"
-                  size="small"
-                  disabled={!permissions?.broadcasts?.write}
-                >
+                <Button type="text" size="small" disabled={!permissions?.broadcasts?.write}>
                   <FontAwesomeIcon icon={faCirclePause} style={{ opacity: 0.7 }} />
                 </Button>
               </Popconfirm>
@@ -708,11 +704,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                 cancelText="Cancel"
                 disabled={!permissions?.broadcasts?.write}
               >
-                <Button
-                  type="text"
-                  size="small"
-                  disabled={!permissions?.broadcasts?.write}
-                >
+                <Button type="text" size="small" disabled={!permissions?.broadcasts?.write}>
                   <FontAwesomeIcon icon={faCirclePlay} style={{ opacity: 0.7 }} />
                 </Button>
               </Popconfirm>
@@ -901,12 +893,6 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                       />
                     )}
                   </Descriptions.Item>
-
-                  {broadcast.audience.rate_limit_per_minute && (
-                    <Descriptions.Item label="Rate Limit">
-                      {broadcast.audience.rate_limit_per_minute}/min
-                    </Descriptions.Item>
-                  )}
 
                   {broadcast.utm_parameters?.source && (
                     <Descriptions.Item label="UTM Source">
