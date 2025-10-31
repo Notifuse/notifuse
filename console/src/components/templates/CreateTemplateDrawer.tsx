@@ -273,6 +273,9 @@ export function CreateTemplateDrawer({
 
   const defaultTestData = useMemo(() => {
     const endpoint = workspace.settings?.custom_endpoint_url || window.API_ENDPOINT
+    // These example values show available template variables for preview
+    // Note: Preview links (mid=preview) show a "Preview Mode" message in the notification center
+    // Real emails use secure HMACs for authentication
     return {
       contact: {
         first_name: 'John',
@@ -283,11 +286,11 @@ export function CreateTemplateDrawer({
         id: 'newsletter',
         name: 'Newsletter'
       },
-      unsubscribe_url: `${endpoint}/notification-center?action=unsubscribe&email=john.doe@example.com&lid=newsletter&email_hmac=abc123`,
-      confirm_subscription_url: `${endpoint}/notification-center?action=confirm&email=john.doe@example.com&lid=newsletter&email_hmac=abc123`,
-      notification_center_url: `${endpoint}/notification-center?email=john.doe@example.com&email_hmac=abc123&wid=workspace123`
+      unsubscribe_url: `${endpoint}/notification-center?action=unsubscribe&email=john.doe@example.com&lid=newsletter&lname=Newsletter&wid=${workspace.id}&mid=preview&email_hmac=abc123`,
+      confirm_subscription_url: `${endpoint}/notification-center?action=confirm&email=john.doe@example.com&lid=newsletter&lname=Newsletter&wid=${workspace.id}&mid=preview&email_hmac=abc123`,
+      notification_center_url: `${endpoint}/notification-center?email=john.doe@example.com&email_hmac=abc123&wid=${workspace.id}`
     }
-  }, [workspace.settings?.custom_endpoint_url])
+  }, [workspace.settings?.custom_endpoint_url, workspace.id])
 
   const showDrawer = () => {
     if (template) {

@@ -41,6 +41,7 @@ function App() {
     message: string
     listId?: string
   } | null>(null)
+  const [isPreviewMode, setIsPreviewMode] = useState(false)
   const languageMenuRef = useRef<HTMLDivElement>(null)
 
   // Translation helper function
@@ -58,6 +59,20 @@ function App() {
         if (!params) {
           setError(t('missingParameters'))
           setLoading(false)
+          return
+        }
+
+        // Detect preview mode (test email, preview message ID, or fake HMAC)
+        const isPreview =
+          params.mid === 'preview' ||
+          params.email === 'john.doe@example.com' ||
+          params.email_hmac === 'abc123' ||
+          params.email_hmac === '...'
+
+        if (isPreview) {
+          setIsPreviewMode(true)
+          setLoading(false)
+          // Don't make API calls in preview mode
           return
         }
 
@@ -362,6 +377,40 @@ function App() {
           <div className="text-center">
             <div className="text-xl font-medium text-red-500">{t('error')}</div>
             <p className="text-gray-700 mt-2">{error}</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (isPreviewMode) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50">
+        <div className="p-8 max-w-2xl mx-auto">
+          <div className="bg-white rounded-lg shadow-xl p-8 border-2 border-indigo-200">
+            <div className="text-center">
+              <div className="text-5xl mb-4">👁️</div>
+              <div className="text-3xl font-bold text-indigo-600 mb-4">Preview Mode</div>
+              <p className="text-gray-700 text-lg mb-6">
+                This is a preview of your email template's notification center links.
+              </p>
+              <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-6 text-left">
+                <p className="text-sm text-gray-700 mb-3">
+                  <strong className="text-indigo-700">What you're seeing:</strong>
+                </p>
+                <ul className="text-sm text-gray-600 space-y-2 list-disc list-inside">
+                  <li>This preview shows how subscription/unsubscribe links work</li>
+                  <li>In production, real contacts will see their actual preferences</li>
+                  <li>Links in live emails use secure authentication</li>
+                </ul>
+              </div>
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <p className="text-sm text-gray-500">
+                  To test with real functionality, send yourself a test email from the template
+                  editor.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
