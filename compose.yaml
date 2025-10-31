@@ -1,3 +1,7 @@
+# ⚠️  IMPORTANT: If using a .env file with Docker Compose
+# Values containing # must be quoted: DB_PASSWORD="mypass#word123"
+# See env.example for more details.
+
 services:
   api:
     build:
