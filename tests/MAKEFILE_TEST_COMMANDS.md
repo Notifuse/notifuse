@@ -212,7 +212,7 @@ make coverage                     # Generate coverage reports
 
 Connection pool tests require properly configured PostgreSQL:
 
-**File**: `tests/docker-compose.test.yml`
+**File**: `tests/compose.test.yaml`
 
 ```yaml
 services:
@@ -229,7 +229,7 @@ services:
 **Start test database**:
 ```bash
 cd tests
-docker-compose -f docker-compose.test.yml up -d
+docker compose -f compose.test.yaml up -d
 ```
 
 ---

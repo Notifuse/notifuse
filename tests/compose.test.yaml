@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres-test:
     image: postgres:14
@@ -39,3 +37,4 @@ services:
 volumes:
   postgres_test_data:
     driver: local
+

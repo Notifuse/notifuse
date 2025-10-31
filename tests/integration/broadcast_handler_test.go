@@ -17,7 +17,7 @@ import (
 )
 
 // TestBroadcastHandler tests the broadcast handler with proper SMTP email provider configuration.
-// This test suite sets up a Mailhog SMTP server (configured in docker-compose.test.yml) to properly
+// This test suite sets up a Mailhog SMTP server (configured in compose.test.yaml) to properly
 // test email sending functionality without skipping tests due to missing email provider configuration.
 
 func TestBroadcastHandler(t *testing.T) {

@@ -7,7 +7,7 @@ This directory contains the integration testing framework for the Notifuse API, 
 ```
 tests/
 ├── README.md                    # This file
-├── docker-compose.test.yml      # Test infrastructure (PostgreSQL, MailHog)
+├── compose.test.yaml            # Test infrastructure (PostgreSQL, MailHog)
 ├── testutil/                    # Test utilities and helpers
 │   ├── database.go              # Database management for tests
 │   ├── server.go                # Test server management
@@ -45,7 +45,7 @@ make -f Makefile.integration test-integration-full
 
 ```bash
 # Start test database
-cd tests && docker-compose -f docker-compose.test.yml up -d
+cd tests && docker compose -f compose.test.yaml up -d
 
 # Run tests with environment variables
 INTEGRATION_TESTS=true \
@@ -57,7 +57,7 @@ ENVIRONMENT=test \
 go test -v ./tests/integration/...
 
 # Stop test infrastructure
-cd tests && docker-compose -f docker-compose.test.yml down -v
+cd tests && docker compose -f compose.test.yaml down -v
 ```
 
 ## Test Infrastructure

@@ -150,7 +150,7 @@ type BroadcastConfig struct {
 
 type TaskSchedulerConfig struct {
 	Enabled  bool          // Enable/disable internal scheduler
-	Interval time.Duration // Tick interval (default: 30s)
+	Interval time.Duration // Tick interval (default: 20s)
 	MaxTasks int           // Max tasks per execution (default: 100)
 }
 
@@ -366,7 +366,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 
 	// Task scheduler defaults
 	v.SetDefault("TASK_SCHEDULER_ENABLED", true)
-	v.SetDefault("TASK_SCHEDULER_INTERVAL", "30s")
+	v.SetDefault("TASK_SCHEDULER_INTERVAL", "20s")
 	v.SetDefault("TASK_SCHEDULER_MAX_TASKS", 100)
 
 	// Load environment file if specified

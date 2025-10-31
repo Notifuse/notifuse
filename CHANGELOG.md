@@ -28,6 +28,7 @@ All notable changes to this project will be documented in this file.
   - ReplyTo (reply-to address override)
 - Message preview drawer displays email delivery options when present
 - Only stores email options in this version (SMS/push to be added later)
+- Modernized Docker Compose to use current standards: renamed `docker-compose.yml` to `compose.yaml`, removed deprecated `version` field, updated commands to use `docker compose` plugin syntax, and improved `.env` file integration
 
 ### UI Changes
 
@@ -53,6 +54,7 @@ All notable changes to this project will be documented in this file.
 - Fix: Docker images now built with CGO disabled to prevent SIGILL crashes on older CPUs
 - Fix: Decode HTML entities in URL attributes to ensure links with query parameters work correctly in MJML-compiled emails
 - Fix: Normalize browser timezone names to canonical IANA format to prevent timezone mismatch errors
+- Fix: Broadcast pause also pauses the associated task
 
 ### Migration Notes
 

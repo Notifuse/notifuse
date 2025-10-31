@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   api:
     build:
@@ -9,18 +7,18 @@ services:
       - '8081:8080'
     environment:
       # Server Configuration
-      - SERVER_PORT=8080
-      - SERVER_HOST=0.0.0.0
-      - ENVIRONMENT=development
+      - SERVER_PORT=${SERVER_PORT:-8080}
+      - SERVER_HOST=${SERVER_HOST:-0.0.0.0}
+      - ENVIRONMENT=${ENVIRONMENT:-development}
 
       # Database Configuration (Required)
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres
-      - DB_PREFIX=notifuse
-      - DB_NAME=notifuse_system
-      - DB_SSLMODE=disable
+      - DB_HOST=${DB_HOST:-postgres}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_USER=${DB_USER:-postgres}
+      - DB_PASSWORD=${DB_PASSWORD:-postgres}
+      - DB_PREFIX=${DB_PREFIX:-notifuse}
+      - DB_NAME=${DB_NAME:-notifuse_system}
+      - DB_SSLMODE=${DB_SSLMODE:-disable}
 
       # Secret Key (Required) - Generate a secure random string for production
       - SECRET_KEY=${SECRET_KEY:-d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==}
@@ -51,9 +49,9 @@ services:
     ports:
       - '5433:5432'
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=postgres
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-postgres}
     volumes:
       - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped

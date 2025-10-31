@@ -8,7 +8,7 @@ When running all 33 connection pool test cases together, PostgreSQL's default `m
 
 ### Solution 1: Increase PostgreSQL max_connections (✅ Recommended)
 
-**Already Applied:** The `tests/docker-compose.test.yml` now configures PostgreSQL with `max_connections=300`.
+**Already Applied:** The `tests/compose.test.yaml` now configures PostgreSQL with `max_connections=300`.
 
 ```yaml
 postgres-test:
@@ -22,8 +22,8 @@ postgres-test:
 
 **Restart PostgreSQL to apply:**
 ```bash
-cd tests && docker-compose -f docker-compose.test.yml down
-cd tests && docker-compose -f docker-compose.test.yml up -d
+cd tests && docker compose -f compose.test.yaml down
+cd tests && docker compose -f compose.test.yaml up -d
 ```
 
 **Then run all tests:**
@@ -75,7 +75,7 @@ jobs:
     steps:
       - name: Run ${{ matrix.suite }}
         run: |
-          docker-compose -f tests/docker-compose.test.yml up -d
+          docker compose -f tests/compose.test.yaml up -d
           ./run-integration-tests.sh "${{ matrix.suite }}"
 ```
 
@@ -156,7 +156,7 @@ This skips `TestConnectionPoolPerformance` which creates the most connections.
 
 ## Summary
 
-**Best Solution:** Increase PostgreSQL `max_connections` to 300 (already done in `docker-compose.test.yml`)
+**Best Solution:** Increase PostgreSQL `max_connections` to 300 (already done in `compose.test.yaml`)
 
 **Then simply run:**
 ```bash

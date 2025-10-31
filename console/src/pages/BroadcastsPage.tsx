@@ -674,14 +674,22 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   : 'Pause Broadcast'
               }
             >
-              <Button
-                type="text"
-                size="small"
-                onClick={() => onPause(broadcast)}
+              <Popconfirm
+                title="Pause broadcast?"
+                description="The broadcast will stop sending and can be resumed later."
+                onConfirm={() => onPause(broadcast)}
+                okText="Yes, pause"
+                cancelText="Cancel"
                 disabled={!permissions?.broadcasts?.write}
               >
-                <FontAwesomeIcon icon={faCirclePause} style={{ opacity: 0.7 }} />
-              </Button>
+                <Button
+                  type="text"
+                  size="small"
+                  disabled={!permissions?.broadcasts?.write}
+                >
+                  <FontAwesomeIcon icon={faCirclePause} style={{ opacity: 0.7 }} />
+                </Button>
+              </Popconfirm>
             </Tooltip>
           )}
           {broadcast.status === 'paused' && (
@@ -692,14 +700,22 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   : 'Resume Broadcast'
               }
             >
-              <Button
-                type="text"
-                size="small"
-                onClick={() => onResume(broadcast)}
+              <Popconfirm
+                title="Resume broadcast?"
+                description="The broadcast will continue sending from where it was paused."
+                onConfirm={() => onResume(broadcast)}
+                okText="Yes, resume"
+                cancelText="Cancel"
                 disabled={!permissions?.broadcasts?.write}
               >
-                <FontAwesomeIcon icon={faCirclePlay} style={{ opacity: 0.7 }} />
-              </Button>
+                <Button
+                  type="text"
+                  size="small"
+                  disabled={!permissions?.broadcasts?.write}
+                >
+                  <FontAwesomeIcon icon={faCirclePlay} style={{ opacity: 0.7 }} />
+                </Button>
+              </Popconfirm>
             </Tooltip>
           )}
           {broadcast.status === 'scheduled' && (

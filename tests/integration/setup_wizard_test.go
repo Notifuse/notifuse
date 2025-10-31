@@ -243,7 +243,7 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 	client := suite.APIClient
 
 	t.Run("Test SMTP Connection - Success", func(t *testing.T) {
-		// Test with valid MailHog settings (running in docker-compose)
+		// Test with valid MailHog settings (running in Docker Compose)
 		testReq := map[string]interface{}{
 			"smtp_host": "localhost",
 			"smtp_port": 1025,

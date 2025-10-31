@@ -19,7 +19,7 @@ help:
 # Start test infrastructure
 start:
 	@echo "🚀 Starting test infrastructure..."
-	docker-compose -f docker-compose.test.yml up -d
+	docker compose -f compose.test.yaml up -d
 	@echo "⏳ Waiting for services to be ready..."
 	@sleep 8
 	@echo "✅ Test infrastructure is ready!"
@@ -30,7 +30,7 @@ start:
 # Stop test infrastructure
 stop:
 	@echo "🛑 Stopping test infrastructure..."
-	docker-compose -f docker-compose.test.yml down
+	docker compose -f compose.test.yaml down
 	@echo "✅ Test infrastructure stopped!"
 
 # Restart test infrastructure
@@ -39,18 +39,18 @@ restart: stop start
 # Clean test infrastructure (remove volumes)
 clean:
 	@echo "🧹 Cleaning test infrastructure..."
-	docker-compose -f docker-compose.test.yml down -v --remove-orphans
+	docker compose -f compose.test.yaml down -v --remove-orphans
 	@echo "✅ Test infrastructure cleaned!"
 
 # Show status of test services
 status:
 	@echo "📊 Test infrastructure status:"
-	docker-compose -f docker-compose.test.yml ps
+	docker compose -f compose.test.yaml ps
 
 # Show logs from test services
 logs:
 	@echo "📋 Test infrastructure logs:"
-	docker-compose -f docker-compose.test.yml logs -f
+	docker compose -f compose.test.yaml logs -f
 
 # Check health of test services
 health:

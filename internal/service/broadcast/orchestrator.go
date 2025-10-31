@@ -813,6 +813,17 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				break
 			}
 
+			// Check if broadcast has been paused
+			if broadcast.Status == domain.BroadcastStatusPaused {
+				o.logger.WithFields(map[string]interface{}{
+					"broadcast_id": broadcast.ID,
+					"task_id":      task.ID,
+				}).Info("Broadcast paused during processing - stopping task")
+				// Task should stop processing as broadcast is paused
+				allDone = false // Task is not complete, it should be resumed later
+				break
+			}
+
 			// If currently in test phase and a winner was selected meanwhile, transition to winner phase
 			if broadcastState.Phase == "test" && (broadcast.WinningTemplate != "" || broadcast.Status == domain.BroadcastStatusWinnerSelected) {
 				broadcastState.Phase = "winner"

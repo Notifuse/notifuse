@@ -15,7 +15,7 @@ help:
 # Start test database and dependencies
 test-integration-setup:
 	@echo "Starting test infrastructure..."
-	cd tests && docker-compose -f docker-compose.test.yml up -d
+	cd tests && docker compose -f compose.test.yaml up -d
 	@echo "Waiting for services to be ready..."
 	sleep 8
 	@echo "Test infrastructure ready!"
@@ -23,7 +23,7 @@ test-integration-setup:
 # Stop test database and dependencies
 test-integration-teardown:
 	@echo "Stopping test infrastructure..."
-	cd tests && docker-compose -f docker-compose.test.yml down -v
+	cd tests && docker compose -f compose.test.yaml down -v
 	@echo "Test infrastructure stopped!"
 
 # Run integration tests with environment variables
@@ -142,7 +142,7 @@ test-integration-health:
 # View test infrastructure logs
 test-integration-logs:
 	@echo "Viewing test infrastructure logs..."
-	cd tests && docker-compose -f docker-compose.test.yml logs -f
+	cd tests && docker compose -f compose.test.yaml logs -f
 
 # Reset test infrastructure
 test-integration-reset: test-integration-teardown test-integration-setup

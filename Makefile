@@ -110,14 +110,14 @@ docker-publish:
 # Docker compose commands
 docker-compose-up:
 	@echo "Starting services with Docker Compose..."
-	docker-compose up -d
+	docker compose up -d
 
 docker-compose-down:
 	@echo "Stopping services with Docker Compose..."
-	docker-compose down
+	docker compose down
 
 docker-compose-build:
 	@echo "Building services with Docker Compose..."
-	docker-compose build
+	docker compose build
 
 .DEFAULT_GOAL := build 

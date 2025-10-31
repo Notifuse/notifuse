@@ -10,10 +10,10 @@ echo "🐳 Integration Test Runner"
 echo "=========================="
 echo ""
 
-# Check if docker-compose services are running
+# Check if docker compose services are running
 if ! docker ps | grep -q "tests-postgres-test-1"; then
     echo "📦 Starting test infrastructure..."
-    cd /workspace && docker compose -f tests/docker-compose.test.yml up -d
+    cd /workspace && docker compose -f tests/compose.test.yaml up -d
     echo "⏳ Waiting for services to be healthy..."
     sleep 8
 fi

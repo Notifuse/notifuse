@@ -88,7 +88,7 @@ If connection exhaustion occurs:
 
 #### Option 2: Increase PostgreSQL Connections
 ```yaml
-# tests/docker-compose.test.yml
+# tests/compose.test.yaml
 services:
   postgres-test:
     command:

@@ -31,7 +31,7 @@ type DatabaseManager struct {
 func NewDatabaseManager() *DatabaseManager {
 	defaultHost := "localhost"
 	defaultPort := 5433
-	
+
 	// Use environment variables if set (for containerized environments)
 	testHost := getEnvOrDefault("TEST_DB_HOST", defaultHost)
 	testPort := defaultPort
@@ -43,15 +43,19 @@ func NewDatabaseManager() *DatabaseManager {
 			testPort = 5432
 		}
 	}
-	
+
 	config := &config.DatabaseConfig{
-		Host:     testHost,
-		Port:     testPort,
-		User:     getEnvOrDefault("TEST_DB_USER", "notifuse_test"),
-		Password: getEnvOrDefault("TEST_DB_PASSWORD", "test_password"),
-		DBName:   fmt.Sprintf("notifuse_test_%d", time.Now().UnixNano()),
-		Prefix:   "notifuse_test",
-		SSLMode:  "disable",
+		Host:                  testHost,
+		Port:                  testPort,
+		User:                  getEnvOrDefault("TEST_DB_USER", "notifuse_test"),
+		Password:              getEnvOrDefault("TEST_DB_PASSWORD", "test_password"),
+		DBName:                fmt.Sprintf("notifuse_test_%d", time.Now().UnixNano()),
+		Prefix:                "notifuse_test",
+		SSLMode:               "disable",
+		MaxConnections:        100, // Default value for tests
+		MaxConnectionsPerDB:   10,  // Higher than default (3) for parallel tests
+		ConnectionMaxLifetime: 10 * time.Minute,
+		ConnectionMaxIdleTime: 5 * time.Minute,
 	}
 
 	return &DatabaseManager{
