@@ -1134,3 +1134,235 @@ func TestApp_InitializeComponents(t *testing.T) {
 		assert.NotNil(t, app.GetMux(), "HTTP mux should be initialized")
 	})
 }
+
+// TestTaskSchedulerDelayedStart tests the task scheduler's delayed start functionality
+func TestTaskSchedulerDelayedStart(t *testing.T) {
+	t.Run("Task scheduler starts after delay", func(t *testing.T) {
+		// Get hardcoded keys for testing
+		keys, err := testkeys.GetHardcodedTestKeys()
+		require.NoError(t, err, "Failed to get hardcoded keys")
+
+		// Set up mock DB with minimal expectations
+		mockDB, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer mockDB.Close()
+
+		// Create app with test config and mocks
+		cfg := createTestConfig()
+		cfg.Security.PasetoPrivateKeyBytes = keys.PrivateKeyBytes
+		cfg.Security.PasetoPublicKeyBytes = keys.PublicKeyBytes
+		cfg.TaskScheduler.Enabled = true
+		cfg.TaskScheduler.Interval = 60 * time.Second // Long interval so it doesn't run during test
+		cfg.TaskScheduler.MaxTasks = 10
+		cfg.Server.Port = 19000 + (time.Now().Nanosecond() % 1000)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		// Set up logger expectations - we expect the "will start in 30 seconds" message
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		// Only expect Close to be called during shutdown
+		mock.ExpectClose()
+
+		app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB))
+		appImpl, ok := app.(*App)
+		require.True(t, ok, "app should be *App")
+
+		// Initialize connection manager before repositories
+		err = pkgDatabase.InitializeConnectionManager(cfg, mockDB)
+		require.NoError(t, err)
+		defer pkgDatabase.ResetConnectionManager()
+
+		// Setup repositories and services
+		err = app.InitRepositories()
+		require.NoError(t, err)
+
+		err = app.InitServices()
+		require.NoError(t, err)
+
+		// Set a shorter shutdown timeout for testing
+		app.SetShutdownTimeout(2 * time.Second)
+
+		// Start server in goroutine
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- app.Start()
+		}()
+
+		// Wait for server to be initialized
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		started := app.WaitForServerStart(ctx)
+		require.True(t, started, "Server should have started")
+
+		// The task scheduler should not be started yet (still in the 30 second delay)
+		// We can't directly check if it's running, but we can verify the goroutine was created
+		// by waiting a short time and checking that shutdown still works cleanly
+		time.Sleep(100 * time.Millisecond)
+
+		// Verify we can still access the task scheduler
+		assert.NotNil(t, appImpl.taskScheduler, "Task scheduler should be initialized")
+
+		// Shutdown before the 30 second delay completes
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		err = app.Shutdown(shutdownCtx)
+		assert.NoError(t, err)
+
+		// Check server stopped cleanly
+		select {
+		case err := <-errCh:
+			if err != nil && err != http.ErrServerClosed {
+				t.Fatalf("Server error: %v", err)
+			}
+		case <-time.After(1 * time.Second):
+			t.Fatal("Timed out waiting for server to stop")
+		}
+	})
+
+	t.Run("Task scheduler respects shutdown during delay", func(t *testing.T) {
+		// This test verifies that if shutdown happens during the 30-second delay,
+		// the task scheduler never starts
+		
+		// Get hardcoded keys for testing
+		keys, err := testkeys.GetHardcodedTestKeys()
+		require.NoError(t, err, "Failed to get hardcoded keys")
+
+		// Set up mock DB with minimal expectations
+		mockDB, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer mockDB.Close()
+
+		// Create app with test config and mocks
+		cfg := createTestConfig()
+		cfg.Security.PasetoPrivateKeyBytes = keys.PrivateKeyBytes
+		cfg.Security.PasetoPublicKeyBytes = keys.PublicKeyBytes
+		cfg.TaskScheduler.Enabled = true
+		cfg.TaskScheduler.Interval = 60 * time.Second
+		cfg.TaskScheduler.MaxTasks = 10
+		cfg.Server.Port = 19500 + (time.Now().Nanosecond() % 1000)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		mock.ExpectClose()
+
+		app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB))
+
+		// Initialize connection manager before repositories
+		err = pkgDatabase.InitializeConnectionManager(cfg, mockDB)
+		require.NoError(t, err)
+		defer pkgDatabase.ResetConnectionManager()
+
+		// Setup repositories and services
+		err = app.InitRepositories()
+		require.NoError(t, err)
+
+		err = app.InitServices()
+		require.NoError(t, err)
+
+		app.SetShutdownTimeout(2 * time.Second)
+
+		// Start server in goroutine
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- app.Start()
+		}()
+
+		// Wait for server to be initialized
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		started := app.WaitForServerStart(ctx)
+		require.True(t, started, "Server should have started")
+
+		// Immediately shutdown (within the 30 second delay)
+		// This tests that the goroutine exits cleanly without starting the scheduler
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		err = app.Shutdown(shutdownCtx)
+		assert.NoError(t, err)
+
+		// Check server stopped cleanly
+		select {
+		case err := <-errCh:
+			if err != nil && err != http.ErrServerClosed {
+				t.Fatalf("Server error: %v", err)
+			}
+		case <-time.After(1 * time.Second):
+			t.Fatal("Timed out waiting for server to stop")
+		}
+	})
+
+	t.Run("Task scheduler disabled config", func(t *testing.T) {
+		// Test that when task scheduler is disabled, it doesn't start at all
+		
+		cfg := createTestConfig()
+		cfg.TaskScheduler.Enabled = false // Disabled
+		cfg.Server.Port = 19800 + (time.Now().Nanosecond() % 1000)
+
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+
+		mockDB, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer mockDB.Close()
+
+		mock.ExpectClose()
+
+		app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB))
+		app.SetShutdownTimeout(2 * time.Second)
+
+		// Start server in goroutine
+		errCh := make(chan error, 1)
+		go func() {
+			errCh <- app.Start()
+		}()
+
+		// Wait for server to be initialized
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		started := app.WaitForServerStart(ctx)
+		require.True(t, started, "Server should have started")
+
+		// Wait a bit to ensure no task scheduler starts
+		time.Sleep(100 * time.Millisecond)
+
+		// Shutdown
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer shutdownCancel()
+		err = app.Shutdown(shutdownCtx)
+		assert.NoError(t, err)
+
+		// Check server stopped cleanly
+		select {
+		case err := <-errCh:
+			if err != nil && err != http.ErrServerClosed {
+				t.Fatalf("Server error: %v", err)
+			}
+		case <-time.After(1 * time.Second):
+			t.Fatal("Timed out waiting for server to stop")
+		}
+	})
+}

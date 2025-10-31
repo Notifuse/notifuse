@@ -894,10 +894,29 @@ func (a *App) Start() error {
 	// Signal that the server has been created and is about to start
 	close(serverStarted)
 
-	// Start internal task scheduler if enabled
+	// Start internal task scheduler if enabled (with 30 second delay)
 	if a.config.TaskScheduler.Enabled && a.taskScheduler != nil {
-		ctx := a.GetShutdownContext()
-		a.taskScheduler.Start(ctx)
+		go func() {
+			// Wait 30 seconds before starting to avoid hitting DB on server start
+			a.logger.Info("Task scheduler will start in 30 seconds...")
+
+			ctx := a.GetShutdownContext()
+
+			// Use a timer that respects the shutdown context
+			select {
+			case <-time.After(30 * time.Second):
+				// Check if we're shutting down before starting
+				if ctx.Err() != nil {
+					a.logger.Info("Server shutting down, task scheduler will not start")
+					return
+				}
+				a.logger.Info("Starting task scheduler now")
+				a.taskScheduler.Start(ctx)
+			case <-ctx.Done():
+				a.logger.Info("Server shutdown initiated during task scheduler delay, scheduler will not start")
+				return
+			}
+		}()
 	}
 
 	// Start daily telemetry scheduler
