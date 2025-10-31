@@ -169,7 +169,7 @@ func TestAppInitMailer(t *testing.T) {
 		}
 
 		app := NewApp(cfg, WithLogger(mockLogger))
-		
+
 		// First initialization
 		err := app.InitMailer()
 		assert.NoError(t, err)
@@ -1230,7 +1230,7 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 	t.Run("Task scheduler respects shutdown during delay", func(t *testing.T) {
 		// This test verifies that if shutdown happens during the 30-second delay,
 		// the task scheduler never starts
-		
+
 		// Get hardcoded keys for testing
 		keys, err := testkeys.GetHardcodedTestKeys()
 		require.NoError(t, err, "Failed to get hardcoded keys")
@@ -1310,7 +1310,7 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 
 	t.Run("Task scheduler disabled config", func(t *testing.T) {
 		// Test that when task scheduler is disabled, it doesn't start at all
-		
+
 		cfg := createTestConfig()
 		cfg.TaskScheduler.Enabled = false // Disabled
 		cfg.Server.Port = 19800 + (time.Now().Nanosecond() % 1000)
