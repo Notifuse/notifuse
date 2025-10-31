@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [14.0] - 2025-10-30
+## [14.0] - 2025-10-31
 
 ### Database Schema Changes
 
