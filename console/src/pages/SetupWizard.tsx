@@ -18,6 +18,7 @@ import {
 import { ApiOutlined, CheckOutlined, CopyOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { setupApi } from '../services/api/setup'
 import type { SetupConfig } from '../types/setup'
+import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 
 const { TextArea } = Input
 
@@ -153,6 +154,17 @@ export default function SetupWizard() {
         try {
           const contact: any = {
             email: values.root_email
+          }
+
+          // Add timezone from browser (normalized to canonical IANA name)
+          try {
+            const timezone = getBrowserTimezone()
+            if (timezone) {
+              contact.timezone = timezone
+            }
+          } catch (e) {
+            // Fail silently if timezone detection fails
+            console.error('Failed to detect timezone:', e)
           }
 
           // Only include custom fields if values are available

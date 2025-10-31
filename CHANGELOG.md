@@ -6,10 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Database Schema Changes
 
-- Added `channel_options` JSONB column to `message_history` table
-  - Updated `internal/database/init.go` for new workspaces
-  - Created migration `v14.go` for existing workspaces
-- JSONB structure allows future SMS/push options without schema changes
+- Added `channel_options` JSONB column to `message_history` table to store email/SMS/push delivery options (CC, BCC, FromName, ReplyTo...)
 
 ### Features
 
@@ -44,12 +41,6 @@ All notable changes to this project will be documented in this file.
   - Improved restart handling: displays setup completion screen immediately while server restarts
   - User can review generated keys before manually redirecting to signin
 
-### Migration System Enhancement
-
-- Added `ShouldRestartServer()` method to migration interface
-- Migrations can now trigger automatic server restart when config reload is needed
-- Server exits gracefully after migrations requiring restart (process manager handles restart)
-
 ### Deprecated (kept for backward compatibility)
 
 - `/api/cron` HTTP endpoint (internal scheduler is now primary)
@@ -58,21 +49,19 @@ All notable changes to this project will be documented in this file.
 ### Fixes
 
 - Fix: SMTP now supports unauthenticated/anonymous connections (e.g., local mail relays on port 25)
-- Magic code emails, workspace invitations, and circuit breaker alerts now work without SMTP credentials
-- SMTP authentication is only configured when both username and password are provided
 - Fix: Docker images now built with CGO disabled to prevent SIGILL crashes on older CPUs
-- Fix: Server now properly restarts after setup wizard completion to reload all configuration settings
-- Fix: Signin emails and other system emails now work correctly after initial setup
 - Fix: Decode HTML entities in URL attributes to ensure links with query parameters work correctly in MJML-compiled emails
 - Fix: Normalize browser timezone names to canonical IANA format to prevent timezone mismatch errors
 
 ### Migration Notes
 
+- Added `ShouldRestartServer()` method to migration interface
+- Migrations can now trigger automatic server restart when config reload is needed
 - Existing messages will have `channel_options = NULL` (no backfill)
 - Migration v14 adds default telemetry and update check settings for existing installations (both default to `true`)
 - Migration is idempotent and safe to run multiple times
 - Estimated migration time: < 1 second per workspace
-- Server will automatically restart after migration to reload telemetry configuration
+- Server will automatically restart after migration to reload all configuration settings
 
 ## [13.7] - 2025-10-25
 
