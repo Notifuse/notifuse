@@ -40,58 +40,53 @@ func (t *errorTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	return nil, fmt.Errorf("network error")
 }
 
-func TestNewFaviconHandler(t *testing.T) {
-	handler := NewFaviconHandler()
-	assert.NotNil(t, handler)
-}
-
-func TestFaviconHandler_DetectFavicon_MethodNotAllowed(t *testing.T) {
-	handler := NewFaviconHandler()
+func TestNotificationCenterHandler_HandleDetectFavicon_MethodNotAllowed(t *testing.T) {
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/detect-favicon", nil)
 	w := httptest.NewRecorder()
 
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 }
 
-func TestFaviconHandler_DetectFavicon_InvalidJSON(t *testing.T) {
-	handler := NewFaviconHandler()
+func TestNotificationCenterHandler_HandleDetectFavicon_InvalidJSON(t *testing.T) {
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	// Create a request with invalid JSON
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", strings.NewReader("invalid json"))
 	w := httptest.NewRecorder()
 
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Invalid request body")
 }
 
-func TestFaviconHandler_DetectFavicon_EmptyURL(t *testing.T) {
-	handler := NewFaviconHandler()
+func TestNotificationCenterHandler_HandleDetectFavicon_EmptyURL(t *testing.T) {
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	// Create a request with empty URL
 	reqBody, _ := json.Marshal(FaviconRequest{URL: ""})
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewReader(reqBody))
 	w := httptest.NewRecorder()
 
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "URL is required")
 }
 
-func TestFaviconHandler_DetectFavicon_InvalidURL(t *testing.T) {
-	handler := NewFaviconHandler()
+func TestNotificationCenterHandler_HandleDetectFavicon_InvalidURL(t *testing.T) {
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	// Create a request with invalid URL
 	reqBody, _ := json.Marshal(FaviconRequest{URL: "://invalid-url"})
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", bytes.NewReader(reqBody))
 	w := httptest.NewRecorder()
 
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Contains(t, w.Body.String(), "Invalid URL")
@@ -376,7 +371,7 @@ func TestFaviconHandler_DetectFavicon_AppleTouchIcon_Success(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewFaviconHandler()
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -384,7 +379,7 @@ func TestFaviconHandler_DetectFavicon_AppleTouchIcon_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Call handler
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	// Check response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -444,7 +439,7 @@ func TestFaviconHandler_DetectFavicon_ManifestIcon_Success(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewFaviconHandler()
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -452,7 +447,7 @@ func TestFaviconHandler_DetectFavicon_ManifestIcon_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Call handler
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	// Check response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -497,7 +492,7 @@ func TestFaviconHandler_DetectFavicon_Traditional_Success(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewFaviconHandler()
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -505,7 +500,7 @@ func TestFaviconHandler_DetectFavicon_Traditional_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Call handler
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	// Check response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -549,7 +544,7 @@ func TestFaviconHandler_DetectFavicon_DefaultLocation_Success(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewFaviconHandler()
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -557,7 +552,7 @@ func TestFaviconHandler_DetectFavicon_DefaultLocation_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Call handler
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	// Check response
 	assert.Equal(t, http.StatusOK, w.Code)
@@ -601,7 +596,7 @@ func TestFaviconHandler_DetectFavicon_NoFaviconFound(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewFaviconHandler()
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -609,7 +604,7 @@ func TestFaviconHandler_DetectFavicon_NoFaviconFound(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Call handler
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	// Check response
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -630,7 +625,7 @@ func TestFaviconHandler_DetectFavicon_FailedFetch(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewFaviconHandler()
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: "https://example.com"})
@@ -638,7 +633,7 @@ func TestFaviconHandler_DetectFavicon_FailedFetch(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Call handler
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	// Check response
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -668,7 +663,7 @@ func TestFaviconHandler_DetectFavicon_InvalidHTML(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewFaviconHandler()
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -676,7 +671,7 @@ func TestFaviconHandler_DetectFavicon_InvalidHTML(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Call handler
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	// Check response - goquery is quite forgiving, so it should still parse
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -711,7 +706,7 @@ func TestFaviconHandler_DetectFavicon_HTMLParsingError(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewFaviconHandler()
+	handler := NewNotificationCenterHandler(nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -719,7 +714,7 @@ func TestFaviconHandler_DetectFavicon_HTMLParsingError(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Call handler
-	handler.DetectFavicon(w, req)
+	handler.HandleDetectFavicon(w, req)
 
 	// Check response - should get parsing error
 	assert.Equal(t, http.StatusInternalServerError, w.Code)
@@ -1079,7 +1074,7 @@ func TestFaviconHandler_DetectFavicon_WithCoverImages(t *testing.T) {
 			}
 
 			// Setup handler
-			handler := NewFaviconHandler()
+			handler := NewNotificationCenterHandler(nil, nil, nil)
 
 			// Create request
 			reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -1087,7 +1082,7 @@ func TestFaviconHandler_DetectFavicon_WithCoverImages(t *testing.T) {
 			w := httptest.NewRecorder()
 
 			// Call handler
-			handler.DetectFavicon(w, req)
+			handler.HandleDetectFavicon(w, req)
 
 			// Check response
 			if tc.expectedIcon == "" && tc.expectedCover == "" {

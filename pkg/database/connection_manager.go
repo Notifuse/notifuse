@@ -35,24 +35,24 @@ type ConnectionManager interface {
 
 // ConnectionStats provides visibility into connection usage
 type ConnectionStats struct {
-	MaxConnections           int
-	MaxConnectionsPerDB      int
-	SystemConnections        ConnectionPoolStats
-	WorkspacePools           map[string]ConnectionPoolStats
-	TotalOpenConnections     int
-	TotalInUseConnections    int
-	TotalIdleConnections     int
-	ActiveWorkspaceDatabases int
+	MaxConnections           int                            `json:"max_connections"`
+	MaxConnectionsPerDB      int                            `json:"max_connections_per_db"`
+	SystemConnections        ConnectionPoolStats            `json:"system_connections"`
+	WorkspacePools           map[string]ConnectionPoolStats `json:"-"`
+	TotalOpenConnections     int                            `json:"total_open_connections"`
+	TotalInUseConnections    int                            `json:"total_in_use_connections"`
+	TotalIdleConnections     int                            `json:"total_idle_connections"`
+	ActiveWorkspaceDatabases int                            `json:"-"`
 }
 
 // ConnectionPoolStats provides stats for a single connection pool
 type ConnectionPoolStats struct {
-	OpenConnections int
-	InUse           int
-	Idle            int
-	MaxOpen         int
-	WaitCount       int64
-	WaitDuration    time.Duration
+	OpenConnections int           `json:"open_connections"`
+	InUse           int           `json:"in_use"`
+	Idle            int           `json:"idle"`
+	MaxOpen         int           `json:"max_open"`
+	WaitCount       int64         `json:"wait_count"`
+	WaitDuration    time.Duration `json:"wait_duration"`
 }
 
 // connectionManager implements ConnectionManager
@@ -60,8 +60,8 @@ type connectionManager struct {
 	mu                  sync.RWMutex
 	config              *config.Config
 	systemDB            *sql.DB
-	workspacePools      map[string]*sql.DB    // workspaceID -> connection pool
-	poolAccessTimes     map[string]time.Time  // workspaceID -> last access time
+	workspacePools      map[string]*sql.DB   // workspaceID -> connection pool
+	poolAccessTimes     map[string]time.Time // workspaceID -> last access time
 	maxConnections      int
 	maxConnectionsPerDB int
 }
@@ -185,26 +185,32 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
 
 	// Need to create a new pool
 	cm.mu.Lock()
-	defer cm.mu.Unlock()
 
 	// Double-check after acquiring write lock (another goroutine may have created it)
 	if pool, ok := cm.workspacePools[workspaceID]; ok {
 		cm.poolAccessTimes[workspaceID] = time.Now()
+		cm.mu.Unlock()
 		return pool, nil
 	}
 
 	// Check if we have capacity for a new database connection pool
 	if !cm.hasCapacityForNewPool() {
+		// Release lock before calling closeLRUIdlePools (it acquires its own locks)
+		cm.mu.Unlock()
+
 		// Try to close least recently used idle pools
 		if cm.closeLRUIdlePools(1) > 0 {
-			// Successfully closed a pool, retry
+			// Successfully closed a pool, re-acquire lock and retry
+			cm.mu.Lock()
 			if !cm.hasCapacityForNewPool() {
+				cm.mu.Unlock()
 				return nil, &ConnectionLimitError{
 					MaxConnections:     cm.maxConnections,
 					CurrentConnections: cm.getTotalConnectionCount(),
 					WorkspaceID:        workspaceID,
 				}
 			}
+			// Lock still held, continue to pool creation
 		} else {
 			// Cannot close any pools - all are in use
 			return nil, &ConnectionLimitError{
@@ -214,16 +220,19 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
 			}
 		}
 	}
+	// Lock still held at this point
 
 	// Create new workspace connection pool
 	pool, err := cm.createWorkspacePool(ctx, workspaceID)
 	if err != nil {
+		cm.mu.Unlock()
 		return nil, fmt.Errorf("failed to create workspace pool: %w", err)
 	}
 
 	// Store in map with current access time
 	cm.workspacePools[workspaceID] = pool
 	cm.poolAccessTimes[workspaceID] = time.Now()
+	cm.mu.Unlock()
 
 	return pool, nil
 }
@@ -287,10 +296,7 @@ func (cm *connectionManager) hasCapacityForNewPool() bool {
 	// Calculate projected total if we add a new pool
 	projectedTotal := currentTotal + cm.maxConnectionsPerDB
 
-	// Leave 10% buffer
-	maxAllowed := int(float64(cm.maxConnections) * 0.9)
-
-	return projectedTotal <= maxAllowed
+	return projectedTotal <= cm.maxConnections
 }
 
 // getTotalConnectionCount returns the current total open connections
@@ -313,10 +319,13 @@ func (cm *connectionManager) getTotalConnectionCount() int {
 	return total
 }
 
-// closeLRUIdlePools closes up to 'count' least recently used idle pools
-// Returns the number of pools actually closed
-// Must be called with write lock held
-func (cm *connectionManager) closeLRUIdlePools(count int) int {
+// identifyLRUCandidates identifies idle workspace pools for eviction using LRU policy
+// Returns workspace IDs sorted by least recently used (oldest first)
+// This method acquires a read lock internally
+func (cm *connectionManager) identifyLRUCandidates(count int) []string {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
+
 	type candidate struct {
 		workspaceID string
 		lastAccess  time.Time
@@ -338,9 +347,9 @@ func (cm *connectionManager) closeLRUIdlePools(count int) int {
 		}
 	}
 
-	// If no candidates, return early
+	// If no candidates, return empty slice
 	if len(candidates) == 0 {
-		return 0
+		return nil
 	}
 
 	// Sort by access time (oldest first) - this is true LRU
@@ -348,15 +357,43 @@ func (cm *connectionManager) closeLRUIdlePools(count int) int {
 		return candidates[i].lastAccess.Before(candidates[j].lastAccess)
 	})
 
-	// Close up to 'count' oldest idle pools
-	closed := 0
+	// Return up to 'count' workspace IDs
+	result := make([]string, 0, count)
 	for i := 0; i < len(candidates) && i < count; i++ {
-		workspaceID := candidates[i].workspaceID
+		result = append(result, candidates[i].workspaceID)
+	}
+
+	return result
+}
+
+// closeLRUIdlePools closes up to 'count' least recently used idle pools
+// Returns the number of pools actually closed
+// This method uses two-phase eviction: identify candidates with read lock,
+// then close with write lock. Must be called WITHOUT lock held.
+func (cm *connectionManager) closeLRUIdlePools(count int) int {
+	// Phase 1: Identify candidates (with read lock inside identifyLRUCandidates)
+	candidates := cm.identifyLRUCandidates(count)
+
+	// If no candidates, return early
+	if len(candidates) == 0 {
+		return 0
+	}
+
+	// Phase 2: Close pools (acquire write lock only for closing)
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
+
+	closed := 0
+	for _, workspaceID := range candidates {
 		if pool, ok := cm.workspacePools[workspaceID]; ok {
-			pool.Close()
-			delete(cm.workspacePools, workspaceID)
-			delete(cm.poolAccessTimes, workspaceID)
-			closed++
+			// Re-check pool is still idle (state may have changed between phases)
+			stats := pool.Stats()
+			if stats.InUse == 0 {
+				pool.Close()
+				delete(cm.workspacePools, workspaceID)
+				delete(cm.poolAccessTimes, workspaceID)
+				closed++
+			}
 		}
 	}
 

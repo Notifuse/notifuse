@@ -778,7 +778,6 @@ func (a *App) InitHandlers() error {
 		a.logger,
 		a.config.Security.SecretKey,
 	)
-	faviconHandler := httpHandler.NewFaviconHandler()
 	contactHandler := httpHandler.NewContactHandler(a.contactService, getPublicKey, a.logger)
 	listHandler := httpHandler.NewListHandler(a.listService, getPublicKey, a.logger)
 	contactListHandler := httpHandler.NewContactListHandler(a.contactListService, getPublicKey, a.logger)
@@ -821,7 +820,6 @@ func (a *App) InitHandlers() error {
 		getPublicKey,
 		a.logger,
 	)
-	connectionStatsHandler := httpHandler.NewConnectionStatsHandler(a.logger, getPublicKey)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -847,8 +845,6 @@ func (a *App) InitHandlers() error {
 	analyticsHandler.RegisterRoutes(a.mux)
 	contactTimelineHandler.RegisterRoutes(a.mux)
 	segmentHandler.RegisterRoutes(a.mux)
-	connectionStatsHandler.RegisterRoutes(a.mux)
-	a.mux.HandleFunc("/api/detect-favicon", faviconHandler.DetectFavicon)
 
 	return nil
 }
