@@ -32,6 +32,7 @@ export default function SendTemplateModal({
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string>('')
   const [selectedSenderId, setSelectedSenderId] = useState<string>('')
   const [sendLoading, setSendLoading] = useState(false)
+  const [fromName, setFromName] = useState<string>('')
   const [ccEmails, setCcEmails] = useState<string[]>([])
   const [bccEmails, setBccEmails] = useState<string[]>([])
   const [replyTo, setReplyTo] = useState<string>('')
@@ -70,6 +71,7 @@ export default function SendTemplateModal({
   useEffect(() => {
     if (isOpen) {
       setEmail('')
+      setFromName('')
       setCcEmails([])
       setBccEmails([])
       setReplyTo('')
@@ -91,6 +93,7 @@ export default function SendTemplateModal({
         selectedSenderId,
         email,
         {
+          from_name: fromName || undefined,
           cc: ccEmails,
           bcc: bccEmails,
           reply_to: replyTo,
@@ -285,12 +288,24 @@ export default function SendTemplateModal({
 
           {!showAdvancedOptions && (
             <Button type="link" onClick={() => setShowAdvancedOptions(true)} className="!p-0">
-              + add CC, BCC, reply-to, attachments
+              + add from name, CC, BCC, reply-to, attachments
             </Button>
           )}
 
           {showAdvancedOptions && (
             <>
+              <Form.Item label="From Name (override)">
+                <Input
+                  placeholder="Custom sender name (optional)"
+                  value={fromName}
+                  onChange={(e) => setFromName(e.target.value)}
+                  allowClear
+                />
+                <Text type="secondary" className="text-xs mt-1 block">
+                  Override the default sender name for this test email
+                </Text>
+              </Form.Item>
+
               <Form.Item label="CC Recipients">
                 <Select
                   mode="tags"

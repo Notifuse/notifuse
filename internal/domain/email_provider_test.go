@@ -119,14 +119,13 @@ func TestSMTPSettingsValidation(t *testing.T) {
 			errMsg:  "invalid port number",
 		},
 		{
-			name: "Missing username",
+			name: "Missing username (should be valid - username is optional)",
 			smtp: SMTPSettings{
 				Host:     "smtp.example.com",
 				Port:     587,
 				Password: "password",
 			},
-			wantErr: true,
-			errMsg:  "username is required",
+			wantErr: false,
 		},
 	}
 

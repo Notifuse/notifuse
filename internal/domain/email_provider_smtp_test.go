@@ -197,6 +197,17 @@ func TestSMTPSettings_Validate(t *testing.T) {
 			errMsg:  "invalid port number",
 		},
 		{
+			name: "missing username (should be valid - username is optional)",
+			settings: domain.SMTPSettings{
+				Host:     "smtp.example.com",
+				Port:     587,
+				Username: "",
+				Password: "password",
+				UseTLS:   true,
+			},
+			wantErr: false,
+		},
+		{
 			name: "invalid port (too large)",
 			settings: domain.SMTPSettings{
 				Host:     "smtp.example.com",
@@ -209,15 +220,14 @@ func TestSMTPSettings_Validate(t *testing.T) {
 			errMsg:  "invalid port number",
 		},
 		{
-			name: "missing username",
+			name: "missing username (should be valid - username is optional)",
 			settings: domain.SMTPSettings{
 				Host:     "smtp.example.com",
 				Port:     587,
 				Password: "password",
 				UseTLS:   true,
 			},
-			wantErr: true,
-			errMsg:  "username is required",
+			wantErr: false,
 		},
 		{
 			name: "empty password",

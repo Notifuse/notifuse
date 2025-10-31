@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Drawer, Typography, Spin, Alert, Tabs, Tag, Space, Divider } from 'antd'
+import { Drawer, Typography, Spin, Alert, Tabs, Tag, Space, Descriptions } from 'antd'
 import type { Template, MjmlCompileError, Workspace } from '../../services/api/types'
 import { templatesApi } from '../../services/api/template'
 import type { EmailBlock } from '../email_builder/types'
@@ -200,109 +200,99 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   const drawerContent = (
     <div>
       {/* Header details */}
-      <div className="mb-4 space-y-2">
-        <div>
-          <Text strong>From: </Text>
-          {templateSender ? (
+      <Descriptions bordered={false} size="small" column={1} className="mb-4">
+        <Descriptions.Item label="From">
+          {messageHistory?.channel_options?.from_name ? (
             <>
               <Text>
-                {templateSender.name}
-                <Text type="secondary"> &lt;{templateSender.email}&gt;</Text>
+                {messageHistory.channel_options.from_name} &lt;
+                {templateSender?.email || defaultSender?.email || 'no email'}&gt;
               </Text>
+              {(templateSender || defaultSender) && (
+                <Text type="secondary" className="text-xs pl-2">
+                  (original: {templateSender?.name || defaultSender?.name})
+                </Text>
+              )}
             </>
           ) : (
             <>
-              {defaultSender ? (
-                <Text>
-                  {defaultSender.name}
-                  <Text type="secondary"> &lt;{defaultSender.email}&gt;</Text>
-                </Text>
+              {templateSender ? (
+                <>
+                  <Text>
+                    {templateSender.name}
+                    <Text> &lt;{templateSender.email}&gt;</Text>
+                  </Text>
+                </>
               ) : (
-                <Text>No default sender configured</Text>
+                <>
+                  {defaultSender ? (
+                    <Text>
+                      {defaultSender.name}
+                      <Text> &lt;{defaultSender.email}&gt;</Text>
+                    </Text>
+                  ) : (
+                    <Text>No default sender configured</Text>
+                  )}
+                </>
               )}
             </>
           )}
-        </div>
-        {record.email?.reply_to && (
-          <div>
-            <Text strong>Reply to: </Text>
-            <Text type="secondary">{record.email.reply_to}</Text>
-          </div>
-        )}
-        <div>
-          <Text strong>Subject: </Text>
-          <Text>{processedSubject ?? record.email?.subject}</Text>
-        </div>
-        {record.email?.subject_preview && (
-          <div>
-            <Text strong>Subject preview: </Text>
-            <Text type="secondary">{record.email.subject_preview}</Text>
-          </div>
-        )}
+        </Descriptions.Item>
 
-        {/* Channel Options Display */}
-        {messageHistory?.channel_options && (
-          <>
-            <Divider className="my-3" />
-            <Text strong className="block mb-2">
-              Message Delivery Options:
-            </Text>
-
-            {messageHistory.channel_options.from_name && (
-              <div className="ml-2">
-                <Text strong className="text-xs">
-                  From Name Override:{' '}
-                </Text>
-                <Text className="text-xs">{messageHistory.channel_options.from_name}</Text>
-              </div>
-            )}
-
-            {messageHistory.channel_options.cc && messageHistory.channel_options.cc.length > 0 && (
-              <div className="ml-2">
-                <Text strong className="text-xs">
-                  CC:{' '}
-                </Text>
-                <Space size={[0, 4]} wrap className="inline-flex">
-                  {messageHistory.channel_options.cc.map((email, idx) => (
-                    <Tag key={idx} color="blue" className="text-xs m-0">
-                      {email}
-                    </Tag>
-                  ))}
-                </Space>
-              </div>
-            )}
-
-            {messageHistory.channel_options.bcc &&
-              messageHistory.channel_options.bcc.length > 0 && (
-                <div className="ml-2">
-                  <Text strong className="text-xs">
-                    BCC:{' '}
+        {(record.email?.reply_to || messageHistory?.channel_options?.reply_to) && (
+          <Descriptions.Item label="Reply to">
+            {messageHistory?.channel_options?.reply_to ? (
+              <>
+                <Text>{messageHistory.channel_options.reply_to}</Text>
+                {record.email?.reply_to && (
+                  <Text type="secondary" className="text-xs pl-2">
+                    (original: {record.email.reply_to})
                   </Text>
-                  <Space size={[0, 4]} wrap className="inline-flex">
-                    {messageHistory.channel_options.bcc.map((email, idx) => (
-                      <Tag key={idx} color="purple" className="text-xs m-0">
-                        {email}
-                      </Tag>
-                    ))}
-                  </Space>
-                </div>
-              )}
-
-            {messageHistory.channel_options.reply_to && (
-              <div className="ml-2">
-                <Text strong className="text-xs">
-                  Reply To Override:{' '}
-                </Text>
-                <Text type="secondary" className="text-xs">
-                  {messageHistory.channel_options.reply_to}
-                </Text>
-              </div>
+                )}
+              </>
+            ) : (
+              <Text>{record.email?.reply_to || 'Not set'}</Text>
             )}
-          </>
+          </Descriptions.Item>
         )}
-      </div>
+
+        <Descriptions.Item label="Subject">
+          <Text>{processedSubject ?? record.email?.subject}</Text>
+        </Descriptions.Item>
+
+        {record.email?.subject_preview && (
+          <Descriptions.Item label="Subject preview">
+            <Text>{record.email.subject_preview}</Text>
+          </Descriptions.Item>
+        )}
+
+        {/* Channel Options Display - CC and BCC */}
+        {messageHistory?.channel_options?.cc && messageHistory.channel_options.cc.length > 0 && (
+          <Descriptions.Item label="CC">
+            <Space size={[0, 4]} wrap>
+              {messageHistory.channel_options.cc.map((email, idx) => (
+                <Tag bordered={false} key={idx} color="blue" className="text-xs">
+                  {email}
+                </Tag>
+              ))}
+            </Space>
+          </Descriptions.Item>
+        )}
+
+        {messageHistory?.channel_options?.bcc && messageHistory.channel_options.bcc.length > 0 && (
+          <Descriptions.Item label="BCC">
+            <Space size={[0, 4]} wrap>
+              {messageHistory.channel_options.bcc.map((email, idx) => (
+                <Tag bordered={false} key={idx} color="purple" className="text-xs">
+                  {email}
+                </Tag>
+              ))}
+            </Space>
+          </Descriptions.Item>
+        )}
+      </Descriptions>
       {/* Main content area */}
-      <div className="flex flex-col">
+      <div className="flex flex-col mt-4">
         {isLoading && (
           <div className="flex items-center justify-center flex-grow">
             <Spin size="large" />

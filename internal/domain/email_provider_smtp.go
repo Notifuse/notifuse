@@ -86,11 +86,7 @@ func (s *SMTPSettings) Validate(passphrase string) error {
 		return fmt.Errorf("invalid port number for SMTP configuration: %d", s.Port)
 	}
 
-	if s.Username == "" {
-		return fmt.Errorf("username is required for SMTP configuration")
-	}
-
-	// Only encrypt username if it's not empty
+	// Username is optional - only encrypt if provided
 	if s.Username != "" {
 		if err := s.EncryptUsername(passphrase); err != nil {
 			return fmt.Errorf("failed to encrypt SMTP username: %w", err)

@@ -940,14 +940,13 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 <Form.Item
                   name={['smtp', 'username']}
                   label="SMTP Username"
-                  rules={[{ required: true }]}
                 >
-                  <Input placeholder="Username" disabled={!isOwner} />
+                  <Input placeholder="Username (optional)" disabled={!isOwner} />
                 </Form.Item>
               </Col>
               <Col span={12}>
                 <Form.Item name={['smtp', 'password']} label="SMTP Password">
-                  <Input.Password placeholder="Password" disabled={!isOwner} />
+                  <Input.Password placeholder="Password (optional)" disabled={!isOwner} />
                 </Form.Item>
               </Col>
             </Row>

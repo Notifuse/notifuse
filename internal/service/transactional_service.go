@@ -808,8 +808,9 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 		MessageData: domain.MessageData{
 			Data: messageData,
 		},
-		SentAt:    time.Now().UTC(),
-		CreatedAt: time.Now().UTC(),
-		UpdatedAt: time.Now().UTC(),
+		ChannelOptions: emailOptions.ToChannelOptions(),
+		SentAt:         time.Now().UTC(),
+		CreatedAt:      time.Now().UTC(),
+		UpdatedAt:      time.Now().UTC(),
 	})
 }
