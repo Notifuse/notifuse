@@ -339,6 +339,9 @@ type ContactListRepository interface {
 	// AddContactToList adds a contact to a list
 	AddContactToList(ctx context.Context, workspaceID string, contactList *ContactList) error
 
+	// BulkAddContactsToLists adds multiple contacts to multiple lists in a single operation
+	BulkAddContactsToLists(ctx context.Context, workspaceID string, emails []string, listIDs []string, status ContactListStatus) error
+
 	// GetContactListByIDs retrieves a contact list by email and list ID
 	GetContactListByIDs(ctx context.Context, workspaceID string, email, listID string) (*ContactList, error)
 

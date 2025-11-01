@@ -2152,3 +2152,178 @@ func TestDeleteContact(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to delete contact")
 	})
 }
+
+func TestContactRepository_BulkUpsertContacts(t *testing.T) {
+	db, mock, cleanup := setupMockDB(t)
+	defer cleanup()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	workspaceID := "workspace123"
+	workspaceRepo.EXPECT().GetConnection(gomock.Any(), workspaceID).Return(db, nil).AnyTimes()
+
+	repo := NewContactRepository(workspaceRepo)
+	ctx := context.Background()
+	now := time.Now()
+
+	t.Run("successful bulk insert of new contacts", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "test1@example.com", CreatedAt: now, UpdatedAt: now},
+			{Email: "test2@example.com", CreatedAt: now, UpdatedAt: now},
+			{Email: "test3@example.com", CreatedAt: now, UpdatedAt: now},
+		}
+
+		// Expect transaction begin
+		mock.ExpectBegin()
+
+		// Expect the multi-row INSERT with ON CONFLICT
+		// Don't match args precisely - too brittle for this complex query
+		mock.ExpectQuery(`INSERT INTO contacts`).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"email", "is_new"}).
+					AddRow("test1@example.com", true).
+					AddRow("test2@example.com", true).
+					AddRow("test3@example.com", true),
+			)
+
+		// Expect transaction commit
+		mock.ExpectCommit()
+
+		results, err := repo.BulkUpsertContacts(ctx, workspaceID, contacts)
+
+		require.NoError(t, err)
+		assert.Len(t, results, 3)
+		assert.Equal(t, "test1@example.com", results[0].Email)
+		assert.True(t, results[0].IsNew)
+		assert.Equal(t, "test2@example.com", results[1].Email)
+		assert.True(t, results[1].IsNew)
+		assert.Equal(t, "test3@example.com", results[2].Email)
+		assert.True(t, results[2].IsNew)
+
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("successful bulk upsert with mixed creates and updates", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "new@example.com", CreatedAt: now, UpdatedAt: now},
+			{Email: "existing@example.com", CreatedAt: now, UpdatedAt: now},
+		}
+
+		mock.ExpectBegin()
+
+		mock.ExpectQuery(`INSERT INTO contacts`).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"email", "is_new"}).
+					AddRow("new@example.com", true).
+					AddRow("existing@example.com", false),
+			)
+
+		mock.ExpectCommit()
+
+		results, err := repo.BulkUpsertContacts(ctx, workspaceID, contacts)
+
+		require.NoError(t, err)
+		assert.Len(t, results, 2)
+		assert.Equal(t, "new@example.com", results[0].Email)
+		assert.True(t, results[0].IsNew)
+		assert.Equal(t, "existing@example.com", results[1].Email)
+		assert.False(t, results[1].IsNew)
+
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("empty contacts slice", func(t *testing.T) {
+		contacts := []*domain.Contact{}
+
+		results, err := repo.BulkUpsertContacts(ctx, workspaceID, contacts)
+
+		require.NoError(t, err)
+		assert.Empty(t, results)
+	})
+
+	t.Run("transaction begin fails", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "test@example.com", CreatedAt: now, UpdatedAt: now},
+		}
+
+		mock.ExpectBegin().WillReturnError(errors.New("begin error"))
+
+		results, err := repo.BulkUpsertContacts(ctx, workspaceID, contacts)
+
+		require.Error(t, err)
+		assert.Nil(t, results)
+		assert.Contains(t, err.Error(), "failed to begin transaction")
+
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("query execution fails", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "test@example.com", CreatedAt: now, UpdatedAt: now},
+		}
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(`INSERT INTO contacts`).
+			WillReturnError(errors.New("query error"))
+		mock.ExpectRollback()
+
+		results, err := repo.BulkUpsertContacts(ctx, workspaceID, contacts)
+
+		require.Error(t, err)
+		assert.Nil(t, results)
+		assert.Contains(t, err.Error(), "failed to execute bulk upsert")
+
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("row scan fails", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "test@example.com", CreatedAt: now, UpdatedAt: now},
+		}
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(`INSERT INTO contacts`).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"email", "is_new"}).
+					AddRow("test@example.com", "invalid_boolean"), // Invalid bool value
+			)
+		mock.ExpectRollback()
+
+		results, err := repo.BulkUpsertContacts(ctx, workspaceID, contacts)
+
+		require.Error(t, err)
+		assert.Nil(t, results)
+
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+
+	t.Run("transaction commit fails", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "test@example.com", CreatedAt: now, UpdatedAt: now},
+		}
+
+		mock.ExpectBegin()
+		mock.ExpectQuery(`INSERT INTO contacts`).
+			WillReturnRows(
+				sqlmock.NewRows([]string{"email", "is_new"}).
+					AddRow("test@example.com", true),
+			)
+		mock.ExpectCommit().WillReturnError(errors.New("commit error"))
+
+		results, err := repo.BulkUpsertContacts(ctx, workspaceID, contacts)
+
+		require.Error(t, err)
+		assert.Nil(t, results)
+		assert.Contains(t, err.Error(), "failed to commit transaction")
+
+		err = mock.ExpectationsWereMet()
+		assert.NoError(t, err)
+	})
+}

@@ -333,6 +333,17 @@ func (c *APIClient) CreateContact(contact map[string]interface{}) (*http.Respons
 	return c.Post("/api/contacts.upsert", contact)
 }
 
+func (c *APIClient) BatchImportContacts(contacts []map[string]interface{}, listIDs []string) (*http.Response, error) {
+	payload := map[string]interface{}{
+		"workspace_id": c.workspaceID,
+		"contacts":     contacts,
+	}
+	if len(listIDs) > 0 {
+		payload["subscribe_to_lists"] = listIDs
+	}
+	return c.Post("/api/contacts.import", payload)
+}
+
 func (c *APIClient) GetContactByEmail(email string) (*http.Response, error) {
 	params := map[string]string{
 		"email": email,

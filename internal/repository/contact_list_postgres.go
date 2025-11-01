@@ -52,6 +52,60 @@ func (r *contactListRepository) AddContactToList(ctx context.Context, workspaceI
 	return nil
 }
 
+// BulkAddContactsToLists adds multiple contacts to multiple lists in a single database operation
+// It creates a cross-product of emails x listIDs and inserts them all at once
+func (r *contactListRepository) BulkAddContactsToLists(ctx context.Context, workspaceID string, emails []string, listIDs []string, status domain.ContactListStatus) error {
+	if len(emails) == 0 || len(listIDs) == 0 {
+		return nil // Nothing to do
+	}
+
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	now := time.Now().UTC()
+
+	// Build the multi-row INSERT statement
+	// Total rows = len(emails) * len(listIDs)
+	var queryBuilder string
+	args := make([]interface{}, 0, len(emails)*len(listIDs)*5)
+	argIndex := 1
+
+	queryBuilder = `INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at) VALUES `
+
+	// Create cross-product of emails and listIDs
+	first := true
+	for _, email := range emails {
+		for _, listID := range listIDs {
+			if !first {
+				queryBuilder += ", "
+			}
+			first = false
+
+			queryBuilder += fmt.Sprintf("($%d, $%d, $%d, $%d, $%d, NULL)",
+				argIndex, argIndex+1, argIndex+2, argIndex+3, argIndex+4)
+			argIndex += 5
+
+			args = append(args, email, listID, status, now, now)
+		}
+	}
+
+	// Add ON CONFLICT clause
+	queryBuilder += `
+		ON CONFLICT (email, list_id) DO UPDATE
+		SET status = EXCLUDED.status, updated_at = EXCLUDED.updated_at, deleted_at = NULL`
+
+	// Execute the bulk insert
+	_, err = workspaceDB.ExecContext(ctx, queryBuilder, args...)
+	if err != nil {
+		return fmt.Errorf("failed to bulk add contacts to lists: %w", err)
+	}
+
+	return nil
+}
+
 func (r *contactListRepository) GetContactListByIDs(ctx context.Context, workspaceID string, email, listID string) (*domain.ContactList, error) {
 
 	// Get the workspace database connection

@@ -516,8 +516,9 @@ func (r *DeleteContactRequest) Validate() error {
 
 // Add the request type for batch importing contacts
 type BatchImportContactsRequest struct {
-	WorkspaceID string          `json:"workspace_id" valid:"required"`
-	Contacts    json.RawMessage `json:"contacts" valid:"required"`
+	WorkspaceID      string          `json:"workspace_id" valid:"required"`
+	Contacts         json.RawMessage `json:"contacts" valid:"required"`
+	SubscribeToLists []string        `json:"subscribe_to_lists,omitempty"` // Optional: subscribe contacts to these lists
 }
 
 func (r *BatchImportContactsRequest) Validate() (contacts []*Contact, workspaceID string, err error) {
@@ -537,11 +538,14 @@ func (r *BatchImportContactsRequest) Validate() (contacts []*Contact, workspaceI
 	}
 
 	// Parse each contact
+	// Note: We don't validate individual contacts here - that's done in the service layer
+	// This allows for partial success (some contacts succeed, some fail validation)
 	contacts = make([]*Contact, 0, len(contactsArray))
-	for i, contactJson := range contactsArray {
+	for _, contactJson := range contactsArray {
 		contact, err := FromJSON(contactJson)
 		if err != nil {
-			return nil, "", fmt.Errorf("invalid contact at index %d: %w", i, err)
+			// For unparseable contacts, create an empty contact that will fail validation in the service
+			contact = &Contact{}
 		}
 		contacts = append(contacts, contact)
 	}
@@ -600,7 +604,7 @@ type ContactService interface {
 	DeleteContact(ctx context.Context, workspaceID string, email string) error
 
 	// BatchImportContacts imports a batch of contacts (create or update)
-	BatchImportContacts(ctx context.Context, workspaceID string, contacts []*Contact) *BatchImportContactsResponse
+	BatchImportContacts(ctx context.Context, workspaceID string, contacts []*Contact, listIDs []string) *BatchImportContactsResponse
 
 	// UpsertContact creates a new contact or updates an existing one
 	UpsertContact(ctx context.Context, workspaceID string, contact *Contact) UpsertContactOperation
@@ -610,6 +614,12 @@ type ContactService interface {
 }
 
 // ContactRepository is the interface for contact operations
+// BulkUpsertResult represents the result of a single contact upsert operation in a bulk operation
+type BulkUpsertResult struct {
+	Email string
+	IsNew bool // true if inserted, false if updated
+}
+
 type ContactRepository interface {
 	// GetContactByEmail retrieves a contact by email
 	GetContactByEmail(ctx context.Context, workspaceID, email string) (*Contact, error)
@@ -625,6 +635,9 @@ type ContactRepository interface {
 
 	// UpsertContact creates or updates a contact
 	UpsertContact(ctx context.Context, workspaceID string, contact *Contact) (bool, error)
+
+	// BulkUpsertContacts creates or updates multiple contacts in a single operation
+	BulkUpsertContacts(ctx context.Context, workspaceID string, contacts []*Contact) ([]BulkUpsertResult, error)
 
 	// GetContactsForBroadcast retrieves contacts based on broadcast audience settings
 	GetContactsForBroadcast(ctx context.Context, workspaceID string, audience AudienceSettings, limit int, offset int) ([]*ContactWithList, error)

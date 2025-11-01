@@ -94,6 +94,12 @@ export enum UpsertContactOperationAction {
 
 export interface UpsertContactOperation {
   action: UpsertContactOperationAction
+  email?: string
+  error?: string
+}
+
+export interface BatchImportContactsResponse {
+  operations: UpsertContactOperation[]
   error?: string
 }
 
@@ -140,6 +146,18 @@ export const contactsApi = {
     return api.post('/api/contacts.upsert', {
       workspace_id: params.workspace_id,
       contact: params.contact
+    })
+  },
+
+  batchImport: async (params: {
+    workspace_id: string
+    contacts: Partial<Contact>[]
+    subscribe_to_lists?: string[]
+  }): Promise<BatchImportContactsResponse> => {
+    return api.post('/api/contacts.import', {
+      workspace_id: params.workspace_id,
+      contacts: params.contacts,
+      subscribe_to_lists: params.subscribe_to_lists
     })
   },
 

@@ -69,6 +69,42 @@ func TestContactService_GetContactByEmail(t *testing.T) {
 		assert.Equal(t, contact, result)
 	})
 
+	t.Run("successful retrieval with contact lists", func(t *testing.T) {
+		firstName := &domain.NullableString{String: "John", IsNull: false}
+		lastName := &domain.NullableString{String: "Doe", IsNull: false}
+		contactWithLists := &domain.Contact{
+			Email:     email,
+			FirstName: firstName,
+			LastName:  lastName,
+			ContactLists: []*domain.ContactList{
+				{
+					Email:    email,
+					ListID:   "newsletter",
+					ListName: "Newsletter",
+					Status:   domain.ContactListStatusActive,
+				},
+				{
+					Email:    email,
+					ListID:   "product_updates",
+					ListName: "Product Updates",
+					Status:   domain.ContactListStatusActive,
+				},
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetContactByEmail(ctx, workspaceID, email).Return(contactWithLists, nil)
+
+		result, err := service.GetContactByEmail(ctx, workspaceID, email)
+		assert.NoError(t, err)
+		assert.Equal(t, contactWithLists, result)
+		assert.NotNil(t, result.ContactLists)
+		assert.Len(t, result.ContactLists, 2)
+		assert.Equal(t, "newsletter", result.ContactLists[0].ListID)
+		assert.Equal(t, "Newsletter", result.ContactLists[0].ListName)
+		assert.Equal(t, domain.ContactListStatusActive, result.ContactLists[0].Status)
+	})
+
 	t.Run("authentication error", func(t *testing.T) {
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, errors.New("auth error"))
 
@@ -145,6 +181,37 @@ func TestContactService_GetContactByExternalID(t *testing.T) {
 		result, err := service.GetContactByExternalID(ctx, workspaceID, externalID)
 		assert.NoError(t, err)
 		assert.Equal(t, contact, result)
+	})
+
+	t.Run("successful retrieval with contact lists", func(t *testing.T) {
+		extID := &domain.NullableString{String: externalID, IsNull: false}
+		firstName := &domain.NullableString{String: "Jane", IsNull: false}
+		lastName := &domain.NullableString{String: "Smith", IsNull: false}
+		contactWithLists := &domain.Contact{
+			Email:      "test@example.com",
+			ExternalID: extID,
+			FirstName:  firstName,
+			LastName:   lastName,
+			ContactLists: []*domain.ContactList{
+				{
+					Email:    "test@example.com",
+					ListID:   "vip",
+					ListName: "VIP Members",
+					Status:   domain.ContactListStatusActive,
+				},
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().GetContactByExternalID(ctx, workspaceID, externalID).Return(contactWithLists, nil)
+
+		result, err := service.GetContactByExternalID(ctx, workspaceID, externalID)
+		assert.NoError(t, err)
+		assert.Equal(t, contactWithLists, result)
+		assert.NotNil(t, result.ContactLists)
+		assert.Len(t, result.ContactLists, 1)
+		assert.Equal(t, "vip", result.ContactLists[0].ListID)
+		assert.Equal(t, "VIP Members", result.ContactLists[0].ListName)
 	})
 
 	t.Run("authentication error", func(t *testing.T) {
@@ -498,7 +565,7 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	service, mockRepo, _, mockAuthService, _, _, _, _, _ := createContactServiceWithMocks(ctrl)
+	service, mockRepo, _, mockAuthService, _, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
 
 	ctx := context.Background()
 	workspaceID := "workspace123"
@@ -519,7 +586,7 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, errors.New("auth error"))
 
-		response := service.BatchImportContacts(ctx, workspaceID, contacts)
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
 		assert.NotNil(t, response)
 		assert.Contains(t, response.Error, "failed to authenticate user")
 	})
@@ -531,7 +598,7 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 
-		response := service.BatchImportContacts(ctx, workspaceID, contacts)
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
 		assert.NotNil(t, response)
 
 		// Find the error operation in the response
@@ -553,9 +620,10 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 		}
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
-		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).Return(false, errors.New("repo error"))
+		mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, gomock.Any()).Return(nil, errors.New("repo error"))
+		mockLogger.EXPECT().Error(gomock.Any())
 
-		response := service.BatchImportContacts(ctx, workspaceID, contacts)
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
 		assert.NotNil(t, response)
 
 		// Find the error operation in the response
@@ -579,41 +647,222 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 
-		// First contact is new
-		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).DoAndReturn(
-			func(ctx context.Context, workspaceID string, contact *domain.Contact) (bool, error) {
-				assert.Equal(t, "new@example.com", contact.Email)
-				// CreatedAt and UpdatedAt are optional - if not provided (zero value), DB will set them
-				return true, nil // true means it's a new contact
-			})
+		// Expect bulk upsert with both contacts
+		mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, contacts).Return([]domain.BulkUpsertResult{
+			{Email: "new@example.com", IsNew: true},
+			{Email: "existing@example.com", IsNew: false},
+		}, nil)
 
-		// Second contact is an update
-		mockRepo.EXPECT().UpsertContact(ctx, workspaceID, gomock.Any()).DoAndReturn(
-			func(ctx context.Context, workspaceID string, contact *domain.Contact) (bool, error) {
-				assert.Equal(t, "existing@example.com", contact.Email)
-				// CreatedAt and UpdatedAt are optional - if not provided (zero value), DB will set them
-				return false, nil // false means it's an existing contact
-			})
-
-		response := service.BatchImportContacts(ctx, workspaceID, contacts)
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
 		assert.NotNil(t, response)
 		assert.Empty(t, response.Error)
 
-		// Due to how the method works, we need to filter to verify the operations
-		createOperations := []*domain.UpsertContactOperation{}
-		updateOperations := []*domain.UpsertContactOperation{}
+		// Verify operations
+		assert.Len(t, response.Operations, 2)
 
+		// Find the operations by email
+		var newOp, existingOp *domain.UpsertContactOperation
 		for _, op := range response.Operations {
-			if op != nil {
-				if op.Action == domain.UpsertContactOperationCreate && op.Email == "new@example.com" {
-					createOperations = append(createOperations, op)
-				} else if op.Action == domain.UpsertContactOperationUpdate && op.Email == "existing@example.com" {
-					updateOperations = append(updateOperations, op)
-				}
+			if op.Email == "new@example.com" {
+				newOp = op
+			} else if op.Email == "existing@example.com" {
+				existingOp = op
 			}
 		}
 
-		assert.GreaterOrEqual(t, len(createOperations), 1)
-		assert.GreaterOrEqual(t, len(updateOperations), 1)
+		assert.NotNil(t, newOp)
+		assert.Equal(t, domain.UpsertContactOperationCreate, newOp.Action)
+		assert.NotNil(t, existingOp)
+		assert.Equal(t, domain.UpsertContactOperationUpdate, existingOp.Action)
+	})
+}
+
+func TestContactService_BatchImportContacts_WithBulkOperations(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	service, mockRepo, _, mockAuthService, _, _, mockContactListRepo, _, mockLogger := createContactServiceWithMocks(ctrl)
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "user123",
+		WorkspaceID: workspaceID,
+		Role:        "admin",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceContacts: {Read: true, Write: true},
+			domain.PermissionResourceLists:    {Read: true, Write: true},
+		},
+	}
+
+	t.Run("successful bulk import without lists", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "test1@example.com"},
+			{Email: "test2@example.com"},
+			{Email: "test3@example.com"},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+
+		// Expect bulk upsert to be called with all valid contacts
+		mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, contacts).Return([]domain.BulkUpsertResult{
+			{Email: "test1@example.com", IsNew: true},
+			{Email: "test2@example.com", IsNew: true},
+			{Email: "test3@example.com", IsNew: false},
+		}, nil)
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
+
+		assert.NotNil(t, response)
+		assert.Empty(t, response.Error)
+		assert.Len(t, response.Operations, 3)
+		assert.Equal(t, domain.UpsertContactOperationCreate, response.Operations[0].Action)
+		assert.Equal(t, domain.UpsertContactOperationCreate, response.Operations[1].Action)
+		assert.Equal(t, domain.UpsertContactOperationUpdate, response.Operations[2].Action)
+	})
+
+	t.Run("successful bulk import with lists", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "test1@example.com"},
+			{Email: "test2@example.com"},
+		}
+		listIDs := []string{"list1", "list2"}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+
+		mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, contacts).Return([]domain.BulkUpsertResult{
+			{Email: "test1@example.com", IsNew: true},
+			{Email: "test2@example.com", IsNew: true},
+		}, nil)
+
+		// Expect bulk list subscription
+		mockContactListRepo.EXPECT().BulkAddContactsToLists(
+			ctx,
+			workspaceID,
+			[]string{"test1@example.com", "test2@example.com"},
+			listIDs,
+			domain.ContactListStatusActive,
+		).Return(nil)
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, listIDs)
+
+		assert.NotNil(t, response)
+		assert.Empty(t, response.Error)
+		assert.Len(t, response.Operations, 2)
+	})
+
+	t.Run("bulk import with validation errors", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "valid@example.com"},
+			{Email: ""}, // Invalid - no email
+			{Email: "another@example.com"},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+
+		// Only valid contacts should be passed to bulk upsert
+		validContacts := []*domain.Contact{
+			{Email: "valid@example.com"},
+			{Email: "another@example.com"},
+		}
+
+		mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, validContacts).Return([]domain.BulkUpsertResult{
+			{Email: "valid@example.com", IsNew: true},
+			{Email: "another@example.com", IsNew: true},
+		}, nil)
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
+
+		assert.NotNil(t, response)
+		assert.Empty(t, response.Error)
+		assert.Len(t, response.Operations, 3) // 2 success + 1 validation error
+
+		// Check that one operation is an error
+		errorCount := 0
+		for _, op := range response.Operations {
+			if op.Action == domain.UpsertContactOperationError {
+				errorCount++
+			}
+		}
+		assert.Equal(t, 1, errorCount)
+	})
+
+	t.Run("bulk upsert fails", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "test1@example.com"},
+			{Email: "test2@example.com"},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+
+		mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, contacts).Return(nil, errors.New("database error"))
+		mockLogger.EXPECT().Error(gomock.Any())
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
+
+		assert.NotNil(t, response)
+		assert.Empty(t, response.Error)
+		assert.Len(t, response.Operations, 2)
+		// All operations should be marked as errors
+		for _, op := range response.Operations {
+			assert.Equal(t, domain.UpsertContactOperationError, op.Action)
+		}
+	})
+
+	t.Run("list subscription fails (non-critical)", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "test1@example.com"},
+		}
+		listIDs := []string{"list1"}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+
+		mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, contacts).Return([]domain.BulkUpsertResult{
+			{Email: "test1@example.com", IsNew: true},
+		}, nil)
+
+		// List subscription fails, but shouldn't fail the entire operation
+		mockContactListRepo.EXPECT().BulkAddContactsToLists(
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+			gomock.Any(),
+		).Return(errors.New("list error"))
+		mockLogger.EXPECT().Error(gomock.Any())
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, listIDs)
+
+		// Contact should still be created successfully
+		assert.NotNil(t, response)
+		assert.Empty(t, response.Error)
+		assert.Len(t, response.Operations, 1)
+		assert.Equal(t, domain.UpsertContactOperationCreate, response.Operations[0].Action)
+	})
+
+	t.Run("insufficient permissions for lists", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "test1@example.com"},
+		}
+		listIDs := []string{"list1"}
+
+		userWorkspaceNoListPerms := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceContacts: {Read: true, Write: true},
+				domain.PermissionResourceLists:    {Read: true, Write: false},
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspaceNoListPerms, nil)
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, listIDs)
+
+		assert.NotNil(t, response)
+		assert.NotEmpty(t, response.Error)
+		assert.Contains(t, response.Error, "write access to lists required")
 	})
 }

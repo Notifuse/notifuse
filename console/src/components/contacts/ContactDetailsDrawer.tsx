@@ -366,7 +366,7 @@ export function ContactDetailsDrawer({
   }
 
   // Handle subscribe to list submission
-  const handleSubscribe = (values: { list_id: string; status: string }) => {
+  const handleSubscribe = (values: { list_id: string }) => {
     addToListMutation.mutate({
       workspace_id: workspace.id,
       contact: {
@@ -877,13 +877,13 @@ export function ContactDetailsDrawer({
                     key={field.key}
                     className="py-2 px-4 grid grid-cols-2 text-xs gap-1 border-b border-dashed border-gray-300"
                   >
-                    {field.showTooltip ? (
+                    {'showTooltip' in field && field.showTooltip ? (
                       <Tooltip title={field.technicalName}>
                         <span className="font-semibold text-slate-600">{field.displayLabel}</span>
                       </Tooltip>
                     ) : (
                       <span className="font-semibold text-slate-600">
-                        {field.label || field.displayLabel}
+                        {'displayLabel' in field ? field.displayLabel : field.label}
                       </span>
                     )}
                     <span>{formatValue(field.value)}</span>
@@ -907,9 +907,7 @@ export function ContactDetailsDrawer({
                             </span>
                           </Tooltip>
                         ) : (
-                          <span className="font-semibold text-slate-600">
-                            {field.label || field.displayLabel}
-                          </span>
+                          <span className="font-semibold text-slate-600">{field.displayLabel}</span>
                         )}
                         {formatJson(field.value)}
                       </div>
@@ -1114,19 +1112,6 @@ export function ContactDetailsDrawer({
                   value: list.id
                 }))}
                 placeholder="Select a list"
-              />
-            </Form.Item>
-            <Form.Item
-              name="status"
-              label="Subscription Status"
-              initialValue="active"
-              rules={[{ required: true, message: 'Please select a status' }]}
-            >
-              <Select
-                options={[
-                  { label: 'Active', value: 'active' },
-                  { label: 'Pending', value: 'pending' }
-                ]}
               />
             </Form.Item>
             <Form.Item>

@@ -171,9 +171,9 @@ func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, 
 	return nil
 }
 
-func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID string, contacts []*domain.Contact) *domain.BatchImportContactsResponse {
+func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID string, contacts []*domain.Contact, listIDs []string) *domain.BatchImportContactsResponse {
 	response := &domain.BatchImportContactsResponse{
-		Operations: make([]*domain.UpsertContactOperation, len(contacts)),
+		Operations: make([]*domain.UpsertContactOperation, 0, len(contacts)),
 	}
 
 	var err error
@@ -189,37 +189,84 @@ func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID st
 		return response
 	}
 
-	// Validate and upsert
+	// If listIDs are provided, also check permission for writing lists
+	if len(listIDs) > 0 {
+		if !userWorkspace.HasPermission(domain.PermissionResourceLists, domain.PermissionTypeWrite) {
+			response.Error = "Insufficient permissions: write access to lists required"
+			return response
+		}
+	}
+
+	// Pre-validate all contacts and separate valid from invalid
+	// This allows us to provide immediate feedback on validation errors
+	// while still processing valid contacts in bulk
+	validContacts := make([]*domain.Contact, 0, len(contacts))
+	validContactIndices := make([]int, 0, len(contacts))
+
 	for i, contact := range contacts {
 		// CreatedAt and UpdatedAt are optional - if not provided, DB will use CURRENT_TIMESTAMP
 		// If provided, the values will be used (allows historical imports)
 
-		// init operation
-		operation := &domain.UpsertContactOperation{
-			Email:  contact.Email,
-			Action: domain.UpsertContactOperationCreate,
-		}
-
 		if err := contact.Validate(); err != nil {
-			operation.Action = domain.UpsertContactOperationError
-			operation.Error = fmt.Sprintf("invalid contact at index %d: %v", i, err)
+			// Record validation error
+			operation := &domain.UpsertContactOperation{
+				Email:  contact.Email,
+				Action: domain.UpsertContactOperationError,
+				Error:  fmt.Sprintf("invalid contact at index %d: %v", i, err),
+			}
 			response.Operations = append(response.Operations, operation)
-			continue
+		} else {
+			// Add to valid contacts for bulk processing
+			validContacts = append(validContacts, contact)
+			validContactIndices = append(validContactIndices, i)
 		}
+	}
 
-		isNew, err := s.repo.UpsertContact(ctx, workspaceID, contact)
+	// If there are valid contacts, perform bulk upsert
+	if len(validContacts) > 0 {
+		bulkResults, err := s.repo.BulkUpsertContacts(ctx, workspaceID, validContacts)
 		if err != nil {
-			operation.Action = domain.UpsertContactOperationError
-			operation.Error = fmt.Sprintf("failed to upsert contact at index %d: %v", i, err)
-			response.Operations = append(response.Operations, operation)
-			continue
-		}
+			// Bulk operation failed - mark all valid contacts as errors
+			s.logger.Error(fmt.Sprintf("Bulk upsert failed: %v", err))
+			for i, contact := range validContacts {
+				operation := &domain.UpsertContactOperation{
+					Email:  contact.Email,
+					Action: domain.UpsertContactOperationError,
+					Error:  fmt.Sprintf("failed to upsert contact at index %d: %v", validContactIndices[i], err),
+				}
+				response.Operations = append(response.Operations, operation)
+			}
+		} else {
+			// Map bulk results to individual operations
+			for _, result := range bulkResults {
+				action := domain.UpsertContactOperationCreate
+				if !result.IsNew {
+					action = domain.UpsertContactOperationUpdate
+				}
 
-		if !isNew {
-			operation.Action = domain.UpsertContactOperationUpdate
-		}
+				operation := &domain.UpsertContactOperation{
+					Email:  result.Email,
+					Action: action,
+				}
+				response.Operations = append(response.Operations, operation)
+			}
 
-		response.Operations = append(response.Operations, operation)
+			// If listIDs were provided, bulk subscribe contacts to lists
+			if len(listIDs) > 0 {
+				emails := make([]string, len(validContacts))
+				for i, contact := range validContacts {
+					emails[i] = contact.Email
+				}
+
+				// Bulk add all valid contacts to all specified lists
+				err := s.contactListRepo.BulkAddContactsToLists(ctx, workspaceID, emails, listIDs, domain.ContactListStatusActive)
+				if err != nil {
+					s.logger.Error(fmt.Sprintf("Failed to bulk add contacts to lists: %v", err))
+					// Note: We don't fail the entire operation if list subscription fails
+					// The contacts were successfully created/updated
+				}
+			}
+		}
 	}
 
 	return response

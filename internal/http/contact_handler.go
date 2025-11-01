@@ -15,16 +15,16 @@ import (
 )
 
 type ContactHandler struct {
-	service   domain.ContactService
-	logger    logger.Logger
+	service      domain.ContactService
+	logger       logger.Logger
 	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
 }
 
 func NewContactHandler(service domain.ContactService, getPublicKey func() (paseto.V4AsymmetricPublicKey, error), logger logger.Logger) *ContactHandler {
 	return &ContactHandler{
-		service:   service,
-		getPublicKey:        getPublicKey,
-		logger:    logger,
+		service:      service,
+		getPublicKey: getPublicKey,
+		logger:       logger,
 	}
 }
 
@@ -226,7 +226,7 @@ func (h *ContactHandler) handleImport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result := h.service.BatchImportContacts(r.Context(), workspaceID, contacts)
+	result := h.service.BatchImportContacts(r.Context(), workspaceID, contacts, req.SubscribeToLists)
 	if result.Error != "" {
 		h.logger.WithField("error", result.Error).Error("Failed to import contacts")
 		WriteJSONError(w, result.Error, http.StatusInternalServerError)

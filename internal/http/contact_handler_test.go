@@ -601,7 +601,7 @@ func TestContactHandler_HandleImport(t *testing.T) {
 			},
 			setupMock: func(m *mocks.MockContactService) {
 				m.EXPECT().
-					BatchImportContacts(gomock.Any(), "workspace123", gomock.Any()).
+					BatchImportContacts(gomock.Any(), "workspace123", gomock.Any(), gomock.Any()).
 					Return(&domain.BatchImportContactsResponse{
 						Operations: []*domain.UpsertContactOperation{
 							{
@@ -630,7 +630,7 @@ func TestContactHandler_HandleImport(t *testing.T) {
 			},
 			setupMock: func(m *mocks.MockContactService) {
 				m.EXPECT().
-					BatchImportContacts(gomock.Any(), "workspace123", gomock.Any()).
+					BatchImportContacts(gomock.Any(), "workspace123", gomock.Any(), gomock.Any()).
 					Return(&domain.BatchImportContactsResponse{
 						Error: "service error",
 					})

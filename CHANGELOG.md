@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [14.1] - 2025-11-01
+
+### Features
+
+- **Bulk Contact Import**: New `/api/contacts.import` endpoint for efficiently importing large numbers of contacts
+  - Creates or updates multiple contacts in a single batch operation using PostgreSQL bulk upsert
+  - Returns individual operation results (created/updated/error) for each contact
+  - Optional bulk subscription to lists via `subscribe_to_lists` parameter
+  - Significantly faster than individual upsert operations for large imports
+  - Batch size of 100 contacts processed at a time in the UI
+  - Supports partial success - some contacts can succeed while others fail validation
+
 ## [14.0] - 2025-10-31
 
 ### Database Schema Changes

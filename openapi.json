@@ -211,7 +211,7 @@
     "/api/contacts.getByEmail": {
       "get": {
         "summary": "Get a contact by email address",
-        "description": "Retrieves a contact by their email address within a specific workspace.",
+        "description": "Retrieves a contact by their email address within a specific workspace. The response always includes the contact's list subscriptions with their status (active, pending, unsubscribed, bounced, complained).",
         "operationId": "getContactByEmail",
         "security": [
           {
@@ -318,7 +318,7 @@
     "/api/contacts.getByExternalID": {
       "get": {
         "summary": "Get a contact by external ID",
-        "description": "Retrieves a contact by their external ID within a specific workspace.",
+        "description": "Retrieves a contact by their external ID within a specific workspace. The response always includes the contact's list subscriptions with their status (active, pending, unsubscribed, bounced, complained).",
         "operationId": "getContactByExternalID",
         "security": [
           {
@@ -404,6 +404,92 @@
                 },
                 "example": {
                   "error": "Contact not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contacts.import": {
+      "post": {
+        "summary": "Batch import contacts",
+        "description": "Creates or updates multiple contacts in a single batch operation. This is significantly more efficient than individual upsert operations. Optionally subscribes all contacts to specified lists.",
+        "operationId": "batchImportContacts",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchImportContactsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Batch import completed (may include partial failures)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchImportContactsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "missingContacts": {
+                    "value": {
+                      "error": "contacts is required"
+                    }
+                  },
+                  "emptyContacts": {
+                    "value": {
+                      "error": "contacts array cannot be empty"
+                    }
+                  },
+                  "insufficientPermissions": {
+                    "value": {
+                      "error": "write access to lists required when subscribe_to_lists is provided"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -518,6 +604,105 @@
                 },
                 "example": {
                   "error": "Failed to delete contact"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/contactLists.updateStatus": {
+      "post": {
+        "summary": "Update contact list subscription status",
+        "description": "Updates the subscription status of a contact in a specific list. Can set status to active, pending, unsubscribed, bounced, or complained.",
+        "operationId": "updateContactListStatus",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateContactListStatusRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateContactListStatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "missingEmail": {
+                    "value": {
+                      "error": "email is required"
+                    }
+                  },
+                  "missingListId": {
+                    "value": {
+                      "error": "list_id is required"
+                    }
+                  },
+                  "invalidStatus": {
+                    "value": {
+                      "error": "invalid status value"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Contact list relationship not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "contact list not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -973,6 +1158,70 @@
             "format": "date-time",
             "description": "When the contact was last updated",
             "example": "2023-04-22T15:45:00Z"
+          },
+          "contact_lists": {
+            "type": "array",
+            "description": "Lists the contact is subscribed to (only included in GET endpoints)",
+            "items": {
+              "$ref": "#/components/schemas/ContactList"
+            },
+            "example": [
+              {
+                "email": "user@example.com",
+                "list_id": "newsletter",
+                "list_name": "Newsletter",
+                "status": "active",
+                "created_at": "2023-01-15T10:30:00Z",
+                "updated_at": "2023-01-15T10:30:00Z",
+                "deleted_at": null
+              }
+            ]
+          }
+        }
+      },
+      "ContactList": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address of the contact",
+            "example": "user@example.com"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "ID of the list",
+            "example": "newsletter"
+          },
+          "list_name": {
+            "type": "string",
+            "description": "Name of the list",
+            "example": "Newsletter"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "pending", "unsubscribed", "bounced", "complained"],
+            "description": "Subscription status",
+            "example": "active"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the contact was subscribed to this list",
+            "example": "2023-01-15T10:30:00Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the subscription was last updated",
+            "example": "2023-01-15T10:30:00Z"
+          },
+          "deleted_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the subscription was deleted (null if active)",
+            "example": null
           }
         }
       },
@@ -1276,6 +1525,134 @@
             "format": "email",
             "description": "Email address of the contact to delete",
             "example": "user@example.com"
+          }
+        }
+      },
+      "BatchImportContactsRequest": {
+        "type": "object",
+        "required": ["workspace_id", "contacts"],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          "contacts": {
+            "type": "array",
+            "description": "Array of contacts to import (create or update)",
+            "items": {
+              "$ref": "#/components/schemas/Contact"
+            },
+            "minItems": 1,
+            "example": [
+              {
+                "email": "user1@example.com",
+                "first_name": "John",
+                "last_name": "Doe"
+              },
+              {
+                "email": "user2@example.com",
+                "first_name": "Jane",
+                "last_name": "Smith"
+              }
+            ]
+          },
+          "subscribe_to_lists": {
+            "type": "array",
+            "description": "Optional array of list IDs to subscribe all contacts to",
+            "items": {
+              "type": "string"
+            },
+            "example": ["newsletter", "product_updates"]
+          }
+        }
+      },
+      "BatchImportContactsResponse": {
+        "type": "object",
+        "properties": {
+          "operations": {
+            "type": "array",
+            "description": "Array of operation results, one for each contact in the request",
+            "items": {
+              "$ref": "#/components/schemas/UpsertContactOperation"
+            }
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Global error message if the entire operation failed",
+            "example": null
+          }
+        }
+      },
+      "UpsertContactOperation": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address of the contact",
+            "example": "user@example.com"
+          },
+          "action": {
+            "type": "string",
+            "enum": ["create", "update", "error"],
+            "description": "The action that was performed: 'create' for new contacts, 'update' for existing contacts, 'error' for failed operations",
+            "example": "create"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Error message if this specific contact operation failed",
+            "example": null
+          }
+        }
+      },
+      "UpdateContactListStatusRequest": {
+        "type": "object",
+        "required": ["workspace_id", "email", "list_id", "status"],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Email address of the contact",
+            "example": "user@example.com"
+          },
+          "list_id": {
+            "type": "string",
+            "description": "ID of the list",
+            "example": "newsletter"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["active", "pending", "unsubscribed", "bounced", "complained"],
+            "description": "New subscription status",
+            "example": "active"
+          }
+        }
+      },
+      "UpdateContactListStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the operation was successful",
+            "example": true
+          },
+          "message": {
+            "type": "string",
+            "description": "Status message",
+            "example": "status updated successfully"
+          },
+          "found": {
+            "type": "boolean",
+            "description": "Whether the contact was found in the list",
+            "example": true
           }
         }
       },

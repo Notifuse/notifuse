@@ -25,7 +25,6 @@ import type { ParseResult } from 'papaparse'
 import { Contact } from '../../services/api/contacts'
 import { contactsApi } from '../../services/api/contacts'
 import { List } from '../../services/api/types'
-import { listsApi } from '../../services/api/list'
 import { useAuth } from '../../contexts/AuthContext'
 import { getCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
 
@@ -34,7 +33,7 @@ const { Option } = Select
 const { Dragger } = Upload
 
 // Batch size for processing
-const BATCH_SIZE = 25
+const BATCH_SIZE = 100
 const PREVIEW_ROWS = 15
 const PROGRESS_SAVE_INTERVAL = 10000 // 10 seconds
 
@@ -584,51 +583,81 @@ export function ContactsCsvUploadDrawer({
         // Filter out contacts without email
         const validContacts = contacts.filter((contact) => contact.email)
 
-        // Process each contact
-        for (let i = 0; i < validContacts.length; i++) {
-          const contact = validContacts[i]
-          const csvLineNumber = rowIndex + i + 2 // +2 because headers are line 1, and rowIndex is 0-based
-          if (processingCancelled) break
+        // Check if paused before processing
+        while (uploadRef.current.isPaused && !processingCancelled) {
+          await new Promise((resolve) => setTimeout(resolve, 100))
+        }
 
-          // Check if paused
-          while (uploadRef.current.isPaused && !processingCancelled) {
-            await new Promise((resolve) => setTimeout(resolve, 100))
-          }
+        if (processingCancelled) {
+          uploadRef.current.isPaused = false
+          setUploading(false)
+          return
+        }
 
-          try {
-            if (selectedListIds && selectedListIds.length > 0) {
-              // Use the single subscribe endpoint that handles both contact upsert and list subscription
-              await listsApi.subscribe({
-                workspace_id: workspaceId,
-                contact: contact as Contact,
-                list_ids: selectedListIds
-              })
-            } else {
-              // If no lists selected, just do a contact upsert
-              await contactsApi.upsert({
-                workspace_id: workspaceId,
-                contact
-              })
-            }
+        try {
+          // Use batch import API for both cases (with or without lists)
+          const batchResult = await contactsApi.batchImport({
+            workspace_id: workspaceId,
+            contacts: validContacts,
+            subscribe_to_lists:
+              selectedListIds && selectedListIds.length > 0 ? selectedListIds : undefined
+          })
 
-            successCount++
-            setSuccessCount(successCount)
-          } catch (error) {
-            console.error('Error upserting contact:', error)
-            failureCount++
+          // Process results from batch operation
+          if (batchResult.error) {
+            // Batch-level error - mark all contacts as failed
+            failureCount += validContacts.length
             setFailureCount(failureCount)
 
-            // Store error details (limit to 100)
+            validContacts.forEach((contact, i) => {
+              if (errors.length < 100) {
+                errors.push({
+                  line: rowIndex + i + 2,
+                  email: contact.email || 'Unknown',
+                  error: batchResult.error || 'Batch operation failed'
+                })
+              }
+            })
+            setErrorDetails(errors)
+          } else {
+            // Process per-contact results
+            batchResult.operations.forEach((operation, i) => {
+              const csvLineNumber = rowIndex + i + 2
+
+              if (operation.action === 'error') {
+                failureCount++
+                if (errors.length < 100) {
+                  errors.push({
+                    line: csvLineNumber,
+                    email: operation.email || validContacts[i]?.email || 'Unknown',
+                    error: operation.error || 'Unknown error'
+                  })
+                }
+              } else {
+                successCount++
+              }
+            })
+
+            setSuccessCount(successCount)
+            setFailureCount(failureCount)
+            setErrorDetails(errors)
+          }
+        } catch (error) {
+          console.error('Error processing batch:', error)
+          // Mark all contacts in this batch as failed
+          failureCount += validContacts.length
+          setFailureCount(failureCount)
+
+          validContacts.forEach((contact, i) => {
             if (errors.length < 100) {
               errors.push({
-                line: csvLineNumber,
+                line: rowIndex + i + 2,
                 email: contact.email || 'Unknown',
                 error: error instanceof Error ? error.message : 'Unknown error'
               })
-              setErrorDetails(errors)
             }
-            // Continue with next contact
-          }
+          })
+          setErrorDetails(errors)
         }
 
         rowIndex = end

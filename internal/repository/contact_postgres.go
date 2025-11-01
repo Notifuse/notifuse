@@ -1136,6 +1136,224 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 	return isNew, nil
 }
 
+// BulkUpsertContacts creates or updates multiple contacts in a single database operation
+// It uses PostgreSQL's INSERT ... ON CONFLICT to efficiently handle both inserts and updates
+// Returns per-contact results indicating whether each was inserted (IsNew=true) or updated (IsNew=false)
+func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID string, contacts []*domain.Contact) ([]domain.BulkUpsertResult, error) {
+	if len(contacts) == 0 {
+		return []domain.BulkUpsertResult{}, nil
+	}
+
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// Start a transaction
+	tx, err := workspaceDB.BeginTx(ctx, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback() // Rollback if there's a panic or error
+
+	now := time.Now().UTC()
+
+	// Build the multi-row INSERT statement
+	// We'll use a raw SQL query because squirrel doesn't handle complex ON CONFLICT well
+	var queryBuilder strings.Builder
+	args := make([]interface{}, 0, len(contacts)*38) // 38 fields per contact (db_created_at and db_updated_at are managed by DB)
+	argIndex := 1
+
+	queryBuilder.WriteString(`INSERT INTO contacts (
+		email, external_id, timezone, language,
+		first_name, last_name, phone, address_line_1, address_line_2,
+		country, postcode, state, job_title,
+		lifetime_value, orders_count, last_order_at,
+		custom_string_1, custom_string_2, custom_string_3, custom_string_4, custom_string_5,
+		custom_number_1, custom_number_2, custom_number_3, custom_number_4, custom_number_5,
+		custom_datetime_1, custom_datetime_2, custom_datetime_3, custom_datetime_4, custom_datetime_5,
+		custom_json_1, custom_json_2, custom_json_3, custom_json_4, custom_json_5,
+		created_at, updated_at
+	) VALUES `)
+
+	// Add value placeholders for each contact
+	for i, contact := range contacts {
+		if i > 0 {
+			queryBuilder.WriteString(", ")
+		}
+		queryBuilder.WriteString("(")
+
+		// Add 38 placeholders for contact fields (excluding db_created_at and db_updated_at)
+		for j := 0; j < 38; j++ {
+			if j > 0 {
+				queryBuilder.WriteString(", ")
+			}
+			queryBuilder.WriteString(fmt.Sprintf("$%d", argIndex))
+			argIndex++
+		}
+		queryBuilder.WriteString(")")
+
+		// Helper function to convert nullable types to sql.Null* types
+		toNullString := func(n *domain.NullableString) sql.NullString {
+			if n != nil && !n.IsNull {
+				return sql.NullString{String: n.String, Valid: true}
+			}
+			return sql.NullString{Valid: false}
+		}
+		toNullFloat64 := func(n *domain.NullableFloat64) sql.NullFloat64 {
+			if n != nil && !n.IsNull {
+				return sql.NullFloat64{Float64: n.Float64, Valid: true}
+			}
+			return sql.NullFloat64{Valid: false}
+		}
+		toNullTime := func(n *domain.NullableTime) sql.NullTime {
+			if n != nil && !n.IsNull {
+				return sql.NullTime{Time: n.Time, Valid: true}
+			}
+			return sql.NullTime{Valid: false}
+		}
+		toNullJSON := func(n *domain.NullableJSON) sql.NullString {
+			if n != nil && !n.IsNull {
+				jsonBytes, err := json.Marshal(n.Data)
+				if err != nil {
+					return sql.NullString{Valid: false}
+				}
+				return sql.NullString{String: string(jsonBytes), Valid: true}
+			}
+			return sql.NullString{Valid: false}
+		}
+
+		// Determine timestamps - use provided or default to now
+		createdAt := now
+		if !contact.CreatedAt.IsZero() {
+			createdAt = contact.CreatedAt.UTC()
+		}
+		updatedAt := now
+		if !contact.UpdatedAt.IsZero() {
+			updatedAt = contact.UpdatedAt.UTC()
+		}
+
+		// Add all field values in the correct order
+		// Note: db_created_at and db_updated_at are NOT included - they have DEFAULT CURRENT_TIMESTAMP in the schema
+		args = append(args,
+			contact.Email,                        // 1
+			toNullString(contact.ExternalID),     // 2
+			toNullString(contact.Timezone),       // 3
+			toNullString(contact.Language),       // 4
+			toNullString(contact.FirstName),      // 5
+			toNullString(contact.LastName),       // 6
+			toNullString(contact.Phone),          // 7
+			toNullString(contact.AddressLine1),   // 8
+			toNullString(contact.AddressLine2),   // 9
+			toNullString(contact.Country),        // 10
+			toNullString(contact.Postcode),       // 11
+			toNullString(contact.State),          // 12
+			toNullString(contact.JobTitle),       // 13
+			toNullFloat64(contact.LifetimeValue), // 14
+			toNullFloat64(contact.OrdersCount),   // 15
+			toNullTime(contact.LastOrderAt),      // 16
+			toNullString(contact.CustomString1),  // 17
+			toNullString(contact.CustomString2),  // 18
+			toNullString(contact.CustomString3),  // 19
+			toNullString(contact.CustomString4),  // 20
+			toNullString(contact.CustomString5),  // 21
+			toNullFloat64(contact.CustomNumber1), // 22
+			toNullFloat64(contact.CustomNumber2), // 23
+			toNullFloat64(contact.CustomNumber3), // 24
+			toNullFloat64(contact.CustomNumber4), // 25
+			toNullFloat64(contact.CustomNumber5), // 26
+			toNullTime(contact.CustomDatetime1),  // 27
+			toNullTime(contact.CustomDatetime2),  // 28
+			toNullTime(contact.CustomDatetime3),  // 29
+			toNullTime(contact.CustomDatetime4),  // 30
+			toNullTime(contact.CustomDatetime5),  // 31
+			toNullJSON(contact.CustomJSON1),      // 32
+			toNullJSON(contact.CustomJSON2),      // 33
+			toNullJSON(contact.CustomJSON3),      // 34
+			toNullJSON(contact.CustomJSON4),      // 35
+			toNullJSON(contact.CustomJSON5),      // 36
+			createdAt,                            // 37 - application-level timestamp
+			updatedAt,                            // 38 - application-level timestamp
+		)
+	}
+
+	// Add ON CONFLICT clause with merge semantics
+	// For updates, we only update fields that were provided (non-null in the import)
+	// This preserves the merge behavior from the single upsert
+	queryBuilder.WriteString(`
+	ON CONFLICT (email) DO UPDATE SET
+		external_id = CASE WHEN EXCLUDED.external_id IS NOT NULL THEN EXCLUDED.external_id ELSE contacts.external_id END,
+		timezone = CASE WHEN EXCLUDED.timezone IS NOT NULL THEN EXCLUDED.timezone ELSE contacts.timezone END,
+		language = CASE WHEN EXCLUDED.language IS NOT NULL THEN EXCLUDED.language ELSE contacts.language END,
+		first_name = CASE WHEN EXCLUDED.first_name IS NOT NULL THEN EXCLUDED.first_name ELSE contacts.first_name END,
+		last_name = CASE WHEN EXCLUDED.last_name IS NOT NULL THEN EXCLUDED.last_name ELSE contacts.last_name END,
+		phone = CASE WHEN EXCLUDED.phone IS NOT NULL THEN EXCLUDED.phone ELSE contacts.phone END,
+		address_line_1 = CASE WHEN EXCLUDED.address_line_1 IS NOT NULL THEN EXCLUDED.address_line_1 ELSE contacts.address_line_1 END,
+		address_line_2 = CASE WHEN EXCLUDED.address_line_2 IS NOT NULL THEN EXCLUDED.address_line_2 ELSE contacts.address_line_2 END,
+		country = CASE WHEN EXCLUDED.country IS NOT NULL THEN EXCLUDED.country ELSE contacts.country END,
+		postcode = CASE WHEN EXCLUDED.postcode IS NOT NULL THEN EXCLUDED.postcode ELSE contacts.postcode END,
+		state = CASE WHEN EXCLUDED.state IS NOT NULL THEN EXCLUDED.state ELSE contacts.state END,
+		job_title = CASE WHEN EXCLUDED.job_title IS NOT NULL THEN EXCLUDED.job_title ELSE contacts.job_title END,
+		lifetime_value = CASE WHEN EXCLUDED.lifetime_value IS NOT NULL THEN EXCLUDED.lifetime_value ELSE contacts.lifetime_value END,
+		orders_count = CASE WHEN EXCLUDED.orders_count IS NOT NULL THEN EXCLUDED.orders_count ELSE contacts.orders_count END,
+		last_order_at = CASE WHEN EXCLUDED.last_order_at IS NOT NULL THEN EXCLUDED.last_order_at ELSE contacts.last_order_at END,
+		custom_string_1 = CASE WHEN EXCLUDED.custom_string_1 IS NOT NULL THEN EXCLUDED.custom_string_1 ELSE contacts.custom_string_1 END,
+		custom_string_2 = CASE WHEN EXCLUDED.custom_string_2 IS NOT NULL THEN EXCLUDED.custom_string_2 ELSE contacts.custom_string_2 END,
+		custom_string_3 = CASE WHEN EXCLUDED.custom_string_3 IS NOT NULL THEN EXCLUDED.custom_string_3 ELSE contacts.custom_string_3 END,
+		custom_string_4 = CASE WHEN EXCLUDED.custom_string_4 IS NOT NULL THEN EXCLUDED.custom_string_4 ELSE contacts.custom_string_4 END,
+		custom_string_5 = CASE WHEN EXCLUDED.custom_string_5 IS NOT NULL THEN EXCLUDED.custom_string_5 ELSE contacts.custom_string_5 END,
+		custom_number_1 = CASE WHEN EXCLUDED.custom_number_1 IS NOT NULL THEN EXCLUDED.custom_number_1 ELSE contacts.custom_number_1 END,
+		custom_number_2 = CASE WHEN EXCLUDED.custom_number_2 IS NOT NULL THEN EXCLUDED.custom_number_2 ELSE contacts.custom_number_2 END,
+		custom_number_3 = CASE WHEN EXCLUDED.custom_number_3 IS NOT NULL THEN EXCLUDED.custom_number_3 ELSE contacts.custom_number_3 END,
+		custom_number_4 = CASE WHEN EXCLUDED.custom_number_4 IS NOT NULL THEN EXCLUDED.custom_number_4 ELSE contacts.custom_number_4 END,
+		custom_number_5 = CASE WHEN EXCLUDED.custom_number_5 IS NOT NULL THEN EXCLUDED.custom_number_5 ELSE contacts.custom_number_5 END,
+		custom_datetime_1 = CASE WHEN EXCLUDED.custom_datetime_1 IS NOT NULL THEN EXCLUDED.custom_datetime_1 ELSE contacts.custom_datetime_1 END,
+		custom_datetime_2 = CASE WHEN EXCLUDED.custom_datetime_2 IS NOT NULL THEN EXCLUDED.custom_datetime_2 ELSE contacts.custom_datetime_2 END,
+		custom_datetime_3 = CASE WHEN EXCLUDED.custom_datetime_3 IS NOT NULL THEN EXCLUDED.custom_datetime_3 ELSE contacts.custom_datetime_3 END,
+		custom_datetime_4 = CASE WHEN EXCLUDED.custom_datetime_4 IS NOT NULL THEN EXCLUDED.custom_datetime_4 ELSE contacts.custom_datetime_4 END,
+		custom_datetime_5 = CASE WHEN EXCLUDED.custom_datetime_5 IS NOT NULL THEN EXCLUDED.custom_datetime_5 ELSE contacts.custom_datetime_5 END,
+		custom_json_1 = CASE WHEN EXCLUDED.custom_json_1 IS NOT NULL THEN EXCLUDED.custom_json_1 ELSE contacts.custom_json_1 END,
+		custom_json_2 = CASE WHEN EXCLUDED.custom_json_2 IS NOT NULL THEN EXCLUDED.custom_json_2 ELSE contacts.custom_json_2 END,
+		custom_json_3 = CASE WHEN EXCLUDED.custom_json_3 IS NOT NULL THEN EXCLUDED.custom_json_3 ELSE contacts.custom_json_3 END,
+		custom_json_4 = CASE WHEN EXCLUDED.custom_json_4 IS NOT NULL THEN EXCLUDED.custom_json_4 ELSE contacts.custom_json_4 END,
+		custom_json_5 = CASE WHEN EXCLUDED.custom_json_5 IS NOT NULL THEN EXCLUDED.custom_json_5 ELSE contacts.custom_json_5 END,
+		created_at = EXCLUDED.created_at,
+		updated_at = EXCLUDED.updated_at,
+		db_updated_at = NOW()
+	RETURNING email, (xmax = 0) AS is_new`)
+
+	query := queryBuilder.String()
+
+	// Execute the bulk upsert
+	rows, err := tx.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to execute bulk upsert: %w", err)
+	}
+	defer rows.Close()
+
+	// Collect results
+	results := make([]domain.BulkUpsertResult, 0, len(contacts))
+	for rows.Next() {
+		var result domain.BulkUpsertResult
+		if err := rows.Scan(&result.Email, &result.IsNew); err != nil {
+			return nil, fmt.Errorf("failed to scan result: %w", err)
+		}
+		results = append(results, result)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating results: %w", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+
+	return results, nil
+}
+
 // GetContactsForBroadcast retrieves contacts based on broadcast audience settings
 // It supports filtering by lists, handling unsubscribed contacts, and deduplication
 func (r *contactRepository) GetContactsForBroadcast(

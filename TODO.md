@@ -15,4 +15,5 @@
 
 ## Roadmap
 
+- check for updates + newsletter box
 - automations with async triggers

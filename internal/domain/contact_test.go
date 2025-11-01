@@ -1263,9 +1263,10 @@ func TestBatchImportContactsRequest_Validate(t *testing.T) {
 	notAnArray := `"not-an-array"`
 
 	tests := []struct {
-		name    string
-		request BatchImportContactsRequest
-		wantErr bool
+		name          string
+		request       BatchImportContactsRequest
+		wantErr       bool
+		expectedEmail string
 	}{
 		{
 			name: "valid request",
@@ -1273,7 +1274,8 @@ func TestBatchImportContactsRequest_Validate(t *testing.T) {
 				WorkspaceID: "workspace123",
 				Contacts:    json.RawMessage(validContacts),
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectedEmail: "test@example.com",
 		},
 		{
 			name: "missing workspace ID",
@@ -1296,7 +1298,8 @@ func TestBatchImportContactsRequest_Validate(t *testing.T) {
 				WorkspaceID: "workspace123",
 				Contacts:    json.RawMessage(invalidContacts),
 			},
-			wantErr: true,
+			wantErr:       false, // Request parsing is lenient - validation happens in service layer
+			expectedEmail: "",    // FromJSON fails for invalid email, creates empty contact
 		},
 		{
 			name: "empty contacts array",
@@ -1320,7 +1323,9 @@ func TestBatchImportContactsRequest_Validate(t *testing.T) {
 				assert.Equal(t, tt.request.WorkspaceID, workspaceID)
 				assert.NotNil(t, contacts)
 				assert.Len(t, contacts, 1)
-				assert.Equal(t, "test@example.com", contacts[0].Email)
+				if tt.expectedEmail != "" {
+					assert.Equal(t, tt.expectedEmail, contacts[0].Email)
+				}
 			}
 		})
 	}
@@ -2592,13 +2597,16 @@ func TestContact_Merge_DBTimeStamps(t *testing.T) {
 }
 
 func TestBatchImportContactsRequest_Validate_ErrorIndex(t *testing.T) {
+	// Test that request validation is lenient - doesn't reject at request level
+	// Individual contact validation happens in the service layer for partial success
 	req := BatchImportContactsRequest{
 		WorkspaceID: "ws_123",
 		Contacts:    json.RawMessage(`[{"email":"valid@example.com"},{"email":"invalid-email"}]`),
 	}
-	_, _, err := req.Validate()
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "invalid contact at index 1")
+	contacts, workspaceID, err := req.Validate()
+	assert.NoError(t, err, "Request validation should be lenient")
+	assert.Equal(t, "ws_123", workspaceID)
+	assert.Len(t, contacts, 2, "Should parse both contacts even if one has invalid data")
 }
 
 func TestComputeEmailHMAC_DeterministicAndKeySensitive(t *testing.T) {
