@@ -1,7 +1,3 @@
-aidanwoods.dev/go-paseto v1.5.4 h1:MH+SBroZEk5Q5pjhVh4l48HIbrdWhWI3SZmA/DXhnuw=
-aidanwoods.dev/go-paseto v1.5.4/go.mod h1:Rn37AIcqrvSMu0YPw65CrlEUuoyKL6Yw6B0htrGr3EU=
-aidanwoods.dev/go-result v0.3.1 h1:ee98hpohYUVYbI+pa6gUHTyoRerIudgjky/IPSowDXQ=
-aidanwoods.dev/go-result v0.3.1/go.mod h1:GKnFg8p/BKulVD3wsfULiPhpPmrTWyiTIbz8EWuUqSk=
 bazil.org/fuse v0.0.0-20160811212531-371fbbdaa898/go.mod h1:Xbm+BRKSBEpa4q4hTSxohYNQpsxXPbPry4JJWOB3LB8=
 bazil.org/fuse v0.0.0-20200407214033-5883e5a4b512/go.mod h1:FbcW6z/2VytnFDhZfumh8Ss8zxHE6qpMP5sHTRe0EaM=
 cloud.google.com/go v0.26.0/go.mod h1:aQUYkXzVsufM+DwF1aE+0xfcU+56JwCaLick0ClmMTw=

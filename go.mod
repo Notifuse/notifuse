@@ -3,7 +3,6 @@ module github.com/Notifuse/notifuse
 go 1.24.0
 
 require (
-	aidanwoods.dev/go-paseto v1.5.4
 	contrib.go.opencensus.io/exporter/aws v0.0.0-20230502192102-15967c811cec
 	contrib.go.opencensus.io/exporter/jaeger v0.2.1
 	contrib.go.opencensus.io/exporter/prometheus v0.4.2
@@ -34,7 +33,6 @@ require (
 )
 
 require (
-	aidanwoods.dev/go-result v0.3.1 // indirect
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
 	cloud.google.com/go/monitoring v1.18.0 // indirect
 	cloud.google.com/go/trace v1.10.5 // indirect

@@ -120,8 +120,7 @@ jobs:
           DB_SSLMODE: disable
         run: |
           # Create a test .env file for integration tests
-          echo "PASETO_PRIVATE_KEY=UayDa4OMDpm3CvIT+iSC39iDyPlsui0pNQYDEZ1pbo1LsIrO4p/aVuCBWz6LiYvzj9pc+gn0gLwRd0CoHV+nxw==" >> .env.test
-          echo "PASETO_PUBLIC_KEY=S7CKzuKf2lbggVs+i4mL84/aXPoJ9IC8EXdAqB1fp8c=" >> .env.test
+          echo "SECRET_KEY=UayDa4OMDpm3CvIT+iSC39iDyPlsui0pNQYDEZ1pbo1LsIrO4p/aVuCBWz6LiYvzj9pc+gn0gLwRd0CoHV+nxw==" >> .env.test
           echo "ROOT_EMAIL=admin@example.com" >> .env.test
           echo "DB_HOST=localhost" >> .env.test
           echo "DB_PORT=5433" >> .env.test
