@@ -25,10 +25,6 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 	skipIfNotIntegrationTest(t)
 
 	t.Run("should_run_migrations_when_database_version_is_lower_than_code_version", func(t *testing.T) {
-		// Set SECRET_KEY for v15 migration
-		os.Setenv("SECRET_KEY", "test-secret-key-for-migration")
-		defer os.Unsetenv("SECRET_KEY")
-
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
 		defer dbManager.Cleanup()
@@ -41,6 +37,9 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 			Database: *dbManager.GetConfig(),
 			Version:  "5.0", // Current code version
 			LogLevel: "info",
+			Security: config.SecurityConfig{
+				SecretKey: "test-secret-key-for-migration",
+			},
 		}
 		testLogger := logger.NewLoggerWithLevel("info")
 
@@ -95,10 +94,6 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 	})
 
 	t.Run("should_not_run_migrations_when_database_version_equals_code_version", func(t *testing.T) {
-		// Set SECRET_KEY for v15 migration (in case it runs)
-		os.Setenv("SECRET_KEY", "test-secret-key-for-migration")
-		defer os.Unsetenv("SECRET_KEY")
-
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
 		defer dbManager.Cleanup()
@@ -111,6 +106,9 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 			Database: *dbManager.GetConfig(),
 			Version:  "5.0",
 			LogLevel: "info",
+			Security: config.SecurityConfig{
+				SecretKey: "test-secret-key-for-migration",
+			},
 		}
 		testLogger := logger.NewLoggerWithLevel("info")
 
@@ -150,10 +148,6 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 	})
 
 	t.Run("should_handle_missing_database_version_as_first_run", func(t *testing.T) {
-		// Set SECRET_KEY for v15 migration (in case it runs)
-		os.Setenv("SECRET_KEY", "test-secret-key-for-migration")
-		defer os.Unsetenv("SECRET_KEY")
-
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
 		defer dbManager.Cleanup()
@@ -166,6 +160,9 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 			Database: *dbManager.GetConfig(),
 			Version:  "5.0",
 			LogLevel: "info",
+			Security: config.SecurityConfig{
+				SecretKey: "test-secret-key-for-migration",
+			},
 		}
 		testLogger := logger.NewLoggerWithLevel("info")
 
