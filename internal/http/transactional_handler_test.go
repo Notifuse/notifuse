@@ -15,16 +15,12 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 
-
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 
-
 	"github.com/golang/mock/gomock"
 
-
 	"github.com/stretchr/testify/assert"
-
 
 	"github.com/stretchr/testify/require"
 )
@@ -1482,7 +1478,7 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 			mockService := mocks.NewMockTransactionalNotificationService(ctrl)
 			tc.setupMock(mockService, mockLogger)
 
-			// Create a paseto secret key
+			// Create a JWT secret key
 			jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 			// Create the handler
 			handler := &TransactionalNotificationHandler{

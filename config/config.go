@@ -399,7 +399,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		return nil, fmt.Errorf("DB_MAX_CONNECTIONS_PER_DB cannot exceed 50 (got %d)", dbConfig.MaxConnectionsPerDB)
 	}
 
-	// SECRET_KEY resolution (CRITICAL for decryption)
+	// SECRET_KEY resolution (CRITICAL for decryption and JWT signing)
 	secretKey := v.GetString("SECRET_KEY")
 	if secretKey == "" {
 		// Fallback for backward compatibility

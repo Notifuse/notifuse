@@ -628,7 +628,7 @@ func (s *WorkspaceService) InviteMember(ctx context.Context, workspaceID, email 
 		return nil, "", err
 	}
 
-	// Generate a PASETO token with the invitation details
+	// Generate a JWT token with the invitation details
 	token := s.authService.GenerateInvitationToken(invitation)
 
 	// Send invitation email in production mode

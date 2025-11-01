@@ -14,8 +14,6 @@ type SystemConfig struct {
 	IsInstalled      bool
 	RootEmail        string
 	APIEndpoint      string
-	PasetoPublicKey  string // Base64 encoded
-	PasetoPrivateKey string // Base64 encoded
 	SMTPHost         string
 	SMTPPort         int
 	SMTPUsername     string
@@ -68,24 +66,6 @@ func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) 
 	// Load API endpoint
 	if setting, err := s.repo.Get(ctx, "api_endpoint"); err == nil {
 		config.APIEndpoint = setting.Value
-	}
-
-	// Load and decrypt PASETO private key
-	if setting, err := s.repo.Get(ctx, "encrypted_paseto_private_key"); err == nil && setting.Value != "" {
-		decrypted, err := crypto.DecryptFromHexString(setting.Value, secretKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decrypt PASETO private key: %w", err)
-		}
-		config.PasetoPrivateKey = decrypted
-	}
-
-	// Load and decrypt PASETO public key
-	if setting, err := s.repo.Get(ctx, "encrypted_paseto_public_key"); err == nil && setting.Value != "" {
-		decrypted, err := crypto.DecryptFromHexString(setting.Value, secretKey)
-		if err != nil {
-			return nil, fmt.Errorf("failed to decrypt PASETO public key: %w", err)
-		}
-		config.PasetoPublicKey = decrypted
 	}
 
 	// Load SMTP settings
@@ -160,28 +140,6 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 	if config.APIEndpoint != "" {
 		if err := s.repo.Set(ctx, "api_endpoint", config.APIEndpoint); err != nil {
 			return fmt.Errorf("failed to set api_endpoint: %w", err)
-		}
-	}
-
-	// Encrypt and store PASETO private key
-	if config.PasetoPrivateKey != "" {
-		encrypted, err := crypto.EncryptString(config.PasetoPrivateKey, secretKey)
-		if err != nil {
-			return fmt.Errorf("failed to encrypt PASETO private key: %w", err)
-		}
-		if err := s.repo.Set(ctx, "encrypted_paseto_private_key", encrypted); err != nil {
-			return fmt.Errorf("failed to set encrypted_paseto_private_key: %w", err)
-		}
-	}
-
-	// Encrypt and store PASETO public key
-	if config.PasetoPublicKey != "" {
-		encrypted, err := crypto.EncryptString(config.PasetoPublicKey, secretKey)
-		if err != nil {
-			return fmt.Errorf("failed to encrypt PASETO public key: %w", err)
-		}
-		if err := s.repo.Set(ctx, "encrypted_paseto_public_key", encrypted); err != nil {
-			return fmt.Errorf("failed to set encrypted_paseto_public_key: %w", err)
 		}
 	}
 

@@ -1,26 +1,11 @@
 import { useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useState } from 'react'
-import {
-  Button,
-  Input,
-  Radio,
-  Form,
-  InputNumber,
-  App,
-  Divider,
-  Row,
-  Col,
-  Alert,
-  Collapse,
-  Switch
-} from 'antd'
-import { ApiOutlined, CheckOutlined, CopyOutlined, ArrowRightOutlined } from '@ant-design/icons'
+import { Button, Input, Form, InputNumber, App, Divider, Row, Col, Collapse, Switch } from 'antd'
+import { ApiOutlined, CheckOutlined, ArrowRightOutlined } from '@ant-design/icons'
 import { setupApi } from '../services/api/setup'
 import type { SetupConfig } from '../types/setup'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
-
-const { TextArea } = Input
 
 declare global {
   interface Window {
@@ -36,21 +21,14 @@ export default function SetupWizard() {
   const [loading, setLoading] = useState(false)
   const [testing, setTesting] = useState(false)
   const [statusLoading, setStatusLoading] = useState(true)
-  const [keyMode, setKeyMode] = useState<'generate' | 'existing'>('generate')
   const [setupComplete, setSetupComplete] = useState(false)
   const [apiEndpoint, setApiEndpoint] = useState('')
-  const [generatedKeys, setGeneratedKeys] = useState<{
-    public_key: string
-    private_key: string
-  } | null>(null)
   const [configStatus, setConfigStatus] = useState<{
     smtp_configured: boolean
-    paseto_configured: boolean
     api_endpoint_configured: boolean
     root_email_configured: boolean
   }>({
     smtp_configured: false,
-    paseto_configured: false,
     api_endpoint_configured: false,
     root_email_configured: false
   })
@@ -71,7 +49,6 @@ export default function SetupWizard() {
         }
         setConfigStatus({
           smtp_configured: status.smtp_configured,
-          paseto_configured: status.paseto_configured,
           api_endpoint_configured: status.api_endpoint_configured,
           root_email_configured: status.root_email_configured
         })
@@ -124,15 +101,6 @@ export default function SetupWizard() {
         setupConfig.api_endpoint = values.api_endpoint
       }
 
-      // PASETO keys (only if not configured via env)
-      if (!configStatus.paseto_configured) {
-        setupConfig.generate_paseto_keys = keyMode === 'generate'
-        if (keyMode === 'existing') {
-          setupConfig.paseto_public_key = values.paseto_public_key
-          setupConfig.paseto_private_key = values.paseto_private_key
-        }
-      }
-
       // SMTP configuration (only if not configured via env)
       if (!configStatus.smtp_configured) {
         setupConfig.smtp_host = values.smtp_host
@@ -147,7 +115,7 @@ export default function SetupWizard() {
       setupConfig.telemetry_enabled = values.telemetry_enabled || false
       setupConfig.check_for_updates = values.check_for_updates || false
 
-      const result = await setupApi.initialize(setupConfig)
+      await setupApi.initialize(setupConfig)
 
       // Subscribe to newsletter if checked (fail silently)
       if (values.subscribe_newsletter && values.root_email) {
@@ -198,12 +166,7 @@ export default function SetupWizard() {
         }
       }
 
-      // If keys were generated and returned, show them to the user
-      if (result.paseto_keys) {
-        setGeneratedKeys(result.paseto_keys)
-      }
-
-      // Show setup complete screen immediately with keys
+      // Show setup complete screen
       setSetupComplete(true)
 
       // Keep loading state active while server restarts
@@ -280,11 +243,6 @@ export default function SetupWizard() {
     throw new Error('Server restart timeout')
   }
 
-  const handleCopyKey = (key: string, keyType: string) => {
-    navigator.clipboard.writeText(key)
-    message.success(`${keyType} copied to clipboard!`)
-  }
-
   const handleDone = () => {
     // Force a full page reload to fetch fresh config from /config.js
     // This ensures window.IS_INSTALLED is properly set from the backend
@@ -325,66 +283,6 @@ export default function SetupWizard() {
                     Your Notifuse instance has been successfully configured.
                   </p>
                 </div>
-
-                {generatedKeys && (
-                  <div className="mt-8">
-                    <div className="mb-6">
-                      <Alert
-                        message="Save Your PASETO Keys"
-                        description="These keys are critical for your installation. Save them securely - they cannot be recovered if lost. You'll need them if you migrate or restore your installation."
-                        type="warning"
-                      />
-                    </div>
-
-                    <Row gutter={16}>
-                      <Col span={12}>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Public Key
-                        </label>
-                        <TextArea
-                          readOnly
-                          value={generatedKeys.public_key}
-                          rows={6}
-                          style={{ fontFamily: 'monospace', fontSize: '12px' }}
-                        />
-                        <div className="mt-2">
-                          <Button
-                            type="primary"
-                            ghost
-                            block
-                            icon={<CopyOutlined />}
-                            onClick={() => handleCopyKey(generatedKeys.public_key, 'Public key')}
-                          >
-                            Copy
-                          </Button>
-                        </div>
-                      </Col>
-
-                      <Col span={12}>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Private Key
-                        </label>
-                        <TextArea
-                          readOnly
-                          value={generatedKeys.private_key}
-                          rows={6}
-                          style={{ fontFamily: 'monospace', fontSize: '12px' }}
-                        />
-                        <div className="mt-2">
-                          <Button
-                            type="primary"
-                            ghost
-                            block
-                            icon={<CopyOutlined />}
-                            onClick={() => handleCopyKey(generatedKeys.private_key, 'Private key')}
-                          >
-                            Copy
-                          </Button>
-                        </div>
-                      </Col>
-                    </Row>
-                  </div>
-                )}
 
                 <div className="mt-8 text-center">
                   <Button
@@ -591,95 +489,6 @@ export default function SetupWizard() {
                         label: 'Advanced Settings',
                         children: (
                           <>
-                            {/* PASETO Keys Section */}
-                            {!configStatus.paseto_configured && (
-                              <>
-                                <Divider orientation="center" style={{ marginBottom: 24 }}>
-                                  PASETO Keys
-                                </Divider>
-
-                                <div className="mb-4">
-                                  <Alert
-                                    description={
-                                      <>
-                                        <strong>Important:</strong> PASETO keys are used to generate
-                                        and validate API keys for your workspaces. Save them
-                                        securely after setup - they cannot be recovered if lost.
-                                        Losing these keys will force you to regenerate all workspace
-                                        API keys, which will break existing integrations.
-                                        <br />
-                                        <br />
-                                        💡 Need to generate PASETO keys? Use our online tool:{' '}
-                                        <a
-                                          href="https://paseto.notifuse.com"
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="underline font-medium hover:text-blue-900"
-                                        >
-                                          paseto.notifuse.com
-                                        </a>
-                                      </>
-                                    }
-                                    type="warning"
-                                    showIcon={false}
-                                  />
-                                </div>
-
-                                <Form.Item>
-                                  <Radio.Group
-                                    value={keyMode}
-                                    onChange={(e) => setKeyMode(e.target.value)}
-                                    block
-                                  >
-                                    <Radio.Button value="generate">
-                                      Generate New Keys Automatically
-                                    </Radio.Button>
-                                    <Radio.Button value="existing">Use Existing Keys</Radio.Button>
-                                  </Radio.Group>
-                                </Form.Item>
-
-                                {keyMode === 'existing' && (
-                                  <>
-                                    <Form.Item
-                                      label="Public Key"
-                                      name="paseto_public_key"
-                                      rules={[
-                                        { required: true, message: 'Public key is required' }
-                                      ]}
-                                    >
-                                      <TextArea
-                                        rows={3}
-                                        placeholder="Paste your base64-encoded PASETO public key here..."
-                                        style={{ fontFamily: 'monospace', fontSize: '12px' }}
-                                      />
-                                    </Form.Item>
-
-                                    <Form.Item
-                                      label="Private Key"
-                                      name="paseto_private_key"
-                                      rules={[
-                                        { required: true, message: 'Private key is required' }
-                                      ]}
-                                    >
-                                      <TextArea
-                                        rows={3}
-                                        placeholder="Paste your base64-encoded PASETO private key here..."
-                                        style={{ fontFamily: 'monospace', fontSize: '12px' }}
-                                      />
-                                    </Form.Item>
-                                  </>
-                                )}
-                              </>
-                            )}
-
-                            {/* Telemetry Setting */}
-                            <Divider
-                              orientation="center"
-                              style={{ marginTop: 32, marginBottom: 24 }}
-                            >
-                              Privacy Settings
-                            </Divider>
-
                             <Row gutter={16}>
                               <Col span={12}>
                                 <Form.Item
