@@ -3,7 +3,6 @@ package migrations
 import (
 	"context"
 	"fmt"
-	"os"
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -27,26 +26,26 @@ func (m *V15Migration) HasWorkspaceUpdate() bool {
 }
 
 func (m *V15Migration) ShouldRestartServer() bool {
-	return true // Restart required to reload JWT configuration
+	return false // No restart needed - JWT config already loaded in memory
 }
 
 func (m *V15Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db DBExecutor) error {
-	// CRITICAL: Check for SECRET_KEY environment variable before migrating
-	secretKey := os.Getenv("SECRET_KEY")
-	pasetoKey := os.Getenv("PASETO_PRIVATE_KEY")
+	// CRITICAL: Check for SECRET_KEY before migrating
+	// Use cfg.Security.SecretKey which has already been loaded from env/viper (supports .env files)
+	secretKey := cfg.Security.SecretKey
 
-	if secretKey == "" && pasetoKey == "" {
-		return fmt.Errorf(`MIGRATION FAILED: SECRET_KEY environment variable is required for v15 migration
+	if secretKey == "" {
+		return fmt.Errorf(`MIGRATION FAILED: SECRET_KEY is required for v15 migration
 
 This version migrates from PASETO to JWT authentication (HS256 symmetric signing).
-You must set the SECRET_KEY environment variable before upgrading.
+You must set the SECRET_KEY before upgrading.
 
 Options:
-1. Set SECRET_KEY to a new secure value (recommended):
-   export SECRET_KEY=$(openssl rand -base64 32)
+1. Set SECRET_KEY in your .env file or environment (recommended):
+   SECRET_KEY=$(openssl rand -base64 32)
 
 2. Or reuse your existing PASETO_PRIVATE_KEY for backward compatibility:
-   export SECRET_KEY="$PASETO_PRIVATE_KEY"
+   SECRET_KEY="$PASETO_PRIVATE_KEY"
 
 After setting SECRET_KEY, restart the application to complete the migration.
 

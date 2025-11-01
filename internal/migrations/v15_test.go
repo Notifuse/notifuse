@@ -2,7 +2,6 @@ package migrations
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -27,7 +26,7 @@ func TestV15Migration_HasWorkspaceUpdate(t *testing.T) {
 
 func TestV15Migration_ShouldRestartServer(t *testing.T) {
 	migration := &V15Migration{}
-	assert.True(t, migration.ShouldRestartServer())
+	assert.False(t, migration.ShouldRestartServer())
 }
 
 func TestV15Migration_UpdateSystem(t *testing.T) {
@@ -40,12 +39,10 @@ func TestV15Migration_UpdateSystem(t *testing.T) {
 	migration := &V15Migration{}
 	ctx := context.Background()
 	cfg := createTestConfig()
+	// Set SECRET_KEY in config (required for migration)
+	cfg.Security.SecretKey = "test-secret-key-1234567890123456"
 	db := setupTestDB(t, cfg)
 	defer db.Close()
-
-	// Set SECRET_KEY environment variable (required for migration)
-	os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
-	defer os.Unsetenv("SECRET_KEY")
 
 	// Create settings table if it doesn't exist
 	_, err := db.ExecContext(ctx, `
@@ -152,12 +149,10 @@ func TestV15Migration_UpdateSystem_MissingSecretKey(t *testing.T) {
 	migration := &V15Migration{}
 	ctx := context.Background()
 	cfg := createTestConfig()
+	// Ensure SECRET_KEY is not set (empty string)
+	cfg.Security.SecretKey = ""
 	db := setupTestDB(t, cfg)
 	defer db.Close()
-
-	// Ensure SECRET_KEY is not set
-	os.Unsetenv("SECRET_KEY")
-	os.Unsetenv("PASETO_PRIVATE_KEY")
 
 	// Run migration - should fail
 	err := migration.UpdateSystem(ctx, cfg, db)
@@ -192,4 +187,3 @@ func TestV15Migration_UpdateWorkspace(t *testing.T) {
 	err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
 	assert.NoError(t, err, "Migration should be idempotent")
 }
-
