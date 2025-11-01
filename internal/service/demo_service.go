@@ -37,6 +37,7 @@ type DemoService struct {
 	taskRepo                         domain.TaskRepository
 	messageHistoryRepo               domain.MessageHistoryRepository
 	webhookEventRepo                 domain.WebhookEventRepository
+	broadcastRepo                    domain.BroadcastRepository
 }
 
 // Sample data arrays for contact generation
@@ -109,6 +110,7 @@ func NewDemoService(
 	taskRepo domain.TaskRepository,
 	messageHistoryRepo domain.MessageHistoryRepository,
 	webhookEventRepo domain.WebhookEventRepository,
+	broadcastRepo domain.BroadcastRepository,
 ) *DemoService {
 	return &DemoService{
 		logger:                           logger,
@@ -132,6 +134,7 @@ func NewDemoService(
 		taskRepo:                         taskRepo,
 		messageHistoryRepo:               messageHistoryRepo,
 		webhookEventRepo:                 webhookEventRepo,
+		broadcastRepo:                    broadcastRepo,
 	}
 }
 
@@ -1601,8 +1604,29 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 			continue
 		}
 
+		// Update broadcast status to "sent" since we're generating message history for it
+		// Set timestamps to simulate that it was sent in the past (10-1 days ago based on campaign)
+		daysAgo := 10 - (i * 2) // Spread broadcasts over last 10 days
+		if daysAgo < 1 {
+			daysAgo = 1
+		}
+		sentTime := time.Now().AddDate(0, 0, -daysAgo)
+		completedTime := sentTime.Add(2 * time.Hour) // Completed 2 hours after sending started
+
+		broadcast.Status = domain.BroadcastStatusSent
+		broadcast.StartedAt = &sentTime
+		broadcast.SentAt = &sentTime
+		broadcast.CompletedAt = &completedTime
+		broadcast.UpdatedAt = completedTime
+
+		// Update the broadcast in the repository to reflect sent status
+		if err := s.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
+			s.logger.WithField("broadcast_id", broadcast.ID).WithField("error", err.Error()).Warn("Failed to update broadcast status to sent")
+			// Continue anyway - the broadcast was created, just not marked as sent
+		}
+
 		broadcastIDs = append(broadcastIDs, broadcast.ID)
-		s.logger.WithField("broadcast_id", broadcast.ID).WithField("name", bc.name).Info("Sample broadcast created")
+		s.logger.WithField("broadcast_id", broadcast.ID).WithField("name", bc.name).WithField("status", "sent").Info("Sample broadcast created and marked as sent")
 	}
 
 	if len(broadcastIDs) == 0 {

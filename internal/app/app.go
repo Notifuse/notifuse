@@ -721,6 +721,7 @@ func (a *App) InitServices() error {
 		a.taskRepo,
 		a.messageHistoryRepo,
 		a.webhookEventRepo,
+		a.broadcastRepo,
 	)
 
 	// Initialize telemetry service

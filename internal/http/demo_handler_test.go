@@ -7,26 +7,18 @@ import (
 	"testing"
 	"time"
 
-
-
 	"github.com/Notifuse/notifuse/config"
-
 
 	"github.com/Notifuse/notifuse/internal/domain"
 
-
 	"github.com/Notifuse/notifuse/internal/service"
-
 
 	"github.com/Notifuse/notifuse/pkg/logger"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 
-
 	"github.com/golang/mock/gomock"
 
-
 	"github.com/stretchr/testify/assert"
-
 
 	"github.com/stretchr/testify/require"
 )
@@ -36,7 +28,7 @@ func createTestDemoService(cfg *config.Config, serviceLogger logger.Logger) *ser
 	return service.NewDemoService(
 		serviceLogger,
 		cfg,
-		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 }
 
