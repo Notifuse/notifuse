@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -22,26 +21,26 @@ func (e *MissingParameterError) Error() string {
 }
 
 type BroadcastHandler struct {
-	service     domain.BroadcastService
-	templateSvc domain.TemplateService
-	logger      logger.Logger
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
-	isDemo      bool
+	service      domain.BroadcastService
+	templateSvc  domain.TemplateService
+	logger       logger.Logger
+	getJWTSecret func() ([]byte, error)
+	isDemo       bool
 }
 
-func NewBroadcastHandler(service domain.BroadcastService, templateSvc domain.TemplateService, getPublicKey func() (paseto.V4AsymmetricPublicKey, error), logger logger.Logger, isDemo bool) *BroadcastHandler {
+func NewBroadcastHandler(service domain.BroadcastService, templateSvc domain.TemplateService, getJWTSecret func() ([]byte, error), logger logger.Logger, isDemo bool) *BroadcastHandler {
 	return &BroadcastHandler{
-		service:     service,
-		templateSvc: templateSvc,
-		logger:      logger,
-		getPublicKey:        getPublicKey,
-		isDemo:      isDemo,
+		service:      service,
+		templateSvc:  templateSvc,
+		logger:       logger,
+		getJWTSecret: getJWTSecret,
+		isDemo:       isDemo,
 	}
 }
 
 func (h *BroadcastHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	requireAuth := authMiddleware.RequireAuth()
 
 	restrictedInDemo := middleware.RestrictedInDemo(h.isDemo)

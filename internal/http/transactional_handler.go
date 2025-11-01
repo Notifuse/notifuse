@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"strings"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -15,21 +14,21 @@ import (
 type TransactionalNotificationHandler struct {
 	service   domain.TransactionalNotificationService
 	logger    logger.Logger
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
+	getJWTSecret func() ([]byte, error)
 	isDemo    bool
 }
 
 // NewTransactionalNotificationHandler creates a new instance of TransactionalNotificationHandler
 func NewTransactionalNotificationHandler(
 	service domain.TransactionalNotificationService,
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
+	getJWTSecret func() ([]byte, error),
 	logger logger.Logger,
 	isDemo bool,
 ) *TransactionalNotificationHandler {
 	return &TransactionalNotificationHandler{
 		service:   service,
 		logger:    logger,
-		getPublicKey:        getPublicKey,
+		getJWTSecret: getJWTSecret,
 		isDemo:    isDemo,
 	}
 }
@@ -37,7 +36,7 @@ func NewTransactionalNotificationHandler(
 // RegisterRoutes registers all routes for transactional notifications
 func (h *TransactionalNotificationHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	requireAuth := authMiddleware.RequireAuth()
 
 	restrictedInDemo := middleware.RestrictedInDemo(h.isDemo)

@@ -2,39 +2,28 @@ package service
 
 import (
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/google/uuid"
 	"github.com/wneessen/go-mail"
 )
 
-// PasetoKeys represents generated PASETO keys
-type PasetoKeys struct {
-	PublicKey  string
-	PrivateKey string
-}
-
 // SetupConfig represents the setup initialization configuration
 type SetupConfig struct {
-	RootEmail          string
-	APIEndpoint        string
-	GeneratePasetoKeys bool
-	PasetoPublicKey    string
-	PasetoPrivateKey   string
-	SMTPHost           string
-	SMTPPort           int
-	SMTPUsername       string
-	SMTPPassword       string
-	SMTPFromEmail      string
-	SMTPFromName       string
-	TelemetryEnabled   bool
-	CheckForUpdates    bool
+	RootEmail        string
+	APIEndpoint      string
+	SMTPHost         string
+	SMTPPort         int
+	SMTPUsername     string
+	SMTPPassword     string
+	SMTPFromEmail    string
+	SMTPFromName     string
+	TelemetryEnabled bool
+	CheckForUpdates  bool
 }
 
 // SMTPTestConfig represents SMTP configuration for testing
@@ -48,7 +37,6 @@ type SMTPTestConfig struct {
 // ConfigurationStatus represents which configuration groups are set via environment
 type ConfigurationStatus struct {
 	SMTPConfigured        bool
-	PasetoConfigured      bool
 	APIEndpointConfigured bool
 	RootEmailConfigured   bool
 }
@@ -66,16 +54,14 @@ type SetupService struct {
 
 // EnvironmentConfig holds configuration from environment variables
 type EnvironmentConfig struct {
-	RootEmail        string
-	APIEndpoint      string
-	PasetoPublicKey  string
-	PasetoPrivateKey string
-	SMTPHost         string
-	SMTPPort         int
-	SMTPUsername     string
-	SMTPPassword     string
-	SMTPFromEmail    string
-	SMTPFromName     string
+	RootEmail     string
+	APIEndpoint   string
+	SMTPHost      string
+	SMTPPort      int
+	SMTPUsername  string
+	SMTPPassword  string
+	SMTPFromEmail string
+	SMTPFromName  string
 }
 
 // NewSetupService creates a new setup service
@@ -104,7 +90,6 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 	if s.envConfig == nil {
 		return &ConfigurationStatus{
 			SMTPConfigured:        false,
-			PasetoConfigured:      false,
 			APIEndpointConfigured: false,
 			RootEmailConfigured:   false,
 		}
@@ -116,41 +101,11 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 		s.envConfig.SMTPPort > 0 &&
 		s.envConfig.SMTPFromEmail != ""
 
-	// PASETO is configured if BOTH keys are present
-	pasetoConfigured := s.envConfig.PasetoPublicKey != "" &&
-		s.envConfig.PasetoPrivateKey != ""
-
 	return &ConfigurationStatus{
 		SMTPConfigured:        smtpConfigured,
-		PasetoConfigured:      pasetoConfigured,
 		APIEndpointConfigured: s.envConfig.APIEndpoint != "",
 		RootEmailConfigured:   s.envConfig.RootEmail != "",
 	}
-}
-
-// GeneratePasetoKeys generates new PASETO v4 asymmetric keys
-func (s *SetupService) GeneratePasetoKeys() (*PasetoKeys, error) {
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
-	privateKeyBase64 := base64.StdEncoding.EncodeToString(secretKey.ExportBytes())
-	publicKeyBase64 := base64.StdEncoding.EncodeToString(publicKey.ExportBytes())
-
-	return &PasetoKeys{
-		PublicKey:  publicKeyBase64,
-		PrivateKey: privateKeyBase64,
-	}, nil
-}
-
-// ValidatePasetoKeys validates the format of provided PASETO keys
-func (s *SetupService) ValidatePasetoKeys(publicKey, privateKey string) error {
-	if _, err := base64.StdEncoding.DecodeString(privateKey); err != nil {
-		return fmt.Errorf("invalid PASETO private key format: %w", err)
-	}
-	if _, err := base64.StdEncoding.DecodeString(publicKey); err != nil {
-		return fmt.Errorf("invalid PASETO public key format: %w", err)
-	}
-	return nil
 }
 
 // ValidateSetupConfig validates the setup configuration, only checking user-provided fields
@@ -160,18 +115,6 @@ func (s *SetupService) ValidateSetupConfig(config *SetupConfig) error {
 	// Validate root_email if not configured via env
 	if !status.RootEmailConfigured && config.RootEmail == "" {
 		return fmt.Errorf("root_email is required")
-	}
-
-	// Validate PASETO keys if not configured via env
-	if !status.PasetoConfigured {
-		if !config.GeneratePasetoKeys {
-			if config.PasetoPrivateKey == "" || config.PasetoPublicKey == "" {
-				return fmt.Errorf("PASETO keys are required when not generating new ones")
-			}
-			if err := s.ValidatePasetoKeys(config.PasetoPublicKey, config.PasetoPrivateKey); err != nil {
-				return err
-			}
-		}
 	}
 
 	// Validate SMTP if not configured via env
@@ -193,10 +136,10 @@ func (s *SetupService) ValidateSetupConfig(config *SetupConfig) error {
 }
 
 // Initialize completes the setup wizard
-func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) (*PasetoKeys, error) {
+func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) error {
 	// Validate configuration
 	if err := s.ValidateSetupConfig(config); err != nil {
-		return nil, err
+		return err
 	}
 
 	status := s.GetConfigurationStatus()
@@ -213,29 +156,6 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) (*Pa
 	}
 	if status.APIEndpointConfigured {
 		finalConfig.APIEndpoint = s.envConfig.APIEndpoint
-	}
-
-	// Handle PASETO keys
-	var generatedKeys *PasetoKeys
-	var privateKeyBase64, publicKeyBase64 string
-
-	if status.PasetoConfigured {
-		// Use env-configured keys
-		privateKeyBase64 = s.envConfig.PasetoPrivateKey
-		publicKeyBase64 = s.envConfig.PasetoPublicKey
-	} else if config.GeneratePasetoKeys {
-		// Generate new keys
-		keys, err := s.GeneratePasetoKeys()
-		if err != nil {
-			return nil, fmt.Errorf("failed to generate PASETO keys: %w", err)
-		}
-		privateKeyBase64 = keys.PrivateKey
-		publicKeyBase64 = keys.PublicKey
-		generatedKeys = keys
-	} else {
-		// Use provided keys
-		privateKeyBase64 = config.PasetoPrivateKey
-		publicKeyBase64 = config.PasetoPublicKey
 	}
 
 	// Handle SMTP configuration
@@ -265,8 +185,6 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) (*Pa
 		IsInstalled:      true,
 		RootEmail:        finalConfig.RootEmail,
 		APIEndpoint:      finalConfig.APIEndpoint,
-		PasetoPrivateKey: privateKeyBase64,
-		PasetoPublicKey:  publicKeyBase64,
 		SMTPHost:         smtpHost,
 		SMTPPort:         smtpPort,
 		SMTPUsername:     smtpUsername,
@@ -278,7 +196,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) (*Pa
 	}
 
 	if err := s.settingService.SetSystemConfig(ctx, systemConfig, s.secretKey); err != nil {
-		return nil, fmt.Errorf("failed to save system configuration: %w", err)
+		return fmt.Errorf("failed to save system configuration: %w", err)
 	}
 
 	// Create root user (use final merged email)
@@ -295,7 +213,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) (*Pa
 		// Check if user already exists - if so, that's okay during setup
 		var errUserExists *domain.ErrUserExists
 		if !errors.As(err, &errUserExists) {
-			return nil, fmt.Errorf("failed to create root user: %w", err)
+			return fmt.Errorf("failed to create root user: %w", err)
 		}
 		// User already exists - this is fine during setup, continue
 		s.logger.WithField("email", finalConfig.RootEmail).Info("Root user already exists, skipping creation")
@@ -311,7 +229,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) (*Pa
 		}
 	}
 
-	return generatedKeys, nil
+	return nil
 }
 
 // TestSMTPConnection tests the SMTP connection with the provided configuration

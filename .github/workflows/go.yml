@@ -32,8 +32,7 @@ jobs:
       - name: Run unit tests and generate coverage
         run: |
           # Create a test .env file
-          echo "PASETO_PRIVATE_KEY=UayDa4OMDpm3CvIT+iSC39iDyPlsui0pNQYDEZ1pbo1LsIrO4p/aVuCBWz6LiYvzj9pc+gn0gLwRd0CoHV+nxw==" >> .env.test
-          echo "PASETO_PUBLIC_KEY=S7CKzuKf2lbggVs+i4mL84/aXPoJ9IC8EXdAqB1fp8c=" >> .env.test
+          echo "SECRET_KEY=mytestsecretkey" >> .env.test
           echo "ROOT_EMAIL=admin@example.com" >> .env.test
 
           # Run unit tests (exclude integration tests)

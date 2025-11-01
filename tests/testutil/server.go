@@ -7,11 +7,9 @@ import (
 	"net/http"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/Notifuse/notifuse/pkg/testkeys"
 )
 
 // ServerManager manages test server lifecycle
@@ -48,22 +46,8 @@ type AppInterface interface {
 
 // NewServerManager creates a new server manager for testing
 func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *DatabaseManager) *ServerManager {
-	// Get test keys from pkg/testkeys
-	keys, err := testkeys.GetHardcodedTestKeys()
-	if err != nil {
-		panic(fmt.Sprintf("Failed to get test keys: %v", err))
-	}
-
-	// Create PASETO keys
-	privateKey, err := paseto.NewV4AsymmetricSecretKeyFromBytes(keys.PrivateKeyBytes)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to create PASETO private key: %v", err))
-	}
-
-	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromBytes(keys.PublicKeyBytes)
-	if err != nil {
-		panic(fmt.Sprintf("Failed to create PASETO public key: %v", err))
-	}
+	// Create test JWT secret (32+ bytes for HS256)
+	jwtSecret := []byte("test-jwt-secret-key-for-integration-tests-only-32bytes")
 
 	// Create test configuration
 	cfg := &config.Config{
@@ -77,11 +61,8 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 		},
 		Database: *dbManager.GetConfig(),
 		Security: config.SecurityConfig{
-			SecretKey:             "test-secret-key-for-integration-tests-only",
-			PasetoPrivateKey:      privateKey,
-			PasetoPublicKey:       publicKey,
-			PasetoPrivateKeyBytes: keys.PrivateKeyBytes,
-			PasetoPublicKeyBytes:  keys.PublicKeyBytes,
+			SecretKey: "test-secret-key-for-integration-tests-only",
+			JWTSecret: jwtSecret,
 		},
 		SMTP: config.SMTPConfig{
 			Host:      "localhost",

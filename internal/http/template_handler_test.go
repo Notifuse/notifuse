@@ -11,19 +11,20 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	http_handler "github.com/Notifuse/notifuse/internal/http"
+	"github.com/Notifuse/notifuse/internal/service"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	notifusemjml "github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // Test setup helper
-func setupTemplateHandlerTest(t *testing.T) (*mocks.MockTemplateService, *pkgmocks.MockLogger, string, paseto.V4AsymmetricSecretKey, func()) {
+func setupTemplateHandlerTest(t *testing.T) (*mocks.MockTemplateService, *pkgmocks.MockLogger, string, []byte, func()) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 
@@ -40,10 +41,9 @@ func setupTemplateHandlerTest(t *testing.T) (*mocks.MockTemplateService, *pkgmoc
 	mockLogger.EXPECT().Fatal(gomock.Any()).AnyTimes()
 
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey() // Key for signing tokens
-	publicKey := secretKey.Public()                // Key for handler/middleware verification
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 
-	handler := http_handler.NewTemplateHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
+	handler := http_handler.NewTemplateHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
 
@@ -52,7 +52,7 @@ func setupTemplateHandlerTest(t *testing.T) (*mocks.MockTemplateService, *pkgmoc
 		server.Close()
 	}
 
-	return mockService, mockLogger, server.URL, secretKey, cleanup // Return secretKey for token signing
+	return mockService, mockLogger, server.URL, jwtSecret, cleanup
 }
 
 func createTestEmailTemplate() *domain.EmailTemplate {
@@ -73,16 +73,18 @@ func createTestEmailTemplate() *domain.EmailTemplate {
 }
 
 // Create a test token for authentication, signed with the correct secret key
-func createTestToken(secretKey paseto.V4AsymmetricSecretKey) string {
-	token := paseto.NewToken()
-	token.SetIssuedAt(time.Now())
-	token.SetNotBefore(time.Now())
-	token.SetExpiration(time.Now().Add(1 * time.Hour)) // Ensure token is valid
-	token.SetString(string(domain.UserIDKey), "test-user")
-	token.SetString(string(domain.SessionIDKey), "test-session")
-	token.SetString(string(domain.UserTypeKey), string(domain.UserTypeUser))
-
-	signedToken := token.V4Sign(secretKey, nil) // Sign with the provided secret key
+func createTestToken(jwtSecret []byte) string {
+	claims := &service.UserClaims{
+		UserID:    "test-user",
+		Type:      string(domain.UserTypeUser),
+		SessionID: "test-session",
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, _ := token.SignedString(jwtSecret)
 	return signedToken
 }
 

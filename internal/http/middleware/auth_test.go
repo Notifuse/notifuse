@@ -6,41 +6,55 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestNewAuthMiddleware(t *testing.T) {
-	// Generate a key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
+// Test JWT secret (32 bytes minimum for HS256)
+var testJWTSecret = []byte("test-jwt-secret-key-1234567890123456")
 
-	// Create a callback that returns the public key
-	getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) {
-		return publicKey, nil
+func TestNewAuthMiddleware(t *testing.T) {
+	// Create a callback that returns the JWT secret
+	getJWTSecret := func() ([]byte, error) {
+		return testJWTSecret, nil
 	}
 
 	// Create the middleware
-	middleware := NewAuthMiddleware(getPublicKey)
+	middleware := NewAuthMiddleware(getJWTSecret)
 
 	// Assert the middleware is created
 	assert.NotNil(t, middleware)
-	assert.NotNil(t, middleware.GetPublicKey)
+	assert.NotNil(t, middleware.GetJWTSecret)
 }
 
 func TestRequireAuth(t *testing.T) {
-	// Generate a key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
-	// Create a callback that returns the public key
-	getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) {
-		return publicKey, nil
+	// Create a callback that returns the JWT secret
+	getJWTSecret := func() ([]byte, error) {
+		return testJWTSecret, nil
 	}
 
 	// Create the middleware
-	authConfig := NewAuthMiddleware(getPublicKey)
+	authConfig := NewAuthMiddleware(getJWTSecret)
+
+	// Helper function to create a JWT token
+	createToken := func(userID, userType, sessionID string, expiration time.Time) string {
+		claims := jwt.MapClaims{
+			"user_id": userID,
+			"type":    userType,
+			"exp":     expiration.Unix(),
+			"iat":     time.Now().Unix(),
+			"nbf":     time.Now().Unix(),
+		}
+
+		if sessionID != "" {
+			claims["session_id"] = sessionID
+		}
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signedToken, _ := token.SignedString(testJWTSecret)
+		return signedToken
+	}
 
 	t.Run("missing authorization header", func(t *testing.T) {
 		// Create a test handler
@@ -109,13 +123,16 @@ func TestRequireAuth(t *testing.T) {
 
 	t.Run("missing user_id in token", func(t *testing.T) {
 		// Create a token with missing user_id
-		token := paseto.NewToken()
-		token.SetExpiration(time.Now().Add(time.Hour))
-		// Intentionally omit setting user_id
-		token.SetString(string(domain.UserTypeKey), string(domain.UserTypeUser))
-		token.SetString(string(domain.SessionIDKey), "test-session")
+		claims := jwt.MapClaims{
+			"type":       string(domain.UserTypeUser),
+			"session_id": "test-session",
+			"exp":        time.Now().Add(time.Hour).Unix(),
+			"iat":        time.Now().Unix(),
+			"nbf":        time.Now().Unix(),
+		}
 
-		signedToken := token.V4Sign(secretKey, nil)
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signedToken, _ := token.SignedString(testJWTSecret)
 
 		// Create a test handler
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -140,13 +157,16 @@ func TestRequireAuth(t *testing.T) {
 
 	t.Run("missing type in token", func(t *testing.T) {
 		// Create a token with missing type
-		token := paseto.NewToken()
-		token.SetExpiration(time.Now().Add(time.Hour))
-		token.SetString(string(domain.UserIDKey), "test-user")
-		// Intentionally omit setting type
-		token.SetString(string(domain.SessionIDKey), "test-session")
+		claims := jwt.MapClaims{
+			"user_id":    "test-user",
+			"session_id": "test-session",
+			"exp":        time.Now().Add(time.Hour).Unix(),
+			"iat":        time.Now().Unix(),
+			"nbf":        time.Now().Unix(),
+		}
 
-		signedToken := token.V4Sign(secretKey, nil)
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signedToken, _ := token.SignedString(testJWTSecret)
 
 		// Create a test handler
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -171,13 +191,7 @@ func TestRequireAuth(t *testing.T) {
 
 	t.Run("missing session_id for user type", func(t *testing.T) {
 		// Create a token with missing session_id for user type
-		token := paseto.NewToken()
-		token.SetExpiration(time.Now().Add(time.Hour))
-		token.SetString(string(domain.UserIDKey), "test-user")
-		token.SetString(string(domain.UserTypeKey), string(domain.UserTypeUser))
-		// Intentionally omit setting session_id
-
-		signedToken := token.V4Sign(secretKey, nil)
+		signedToken := createToken("test-user", string(domain.UserTypeUser), "", time.Now().Add(time.Hour))
 
 		// Create a test handler
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -202,13 +216,7 @@ func TestRequireAuth(t *testing.T) {
 
 	t.Run("successful auth for user type", func(t *testing.T) {
 		// Create a valid token for user type
-		token := paseto.NewToken()
-		token.SetExpiration(time.Now().Add(time.Hour))
-		token.SetString(string(domain.UserIDKey), "test-user")
-		token.SetString(string(domain.UserTypeKey), string(domain.UserTypeUser))
-		token.SetString(string(domain.SessionIDKey), "test-session")
-
-		signedToken := token.V4Sign(secretKey, nil)
+		signedToken := createToken("test-user", string(domain.UserTypeUser), "test-session", time.Now().Add(time.Hour))
 
 		// Create a test handler that checks for context values
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -241,13 +249,7 @@ func TestRequireAuth(t *testing.T) {
 
 	t.Run("successful auth for api_key type", func(t *testing.T) {
 		// Create a valid token for api_key type
-		token := paseto.NewToken()
-		token.SetExpiration(time.Now().Add(time.Hour))
-		token.SetString(string(domain.UserIDKey), "test-api-key")
-		token.SetString(string(domain.UserTypeKey), string(domain.UserTypeAPIKey))
-		// No session ID needed for API keys
-
-		signedToken := token.V4Sign(secretKey, nil)
+		signedToken := createToken("test-api-key", string(domain.UserTypeAPIKey), "", time.Now().Add(time.Hour))
 
 		// Create a test handler that checks for context values
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -276,6 +278,67 @@ func TestRequireAuth(t *testing.T) {
 
 		// Assert the response
 		assert.Equal(t, http.StatusOK, w.Code)
+	})
+
+	t.Run("expired token", func(t *testing.T) {
+		// Create an expired token
+		signedToken := createToken("test-user", string(domain.UserTypeUser), "test-session", time.Now().Add(-time.Hour))
+
+		// Create a test handler
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		// Apply the middleware
+		handler := authConfig.RequireAuth()(next)
+
+		// Create a test request with the expired token
+		req := httptest.NewRequest("GET", "/", nil)
+		req.Header.Set("Authorization", "Bearer "+signedToken)
+		w := httptest.NewRecorder()
+
+		// Call the handler
+		handler.ServeHTTP(w, req)
+
+		// Assert the response
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid token")
+	})
+
+	t.Run("token with wrong signing method", func(t *testing.T) {
+		// Create a token with "none" algorithm to test algorithm confusion prevention
+		claims := jwt.MapClaims{
+			"user_id":    "test-user",
+			"type":       string(domain.UserTypeUser),
+			"session_id": "test-session",
+			"exp":        time.Now().Add(time.Hour).Unix(),
+			"iat":        time.Now().Unix(),
+			"nbf":        time.Now().Unix(),
+		}
+
+		// Create a token with "none" algorithm (algorithm confusion attack)
+		token := jwt.NewWithClaims(jwt.SigningMethodNone, claims)
+		signedToken, _ := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
+
+		// Create a test handler
+		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		})
+
+		// Apply the middleware
+		handler := authConfig.RequireAuth()(next)
+
+		// Create a test request with the token
+		req := httptest.NewRequest("GET", "/", nil)
+		req.Header.Set("Authorization", "Bearer "+signedToken)
+		w := httptest.NewRecorder()
+
+		// Call the handler
+		handler.ServeHTTP(w, req)
+
+		// Assert the response - should fail due to algorithm mismatch
+		assert.Equal(t, http.StatusUnauthorized, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid token")
 	})
 }
 

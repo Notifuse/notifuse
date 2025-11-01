@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"strings"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // writeJSONError writes a JSON error response with the given message and status code
@@ -22,84 +23,82 @@ func writeJSONError(w http.ResponseWriter, message string, statusCode int) {
 
 // AuthConfig holds the configuration for the auth middleware
 type AuthConfig struct {
-	GetPublicKey func() (paseto.V4AsymmetricPublicKey, error)
+	GetJWTSecret func() ([]byte, error)
 }
 
-// NewAuthMiddleware creates a new auth middleware with the given public key provider
-func NewAuthMiddleware(getPublicKey func() (paseto.V4AsymmetricPublicKey, error)) *AuthConfig {
+// NewAuthMiddleware creates a new auth middleware with the given JWT secret provider
+func NewAuthMiddleware(getJWTSecret func() ([]byte, error)) *AuthConfig {
 	return &AuthConfig{
-		GetPublicKey: getPublicKey,
+		GetJWTSecret: getJWTSecret,
 	}
 }
 
-// RequireAuth creates a middleware that verifies the PASETO token and user session
+// RequireAuth creates a middleware that verifies the JWT token and user session
 func (ac *AuthConfig) RequireAuth() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Get the Authorization header
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
 				writeJSONError(w, "Authorization header is required", http.StatusUnauthorized)
 				return
 			}
 
-			// Check if it's a Bearer token
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
 				writeJSONError(w, "Invalid authorization header format", http.StatusUnauthorized)
 				return
 			}
 
-			token := parts[1]
+			tokenString := parts[1]
 
-			// Get public key on-demand
-			publicKey, err := ac.GetPublicKey()
+			// Get JWT secret
+			secret, err := ac.GetJWTSecret()
 			if err != nil {
-				writeJSONError(w, fmt.Sprintf("Authentication unavailable: %v", err), http.StatusServiceUnavailable)
+				writeJSONError(w, "Authentication unavailable", http.StatusServiceUnavailable)
 				return
 			}
 
-			// Parse and verify the token
-			parser := paseto.NewParser()
-			parser.AddRule(paseto.NotExpired())
+			// Parse and validate token with claims
+			claims := &service.UserClaims{}
+			token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+				// CRITICAL: Verify signing method to prevent algorithm confusion
+				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+					return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+				}
+				return secret, nil
+			})
 
-			// Verify token and get claims
-			verified, err := parser.ParseV4Public(publicKey, token, nil)
+			// CRITICAL: Check both error AND token.Valid
 			if err != nil {
 				writeJSONError(w, fmt.Sprintf("Invalid token: %v", err), http.StatusUnauthorized)
 				return
 			}
+			if !token.Valid {
+				writeJSONError(w, "Invalid token", http.StatusUnauthorized)
+				return
+			}
 
-			// Get user ID from claims
-			userID, err := verified.GetString(string(domain.UserIDKey))
-			if err != nil {
+			// Validate required claims
+			if claims.UserID == "" {
 				writeJSONError(w, "User ID not found in token", http.StatusUnauthorized)
 				return
 			}
-
-			// Get user type from claims
-			userType, err := verified.GetString(string(domain.UserTypeKey))
-			if err != nil {
+			if claims.Type == "" {
 				writeJSONError(w, "User type not found in token", http.StatusUnauthorized)
 				return
 			}
-
-			// only users have session IDs
-			var sessionID string
-			if userType == string(domain.UserTypeUser) {
-				sessionID, err = verified.GetString(string(domain.SessionIDKey))
-				if err != nil {
-					writeJSONError(w, "Session ID not found in token", http.StatusUnauthorized)
-					return
-				}
+			if claims.Type == string(domain.UserTypeUser) && claims.SessionID == "" {
+				writeJSONError(w, "Session ID not found in token", http.StatusUnauthorized)
+				return
 			}
 
-			// put userId and sessionId in the context
-			ctx := context.WithValue(r.Context(), domain.UserIDKey, userID)
-			ctx = context.WithValue(ctx, domain.UserTypeKey, userType)
-			if userType == string(domain.UserTypeUser) {
-				ctx = context.WithValue(ctx, domain.SessionIDKey, sessionID)
+			// Set context values
+			ctx := context.WithValue(r.Context(), domain.UserIDKey, claims.UserID)
+			ctx = context.WithValue(ctx, domain.UserTypeKey, claims.Type)
+			if claims.Type == string(domain.UserTypeUser) {
+				ctx = context.WithValue(ctx, domain.SessionIDKey, claims.SessionID)
 			}
+
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

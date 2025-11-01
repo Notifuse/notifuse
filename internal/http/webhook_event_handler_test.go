@@ -11,16 +11,18 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	"github.com/Notifuse/notifuse/internal/service"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 )
 
-func setupWebhookEventHandlerTest(t *testing.T) (*WebhookEventHandler, *mocks.MockWebhookEventServiceInterface, paseto.V4AsymmetricSecretKey) {
+func setupWebhookEventHandlerTest(t *testing.T) (*WebhookEventHandler, *mocks.MockWebhookEventServiceInterface, []byte) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -33,26 +35,29 @@ func setupWebhookEventHandlerTest(t *testing.T) (*WebhookEventHandler, *mocks.Mo
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	handler := NewWebhookEventHandler(
 		mockService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 	)
 
-	return handler, mockService, secretKey
+	return handler, mockService, jwtSecret
 }
 
-func createWebhookTestToken(t *testing.T, secretKey paseto.V4AsymmetricSecretKey, userID string) string {
-	token := paseto.NewToken()
-	token.SetExpiration(time.Now().Add(time.Hour))
-	token.SetString(string(domain.UserIDKey), userID)
-	token.SetString(string(domain.UserTypeKey), string(domain.UserTypeUser))
-	token.SetString(string(domain.SessionIDKey), "test-session")
-
-	signedToken := token.V4Sign(secretKey, nil)
+func createWebhookTestToken(t *testing.T, jwtSecret []byte, userID string) string {
+	claims := &service.UserClaims{
+		UserID:    userID,
+		Type:      string(domain.UserTypeUser),
+		SessionID: "test-session",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString(jwtSecret)
+	require.NoError(t, err)
 	require.NotEmpty(t, signedToken)
 	return signedToken
 }

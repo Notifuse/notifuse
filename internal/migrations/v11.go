@@ -66,8 +66,8 @@ func (m *V11Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 		hasRequiredSettings = false
 	}
 
-	// Check PASETO keys
-	if len(cfg.Security.PasetoPrivateKeyBytes) == 0 || len(cfg.Security.PasetoPublicKeyBytes) == 0 {
+	// Check JWT secret (required for token signing)
+	if len(cfg.Security.JWTSecret) == 0 || cfg.Security.SecretKey == "" {
 		hasRequiredSettings = false
 	}
 

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/pkg/analytics"
@@ -14,28 +13,28 @@ import (
 
 // AnalyticsHandler handles HTTP requests related to analytics
 type AnalyticsHandler struct {
-	service   domain.AnalyticsService
-	logger    logger.Logger
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
+	service      domain.AnalyticsService
+	logger       logger.Logger
+	getJWTSecret func() ([]byte, error)
 }
 
 // NewAnalyticsHandler creates a new analytics handler
 func NewAnalyticsHandler(
 	service domain.AnalyticsService,
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
+	getJWTSecret func() ([]byte, error),
 	logger logger.Logger,
 ) *AnalyticsHandler {
 	return &AnalyticsHandler{
-		service:   service,
-		logger:    logger,
-		getPublicKey:        getPublicKey,
+		service:      service,
+		logger:       logger,
+		getJWTSecret: getJWTSecret,
 	}
 }
 
 // RegisterRoutes registers the analytics-related routes
 func (h *AnalyticsHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

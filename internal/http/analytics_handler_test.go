@@ -7,12 +7,23 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"aidanwoods.dev/go-paseto"
+
+
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+
+
 	"github.com/Notifuse/notifuse/pkg/analytics"
+
+
 	"github.com/Notifuse/notifuse/pkg/logger"
+
+
 	"github.com/golang/mock/gomock"
+
+
 	"github.com/stretchr/testify/assert"
+
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,10 +35,9 @@ func TestNewAnalyticsHandler(t *testing.T) {
 	mockLogger := logger.NewLogger()
 
 	// Create a test public key
-	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
-	require.NoError(t, err)
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 
-	handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
+	handler := NewAnalyticsHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 
 	assert.NotNil(t, handler)
 	assert.IsType(t, &AnalyticsHandler{}, handler)
@@ -40,10 +50,9 @@ func TestAnalyticsHandler_RegisterRoutes(t *testing.T) {
 	mockService := mocks.NewMockAnalyticsService(ctrl)
 	mockLogger := logger.NewLogger()
 
-	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
-	require.NoError(t, err)
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 
-	handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
+	handler := NewAnalyticsHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 	mux := http.NewServeMux()
 
 	handler.RegisterRoutes(mux)
@@ -167,10 +176,10 @@ func TestAnalyticsHandler_handleQuery(t *testing.T) {
 			mockService := mocks.NewMockAnalyticsService(ctrl)
 			mockLogger := logger.NewLogger()
 
-			publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
-			require.NoError(t, err)
+			jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	var err error
 
-			handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
+			handler := NewAnalyticsHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 
 			// Setup mocks
 			tt.setupMocks(mockService)
@@ -301,10 +310,10 @@ func TestAnalyticsHandler_handleGetSchemas(t *testing.T) {
 			mockService := mocks.NewMockAnalyticsService(ctrl)
 			mockLogger := logger.NewLogger()
 
-			publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
-			require.NoError(t, err)
+			jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	var err error
 
-			handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
+			handler := NewAnalyticsHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 
 			// Setup mocks
 			tt.setupMocks(mockService)
@@ -351,10 +360,8 @@ func TestAnalyticsHandler_writeJSONResponse(t *testing.T) {
 	mockService := mocks.NewMockAnalyticsService(ctrl)
 	mockLogger := logger.NewLogger()
 
-	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
-	require.NoError(t, err)
-
-	handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	handler := NewAnalyticsHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 
 	tests := []struct {
 		name       string
@@ -396,10 +403,10 @@ func TestAnalyticsHandler_writeErrorResponse(t *testing.T) {
 	mockService := mocks.NewMockAnalyticsService(ctrl)
 	mockLogger := logger.NewLogger()
 
-	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
-	require.NoError(t, err)
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	var err error
 
-	handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
+	handler := NewAnalyticsHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 
 	w := httptest.NewRecorder()
 	handler.writeErrorResponse(w, http.StatusBadRequest, "Test error message")
@@ -423,10 +430,10 @@ func TestAnalyticsHandler_Integration(t *testing.T) {
 	mockService := mocks.NewMockAnalyticsService(ctrl)
 	mockLogger := logger.NewLogger()
 
-	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
-	require.NoError(t, err)
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	var err error
 
-	handler := NewAnalyticsHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
+	handler := NewAnalyticsHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 
 	// Setup service mock
 	response := &analytics.Response{

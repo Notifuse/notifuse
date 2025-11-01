@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
-
-	"aidanwoods.dev/go-paseto"
 )
 
 var (
@@ -18,22 +17,38 @@ var (
 	ErrUserNotFound   = errors.New("user not found")
 )
 
+// UserClaims for user session tokens
+type UserClaims struct {
+	UserID    string `json:"user_id"`
+	Type      string `json:"type"`
+	SessionID string `json:"session_id,omitempty"`
+	Email     string `json:"email,omitempty"`
+	jwt.RegisteredClaims
+}
+
+// InvitationClaims for workspace invitation tokens
+type InvitationClaims struct {
+	InvitationID string `json:"invitation_id"`
+	WorkspaceID  string `json:"workspace_id"`
+	Email        string `json:"email"`
+	jwt.RegisteredClaims
+}
+
 type AuthService struct {
 	repo          domain.AuthRepository
 	workspaceRepo domain.WorkspaceRepository
 	logger        logger.Logger
-	getKeys       func() (privateKey []byte, publicKey []byte, err error)
+	getSecret     func() ([]byte, error) // Changed from getKeys
 
-	// Cached keys to avoid re-parsing on every call
-	cachedPrivateKey paseto.V4AsymmetricSecretKey
-	cachedPublicKey  paseto.V4AsymmetricPublicKey
-	keysLoaded       bool
+	// Cached secret
+	cachedSecret []byte
+	secretLoaded bool
 }
 
 type AuthServiceConfig struct {
 	Repository          domain.AuthRepository
 	WorkspaceRepository domain.WorkspaceRepository
-	GetKeys             func() (privateKey []byte, publicKey []byte, err error)
+	GetSecret           func() ([]byte, error) // Changed from GetKeys
 	Logger              logger.Logger
 }
 
@@ -42,49 +57,39 @@ func NewAuthService(cfg AuthServiceConfig) *AuthService {
 		repo:          cfg.Repository,
 		workspaceRepo: cfg.WorkspaceRepository,
 		logger:        cfg.Logger,
-		getKeys:       cfg.GetKeys,
-		keysLoaded:    false,
+		getSecret:     cfg.GetSecret,
+		secretLoaded:  false,
 	}
 }
 
-// ensureKeys loads and caches PASETO keys if not already loaded
-func (s *AuthService) ensureKeys() error {
-	if s.keysLoaded {
+// ensureSecret loads and caches JWT secret if not already loaded
+func (s *AuthService) ensureSecret() error {
+	if s.secretLoaded {
 		return nil
 	}
 
-	privateKeyBytes, publicKeyBytes, err := s.getKeys()
+	secret, err := s.getSecret()
 	if err != nil {
-		return fmt.Errorf("PASETO keys not available: %w", err)
+		return fmt.Errorf("JWT secret not available: %w", err)
 	}
 
-	if len(privateKeyBytes) == 0 || len(publicKeyBytes) == 0 {
-		return fmt.Errorf("system setup not completed - PASETO keys not configured")
+	if len(secret) == 0 {
+		return fmt.Errorf("JWT secret cannot be empty")
 	}
 
-	s.cachedPrivateKey, err = paseto.NewV4AsymmetricSecretKeyFromBytes(privateKeyBytes)
-	if err != nil {
-		if s.logger != nil {
-			s.logger.WithField("error", err.Error()).Error("Error creating PASETO private key")
-		}
-		return fmt.Errorf("invalid PASETO private key: %w", err)
+	// Warn if secret is less than recommended length
+	if len(secret) < 32 && s.logger != nil {
+		s.logger.WithField("length", len(secret)).Warn("JWT secret is less than 32 bytes - consider using a stronger secret for production")
 	}
 
-	s.cachedPublicKey, err = paseto.NewV4AsymmetricPublicKeyFromBytes(publicKeyBytes)
-	if err != nil {
-		if s.logger != nil {
-			s.logger.WithField("error", err.Error()).Error("Error creating PASETO public key")
-		}
-		return fmt.Errorf("invalid PASETO public key: %w", err)
-	}
-
-	s.keysLoaded = true
+	s.cachedSecret = secret
+	s.secretLoaded = true
 	return nil
 }
 
-// InvalidateKeyCache clears the cached keys, forcing them to be reloaded on next use
-func (s *AuthService) InvalidateKeyCache() {
-	s.keysLoaded = false
+// InvalidateSecretCache clears the cached secret, forcing it to be reloaded on next use
+func (s *AuthService) InvalidateSecretCache() {
+	s.secretLoaded = false
 }
 func (s *AuthService) AuthenticateUserFromContext(ctx context.Context) (*domain.User, error) {
 
@@ -186,144 +191,120 @@ func (s *AuthService) VerifyUserSession(ctx context.Context, userID, sessionID s
 	return user, nil
 }
 
-// GenerateAuthToken generates an authentication token for a user
+// GenerateUserAuthToken generates an authentication token for a user
 func (s *AuthService) GenerateUserAuthToken(user *domain.User, sessionID string, expiresAt time.Time) string {
-	if err := s.ensureKeys(); err != nil {
+	if err := s.ensureSecret(); err != nil {
 		if s.logger != nil {
-			s.logger.WithField("error", err.Error()).WithField("user_id", user.ID).Error("Cannot generate auth token - keys not available")
+			s.logger.WithField("error", err.Error()).Error("Cannot generate auth token")
 		}
 		return ""
 	}
 
-	token := paseto.NewToken()
-	token.SetIssuedAt(time.Now())
-	token.SetNotBefore(time.Now())
-	token.SetExpiration(expiresAt)
-	token.SetString("user_id", user.ID)
-	token.SetString("type", string(domain.UserTypeUser))
-	token.SetString("session_id", sessionID)
-	token.SetString("email", user.Email)
-
-	encrypted := token.V4Sign(s.cachedPrivateKey, nil)
-	if encrypted == "" && s.logger != nil {
-		s.logger.WithField("user_id", user.ID).WithField("session_id", sessionID).Error("Failed to sign authentication token")
+	claims := UserClaims{
+		UserID:    user.ID,
+		Type:      string(domain.UserTypeUser),
+		SessionID: sessionID,
+		Email:     user.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
 	}
 
-	return encrypted
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString(s.cachedSecret)
+	if err != nil && s.logger != nil {
+		s.logger.WithField("error", err.Error()).Error("Failed to sign token")
+		return ""
+	}
+
+	return signed
 }
 
 // GenerateAPIAuthToken generates an authentication token for an API key
 func (s *AuthService) GenerateAPIAuthToken(user *domain.User) string {
-	if err := s.ensureKeys(); err != nil {
+	if err := s.ensureSecret(); err != nil {
 		if s.logger != nil {
-			s.logger.WithField("error", err.Error()).WithField("user_id", user.ID).Error("Cannot generate API token - keys not available")
+			s.logger.WithField("error", err.Error()).Error("Cannot generate API token")
 		}
 		return ""
 	}
 
-	token := paseto.NewToken()
-	token.SetIssuedAt(time.Now())
-	token.SetNotBefore(time.Now())
-	token.SetExpiration(time.Now().Add(time.Hour * 24 * 365 * 10))
-	token.SetString("user_id", user.ID)
-	token.SetString("type", string(domain.UserTypeAPIKey))
-
-	encrypted := token.V4Sign(s.cachedPrivateKey, nil)
-	if encrypted == "" && s.logger != nil {
-		s.logger.WithField("user_id", user.ID).Error("Failed to sign API authentication token")
+	claims := UserClaims{
+		UserID: user.ID,
+		Type:   string(domain.UserTypeAPIKey),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 365 * 10)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
 	}
 
-	return encrypted
-}
-
-// GetPrivateKey returns the private key (loads keys if not already loaded)
-func (s *AuthService) GetPrivateKey() (paseto.V4AsymmetricSecretKey, error) {
-	if err := s.ensureKeys(); err != nil {
-		return paseto.V4AsymmetricSecretKey{}, err
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString(s.cachedSecret)
+	if err != nil && s.logger != nil {
+		s.logger.WithField("error", err.Error()).Error("Failed to sign API token")
+		return ""
 	}
-	return s.cachedPrivateKey, nil
+
+	return signed
 }
 
-// GetPublicKey returns the public key (loads keys if not already loaded)
-func (s *AuthService) GetPublicKey() (paseto.V4AsymmetricPublicKey, error) {
-	if err := s.ensureKeys(); err != nil {
-		return paseto.V4AsymmetricPublicKey{}, err
-	}
-	return s.cachedPublicKey, nil
-}
-
-// GenerateInvitationToken generates a PASETO token for a workspace invitation
+// GenerateInvitationToken generates a JWT token for a workspace invitation
 func (s *AuthService) GenerateInvitationToken(invitation *domain.WorkspaceInvitation) string {
-	if err := s.ensureKeys(); err != nil {
+	if err := s.ensureSecret(); err != nil {
 		if s.logger != nil {
-			s.logger.WithField("error", err.Error()).WithField("invitation_id", invitation.ID).Error("Cannot generate invitation token - keys not available")
+			s.logger.WithField("error", err.Error()).Error("Cannot generate invitation token")
 		}
 		return ""
 	}
 
-	token := paseto.NewToken()
-	token.SetIssuedAt(time.Now())
-	token.SetNotBefore(time.Now())
-	token.SetExpiration(invitation.ExpiresAt)
-	token.SetString("invitation_id", invitation.ID)
-	token.SetString("workspace_id", invitation.WorkspaceID)
-	token.SetString("email", invitation.Email)
-
-	encrypted := token.V4Sign(s.cachedPrivateKey, nil)
-	if encrypted == "" && s.logger != nil {
-		s.logger.WithField("invitation_id", invitation.ID).Error("Failed to sign invitation token")
+	claims := InvitationClaims{
+		InvitationID: invitation.ID,
+		WorkspaceID:  invitation.WorkspaceID,
+		Email:        invitation.Email,
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(invitation.ExpiresAt),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			NotBefore: jwt.NewNumericDate(time.Now()),
+		},
 	}
 
-	return encrypted
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString(s.cachedSecret)
+	if err != nil && s.logger != nil {
+		s.logger.WithField("error", err.Error()).Error("Failed to sign invitation token")
+		return ""
+	}
+
+	return signed
 }
 
-// ValidateInvitationToken validates a PASETO invitation token and returns the invitation details
-func (s *AuthService) ValidateInvitationToken(token string) (invitationID, workspaceID, email string, err error) {
-	if err := s.ensureKeys(); err != nil {
-		if s.logger != nil {
-			s.logger.WithField("error", err.Error()).Error("Cannot validate invitation token - keys not available")
-		}
-		return "", "", "", fmt.Errorf("keys not available: %w", err)
+// ValidateInvitationToken validates a JWT invitation token and returns the invitation details
+func (s *AuthService) ValidateInvitationToken(tokenString string) (invitationID, workspaceID, email string, err error) {
+	if err := s.ensureSecret(); err != nil {
+		return "", "", "", fmt.Errorf("secret not available: %w", err)
 	}
 
-	parser := paseto.NewParser()
-	parser.AddRule(paseto.NotExpired())
-
-	// Verify token and get claims
-	verified, err := parser.ParseV4Public(s.cachedPublicKey, token, nil)
-	if err != nil {
-		if s.logger != nil {
-			s.logger.WithField("error", err.Error()).Error("Failed to parse invitation token")
+	claims := &InvitationClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		// CRITICAL: Verify signing method to prevent algorithm confusion attacks
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
+		return s.cachedSecret, nil
+	})
+
+	// CRITICAL: Check both error AND token.Valid
+	if err != nil {
 		return "", "", "", fmt.Errorf("invalid invitation token: %w", err)
 	}
-
-	// Extract invitation details from claims
-	invitationID, err = verified.GetString("invitation_id")
-	if err != nil {
-		if s.logger != nil {
-			s.logger.WithField("error", err.Error()).Error("Invitation ID not found in token")
-		}
-		return "", "", "", fmt.Errorf("invitation ID not found in token")
+	if !token.Valid {
+		return "", "", "", fmt.Errorf("invalid invitation token: token not valid")
 	}
 
-	workspaceID, err = verified.GetString("workspace_id")
-	if err != nil {
-		if s.logger != nil {
-			s.logger.WithField("error", err.Error()).Error("Workspace ID not found in token")
-		}
-		return "", "", "", fmt.Errorf("workspace ID not found in token")
-	}
-
-	email, err = verified.GetString("email")
-	if err != nil {
-		if s.logger != nil {
-			s.logger.WithField("error", err.Error()).Error("Email not found in token")
-		}
-		return "", "", "", fmt.Errorf("email not found in token")
-	}
-
-	return invitationID, workspaceID, email, nil
+	return claims.InvitationID, claims.WorkspaceID, claims.Email, nil
 }
 
 // GetUserByID retrieves a user by their ID

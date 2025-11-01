@@ -6,23 +6,29 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"aidanwoods.dev/go-paseto"
+
+
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+
+
 	"github.com/golang/mock/gomock"
+
+
 	"github.com/stretchr/testify/assert"
+
+
 	"github.com/stretchr/testify/require"
 )
 
 // Test setup helper
-func setupTest(t *testing.T) (*WorkspaceHandler, *mocks.MockWorkspaceServiceInterface, *http.ServeMux, paseto.V4AsymmetricSecretKey, *mocks.MockAuthService) {
+func setupTest(t *testing.T) (*WorkspaceHandler, *mocks.MockWorkspaceServiceInterface, *http.ServeMux, []byte, *mocks.MockAuthService) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	workspaceSvc := mocks.NewMockWorkspaceServiceInterface(ctrl)
 	authSvc := mocks.NewMockAuthService(ctrl)
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	passphrase := "test-passphrase"
 
 	// Create and configure mock logger
@@ -36,12 +42,12 @@ func setupTest(t *testing.T) (*WorkspaceHandler, *mocks.MockWorkspaceServiceInte
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
 
-	handler := NewWorkspaceHandler(workspaceSvc, authSvc, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, passphrase)
+	handler := NewWorkspaceHandler(workspaceSvc, authSvc, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, passphrase)
 
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
 
-	return handler, workspaceSvc, mux, secretKey, authSvc
+	return handler, workspaceSvc, mux, jwtSecret, authSvc
 }
 
 func TestWriteJSONError(t *testing.T) {

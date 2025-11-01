@@ -199,7 +199,6 @@ func (dm *DatabaseManager) SeedTestData() error {
 	// Create workspace settings with encrypted secret key
 	// For testing, we'll use a simple secret key and encrypt it with the same global key used in server.go
 	testSecretKey := "test-workspace-secret-key-for-integration-tests"
-	// testGlobalKey already declared above for PASETO keys
 
 	// Import crypto package functions
 	encryptedSecretKey, err := crypto.EncryptString(testSecretKey, testGlobalKey)
@@ -342,24 +341,9 @@ func (dm *DatabaseManager) runMigrations() error {
 // seedInstallationSettings inserts the installation settings into the database
 // This must be called during database setup, before the app initializes
 func (dm *DatabaseManager) seedInstallationSettings() error {
-	testGlobalKey := "test-secret-key-for-integration-tests-only"
-
-	// Get test PASETO keys from pkg/testkeys
-	privateKeyB64, publicKeyB64 := "UayDa4OMDpm3CvIT+iSC39iDyPlsui0pNQYDEZ1pbo1LsIrO4p/aVuCBWz6LiYvzj9pc+gn0gLwRd0CoHV+nxw==", "S7CKzuKf2lbggVs+i4mL84/aXPoJ9IC8EXdAqB1fp8c="
-
-	// Encrypt PASETO keys for storage
-	encryptedPrivateKey, err := crypto.EncryptString(privateKeyB64, testGlobalKey)
-	if err != nil {
-		return fmt.Errorf("failed to encrypt PASETO private key: %w", err)
-	}
-
-	encryptedPublicKey, err := crypto.EncryptString(publicKeyB64, testGlobalKey)
-	if err != nil {
-		return fmt.Errorf("failed to encrypt PASETO public key: %w", err)
-	}
-
 	// Insert or update system settings
 	// Note: api_endpoint is kept empty to trigger direct task execution (no HTTP callbacks)
+	// Note: JWT tokens are signed using SECRET_KEY from environment (not stored in database)
 	settingsToInsert := []struct {
 		key   string
 		value string
@@ -367,8 +351,6 @@ func (dm *DatabaseManager) seedInstallationSettings() error {
 		{"is_installed", "true"},
 		{"root_email", "test@example.com"},
 		{"api_endpoint", ""}, // Empty to trigger direct task execution in tests
-		{"encrypted_paseto_private_key", encryptedPrivateKey},
-		{"encrypted_paseto_public_key", encryptedPublicKey},
 		{"smtp_host", "localhost"},
 		{"smtp_port", "1025"},
 		{"smtp_from_email", "test@example.com"},

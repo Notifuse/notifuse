@@ -14,13 +14,15 @@ import (
 )
 
 type UserService struct {
-	repo          domain.UserRepository
-	authService   domain.AuthService
-	emailSender   EmailSender
-	sessionExpiry time.Duration
-	logger        logger.Logger
-	isProduction  bool
-	tracer        tracing.Tracer
+	repo              domain.UserRepository
+	authService       domain.AuthService
+	emailSender       EmailSender
+	sessionExpiry     time.Duration
+	logger            logger.Logger
+	isProduction      bool
+	tracer            tracing.Tracer
+	signInLimiter     *RateLimiter
+	verifyCodeLimiter *RateLimiter
 }
 
 type EmailSender interface {
@@ -28,13 +30,15 @@ type EmailSender interface {
 }
 
 type UserServiceConfig struct {
-	Repository    domain.UserRepository
-	AuthService   domain.AuthService
-	EmailSender   EmailSender
-	SessionExpiry time.Duration
-	Logger        logger.Logger
-	IsProduction  bool
-	Tracer        tracing.Tracer
+	Repository        domain.UserRepository
+	AuthService       domain.AuthService
+	EmailSender       EmailSender
+	SessionExpiry     time.Duration
+	Logger            logger.Logger
+	IsProduction      bool
+	Tracer            tracing.Tracer
+	SignInLimiter     *RateLimiter
+	VerifyCodeLimiter *RateLimiter
 }
 
 func NewUserService(cfg UserServiceConfig) (*UserService, error) {
@@ -45,13 +49,15 @@ func NewUserService(cfg UserServiceConfig) (*UserService, error) {
 	}
 
 	return &UserService{
-		repo:          cfg.Repository,
-		authService:   cfg.AuthService,
-		emailSender:   cfg.EmailSender,
-		sessionExpiry: cfg.SessionExpiry,
-		logger:        cfg.Logger,
-		isProduction:  cfg.IsProduction,
-		tracer:        tracer,
+		repo:              cfg.Repository,
+		authService:       cfg.AuthService,
+		emailSender:       cfg.EmailSender,
+		sessionExpiry:     cfg.SessionExpiry,
+		logger:            cfg.Logger,
+		isProduction:      cfg.IsProduction,
+		tracer:            tracer,
+		signInLimiter:     cfg.SignInLimiter,
+		verifyCodeLimiter: cfg.VerifyCodeLimiter,
 	}, nil
 }
 
@@ -63,6 +69,14 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 	defer span.End()
 
 	s.tracer.AddAttribute(ctx, "user.email", input.Email)
+
+	// Check rate limit to prevent email bombing and session creation spam
+	if s.signInLimiter != nil && !s.signInLimiter.Allow(input.Email) {
+		s.logger.WithField("email", input.Email).Warn("Sign-in rate limit exceeded")
+		s.tracer.AddAttribute(ctx, "error", "rate_limit_exceeded")
+		s.tracer.MarkSpanError(ctx, fmt.Errorf("rate limit exceeded"))
+		return "", fmt.Errorf("too many sign-in attempts, please try again in a few minutes")
+	}
 
 	// Check if user exists - return error if user not found
 	user, err := s.repo.GetUserByEmail(ctx, input.Email)
@@ -129,6 +143,14 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 
 	s.tracer.AddAttribute(ctx, "user.email", input.Email)
 
+	// Check rate limit to prevent brute force attacks on magic codes
+	if s.verifyCodeLimiter != nil && !s.verifyCodeLimiter.Allow(input.Email) {
+		s.logger.WithField("email", input.Email).Warn("Verify code rate limit exceeded")
+		s.tracer.AddAttribute(ctx, "error", "rate_limit_exceeded")
+		s.tracer.MarkSpanError(ctx, fmt.Errorf("rate limit exceeded"))
+		return nil, fmt.Errorf("too many verification attempts, please try again in a few minutes")
+	}
+
 	// Find user by email
 	user, err := s.repo.GetUserByEmail(ctx, input.Email)
 	if err != nil {
@@ -189,6 +211,11 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 	token := s.authService.GenerateUserAuthToken(user, matchingSession.ID, matchingSession.ExpiresAt)
 	s.tracer.AddAttribute(ctx, "token.generated", true)
 	s.tracer.AddAttribute(ctx, "token.expires_at", matchingSession.ExpiresAt.String())
+
+	// Reset rate limiter on successful verification
+	if s.verifyCodeLimiter != nil {
+		s.verifyCodeLimiter.Reset(input.Email)
+	}
 
 	return &domain.AuthResponse{
 		Token:     token,

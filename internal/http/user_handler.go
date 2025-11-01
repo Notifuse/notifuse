@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"aidanwoods.dev/go-paseto"
 	"go.opencensus.io/trace"
 
 	"github.com/Notifuse/notifuse/config"
@@ -31,7 +30,7 @@ type UserHandler struct {
 	userService      UserServiceInterface
 	workspaceService domain.WorkspaceServiceInterface
 	config           *config.Config
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
+	getJWTSecret func() ([]byte, error)
 	logger           logger.Logger
 	tracer           tracing.Tracer
 }
@@ -46,12 +45,12 @@ func extractEmailDomain(email string) string {
 	return ""
 }
 
-func NewUserHandler(userService UserServiceInterface, workspaceService domain.WorkspaceServiceInterface, cfg *config.Config, getPublicKey func() (paseto.V4AsymmetricPublicKey, error), logger logger.Logger) *UserHandler {
+func NewUserHandler(userService UserServiceInterface, workspaceService domain.WorkspaceServiceInterface, cfg *config.Config, getJWTSecret func() ([]byte, error), logger logger.Logger) *UserHandler {
 	return &UserHandler{
 		userService:      userService,
 		workspaceService: workspaceService,
 		config:           cfg,
-		getPublicKey:        getPublicKey,
+		getJWTSecret: getJWTSecret,
 		logger:           logger,
 		tracer:           tracing.GetTracer(),
 	}
@@ -204,7 +203,7 @@ func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/api/user.verify", h.VerifyCode)
 
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register protected routes

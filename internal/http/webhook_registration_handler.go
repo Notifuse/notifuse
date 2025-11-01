@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -14,26 +13,26 @@ import (
 type WebhookRegistrationHandler struct {
 	service   domain.WebhookRegistrationService
 	logger    logger.Logger
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
+	getJWTSecret func() ([]byte, error)
 }
 
 // NewWebhookRegistrationHandler creates a new webhook registration handler
 func NewWebhookRegistrationHandler(
 	service domain.WebhookRegistrationService,
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
+	getJWTSecret func() ([]byte, error),
 	logger logger.Logger,
 ) *WebhookRegistrationHandler {
 	return &WebhookRegistrationHandler{
 		service:   service,
 		logger:    logger,
-		getPublicKey:        getPublicKey,
+		getJWTSecret: getJWTSecret,
 	}
 }
 
 // RegisterRoutes registers the webhook registration HTTP endpoints
 func (h *WebhookRegistrationHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register webhook endpoints

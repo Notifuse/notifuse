@@ -6,15 +6,12 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
-	"github.com/Notifuse/notifuse/pkg/logger"
-
-	"aidanwoods.dev/go-paseto"
-)
+	"github.com/Notifuse/notifuse/pkg/logger")
 
 // EmailHandler handles HTTP requests for email operations
 type EmailHandler struct {
 	emailService domain.EmailServiceInterface
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
+	getJWTSecret func() ([]byte, error)
 	logger       logger.Logger
 	secretKey    string
 }
@@ -22,13 +19,13 @@ type EmailHandler struct {
 // NewEmailHandler creates a new email handler
 func NewEmailHandler(
 	emailService domain.EmailServiceInterface,
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
+	getJWTSecret func() ([]byte, error),
 	logger logger.Logger,
 	secretKey string,
 ) *EmailHandler {
 	return &EmailHandler{
 		emailService: emailService,
-		getPublicKey:        getPublicKey,
+		getJWTSecret: getJWTSecret,
 		logger:       logger,
 		secretKey:    secretKey,
 	}
@@ -37,7 +34,7 @@ func NewEmailHandler(
 // RegisterRoutes registers all workspace RPC-style routes with authentication middleware
 func (h *EmailHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

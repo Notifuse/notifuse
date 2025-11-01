@@ -9,13 +9,12 @@ import (
 	"strings"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	_ "github.com/lib/pq" // PostgreSQL driver
 	"github.com/spf13/viper"
 )
 
-const VERSION = "14.1"
+const VERSION = "15.0"
 
 type Config struct {
 	Server          ServerConfig
@@ -42,16 +41,14 @@ type Config struct {
 
 // EnvValues tracks configuration that came from actual environment variables
 type EnvValues struct {
-	RootEmail        string
-	APIEndpoint      string
-	PasetoPublicKey  string
-	PasetoPrivateKey string
-	SMTPHost         string
-	SMTPPort         int
-	SMTPUsername     string
-	SMTPPassword     string
-	SMTPFromEmail    string
-	SMTPFromName     string
+	RootEmail     string
+	APIEndpoint   string
+	SMTPHost      string
+	SMTPPort      int
+	SMTPUsername  string
+	SMTPPassword  string
+	SMTPFromEmail string
+	SMTPFromName  string
 }
 
 type DemoConfig struct {
@@ -82,15 +79,10 @@ type DatabaseConfig struct {
 }
 
 type SecurityConfig struct {
-	// PASETO key types
-	PasetoPrivateKey paseto.V4AsymmetricSecretKey
-	PasetoPublicKey  paseto.V4AsymmetricPublicKey
+	// JWTSecret for token signing (derived from SecretKey)
+	JWTSecret []byte
 
-	// Raw decoded bytes for compatibility
-	PasetoPrivateKeyBytes []byte
-	PasetoPublicKeyBytes  []byte
-
-	// Secret passphrase for workspace settings encryption
+	// SecretKey for DB encryption AND JWT signing
 	SecretKey string
 }
 
@@ -164,8 +156,6 @@ type SystemSettings struct {
 	IsInstalled      bool
 	RootEmail        string
 	APIEndpoint      string
-	PasetoPublicKey  string // Base64 encoded
-	PasetoPrivateKey string // Base64 encoded
 	SMTPHost         string
 	SMTPPort         int
 	SMTPUsername     string
@@ -249,19 +239,6 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 	if settings.IsInstalled {
 		settings.RootEmail = settingsMap["root_email"]
 		settings.APIEndpoint = settingsMap["api_endpoint"]
-
-		// Decrypt PASETO keys if present
-		if encryptedPrivateKey, ok := settingsMap["encrypted_paseto_private_key"]; ok && encryptedPrivateKey != "" {
-			if decrypted, err := crypto.DecryptFromHexString(encryptedPrivateKey, secretKey); err == nil {
-				settings.PasetoPrivateKey = decrypted
-			}
-		}
-
-		if encryptedPublicKey, ok := settingsMap["encrypted_paseto_public_key"]; ok && encryptedPublicKey != "" {
-			if decrypted, err := crypto.DecryptFromHexString(encryptedPublicKey, secretKey); err == nil {
-				settings.PasetoPublicKey = decrypted
-			}
-		}
 
 		// Load SMTP settings
 		settings.SMTPHost = settingsMap["smtp_host"]
@@ -452,69 +429,32 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	// Track env var values from viper (before any database fallbacks are applied)
 	// Note: These come from environment variables or .env file, not from defaults or database
 	envVals := EnvValues{
-		RootEmail:        v.GetString("ROOT_EMAIL"),
-		APIEndpoint:      v.GetString("API_ENDPOINT"),
-		PasetoPublicKey:  v.GetString("PASETO_PUBLIC_KEY"),
-		PasetoPrivateKey: v.GetString("PASETO_PRIVATE_KEY"),
-		SMTPHost:         v.GetString("SMTP_HOST"),
-		SMTPPort:         v.GetInt("SMTP_PORT"),
-		SMTPUsername:     v.GetString("SMTP_USERNAME"),
-		SMTPPassword:     v.GetString("SMTP_PASSWORD"),
-		SMTPFromEmail:    v.GetString("SMTP_FROM_EMAIL"),
-		SMTPFromName:     v.GetString("SMTP_FROM_NAME"),
+		RootEmail:     v.GetString("ROOT_EMAIL"),
+		APIEndpoint:   v.GetString("API_ENDPOINT"),
+		SMTPHost:      v.GetString("SMTP_HOST"),
+		SMTPPort:      v.GetInt("SMTP_PORT"),
+		SMTPUsername:  v.GetString("SMTP_USERNAME"),
+		SMTPPassword:  v.GetString("SMTP_PASSWORD"),
+		SMTPFromEmail: v.GetString("SMTP_FROM_EMAIL"),
+		SMTPFromName:  v.GetString("SMTP_FROM_NAME"),
 	}
 
-	// Get PASETO keys from env vars or database
-	var privateKeyBase64, publicKeyBase64 string
-
-	if isInstalled && systemSettings != nil {
-		// Prefer env vars, fall back to database
-		privateKeyBase64 = envVals.PasetoPrivateKey
-		if privateKeyBase64 == "" {
-			privateKeyBase64 = systemSettings.PasetoPrivateKey
-		}
-
-		publicKeyBase64 = envVals.PasetoPublicKey
-		if publicKeyBase64 == "" {
-			publicKeyBase64 = systemSettings.PasetoPublicKey
-		}
+	// Derive JWT secret from SECRET_KEY
+	// Try base64 decode first (for PASETO_PRIVATE_KEY compatibility), otherwise use raw bytes
+	var jwtSecret []byte
+	decoded, err := base64.StdEncoding.DecodeString(secretKey)
+	if err == nil && len(decoded) >= 32 {
+		// Valid base64-encoded key (likely from PASETO_PRIVATE_KEY backward compatibility)
+		jwtSecret = decoded
 	} else {
-		// First-run or database not accessible: use env vars if available
-		privateKeyBase64 = envVals.PasetoPrivateKey
-		publicKeyBase64 = envVals.PasetoPublicKey
+		// Use raw string bytes
+		jwtSecret = []byte(secretKey)
 	}
 
-	// Initialize PASETO keys if available (optional for first-run)
-	var privateKey paseto.V4AsymmetricSecretKey
-	var publicKey paseto.V4AsymmetricPublicKey
-	var privateKeyBytes, publicKeyBytes []byte
-
-	if privateKeyBase64 != "" && publicKeyBase64 != "" {
-		// Decode base64 keys
-		privateKeyBytes, err = base64.StdEncoding.DecodeString(privateKeyBase64)
-		if err != nil {
-			return nil, fmt.Errorf("error decoding PASETO_PRIVATE_KEY: %w", err)
-		}
-
-		publicKeyBytes, err = base64.StdEncoding.DecodeString(publicKeyBase64)
-		if err != nil {
-			return nil, fmt.Errorf("error decoding PASETO_PUBLIC_KEY: %w", err)
-		}
-
-		// Convert bytes to paseto key types
-		privateKey, err = paseto.NewV4AsymmetricSecretKeyFromBytes(privateKeyBytes)
-		if err != nil {
-			return nil, fmt.Errorf("error creating PASETO private key (expected 64 bytes, got %d): %w", len(privateKeyBytes), err)
-		}
-
-		publicKey, err = paseto.NewV4AsymmetricPublicKeyFromBytes(publicKeyBytes)
-		if err != nil {
-			return nil, fmt.Errorf("error creating PASETO public key: %w", err)
-		}
-	} else {
-		// No PASETO keys available - this is OK if system is not installed yet
-		// Keys will be loaded on-demand by AuthService after setup completes
-		// Leave privateKeyBytes and publicKeyBytes as nil
+	// Warn if secret is less than recommended length
+	if len(jwtSecret) < 32 {
+		fmt.Fprintf(os.Stderr, "⚠️  WARNING: SECRET_KEY is only %d bytes. For production use, it should be at least 32 bytes (256 bits) for secure JWT signing.\n", len(jwtSecret))
+		fmt.Fprintf(os.Stderr, "   Generate a secure key with: openssl rand -base64 32\n")
 	}
 
 	// Load config values with database override logic
@@ -623,11 +563,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		Database: dbConfig,
 		SMTP:     smtpConfig,
 		Security: SecurityConfig{
-			PasetoPrivateKey:      privateKey,
-			PasetoPublicKey:       publicKey,
-			PasetoPrivateKeyBytes: privateKeyBytes,
-			PasetoPublicKeyBytes:  publicKeyBytes,
-			SecretKey:             secretKey,
+			JWTSecret: jwtSecret,
+			SecretKey: secretKey,
 		},
 		Demo: DemoConfig{
 			FileManagerEndpoint:  v.GetString("DEMO_FILE_MANAGER_ENDPOINT"),
@@ -712,11 +649,9 @@ func (c *Config) IsProduction() bool {
 
 // GetEnvValues returns configuration values that came from actual environment variables
 // This is used by the setup service to determine which settings are already configured
-func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, pasetoPublicKey, pasetoPrivateKey, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string, smtpPort int) {
+func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string, smtpPort int) {
 	return c.EnvValues.RootEmail,
 		c.EnvValues.APIEndpoint,
-		c.EnvValues.PasetoPublicKey,
-		c.EnvValues.PasetoPrivateKey,
 		c.EnvValues.SMTPHost,
 		c.EnvValues.SMTPUsername,
 		c.EnvValues.SMTPPassword,

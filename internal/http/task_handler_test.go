@@ -10,12 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
-	"github.com/Notifuse/notifuse/pkg/testkeys"
 	"github.com/golang/mock/gomock"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,7 +24,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
 	// For tests we don't need the actual key, we can use a mock or nil since we're not validating auth
-	var publicKey paseto.V4AsymmetricPublicKey
+	var jwtSecret []byte
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Set up common logger expectations
@@ -36,7 +35,7 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
 
 	t.Run("Successful execution", func(t *testing.T) {
 		// Setup
@@ -248,12 +247,11 @@ func TestTaskHandler_RegisterRoutes(t *testing.T) {
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
 	// For tests we don't need the actual key, we can use a generated one
-	privateKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := privateKey.Public()
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
 
 	// Create a new mux
 	mux := http.NewServeMux()
@@ -283,7 +281,7 @@ func TestTaskHandler_CreateTask(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
-	var publicKey paseto.V4AsymmetricPublicKey
+	var jwtSecret []byte
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Set up common logger expectations
@@ -293,7 +291,7 @@ func TestTaskHandler_CreateTask(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
 
 	t.Run("Successful creation", func(t *testing.T) {
 		// Setup
@@ -405,7 +403,7 @@ func TestTaskHandler_GetTask(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
-	var publicKey paseto.V4AsymmetricPublicKey
+	var jwtSecret []byte
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Set up common logger expectations
@@ -415,7 +413,7 @@ func TestTaskHandler_GetTask(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
 
 	t.Run("Successful retrieval", func(t *testing.T) {
 		// Setup expected task
@@ -509,7 +507,7 @@ func TestTaskHandler_ListTasks(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
-	var publicKey paseto.V4AsymmetricPublicKey
+	var jwtSecret []byte
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Set up common logger expectations
@@ -519,7 +517,7 @@ func TestTaskHandler_ListTasks(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
 
 	t.Run("Successful list", func(t *testing.T) {
 		// Setup expected response
@@ -629,7 +627,7 @@ func TestTaskHandler_DeleteTask(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
-	var publicKey paseto.V4AsymmetricPublicKey
+	var jwtSecret []byte
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Set up common logger expectations
@@ -639,7 +637,7 @@ func TestTaskHandler_DeleteTask(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
 
 	t.Run("Successful deletion", func(t *testing.T) {
 		// Configure service mock to return success
@@ -722,7 +720,7 @@ func TestTaskHandler_ExecutePendingTasks(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockTaskService := mocks.NewMockTaskService(ctrl)
-	var publicKey paseto.V4AsymmetricPublicKey
+	var jwtSecret []byte
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Set up common logger expectations
@@ -733,7 +731,7 @@ func TestTaskHandler_ExecutePendingTasks(t *testing.T) {
 
 	secretKey := "test-secret-key"
 
-	handler := NewTaskHandler(mockTaskService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, secretKey)
+	handler := NewTaskHandler(mockTaskService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, secretKey)
 
 	t.Run("Successful execution", func(t *testing.T) {
 		// Configure service mock to return success
@@ -823,16 +821,12 @@ func TestTaskHandler_GetCronStatus(t *testing.T) {
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 
-	// Get test keys
-	publicKeyBytes, _, _ := testkeys.GetTestKeysBytes()
-	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromBytes(publicKeyBytes[:32])
-	if err != nil {
-		t.Fatalf("Failed to create public key: %v", err)
-	}
+	// Create test JWT secret
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 
 	handler := NewTaskHandler(
 		mockTaskService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		"test-secret",
 	)
@@ -940,16 +934,12 @@ func TestTaskHandler_GetCronStatus_Integration(t *testing.T) {
 	// Configure logger expectations
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 
-	// Get test keys
-	publicKeyBytes, _, _ := testkeys.GetTestKeysBytes()
-	publicKey, err := paseto.NewV4AsymmetricPublicKeyFromBytes(publicKeyBytes[:32])
-	if err != nil {
-		t.Fatalf("Failed to create public key: %v", err)
-	}
+	// Create test JWT secret
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 
 	handler := NewTaskHandler(
 		mockTaskService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		"test-secret",
 	)

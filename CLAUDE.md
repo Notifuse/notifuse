@@ -114,7 +114,7 @@ func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, d
 
 ### Authentication & Security
 
-- **Token System**: PASETO (Platform-Agnostic Security Tokens)
+- **Token System**: JWT (Platform-Agnostic Security Tokens)
 - **Password Hashing**: bcrypt via golang.org/x/crypto
 - **API Security**: Custom middleware for authentication and CORS
 
@@ -259,7 +259,6 @@ func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, d
 notifuse/
 ├── cmd/                    # Application entry points
 │   ├── api/               # Main API server
-│   └── keygen/            # PASETO key generation utility
 ├── internal/              # Private application code
 │   ├── domain/           # Business entities and interfaces
 │   ├── service/          # Business logic implementation
@@ -315,7 +314,6 @@ notifuse/
 - **Standard Library HTTP**: Chose simplicity over framework complexity
 - **Clean Architecture**: Enables easy testing and maintainability
 - **PostgreSQL**: Robust relational database for complex queries
-- **PASETO**: More secure alternative to JWT tokens
 - **OpenCensus**: Vendor-neutral observability
 
 ### Frontend Choices
@@ -691,7 +689,7 @@ GET  /api/contact.list
 
 #### Authentication
 
-- PASETO tokens for stateless authentication
+- JWT tokens for stateless authentication
 - Middleware-based authentication checking
 - Role-based permissions with granular access control
 

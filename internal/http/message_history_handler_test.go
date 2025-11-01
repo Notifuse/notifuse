@@ -11,17 +11,18 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	"github.com/Notifuse/notifuse/internal/service"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.opencensus.io/trace"
 )
 
-func setupMessageHistoryHandlerTest(t *testing.T) (*MessageHistoryHandler, *mocks.MockMessageHistoryService, *mocks.MockAuthService, *pkgmocks.MockTracer, paseto.V4AsymmetricSecretKey) {
+func setupMessageHistoryHandlerTest(t *testing.T) (*MessageHistoryHandler, *mocks.MockMessageHistoryService, *mocks.MockAuthService, *pkgmocks.MockTracer, []byte) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -31,28 +32,32 @@ func setupMessageHistoryHandlerTest(t *testing.T) (*MessageHistoryHandler, *mock
 	mockTracer := pkgmocks.NewMockTracer(ctrl)
 
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	handler := NewMessageHistoryHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		mockTracer,
 	)
 
-	return handler, mockService, mockAuthService, mockTracer, secretKey
+	return handler, mockService, mockAuthService, mockTracer, jwtSecret
 }
 
-func createMessageHistoryTestToken(t *testing.T, secretKey paseto.V4AsymmetricSecretKey, userID string) string {
-	token := paseto.NewToken()
-	token.SetExpiration(time.Now().Add(time.Hour))
-	token.SetString(string(domain.UserIDKey), userID)
-	token.SetString(string(domain.UserTypeKey), string(domain.UserTypeUser))
-	token.SetString(string(domain.SessionIDKey), "test-session")
+func createMessageHistoryTestToken(t *testing.T, jwtSecret []byte, userID string) string {
+	claims := &service.UserClaims{
+		UserID:    userID,
+		Type:      string(domain.UserTypeUser),
+		SessionID: "test-session",
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
+	}
 
-	signedToken := token.V4Sign(secretKey, nil)
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString(jwtSecret)
+	require.NoError(t, err)
 	require.NotEmpty(t, signedToken)
 	return signedToken
 }
@@ -120,13 +125,11 @@ func TestMessageHistoryHandler_handleList_AuthenticationError(t *testing.T) {
 	mockTracer := pkgmocks.NewMockTracer(ctrl)
 
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	handler := NewMessageHistoryHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		mockTracer,
 	)
@@ -312,13 +315,11 @@ func TestMessageHistoryHandler_handleList_ServiceError(t *testing.T) {
 	mockTracer := pkgmocks.NewMockTracer(ctrl)
 
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	handler := NewMessageHistoryHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		mockTracer,
 	)
@@ -524,14 +525,12 @@ func TestMessageHistoryHandler_handleList_NilTracer(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	// Create handler with standard constructor (using global tracer)
 	handler := NewMessageHistoryHandler(
 		mockService,
 		mockAuthService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 	)
 
@@ -578,13 +577,11 @@ func TestMessageHistoryHandler_handleList_TracerErrorHandling(t *testing.T) {
 	mockTracer := pkgmocks.NewMockTracer(ctrl)
 
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	handler := NewMessageHistoryHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		mockTracer,
 	)
@@ -726,13 +723,11 @@ func TestMessageHistoryHandler_handleBroadcastStats_ServiceError(t *testing.T) {
 	mockTracer := pkgmocks.NewMockTracer(ctrl)
 
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	handler := NewMessageHistoryHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		mockTracer,
 	)

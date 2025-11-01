@@ -10,16 +10,13 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
-	"github.com/Notifuse/notifuse/pkg/logger"
-
-	"aidanwoods.dev/go-paseto"
-)
+	"github.com/Notifuse/notifuse/pkg/logger")
 
 // WorkspaceHandler handles HTTP requests for workspace operations
 type WorkspaceHandler struct {
 	workspaceService domain.WorkspaceServiceInterface
 	authService      domain.AuthService
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
+	getJWTSecret func() ([]byte, error)
 	logger           logger.Logger
 	secretKey        string
 }
@@ -28,14 +25,14 @@ type WorkspaceHandler struct {
 func NewWorkspaceHandler(
 	workspaceService domain.WorkspaceServiceInterface,
 	authService domain.AuthService,
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
+	getJWTSecret func() ([]byte, error),
 	logger logger.Logger,
 	secretKey string,
 ) *WorkspaceHandler {
 	return &WorkspaceHandler{
 		workspaceService: workspaceService,
 		authService:      authService,
-		getPublicKey:        getPublicKey,
+		getJWTSecret: getJWTSecret,
 		logger:           logger,
 		secretKey:        secretKey,
 	}
@@ -44,7 +41,7 @@ func NewWorkspaceHandler(
 // RegisterRoutes registers all workspace RPC-style routes with authentication middleware
 func (h *WorkspaceHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

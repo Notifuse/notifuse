@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -15,7 +14,7 @@ import (
 // TaskHandler handles HTTP requests related to tasks
 type TaskHandler struct {
 	taskService domain.TaskService
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
+	getJWTSecret func() ([]byte, error)
 	logger      logger.Logger
 	secretKey   string
 }
@@ -23,13 +22,13 @@ type TaskHandler struct {
 // NewTaskHandler creates a new task handler
 func NewTaskHandler(
 	taskService domain.TaskService,
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error),
+	getJWTSecret func() ([]byte, error),
 	logger logger.Logger,
 	secretKey string,
 ) *TaskHandler {
 	return &TaskHandler{
 		taskService: taskService,
-		getPublicKey:        getPublicKey,
+		getJWTSecret: getJWTSecret,
 		logger:      logger,
 		secretKey:   secretKey,
 	}
@@ -38,7 +37,7 @@ func NewTaskHandler(
 // RegisterRoutes registers the task-related routes
 func (h *TaskHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

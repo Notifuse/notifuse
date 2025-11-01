@@ -4,7 +4,6 @@ import (
 	"io"
 	"net/http"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -14,22 +13,22 @@ import (
 type WebhookEventHandler struct {
 	service   domain.WebhookEventServiceInterface
 	logger    logger.Logger
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
+	getJWTSecret func() ([]byte, error)
 }
 
 // NewWebhookEventHandler creates a new webhook event handler
-func NewWebhookEventHandler(service domain.WebhookEventServiceInterface, getPublicKey func() (paseto.V4AsymmetricPublicKey, error), logger logger.Logger) *WebhookEventHandler {
+func NewWebhookEventHandler(service domain.WebhookEventServiceInterface, getJWTSecret func() ([]byte, error), logger logger.Logger) *WebhookEventHandler {
 	return &WebhookEventHandler{
 		service:   service,
 		logger:    logger,
-		getPublicKey:        getPublicKey,
+		getJWTSecret: getJWTSecret,
 	}
 }
 
 // RegisterRoutes registers the webhook event HTTP endpoints
 func (h *WebhookEventHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Public webhooks endpoint for receiving events from email providers

@@ -9,11 +9,18 @@ import (
 	"net/url"
 	"testing"
 
-	"aidanwoods.dev/go-paseto"
+
+
 	"github.com/Notifuse/notifuse/internal/domain"
+
+
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+
+
 	"github.com/golang/mock/gomock"
+
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -35,10 +42,8 @@ func setupSegmentHandlerTest(t *testing.T) (*mocks.MockSegmentService, *pkgmocks
 	mockLogger.EXPECT().Fatal(gomock.Any()).AnyTimes()
 
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
-	handler := NewSegmentHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	handler := NewSegmentHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 	return mockService, mockLogger, handler
 }
 

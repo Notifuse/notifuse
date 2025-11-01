@@ -10,19 +10,21 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/service"
+
+
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 )
 
-func setupUserHandlerTest(t *testing.T) (*UserHandler, *mocks.MockUserServiceInterface, *mocks.MockWorkspaceServiceInterface, paseto.V4AsymmetricSecretKey) {
+func setupUserHandlerTest(t *testing.T) (*UserHandler, *mocks.MockUserServiceInterface, *mocks.MockWorkspaceServiceInterface, []byte) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -31,27 +33,24 @@ func setupUserHandlerTest(t *testing.T) (*UserHandler, *mocks.MockUserServiceInt
 	cfg := &config.Config{}
 
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	mockLogger := &pkgmocks.MockLogger{}
-	handler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, cfg, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
+	handler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, cfg, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 
-	return handler, mockUserSvc, mockWorkspaceSvc, secretKey
+	return handler, mockUserSvc, mockWorkspaceSvc, jwtSecret
 }
 
 func TestUserHandler_SignIn(t *testing.T) {
-	_, mockUserSvc, mockWorkspaceSvc, secretKey := setupUserHandlerTest(t)
+	_, mockUserSvc, mockWorkspaceSvc, jwtSecret := setupUserHandlerTest(t)
 
 	// Test with different configs
 	devConfig := &config.Config{Environment: "development"}
 	prodConfig := &config.Config{Environment: "production"}
 
 	// Create handlers with different configs
-	publicKey := secretKey.Public()
-	getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }
-	devHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, devConfig, getPublicKey, &pkgmocks.MockLogger{})
-	prodHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, prodConfig, getPublicKey, &pkgmocks.MockLogger{})
+	getJWTSecret := func() ([]byte, error) { return jwtSecret, nil }
+	devHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, devConfig, getJWTSecret, &pkgmocks.MockLogger{})
+	prodHandler := NewUserHandler(mockUserSvc, mockWorkspaceSvc, prodConfig, getJWTSecret, &pkgmocks.MockLogger{})
 
 	tests := []struct {
 		name         string
@@ -340,7 +339,7 @@ func TestUserHandler_GetCurrentUser(t *testing.T) {
 }
 
 func TestUserHandler_RegisterRoutes(t *testing.T) {
-	handler, mockUserSvc, mockWorkspaceSvc, secretKey := setupUserHandlerTest(t)
+	handler, mockUserSvc, mockWorkspaceSvc, jwtSecret := setupUserHandlerTest(t)
 
 	// Set up mock expectation for VerifyUserSession to prevent unexpected call error
 	mockUserSvc.EXPECT().
@@ -403,12 +402,17 @@ func TestUserHandler_RegisterRoutes(t *testing.T) {
 
 			// For protected routes, we need to add a valid token
 			if tc.route == "/api/user.me" {
-				token := paseto.NewToken()
-				token.SetString(string(domain.UserIDKey), "user1")
-				token.SetString(string(domain.SessionIDKey), "session1")
-				token.SetExpiration(time.Now().Add(time.Hour))
-
-				signedToken := token.V4Sign(secretKey, nil)
+				claims := &service.UserClaims{
+					UserID:    "user1",
+					SessionID: "session1",
+					RegisteredClaims: jwt.RegisteredClaims{
+						ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+						IssuedAt:  jwt.NewNumericDate(time.Now()),
+					},
+				}
+				token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+				signedToken, err := token.SignedString(jwtSecret)
+				require.NoError(t, err)
 				req.Header.Set("Authorization", "Bearer "+signedToken)
 			}
 

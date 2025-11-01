@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -16,20 +15,20 @@ import (
 type TemplateHandler struct {
 	service   domain.TemplateService
 	logger    logger.Logger
-	getPublicKey func() (paseto.V4AsymmetricPublicKey, error)
+	getJWTSecret func() ([]byte, error)
 }
 
-func NewTemplateHandler(service domain.TemplateService, getPublicKey func() (paseto.V4AsymmetricPublicKey, error), logger logger.Logger) *TemplateHandler {
+func NewTemplateHandler(service domain.TemplateService, getJWTSecret func() ([]byte, error), logger logger.Logger) *TemplateHandler {
 	return &TemplateHandler{
 		service:   service,
 		logger:    logger,
-		getPublicKey:        getPublicKey,
+		getJWTSecret: getJWTSecret,
 	}
 }
 
 func (h *TemplateHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Create auth middleware
-	authMiddleware := middleware.NewAuthMiddleware(h.getPublicKey)
+	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation

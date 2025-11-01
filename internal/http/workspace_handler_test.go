@@ -13,26 +13,29 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/service"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/Notifuse/notifuse/internal/domain"
 )
 
-func createTestToken(t *testing.T, secretKey paseto.V4AsymmetricSecretKey, userID string) string {
-	token := paseto.NewToken()
-	token.SetAudience("test")
-	token.SetIssuer("test")
-	token.SetNotBefore(time.Now())
-	token.SetIssuedAt(time.Now())
-	token.SetExpiration(time.Now().Add(24 * time.Hour))
-	token.SetString(string(domain.UserIDKey), userID)
-	token.SetString(string(domain.SessionIDKey), "test-session")
-	token.SetString(string(domain.UserTypeKey), string(domain.UserTypeUser))
-
-	signed := token.V4Sign(secretKey, nil)
+func createTestToken(t *testing.T, jwtSecret []byte, userID string) string {
+	claims := &service.UserClaims{
+		UserID:    userID,
+		Type:      string(domain.UserTypeUser),
+		SessionID: "test-session",
+		RegisteredClaims: jwt.RegisteredClaims{
+			Audience:  jwt.ClaimStrings{"test"},
+			Issuer:    "test",
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString(jwtSecret)
+	require.NoError(t, err)
 	return signed
 }
 

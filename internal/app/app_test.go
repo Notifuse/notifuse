@@ -22,17 +22,15 @@ import (
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/mailer"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
-	"github.com/Notifuse/notifuse/pkg/testkeys"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// Helper function to create a test configuration with proper key lengths
+// Helper function to create a test configuration with JWT secret
 func createTestConfig() *config.Config {
-	// Generate 64 byte keys for PASETO
-	privateKeyBytes := testkeys.GenerateRandomKeyBytes(64)
-	publicKeyBytes := testkeys.GenerateRandomKeyBytes(64)
+	// Generate a 32-byte JWT secret for testing
+	jwtSecret := []byte("test-jwt-secret-key-32-bytes-min")
 
 	return &config.Config{
 		Environment: "test",
@@ -49,8 +47,8 @@ func createTestConfig() *config.Config {
 			Port: 8080,
 		},
 		Security: config.SecurityConfig{
-			PasetoPrivateKeyBytes: privateKeyBytes,
-			PasetoPublicKeyBytes:  publicKeyBytes,
+			JWTSecret: jwtSecret,
+			SecretKey: "test-secret-key-for-encryption",
 		},
 	}
 }
@@ -472,14 +470,8 @@ func TestInitialize(t *testing.T) {
 	assert.False(t, tApp.initServicesCalled)
 }
 
-// TestAppInitServices tests the InitServices method with our hardcoded keys
+// TestAppInitServices tests the InitServices method
 func TestAppInitServices(t *testing.T) {
-	// Get hardcoded keys for testing
-	keys, err := testkeys.GetHardcodedTestKeys()
-	if err != nil {
-		t.Fatalf("Failed to get hardcoded keys: %v", err)
-	}
-
 	// Set up mock DB
 	mockDB, _, err := setupTestDBMock()
 	require.NoError(t, err)
@@ -487,9 +479,6 @@ func TestAppInitServices(t *testing.T) {
 
 	// Create app with test config and mocks
 	cfg := createTestConfig()
-	// Override config with our hardcoded keys
-	cfg.Security.PasetoPrivateKeyBytes = keys.PrivateKeyBytes
-	cfg.Security.PasetoPublicKeyBytes = keys.PublicKeyBytes
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -540,12 +529,6 @@ func TestAppInitServices(t *testing.T) {
 
 // TestAppInitHandlers tests the InitHandlers method
 func TestAppInitHandlers(t *testing.T) {
-	// Get hardcoded keys for testing
-	keys, err := testkeys.GetHardcodedTestKeys()
-	if err != nil {
-		t.Fatalf("Failed to get hardcoded keys: %v", err)
-	}
-
 	// Set up mock DB
 	mockDB, _, err := setupTestDBMock()
 	require.NoError(t, err)
@@ -553,9 +536,6 @@ func TestAppInitHandlers(t *testing.T) {
 
 	// Create app with test config and mocks
 	cfg := createTestConfig()
-	// Override config with our hardcoded keys
-	cfg.Security.PasetoPrivateKeyBytes = keys.PrivateKeyBytes
-	cfg.Security.PasetoPublicKeyBytes = keys.PublicKeyBytes
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -1138,10 +1118,6 @@ func TestApp_InitializeComponents(t *testing.T) {
 // TestTaskSchedulerDelayedStart tests the task scheduler's delayed start functionality
 func TestTaskSchedulerDelayedStart(t *testing.T) {
 	t.Run("Task scheduler starts after delay", func(t *testing.T) {
-		// Get hardcoded keys for testing
-		keys, err := testkeys.GetHardcodedTestKeys()
-		require.NoError(t, err, "Failed to get hardcoded keys")
-
 		// Set up mock DB with minimal expectations
 		mockDB, mock, err := sqlmock.New()
 		require.NoError(t, err)
@@ -1149,8 +1125,6 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 
 		// Create app with test config and mocks
 		cfg := createTestConfig()
-		cfg.Security.PasetoPrivateKeyBytes = keys.PrivateKeyBytes
-		cfg.Security.PasetoPublicKeyBytes = keys.PublicKeyBytes
 		cfg.TaskScheduler.Enabled = true
 		cfg.TaskScheduler.Interval = 60 * time.Second // Long interval so it doesn't run during test
 		cfg.TaskScheduler.MaxTasks = 10
@@ -1231,10 +1205,6 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 		// This test verifies that if shutdown happens during the 30-second delay,
 		// the task scheduler never starts
 
-		// Get hardcoded keys for testing
-		keys, err := testkeys.GetHardcodedTestKeys()
-		require.NoError(t, err, "Failed to get hardcoded keys")
-
 		// Set up mock DB with minimal expectations
 		mockDB, mock, err := sqlmock.New()
 		require.NoError(t, err)
@@ -1242,8 +1212,6 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 
 		// Create app with test config and mocks
 		cfg := createTestConfig()
-		cfg.Security.PasetoPrivateKeyBytes = keys.PrivateKeyBytes
-		cfg.Security.PasetoPublicKeyBytes = keys.PublicKeyBytes
 		cfg.TaskScheduler.Enabled = true
 		cfg.TaskScheduler.Interval = 60 * time.Second
 		cfg.TaskScheduler.MaxTasks = 10

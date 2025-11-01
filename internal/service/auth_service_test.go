@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -26,17 +26,14 @@ func setupAuthTest(t *testing.T) (
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	// Generate test keys
-	privateKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := privateKey.Public()
-	privateKeyBytes := privateKey.ExportBytes()
-	publicKeyBytes := publicKey.ExportBytes()
+	// Generate test JWT secret (32 bytes minimum for HS256)
+	jwtSecret := []byte("test-jwt-secret-key-1234567890123456")
 
 	service := NewAuthService(AuthServiceConfig{
 		Repository:          mockAuthRepo,
 		WorkspaceRepository: mockWorkspaceRepo,
-		GetKeys: func() ([]byte, []byte, error) {
-			return privateKeyBytes, publicKeyBytes, nil
+		GetSecret: func() ([]byte, error) {
+			return jwtSecret, nil
 		},
 		Logger: mockLogger,
 	})
@@ -494,7 +491,7 @@ func TestAuthService_VerifyUserSession(t *testing.T) {
 }
 
 func TestAuthService_GenerateAuthToken(t *testing.T) {
-	mockAuthRepo, _, _, service := setupAuthTest(t)
+	_, _, _, service := setupAuthTest(t)
 
 	userID := "user123"
 	sessionID := "session123"
@@ -512,18 +509,18 @@ func TestAuthService_GenerateAuthToken(t *testing.T) {
 		require.NotNil(t, token)
 	})
 
-	t.Run("failed token generation with invalid keys", func(t *testing.T) {
-		// Create a service with invalid key provider
+	t.Run("failed token generation with invalid secret", func(t *testing.T) {
+		// Create a service with invalid secret provider
 		service := NewAuthService(AuthServiceConfig{
-			Repository:          mockAuthRepo,
+			Repository:          nil,
 			WorkspaceRepository: nil,
-			GetKeys: func() ([]byte, []byte, error) {
-				return []byte("invalid"), []byte("invalid"), nil
+			GetSecret: func() ([]byte, error) {
+				return nil, errors.New("secret not available")
 			},
 			Logger: nil,
 		})
 
-		// Token generation should return empty string when keys are invalid
+		// Token generation should return empty string when secret is not available
 		user := &domain.User{ID: "user1", Email: "test@example.com"}
 		sessionID := "session123"
 		expiresAt := time.Now().Add(time.Hour)
@@ -533,7 +530,7 @@ func TestAuthService_GenerateAuthToken(t *testing.T) {
 }
 
 func TestAuthService_GenerateInvitationToken(t *testing.T) {
-	mockAuthRepo, _, _, service := setupAuthTest(t)
+	_, _, _, service := setupAuthTest(t)
 
 	invitationID := "invitation123"
 	workspaceID := "workspace123"
@@ -557,18 +554,18 @@ func TestAuthService_GenerateInvitationToken(t *testing.T) {
 		require.NotNil(t, token)
 	})
 
-	t.Run("failed token generation with invalid keys", func(t *testing.T) {
-		// Create a service with invalid key provider
+	t.Run("failed token generation with invalid secret", func(t *testing.T) {
+		// Create a service with invalid secret provider
 		service := NewAuthService(AuthServiceConfig{
-			Repository:          mockAuthRepo,
+			Repository:          nil,
 			WorkspaceRepository: nil,
-			GetKeys: func() ([]byte, []byte, error) {
-				return []byte("invalid"), []byte("invalid"), nil
+			GetSecret: func() ([]byte, error) {
+				return nil, errors.New("secret not available")
 			},
 			Logger: nil,
 		})
 
-		// Token generation should return empty string when keys are invalid
+		// Token generation should return empty string when secret is not available
 		invitation := &domain.WorkspaceInvitation{
 			ID:          "inv1",
 			WorkspaceID: "ws1",
@@ -655,140 +652,55 @@ func TestAuthService_GenerateAPIAuthToken(t *testing.T) {
 		require.NotNil(t, token)
 
 		// Verify the token can be parsed and contains expected claims
-		parser := paseto.NewParser()
-		privateKey, err := service.GetPrivateKey()
+		secret, err := service.getSecret()
 		require.NoError(t, err)
-		publicKey := privateKey.Public()
 
-		parsedToken, err := parser.ParseV4Public(publicKey, token, nil)
+		claims := &UserClaims{}
+		parsedToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
+			return secret, nil
+		})
 		require.NoError(t, err)
 		require.NotNil(t, parsedToken)
+		require.True(t, parsedToken.Valid)
 
 		// Verify token claims
-		userIDClaim, err := parsedToken.GetString("user_id")
-		require.NoError(t, err)
-		require.Equal(t, userID, userIDClaim)
-
-		typeClaim, err := parsedToken.GetString("type")
-		require.NoError(t, err)
-		require.Equal(t, string(domain.UserTypeAPIKey), typeClaim)
+		require.Equal(t, userID, claims.UserID)
+		require.Equal(t, string(domain.UserTypeAPIKey), claims.Type)
 
 		// Verify expiration is set to 10 years from now (approximately)
-		expiration, err := parsedToken.GetExpiration()
-		require.NoError(t, err)
 		expectedExpiration := time.Now().Add(time.Hour * 24 * 365 * 10)
-		require.WithinDuration(t, expectedExpiration, expiration, time.Minute)
-
-		// Verify issued at and not before are set
-		issuedAt, err := parsedToken.GetIssuedAt()
-		require.NoError(t, err)
-		require.WithinDuration(t, time.Now(), issuedAt, time.Minute)
-
-		notBefore, err := parsedToken.GetNotBefore()
-		require.NoError(t, err)
-		require.WithinDuration(t, time.Now(), notBefore, time.Minute)
+		require.WithinDuration(t, expectedExpiration, claims.ExpiresAt.Time, time.Minute)
 	})
 
-	t.Run("token generation with invalid key format", func(t *testing.T) {
-		// Test that key loading fails with invalid key format
-		mockLoggerForInvalid := pkgmocks.NewMockLogger(gomock.NewController(t))
-		mockLoggerForInvalid.EXPECT().
-			WithField(gomock.Any(), gomock.Any()).
-			Return(mockLoggerForInvalid).
-			AnyTimes() // Allow multiple calls since ensureKeys may be called multiple times
-		mockLoggerForInvalid.EXPECT().
-			Error(gomock.Any()).
-			AnyTimes()
-
+	t.Run("token generation with invalid secret", func(t *testing.T) {
 		service := NewAuthService(AuthServiceConfig{
 			Repository:          nil,
 			WorkspaceRepository: nil,
-			GetKeys: func() ([]byte, []byte, error) {
-				return make([]byte, 32), make([]byte, 32), nil // Invalid key format
+			GetSecret: func() ([]byte, error) {
+				return nil, errors.New("secret not available")
 			},
-			Logger: mockLoggerForInvalid,
+			Logger: nil,
 		})
 
-		// GetPrivateKey should fail with invalid keys
-		_, err := service.GetPrivateKey()
-		require.Error(t, err) // Should fail when loading keys
-
-		// GenerateAPIAuthToken should also fail (return empty string) with invalid keys
 		user := &domain.User{
 			ID:    userID,
 			Email: email,
 		}
 
 		token := service.GenerateAPIAuthToken(user)
-		require.Empty(t, token) // Should be empty due to invalid keys
+		require.Empty(t, token) // Should be empty due to unavailable secret
 	})
 
 	t.Run("token generation with nil user", func(t *testing.T) {
 		// This test verifies that the method panics with nil user (current behavior)
-		// In a production system, this should be handled more gracefully
 		require.Panics(t, func() {
 			service.GenerateAPIAuthToken(nil)
 		})
 	})
 }
 
-func TestAuthService_GetPrivateKey(t *testing.T) {
-	_, _, _, service := setupAuthTest(t)
-
-	t.Run("successful private key retrieval", func(t *testing.T) {
-		privateKey, err := service.GetPrivateKey()
-		require.NoError(t, err)
-		require.NotNil(t, privateKey)
-
-		// Verify the key can be used for signing
-		token := paseto.NewToken()
-		token.SetString("test", "value")
-		token.SetExpiration(time.Now().Add(time.Hour)) // Add expiration to make token valid
-
-		signed := token.V4Sign(privateKey, nil)
-		require.NotEmpty(t, signed)
-
-		// Verify the key can be used to derive public key
-		publicKey := privateKey.Public()
-		require.NotNil(t, publicKey)
-
-		// Verify we can parse the token with the public key
-		parser := paseto.NewParser()
-		parsedToken, err := parser.ParseV4Public(publicKey, signed, nil)
-		require.NoError(t, err)
-		require.NotNil(t, parsedToken)
-
-		testValue, err := parsedToken.GetString("test")
-		require.NoError(t, err)
-		require.Equal(t, "value", testValue)
-	})
-
-	t.Run("private key consistency", func(t *testing.T) {
-		// Verify that multiple calls return the same key
-		key1, err := service.GetPrivateKey()
-		require.NoError(t, err)
-		key2, err := service.GetPrivateKey()
-		require.NoError(t, err)
-
-		require.Equal(t, key1.ExportBytes(), key2.ExportBytes())
-	})
-
-	t.Run("private key security", func(t *testing.T) {
-		privateKey, err := service.GetPrivateKey()
-		require.NoError(t, err)
-
-		// Verify the key has the expected length for V4 asymmetric keys
-		keyBytes := privateKey.ExportBytes()
-		require.Len(t, keyBytes, 64) // Ed25519 private key is 64 bytes
-
-		// Verify the key is not all zeros (basic sanity check)
-		allZeros := make([]byte, 64)
-		require.NotEqual(t, allZeros, keyBytes)
-	})
-}
-
 func TestAuthService_ValidateInvitationToken(t *testing.T) {
-	_, _, mockLogger, service := setupAuthTest(t)
+	_, _, _, service := setupAuthTest(t)
 
 	invitationID := "invitation123"
 	workspaceID := "workspace123"
@@ -833,12 +745,6 @@ func TestAuthService_ValidateInvitationToken(t *testing.T) {
 		token := service.GenerateInvitationToken(invitation)
 		require.NotEmpty(t, token)
 
-		mockLogger.EXPECT().
-			WithField("error", gomock.Any()).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Error("Failed to parse invitation token")
-
 		// Now try to validate the expired token
 		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(token)
 
@@ -852,12 +758,6 @@ func TestAuthService_ValidateInvitationToken(t *testing.T) {
 	t.Run("invalid token format", func(t *testing.T) {
 		invalidToken := "invalid.token.format"
 
-		mockLogger.EXPECT().
-			WithField("error", gomock.Any()).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Error("Failed to parse invitation token")
-
 		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(invalidToken)
 
 		require.Error(t, err)
@@ -867,98 +767,7 @@ func TestAuthService_ValidateInvitationToken(t *testing.T) {
 		require.Empty(t, parsedEmail)
 	})
 
-	t.Run("token with missing claims", func(t *testing.T) {
-		// Create a token without the required claims
-		token := paseto.NewToken()
-		token.SetIssuedAt(time.Now())
-		token.SetNotBefore(time.Now())
-		token.SetExpiration(time.Now().Add(time.Hour))
-		token.SetString("some_other_claim", "value")
-
-		privateKey, err := service.GetPrivateKey()
-		require.NoError(t, err)
-		signedToken := token.V4Sign(privateKey, nil)
-		require.NotEmpty(t, signedToken)
-
-		mockLogger.EXPECT().
-			WithField("error", gomock.Any()).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Error("Invitation ID not found in token")
-
-		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(signedToken)
-
-		require.Error(t, err)
-		require.Equal(t, "invitation ID not found in token", err.Error())
-		require.Empty(t, parsedInvitationID)
-		require.Empty(t, parsedWorkspaceID)
-		require.Empty(t, parsedEmail)
-	})
-
-	t.Run("token with missing workspace_id claim", func(t *testing.T) {
-		// Create a token with invitation_id but missing workspace_id
-		token := paseto.NewToken()
-		token.SetIssuedAt(time.Now())
-		token.SetNotBefore(time.Now())
-		token.SetExpiration(time.Now().Add(time.Hour))
-		token.SetString("invitation_id", invitationID)
-
-		privateKey, err := service.GetPrivateKey()
-		require.NoError(t, err)
-		signedToken := token.V4Sign(privateKey, nil)
-		require.NotEmpty(t, signedToken)
-
-		mockLogger.EXPECT().
-			WithField("error", gomock.Any()).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Error("Workspace ID not found in token")
-
-		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(signedToken)
-
-		require.Error(t, err)
-		require.Equal(t, "workspace ID not found in token", err.Error())
-		require.Empty(t, parsedInvitationID)
-		require.Empty(t, parsedWorkspaceID)
-		require.Empty(t, parsedEmail)
-	})
-
-	t.Run("token with missing email claim", func(t *testing.T) {
-		// Create a token with invitation_id and workspace_id but missing email
-		token := paseto.NewToken()
-		token.SetIssuedAt(time.Now())
-		token.SetNotBefore(time.Now())
-		token.SetExpiration(time.Now().Add(time.Hour))
-		token.SetString("invitation_id", invitationID)
-		token.SetString("workspace_id", workspaceID)
-
-		privateKey, err := service.GetPrivateKey()
-		require.NoError(t, err)
-		signedToken := token.V4Sign(privateKey, nil)
-		require.NotEmpty(t, signedToken)
-
-		mockLogger.EXPECT().
-			WithField("error", gomock.Any()).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Error("Email not found in token")
-
-		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(signedToken)
-
-		require.Error(t, err)
-		require.Equal(t, "email not found in token", err.Error())
-		require.Empty(t, parsedInvitationID)
-		require.Empty(t, parsedWorkspaceID)
-		require.Empty(t, parsedEmail)
-	})
-
 	t.Run("empty token", func(t *testing.T) {
-		mockLogger.EXPECT().
-			WithField("error", gomock.Any()).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Error("Failed to parse invitation token")
-
 		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken("")
 
 		require.Error(t, err)
@@ -968,26 +777,25 @@ func TestAuthService_ValidateInvitationToken(t *testing.T) {
 		require.Empty(t, parsedEmail)
 	})
 
-	t.Run("token signed with wrong key", func(t *testing.T) {
-		// Create a token signed with a different key
-		wrongPrivateKey := paseto.NewV4AsymmetricSecretKey()
+	t.Run("token signed with wrong secret", func(t *testing.T) {
+		// Create a token signed with a different secret
+		wrongSecret := []byte("wrong-secret-key-0987654321098765")
 
-		token := paseto.NewToken()
-		token.SetIssuedAt(time.Now())
-		token.SetNotBefore(time.Now())
-		token.SetExpiration(time.Now().Add(time.Hour))
-		token.SetString("invitation_id", invitationID)
-		token.SetString("workspace_id", workspaceID)
-		token.SetString("email", email)
+		claims := InvitationClaims{
+			InvitationID: invitationID,
+			WorkspaceID:  workspaceID,
+			Email:        email,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
+				IssuedAt:  jwt.NewNumericDate(time.Now()),
+				NotBefore: jwt.NewNumericDate(time.Now()),
+			},
+		}
 
-		signedToken := token.V4Sign(wrongPrivateKey, nil)
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+		signedToken, err := token.SignedString(wrongSecret)
+		require.NoError(t, err)
 		require.NotEmpty(t, signedToken)
-
-		mockLogger.EXPECT().
-			WithField("error", gomock.Any()).
-			Return(mockLogger)
-		mockLogger.EXPECT().
-			Error("Failed to parse invitation token")
 
 		parsedInvitationID, parsedWorkspaceID, parsedEmail, err := service.ValidateInvitationToken(signedToken)
 

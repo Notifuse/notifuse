@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/base64"
 	"os"
 	"testing"
 	"time"
@@ -31,13 +30,8 @@ func TestIsDevelopment(t *testing.T) {
 }
 
 func TestLoadWithOptions(t *testing.T) {
-	// Use valid PASETO keys generated with the keygen tool
-	privateKey := "8OSonZEkrCTlDd612EBoORCKVMZ4OjbWlrq03n0FIEgEJK+qb95F4pwewi+Dd++qOjQ9zkviUjFdIaBUz3nzgA=="
-	publicKey := "BCSvqm/eReKcHsIvg3fvqjo0Pc5L4lIxXSGgVM9584A="
-
 	// Set environment variables for the test
-	os.Setenv("PASETO_PRIVATE_KEY", privateKey)
-	os.Setenv("PASETO_PUBLIC_KEY", publicKey)
+	os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456") // 32 bytes
 	os.Setenv("ROOT_EMAIL", "test@example.com")
 	os.Setenv("SERVER_PORT", "9000")
 	os.Setenv("SERVER_HOST", "127.0.0.1")
@@ -48,12 +42,10 @@ func TestLoadWithOptions(t *testing.T) {
 	os.Setenv("DB_PREFIX", "test")
 	os.Setenv("DB_NAME", "test_system")
 	os.Setenv("ENVIRONMENT", "development")
-	os.Setenv("SECRET_KEY", "test-key")
 
 	// Clean up after the test
 	defer func() {
-		os.Unsetenv("PASETO_PRIVATE_KEY")
-		os.Unsetenv("PASETO_PUBLIC_KEY")
+		os.Unsetenv("SECRET_KEY")
 		os.Unsetenv("ROOT_EMAIL")
 		os.Unsetenv("SERVER_PORT")
 		os.Unsetenv("SERVER_HOST")
@@ -64,7 +56,6 @@ func TestLoadWithOptions(t *testing.T) {
 		os.Unsetenv("DB_PREFIX")
 		os.Unsetenv("DB_NAME")
 		os.Unsetenv("ENVIRONMENT")
-		os.Unsetenv("SECRET_KEY")
 	}()
 
 	// Load config with env vars
@@ -84,30 +75,21 @@ func TestLoadWithOptions(t *testing.T) {
 	assert.Equal(t, "test_system", cfg.Database.DBName)
 	assert.Equal(t, "test@example.com", cfg.RootEmail)
 	assert.Equal(t, "development", cfg.Environment)
-	// Check the decoded keys
-	decodedPrivateKey, _ := base64.StdEncoding.DecodeString(privateKey)
-	decodedPublicKey, _ := base64.StdEncoding.DecodeString(publicKey)
-	assert.Equal(t, decodedPrivateKey, cfg.Security.PasetoPrivateKeyBytes)
-	assert.Equal(t, decodedPublicKey, cfg.Security.PasetoPublicKeyBytes)
-	assert.Equal(t, "test-key", cfg.Security.SecretKey)
-
-	// Verify that the parsed keys are not nil
-	assert.NotNil(t, cfg.Security.PasetoPrivateKey)
-	assert.NotNil(t, cfg.Security.PasetoPublicKey)
+	
+	// Verify JWT secret and SecretKey
+	assert.Equal(t, "test-secret-key-1234567890123456", cfg.Security.SecretKey)
+	assert.NotNil(t, cfg.Security.JWTSecret)
+	assert.GreaterOrEqual(t, len(cfg.Security.JWTSecret), 32)
 
 	// Test development environment flag
 	assert.True(t, cfg.IsDevelopment())
 }
 
 func TestInvalidKeysHandling(t *testing.T) {
-	// This test needs to align with how the config.go actually validates the keys
-	// First it checks if the keys are present, then if they're valid base64
-
-	t.Run("missing_private_key", func(t *testing.T) {
+	t.Run("missing_secret_key", func(t *testing.T) {
 		// Clear any existing environment variables
 		os.Unsetenv("SECRET_KEY")
 		os.Unsetenv("PASETO_PRIVATE_KEY")
-		os.Unsetenv("PASETO_PUBLIC_KEY")
 
 		// Test missing SECRET_KEY
 		_, err := LoadWithOptions(LoadOptions{})
@@ -115,85 +97,48 @@ func TestInvalidKeysHandling(t *testing.T) {
 		assert.Equal(t, "SECRET_KEY (or PASETO_PRIVATE_KEY for backward compatibility) must be set", err.Error())
 	})
 
-	t.Run("missing_public_key", func(t *testing.T) {
+	t.Run("valid_secret_key", func(t *testing.T) {
 		// Clear any existing environment variables first
 		os.Unsetenv("SECRET_KEY")
 		os.Unsetenv("PASETO_PRIVATE_KEY")
-		os.Unsetenv("PASETO_PUBLIC_KEY")
 
-		// Set SECRET_KEY and valid private key but no public key
-		// On first run (not installed), missing PASETO keys is OK
+		// Set SECRET_KEY with valid length
 		os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
-		os.Setenv("PASETO_PRIVATE_KEY", "8OSonZEkrCTlDd612EBoORCKVMZ4OjbWlrq03n0FIEgEJK+qb95F4pwewi+Dd++qOjQ9zkviUjFdIaBUz3nzgA==")
-		defer func() {
-			os.Unsetenv("SECRET_KEY")
-			os.Unsetenv("PASETO_PRIVATE_KEY")
-		}()
+		defer os.Unsetenv("SECRET_KEY")
 
-		// Should succeed on first run (not installed), PASETO keys are optional
-		_, err := LoadWithOptions(LoadOptions{})
-		require.NoError(t, err) // No error expected for first-run without public key
+		// Should succeed
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.NotNil(t, cfg.Security.JWTSecret)
+		assert.Equal(t, "test-secret-key-1234567890123456", cfg.Security.SecretKey)
 	})
 
-	t.Run("invalid_private_key", func(t *testing.T) {
+	t.Run("backward_compatibility_paseto_private_key", func(t *testing.T) {
 		// Clear any existing environment variables first
 		os.Unsetenv("SECRET_KEY")
 		os.Unsetenv("PASETO_PRIVATE_KEY")
-		os.Unsetenv("PASETO_PUBLIC_KEY")
 
-		// Set SECRET_KEY, invalid private key but also public key (to pass the presence check)
-		os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
-		os.Setenv("PASETO_PRIVATE_KEY", "invalid-base64!")
-		os.Setenv("PASETO_PUBLIC_KEY", "BCSvqm/eReKcHsIvg3fvqjo0Pc5L4lIxXSGgVM9584A=")
-		defer func() {
-			os.Unsetenv("SECRET_KEY")
-			os.Unsetenv("PASETO_PRIVATE_KEY")
-			os.Unsetenv("PASETO_PUBLIC_KEY")
-		}()
-
-		// Should fail with decoding error
-		_, err := LoadWithOptions(LoadOptions{})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "error decoding PASETO_PRIVATE_KEY")
-	})
-
-	t.Run("invalid_public_key", func(t *testing.T) {
-		// Clear any existing environment variables first
-		os.Unsetenv("SECRET_KEY")
-		os.Unsetenv("PASETO_PRIVATE_KEY")
-		os.Unsetenv("PASETO_PUBLIC_KEY")
-
-		// Set SECRET_KEY, valid private key but invalid public key
-		os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+		// Set only PASETO_PRIVATE_KEY (backward compatibility)
 		os.Setenv("PASETO_PRIVATE_KEY", "8OSonZEkrCTlDd612EBoORCKVMZ4OjbWlrq03n0FIEgEJK+qb95F4pwewi+Dd++qOjQ9zkviUjFdIaBUz3nzgA==")
-		os.Setenv("PASETO_PUBLIC_KEY", "invalid-base64!")
-		defer func() {
-			os.Unsetenv("SECRET_KEY")
-			os.Unsetenv("PASETO_PRIVATE_KEY")
-			os.Unsetenv("PASETO_PUBLIC_KEY")
-		}()
+		defer os.Unsetenv("PASETO_PRIVATE_KEY")
 
-		// Should fail with decoding error
-		_, err := LoadWithOptions(LoadOptions{})
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "error decoding PASETO_PUBLIC_KEY")
+		// Should succeed with base64-decoded secret
+		cfg, err := LoadWithOptions(LoadOptions{})
+		require.NoError(t, err)
+		assert.NotNil(t, cfg.Security.JWTSecret)
+		assert.GreaterOrEqual(t, len(cfg.Security.JWTSecret), 32)
 	})
 }
 
 func TestLoad(t *testing.T) {
 	// Test the Load function by temporarily setting the required environment variables
-	privateKey := "8OSonZEkrCTlDd612EBoORCKVMZ4OjbWlrq03n0FIEgEJK+qb95F4pwewi+Dd++qOjQ9zkviUjFdIaBUz3nzgA=="
-	publicKey := "BCSvqm/eReKcHsIvg3fvqjo0Pc5L4lIxXSGgVM9584A="
-
 	// Set environment variables for the test
-	os.Setenv("PASETO_PRIVATE_KEY", privateKey)
-	os.Setenv("PASETO_PUBLIC_KEY", publicKey)
+	os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
 	os.Setenv("ROOT_EMAIL", "test@example.com")
 
 	// Clean up after the test
 	defer func() {
-		os.Unsetenv("PASETO_PRIVATE_KEY")
-		os.Unsetenv("PASETO_PUBLIC_KEY")
+		os.Unsetenv("SECRET_KEY")
 		os.Unsetenv("ROOT_EMAIL")
 	}()
 
@@ -204,13 +149,13 @@ func TestLoad(t *testing.T) {
 	// should still be processed
 	if err != nil {
 		// This is an acceptable error if it relates to file loading
-		if err.Error() == "PASETO_PRIVATE_KEY is required" ||
-			err.Error() == "PASETO_PUBLIC_KEY is required" {
+		if err.Error() == "SECRET_KEY (or PASETO_PRIVATE_KEY for backward compatibility) must be set" {
 			t.Fatal("Environment variables not properly loaded")
 		}
 	} else {
 		assert.NotNil(t, cfg)
 		assert.Equal(t, "test@example.com", cfg.RootEmail)
+		assert.NotNil(t, cfg.Security.JWTSecret)
 	}
 }
 

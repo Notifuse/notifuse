@@ -17,6 +17,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.10.2
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/aws/aws-sdk-go v1.55.7
+	github.com/golang-jwt/jwt/v5 v5.3.0
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9

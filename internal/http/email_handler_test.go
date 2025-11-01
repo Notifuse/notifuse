@@ -9,17 +9,20 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
+
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+
 	"github.com/golang/mock/gomock"
+
 	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 )
 
 // setupEmailHandlerTest prepares a test environment for email handler tests
-func setupEmailHandlerTest(t *testing.T) (*mocks.MockEmailServiceInterface, *pkgmocks.MockLogger, *EmailHandler, paseto.V4AsymmetricSecretKey) {
+func setupEmailHandlerTest(t *testing.T) (*mocks.MockEmailServiceInterface, *pkgmocks.MockLogger, *EmailHandler, []byte) {
 	ctrl := gomock.NewController(t)
 	t.Cleanup(func() { ctrl.Finish() })
 
@@ -36,12 +39,10 @@ func setupEmailHandlerTest(t *testing.T) (*mocks.MockEmailServiceInterface, *pkg
 	mockLogger.EXPECT().Fatal(gomock.Any()).AnyTimes()
 
 	// Create key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	handler := NewEmailHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, "test-secret-key")
 
-	handler := NewEmailHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, "test-secret-key")
-
-	return mockService, mockLogger, handler, secretKey
+	return mockService, mockLogger, handler, []byte("test-secret-key")
 }
 
 func TestNewEmailHandler(t *testing.T) {
@@ -51,16 +52,14 @@ func TestNewEmailHandler(t *testing.T) {
 
 	mockService := mocks.NewMockEmailServiceInterface(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	// Act
-	handler := NewEmailHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, "test-secret-key")
+	handler := NewEmailHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, "test-secret-key")
 
 	// Assert
 	assert.NotNil(t, handler)
 	assert.Equal(t, mockService, handler.emailService)
-	assert.NotNil(t, handler.getPublicKey)
+	assert.NotNil(t, handler.getJWTSecret)
 	assert.Equal(t, mockLogger, handler.logger)
 	assert.Equal(t, "test-secret-key", handler.secretKey)
 }

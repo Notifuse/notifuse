@@ -27,13 +27,11 @@ services:
       # Secret Key (Required) - Generate a secure random string for production
       - SECRET_KEY=${SECRET_KEY:-d04zCk3Fa45oOjDWHpAvc1AZxnLdGffOnNWK+Jt2yXf37+FTfuMMHb8flcfPMqLluRR3rvhbr555r6j1DEigrA==}
 
-      # All other settings (ROOT_EMAIL, API_ENDPOINT, SMTP, PASETO keys)
+      # All other settings (ROOT_EMAIL, API_ENDPOINT, SMTP)
       # can be configured through the Setup Wizard on first launch
       # Or set them here as environment variables if you prefer
       # - ROOT_EMAIL=${ROOT_EMAIL}
       # - API_ENDPOINT=${API_ENDPOINT}
-      # - PASETO_PRIVATE_KEY=${PASETO_PRIVATE_KEY}
-      # - PASETO_PUBLIC_KEY=${PASETO_PUBLIC_KEY}
       # - SMTP_HOST=${SMTP_HOST}
       # - SMTP_PORT=${SMTP_PORT}
       # - SMTP_USERNAME=${SMTP_USERNAME}

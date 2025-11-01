@@ -11,7 +11,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/database"
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -387,33 +386,40 @@ func (a *App) InitServices() error {
 	// Initialize event bus first
 	a.eventBus = domain.NewInMemoryEventBus()
 
-	// Initialize auth service with key provider callback
-	// Keys are loaded on-demand, so this never fails
+	// Initialize auth service with JWT secret provider callback
+	// Secret is loaded on-demand, so this never fails
 	a.authService = service.NewAuthService(service.AuthServiceConfig{
 		Repository:          a.authRepo,
 		WorkspaceRepository: a.workspaceRepo,
-		GetKeys: func() (privateKey []byte, publicKey []byte, err error) {
-			// Return current keys from config
-			// These will be nil before setup, or loaded from database after setup
-			if len(a.config.Security.PasetoPrivateKeyBytes) == 0 || len(a.config.Security.PasetoPublicKeyBytes) == 0 {
-				return nil, nil, fmt.Errorf("system setup not completed")
+		GetSecret: func() (secret []byte, err error) {
+			// Return current JWT secret from config
+			// This will be nil before setup, or loaded from env/database after setup
+			if len(a.config.Security.JWTSecret) == 0 {
+				return nil, fmt.Errorf("system setup not completed or SECRET_KEY not configured")
 			}
-			return a.config.Security.PasetoPrivateKeyBytes, a.config.Security.PasetoPublicKeyBytes, nil
+			return a.config.Security.JWTSecret, nil
 		},
 		Logger: a.logger,
 	})
 
 	var err error
 
+	// Initialize rate limiters for authentication endpoints
+	// 5 attempts per 5 minutes per email address
+	signInLimiter := service.NewRateLimiter(5, 5*time.Minute)
+	verifyCodeLimiter := service.NewRateLimiter(5, 5*time.Minute)
+
 	// Initialize user service
 	userServiceConfig := service.UserServiceConfig{
-		Repository:    a.userRepo,
-		AuthService:   a.authService,
-		EmailSender:   a.mailer,
-		SessionExpiry: 30 * 24 * time.Hour, // 30 days
-		IsProduction:  a.config.IsProduction(),
-		Logger:        a.logger,
-		Tracer:        tracing.GetTracer(),
+		Repository:        a.userRepo,
+		AuthService:       a.authService,
+		EmailSender:       a.mailer,
+		SessionExpiry:     30 * 24 * time.Hour, // 30 days
+		IsProduction:      a.config.IsProduction(),
+		Logger:            a.logger,
+		Tracer:            tracing.GetTracer(),
+		SignInLimiter:     signInLimiter,
+		VerifyCodeLimiter: verifyCodeLimiter,
 	}
 
 	a.userService, err = service.NewUserService(userServiceConfig)
@@ -423,18 +429,16 @@ func (a *App) InitServices() error {
 
 	// Initialize setup service with environment config from config loader
 	// Config tracks which values came from actual env vars (not database, not generated)
-	rootEmail, apiEndpoint, pasetoPublicKey, pasetoPrivateKey, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName, smtpPort := a.config.GetEnvValues()
+	rootEmail, apiEndpoint, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName, smtpPort := a.config.GetEnvValues()
 	envConfig := &service.EnvironmentConfig{
-		RootEmail:        rootEmail,
-		APIEndpoint:      apiEndpoint,
-		PasetoPublicKey:  pasetoPublicKey,
-		PasetoPrivateKey: pasetoPrivateKey,
-		SMTPHost:         smtpHost,
-		SMTPPort:         smtpPort,
-		SMTPUsername:     smtpUsername,
-		SMTPPassword:     smtpPassword,
-		SMTPFromEmail:    smtpFromEmail,
-		SMTPFromName:     smtpFromName,
+		RootEmail:     rootEmail,
+		APIEndpoint:   apiEndpoint,
+		SMTPHost:      smtpHost,
+		SMTPPort:      smtpPort,
+		SMTPUsername:  smtpUsername,
+		SMTPPassword:  smtpPassword,
+		SMTPFromEmail: smtpFromEmail,
+		SMTPFromName:  smtpFromName,
 	}
 
 	a.setupService = service.NewSetupService(
@@ -751,18 +755,21 @@ func (a *App) InitHandlers() error {
 	// Create a new ServeMux to avoid route conflicts on restart
 	a.mux = http.NewServeMux()
 
-	// Create a callback for getting the public key on-demand
-	// This ensures handlers always use fresh keys after config reload
-	getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) {
-		return a.authService.GetPublicKey()
+	// Create a callback for getting the JWT secret on-demand
+	// This ensures handlers always use the current JWT secret from config
+	getJWTSecret := func() ([]byte, error) {
+		if len(a.config.Security.JWTSecret) == 0 {
+			return nil, fmt.Errorf("JWT secret not configured")
+		}
+		return a.config.Security.JWTSecret, nil
 	}
 
-	// Initialize handlers (pass callback instead of static public key)
+	// Initialize handlers (pass callback instead of static JWT secret)
 	userHandler := httpHandler.NewUserHandler(
 		a.userService,
 		a.workspaceService,
 		a.config,
-		getPublicKey,
+		getJWTSecret,
 		a.logger)
 	rootHandler := httpHandler.NewRootHandler("console/dist", "notification_center/dist", a.logger, a.config.APIEndpoint, a.config.Version, a.config.RootEmail, &a.isInstalled)
 	setupHandler := httpHandler.NewSetupHandler(
@@ -774,29 +781,29 @@ func (a *App) InitHandlers() error {
 	workspaceHandler := httpHandler.NewWorkspaceHandler(
 		a.workspaceService,
 		a.authService,
-		getPublicKey,
+		getJWTSecret,
 		a.logger,
 		a.config.Security.SecretKey,
 	)
-	contactHandler := httpHandler.NewContactHandler(a.contactService, getPublicKey, a.logger)
-	listHandler := httpHandler.NewListHandler(a.listService, getPublicKey, a.logger)
-	contactListHandler := httpHandler.NewContactListHandler(a.contactListService, getPublicKey, a.logger)
-	templateHandler := httpHandler.NewTemplateHandler(a.templateService, getPublicKey, a.logger)
-	emailHandler := httpHandler.NewEmailHandler(a.emailService, getPublicKey, a.logger, a.config.Security.SecretKey)
-	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getPublicKey, a.logger, a.config.IsDemo())
+	contactHandler := httpHandler.NewContactHandler(a.contactService, getJWTSecret, a.logger)
+	listHandler := httpHandler.NewListHandler(a.listService, getJWTSecret, a.logger)
+	contactListHandler := httpHandler.NewContactListHandler(a.contactListService, getJWTSecret, a.logger)
+	templateHandler := httpHandler.NewTemplateHandler(a.templateService, getJWTSecret, a.logger)
+	emailHandler := httpHandler.NewEmailHandler(a.emailService, getJWTSecret, a.logger, a.config.Security.SecretKey)
+	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getJWTSecret, a.logger, a.config.IsDemo())
 	taskHandler := httpHandler.NewTaskHandler(
 		a.taskService,
-		getPublicKey,
+		getJWTSecret,
 		a.logger,
 		a.config.Security.SecretKey,
 	)
-	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, getPublicKey, a.logger, a.config.IsDemo())
-	webhookEventHandler := httpHandler.NewWebhookEventHandler(a.webhookEventService, getPublicKey, a.logger)
-	webhookRegistrationHandler := httpHandler.NewWebhookRegistrationHandler(a.webhookRegistrationService, getPublicKey, a.logger)
+	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, getJWTSecret, a.logger, a.config.IsDemo())
+	webhookEventHandler := httpHandler.NewWebhookEventHandler(a.webhookEventService, getJWTSecret, a.logger)
+	webhookRegistrationHandler := httpHandler.NewWebhookRegistrationHandler(a.webhookRegistrationService, getJWTSecret, a.logger)
 	messageHistoryHandler := httpHandler.NewMessageHistoryHandler(
 		a.messageHistoryService,
 		a.authService,
-		getPublicKey,
+		getJWTSecret,
 		a.logger,
 	)
 	notificationCenterHandler := httpHandler.NewNotificationCenterHandler(
@@ -806,18 +813,18 @@ func (a *App) InitHandlers() error {
 	)
 	analyticsHandler := httpHandler.NewAnalyticsHandler(
 		a.analyticsService,
-		getPublicKey,
+		getJWTSecret,
 		a.logger,
 	)
 	contactTimelineHandler := httpHandler.NewContactTimelineHandler(
 		a.contactTimelineService,
 		a.authService,
-		getPublicKey,
+		getJWTSecret,
 		a.logger,
 	)
 	segmentHandler := httpHandler.NewSegmentHandler(
 		a.segmentService,
-		getPublicKey,
+		getJWTSecret,
 		a.logger,
 	)
 	if !a.config.IsProduction() {

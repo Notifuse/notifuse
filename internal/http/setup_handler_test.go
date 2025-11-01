@@ -10,9 +10,13 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+
 	"github.com/Notifuse/notifuse/internal/service"
+
 	"github.com/Notifuse/notifuse/pkg/logger"
+
 	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -296,13 +300,12 @@ func TestSetupHandler_Initialize(t *testing.T) {
 			method:      http.MethodPost,
 			isInstalled: false,
 			requestBody: InitializeRequest{
-				RootEmail:          "admin@example.com",
-				APIEndpoint:        "https://api.example.com",
-				GeneratePasetoKeys: true,
-				SMTPHost:           "smtp.example.com",
-				SMTPPort:           587,
-				SMTPFromEmail:      "noreply@example.com",
-				SMTPFromName:       "Test",
+				RootEmail:     "admin@example.com",
+				APIEndpoint:   "https://api.example.com",
+				SMTPHost:      "smtp.example.com",
+				SMTPPort:      587,
+				SMTPFromEmail: "noreply@example.com",
+				SMTPFromName:  "Test",
 			},
 			expectedStatus: http.StatusOK,
 		},

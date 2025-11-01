@@ -13,12 +13,19 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
+
+
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+
+
 	"github.com/golang/mock/gomock"
+
+
 	"github.com/stretchr/testify/assert"
+
+
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,10 +36,8 @@ func setupTransactionalHandlerTest(t *testing.T) (*mocks.MockTransactionalNotifi
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// For tests we don't need the actual key, we can create a new one
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
-	handler := NewTransactionalNotificationHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, false)
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	handler := NewTransactionalNotificationHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, false)
 
 	return mockService, mockLogger, handler
 }
@@ -64,16 +69,14 @@ func TestNewTransactionalNotificationHandler(t *testing.T) {
 	mockService := mocks.NewMockTransactionalNotificationService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	// Act
-	handler := NewTransactionalNotificationHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, false)
+	handler := NewTransactionalNotificationHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, false)
 
 	// Assert
 	assert.NotNil(t, handler)
 	assert.Equal(t, mockService, handler.service)
-	assert.NotNil(t, handler.getPublicKey)
+	assert.NotNil(t, handler.getJWTSecret)
 	assert.Equal(t, mockLogger, handler.logger)
 }
 
@@ -860,10 +863,8 @@ func TestTransactionalNotificationHandler_HandleSend(t *testing.T) {
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// For tests we don't need the actual key, we can create a new one
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
-	handler := NewTransactionalNotificationHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger, false)
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	handler := NewTransactionalNotificationHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger, false)
 
 	workspaceID := "workspace1"
 	notificationID := "test-notification"
@@ -1482,14 +1483,12 @@ func TestTransactionalNotificationHandler_HandleTestTemplate(t *testing.T) {
 			tc.setupMock(mockService, mockLogger)
 
 			// Create a paseto secret key
-			secretKey := paseto.NewV4AsymmetricSecretKey()
-			publicKey := secretKey.Public()
-
+			jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 			// Create the handler
 			handler := &TransactionalNotificationHandler{
 				service:      mockService,
 				logger:       mockLogger,
-				getPublicKey: func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+				getJWTSecret: func() ([]byte, error) { return jwtSecret, nil },
 			}
 
 			// Create request

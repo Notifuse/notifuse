@@ -43,39 +43,28 @@ func NewSetupHandler(
 type StatusResponse struct {
 	IsInstalled           bool `json:"is_installed"`
 	SMTPConfigured        bool `json:"smtp_configured"`
-	PasetoConfigured      bool `json:"paseto_configured"`
 	APIEndpointConfigured bool `json:"api_endpoint_configured"`
 	RootEmailConfigured   bool `json:"root_email_configured"`
 }
 
-// PasetoKeysResponse represents generated PASETO keys
-type PasetoKeysResponse struct {
-	PublicKey  string `json:"public_key"`
-	PrivateKey string `json:"private_key"`
-}
-
 // InitializeRequest represents the setup initialization request
 type InitializeRequest struct {
-	RootEmail          string `json:"root_email"`
-	APIEndpoint        string `json:"api_endpoint"`
-	GeneratePasetoKeys bool   `json:"generate_paseto_keys"`
-	PasetoPublicKey    string `json:"paseto_public_key,omitempty"`
-	PasetoPrivateKey   string `json:"paseto_private_key,omitempty"`
-	SMTPHost           string `json:"smtp_host"`
-	SMTPPort           int    `json:"smtp_port"`
-	SMTPUsername       string `json:"smtp_username"`
-	SMTPPassword       string `json:"smtp_password"`
-	SMTPFromEmail      string `json:"smtp_from_email"`
-	SMTPFromName       string `json:"smtp_from_name"`
-	TelemetryEnabled   bool   `json:"telemetry_enabled"`
-	CheckForUpdates    bool   `json:"check_for_updates"`
+	RootEmail        string `json:"root_email"`
+	APIEndpoint      string `json:"api_endpoint"`
+	SMTPHost         string `json:"smtp_host"`
+	SMTPPort         int    `json:"smtp_port"`
+	SMTPUsername     string `json:"smtp_username"`
+	SMTPPassword     string `json:"smtp_password"`
+	SMTPFromEmail    string `json:"smtp_from_email"`
+	SMTPFromName     string `json:"smtp_from_name"`
+	TelemetryEnabled bool   `json:"telemetry_enabled"`
+	CheckForUpdates  bool   `json:"check_for_updates"`
 }
 
 // InitializeResponse represents the setup completion response
 type InitializeResponse struct {
-	Success    bool                `json:"success"`
-	Message    string              `json:"message"`
-	PasetoKeys *PasetoKeysResponse `json:"paseto_keys,omitempty"`
+	Success bool   `json:"success"`
+	Message string `json:"message"`
 }
 
 // TestSMTPRequest represents the SMTP connection test request
@@ -113,7 +102,6 @@ func (h *SetupHandler) Status(w http.ResponseWriter, r *http.Request) {
 	response := StatusResponse{
 		IsInstalled:           isInstalled,
 		SMTPConfigured:        configStatus.SMTPConfigured,
-		PasetoConfigured:      configStatus.PasetoConfigured,
 		APIEndpointConfigured: configStatus.APIEndpointConfigured,
 		RootEmailConfigured:   configStatus.RootEmailConfigured,
 	}
@@ -170,23 +158,20 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 
 	// Convert request to service config
 	setupConfig := &service.SetupConfig{
-		RootEmail:          req.RootEmail,
-		APIEndpoint:        req.APIEndpoint,
-		GeneratePasetoKeys: req.GeneratePasetoKeys,
-		PasetoPublicKey:    req.PasetoPublicKey,
-		PasetoPrivateKey:   req.PasetoPrivateKey,
-		SMTPHost:           req.SMTPHost,
-		SMTPPort:           req.SMTPPort,
-		SMTPUsername:       req.SMTPUsername,
-		SMTPPassword:       req.SMTPPassword,
-		SMTPFromEmail:      req.SMTPFromEmail,
-		SMTPFromName:       req.SMTPFromName,
-		TelemetryEnabled:   req.TelemetryEnabled,
-		CheckForUpdates:    req.CheckForUpdates,
+		RootEmail:        req.RootEmail,
+		APIEndpoint:      req.APIEndpoint,
+		SMTPHost:         req.SMTPHost,
+		SMTPPort:         req.SMTPPort,
+		SMTPUsername:     req.SMTPUsername,
+		SMTPPassword:     req.SMTPPassword,
+		SMTPFromEmail:    req.SMTPFromEmail,
+		SMTPFromName:     req.SMTPFromName,
+		TelemetryEnabled: req.TelemetryEnabled,
+		CheckForUpdates:  req.CheckForUpdates,
 	}
 
 	// Initialize using service (callback will be called in service)
-	generatedKeys, err := h.setupService.Initialize(ctx, setupConfig)
+	err = h.setupService.Initialize(ctx, setupConfig)
 	if err != nil {
 		h.logger.WithField("error", err).Error("Failed to initialize system")
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
@@ -196,14 +181,6 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 	response := InitializeResponse{
 		Success: true,
 		Message: "Setup completed successfully. Server is restarting with new configuration...",
-	}
-
-	// Include generated keys in response if they were generated
-	if generatedKeys != nil {
-		response.PasetoKeys = &PasetoKeysResponse{
-			PublicKey:  generatedKeys.PublicKey,
-			PrivateKey: generatedKeys.PrivateKey,
-		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")

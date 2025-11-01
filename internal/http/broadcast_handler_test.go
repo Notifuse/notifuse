@@ -11,13 +11,18 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
+
+
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	http_handler "github.com/Notifuse/notifuse/internal/http"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	notifusemjml "github.com/Notifuse/notifuse/pkg/notifuse_mjml"
+
+
 	"github.com/golang/mock/gomock"
+
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -57,13 +62,12 @@ func setupBroadcastHandler(t *testing.T) (
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Create a public key for authentication
-	publicKey, _ := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	// Create the handler with mocks
 	handler := http_handler.NewBroadcastHandler(
 		mockBroadcastService,
 		mockTemplateService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		false,
 	)
@@ -586,13 +590,13 @@ func TestHandleSchedule(t *testing.T) {
 		customLogger := pkgmocks.NewMockLogger(customController)
 
 		// Create a public key for authentication
-		publicKey, _ := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
+		jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 
 		// Create the handler with mocks
 		customHandler := http_handler.NewBroadcastHandler(
 			customMock,
 			customTemplateService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 			customLogger,
 			false,
 		)
@@ -628,13 +632,13 @@ func TestHandleSchedule(t *testing.T) {
 		customLogger := pkgmocks.NewMockLogger(customController)
 
 		// Create a public key for authentication
-		publicKey, _ := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
+		jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 
 		// Create the handler with mocks
 		customHandler := http_handler.NewBroadcastHandler(
 			customMock,
 			customTemplateService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 			customLogger,
 			false,
 		)
@@ -675,13 +679,13 @@ func TestHandleSchedule(t *testing.T) {
 		customLogger := pkgmocks.NewMockLogger(customController)
 
 		// Create a public key for authentication
-		publicKey, _ := paseto.NewV4AsymmetricPublicKeyFromHex("1eb9dbbbbc047c03fd70604e0071f0987e16b28b757225c11f00415d0e20b1a2")
+		jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 
 		// Create the handler with mocks
 		customHandler := http_handler.NewBroadcastHandler(
 			customMock,
 			customTemplateService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 			customLogger,
 			false,
 		)

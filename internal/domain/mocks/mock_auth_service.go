@@ -9,7 +9,6 @@ import (
 	reflect "reflect"
 	time "time"
 
-	paseto "aidanwoods.dev/go-paseto"
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
 )
@@ -111,46 +110,16 @@ func (mr *MockAuthServiceMockRecorder) GenerateUserAuthToken(arg0, arg1, arg2 in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GenerateUserAuthToken", reflect.TypeOf((*MockAuthService)(nil).GenerateUserAuthToken), arg0, arg1, arg2)
 }
 
-// GetPrivateKey mocks base method.
-func (m *MockAuthService) GetPrivateKey() (paseto.V4AsymmetricSecretKey, error) {
+// InvalidateSecretCache mocks base method.
+func (m *MockAuthService) InvalidateSecretCache() {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPrivateKey")
-	ret0, _ := ret[0].(paseto.V4AsymmetricSecretKey)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	m.ctrl.Call(m, "InvalidateSecretCache")
 }
 
-// GetPrivateKey indicates an expected call of GetPrivateKey.
-func (mr *MockAuthServiceMockRecorder) GetPrivateKey() *gomock.Call {
+// InvalidateSecretCache indicates an expected call of InvalidateSecretCache.
+func (mr *MockAuthServiceMockRecorder) InvalidateSecretCache() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPrivateKey", reflect.TypeOf((*MockAuthService)(nil).GetPrivateKey))
-}
-
-// GetPublicKey mocks base method.
-func (m *MockAuthService) GetPublicKey() (paseto.V4AsymmetricPublicKey, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPublicKey")
-	ret0, _ := ret[0].(paseto.V4AsymmetricPublicKey)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPublicKey indicates an expected call of GetPublicKey.
-func (mr *MockAuthServiceMockRecorder) GetPublicKey() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPublicKey", reflect.TypeOf((*MockAuthService)(nil).GetPublicKey))
-}
-
-// InvalidateKeyCache mocks base method.
-func (m *MockAuthService) InvalidateKeyCache() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "InvalidateKeyCache")
-}
-
-// InvalidateKeyCache indicates an expected call of InvalidateKeyCache.
-func (mr *MockAuthServiceMockRecorder) InvalidateKeyCache() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidateKeyCache", reflect.TypeOf((*MockAuthService)(nil).InvalidateKeyCache))
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "InvalidateSecretCache", reflect.TypeOf((*MockAuthService)(nil).InvalidateSecretCache))
 }
 
 // ValidateInvitationToken mocks base method.

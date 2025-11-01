@@ -8,12 +8,19 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
 	"github.com/Notifuse/notifuse/internal/domain"
+
+
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+
+
 	"github.com/golang/mock/gomock"
+
+
 	"github.com/stretchr/testify/assert"
+
+
 	"github.com/stretchr/testify/require"
 	"go.opencensus.io/trace"
 )
@@ -42,13 +49,11 @@ func TestContactTimelineHandler_handleList(t *testing.T) {
 		AnyTimes()
 
 	// Generate test keys
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	handler := NewContactTimelineHandlerWithTracer(
 		mockService,
 		mockAuthService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 		mockTracer,
 	)
@@ -225,13 +230,11 @@ func TestContactTimelineHandler_RegisterRoutes(t *testing.T) {
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
 	handler := NewContactTimelineHandler(
 		mockService,
 		mockAuthService,
-		func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil },
+		func() ([]byte, error) { return jwtSecret, nil },
 		mockLogger,
 	)
 

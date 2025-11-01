@@ -41,16 +41,15 @@ func TestSetupWizardFlow(t *testing.T) {
 		assert.False(t, statusResp["is_installed"].(bool), "System should not be installed initially")
 	})
 
-	t.Run("Generate PASETO Keys", func(t *testing.T) {
-		// Initialize with generated keys
+	t.Run("Initialize System", func(t *testing.T) {
+		// Initialize the system
 		initReq := map[string]interface{}{
-			"root_email":           "admin@example.com",
-			"api_endpoint":         suite.ServerManager.GetURL(),
-			"generate_paseto_keys": true,
-			"smtp_host":            "localhost",
-			"smtp_port":            1025,
-			"smtp_from_email":      "test@example.com",
-			"smtp_from_name":       "Test Notifuse",
+			"root_email":      "admin@example.com",
+			"api_endpoint":    suite.ServerManager.GetURL(),
+			"smtp_host":       "localhost",
+			"smtp_port":       1025,
+			"smtp_from_email": "test@example.com",
+			"smtp_from_name":  "Test Notifuse",
 		}
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
@@ -64,12 +63,7 @@ func TestSetupWizardFlow(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.True(t, initResp["success"].(bool), "Setup should succeed")
-		assert.NotNil(t, initResp["paseto_keys"], "Generated keys should be returned")
-
-		// Verify keys were returned
-		keys := initResp["paseto_keys"].(map[string]interface{})
-		assert.NotEmpty(t, keys["public_key"], "Public key should be generated")
-		assert.NotEmpty(t, keys["private_key"], "Private key should be generated")
+		assert.Contains(t, initResp["message"].(string), "restarting", "Should indicate server is restarting")
 	})
 
 	t.Run("Status - Installed", func(t *testing.T) {
@@ -90,13 +84,12 @@ func TestSetupWizardFlow(t *testing.T) {
 	t.Run("Prevent Re-initialization", func(t *testing.T) {
 		// Try to initialize again - should be rejected gracefully
 		initReq := map[string]interface{}{
-			"root_email":           "admin2@example.com",
-			"api_endpoint":         suite.ServerManager.GetURL(),
-			"generate_paseto_keys": true,
-			"smtp_host":            "localhost",
-			"smtp_port":            1025,
-			"smtp_from_email":      "test@example.com",
-			"smtp_from_name":       "Test Notifuse",
+			"root_email":      "admin2@example.com",
+			"api_endpoint":    suite.ServerManager.GetURL(),
+			"smtp_host":       "localhost",
+			"smtp_port":       1025,
+			"smtp_from_email": "test@example.com",
+			"smtp_from_name":  "Test Notifuse",
 		}
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
@@ -114,8 +107,8 @@ func TestSetupWizardFlow(t *testing.T) {
 	})
 }
 
-// TestSetupWizardWithProvidedKeys tests setup with user-provided PASETO keys
-func TestSetupWizardWithProvidedKeys(t *testing.T) {
+// TestSetupWizardWithJWT tests setup using JWT authentication (SECRET_KEY based)
+func TestSetupWizardWithJWT(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
@@ -125,21 +118,15 @@ func TestSetupWizardWithProvidedKeys(t *testing.T) {
 
 	client := suite.APIClient
 
-	t.Run("Initialize with Provided Keys", func(t *testing.T) {
-		// Use hardcoded test keys
-		privateKeyB64 := "UayDa4OMDpm3CvIT+iSC39iDyPlsui0pNQYDEZ1pbo1LsIrO4p/aVuCBWz6LiYvzj9pc+gn0gLwRd0CoHV+nxw=="
-		publicKeyB64 := "S7CKzuKf2lbggVs+i4mL84/aXPoJ9IC8EXdAqB1fp8c="
-
+	t.Run("Initialize with JWT", func(t *testing.T) {
+		// System now uses JWT with SECRET_KEY (no need to provide keys)
 		initReq := map[string]interface{}{
-			"root_email":           "admin@example.com",
-			"api_endpoint":         suite.ServerManager.GetURL(),
-			"generate_paseto_keys": false,
-			"paseto_private_key":   privateKeyB64,
-			"paseto_public_key":    publicKeyB64,
-			"smtp_host":            "localhost",
-			"smtp_port":            1025,
-			"smtp_from_email":      "test@example.com",
-			"smtp_from_name":       "Test Notifuse",
+			"root_email":      "admin@example.com",
+			"api_endpoint":    suite.ServerManager.GetURL(),
+			"smtp_host":       "localhost",
+			"smtp_port":       1025,
+			"smtp_from_email": "test@example.com",
+			"smtp_from_name":  "Test Notifuse",
 		}
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
@@ -153,7 +140,7 @@ func TestSetupWizardWithProvidedKeys(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.True(t, initResp["success"].(bool), "Setup should succeed")
-		assert.Nil(t, initResp["paseto_keys"], "Keys should not be returned when provided by user")
+		assert.Contains(t, initResp["message"].(string), "restarting", "Should indicate server is restarting")
 	})
 }
 
@@ -176,41 +163,27 @@ func TestSetupWizardValidation(t *testing.T) {
 		{
 			name: "Missing Root Email",
 			request: map[string]interface{}{
-				"generate_paseto_keys": true,
-				"smtp_host":            "localhost",
-				"smtp_port":            1025,
-				"smtp_from_email":      "test@example.com",
+				"smtp_host":       "localhost",
+				"smtp_port":       1025,
+				"smtp_from_email": "test@example.com",
 			},
 			expectError: true,
 		},
 		{
 			name: "Missing SMTP Host",
 			request: map[string]interface{}{
-				"root_email":           "admin@example.com",
-				"generate_paseto_keys": true,
-				"smtp_port":            1025,
-				"smtp_from_email":      "test@example.com",
+				"root_email":      "admin@example.com",
+				"smtp_port":       1025,
+				"smtp_from_email": "test@example.com",
 			},
 			expectError: true,
 		},
 		{
 			name: "Missing SMTP From Email",
 			request: map[string]interface{}{
-				"root_email":           "admin@example.com",
-				"generate_paseto_keys": true,
-				"smtp_host":            "localhost",
-				"smtp_port":            1025,
-			},
-			expectError: true,
-		},
-		{
-			name: "Missing PASETO Keys When Not Generating",
-			request: map[string]interface{}{
-				"root_email":           "admin@example.com",
-				"generate_paseto_keys": false,
-				"smtp_host":            "localhost",
-				"smtp_port":            1025,
-				"smtp_from_email":      "test@example.com",
+				"root_email": "admin@example.com",
+				"smtp_host":  "localhost",
+				"smtp_port":  1025,
 			},
 			expectError: true,
 		},
@@ -289,13 +262,12 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 	t.Run("Test SMTP After Installation - Forbidden", func(t *testing.T) {
 		// First install the system
 		initReq := map[string]interface{}{
-			"root_email":           "admin@example.com",
-			"api_endpoint":         suite.ServerManager.GetURL(),
-			"generate_paseto_keys": true,
-			"smtp_host":            "localhost",
-			"smtp_port":            1025,
-			"smtp_from_email":      "test@example.com",
-			"smtp_from_name":       "Test Notifuse",
+			"root_email":      "admin@example.com",
+			"api_endpoint":    suite.ServerManager.GetURL(),
+			"smtp_host":       "localhost",
+			"smtp_port":       1025,
+			"smtp_from_email": "test@example.com",
+			"smtp_from_name":  "Test Notifuse",
 		}
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
@@ -342,24 +314,23 @@ func TestSetupWizardWithServerRestart(t *testing.T) {
 	t.Run("Complete Setup Triggers Shutdown", func(t *testing.T) {
 		// Step 1: Complete setup wizard with full SMTP configuration
 		rootEmail := "admin@example.com"
-		
+
 		// Use environment variable for SMTP host (for containerized test environments)
 		// Default to localhost for non-containerized environments
 		smtpHost := os.Getenv("TEST_SMTP_HOST")
 		if smtpHost == "" {
 			smtpHost = "localhost"
 		}
-		
+
 		initReq := map[string]interface{}{
-			"root_email":           rootEmail,
-			"api_endpoint":         suite.ServerManager.GetURL(),
-			"generate_paseto_keys": true,
-			"smtp_host":            smtpHost,
-			"smtp_port":            1025,
-			"smtp_username":        "testuser",
-			"smtp_password":        "testpass",
-			"smtp_from_email":      "noreply@example.com", // Important: non-empty from email
-			"smtp_from_name":       "Test System",
+			"root_email":      rootEmail,
+			"api_endpoint":    suite.ServerManager.GetURL(),
+			"smtp_host":       smtpHost,
+			"smtp_port":       1025,
+			"smtp_username":   "testuser",
+			"smtp_password":   "testpass",
+			"smtp_from_email": "noreply@example.com", // Important: non-empty from email
+			"smtp_from_name":  "Test System",
 		}
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
@@ -375,14 +346,7 @@ func TestSetupWizardWithServerRestart(t *testing.T) {
 		assert.True(t, setupResp["success"].(bool), "Setup should succeed")
 		assert.Contains(t, setupResp["message"].(string), "restarting",
 			"Response should indicate server is restarting")
-		
-		// Verify response includes generated keys
-		if keysInterface, ok := setupResp["paseto_keys"]; ok {
-			keys := keysInterface.(map[string]interface{})
-			assert.NotEmpty(t, keys["public_key"], "Public key should be generated")
-			assert.NotEmpty(t, keys["private_key"], "Private key should be generated")
-		}
-		
+
 		// Note: In production, Docker/systemd would restart the process here.
 		// The test suite will be cleaned up, simulating process termination.
 	})
@@ -391,17 +355,17 @@ func TestSetupWizardWithServerRestart(t *testing.T) {
 		// Simulate what happens after Docker restarts the container:
 		// The old app instance shuts down, and a new one starts with fresh config.
 		// We verify this by creating a fresh test suite that loads config from database.
-		
+
 		// Clean up original suite (simulates process shutdown)
 		suite.Cleanup()
-		
+
 		// Create fresh test suite (simulates Docker restart)
 		// This will create a new app that loads config from the database where setup was saved
 		freshSuite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 			return app.NewApp(cfg)
 		})
 		defer freshSuite.Cleanup()
-		
+
 		// Verify the fresh app loaded config correctly by testing signin
 		signinReq := map[string]interface{}{
 			"email": "admin@example.com",
@@ -449,22 +413,20 @@ func createUninstalledTestSuite(t *testing.T) *testutil.IntegrationTestSuite {
 	suite.ServerManager = testutil.NewServerManager(func(cfg *config.Config) testutil.AppInterface {
 		// Override config to mark as NOT installed
 		cfg.IsInstalled = false
-		cfg.Security.PasetoPrivateKeyBytes = nil
-		cfg.Security.PasetoPublicKeyBytes = nil
-		
+
 		// CRITICAL: Set to production environment to use SMTPMailer (not ConsoleMailer)
 		// This replicates the real bug scenario
 		cfg.Environment = "production"
-		
+
 		// CRITICAL: Empty SMTP config to replicate production bug scenario
 		// In production, before setup, there's no SMTP config in database
-		cfg.SMTP.FromEmail = ""  // Empty email will cause parsing error
-		cfg.SMTP.FromName = "Notifuse"  // Default name only
-		cfg.SMTP.Host = "localhost"  // Minimal config to allow app to start
+		cfg.SMTP.FromEmail = ""        // Empty email will cause parsing error
+		cfg.SMTP.FromName = "Notifuse" // Default name only
+		cfg.SMTP.Host = "localhost"    // Minimal config to allow app to start
 		cfg.SMTP.Port = 1025
 		cfg.SMTP.Username = ""
 		cfg.SMTP.Password = ""
-		
+
 		return app.NewApp(cfg)
 	}, suite.DBManager)
 

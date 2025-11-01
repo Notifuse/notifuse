@@ -9,17 +9,20 @@ import (
 	"testing"
 	"time"
 
-	"aidanwoods.dev/go-paseto"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
+	"github.com/Notifuse/notifuse/internal/service"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+
+
 	"github.com/stretchr/testify/require"
 )
 
-func setupWebhookRegistrationHandlerTest(t *testing.T) (*mocks.MockWebhookRegistrationService, *pkgmocks.MockLogger, *WebhookRegistrationHandler, *http.ServeMux, paseto.V4AsymmetricSecretKey, *gomock.Controller, func()) {
+func setupWebhookRegistrationHandlerTest(t *testing.T) (*mocks.MockWebhookRegistrationService, *pkgmocks.MockLogger, *WebhookRegistrationHandler, *http.ServeMux, []byte, *gomock.Controller, func()) {
 	ctrl := gomock.NewController(t)
 	mockService := mocks.NewMockWebhookRegistrationService(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
@@ -44,10 +47,8 @@ func setupWebhookRegistrationHandlerTest(t *testing.T) (*mocks.MockWebhookRegist
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 
 	// Generate a key pair for testing
-	secretKey := paseto.NewV4AsymmetricSecretKey()
-	publicKey := secretKey.Public()
-
-	handler := NewWebhookRegistrationHandler(mockService, func() (paseto.V4AsymmetricPublicKey, error) { return publicKey, nil }, mockLogger)
+	jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
+	handler := NewWebhookRegistrationHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
@@ -56,21 +57,22 @@ func setupWebhookRegistrationHandlerTest(t *testing.T) (*mocks.MockWebhookRegist
 		ctrl.Finish()
 	}
 
-	return mockService, mockLogger, handler, mux, secretKey, ctrl, cleanup
+	return mockService, mockLogger, handler, mux, jwtSecret, ctrl, cleanup
 }
 
-func createAuthToken(t *testing.T, secretKey paseto.V4AsymmetricSecretKey, workspaceID, userID string) string {
-	token := paseto.NewToken()
-	now := time.Now()
-	token.SetIssuedAt(now)
-	token.SetNotBefore(now)
-	token.SetExpiration(now.Add(10 * time.Hour))
-	token.SetString(string(domain.UserIDKey), userID)
-	token.SetString(string(domain.UserTypeKey), string(domain.UserTypeUser))
-	token.SetString(string(domain.SessionIDKey), "test-session")
-	token.SetString("workspace_id", workspaceID)
-
-	signed := token.V4Sign(secretKey, nil)
+func createAuthToken(t *testing.T, jwtSecret []byte, workspaceID, userID string) string {
+	claims := &service.UserClaims{
+		UserID:    userID,
+		Type:      string(domain.UserTypeUser),
+		SessionID: "test-session",
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(10 * time.Hour)),
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString(jwtSecret)
+	require.NoError(t, err)
 	return signed
 }
 
@@ -79,7 +81,7 @@ func TestWebhookRegistrationHandler_handleRegister(t *testing.T) {
 	userID := "user-123"
 
 	t.Run("successful registration", func(t *testing.T) {
-		mockService, _, _, mux, secretKey, _, cleanup := setupWebhookRegistrationHandlerTest(t)
+		mockService, _, _, mux, jwtSecret, _, cleanup := setupWebhookRegistrationHandlerTest(t)
 		defer cleanup()
 
 		// Prepare test data
@@ -124,7 +126,7 @@ func TestWebhookRegistrationHandler_handleRegister(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/api/webhooks.register", bytes.NewBuffer(jsonBody))
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, secretKey, workspaceID, userID))
+		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, jwtSecret, workspaceID, userID))
 
 		// Create response recorder
 		rr := httptest.NewRecorder()
@@ -146,11 +148,11 @@ func TestWebhookRegistrationHandler_handleRegister(t *testing.T) {
 	})
 
 	t.Run("method not allowed", func(t *testing.T) {
-		_, _, _, mux, secretKey, _, cleanup := setupWebhookRegistrationHandlerTest(t)
+		_, _, _, mux, jwtSecret, _, cleanup := setupWebhookRegistrationHandlerTest(t)
 		defer cleanup()
 
 		req := httptest.NewRequest(http.MethodGet, "/api/webhooks.register", nil)
-		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, secretKey, workspaceID, userID))
+		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, jwtSecret, workspaceID, userID))
 
 		rr := httptest.NewRecorder()
 		mux.ServeHTTP(rr, req)
@@ -159,12 +161,12 @@ func TestWebhookRegistrationHandler_handleRegister(t *testing.T) {
 	})
 
 	t.Run("invalid request body", func(t *testing.T) {
-		_, _, _, mux, secretKey, _, cleanup := setupWebhookRegistrationHandlerTest(t)
+		_, _, _, mux, jwtSecret, _, cleanup := setupWebhookRegistrationHandlerTest(t)
 		defer cleanup()
 
 		req := httptest.NewRequest(http.MethodPost, "/api/webhooks.register", bytes.NewBuffer([]byte("invalid json")))
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, secretKey, workspaceID, userID))
+		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, jwtSecret, workspaceID, userID))
 
 		rr := httptest.NewRecorder()
 		mux.ServeHTTP(rr, req)
@@ -173,7 +175,7 @@ func TestWebhookRegistrationHandler_handleRegister(t *testing.T) {
 	})
 
 	t.Run("invalid request payload", func(t *testing.T) {
-		_, _, _, mux, secretKey, _, cleanup := setupWebhookRegistrationHandlerTest(t)
+		_, _, _, mux, jwtSecret, _, cleanup := setupWebhookRegistrationHandlerTest(t)
 		defer cleanup()
 
 		// Missing required fields
@@ -187,7 +189,7 @@ func TestWebhookRegistrationHandler_handleRegister(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/api/webhooks.register", bytes.NewBuffer(jsonBody))
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, secretKey, workspaceID, userID))
+		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, jwtSecret, workspaceID, userID))
 
 		rr := httptest.NewRecorder()
 		mux.ServeHTTP(rr, req)
@@ -196,7 +198,7 @@ func TestWebhookRegistrationHandler_handleRegister(t *testing.T) {
 	})
 
 	t.Run("service error", func(t *testing.T) {
-		mockService, _, handler, _, secretKey, _, cleanup := setupWebhookRegistrationHandlerTest(t)
+		mockService, _, handler, _, jwtSecret, _, cleanup := setupWebhookRegistrationHandlerTest(t)
 		defer cleanup()
 
 		reqBody := domain.RegisterWebhookRequest{
@@ -237,15 +239,15 @@ func TestWebhookRegistrationHandler_handleRegister(t *testing.T) {
 
 		req := httptest.NewRequest(http.MethodPost, "/api/webhooks.register", bytes.NewBuffer(jsonBody))
 		req.Header.Set("Content-Type", "application/json")
-		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, secretKey, workspaceID, userID))
+		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, jwtSecret, workspaceID, userID))
 
 		// Create a test server with our handler
 		mux := http.NewServeMux()
-		publicKey := secretKey.Public()
-		getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) {
-			return publicKey, nil
+
+		getJWTSecret := func() ([]byte, error) {
+			return jwtSecret, nil
 		}
-		authMiddleware := middleware.NewAuthMiddleware(getPublicKey)
+		authMiddleware := middleware.NewAuthMiddleware(getJWTSecret)
 		requireAuth := authMiddleware.RequireAuth()
 		mux.Handle("/api/webhooks.register", requireAuth(http.HandlerFunc(handler.handleRegister)))
 
@@ -286,7 +288,7 @@ func TestWebhookRegistrationHandler_handleStatus(t *testing.T) {
 	userID := "user-123"
 
 	t.Run("successful status retrieval", func(t *testing.T) {
-		mockService, _, _, mux, secretKey, _, cleanup := setupWebhookRegistrationHandlerTest(t)
+		mockService, _, _, mux, jwtSecret, _, cleanup := setupWebhookRegistrationHandlerTest(t)
 		defer cleanup()
 
 		// Expected status
@@ -313,7 +315,7 @@ func TestWebhookRegistrationHandler_handleStatus(t *testing.T) {
 
 		// Create request
 		req := httptest.NewRequest(http.MethodGet, "/api/webhooks.status?workspace_id="+workspaceID+"&integration_id="+integrationID, nil)
-		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, secretKey, workspaceID, userID))
+		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, jwtSecret, workspaceID, userID))
 
 		// Create response recorder
 		rr := httptest.NewRecorder()
@@ -335,11 +337,11 @@ func TestWebhookRegistrationHandler_handleStatus(t *testing.T) {
 	})
 
 	t.Run("method not allowed", func(t *testing.T) {
-		_, _, _, mux, secretKey, _, cleanup := setupWebhookRegistrationHandlerTest(t)
+		_, _, _, mux, jwtSecret, _, cleanup := setupWebhookRegistrationHandlerTest(t)
 		defer cleanup()
 
 		req := httptest.NewRequest(http.MethodPost, "/api/webhooks.status?workspace_id="+workspaceID+"&integration_id="+integrationID, nil)
-		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, secretKey, workspaceID, userID))
+		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, jwtSecret, workspaceID, userID))
 
 		rr := httptest.NewRecorder()
 		mux.ServeHTTP(rr, req)
@@ -348,11 +350,11 @@ func TestWebhookRegistrationHandler_handleStatus(t *testing.T) {
 	})
 
 	t.Run("missing workspace_id parameter", func(t *testing.T) {
-		_, _, _, mux, secretKey, _, cleanup := setupWebhookRegistrationHandlerTest(t)
+		_, _, _, mux, jwtSecret, _, cleanup := setupWebhookRegistrationHandlerTest(t)
 		defer cleanup()
 
 		req := httptest.NewRequest(http.MethodGet, "/api/webhooks.status?integration_id="+integrationID, nil)
-		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, secretKey, workspaceID, userID))
+		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, jwtSecret, workspaceID, userID))
 
 		rr := httptest.NewRecorder()
 		mux.ServeHTTP(rr, req)
@@ -361,11 +363,11 @@ func TestWebhookRegistrationHandler_handleStatus(t *testing.T) {
 	})
 
 	t.Run("missing integration_id parameter", func(t *testing.T) {
-		_, _, _, mux, secretKey, _, cleanup := setupWebhookRegistrationHandlerTest(t)
+		_, _, _, mux, jwtSecret, _, cleanup := setupWebhookRegistrationHandlerTest(t)
 		defer cleanup()
 
 		req := httptest.NewRequest(http.MethodGet, "/api/webhooks.status?workspace_id="+workspaceID, nil)
-		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, secretKey, workspaceID, userID))
+		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, jwtSecret, workspaceID, userID))
 
 		rr := httptest.NewRecorder()
 		mux.ServeHTTP(rr, req)
@@ -374,7 +376,7 @@ func TestWebhookRegistrationHandler_handleStatus(t *testing.T) {
 	})
 
 	t.Run("service error", func(t *testing.T) {
-		mockService, _, handler, _, secretKey, _, cleanup := setupWebhookRegistrationHandlerTest(t)
+		mockService, _, handler, _, jwtSecret, _, cleanup := setupWebhookRegistrationHandlerTest(t)
 		defer cleanup()
 
 		// Setup a custom test with specific mocks
@@ -397,15 +399,15 @@ func TestWebhookRegistrationHandler_handleStatus(t *testing.T) {
 			Return(nil, errors.New("service error"))
 
 		req := httptest.NewRequest(http.MethodGet, "/api/webhooks.status?workspace_id="+workspaceID+"&integration_id="+integrationID, nil)
-		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, secretKey, workspaceID, userID))
+		req.Header.Set("Authorization", "Bearer "+createAuthToken(t, jwtSecret, workspaceID, userID))
 
 		// Create a test server with our handler
 		mux := http.NewServeMux()
-		publicKey := secretKey.Public()
-		getPublicKey := func() (paseto.V4AsymmetricPublicKey, error) {
-			return publicKey, nil
+
+		getJWTSecret := func() ([]byte, error) {
+			return jwtSecret, nil
 		}
-		authMiddleware := middleware.NewAuthMiddleware(getPublicKey)
+		authMiddleware := middleware.NewAuthMiddleware(getJWTSecret)
 		requireAuth := authMiddleware.RequireAuth()
 		mux.Handle("/api/webhooks.status", requireAuth(http.HandlerFunc(handler.handleStatus)))
 
