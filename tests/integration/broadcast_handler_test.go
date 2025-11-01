@@ -562,7 +562,7 @@ func testBroadcastLifecycle(t *testing.T, client *testutil.APIClient, factory *t
 			// Wait for broadcast to complete and verify it succeeded
 			// Using WaitForBroadcastStatusWithExecution to ensure continuous task processing
 			// This is the critical check that would have caught the SQL scan bug!
-			finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID, 
+			finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
 				[]string{"sent", "completed"},
 				60*time.Second)
 			if err != nil {

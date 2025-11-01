@@ -125,6 +125,7 @@ type TaskService interface {
 	ExecuteTask(ctx context.Context, workspace, taskID string, timeoutAt time.Time) error
 	GetLastCronRun(ctx context.Context) (*time.Time, error)
 	SubscribeToBroadcastEvents(eventBus EventBus)
+	IsAutoExecuteEnabled() bool
 }
 
 // TaskRepository defines methods for task persistence

@@ -137,6 +137,20 @@ func (mr *MockTaskServiceMockRecorder) GetTask(arg0, arg1, arg2 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTask", reflect.TypeOf((*MockTaskService)(nil).GetTask), arg0, arg1, arg2)
 }
 
+// IsAutoExecuteEnabled mocks base method.
+func (m *MockTaskService) IsAutoExecuteEnabled() bool {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IsAutoExecuteEnabled")
+	ret0, _ := ret[0].(bool)
+	return ret0
+}
+
+// IsAutoExecuteEnabled indicates an expected call of IsAutoExecuteEnabled.
+func (mr *MockTaskServiceMockRecorder) IsAutoExecuteEnabled() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsAutoExecuteEnabled", reflect.TypeOf((*MockTaskService)(nil).IsAutoExecuteEnabled))
+}
+
 // ListTasks mocks base method.
 func (m *MockTaskService) ListTasks(arg0 context.Context, arg1 string, arg2 domain.TaskFilter) (*domain.TaskListResponse, error) {
 	m.ctrl.T.Helper()

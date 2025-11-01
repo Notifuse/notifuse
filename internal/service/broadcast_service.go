@@ -1103,19 +1103,22 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 			return updateErr
 		}
 
-		// Immediately trigger task execution after winner selection
+		// Immediately trigger task execution after winner selection (if auto-execution is enabled)
 		// Note: We always trigger here since winner selection should immediately resume sending
-		go func() {
-			// Small delay to ensure transaction is committed
-			time.Sleep(100 * time.Millisecond)
-			if execErr := s.taskService.ExecutePendingTasks(context.Background(), 1); execErr != nil {
-				s.logger.WithFields(map[string]interface{}{
-					"broadcast_id": broadcastID,
-					"task_id":      task.ID,
-					"error":        execErr.Error(),
-				}).Error("Failed to trigger immediate task execution after winner selection")
-			}
-		}()
+		// In tests, this is disabled to prevent race conditions
+		if s.taskService.IsAutoExecuteEnabled() {
+			go func() {
+				// Small delay to ensure transaction is committed
+				time.Sleep(100 * time.Millisecond)
+				if execErr := s.taskService.ExecutePendingTasks(context.Background(), 1); execErr != nil {
+					s.logger.WithFields(map[string]interface{}{
+						"broadcast_id": broadcastID,
+						"task_id":      task.ID,
+						"error":        execErr.Error(),
+					}).Error("Failed to trigger immediate task execution after winner selection")
+				}
+			}()
+		}
 
 		return nil
 	})

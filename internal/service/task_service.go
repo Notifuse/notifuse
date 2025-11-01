@@ -70,6 +70,13 @@ func (s *TaskService) SetAutoExecuteImmediate(enabled bool) {
 	s.autoExecuteImmediate = enabled
 }
 
+// IsAutoExecuteEnabled returns whether automatic task execution is enabled
+func (s *TaskService) IsAutoExecuteEnabled() bool {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+	return s.autoExecuteImmediate
+}
+
 // RegisterProcessor registers a task processor for a specific task type
 func (s *TaskService) RegisterProcessor(processor domain.TaskProcessor) {
 	s.lock.Lock()
