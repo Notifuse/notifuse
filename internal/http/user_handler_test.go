@@ -338,6 +338,184 @@ func TestUserHandler_GetCurrentUser(t *testing.T) {
 	assert.Contains(t, rec.Body.String(), "Failed to retrieve workspaces")
 }
 
+func TestUserHandler_GetCurrentUser_WithSessionVerification(t *testing.T) {
+	handler, mockUserSvc, mockWorkspaceSvc, _ := setupUserHandlerTest(t)
+
+	userID := "test-user"
+	sessionID := "test-session"
+	user := &domain.User{
+		ID:    userID,
+		Email: "test@example.com",
+		Name:  "Test User",
+	}
+	workspaces := []*domain.Workspace{
+		{
+			ID:   "workspace1",
+			Name: "Workspace 1",
+		},
+	}
+
+	t.Run("successful get current user with valid session", func(t *testing.T) {
+		mockUserSvc.EXPECT().
+			VerifyUserSession(gomock.Any(), userID, sessionID).
+			Return(user, nil)
+		mockUserSvc.EXPECT().
+			GetUserByID(gomock.Any(), userID).
+			Return(user, nil)
+		mockWorkspaceSvc.EXPECT().
+			ListWorkspaces(gomock.Any()).
+			Return(workspaces, nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/user.me", nil)
+		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+		ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeUser))
+		ctx = context.WithValue(ctx, domain.SessionIDKey, sessionID)
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+
+		handler.GetCurrentUser(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		var response map[string]interface{}
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, user.Email, response["user"].(map[string]interface{})["email"])
+	})
+
+	t.Run("unauthorized when session verification fails", func(t *testing.T) {
+		mockUserSvc.EXPECT().
+			VerifyUserSession(gomock.Any(), userID, sessionID).
+			Return(nil, fmt.Errorf("session not found"))
+
+		req := httptest.NewRequest(http.MethodGet, "/api/user.me", nil)
+		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+		ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeUser))
+		ctx = context.WithValue(ctx, domain.SessionIDKey, sessionID)
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+
+		handler.GetCurrentUser(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+		var response map[string]interface{}
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Session expired or invalid", response["error"])
+	})
+
+	t.Run("unauthorized when session ID missing for user type", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/user.me", nil)
+		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+		ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeUser))
+		// Intentionally not setting SessionIDKey
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+
+		handler.GetCurrentUser(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+		var response map[string]interface{}
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Unauthorized", response["error"])
+	})
+
+	t.Run("skip session verification for API key type", func(t *testing.T) {
+		// API keys don't have sessions, so session verification should be skipped
+		mockUserSvc.EXPECT().
+			GetUserByID(gomock.Any(), userID).
+			Return(user, nil)
+		mockWorkspaceSvc.EXPECT().
+			ListWorkspaces(gomock.Any()).
+			Return(workspaces, nil)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/user.me", nil)
+		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+		ctx = context.WithValue(ctx, domain.UserTypeKey, string(domain.UserTypeAPIKey))
+		// No SessionIDKey for API keys
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+
+		handler.GetCurrentUser(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+}
+
+func TestUserHandler_Logout(t *testing.T) {
+	handler, mockUserSvc, _, _ := setupUserHandlerTest(t)
+
+	t.Run("successful logout", func(t *testing.T) {
+		userID := "test-user"
+
+		mockUserSvc.EXPECT().
+			Logout(gomock.Any(), userID).
+			Return(nil)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/user.logout", nil)
+		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+
+		handler.Logout(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+		
+		var response map[string]string
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Logged out successfully", response["message"])
+	})
+
+	t.Run("unauthorized when no user ID in context", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/user.logout", nil)
+		// No user ID in context
+		rec := httptest.NewRecorder()
+
+		handler.Logout(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+		
+		var response map[string]string
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Unauthorized", response["error"])
+	})
+
+	t.Run("internal error when logout fails", func(t *testing.T) {
+		userID := "test-user"
+
+		mockUserSvc.EXPECT().
+			Logout(gomock.Any(), userID).
+			Return(fmt.Errorf("database error"))
+
+		req := httptest.NewRequest(http.MethodPost, "/api/user.logout", nil)
+		ctx := context.WithValue(req.Context(), domain.UserIDKey, userID)
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+
+		handler.Logout(rec, req)
+
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		
+		var response map[string]string
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Failed to logout", response["error"])
+	})
+
+	t.Run("unauthorized with empty user ID", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/user.logout", nil)
+		ctx := context.WithValue(req.Context(), domain.UserIDKey, "")
+		req = req.WithContext(ctx)
+		rec := httptest.NewRecorder()
+
+		handler.Logout(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	})
+}
+
 func TestUserHandler_RegisterRoutes(t *testing.T) {
 	handler, mockUserSvc, mockWorkspaceSvc, jwtSecret := setupUserHandlerTest(t)
 

@@ -72,6 +72,7 @@ type UserServiceInterface interface {
 	VerifyUserSession(ctx context.Context, userID string, sessionID string) (*User, error)
 	GetUserByID(ctx context.Context, userID string) (*User, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	Logout(ctx context.Context, userID string) error
 }
 
 type UserRepository interface {
@@ -98,6 +99,9 @@ type UserRepository interface {
 
 	// DeleteSession deletes a session by its ID
 	DeleteSession(ctx context.Context, id string) error
+
+	// DeleteAllSessionsByUserID deletes all sessions for a user
+	DeleteAllSessionsByUserID(ctx context.Context, userID string) error
 
 	// Delete removes a user by their ID
 	Delete(ctx context.Context, id string) error

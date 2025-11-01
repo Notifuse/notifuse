@@ -3,6 +3,7 @@ package service
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -110,9 +111,9 @@ func TestRateLimiter_ConcurrentAccess(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			if rl.Allow(key) {
-				successCount++
+				atomic.AddInt32(&successCount, 1)
 			} else {
-				failCount++
+				atomic.AddInt32(&failCount, 1)
 			}
 		}()
 	}
@@ -120,8 +121,8 @@ func TestRateLimiter_ConcurrentAccess(t *testing.T) {
 	wg.Wait()
 
 	// Should have exactly 100 successes and 100 failures
-	assert.Equal(t, int32(100), successCount, "Should allow exactly max attempts")
-	assert.Equal(t, int32(100), failCount, "Should block remaining attempts")
+	assert.Equal(t, int32(100), atomic.LoadInt32(&successCount), "Should allow exactly max attempts")
+	assert.Equal(t, int32(100), atomic.LoadInt32(&failCount), "Should block remaining attempts")
 }
 
 func TestRateLimiter_ConcurrentDifferentKeys(t *testing.T) {
@@ -137,7 +138,7 @@ func TestRateLimiter_ConcurrentDifferentKeys(t *testing.T) {
 		go func(index int) {
 			defer wg.Done()
 			key := fmt.Sprintf("user%d@example.com", index)
-			
+
 			// Each key should get its own quota
 			for j := 0; j < 15; j++ {
 				rl.Allow(key)
@@ -202,7 +203,7 @@ func TestRateLimiter_Cleanup(t *testing.T) {
 
 func TestRateLimiter_Stop(t *testing.T) {
 	rl := NewRateLimiter(5, 1*time.Minute)
-	
+
 	// Add some attempts
 	rl.Allow("test@example.com")
 
@@ -262,7 +263,7 @@ func TestRateLimiter_LargeVolume(t *testing.T) {
 
 	// Simulate high volume for a single key
 	key := "highvolume@example.com"
-	
+
 	successCount := 0
 	for i := 0; i < 2000; i++ {
 		if rl.Allow(key) {
@@ -272,4 +273,3 @@ func TestRateLimiter_LargeVolume(t *testing.T) {
 
 	assert.Equal(t, 1000, successCount, "Should allow exactly maxAttempts")
 }
-

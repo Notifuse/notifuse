@@ -146,3 +146,22 @@ func DecryptFromHexString(str string, passphrase string) (string, error) {
 
 	return string(decodedBytes), nil
 }
+
+// HashMagicCode creates an HMAC-SHA256 hash of the magic code with the provided secret key.
+// This prevents plain-text storage of authentication codes in the database.
+// Returns a 64-character hexadecimal string.
+func HashMagicCode(code string, secretKey string) string {
+	return ComputeHMAC256([]byte(code), secretKey)
+}
+
+// VerifyMagicCode performs a constant-time comparison between the input code and stored hash.
+// Uses HMAC to hash the input code, then compares with the stored hash using hmac.Equal()
+// to prevent timing attacks.
+// Returns true if the codes match, false otherwise.
+func VerifyMagicCode(inputCode string, storedHash string, secretKey string) bool {
+	// Hash the input code
+	computedHash := HashMagicCode(inputCode, secretKey)
+	
+	// Constant-time comparison to prevent timing attacks
+	return hmac.Equal([]byte(computedHash), []byte(storedHash))
+}

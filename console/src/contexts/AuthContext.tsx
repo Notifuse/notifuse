@@ -73,6 +73,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const signout = async () => {
+    try {
+      // Call backend to invalidate all sessions
+      await authService.logout()
+    } catch (error) {
+      // Even if backend call fails, we still logout locally
+      console.error('Failed to logout on backend:', error)
+    }
+
     // Remove token from localStorage
     localStorage.removeItem('auth_token')
 

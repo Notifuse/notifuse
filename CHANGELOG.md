@@ -2,6 +2,125 @@
 
 All notable changes to this project will be documented in this file.
 
+## [15.0] - 2025-11-01
+
+### 🔒 SECURITY UPGRADE: PASETO → JWT + Enhanced Authentication Security
+
+This is a **major security release** that migrates the authentication system from PASETO to JWT (HS256) and implements comprehensive security improvements.
+
+### ⚠️ BREAKING CHANGES
+
+**Migration Requirements:**
+
+- **REQUIRED**: Set `SECRET_KEY` environment variable before upgrading
+  - **CRITICAL FOR EXISTING DEPLOYMENTS**:
+    - If you already have `SECRET_KEY` set: **Keep it unchanged** (do not generate a new one)
+    - If migrating from PASETO: Use your existing PASETO key: `export SECRET_KEY="$PASETO_PRIVATE_KEY"`
+  - **For new installations only**: Generate new key: `export SECRET_KEY=$(openssl rand -base64 32)`
+- Server will automatically restart after migration to reload JWT configuration
+
+**🚨 CRITICAL WARNING**:
+
+- **DO NOT change your existing SECRET_KEY** - it encrypts all workspace integration secrets (email provider API keys, SMTP passwords, etc.)
+- Changing SECRET_KEY will:
+  - ❌ Make all encrypted integration secrets unreadable (permanent data loss)
+  - ❌ Break all email sending (SparkPost, Mailjet, Mailgun, SMTP credentials lost)
+  - ❌ Invalidate all JWT tokens and user sessions
+- **Only generate a new SECRET_KEY for fresh installations with no existing data**
+
+**What Gets Invalidated (During PASETO → JWT Migration):**
+
+- ✗ All user sessions (users must log in again - PASETO tokens → JWT tokens)
+- ✗ All API keys (must be regenerated - PASETO format → JWT format)
+- ✗ All pending workspace invitations (invitation tokens were PASETO-signed)
+- ✗ All active magic codes (migrating from plain-text → HMAC-SHA256 hashes)
+
+**Why:** PASETO tokens are incompatible with JWT verification. Clean migration ensures no security gaps.
+
+**Important Notes:**
+
+- If you're already using JWT (not migrating from PASETO), and you keep your existing `SECRET_KEY`, your existing sessions remain valid.
+- The `SECRET_KEY` is also used to encrypt workspace integration secrets (API keys, SMTP credentials). **Never change it on existing deployments** or you'll lose access to all encrypted credentials permanently.
+
+### Security Improvements
+
+#### 1. **JWT Authentication (HS256)**
+
+- Migrated from PASETO to industry-standard JWT with HMAC-SHA256 signing
+- **Simplified setup**: Uses symmetric key (`SECRET_KEY`) instead of PASETO's asymmetric key pair
+  - No need to generate and manage separate public/private keys
+  - Single `SECRET_KEY` environment variable for all cryptographic operations
+  - Easier deployment and configuration management
+- Algorithm confusion attack prevention (strict HMAC validation)
+- Comprehensive token validation (signature, expiration, claims)
+- Compatible with standard JWT libraries and tools
+
+#### 2. **HMAC-Protected Magic Codes**
+
+- Magic codes now stored as HMAC-SHA256 hashes (no plain text in database)
+- Database compromise cannot reveal authentication codes
+- Constant-time comparison prevents timing attacks
+- Migration clears all existing plain-text codes
+
+#### 3. **Server-Side Logout**
+
+- New `/api/user.logout` endpoint (POST, requires authentication)
+- Deletes ALL sessions for the authenticated user from database
+- Tokens become immediately invalid after logout
+- Protected endpoints now verify session exists in database
+- Returns 401 Unauthorized if session has been deleted
+- Frontend integration with graceful error handling
+
+#### 4. **Rate Limiting for Authentication Endpoints**
+
+- Protection against brute force attacks and email bombing
+- In-memory rate limiter with sliding window algorithm
+- Sign-in endpoint: 5 attempts per 5 minutes per email address
+- Verify code endpoint: 5 attempts per 5 minutes per email address
+- Rate limiter automatically resets on successful authentication
+- Thread-safe concurrent access with automatic cleanup
+- Independent rate limits per user and per endpoint
+- Prevents magic code brute force attacks (blocks 99%+ of attempts)
+
+### Features
+
+- Enhanced session verification in `GetCurrentUser` endpoint
+- Added `DeleteAllSessionsByUserID` method to user repository
+- Added `Logout` method to user service interface
+- Frontend `AuthContext` now calls backend logout before clearing local storage
+- Migration automatically cleans up incompatible authentication artifacts
+
+### Testing
+
+- New integration tests for logout functionality (`tests/integration/user_logout_test.go`)
+- New integration tests for rate limiter (`tests/integration/rate_limiter_test.go`)
+- Unit tests for rate limiter with race detection
+- Fixed race condition in concurrent rate limiter test (atomic operations)
+- All tests pass with `-race` flag enabled
+
+### Documentation
+
+- Updated security audit document (`SECURITY_AUDIT_JWT_SESSIONS.md`)
+- Changed "No Server-Side Logout" from 🔴 CRITICAL to ✅ IMPLEMENTED
+- Changed "Brute Force Risk" from MEDIUM to LOW
+- Added detailed implementation notes and testing coverage
+- Comprehensive migration guide in v15 migration file
+
+### Post-Migration Actions Required
+
+1. **Users**: Log in again with email/password (or magic code)
+2. **API Key Holders**: Regenerate API keys in Settings → API Keys
+3. **Integrations**: Update all API integrations with new keys
+4. **Workspace Admins**: Resend pending invitations via Settings → Members → Invitations
+
+### Migration Notes
+
+- Migration v15 is idempotent and safe to run multiple times
+- Estimated migration time: < 1 second
+- Server automatically restarts after migration
+- Migration validates `SECRET_KEY` environment variable before proceeding
+- Comprehensive migration summary displayed in console
+
 ## [14.1] - 2025-11-01
 
 ### Features

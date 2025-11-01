@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -246,16 +247,21 @@ func TestUserVerifyCodeFlow(t *testing.T) {
 
 		// Create session with expired magic code using repository
 		expiredTime := time.Now().UTC().Add(-1 * time.Hour) // 1 hour ago
+		
+		// Get secret key from app config to hash the magic code
+		secretKey := app.GetConfig().Security.SecretKey
+		hashedCode := crypto.HashMagicCode("123456", secretKey)
+		
 		session := &domain.Session{
 			ID:               "550e8400-e29b-41d4-a716-446655440002",
 			UserID:           user.ID,
 			ExpiresAt:        time.Now().UTC().Add(24 * time.Hour),
 			CreatedAt:        time.Now().UTC(),
-			MagicCode:        "123456",
+			MagicCode:        hashedCode, // Store HMAC hash, not plain text
 			MagicCodeExpires: expiredTime,
 		}
-		err = userRepo.CreateSession(context.Background(), session)
-		require.NoError(t, err)
+		err2 := userRepo.CreateSession(context.Background(), session)
+		require.NoError(t, err2)
 
 		// Try to verify expired code
 		verifyReq := domain.VerifyCodeInput{
@@ -485,7 +491,7 @@ func TestUserSessionManagement(t *testing.T) {
 		assert.True(t, session.ExpiresAt.After(time.Now()), "Session should not be expired")
 		assert.True(t, session.CreatedAt.Before(time.Now().Add(time.Minute)), "Session should be recently created")
 		assert.NotEmpty(t, session.MagicCode, "Session should have magic code")
-		assert.Len(t, session.MagicCode, 6, "Magic code should be 6 digits")
+		assert.Len(t, session.MagicCode, 64, "Magic code should be HMAC-SHA256 hash (64 hex chars)")
 	})
 }
 

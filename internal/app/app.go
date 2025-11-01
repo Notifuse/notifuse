@@ -420,6 +420,7 @@ func (a *App) InitServices() error {
 		Tracer:            tracing.GetTracer(),
 		SignInLimiter:     signInLimiter,
 		VerifyCodeLimiter: verifyCodeLimiter,
+		SecretKey:         a.config.Security.SecretKey,
 	}
 
 	a.userService, err = service.NewUserService(userServiceConfig)

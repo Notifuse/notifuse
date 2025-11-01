@@ -341,6 +341,57 @@ func TestUpdateSession(t *testing.T) {
 	assert.IsType(t, &domain.ErrSessionNotFound{}, err)
 }
 
+func TestDeleteAllSessionsByUserID(t *testing.T) {
+	db, mock, cleanup := testutil.SetupMockDB(t)
+	defer cleanup()
+
+	repo := NewUserRepository(db)
+
+	// Test case 1: Successfully delete multiple sessions
+	userID := "user-id-1"
+
+	mock.ExpectExec(`DELETE FROM user_sessions WHERE user_id = \$1`).
+		WithArgs(userID).
+		WillReturnResult(sqlmock.NewResult(0, 3)) // 3 sessions deleted
+
+	err := repo.DeleteAllSessionsByUserID(context.Background(), userID)
+	require.NoError(t, err)
+
+	// Test case 2: Successfully delete one session
+	mock.ExpectExec(`DELETE FROM user_sessions WHERE user_id = \$1`).
+		WithArgs("user-id-2").
+		WillReturnResult(sqlmock.NewResult(0, 1)) // 1 session deleted
+
+	err = repo.DeleteAllSessionsByUserID(context.Background(), "user-id-2")
+	require.NoError(t, err)
+
+	// Test case 3: No sessions to delete (user already logged out or never logged in)
+	mock.ExpectExec(`DELETE FROM user_sessions WHERE user_id = \$1`).
+		WithArgs("user-id-no-sessions").
+		WillReturnResult(sqlmock.NewResult(0, 0)) // 0 sessions deleted
+
+	err = repo.DeleteAllSessionsByUserID(context.Background(), "user-id-no-sessions")
+	require.NoError(t, err) // Should not return error when no sessions exist
+
+	// Test case 4: Database error during deletion
+	mock.ExpectExec(`DELETE FROM user_sessions WHERE user_id = \$1`).
+		WithArgs("user-id-error").
+		WillReturnError(errors.New("database connection error"))
+
+	err = repo.DeleteAllSessionsByUserID(context.Background(), "user-id-error")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete sessions")
+
+	// Test case 5: Error getting rows affected
+	mock.ExpectExec(`DELETE FROM user_sessions WHERE user_id = \$1`).
+		WithArgs("user-id-rows-error").
+		WillReturnResult(sqlmock.NewErrorResult(errors.New("rows affected error")))
+
+	err = repo.DeleteAllSessionsByUserID(context.Background(), "user-id-rows-error")
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get rows affected")
+}
+
 func TestDeleteUser(t *testing.T) {
 	db, mock, cleanup := testutil.SetupMockDB(t)
 	defer cleanup()

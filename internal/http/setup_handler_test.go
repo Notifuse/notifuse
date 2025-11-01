@@ -124,6 +124,10 @@ func (m *mockUserRepository) DeleteSession(ctx context.Context, id string) error
 	return nil
 }
 
+func (m *mockUserRepository) DeleteAllSessionsByUserID(ctx context.Context, userID string) error {
+	return nil
+}
+
 func (m *mockUserRepository) Delete(ctx context.Context, id string) error {
 	return nil
 }

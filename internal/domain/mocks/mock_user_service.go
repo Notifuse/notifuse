@@ -65,6 +65,20 @@ func (mr *MockUserServiceInterfaceMockRecorder) GetUserByID(arg0, arg1 interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUserByID", reflect.TypeOf((*MockUserServiceInterface)(nil).GetUserByID), arg0, arg1)
 }
 
+// Logout mocks base method.
+func (m *MockUserServiceInterface) Logout(arg0 context.Context, arg1 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Logout", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Logout indicates an expected call of Logout.
+func (mr *MockUserServiceInterfaceMockRecorder) Logout(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockUserServiceInterface)(nil).Logout), arg0, arg1)
+}
+
 // SignIn mocks base method.
 func (m *MockUserServiceInterface) SignIn(arg0 context.Context, arg1 domain.SignInInput) (string, error) {
 	m.ctrl.T.Helper()

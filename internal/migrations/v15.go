@@ -57,13 +57,18 @@ BREAKING CHANGES:
 
 	// Log migration warnings
 	fmt.Println("================================================================================")
-	fmt.Println("NOTIFUSE v15.0 MIGRATION - PASETO → JWT")
+	fmt.Println("NOTIFUSE v15.0 MIGRATION - PASETO → JWT + Magic Code Security")
 	fmt.Println("================================================================================")
 	fmt.Println()
 	fmt.Println("⚠️  BREAKING CHANGES:")
 	fmt.Println("   • All user sessions will be invalidated")
 	fmt.Println("   • All API keys will be deleted (incompatible with JWT)")
 	fmt.Println("   • All pending workspace invitations will be invalidated")
+	fmt.Println("   • All active magic codes will be cleared (migrating to HMAC-SHA256)")
+	fmt.Println()
+	fmt.Println("🔒 SECURITY IMPROVEMENTS:")
+	fmt.Println("   • Magic codes now stored as HMAC-SHA256 hashes (no plain text)")
+	fmt.Println("   • Database compromise cannot reveal authentication codes")
 	fmt.Println()
 	fmt.Println("📋 POST-MIGRATION ACTIONS REQUIRED:")
 	fmt.Println("   1. Users must log in again with their passwords")
@@ -95,6 +100,12 @@ BREAKING CHANGES:
 		// Admins must resend invitations after migration
 		// Only delete non-expired invitations (expired ones are already invalid)
 		`DELETE FROM workspace_invitations WHERE expires_at > NOW();`,
+
+		// SECURITY: Clear all existing plain-text magic codes
+		// Magic codes are now stored as HMAC-SHA256 hashes for security
+		// Plain-text codes from v14 are incompatible with v15 HMAC verification
+		// Users with active codes will need to request a new code
+		`UPDATE user_sessions SET magic_code = NULL, magic_code_expires_at = NULL WHERE magic_code IS NOT NULL;`,
 	}
 
 	for i, query := range queries {

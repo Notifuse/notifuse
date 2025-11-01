@@ -24,6 +24,7 @@ type UserServiceInterface interface {
 	VerifyCode(ctx context.Context, input domain.VerifyCodeInput) (*domain.AuthResponse, error)
 	VerifyUserSession(ctx context.Context, userID string, sessionID string) (*domain.User, error)
 	GetUserByID(ctx context.Context, userID string) (*domain.User, error)
+	Logout(ctx context.Context, userID string) error
 }
 
 type UserHandler struct {
@@ -157,6 +158,31 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	// Add user ID to span for context
 	span.AddAttributes(trace.StringAttribute("user.id", userID))
 
+	// Verify session exists for user-type tokens
+	userType, ok := ctx.Value(domain.UserTypeKey).(string)
+	if ok && userType == string(domain.UserTypeUser) {
+		sessionID, ok := ctx.Value(domain.SessionIDKey).(string)
+		if !ok || sessionID == "" {
+			WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
+			span.SetStatus(trace.Status{
+				Code:    trace.StatusCodeUnauthenticated,
+				Message: "Missing session ID",
+			})
+			return
+		}
+
+		// Verify session exists (this will fail if user logged out)
+		_, err := h.userService.VerifyUserSession(ctx, userID, sessionID)
+		if err != nil {
+			WriteJSONError(w, "Session expired or invalid", http.StatusUnauthorized)
+			span.SetStatus(trace.Status{
+				Code:    trace.StatusCodeUnauthenticated,
+				Message: "Session verification failed",
+			})
+			return
+		}
+	}
+
 	// Get user details
 	h.tracer.AddAttribute(ctx, "operation", "GetUserByID")
 	user, err := h.userService.GetUserByID(ctx, userID)
@@ -197,6 +223,40 @@ func (h *UserHandler) GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(response)
 }
 
+// Logout logs out the current user by deleting all their sessions
+func (h *UserHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	ctx, span := h.tracer.StartSpan(r.Context(), "UserHandler.Logout")
+	defer span.End()
+
+	// Get authenticated user from context
+	userID, ok := ctx.Value(domain.UserIDKey).(string)
+	if !ok || userID == "" {
+		WriteJSONError(w, "Unauthorized", http.StatusUnauthorized)
+		span.SetStatus(trace.Status{
+			Code:    trace.StatusCodeUnauthenticated,
+			Message: "No user ID in context",
+		})
+		return
+	}
+
+	span.AddAttributes(trace.StringAttribute("user.id", userID))
+	h.tracer.AddAttribute(ctx, "operation", "Logout")
+
+	// Logout user - delete all sessions
+	err := h.userService.Logout(ctx, userID)
+	if err != nil {
+		WriteJSONError(w, "Failed to logout", http.StatusInternalServerError)
+		h.tracer.MarkSpanError(ctx, err)
+		return
+	}
+
+	// Return success response
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Logged out successfully",
+	})
+}
+
 func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Public routes (no auth required)
 	mux.HandleFunc("/api/user.signin", h.SignIn)
@@ -208,4 +268,5 @@ func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Register protected routes
 	mux.Handle("/api/user.me", requireAuth(http.HandlerFunc(h.GetCurrentUser)))
+	mux.Handle("/api/user.logout", requireAuth(http.HandlerFunc(h.Logout)))
 }

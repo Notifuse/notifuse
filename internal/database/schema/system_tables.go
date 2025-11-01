@@ -18,7 +18,7 @@ var TableDefinitions = []string{
 		user_id UUID NOT NULL,
 		expires_at TIMESTAMP NOT NULL,
 		created_at TIMESTAMP NOT NULL,
-		magic_code VARCHAR(255),
+		magic_code VARCHAR(255),  -- HMAC-SHA256 hash of authentication code (not plain text)
 		magic_code_expires_at TIMESTAMP
 	)`,
 	`CREATE TABLE IF NOT EXISTS workspaces (

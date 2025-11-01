@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/tracing"
 	"github.com/google/uuid"
@@ -23,6 +24,7 @@ type UserService struct {
 	tracer            tracing.Tracer
 	signInLimiter     *RateLimiter
 	verifyCodeLimiter *RateLimiter
+	secretKey         string
 }
 
 type EmailSender interface {
@@ -39,6 +41,7 @@ type UserServiceConfig struct {
 	Tracer            tracing.Tracer
 	SignInLimiter     *RateLimiter
 	VerifyCodeLimiter *RateLimiter
+	SecretKey         string
 }
 
 func NewUserService(cfg UserServiceConfig) (*UserService, error) {
@@ -58,6 +61,7 @@ func NewUserService(cfg UserServiceConfig) (*UserService, error) {
 		tracer:            tracer,
 		signInLimiter:     cfg.SignInLimiter,
 		verifyCodeLimiter: cfg.VerifyCodeLimiter,
+		secretKey:         cfg.SecretKey,
 	}, nil
 }
 
@@ -98,9 +102,12 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 	s.tracer.AddAttribute(ctx, "action", "use_existing_user")
 
 	// Generate magic code
-	code := s.generateMagicCode()
+	plainCode := s.generateMagicCode()
 	expiresAt := time.Now().Add(s.sessionExpiry)
 	codeExpiresAt := time.Now().Add(15 * time.Minute)
+
+	// Hash the magic code before storing (security: prevent plain-text exposure in database)
+	hashedCode := crypto.HashMagicCode(plainCode, s.secretKey)
 
 	// Create new session
 	session := &domain.Session{
@@ -108,7 +115,7 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 		UserID:           user.ID,
 		ExpiresAt:        expiresAt,
 		CreatedAt:        time.Now(),
-		MagicCode:        code,
+		MagicCode:        hashedCode,
 		MagicCodeExpires: codeExpiresAt,
 	}
 
@@ -121,14 +128,15 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 		return "", err
 	}
 
-	// In development/demo mode, return the code directly
-	// In production, send the code via email
+	// In development/demo mode, return the plain code directly
+	// In production, send the plain code via email
+	// Note: We return/send the plain code, but store the hashed version in DB
 	if !s.isProduction {
-		return code, nil
+		return plainCode, nil
 	}
 
 	// Send magic code via email in production
-	if err := s.emailSender.SendMagicCode(user.Email, code); err != nil {
+	if err := s.emailSender.SendMagicCode(user.Email, plainCode); err != nil {
 		s.logger.WithField("user_id", user.ID).WithField("email", user.Email).WithField("error", err.Error()).Error("Failed to send magic code")
 		s.tracer.MarkSpanError(ctx, err)
 		return "", err
@@ -171,10 +179,15 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 
 	s.tracer.AddAttribute(ctx, "sessions.count", len(sessions))
 
-	// Find the session with the matching code
+	// Find the session with the matching code (using HMAC verification)
 	var matchingSession *domain.Session
 	for _, session := range sessions {
-		if session.MagicCode == input.Code {
+		// Skip sessions with no magic code set
+		if session.MagicCode == "" {
+			continue
+		}
+		// Use constant-time HMAC comparison to prevent timing attacks
+		if crypto.VerifyMagicCode(input.Code, session.MagicCode, s.secretKey) {
 			matchingSession = session
 			break
 		}
@@ -331,4 +344,23 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*domain
 
 	s.tracer.AddAttribute(ctx, "user.id", user.ID)
 	return user, nil
+}
+
+// Logout logs out a user by deleting all their sessions
+func (s *UserService) Logout(ctx context.Context, userID string) error {
+	ctx, span := s.tracer.StartServiceSpan(ctx, "UserService", "Logout")
+	defer span.End()
+
+	s.tracer.AddAttribute(ctx, "user.id", userID)
+
+	// Delete all sessions for the user
+	err := s.repo.DeleteAllSessionsByUserID(ctx, userID)
+	if err != nil {
+		s.logger.WithField("user_id", userID).WithField("error", err.Error()).Error("Failed to delete user sessions")
+		s.tracer.MarkSpanError(ctx, err)
+		return fmt.Errorf("failed to logout: %w", err)
+	}
+
+	s.logger.WithField("user_id", userID).Info("User logged out - all sessions deleted")
+	return nil
 }

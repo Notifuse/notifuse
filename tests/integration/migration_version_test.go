@@ -25,6 +25,10 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 	skipIfNotIntegrationTest(t)
 
 	t.Run("should_run_migrations_when_database_version_is_lower_than_code_version", func(t *testing.T) {
+		// Set SECRET_KEY for v15 migration
+		os.Setenv("SECRET_KEY", "test-secret-key-for-migration")
+		defer os.Unsetenv("SECRET_KEY")
+
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
 		defer dbManager.Cleanup()
@@ -71,12 +75,12 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 		// Capture the current code version to ensure it's higher than database version
 		assert.Greater(t, currentCodeVersion, 3.0, "Code version should be higher than database version")
 
-	// Run migrations
-	err = migrationManager.RunMigrations(ctx, testConfig, db)
-	// Migration may return ErrRestartRequired if any migration requires a restart, which is not an error
-	if err != nil && err != migrations.ErrRestartRequired {
-		require.NoError(t, err, "Migration should succeed when database version is lower than code version")
-	}
+		// Run migrations
+		err = migrationManager.RunMigrations(ctx, testConfig, db)
+		// Migration may return ErrRestartRequired if any migration requires a restart, which is not an error
+		if err != nil && err != migrations.ErrRestartRequired {
+			require.NoError(t, err, "Migration should succeed when database version is lower than code version")
+		}
 
 		// Step 5: Verify the database version was updated to current code version
 		var updatedDbVersion string
@@ -91,6 +95,10 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 	})
 
 	t.Run("should_not_run_migrations_when_database_version_equals_code_version", func(t *testing.T) {
+		// Set SECRET_KEY for v15 migration (in case it runs)
+		os.Setenv("SECRET_KEY", "test-secret-key-for-migration")
+		defer os.Unsetenv("SECRET_KEY")
+
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
 		defer dbManager.Cleanup()
@@ -126,12 +134,12 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 		migrationManager := migrations.NewManager(testLogger)
 		ctx := context.Background()
 
-	// Run migrations
-	err = migrationManager.RunMigrations(ctx, testConfig, db)
-	// Migration may return ErrRestartRequired if any migration requires a restart, which is not an error
-	if err != nil && err != migrations.ErrRestartRequired {
-		require.NoError(t, err, "Migration should succeed even when no migrations need to run")
-	}
+		// Run migrations
+		err = migrationManager.RunMigrations(ctx, testConfig, db)
+		// Migration may return ErrRestartRequired if any migration requires a restart, which is not an error
+		if err != nil && err != migrations.ErrRestartRequired {
+			require.NoError(t, err, "Migration should succeed even when no migrations need to run")
+		}
 
 		// Step 4: Verify the database version remains the same
 		var afterVersion string
@@ -142,6 +150,10 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 	})
 
 	t.Run("should_handle_missing_database_version_as_first_run", func(t *testing.T) {
+		// Set SECRET_KEY for v15 migration (in case it runs)
+		os.Setenv("SECRET_KEY", "test-secret-key-for-migration")
+		defer os.Unsetenv("SECRET_KEY")
+
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
 		defer dbManager.Cleanup()
@@ -173,11 +185,11 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 		migrationManager := migrations.NewManager(testLogger)
 		ctx := context.Background()
 
-	err = migrationManager.RunMigrations(ctx, testConfig, db)
-	// Migration may return ErrRestartRequired if any migration requires a restart, which is not an error
-	if err != nil && err != migrations.ErrRestartRequired {
-		require.NoError(t, err, "Migration should succeed on first run")
-	}
+		err = migrationManager.RunMigrations(ctx, testConfig, db)
+		// Migration may return ErrRestartRequired if any migration requires a restart, which is not an error
+		if err != nil && err != migrations.ErrRestartRequired {
+			require.NoError(t, err, "Migration should succeed on first run")
+		}
 
 		// Step 5: Verify the database version was initialized to current code version
 		currentCodeVersion, err := migrations.GetCurrentCodeVersion()

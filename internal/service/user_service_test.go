@@ -8,6 +8,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -83,6 +84,7 @@ func setupUserTest(t *testing.T) (
 		Logger:        mockLogger,
 		IsProduction:  true,
 		Tracer:        mockTracer,
+		SecretKey:     "test-secret-key-for-hmac-verification",
 	})
 	require.NoError(t, err)
 
@@ -176,10 +178,13 @@ func TestUserService_VerifyCode(t *testing.T) {
 			Email: email,
 		}
 
+		// Use the secret key from the service to hash the magic code
+		hashedCode := crypto.HashMagicCode(code, "test-secret-key-for-hmac-verification")
+
 		session := &domain.Session{
 			ID:               "session123",
 			UserID:           userID,
-			MagicCode:        code,
+			MagicCode:        hashedCode,
 			MagicCodeExpires: time.Now().Add(15 * time.Minute),
 			ExpiresAt:        time.Now().Add(24 * time.Hour),
 		}
@@ -249,10 +254,13 @@ func TestUserService_VerifyCode(t *testing.T) {
 			Email: email,
 		}
 
+		// Use the secret key from the service to hash the magic code
+		hashedCode := crypto.HashMagicCode(code, "test-secret-key-for-hmac-verification")
+
 		session := &domain.Session{
 			ID:               "session123",
 			UserID:           userID,
-			MagicCode:        code,
+			MagicCode:        hashedCode,
 			MagicCodeExpires: time.Now().Add(-1 * time.Minute),
 		}
 

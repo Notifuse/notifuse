@@ -202,6 +202,23 @@ func (r *userRepository) DeleteSession(ctx context.Context, id string) error {
 	return nil
 }
 
+func (r *userRepository) DeleteAllSessionsByUserID(ctx context.Context, userID string) error {
+	query := `DELETE FROM user_sessions WHERE user_id = $1`
+	result, err := r.systemDB.ExecContext(ctx, query, userID)
+	if err != nil {
+		return fmt.Errorf("failed to delete sessions: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+	if rows == 0 {
+		// It's ok if no sessions exist - user might already be logged out
+		return nil
+	}
+	return nil
+}
+
 func (r *userRepository) GetSessionsByUserID(ctx context.Context, userID string) ([]*domain.Session, error) {
 	query := `
 		SELECT id, user_id, expires_at, created_at, magic_code, magic_code_expires_at

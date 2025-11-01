@@ -39,8 +39,13 @@ export function isRootUser(userEmail?: string): boolean {
   return userEmail === window.ROOT_EMAIL
 }
 
+export interface LogoutResponse {
+  message: string
+}
+
 export const authService = {
   signIn: (data: SignInRequest) => api.post<SignInResponse>('/api/user.signin', data),
   verifyCode: (data: VerifyCodeRequest) => api.post<VerifyResponse>('/api/user.verify', data),
-  getCurrentUser: () => api.get<GetCurrentUserResponse>('/api/user.me')
+  getCurrentUser: () => api.get<GetCurrentUserResponse>('/api/user.me'),
+  logout: () => api.post<LogoutResponse>('/api/user.logout', {})
 }

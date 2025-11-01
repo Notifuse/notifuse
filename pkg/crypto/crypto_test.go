@@ -290,3 +290,153 @@ func TestDecryptFromHexString_Errors(t *testing.T) {
 		})
 	}
 }
+
+func TestHashMagicCode(t *testing.T) {
+	tests := []struct {
+		name       string
+		code       string
+		secretKey  string
+		wantLength int
+	}{
+		{
+			name:       "Basic magic code hash",
+			code:       "123456",
+			secretKey:  "secret-key",
+			wantLength: 64, // SHA-256 HMAC produces 32 bytes = 64 hex characters
+		},
+		{
+			name:       "Empty code",
+			code:       "",
+			secretKey:  "secret-key",
+			wantLength: 64,
+		},
+		{
+			name:       "Different secret key produces different hash",
+			code:       "123456",
+			secretKey:  "different-secret",
+			wantLength: 64,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := HashMagicCode(tt.code, tt.secretKey)
+			if len(got) != tt.wantLength {
+				t.Errorf("HashMagicCode() length = %v, want %v", len(got), tt.wantLength)
+			}
+		})
+	}
+
+	// Test that same inputs produce same hash
+	t.Run("Deterministic hashing", func(t *testing.T) {
+		code := "123456"
+		secretKey := "secret-key"
+		hash1 := HashMagicCode(code, secretKey)
+		hash2 := HashMagicCode(code, secretKey)
+		if hash1 != hash2 {
+			t.Errorf("HashMagicCode() not deterministic: %v != %v", hash1, hash2)
+		}
+	})
+
+	// Test that different inputs produce different hashes
+	t.Run("Different codes produce different hashes", func(t *testing.T) {
+		secretKey := "secret-key"
+		hash1 := HashMagicCode("123456", secretKey)
+		hash2 := HashMagicCode("654321", secretKey)
+		if hash1 == hash2 {
+			t.Error("HashMagicCode() produced same hash for different codes")
+		}
+	})
+
+	t.Run("Different secret keys produce different hashes", func(t *testing.T) {
+		code := "123456"
+		hash1 := HashMagicCode(code, "secret-key-1")
+		hash2 := HashMagicCode(code, "secret-key-2")
+		if hash1 == hash2 {
+			t.Error("HashMagicCode() produced same hash for different secret keys")
+		}
+	})
+}
+
+func TestVerifyMagicCode(t *testing.T) {
+	secretKey := "test-secret-key"
+	correctCode := "123456"
+	correctHash := HashMagicCode(correctCode, secretKey)
+
+	tests := []struct {
+		name       string
+		inputCode  string
+		storedHash string
+		secretKey  string
+		want       bool
+	}{
+		{
+			name:       "Valid code matches hash",
+			inputCode:  correctCode,
+			storedHash: correctHash,
+			secretKey:  secretKey,
+			want:       true,
+		},
+		{
+			name:       "Invalid code does not match hash",
+			inputCode:  "654321",
+			storedHash: correctHash,
+			secretKey:  secretKey,
+			want:       false,
+		},
+		{
+			name:       "Wrong secret key fails verification",
+			inputCode:  correctCode,
+			storedHash: correctHash,
+			secretKey:  "wrong-secret-key",
+			want:       false,
+		},
+		{
+			name:       "Empty code does not match",
+			inputCode:  "",
+			storedHash: correctHash,
+			secretKey:  secretKey,
+			want:       false,
+		},
+		{
+			name:       "Invalid hash format fails gracefully",
+			inputCode:  correctCode,
+			storedHash: "invalid-hash",
+			secretKey:  secretKey,
+			want:       false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := VerifyMagicCode(tt.inputCode, tt.storedHash, tt.secretKey)
+			if got != tt.want {
+				t.Errorf("VerifyMagicCode() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMagicCodeIntegration(t *testing.T) {
+	// Test the full flow: hash a code, then verify it
+	secretKey := "integration-test-secret"
+	originalCode := "987654"
+
+	// Hash the code
+	hashedCode := HashMagicCode(originalCode, secretKey)
+
+	// Verify with correct code
+	if !VerifyMagicCode(originalCode, hashedCode, secretKey) {
+		t.Error("VerifyMagicCode() failed to verify correct code")
+	}
+
+	// Verify with incorrect code
+	if VerifyMagicCode("wrong-code", hashedCode, secretKey) {
+		t.Error("VerifyMagicCode() incorrectly verified wrong code")
+	}
+
+	// Verify with wrong secret key
+	if VerifyMagicCode(originalCode, hashedCode, "wrong-secret") {
+		t.Error("VerifyMagicCode() incorrectly verified with wrong secret key")
+	}
+}
