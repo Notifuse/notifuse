@@ -42,12 +42,12 @@ type User struct {
 
 // Session represents a user session
 type Session struct {
-	ID               string    `json:"id" db:"id"`
-	UserID           string    `json:"user_id" db:"user_id"`
-	ExpiresAt        time.Time `json:"expires_at" db:"expires_at"`
-	CreatedAt        time.Time `json:"created_at" db:"created_at"`
-	MagicCode        string    `json:"magic_code,omitempty" db:"magic_code"`
-	MagicCodeExpires time.Time `json:"magic_code_expires,omitempty" db:"magic_code_expires_at"`
+	ID               string     `json:"id" db:"id"`
+	UserID           string     `json:"user_id" db:"user_id"`
+	ExpiresAt        time.Time  `json:"expires_at" db:"expires_at"`
+	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
+	MagicCode        *string    `json:"magic_code,omitempty" db:"magic_code"`
+	MagicCodeExpires *time.Time `json:"magic_code_expires,omitempty" db:"magic_code_expires_at"`
 }
 
 type SignInInput struct {

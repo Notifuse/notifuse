@@ -193,9 +193,9 @@ func TestUserVerifyCodeFlow(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, sessions, "Session should exist")
 
-		// Check that magic code is empty in the most recent session
+		// Check that magic code is nil/empty in the most recent session
 		mostRecentSession := sessions[0] // Sessions are ordered by created_at DESC
-		assert.Empty(t, mostRecentSession.MagicCode, "Magic code should be cleared after verification")
+		assert.Nil(t, mostRecentSession.MagicCode, "Magic code should be cleared after verification")
 	})
 
 	t.Run("invalid magic code", func(t *testing.T) {
@@ -257,8 +257,8 @@ func TestUserVerifyCodeFlow(t *testing.T) {
 			UserID:           user.ID,
 			ExpiresAt:        time.Now().UTC().Add(24 * time.Hour),
 			CreatedAt:        time.Now().UTC(),
-			MagicCode:        hashedCode, // Store HMAC hash, not plain text
-			MagicCodeExpires: expiredTime,
+			MagicCode:        &hashedCode, // Store HMAC hash, not plain text
+			MagicCodeExpires: &expiredTime,
 		}
 		err2 := userRepo.CreateSession(context.Background(), session)
 		require.NoError(t, err2)
@@ -456,7 +456,7 @@ func TestUserSessionManagement(t *testing.T) {
 		// Since we're using the same test user across tests, other sessions may still have codes
 		verifiedSessionCount := 0
 		for _, session := range sessions {
-			if session.MagicCode == "" {
+			if session.MagicCode == nil {
 				verifiedSessionCount++
 			}
 		}
@@ -490,8 +490,58 @@ func TestUserSessionManagement(t *testing.T) {
 		assert.Equal(t, user.ID, session.UserID, "Session should be linked to user")
 		assert.True(t, session.ExpiresAt.After(time.Now()), "Session should not be expired")
 		assert.True(t, session.CreatedAt.Before(time.Now().Add(time.Minute)), "Session should be recently created")
-		assert.NotEmpty(t, session.MagicCode, "Session should have magic code")
-		assert.Len(t, session.MagicCode, 64, "Magic code should be HMAC-SHA256 hash (64 hex chars)")
+		require.NotNil(t, session.MagicCode, "Session should have magic code")
+		assert.Len(t, *session.MagicCode, 64, "Magic code should be HMAC-SHA256 hash (64 hex chars)")
+	})
+
+	t.Run("session with NULL magic code (post-migration v15 scenario)", func(t *testing.T) {
+		email := testUserEmail
+
+		// First, create a session with a magic code
+		signinReq := domain.SignInInput{Email: email}
+		resp, err := client.Post("/api/user.signin", signinReq)
+		require.NoError(t, err)
+		resp.Body.Close()
+
+		// Get the session and manually clear the magic code to simulate v15 migration
+		app := suite.ServerManager.GetApp()
+		userRepo := app.GetUserRepository()
+		user, err := userRepo.GetUserByEmail(context.Background(), email)
+		require.NoError(t, err)
+
+		sessions, err := userRepo.GetSessionsByUserID(context.Background(), user.ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, sessions, "Should have at least one session")
+
+		// Manually clear the magic code from the most recent session to simulate post-migration state
+		mostRecentSession := sessions[0]
+		mostRecentSession.MagicCode = nil
+		mostRecentSession.MagicCodeExpires = nil
+		err = userRepo.UpdateSession(context.Background(), mostRecentSession)
+		require.NoError(t, err)
+
+		// Now retrieve the session again and verify it can be read without errors
+		sessions, err = userRepo.GetSessionsByUserID(context.Background(), user.ID)
+		require.NoError(t, err)
+		require.NotEmpty(t, sessions, "Should have at least one session")
+
+		// Find the session we just cleared
+		var clearedSession *domain.Session
+		for _, s := range sessions {
+			if s.ID == mostRecentSession.ID {
+				clearedSession = s
+				break
+			}
+		}
+		require.NotNil(t, clearedSession, "Should find the cleared session")
+		assert.Nil(t, clearedSession.MagicCode, "Magic code should be NULL after clearing")
+		assert.Nil(t, clearedSession.MagicCodeExpires, "Magic code expires should be NULL after clearing")
+
+		// Verify we can also get the session by ID without errors
+		retrievedSession, err := userRepo.GetSessionByID(context.Background(), mostRecentSession.ID)
+		require.NoError(t, err)
+		assert.Nil(t, retrievedSession.MagicCode, "Magic code should be NULL when retrieved by ID")
+		assert.Nil(t, retrievedSession.MagicCodeExpires, "Magic code expires should be NULL when retrieved by ID")
 	})
 }
 

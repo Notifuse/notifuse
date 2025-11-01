@@ -83,6 +83,19 @@ func TestV15Migration_UpdateSystem(t *testing.T) {
 	`)
 	require.NoError(t, err)
 
+	// Create user_sessions table if it doesn't exist
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS user_sessions (
+			id UUID PRIMARY KEY,
+			user_id UUID NOT NULL,
+			expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			magic_code VARCHAR(255),
+			magic_code_expires_at TIMESTAMP WITH TIME ZONE
+		)
+	`)
+	require.NoError(t, err)
+
 	// Insert test PASETO settings
 	_, err = db.ExecContext(ctx,
 		"INSERT INTO settings (key, value) VALUES ($1, $2), ($3, $4) ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
@@ -105,6 +118,15 @@ func TestV15Migration_UpdateSystem(t *testing.T) {
 		VALUES 
 			('33333333-3333-3333-3333-333333333333', 'workspace1', '44444444-4444-4444-4444-444444444444', 'invite1@example.com', NOW() + INTERVAL '7 days'),
 			('55555555-5555-5555-5555-555555555555', 'workspace1', '44444444-4444-4444-4444-444444444444', 'invite2@example.com', NOW() - INTERVAL '7 days')
+	`)
+	require.NoError(t, err)
+
+	// Insert test user sessions
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO user_sessions (id, user_id, expires_at, magic_code, magic_code_expires_at)
+		VALUES 
+			('66666666-6666-6666-6666-666666666666', '11111111-1111-1111-1111-111111111111', NOW() + INTERVAL '24 hours', 'abc123', NOW() + INTERVAL '15 minutes'),
+			('77777777-7777-7777-7777-777777777777', '22222222-2222-2222-2222-222222222222', NOW() + INTERVAL '24 hours', NULL, NULL)
 	`)
 	require.NoError(t, err)
 
@@ -133,6 +155,11 @@ func TestV15Migration_UpdateSystem(t *testing.T) {
 	err = db.QueryRowContext(ctx, "SELECT id FROM workspace_invitations").Scan(&remainingID)
 	assert.NoError(t, err)
 	assert.Equal(t, "55555555-5555-5555-5555-555555555555", remainingID)
+
+	// Verify all user sessions were deleted
+	err = db.QueryRowContext(ctx, "SELECT COUNT(*) FROM user_sessions").Scan(&count)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, count, "All user sessions should be deleted")
 
 	// Test idempotency - running migration again should not error
 	err = migration.UpdateSystem(ctx, cfg, db)

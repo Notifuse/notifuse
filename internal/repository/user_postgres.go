@@ -136,8 +136,12 @@ func (r *userRepository) CreateSession(ctx context.Context, session *domain.Sess
 	}
 	session.CreatedAt = time.Now().UTC()
 	session.ExpiresAt = session.ExpiresAt.UTC()
-	if !session.MagicCodeExpires.IsZero() {
-		session.MagicCodeExpires = session.MagicCodeExpires.UTC()
+
+	// Handle nullable magic code expiration
+	var magicCodeExpires interface{}
+	if session.MagicCodeExpires != nil {
+		expiresUTC := session.MagicCodeExpires.UTC()
+		magicCodeExpires = expiresUTC
 	}
 
 	query := `
@@ -153,7 +157,7 @@ func (r *userRepository) CreateSession(ctx context.Context, session *domain.Sess
 		session.ExpiresAt,
 		session.CreatedAt,
 		session.MagicCode,
-		session.MagicCodeExpires,
+		magicCodeExpires,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create session: %w", err)
@@ -163,6 +167,9 @@ func (r *userRepository) CreateSession(ctx context.Context, session *domain.Sess
 
 func (r *userRepository) GetSessionByID(ctx context.Context, id string) (*domain.Session, error) {
 	var session domain.Session
+	var magicCode sql.NullString
+	var magicCodeExpires sql.NullTime
+
 	query := `
 		SELECT id, user_id, expires_at, created_at, 
 			magic_code, magic_code_expires_at
@@ -174,8 +181,8 @@ func (r *userRepository) GetSessionByID(ctx context.Context, id string) (*domain
 		&session.UserID,
 		&session.ExpiresAt,
 		&session.CreatedAt,
-		&session.MagicCode,
-		&session.MagicCodeExpires,
+		&magicCode,
+		&magicCodeExpires,
 	)
 	if err == sql.ErrNoRows {
 		return nil, &domain.ErrSessionNotFound{Message: "session not found"}
@@ -183,6 +190,15 @@ func (r *userRepository) GetSessionByID(ctx context.Context, id string) (*domain
 	if err != nil {
 		return nil, fmt.Errorf("failed to get session: %w", err)
 	}
+
+	// Convert nullable types to pointers
+	if magicCode.Valid {
+		session.MagicCode = &magicCode.String
+	}
+	if magicCodeExpires.Valid {
+		session.MagicCodeExpires = &magicCodeExpires.Time
+	}
+
 	return &session, nil
 }
 
@@ -235,17 +251,29 @@ func (r *userRepository) GetSessionsByUserID(ctx context.Context, userID string)
 	var sessions []*domain.Session
 	for rows.Next() {
 		var session domain.Session
+		var magicCode sql.NullString
+		var magicCodeExpires sql.NullTime
+
 		err := rows.Scan(
 			&session.ID,
 			&session.UserID,
 			&session.ExpiresAt,
 			&session.CreatedAt,
-			&session.MagicCode,
-			&session.MagicCodeExpires,
+			&magicCode,
+			&magicCodeExpires,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan session: %w", err)
 		}
+
+		// Convert nullable types to pointers
+		if magicCode.Valid {
+			session.MagicCode = &magicCode.String
+		}
+		if magicCodeExpires.Valid {
+			session.MagicCodeExpires = &magicCodeExpires.Time
+		}
+
 		sessions = append(sessions, &session)
 	}
 	return sessions, rows.Err()

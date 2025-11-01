@@ -115,8 +115,8 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 		UserID:           user.ID,
 		ExpiresAt:        expiresAt,
 		CreatedAt:        time.Now(),
-		MagicCode:        hashedCode,
-		MagicCodeExpires: codeExpiresAt,
+		MagicCode:        &hashedCode,
+		MagicCodeExpires: &codeExpiresAt,
 	}
 
 	s.tracer.AddAttribute(ctx, "session.id", session.ID)
@@ -183,11 +183,11 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 	var matchingSession *domain.Session
 	for _, session := range sessions {
 		// Skip sessions with no magic code set
-		if session.MagicCode == "" {
+		if session.MagicCode == nil || *session.MagicCode == "" {
 			continue
 		}
 		// Use constant-time HMAC comparison to prevent timing attacks
-		if crypto.VerifyMagicCode(input.Code, session.MagicCode, s.secretKey) {
+		if crypto.VerifyMagicCode(input.Code, *session.MagicCode, s.secretKey) {
 			matchingSession = session
 			break
 		}
@@ -203,7 +203,7 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 	s.tracer.AddAttribute(ctx, "session.id", matchingSession.ID)
 
 	// Check if magic code is expired
-	if time.Now().After(matchingSession.MagicCodeExpires) {
+	if matchingSession.MagicCodeExpires != nil && time.Now().After(*matchingSession.MagicCodeExpires) {
 		s.logger.WithField("user_id", user.ID).WithField("email", input.Email).WithField("session_id", matchingSession.ID).Error("Magic code expired")
 		err := fmt.Errorf("magic code expired")
 		s.tracer.MarkSpanError(ctx, err)
@@ -211,8 +211,8 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 	}
 
 	// Clear the magic code from the session
-	matchingSession.MagicCode = ""
-	matchingSession.MagicCodeExpires = time.Time{}
+	matchingSession.MagicCode = nil
+	matchingSession.MagicCodeExpires = nil
 
 	if err := s.repo.UpdateSession(ctx, matchingSession); err != nil {
 		s.logger.WithField("user_id", user.ID).WithField("session_id", matchingSession.ID).WithField("error", err.Error()).Error("Failed to update session")

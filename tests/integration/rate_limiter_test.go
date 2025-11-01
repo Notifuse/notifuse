@@ -139,13 +139,15 @@ func TestVerifyCodeRateLimiter_Integration(t *testing.T) {
 		require.NoError(t, err)
 
 		// Create a session with a magic code
+		magicCode := "123456"
+		magicCodeExpires := time.Now().UTC().Add(15 * time.Minute)
 		session := &domain.Session{
 			ID:               uuid.New().String(),
 			UserID:           user.ID,
 			ExpiresAt:        time.Now().UTC().Add(24 * time.Hour),
 			CreatedAt:        time.Now().UTC(),
-			MagicCode:        "123456",
-			MagicCodeExpires: time.Now().UTC().Add(15 * time.Minute),
+			MagicCode:        &magicCode,
+			MagicCodeExpires: &magicCodeExpires,
 		}
 		err = userRepo.CreateSession(context.Background(), session)
 		require.NoError(t, err)
@@ -328,13 +330,15 @@ func TestRateLimiter_CrossEndpoint_Independence(t *testing.T) {
 
 		// But verify code should still work (independent rate limiter)
 		// First get a session with a code (use repository)
+		magicCode2 := "123456"
+		magicCodeExpires2 := time.Now().UTC().Add(15 * time.Minute)
 		session := &domain.Session{
 			ID:               uuid.New().String(),
 			UserID:           user.ID,
 			ExpiresAt:        time.Now().UTC().Add(24 * time.Hour),
 			CreatedAt:        time.Now().UTC(),
-			MagicCode:        "123456",
-			MagicCodeExpires: time.Now().UTC().Add(15 * time.Minute),
+			MagicCode:        &magicCode2,
+			MagicCodeExpires: &magicCodeExpires2,
 		}
 		err = userRepo.CreateSession(context.Background(), session)
 		require.NoError(t, err)
@@ -433,13 +437,15 @@ func TestRateLimiter_ErrorMessages(t *testing.T) {
 		err := userRepo.CreateUser(context.Background(), user)
 		require.NoError(t, err)
 
+		magicCode3 := "123456"
+		magicCodeExpires3 := time.Now().UTC().Add(15 * time.Minute)
 		session := &domain.Session{
 			ID:               uuid.New().String(),
 			UserID:           user.ID,
 			ExpiresAt:        time.Now().UTC().Add(24 * time.Hour),
 			CreatedAt:        time.Now().UTC(),
-			MagicCode:        "123456",
-			MagicCodeExpires: time.Now().UTC().Add(15 * time.Minute),
+			MagicCode:        &magicCode3,
+			MagicCodeExpires: &magicCodeExpires3,
 		}
 		err = userRepo.CreateSession(context.Background(), session)
 		require.NoError(t, err)

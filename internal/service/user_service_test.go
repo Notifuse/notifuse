@@ -180,12 +180,13 @@ func TestUserService_VerifyCode(t *testing.T) {
 
 		// Use the secret key from the service to hash the magic code
 		hashedCode := crypto.HashMagicCode(code, "test-secret-key-for-hmac-verification")
+		magicCodeExpires := time.Now().Add(15 * time.Minute)
 
 		session := &domain.Session{
 			ID:               "session123",
 			UserID:           userID,
-			MagicCode:        hashedCode,
-			MagicCodeExpires: time.Now().Add(15 * time.Minute),
+			MagicCode:        &hashedCode,
+			MagicCodeExpires: &magicCodeExpires,
 			ExpiresAt:        time.Now().Add(24 * time.Hour),
 		}
 
@@ -223,11 +224,13 @@ func TestUserService_VerifyCode(t *testing.T) {
 			Email: email,
 		}
 
+		magicCode2 := "654321"
+		magicCodeExpires2 := time.Now().Add(15 * time.Minute)
 		session := &domain.Session{
 			ID:               "session123",
 			UserID:           userID,
-			MagicCode:        "654321",
-			MagicCodeExpires: time.Now().Add(15 * time.Minute),
+			MagicCode:        &magicCode2,
+			MagicCodeExpires: &magicCodeExpires2,
 		}
 
 		mockRepo.EXPECT().
@@ -256,12 +259,13 @@ func TestUserService_VerifyCode(t *testing.T) {
 
 		// Use the secret key from the service to hash the magic code
 		hashedCode := crypto.HashMagicCode(code, "test-secret-key-for-hmac-verification")
+		expiredTime := time.Now().Add(-1 * time.Minute)
 
 		session := &domain.Session{
 			ID:               "session123",
 			UserID:           userID,
-			MagicCode:        hashedCode,
-			MagicCodeExpires: time.Now().Add(-1 * time.Minute),
+			MagicCode:        &hashedCode,
+			MagicCodeExpires: &expiredTime,
 		}
 
 		mockRepo.EXPECT().

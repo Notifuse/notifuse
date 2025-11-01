@@ -60,10 +60,9 @@ BREAKING CHANGES:
 	fmt.Println("================================================================================")
 	fmt.Println()
 	fmt.Println("⚠️  BREAKING CHANGES:")
-	fmt.Println("   • All user sessions will be invalidated")
+	fmt.Println("   • All user sessions will be deleted (users must sign in again)")
 	fmt.Println("   • All API keys will be deleted (incompatible with JWT)")
 	fmt.Println("   • All pending workspace invitations will be invalidated")
-	fmt.Println("   • All active magic codes will be cleared (migrating to HMAC-SHA256)")
 	fmt.Println()
 	fmt.Println("🔒 SECURITY IMPROVEMENTS:")
 	fmt.Println("   • Magic codes now stored as HMAC-SHA256 hashes (no plain text)")
@@ -78,9 +77,10 @@ BREAKING CHANGES:
 	fmt.Println("================================================================================")
 
 	// Count items that will be deleted for reporting
-	var apiKeyCount, invitationCount int
+	var apiKeyCount, invitationCount, sessionCount int
 	db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users WHERE type = 'api_key'").Scan(&apiKeyCount)
 	db.QueryRowContext(ctx, "SELECT COUNT(*) FROM workspace_invitations WHERE expires_at > NOW()").Scan(&invitationCount)
+	db.QueryRowContext(ctx, "SELECT COUNT(*) FROM user_sessions").Scan(&sessionCount)
 
 	// Perform database schema migration
 	queries := []string{
@@ -100,11 +100,11 @@ BREAKING CHANGES:
 		// Only delete non-expired invitations (expired ones are already invalid)
 		`DELETE FROM workspace_invitations WHERE expires_at > NOW();`,
 
-		// SECURITY: Clear all existing plain-text magic codes
-		// Magic codes are now stored as HMAC-SHA256 hashes for security
-		// Plain-text codes from v14 are incompatible with v15 HMAC verification
-		// Users with active codes will need to request a new code
-		`UPDATE user_sessions SET magic_code = NULL, magic_code_expires_at = NULL WHERE magic_code IS NOT NULL;`,
+		// CRITICAL: Delete all existing user sessions
+		// Sessions created under PASETO need to be re-established with JWT
+		// Users will need to sign in again after migration
+		// This ensures a clean slate and prevents any PASETO/JWT compatibility issues
+		`DELETE FROM user_sessions;`,
 	}
 
 	for i, query := range queries {
@@ -118,10 +118,13 @@ BREAKING CHANGES:
 	fmt.Println("📊 SUMMARY:")
 	fmt.Printf("   • Deleted %d API key(s)\n", apiKeyCount)
 	fmt.Printf("   • Deleted %d pending invitation(s)\n", invitationCount)
+	fmt.Printf("   • Deleted %d user session(s)\n", sessionCount)
+	fmt.Println()
+	fmt.Println("💡 NEXT STEPS:")
+	fmt.Println("   • All users must sign in again to create new JWT sessions")
+	fmt.Println("   • API key holders must regenerate keys in Settings → API Keys")
 	if invitationCount > 0 {
-		fmt.Println()
-		fmt.Println("💡 TIP: Workspace admins should resend invitations via:")
-		fmt.Println("   Settings → Members → Invitations → Resend")
+		fmt.Println("   • Workspace admins should resend invitations via Settings → Members → Invitations → Resend")
 	}
 	fmt.Println()
 

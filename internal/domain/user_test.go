@@ -40,14 +40,16 @@ func TestWorkspaceUserKey(t *testing.T) {
 func TestSession(t *testing.T) {
 	now := time.Now()
 	expiry := now.Add(time.Hour * 24)
+	magicCode := "ABCDEF"
+	magicCodeExpires := now.Add(time.Minute * 15)
 
 	session := Session{
 		ID:               "session123",
 		UserID:           "user123",
 		ExpiresAt:        expiry,
 		CreatedAt:        now,
-		MagicCode:        "ABCDEF",
-		MagicCodeExpires: now.Add(time.Minute * 15),
+		MagicCode:        &magicCode,
+		MagicCodeExpires: &magicCodeExpires,
 	}
 
 	// Basic assertion that the struct fields are set correctly
@@ -55,7 +57,33 @@ func TestSession(t *testing.T) {
 	assert.Equal(t, "user123", session.UserID)
 	assert.Equal(t, expiry, session.ExpiresAt)
 	assert.Equal(t, now, session.CreatedAt)
-	assert.Equal(t, "ABCDEF", session.MagicCode)
+	assert.NotNil(t, session.MagicCode)
+	assert.Equal(t, "ABCDEF", *session.MagicCode)
+	assert.NotNil(t, session.MagicCodeExpires)
+	assert.Equal(t, magicCodeExpires, *session.MagicCodeExpires)
+}
+
+func TestSession_NullMagicCode(t *testing.T) {
+	now := time.Now()
+	expiry := now.Add(time.Hour * 24)
+
+	// Test session without magic code (e.g., after successful verification)
+	session := Session{
+		ID:               "session123",
+		UserID:           "user123",
+		ExpiresAt:        expiry,
+		CreatedAt:        now,
+		MagicCode:        nil,
+		MagicCodeExpires: nil,
+	}
+
+	// Basic assertion that the struct fields are set correctly
+	assert.Equal(t, "session123", session.ID)
+	assert.Equal(t, "user123", session.UserID)
+	assert.Equal(t, expiry, session.ExpiresAt)
+	assert.Equal(t, now, session.CreatedAt)
+	assert.Nil(t, session.MagicCode, "Magic code should be nil after verification")
+	assert.Nil(t, session.MagicCodeExpires, "Magic code expiration should be nil after verification")
 }
 
 func TestErrUserNotFound_Error(t *testing.T) {

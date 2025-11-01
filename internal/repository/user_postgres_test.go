@@ -181,13 +181,13 @@ func TestCreateSession(t *testing.T) {
 		ID:               sessionID,
 		UserID:           userID,
 		ExpiresAt:        expiresAt,
-		MagicCode:        magicCode,
-		MagicCodeExpires: magicCodeExpires,
+		MagicCode:        &magicCode,
+		MagicCodeExpires: &magicCodeExpires,
 	}
 
 	// Use a more permissive regex pattern that allows for whitespace variations
 	mock.ExpectExec(`INSERT INTO user_sessions.*VALUES.*\$1.*\$2.*\$3.*\$4.*\$5.*\$6`).
-		WithArgs(sessionID, userID, expiresAt, sqlmock.AnyArg(), magicCode, magicCodeExpires).
+		WithArgs(sessionID, userID, expiresAt, sqlmock.AnyArg(), &magicCode, sqlmock.AnyArg()).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	err := repo.CreateSession(context.Background(), session)
@@ -200,7 +200,7 @@ func TestGetSessionByID(t *testing.T) {
 
 	repo := NewUserRepository(db)
 
-	// Test case 1: Session found
+	// Test case 1: Session found with magic code
 	sessionID := "session-id-1"
 	userID := "user-id-1"
 	createdAt := time.Now().UTC().Truncate(time.Second)
@@ -221,10 +221,28 @@ func TestGetSessionByID(t *testing.T) {
 	assert.Equal(t, userID, session.UserID)
 	assert.Equal(t, expiresAt.Unix(), session.ExpiresAt.Unix())
 	assert.Equal(t, createdAt.Unix(), session.CreatedAt.Unix())
-	assert.Equal(t, magicCode, session.MagicCode)
+	require.NotNil(t, session.MagicCode)
+	assert.Equal(t, magicCode, *session.MagicCode)
+	require.NotNil(t, session.MagicCodeExpires)
 	assert.Equal(t, magicCodeExpires.Unix(), session.MagicCodeExpires.Unix())
 
-	// Test case 2: Session not found
+	// Test case 2: Session found with NULL magic code (common after migration v15)
+	sessionID2 := "session-id-2"
+	rows2 := sqlmock.NewRows([]string{"id", "user_id", "expires_at", "created_at", "magic_code", "magic_code_expires_at"}).
+		AddRow(sessionID2, userID, expiresAt, createdAt, nil, nil)
+
+	mock.ExpectQuery(`SELECT id, user_id, expires_at, created_at, magic_code, magic_code_expires_at FROM user_sessions WHERE id = \$1`).
+		WithArgs(sessionID2).
+		WillReturnRows(rows2)
+
+	session, err = repo.GetSessionByID(context.Background(), sessionID2)
+	require.NoError(t, err)
+	assert.Equal(t, sessionID2, session.ID)
+	assert.Equal(t, userID, session.UserID)
+	assert.Nil(t, session.MagicCode, "magic_code should be nil when NULL in database")
+	assert.Nil(t, session.MagicCodeExpires, "magic_code_expires_at should be nil when NULL in database")
+
+	// Test case 3: Session not found
 	mock.ExpectQuery(`SELECT id, user_id, expires_at, created_at, magic_code, magic_code_expires_at FROM user_sessions WHERE id = \$1`).
 		WithArgs("nonexistent-id").
 		WillReturnError(sql.ErrNoRows)
@@ -270,28 +288,15 @@ func TestGetSessionsByUserID(t *testing.T) {
 	userID := "user-id-1"
 	now := time.Now().UTC().Truncate(time.Second)
 
-	// Create two sessions for the same user
-	session1 := &domain.Session{
-		ID:               "session-id-1",
-		UserID:           userID,
-		ExpiresAt:        now.Add(24 * time.Hour),
-		CreatedAt:        now,
-		MagicCode:        "123456",
-		MagicCodeExpires: now.Add(15 * time.Minute),
-	}
-
-	session2 := &domain.Session{
-		ID:               "session-id-2",
-		UserID:           userID,
-		ExpiresAt:        now.Add(48 * time.Hour),
-		CreatedAt:        now.Add(1 * time.Hour),
-		MagicCode:        "654321",
-		MagicCodeExpires: now.Add(16 * time.Minute),
-	}
+	// Test case 1: Multiple sessions with magic codes
+	magicCode1 := "123456"
+	magicCodeExpires1 := now.Add(15 * time.Minute)
+	magicCode2 := "654321"
+	magicCodeExpires2 := now.Add(16 * time.Minute)
 
 	rows := sqlmock.NewRows([]string{"id", "user_id", "expires_at", "created_at", "magic_code", "magic_code_expires_at"}).
-		AddRow(session1.ID, session1.UserID, session1.ExpiresAt, session1.CreatedAt, session1.MagicCode, session1.MagicCodeExpires).
-		AddRow(session2.ID, session2.UserID, session2.ExpiresAt, session2.CreatedAt, session2.MagicCode, session2.MagicCodeExpires)
+		AddRow("session-id-1", userID, now.Add(24*time.Hour), now, magicCode1, magicCodeExpires1).
+		AddRow("session-id-2", userID, now.Add(48*time.Hour), now.Add(1*time.Hour), magicCode2, magicCodeExpires2)
 
 	mock.ExpectQuery(`SELECT id, user_id, expires_at, created_at, magic_code, magic_code_expires_at FROM user_sessions WHERE user_id = \$1 ORDER BY created_at DESC`).
 		WithArgs(userID).
@@ -300,8 +305,29 @@ func TestGetSessionsByUserID(t *testing.T) {
 	sessions, err := repo.GetSessionsByUserID(context.Background(), userID)
 	require.NoError(t, err)
 	assert.Len(t, sessions, 2)
-	assert.Equal(t, session1.ID, sessions[0].ID)
-	assert.Equal(t, session2.ID, sessions[1].ID)
+	assert.Equal(t, "session-id-1", sessions[0].ID)
+	assert.Equal(t, "session-id-2", sessions[1].ID)
+	require.NotNil(t, sessions[0].MagicCode)
+	assert.Equal(t, magicCode1, *sessions[0].MagicCode)
+	require.NotNil(t, sessions[1].MagicCode)
+	assert.Equal(t, magicCode2, *sessions[1].MagicCode)
+
+	// Test case 2: Sessions with NULL magic codes (common after migration v15)
+	rows2 := sqlmock.NewRows([]string{"id", "user_id", "expires_at", "created_at", "magic_code", "magic_code_expires_at"}).
+		AddRow("session-id-3", userID, now.Add(24*time.Hour), now, nil, nil).
+		AddRow("session-id-4", userID, now.Add(48*time.Hour), now.Add(1*time.Hour), nil, nil)
+
+	mock.ExpectQuery(`SELECT id, user_id, expires_at, created_at, magic_code, magic_code_expires_at FROM user_sessions WHERE user_id = \$1 ORDER BY created_at DESC`).
+		WithArgs(userID).
+		WillReturnRows(rows2)
+
+	sessions, err = repo.GetSessionsByUserID(context.Background(), userID)
+	require.NoError(t, err)
+	assert.Len(t, sessions, 2)
+	assert.Nil(t, sessions[0].MagicCode, "magic_code should be nil when NULL in database")
+	assert.Nil(t, sessions[0].MagicCodeExpires, "magic_code_expires_at should be nil when NULL in database")
+	assert.Nil(t, sessions[1].MagicCode)
+	assert.Nil(t, sessions[1].MagicCodeExpires)
 }
 
 func TestUpdateSession(t *testing.T) {
@@ -310,7 +336,7 @@ func TestUpdateSession(t *testing.T) {
 
 	repo := NewUserRepository(db)
 
-	// Test case 1: Session updated successfully
+	// Test case 1: Session updated successfully with magic code
 	sessionID := "session-id-1"
 	expiresAt := time.Now().Add(48 * time.Hour).UTC().Truncate(time.Second)
 	magicCode := "updated-code"
@@ -319,20 +345,36 @@ func TestUpdateSession(t *testing.T) {
 	session := &domain.Session{
 		ID:               sessionID,
 		ExpiresAt:        expiresAt,
-		MagicCode:        magicCode,
-		MagicCodeExpires: magicCodeExpires,
+		MagicCode:        &magicCode,
+		MagicCodeExpires: &magicCodeExpires,
 	}
 
 	mock.ExpectExec(`UPDATE user_sessions SET expires_at = \$1, magic_code = \$2, magic_code_expires_at = \$3 WHERE id = \$4`).
-		WithArgs(expiresAt, magicCode, magicCodeExpires, sessionID).
+		WithArgs(expiresAt, &magicCode, &magicCodeExpires, sessionID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	err := repo.UpdateSession(context.Background(), session)
 	require.NoError(t, err)
 
-	// Test case 2: Session not found
+	// Test case 2: Session updated with NULL magic code (clearing it)
+	sessionID2 := "session-id-2"
+	session2 := &domain.Session{
+		ID:               sessionID2,
+		ExpiresAt:        expiresAt,
+		MagicCode:        nil,
+		MagicCodeExpires: nil,
+	}
+
 	mock.ExpectExec(`UPDATE user_sessions SET expires_at = \$1, magic_code = \$2, magic_code_expires_at = \$3 WHERE id = \$4`).
-		WithArgs(expiresAt, magicCode, magicCodeExpires, "nonexistent-id").
+		WithArgs(expiresAt, nil, nil, sessionID2).
+		WillReturnResult(sqlmock.NewResult(0, 1))
+
+	err = repo.UpdateSession(context.Background(), session2)
+	require.NoError(t, err)
+
+	// Test case 3: Session not found
+	mock.ExpectExec(`UPDATE user_sessions SET expires_at = \$1, magic_code = \$2, magic_code_expires_at = \$3 WHERE id = \$4`).
+		WithArgs(expiresAt, &magicCode, &magicCodeExpires, "nonexistent-id").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
 	session.ID = "nonexistent-id"
