@@ -562,6 +562,10 @@ func (a *App) InitServices() error {
 	// Initialize task service
 	a.taskService = service.NewTaskService(a.taskRepo, a.settingRepo, a.logger, a.authService, a.config.APIEndpoint)
 
+	// Configure autoExecuteImmediate based on TaskScheduler.Enabled
+	// If task scheduler is disabled (e.g., in tests), also disable background task execution
+	a.taskService.SetAutoExecuteImmediate(a.config.TaskScheduler.Enabled)
+
 	// Initialize transactional notification service
 	a.transactionalNotificationService = service.NewTransactionalNotificationService(
 		a.transactionalNotificationRepo,

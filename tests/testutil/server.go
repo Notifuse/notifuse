@@ -73,6 +73,9 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 		Broadcast: config.BroadcastConfig{
 			DefaultRateLimit: 6000, // 6000 per minute = 100 per second (no rate limiting for tests)
 		},
+		TaskScheduler: config.TaskSchedulerConfig{
+			Enabled: false, // Disable task scheduler and autoExecuteImmediate to prevent background goroutines
+		},
 		Tracing: config.TracingConfig{
 			Enabled: false,
 		},

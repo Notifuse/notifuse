@@ -300,7 +300,7 @@ func testRaceConditionPrevention(t *testing.T, client *testutil.APIClient, facto
 		// Wait for broadcast to enter testing or test_completed state with continuous task execution
 		currentStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcastID,
 			[]string{"testing", "test_completed", "sending"},
-			30*time.Second)
+			90*time.Second)
 		if err != nil {
 			t.Fatalf("Failed to wait for broadcast to enter testing phase: %v", err)
 		}

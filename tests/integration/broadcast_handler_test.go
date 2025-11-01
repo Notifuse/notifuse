@@ -559,15 +559,12 @@ func testBroadcastLifecycle(t *testing.T, client *testutil.APIClient, factory *t
 				t.Logf("Unexpected response format: %+v", result)
 			}
 
-			// Execute pending tasks to start the broadcast
-			time.Sleep(1 * time.Second)
-			execResp, err := client.ExecutePendingTasks(10)
-			require.NoError(t, err)
-			defer execResp.Body.Close()
-
 			// Wait for broadcast to complete and verify it succeeded
+			// Using WaitForBroadcastStatusWithExecution to ensure continuous task processing
 			// This is the critical check that would have caught the SQL scan bug!
-			finalStatus, err := testutil.WaitForBroadcastCompletion(t, client, broadcast.ID, 30*time.Second)
+			finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID, 
+				[]string{"sent", "completed"},
+				60*time.Second)
 			if err != nil {
 				t.Fatalf("Broadcast failed or timed out: %v", err)
 			}

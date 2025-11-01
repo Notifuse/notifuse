@@ -17,7 +17,6 @@ export const setupApi = {
 
   /**
    * Initialize the system with the provided configuration
-   * If generate_paseto_keys is true, keys will be generated and returned in the response
    */
   async initialize(config: SetupConfig): Promise<InitializeResponse> {
     return api.post<InitializeResponse>('/api/setup.initialize', config)
