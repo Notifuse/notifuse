@@ -237,7 +237,7 @@ func SetupTestEnvironment() {
 func CleanupTestEnvironment() {
 	// Clean up the global connection pool to prevent connection leaks between tests
 	CleanupAllTestConnections()
-	
+
 	os.Unsetenv("TEST_DB_HOST")
 	os.Unsetenv("TEST_DB_PORT")
 	os.Unsetenv("TEST_DB_USER")
@@ -318,6 +318,159 @@ func WaitForBroadcastStatus(t *testing.T, client *APIClient, broadcastID string,
 	}
 
 	return "", fmt.Errorf("timeout waiting for broadcast to reach status %v after %v", acceptableStatuses, timeout)
+}
+
+// WaitForBroadcastStatusWithExecution waits for a broadcast to reach one of the acceptable statuses
+// while continuously executing pending tasks. This is the recommended helper for A/B testing flows
+// that require task orchestration to complete.
+//
+// This function differs from WaitForBroadcastStatus by actively executing tasks during the wait,
+// which is necessary for broadcasts that need continuous task processing to transition through phases.
+//
+// Parameters:
+//   - t: testing context for logging
+//   - client: API client for making requests
+//   - broadcastID: ID of the broadcast to monitor
+//   - acceptableStatuses: list of statuses that indicate success
+//   - timeout: maximum time to wait
+//
+// Returns the final status reached or an error if timeout occurs.
+func WaitForBroadcastStatusWithExecution(t *testing.T, client *APIClient, broadcastID string, acceptableStatuses []string, timeout time.Duration) (string, error) {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 1 * time.Second
+	taskExecutionInterval := 2 * time.Second
+	lastTaskExecution := time.Now()
+
+	t.Logf("Starting WaitForBroadcastStatusWithExecution for broadcast %s (timeout: %v)", broadcastID, timeout)
+	t.Logf("Acceptable statuses: %v", acceptableStatuses)
+
+	iterationCount := 0
+	taskExecutionCount := 0
+
+	for time.Now().Before(deadline) {
+		iterationCount++
+
+		// Execute pending tasks periodically
+		if time.Since(lastTaskExecution) >= taskExecutionInterval {
+			taskExecutionCount++
+			t.Logf("Executing pending tasks (cycle %d)", taskExecutionCount)
+
+			execResp, err := client.ExecutePendingTasks(10)
+			if err != nil {
+				t.Logf("Warning: ExecutePendingTasks failed: %v", err)
+			} else {
+				execResp.Body.Close()
+				t.Logf("Task execution completed successfully")
+			}
+
+			lastTaskExecution = time.Now()
+
+			// Give tasks time to process
+			time.Sleep(500 * time.Millisecond)
+		}
+
+		// Check broadcast status
+		resp, err := client.GetBroadcast(broadcastID)
+		if err != nil {
+			return "", fmt.Errorf("failed to get broadcast: %w", err)
+		}
+
+		var result map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&result)
+		resp.Body.Close()
+
+		if err != nil {
+			return "", fmt.Errorf("failed to decode broadcast response: %w", err)
+		}
+
+		if broadcastData, ok := result["broadcast"].(map[string]interface{}); ok {
+			if status, ok := broadcastData["status"].(string); ok {
+				// Log current status every few iterations
+				if iterationCount%3 == 1 {
+					t.Logf("Broadcast %s current status: %s (iteration %d)", broadcastID, status, iterationCount)
+				}
+
+				// Check if we've reached an acceptable status
+				for _, acceptable := range acceptableStatuses {
+					if status == acceptable {
+						t.Logf("✓ Broadcast reached acceptable status '%s' after %d iterations and %d task executions",
+							status, iterationCount, taskExecutionCount)
+						return status, nil
+					}
+				}
+
+				// Check for failure states
+				if status == "failed" || status == "cancelled" {
+					// Get diagnostic info
+					phase := ""
+					progress := 0.0
+					if state, ok := broadcastData["state"].(map[string]interface{}); ok {
+						if phaseVal, ok := state["phase"].(string); ok {
+							phase = phaseVal
+						}
+						if progressVal, ok := state["progress"].(float64); ok {
+							progress = progressVal
+						}
+					}
+
+					return status, fmt.Errorf("broadcast reached terminal failure state: %s (phase: %s, progress: %.1f%%)",
+						status, phase, progress*100)
+				}
+			}
+		}
+
+		time.Sleep(pollInterval)
+	}
+
+	// Timeout - gather diagnostic information
+	resp, err := client.GetBroadcast(broadcastID)
+	if err == nil {
+		var result map[string]interface{}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err == nil {
+			if broadcastData, ok := result["broadcast"].(map[string]interface{}); ok {
+				status, _ := broadcastData["status"].(string)
+
+				// Extract detailed state info
+				phase := "unknown"
+				progress := 0.0
+				sentCount := 0
+				failedCount := 0
+				totalRecipients := 0
+
+				if state, ok := broadcastData["state"].(map[string]interface{}); ok {
+					if phaseVal, ok := state["phase"].(string); ok {
+						phase = phaseVal
+					}
+					if progressVal, ok := state["progress"].(float64); ok {
+						progress = progressVal
+					}
+				}
+
+				if sentCountVal, ok := broadcastData["sent_count"].(float64); ok {
+					sentCount = int(sentCountVal)
+				}
+				if failedCountVal, ok := broadcastData["failed_count"].(float64); ok {
+					failedCount = int(failedCountVal)
+				}
+				if totalVal, ok := broadcastData["total_recipients"].(float64); ok {
+					totalRecipients = int(totalVal)
+				}
+
+				t.Logf("TIMEOUT DIAGNOSTICS for broadcast %s:", broadcastID)
+				t.Logf("  Current status: %s", status)
+				t.Logf("  Phase: %s", phase)
+				t.Logf("  Progress: %.1f%%", progress*100)
+				t.Logf("  Recipients: %d sent, %d failed, %d total", sentCount, failedCount, totalRecipients)
+				t.Logf("  Iterations: %d", iterationCount)
+				t.Logf("  Task executions: %d", taskExecutionCount)
+				t.Logf("  Expected statuses: %v", acceptableStatuses)
+			}
+		}
+		resp.Body.Close()
+	}
+
+	return "", fmt.Errorf("timeout waiting for broadcast to reach status %v after %v (executed %d task cycles)",
+		acceptableStatuses, timeout, taskExecutionCount)
 }
 
 // VerifyBroadcastWinnerTemplate checks that a broadcast has the expected winning template
@@ -469,7 +622,7 @@ func WaitForSegmentBuilt(t *testing.T, client *APIClient, workspaceID, segmentID
 		if err == nil {
 			execResp.Body.Close()
 		}
-		
+
 		resp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
 		if err != nil {
 			return "", fmt.Errorf("failed to get segment: %w", err)
@@ -514,23 +667,23 @@ func CleanupAllTasks(t *testing.T, client *APIClient, workspaceID string) error 
 		"workspace_id": workspaceID,
 		"limit":        "1000", // High limit to get all tasks
 	}
-	
+
 	resp, err := client.ListTasks(params)
 	if err != nil {
 		return fmt.Errorf("failed to list tasks: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	var result map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return fmt.Errorf("failed to decode task list: %w", err)
 	}
-	
+
 	tasks, ok := result["tasks"].([]interface{})
 	if !ok {
 		return nil // No tasks to clean up
 	}
-	
+
 	// Delete each task
 	deletedCount := 0
 	for _, taskInterface := range tasks {
@@ -539,7 +692,7 @@ func CleanupAllTasks(t *testing.T, client *APIClient, workspaceID string) error 
 		if !ok {
 			continue
 		}
-		
+
 		deleteResp, err := client.DeleteTask(workspaceID, taskID)
 		if err != nil {
 			t.Logf("Failed to delete task %s: %v", taskID, err)
@@ -548,11 +701,11 @@ func CleanupAllTasks(t *testing.T, client *APIClient, workspaceID string) error 
 		deleteResp.Body.Close()
 		deletedCount++
 	}
-	
+
 	if deletedCount > 0 {
 		t.Logf("Cleaned up %d tasks for workspace %s", deletedCount, workspaceID)
 	}
-	
+
 	return nil
 }
 
@@ -615,8 +768,8 @@ func WaitForBuildTaskCreated(t *testing.T, client *APIClient, workspaceID, segme
 
 // MailhogMessage represents a simplified email message from Mailhog API
 type MailhogMessage struct {
-	ID      string `json:"ID"`
-	From    struct {
+	ID   string `json:"ID"`
+	From struct {
 		Mailbox string `json:"Mailbox"`
 		Domain  string `json:"Domain"`
 	} `json:"From"`
@@ -633,10 +786,10 @@ type MailhogMessage struct {
 
 // MailhogAPIResponse represents the response from Mailhog's messages API
 type MailhogAPIResponse struct {
-	Total    int              `json:"total"`
-	Count    int              `json:"count"`
-	Start    int              `json:"start"`
-	Items    []MailhogMessage `json:"items"`
+	Total int              `json:"total"`
+	Count int              `json:"count"`
+	Start int              `json:"start"`
+	Items []MailhogMessage `json:"items"`
 }
 
 // CheckMailhogForRecipients checks if an email was sent to all expected recipients via Mailhog
@@ -736,11 +889,11 @@ func extractEmailFromHeader(header string) string {
 	// Check if email is in angle brackets
 	start := strings.Index(header, "<")
 	end := strings.Index(header, ">")
-	
+
 	if start != -1 && end != -1 && end > start {
 		return strings.TrimSpace(header[start+1 : end])
 	}
-	
+
 	// Otherwise return the whole header trimmed
 	return strings.TrimSpace(header)
 }
