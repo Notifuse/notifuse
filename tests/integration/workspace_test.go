@@ -682,7 +682,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 
 		workspaceData := getResponse["workspace"].(map[string]interface{})
 		integrations := workspaceData["integrations"].([]interface{})
-		
+
 		// Find the Supabase integration
 		var supabaseIntegration map[string]interface{}
 		for _, integ := range integrations {
@@ -692,7 +692,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 				break
 			}
 		}
-		
+
 		require.NotNil(t, supabaseIntegration, "Supabase integration not found")
 		assert.Equal(t, integrationID, supabaseIntegration["id"])
 		assert.Equal(t, "Test Supabase Integration", supabaseIntegration["name"])
@@ -710,19 +710,19 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 		require.NoError(t, err)
 
 		templates := templatesResponse["templates"].([]interface{})
-		
+
 		// Count templates with this integration_id
 		supabaseTemplateCount := 0
 		expectedTemplateNames := []string{
-			"Supabase Signup Confirmation",
-			"Supabase Magic Link",
-			"Supabase Password Recovery",
-			"Supabase Email Change (Current)",
-			"Supabase Email Change (New)",
-			"Supabase User Invitation",
+			"Signup Confirmation",
+			"Magic Link",
+			"Password Recovery",
+			"Email Change",
+			"User Invitation",
+			"Reauthentication",
 		}
 		foundTemplateNames := []string{}
-		
+
 		for _, tmpl := range templates {
 			tmplMap := tmpl.(map[string]interface{})
 			if integID, ok := tmplMap["integration_id"]; ok && integID == integrationID {
@@ -730,7 +730,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 				foundTemplateNames = append(foundTemplateNames, tmplMap["name"].(string))
 			}
 		}
-		
+
 		assert.Equal(t, 6, supabaseTemplateCount, "Expected 6 Supabase templates to be created")
 		for _, expectedName := range expectedTemplateNames {
 			assert.Contains(t, foundTemplateNames, expectedName, "Template %s not found", expectedName)
@@ -748,19 +748,19 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 		require.NoError(t, err)
 
 		notifications := notificationsResponse["notifications"].([]interface{})
-		
+
 		// Count notifications with this integration_id
 		supabaseNotificationCount := 0
 		expectedNotificationNames := []string{
-			"Supabase Signup Confirmation",
-			"Supabase Magic Link",
-			"Supabase Password Recovery",
-			"Supabase Email Change (Current)",
-			"Supabase Email Change (New)",
-			"Supabase User Invitation",
+			"Signup Confirmation",
+			"Magic Link",
+			"Password Recovery",
+			"Email Change",
+			"User Invitation",
+			"Reauthentication",
 		}
 		foundNotificationNames := []string{}
-		
+
 		for _, notif := range notifications {
 			notifMap := notif.(map[string]interface{})
 			if integID, ok := notifMap["integration_id"]; ok && integID == integrationID {
@@ -768,7 +768,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 				foundNotificationNames = append(foundNotificationNames, notifMap["name"].(string))
 			}
 		}
-		
+
 		assert.Equal(t, 6, supabaseNotificationCount, "Expected 6 Supabase transactional notifications to be created")
 		for _, expectedName := range expectedNotificationNames {
 			assert.Contains(t, foundNotificationNames, expectedName, "Notification %s not found", expectedName)
