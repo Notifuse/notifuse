@@ -86,7 +86,8 @@ func (up *UserPermissions) Scan(value interface{}) error {
 type IntegrationType string
 
 const (
-	IntegrationTypeEmail IntegrationType = "email"
+	IntegrationTypeEmail    IntegrationType = "email"
+	IntegrationTypeSupabase IntegrationType = "supabase"
 )
 
 // Integrations is a slice of Integration with database serialization methods
@@ -118,12 +119,13 @@ func (i *Integrations) Scan(value interface{}) error {
 
 // Integration represents a third-party service integration that's embedded in workspace settings
 type Integration struct {
-	ID            string          `json:"id"`
-	Name          string          `json:"name"`
-	Type          IntegrationType `json:"type"`
-	EmailProvider EmailProvider   `json:"email_provider"`
-	CreatedAt     time.Time       `json:"created_at"`
-	UpdatedAt     time.Time       `json:"updated_at"`
+	ID               string                       `json:"id"`
+	Name             string                       `json:"name"`
+	Type             IntegrationType              `json:"type"`
+	EmailProvider    EmailProvider                `json:"email_provider,omitempty"`
+	SupabaseSettings *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`
+	CreatedAt        time.Time                    `json:"created_at"`
+	UpdatedAt        time.Time                    `json:"updated_at"`
 }
 
 // Validate validates the integration
@@ -140,9 +142,23 @@ func (i *Integration) Validate(passphrase string) error {
 		return fmt.Errorf("integration type is required")
 	}
 
-	// Validate provider config
-	if err := i.EmailProvider.Validate(passphrase); err != nil {
-		return fmt.Errorf("invalid provider configuration: %w", err)
+	// Validate based on integration type
+	switch i.Type {
+	case IntegrationTypeEmail:
+		// Validate email provider config
+		if err := i.EmailProvider.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid provider configuration: %w", err)
+		}
+	case IntegrationTypeSupabase:
+		// Validate Supabase settings
+		if i.SupabaseSettings == nil {
+			return fmt.Errorf("supabase settings are required for supabase integration")
+		}
+		if err := i.SupabaseSettings.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid supabase settings: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported integration type: %s", i.Type)
 	}
 
 	return nil
@@ -150,8 +166,18 @@ func (i *Integration) Validate(passphrase string) error {
 
 // BeforeSave prepares an Integration for saving by encrypting secrets
 func (i *Integration) BeforeSave(secretkey string) error {
-	if err := i.EmailProvider.EncryptSecretKeys(secretkey); err != nil {
-		return fmt.Errorf("failed to encrypt integration provider secrets: %w", err)
+	// Encrypt based on integration type
+	switch i.Type {
+	case IntegrationTypeEmail:
+		if err := i.EmailProvider.EncryptSecretKeys(secretkey); err != nil {
+			return fmt.Errorf("failed to encrypt integration provider secrets: %w", err)
+		}
+	case IntegrationTypeSupabase:
+		if i.SupabaseSettings != nil {
+			if err := i.SupabaseSettings.EncryptSignatureKeys(secretkey); err != nil {
+				return fmt.Errorf("failed to encrypt supabase signature keys: %w", err)
+			}
+		}
 	}
 
 	return nil
@@ -159,8 +185,18 @@ func (i *Integration) BeforeSave(secretkey string) error {
 
 // AfterLoad processes an Integration after loading by decrypting secrets
 func (i *Integration) AfterLoad(secretkey string) error {
-	if err := i.EmailProvider.DecryptSecretKeys(secretkey); err != nil {
-		return fmt.Errorf("failed to decrypt integration provider secrets: %w", err)
+	// Decrypt based on integration type
+	switch i.Type {
+	case IntegrationTypeEmail:
+		if err := i.EmailProvider.DecryptSecretKeys(secretkey); err != nil {
+			return fmt.Errorf("failed to decrypt integration provider secrets: %w", err)
+		}
+	case IntegrationTypeSupabase:
+		if i.SupabaseSettings != nil {
+			if err := i.SupabaseSettings.DecryptSignatureKeys(secretkey); err != nil {
+				return fmt.Errorf("failed to decrypt supabase signature keys: %w", err)
+			}
+		}
 	}
 
 	return nil
@@ -860,8 +896,8 @@ type WorkspaceServiceInterface interface {
 	DeleteInvitation(ctx context.Context, invitationID string) error
 
 	// Integration management
-	CreateIntegration(ctx context.Context, workspaceID, name string, integrationType IntegrationType, provider EmailProvider) (string, error)
-	UpdateIntegration(ctx context.Context, workspaceID, integrationID, name string, provider EmailProvider) error
+	CreateIntegration(ctx context.Context, req CreateIntegrationRequest) (string, error)
+	UpdateIntegration(ctx context.Context, req UpdateIntegrationRequest) error
 	DeleteIntegration(ctx context.Context, workspaceID, integrationID string) error
 
 	// Permission management
@@ -889,10 +925,11 @@ func (r *CreateAPIKeyRequest) Validate() error {
 
 // CreateIntegrationRequest defines the request structure for creating an integration
 type CreateIntegrationRequest struct {
-	WorkspaceID string          `json:"workspace_id"`
-	Name        string          `json:"name"`
-	Type        IntegrationType `json:"type"`
-	Provider    EmailProvider   `json:"provider"`
+	WorkspaceID      string                       `json:"workspace_id"`
+	Name             string                       `json:"name"`
+	Type             IntegrationType              `json:"type"`
+	Provider         EmailProvider                `json:"provider,omitempty"`          // For email integrations
+	SupabaseSettings *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"` // For Supabase integrations
 }
 
 func (r *CreateIntegrationRequest) Validate(passphrase string) error {
@@ -908,9 +945,21 @@ func (r *CreateIntegrationRequest) Validate(passphrase string) error {
 		return fmt.Errorf("integration type is required")
 	}
 
-	// Validate provider configuration
-	if err := r.Provider.Validate(passphrase); err != nil {
-		return fmt.Errorf("invalid provider configuration: %w", err)
+	// Validate based on integration type
+	switch r.Type {
+	case IntegrationTypeEmail:
+		if err := r.Provider.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid provider configuration: %w", err)
+		}
+	case IntegrationTypeSupabase:
+		if r.SupabaseSettings == nil {
+			return fmt.Errorf("supabase settings are required for supabase integration")
+		}
+		if err := r.SupabaseSettings.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid supabase settings: %w", err)
+		}
+	default:
+		return fmt.Errorf("unsupported integration type: %s", r.Type)
 	}
 
 	return nil
@@ -918,10 +967,11 @@ func (r *CreateIntegrationRequest) Validate(passphrase string) error {
 
 // UpdateIntegrationRequest defines the request structure for updating an integration
 type UpdateIntegrationRequest struct {
-	WorkspaceID   string        `json:"workspace_id"`
-	IntegrationID string        `json:"integration_id"`
-	Name          string        `json:"name"`
-	Provider      EmailProvider `json:"provider"`
+	WorkspaceID      string                       `json:"workspace_id"`
+	IntegrationID    string                       `json:"integration_id"`
+	Name             string                       `json:"name"`
+	Provider         EmailProvider                `json:"provider,omitempty"`          // For email integrations
+	SupabaseSettings *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"` // For Supabase integrations
 }
 
 func (r *UpdateIntegrationRequest) Validate(passphrase string) error {
@@ -937,9 +987,16 @@ func (r *UpdateIntegrationRequest) Validate(passphrase string) error {
 		return fmt.Errorf("integration name is required")
 	}
 
-	// Validate provider configuration
-	if err := r.Provider.Validate(passphrase); err != nil {
-		return fmt.Errorf("invalid provider configuration: %w", err)
+	// Validate provider/settings configuration based on what's provided
+	// Note: We don't validate the type here since it cannot be changed in updates
+	if r.Provider.Kind != "" {
+		if err := r.Provider.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid provider configuration: %w", err)
+		}
+	} else if r.SupabaseSettings != nil {
+		if err := r.SupabaseSettings.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid supabase settings: %w", err)
+		}
 	}
 
 	return nil

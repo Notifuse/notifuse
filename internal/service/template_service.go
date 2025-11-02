@@ -236,6 +236,21 @@ func (s *TemplateService) DeleteTemplate(ctx context.Context, workspaceID string
 		)
 	}
 
+	// Get the template to check if it's integration-managed
+	template, err := s.repo.GetTemplateByID(ctx, workspaceID, id, 0)
+	if err != nil {
+		if _, ok := err.(*domain.ErrTemplateNotFound); ok {
+			return err
+		}
+		s.logger.WithField("template_id", id).Error(fmt.Sprintf("Failed to get template: %v", err))
+		return fmt.Errorf("failed to get template: %w", err)
+	}
+
+	// Prevent deletion of integration-managed templates
+	if template.IntegrationID != nil && *template.IntegrationID != "" {
+		return fmt.Errorf("cannot delete integration-managed template: template is managed by integration %s", *template.IntegrationID)
+	}
+
 	// Delete template
 	if err := s.repo.DeleteTemplate(ctx, workspaceID, id); err != nil {
 		if _, ok := err.(*domain.ErrTemplateNotFound); ok {

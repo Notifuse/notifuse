@@ -3513,3 +3513,329 @@ func TestWorkspace_Validate_WithCustomFieldLabels(t *testing.T) {
 		})
 	}
 }
+
+// Tests for Supabase Integration Support
+
+func TestIntegration_Validate_SupabaseIntegration(t *testing.T) {
+	passphrase := "test-passphrase"
+
+	tests := []struct {
+		name        string
+		integration Integration
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "valid supabase integration",
+			integration: Integration{
+				ID:   "supabase-1",
+				Name: "My Supabase",
+				Type: IntegrationTypeSupabase,
+				SupabaseSettings: &SupabaseIntegrationSettings{
+					AuthEmailHook: SupabaseAuthEmailHookSettings{
+						SignatureKey: "test-key",
+					},
+					BeforeUserCreatedHook: SupabaseUserCreatedHookSettings{
+						SignatureKey: "test-key",
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "supabase integration without settings",
+			integration: Integration{
+				ID:               "supabase-2",
+				Name:             "My Supabase",
+				Type:             IntegrationTypeSupabase,
+				SupabaseSettings: nil,
+			},
+			expectError: true,
+			errorMsg:    "supabase settings are required",
+		},
+		{
+			name: "supabase integration with empty settings",
+			integration: Integration{
+				ID:   "supabase-3",
+				Name: "My Supabase",
+				Type: IntegrationTypeSupabase,
+				SupabaseSettings: &SupabaseIntegrationSettings{
+					AuthEmailHook:         SupabaseAuthEmailHookSettings{},
+					BeforeUserCreatedHook: SupabaseUserCreatedHookSettings{},
+				},
+			},
+			expectError: false, // Empty settings are allowed
+		},
+		{
+			name: "email integration should not have supabase settings",
+			integration: Integration{
+				ID:   "email-1",
+				Name: "Email Integration",
+				Type: IntegrationTypeEmail,
+				EmailProvider: EmailProvider{
+					Kind:               EmailProviderKindSMTP,
+					RateLimitPerMinute: 25,
+					Senders:            []EmailSender{{ID: "default", Email: "test@example.com", Name: "Sender", IsDefault: true}},
+					SMTP:               &SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "u", Password: "p"},
+				},
+			},
+			expectError: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.integration.Validate(passphrase)
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errorMsg != "" {
+					assert.Contains(t, err.Error(), tt.errorMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestIntegration_BeforeSave_SupabaseIntegration(t *testing.T) {
+	passphrase := "test-passphrase"
+
+	integration := Integration{
+		ID:   "supabase-1",
+		Name: "My Supabase",
+		Type: IntegrationTypeSupabase,
+		SupabaseSettings: &SupabaseIntegrationSettings{
+			AuthEmailHook: SupabaseAuthEmailHookSettings{
+				SignatureKey: "auth-email-secret",
+			},
+			BeforeUserCreatedHook: SupabaseUserCreatedHookSettings{
+				SignatureKey: "user-created-secret",
+			},
+		},
+	}
+
+	// Before save - should encrypt keys
+	err := integration.BeforeSave(passphrase)
+	assert.NoError(t, err)
+
+	// Keys should be encrypted and cleared
+	assert.Empty(t, integration.SupabaseSettings.AuthEmailHook.SignatureKey)
+	assert.NotEmpty(t, integration.SupabaseSettings.AuthEmailHook.EncryptedSignatureKey)
+	assert.Empty(t, integration.SupabaseSettings.BeforeUserCreatedHook.SignatureKey)
+	assert.NotEmpty(t, integration.SupabaseSettings.BeforeUserCreatedHook.EncryptedSignatureKey)
+}
+
+func TestIntegration_AfterLoad_SupabaseIntegration(t *testing.T) {
+	passphrase := "test-passphrase"
+
+	integration := Integration{
+		ID:   "supabase-1",
+		Name: "My Supabase",
+		Type: IntegrationTypeSupabase,
+		SupabaseSettings: &SupabaseIntegrationSettings{
+			AuthEmailHook: SupabaseAuthEmailHookSettings{
+				SignatureKey: "auth-email-secret",
+			},
+			BeforeUserCreatedHook: SupabaseUserCreatedHookSettings{
+				SignatureKey: "user-created-secret",
+			},
+		},
+	}
+
+	// Encrypt first
+	err := integration.BeforeSave(passphrase)
+	require.NoError(t, err)
+
+	// After load - should decrypt keys
+	err = integration.AfterLoad(passphrase)
+	assert.NoError(t, err)
+
+	// Keys should be decrypted
+	assert.Equal(t, "auth-email-secret", integration.SupabaseSettings.AuthEmailHook.SignatureKey)
+	assert.Equal(t, "user-created-secret", integration.SupabaseSettings.BeforeUserCreatedHook.SignatureKey)
+}
+
+func TestIntegration_BeforeAfterSave_EmailIntegrationStillWorks(t *testing.T) {
+	passphrase := "test-passphrase"
+
+	// Test that email integrations still work after Supabase support
+	integration := Integration{
+		ID:   "email-1",
+		Name: "Email Integration",
+		Type: IntegrationTypeEmail,
+		EmailProvider: EmailProvider{
+			Kind:    EmailProviderKindSMTP,
+			Senders: []EmailSender{{ID: "default", Email: "test@example.com", Name: "Sender", IsDefault: true}},
+			SMTP:    &SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "secret-password"},
+		},
+	}
+
+	// Encrypt
+	err := integration.BeforeSave(passphrase)
+	assert.NoError(t, err)
+	assert.Empty(t, integration.EmailProvider.SMTP.Password)
+	assert.NotEmpty(t, integration.EmailProvider.SMTP.EncryptedPassword)
+
+	// Decrypt
+	err = integration.AfterLoad(passphrase)
+	assert.NoError(t, err)
+	assert.Equal(t, "secret-password", integration.EmailProvider.SMTP.Password)
+}
+
+func TestCreateIntegrationRequest_Validate_SupabaseIntegration(t *testing.T) {
+	passphrase := "test-passphrase"
+
+	tests := []struct {
+		name        string
+		request     CreateIntegrationRequest
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "valid supabase integration request",
+			request: CreateIntegrationRequest{
+				WorkspaceID: "workspace-123",
+				Name:        "My Supabase",
+				Type:        IntegrationTypeSupabase,
+				SupabaseSettings: &SupabaseIntegrationSettings{
+					AuthEmailHook: SupabaseAuthEmailHookSettings{
+						SignatureKey: "test-key",
+					},
+					BeforeUserCreatedHook: SupabaseUserCreatedHookSettings{
+						SignatureKey: "test-key",
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "supabase integration without settings",
+			request: CreateIntegrationRequest{
+				WorkspaceID:      "workspace-123",
+				Name:             "My Supabase",
+				Type:             IntegrationTypeSupabase,
+				SupabaseSettings: nil,
+			},
+			expectError: true,
+			errorMsg:    "supabase settings are required",
+		},
+		{
+			name: "valid email integration request",
+			request: CreateIntegrationRequest{
+				WorkspaceID: "workspace-123",
+				Name:        "Email Provider",
+				Type:        IntegrationTypeEmail,
+				Provider: EmailProvider{
+					Kind:               EmailProviderKindSMTP,
+					RateLimitPerMinute: 25,
+					Senders:            []EmailSender{{ID: "default", Email: "test@example.com", Name: "Sender", IsDefault: true}},
+					SMTP:               &SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "u", Password: "p"},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "unsupported integration type",
+			request: CreateIntegrationRequest{
+				WorkspaceID: "workspace-123",
+				Name:        "Unknown",
+				Type:        "unknown-type",
+			},
+			expectError: true,
+			errorMsg:    "unsupported integration type",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.request.Validate(passphrase)
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errorMsg != "" {
+					assert.Contains(t, err.Error(), tt.errorMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestUpdateIntegrationRequest_Validate_SupabaseIntegration(t *testing.T) {
+	passphrase := "test-passphrase"
+
+	tests := []struct {
+		name        string
+		request     UpdateIntegrationRequest
+		expectError bool
+		errorMsg    string
+	}{
+		{
+			name: "valid supabase integration update",
+			request: UpdateIntegrationRequest{
+				WorkspaceID:   "workspace-123",
+				IntegrationID: "integration-456",
+				Name:          "Updated Supabase",
+				SupabaseSettings: &SupabaseIntegrationSettings{
+					AuthEmailHook: SupabaseAuthEmailHookSettings{
+						SignatureKey: "new-key",
+					},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "valid email integration update",
+			request: UpdateIntegrationRequest{
+				WorkspaceID:   "workspace-123",
+				IntegrationID: "integration-456",
+				Name:          "Updated Email",
+				Provider: EmailProvider{
+					Kind:               EmailProviderKindSMTP,
+					RateLimitPerMinute: 25,
+					Senders:            []EmailSender{{ID: "default", Email: "test@example.com", Name: "Sender", IsDefault: true}},
+					SMTP:               &SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "u", Password: "p"},
+				},
+			},
+			expectError: false,
+		},
+		{
+			name: "missing workspace id",
+			request: UpdateIntegrationRequest{
+				IntegrationID: "integration-456",
+				Name:          "Updated",
+			},
+			expectError: true,
+			errorMsg:    "workspace ID is required",
+		},
+		{
+			name: "missing integration id",
+			request: UpdateIntegrationRequest{
+				WorkspaceID: "workspace-123",
+				Name:        "Updated",
+			},
+			expectError: true,
+			errorMsg:    "integration ID is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.request.Validate(passphrase)
+			if tt.expectError {
+				assert.Error(t, err)
+				if tt.errorMsg != "" {
+					assert.Contains(t, err.Error(), tt.errorMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestIntegration_SupabaseIntegrationType_Constant(t *testing.T) {
+	assert.Equal(t, IntegrationType("supabase"), IntegrationTypeSupabase)
+	assert.Equal(t, IntegrationType("email"), IntegrationTypeEmail)
+}

@@ -375,13 +375,12 @@ func (s *DemoService) createDemoSMTPIntegration(ctx context.Context, workspaceID
 	}
 
 	// Create the integration
-	integrationID, err := s.workspaceService.CreateIntegration(
-		ctx,
-		workspaceID,
-		"Demo SMTP Integration",
-		domain.IntegrationTypeEmail,
-		smtpProvider,
-	)
+	integrationID, err := s.workspaceService.CreateIntegration(ctx, domain.CreateIntegrationRequest{
+		WorkspaceID: workspaceID,
+		Name:        "Demo SMTP Integration",
+		Type:        domain.IntegrationTypeEmail,
+		Provider:    smtpProvider,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to create SMTP integration: %w", err)
 	}

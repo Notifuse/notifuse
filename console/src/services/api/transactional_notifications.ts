@@ -21,6 +21,7 @@ export interface TransactionalNotification {
   channels: ChannelTemplates
   tracking_settings: TrackingSettings
   metadata?: Record<string, any>
+  integration_id?: string
   created_at: string
   updated_at: string
   deleted_at?: string

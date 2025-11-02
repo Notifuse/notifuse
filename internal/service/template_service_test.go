@@ -633,6 +633,17 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 	userID := "user-456"
 	templateID := "tmpl-abc"
 
+	regularTemplate := &domain.Template{
+		ID:       templateID,
+		Name:     "Regular Template",
+		Channel:  "email",
+		Category: "transactional",
+		Email: &domain.EmailTemplate{
+			Subject: "Test",
+		},
+		// No IntegrationID, so it can be deleted
+	}
+
 	t.Run("Success", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -646,6 +657,8 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 				domain.PermissionResourceTemplates: {Read: true, Write: true},
 			},
 		}, nil)
+		// Now expects GetTemplateByID to be called first to check if integration-managed
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(regularTemplate, nil)
 		mockRepo.EXPECT().DeleteTemplate(ctx, workspaceID, templateID).Return(nil)
 
 		err := templateService.DeleteTemplate(ctx, workspaceID, templateID)
@@ -668,7 +681,41 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 		assert.ErrorIs(t, err, authErr)
 	})
 
-	t.Run("Not Found", func(t *testing.T) {
+	t.Run("Cannot Delete Integration-Managed Template", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		integrationID := "integration-123"
+		integrationManagedTemplate := &domain.Template{
+			ID:            templateID,
+			Name:          "Integration Template",
+			Channel:       "email",
+			Category:      "transactional",
+			IntegrationID: &integrationID,
+			Email: &domain.EmailTemplate{
+				Subject: "Test",
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(integrationManagedTemplate, nil)
+		// DeleteTemplate should NOT be called
+
+		err := templateService.DeleteTemplate(ctx, workspaceID, templateID)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "cannot delete integration-managed template")
+		assert.Contains(t, err.Error(), integrationID)
+	})
+
+	t.Run("Get Template Not Found Before Delete", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
@@ -682,15 +729,15 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 				domain.PermissionResourceTemplates: {Read: true, Write: true},
 			},
 		}, nil)
-		mockRepo.EXPECT().DeleteTemplate(ctx, workspaceID, templateID).Return(notFoundErr)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(nil, notFoundErr)
 
 		err := templateService.DeleteTemplate(ctx, workspaceID, templateID)
 
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, notFoundErr) // Service should return the exact error
+		assert.ErrorIs(t, err, notFoundErr)
 	})
 
-	t.Run("Repository Failure", func(t *testing.T) {
+	t.Run("Get Template Repository Failure Before Delete", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
@@ -704,6 +751,55 @@ func TestTemplateService_DeleteTemplate(t *testing.T) {
 				domain.PermissionResourceTemplates: {Read: true, Write: true},
 			},
 		}, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(nil, repoErr)
+		mockLogger.EXPECT().WithField("template_id", templateID).Return(mockLogger)
+		mockLogger.EXPECT().Error(fmt.Sprintf("Failed to get template: %v", repoErr)).Return()
+
+		err := templateService.DeleteTemplate(ctx, workspaceID, templateID)
+
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get template")
+		assert.ErrorIs(t, err, repoErr)
+	})
+
+	t.Run("Delete Not Found", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, mockAuthService, _ := setupTemplateServiceTest(ctrl)
+		notFoundErr := &domain.ErrTemplateNotFound{Message: "not found"}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(regularTemplate, nil)
+		mockRepo.EXPECT().DeleteTemplate(ctx, workspaceID, templateID).Return(notFoundErr)
+
+		err := templateService.DeleteTemplate(ctx, workspaceID, templateID)
+
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, notFoundErr) // Service should return the exact error
+	})
+
+	t.Run("Delete Repository Failure", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		templateService, mockRepo, mockAuthService, mockLogger := setupTemplateServiceTest(ctrl)
+		repoErr := errors.New("db error")
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{ID: userID}, &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceTemplates: {Read: true, Write: true},
+			},
+		}, nil)
+		mockRepo.EXPECT().GetTemplateByID(ctx, workspaceID, templateID, int64(0)).Return(regularTemplate, nil)
 		mockRepo.EXPECT().DeleteTemplate(ctx, workspaceID, templateID).Return(repoErr)
 		mockLogger.EXPECT().WithField("template_id", templateID).Return(mockLogger)
 		mockLogger.EXPECT().Error(fmt.Sprintf("Failed to delete template: %v", repoErr)).Return()

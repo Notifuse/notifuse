@@ -81,18 +81,18 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) CreateAPIKey(arg0, arg1, ar
 }
 
 // CreateIntegration mocks base method.
-func (m *MockWorkspaceServiceInterface) CreateIntegration(arg0 context.Context, arg1, arg2 string, arg3 domain.IntegrationType, arg4 domain.EmailProvider) (string, error) {
+func (m *MockWorkspaceServiceInterface) CreateIntegration(arg0 context.Context, arg1 domain.CreateIntegrationRequest) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateIntegration", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "CreateIntegration", arg0, arg1)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateIntegration indicates an expected call of CreateIntegration.
-func (mr *MockWorkspaceServiceInterfaceMockRecorder) CreateIntegration(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) CreateIntegration(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIntegration", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).CreateIntegration), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateIntegration", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).CreateIntegration), arg0, arg1)
 }
 
 // CreateWorkspace mocks base method.
@@ -285,17 +285,17 @@ func (mr *MockWorkspaceServiceInterfaceMockRecorder) TransferOwnership(arg0, arg
 }
 
 // UpdateIntegration mocks base method.
-func (m *MockWorkspaceServiceInterface) UpdateIntegration(arg0 context.Context, arg1, arg2, arg3 string, arg4 domain.EmailProvider) error {
+func (m *MockWorkspaceServiceInterface) UpdateIntegration(arg0 context.Context, arg1 domain.UpdateIntegrationRequest) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UpdateIntegration", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "UpdateIntegration", arg0, arg1)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // UpdateIntegration indicates an expected call of UpdateIntegration.
-func (mr *MockWorkspaceServiceInterfaceMockRecorder) UpdateIntegration(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+func (mr *MockWorkspaceServiceInterfaceMockRecorder) UpdateIntegration(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateIntegration", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).UpdateIntegration), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateIntegration", reflect.TypeOf((*MockWorkspaceServiceInterface)(nil).UpdateIntegration), arg0, arg1)
 }
 
 // UpdateWorkspace mocks base method.

@@ -154,7 +154,10 @@ export function CustomFieldsConfiguration({
   }
 
   return (
-    <Section title="Custom Fields" description="Set friendly display names for custom fields.">
+    <Section
+      title="Custom Fields"
+      description="Set friendly display names for contact custom fields."
+    >
       {isOwner && (
         <div style={{ textAlign: 'right', marginBottom: 16 }}>
           <Button type="primary" ghost size="small" onClick={() => handleOpenModal()}>

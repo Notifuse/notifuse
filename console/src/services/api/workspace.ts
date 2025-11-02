@@ -99,13 +99,32 @@ export interface MailjetSettings {
   sandbox_mode: boolean
 }
 
-export type IntegrationType = 'email' | 'sms' | 'whatsapp'
+export type IntegrationType = 'email' | 'sms' | 'whatsapp' | 'supabase'
+
+export interface SupabaseAuthEmailHookSettings {
+  signature_key?: string
+  encrypted_signature_key?: string
+}
+
+export interface SupabaseUserCreatedHookSettings {
+  signature_key?: string
+  encrypted_signature_key?: string
+  add_user_to_lists?: string[] // Array of list IDs
+  custom_json_field?: string
+  reject_disposable_email?: boolean // Reject user creation if email is disposable
+}
+
+export interface SupabaseIntegrationSettings {
+  auth_email_hook: SupabaseAuthEmailHookSettings
+  before_user_created_hook: SupabaseUserCreatedHookSettings
+}
 
 export interface Integration {
   id: string
   name: string
   type: IntegrationType
-  email_provider: EmailProvider
+  email_provider?: EmailProvider
+  supabase_settings?: SupabaseIntegrationSettings
   created_at: string
   updated_at: string
 }
@@ -180,14 +199,16 @@ export interface CreateIntegrationRequest {
   workspace_id: string
   name: string
   type: IntegrationType
-  provider: EmailProvider
+  provider?: EmailProvider
+  supabase_settings?: SupabaseIntegrationSettings
 }
 
 export interface UpdateIntegrationRequest {
   workspace_id: string
   integration_id: string
   name: string
-  provider: EmailProvider
+  provider?: EmailProvider
+  supabase_settings?: SupabaseIntegrationSettings
 }
 
 export interface DeleteIntegrationRequest {

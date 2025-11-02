@@ -475,13 +475,7 @@ func (h *WorkspaceHandler) handleCreateIntegration(w http.ResponseWriter, r *htt
 		return
 	}
 
-	integrationID, err := h.workspaceService.CreateIntegration(
-		r.Context(),
-		req.WorkspaceID,
-		req.Name,
-		req.Type,
-		req.Provider,
-	)
+	integrationID, err := h.workspaceService.CreateIntegration(r.Context(), req)
 	if err != nil {
 		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("error", err.Error()).Error("Failed to create integration")
 
@@ -518,13 +512,7 @@ func (h *WorkspaceHandler) handleUpdateIntegration(w http.ResponseWriter, r *htt
 		return
 	}
 
-	err := h.workspaceService.UpdateIntegration(
-		r.Context(),
-		req.WorkspaceID,
-		req.IntegrationID,
-		req.Name,
-		req.Provider,
-	)
+	err := h.workspaceService.UpdateIntegration(r.Context(), req)
 	if err != nil {
 		h.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", req.IntegrationID).WithField("error", err.Error()).Error("Failed to update integration")
 

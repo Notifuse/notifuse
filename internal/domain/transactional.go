@@ -62,6 +62,7 @@ type TransactionalNotification struct {
 	Channels         ChannelTemplates               `json:"channels"`
 	TrackingSettings notifuse_mjml.TrackingSettings `json:"tracking_settings"`
 	Metadata         MapOfAny                       `json:"metadata,omitempty"`
+	IntegrationID    *string                        `json:"integration_id,omitempty"` // Set if notification is managed by an integration (e.g., Supabase)
 
 	// System timestamps
 	CreatedAt time.Time  `json:"created_at"`

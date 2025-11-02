@@ -146,6 +146,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			email JSONB NOT NULL,
 			category VARCHAR(20) NOT NULL,
 			template_macro_id VARCHAR(32),
+			integration_id VARCHAR(255),
 			test_data JSONB,
 			settings JSONB,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -211,6 +212,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			channels JSONB NOT NULL,
 			tracking_settings JSONB,
 			metadata JSONB,
+			integration_id VARCHAR(255),
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			deleted_at TIMESTAMP WITH TIME ZONE

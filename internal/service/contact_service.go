@@ -44,19 +44,26 @@ func NewContactService(
 }
 
 func (s *ContactService) GetContactByEmail(ctx context.Context, workspaceID string, email string) (*domain.Contact, error) {
-	var err error
-	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to authenticate user: %w", err)
-	}
+	// Check if this is a system call (e.g., from Supabase webhook)
+	isSystemCall := ctx.Value(domain.SystemCallKey) != nil
 
-	// Check permission for reading contacts
-	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
-		return nil, domain.NewPermissionError(
-			domain.PermissionResourceContacts,
-			domain.PermissionTypeRead,
-			"Insufficient permissions: read access to contacts required",
-		)
+	// Only authenticate and check permissions for non-system calls
+	if !isSystemCall {
+		var err error
+		var userWorkspace *domain.UserWorkspace
+		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to authenticate user: %w", err)
+		}
+
+		// Check permission for reading contacts
+		if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeRead) {
+			return nil, domain.NewPermissionError(
+				domain.PermissionResourceContacts,
+				domain.PermissionTypeRead,
+				"Insufficient permissions: read access to contacts required",
+			)
+		}
 	}
 
 	contact, err := s.repo.GetContactByEmail(ctx, workspaceID, email)
@@ -278,21 +285,28 @@ func (s *ContactService) UpsertContact(ctx context.Context, workspaceID string, 
 		Action: domain.UpsertContactOperationCreate,
 	}
 
-	var err error
-	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
-	if err != nil {
-		operation.Action = domain.UpsertContactOperationError
-		operation.Error = err.Error()
-		s.logger.WithField("email", contact.Email).Error(fmt.Sprintf("Failed to authenticate user: %v", err))
-		return operation
-	}
+	// Check if this is a system call (e.g., from Supabase webhook)
+	isSystemCall := ctx.Value(domain.SystemCallKey) != nil
 
-	// Check permission for writing contacts
-	if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite) {
-		operation.Action = domain.UpsertContactOperationError
-		operation.Error = "Insufficient permissions: write access to contacts required"
-		s.logger.WithField("email", contact.Email).Error("Insufficient permissions: write access to contacts required")
-		return operation
+	// Only authenticate and check permissions for non-system calls
+	if !isSystemCall {
+		var err error
+		var userWorkspace *domain.UserWorkspace
+		ctx, _, userWorkspace, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+		if err != nil {
+			operation.Action = domain.UpsertContactOperationError
+			operation.Error = err.Error()
+			s.logger.WithField("email", contact.Email).Error(fmt.Sprintf("Failed to authenticate user: %v", err))
+			return operation
+		}
+
+		// Check permission for writing contacts
+		if !userWorkspace.HasPermission(domain.PermissionResourceContacts, domain.PermissionTypeWrite) {
+			operation.Action = domain.UpsertContactOperationError
+			operation.Error = "Insufficient permissions: write access to contacts required"
+			s.logger.WithField("email", contact.Email).Error("Insufficient permissions: write access to contacts required")
+			return operation
+		}
 	}
 
 	if err := contact.Validate(); err != nil {

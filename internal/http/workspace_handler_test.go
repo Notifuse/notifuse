@@ -1530,10 +1530,13 @@ func TestWorkspaceHandler_HandleCreateIntegration(t *testing.T) {
 
 	// Mock successful integration creation
 	workspaceSvc.EXPECT().
-		CreateIntegration(gomock.Any(), "workspace-123", "Test Integration", domain.IntegrationTypeEmail, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workspaceID, name string, integrationType domain.IntegrationType, provider domain.EmailProvider) (string, error) {
-			// Verify provider settings
-			assert.Equal(t, domain.EmailProviderKindSES, provider.Kind)
+		CreateIntegration(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, req domain.CreateIntegrationRequest) (string, error) {
+			// Verify request fields
+			assert.Equal(t, "workspace-123", req.WorkspaceID)
+			assert.Equal(t, "Test Integration", req.Name)
+			assert.Equal(t, domain.IntegrationTypeEmail, req.Type)
+			assert.Equal(t, domain.EmailProviderKindSES, req.Provider.Kind)
 			return integrationID, nil
 		})
 
@@ -1651,7 +1654,7 @@ func TestWorkspaceHandler_HandleCreateIntegration_UnauthorizedError(t *testing.T
 	// Mock unauthorized error
 	unauthorizedErr := &domain.ErrUnauthorized{Message: "Unauthorized to create integration"}
 	workspaceSvc.EXPECT().
-		CreateIntegration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		CreateIntegration(gomock.Any(), gomock.Any()).
 		Return("", unauthorizedErr)
 
 	// Create request with valid provider data
@@ -1696,7 +1699,7 @@ func TestWorkspaceHandler_HandleCreateIntegration_ServiceError(t *testing.T) {
 
 	// Mock service error
 	workspaceSvc.EXPECT().
-		CreateIntegration(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		CreateIntegration(gomock.Any(), gomock.Any()).
 		Return("", fmt.Errorf("service error"))
 
 	// Create request with valid provider data
@@ -1741,10 +1744,13 @@ func TestWorkspaceHandler_HandleUpdateIntegration(t *testing.T) {
 
 	// Mock successful integration update
 	workspaceSvc.EXPECT().
-		UpdateIntegration(gomock.Any(), "workspace-123", "integration-123", "Updated Integration", gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workspaceID, integrationID, name string, provider domain.EmailProvider) error {
-			// Verify provider settings
-			assert.Equal(t, domain.EmailProviderKindMailgun, provider.Kind)
+		UpdateIntegration(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, req domain.UpdateIntegrationRequest) error {
+			// Verify request fields
+			assert.Equal(t, "workspace-123", req.WorkspaceID)
+			assert.Equal(t, "integration-123", req.IntegrationID)
+			assert.Equal(t, "Updated Integration", req.Name)
+			assert.Equal(t, domain.EmailProviderKindMailgun, req.Provider.Kind)
 			return nil
 		})
 
@@ -1863,7 +1869,7 @@ func TestWorkspaceHandler_HandleUpdateIntegration_UnauthorizedError(t *testing.T
 	// Mock unauthorized error
 	unauthorizedErr := &domain.ErrUnauthorized{Message: "Unauthorized to update integration"}
 	workspaceSvc.EXPECT().
-		UpdateIntegration(gomock.Any(), "workspace-123", "integration-123", "Updated Integration", gomock.Any()).
+		UpdateIntegration(gomock.Any(), gomock.Any()).
 		Return(unauthorizedErr)
 
 	// Create request
@@ -1907,7 +1913,7 @@ func TestWorkspaceHandler_HandleUpdateIntegration_ServiceError(t *testing.T) {
 
 	// Mock service error
 	workspaceSvc.EXPECT().
-		UpdateIntegration(gomock.Any(), "workspace-123", "integration-123", "Updated Integration", gomock.Any()).
+		UpdateIntegration(gomock.Any(), gomock.Any()).
 		Return(fmt.Errorf("service error"))
 
 	// Create request

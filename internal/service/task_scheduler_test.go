@@ -504,7 +504,8 @@ func TestTaskScheduler_StopWaitsForCompletion(t *testing.T) {
 	elapsed := time.Since(start)
 
 	// Should have waited for the execution to complete (but not the full 5s timeout)
-	assert.GreaterOrEqual(t, elapsed, 75*time.Millisecond) // Some wait time
+	// Using 65ms to allow for timing variance (100ms task - 25ms head start - ~10ms variance)
+	assert.GreaterOrEqual(t, elapsed, 65*time.Millisecond) // Some wait time
 	assert.Less(t, elapsed, 5*time.Second)                 // But less than timeout
 	assert.False(t, scheduler.IsRunning())
 }

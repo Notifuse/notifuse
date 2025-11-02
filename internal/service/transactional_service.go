@@ -177,6 +177,13 @@ func (s *TransactionalNotificationService) UpdateNotification(
 		return nil, fmt.Errorf("failed to get notification: %w", err)
 	}
 
+	// Prevent modification of integration-managed notifications
+	if notification.IntegrationID != nil && *notification.IntegrationID != "" {
+		err := fmt.Errorf("cannot update integration-managed notification: notification is managed by integration %s", *notification.IntegrationID)
+		tracing.MarkSpanError(ctx, err)
+		return nil, err
+	}
+
 	// Update fields if provided
 	if params.Name != "" {
 		notification.Name = params.Name
@@ -369,6 +376,26 @@ func (s *TransactionalNotificationService) DeleteNotification(
 		"id":        id,
 	}).Debug("Deleting transactional notification")
 
+	// Get the notification to check if it's integration-managed
+	notification, err := s.transactionalRepo.Get(ctx, workspace, id)
+	if err != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"error":     err.Error(),
+			"workspace": workspace,
+			"id":        id,
+		}).Error("Failed to get notification")
+
+		tracing.MarkSpanError(ctx, err)
+		return fmt.Errorf("failed to get notification: %w", err)
+	}
+
+	// Prevent deletion of integration-managed notifications
+	if notification.IntegrationID != nil && *notification.IntegrationID != "" {
+		err := fmt.Errorf("cannot delete integration-managed notification: notification is managed by integration %s", *notification.IntegrationID)
+		tracing.MarkSpanError(ctx, err)
+		return err
+	}
+
 	if err := s.transactionalRepo.Delete(ctx, workspace, id); err != nil {
 		s.logger.WithFields(map[string]interface{}{
 			"error":     err.Error(),
@@ -401,11 +428,13 @@ func (s *TransactionalNotificationService) SendNotification(
 		trace.StringAttribute("notification_id", params.ID),
 	)
 
-	// Authenticate user for workspace
+	// Authenticate user for workspace (skip for system calls)
 	var err error
-	ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
-	if err != nil {
-		return "", fmt.Errorf("failed to authenticate user for workspace: %w", err)
+	if ctx.Value(domain.SystemCallKey) == nil {
+		ctx, _, _, err = s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+		if err != nil {
+			return "", fmt.Errorf("failed to authenticate user for workspace: %w", err)
+		}
 	}
 
 	// Add contact info to span if available

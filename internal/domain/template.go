@@ -48,6 +48,7 @@ type Template struct {
 	Email           *EmailTemplate `json:"email"`
 	Category        string         `json:"category"`
 	TemplateMacroID *string        `json:"template_macro_id,omitempty"`
+	IntegrationID   *string        `json:"integration_id,omitempty"` // Set if template is managed by an integration (e.g., Supabase)
 	TestData        MapOfAny       `json:"test_data,omitempty"`
 	Settings        MapOfAny       `json:"settings,omitempty"` // Channels specific 3rd-party settings
 	CreatedAt       time.Time      `json:"created_at"`

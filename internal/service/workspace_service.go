@@ -31,6 +31,7 @@ type WorkspaceService struct {
 	contactListService domain.ContactListService
 	templateService    domain.TemplateService
 	webhookRegService  domain.WebhookRegistrationService
+	supabaseService    *SupabaseService
 	secretKey          string
 }
 
@@ -66,6 +67,11 @@ func NewWorkspaceService(
 		webhookRegService:  webhookRegService,
 		secretKey:          secretKey,
 	}
+}
+
+// SetSupabaseService sets the Supabase service (used to avoid circular dependencies)
+func (s *WorkspaceService) SetSupabaseService(supabaseService *SupabaseService) {
+	s.supabaseService = supabaseService
 }
 
 // ListWorkspaces returns all workspaces for a user
@@ -1049,48 +1055,54 @@ func (s *WorkspaceService) RemoveMember(ctx context.Context, workspaceID string,
 }
 
 // CreateIntegration creates a new integration for a workspace
-func (s *WorkspaceService) CreateIntegration(ctx context.Context, workspaceID, name string, integrationType domain.IntegrationType, provider domain.EmailProvider) (string, error) {
+func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.CreateIntegrationRequest) (string, error) {
 	// Authenticate user and verify they are an owner of the workspace
-	ctx, user, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, user, _, err := s.authService.AuthenticateUserForWorkspace(ctx, req.WorkspaceID)
 	if err != nil {
 		return "", fmt.Errorf("failed to authenticate user: %w", err)
 	}
 
 	// Check if user is an owner
-	userWorkspace, err := s.repo.GetUserWorkspace(ctx, user.ID, workspaceID)
+	userWorkspace, err := s.repo.GetUserWorkspace(ctx, user.ID, req.WorkspaceID)
 	if err != nil {
-		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to get user workspace")
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to get user workspace")
 		return "", err
 	}
 
 	if userWorkspace.Role != "owner" {
-		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", user.ID).WithField("role", userWorkspace.Role).Error("User is not an owner of the workspace")
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("user_id", user.ID).WithField("role", userWorkspace.Role).Error("User is not an owner of the workspace")
 		return "", &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
 	}
 
 	// Get the workspace
-	workspace, err := s.repo.GetByID(ctx, workspaceID)
+	workspace, err := s.repo.GetByID(ctx, req.WorkspaceID)
 	if err != nil {
-		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to get workspace")
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("error", err.Error()).Error("Failed to get workspace")
 		return "", err
 	}
 
 	// Create a unique ID for the integration
 	integrationID := uuid.New().String()
 
-	// Create the integration
+	// Create the integration based on type
 	integration := domain.Integration{
-		ID:            integrationID,
-		Name:          name,
-		Type:          integrationType,
-		EmailProvider: provider,
-		CreatedAt:     time.Now().UTC(),
-		UpdatedAt:     time.Now().UTC(),
+		ID:        integrationID,
+		Name:      req.Name,
+		Type:      req.Type,
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	switch req.Type {
+	case domain.IntegrationTypeEmail:
+		integration.EmailProvider = req.Provider
+	case domain.IntegrationTypeSupabase:
+		integration.SupabaseSettings = req.SupabaseSettings
 	}
 
 	// Validate the integration
 	if err := integration.Validate(s.secretKey); err != nil {
-		s.logger.WithField("workspace_id", workspaceID).WithField("integration_id", integrationID).WithField("error", err.Error()).Error("Failed to validate integration")
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", integrationID).WithField("error", err.Error()).Error("Failed to validate integration")
 		return "", err
 	}
 
@@ -1099,32 +1111,57 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, workspaceID, n
 
 	// Save the updated workspace
 	if err := s.repo.Update(ctx, workspace); err != nil {
-		s.logger.WithField("workspace_id", workspaceID).WithField("integration_id", integrationID).WithField("error", err.Error()).Error("Failed to update workspace with new integration")
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", integrationID).WithField("error", err.Error()).Error("Failed to update workspace with new integration")
 		return "", err
 	}
 
-	// If this is an email integration, register webhooks (except for SMTP which doesn't support webhooks)
-	if integrationType == domain.IntegrationTypeEmail && s.webhookRegService != nil && provider.Kind != domain.EmailProviderKindSMTP {
-		// Define the events to register
-		eventTypes := []domain.EmailEventType{
-			domain.EmailEventDelivered,
-			domain.EmailEventBounce,
-			domain.EmailEventComplaint,
+	// Handle type-specific post-creation tasks
+	switch req.Type {
+	case domain.IntegrationTypeEmail:
+		// Register webhooks for email integrations (except SMTP)
+		if s.webhookRegService != nil && req.Provider.Kind != domain.EmailProviderKindSMTP {
+			eventTypes := []domain.EmailEventType{
+				domain.EmailEventDelivered,
+				domain.EmailEventBounce,
+				domain.EmailEventComplaint,
+			}
+
+			webhookConfig := &domain.WebhookRegistrationConfig{
+				IntegrationID: integrationID,
+				EventTypes:    eventTypes,
+			}
+
+			_, err := s.webhookRegService.RegisterWebhooks(ctx, req.WorkspaceID, webhookConfig)
+			if err != nil {
+				s.logger.WithField("workspace_id", req.WorkspaceID).
+					WithField("integration_id", integrationID).
+					WithField("error", err.Error()).
+					Warn("Failed to register webhooks for new integration, but integration was created successfully")
+			}
 		}
 
-		// Create webhook config
-		webhookConfig := &domain.WebhookRegistrationConfig{
-			IntegrationID: integrationID,
-			EventTypes:    eventTypes,
-		}
-
-		// Try to register webhooks, but don't fail the integration creation if it fails
-		_, err := s.webhookRegService.RegisterWebhooks(ctx, workspaceID, webhookConfig)
-		if err != nil {
-			s.logger.WithField("workspace_id", workspaceID).
-				WithField("integration_id", integrationID).
-				WithField("error", err.Error()).
-				Warn("Failed to register webhooks for new integration, but integration was created successfully")
+	case domain.IntegrationTypeSupabase:
+		// Create default templates and transactional notifications for Supabase integration
+		if s.supabaseService != nil {
+			// Create templates first
+			mappings, err := s.supabaseService.CreateDefaultSupabaseTemplates(ctx, req.WorkspaceID, integrationID)
+			if err != nil {
+				s.logger.WithField("workspace_id", req.WorkspaceID).
+					WithField("integration_id", integrationID).
+					WithField("error", err.Error()).
+					Error("Failed to create default Supabase templates")
+				// Don't fail the integration creation, templates can be created manually
+			} else {
+				// Create transactional notifications that reference the templates
+				err = s.supabaseService.CreateDefaultSupabaseNotifications(ctx, req.WorkspaceID, integrationID, mappings)
+				if err != nil {
+					s.logger.WithField("workspace_id", req.WorkspaceID).
+						WithField("integration_id", integrationID).
+						WithField("error", err.Error()).
+						Error("Failed to create default Supabase notifications")
+					// Don't fail the integration creation
+				}
+			}
 		}
 	}
 
@@ -1132,52 +1169,82 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, workspaceID, n
 }
 
 // UpdateIntegration updates an existing integration in a workspace
-func (s *WorkspaceService) UpdateIntegration(ctx context.Context, workspaceID, integrationID, name string, provider domain.EmailProvider) error {
+func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.UpdateIntegrationRequest) error {
 	// Authenticate user and verify they are an owner of the workspace
-	ctx, user, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, user, _, err := s.authService.AuthenticateUserForWorkspace(ctx, req.WorkspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
 
 	// Check if user is an owner
-	userWorkspace, err := s.repo.GetUserWorkspace(ctx, user.ID, workspaceID)
+	userWorkspace, err := s.repo.GetUserWorkspace(ctx, user.ID, req.WorkspaceID)
 	if err != nil {
-		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to get user workspace")
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to get user workspace")
 		return err
 	}
 
 	if userWorkspace.Role != "owner" {
-		s.logger.WithField("workspace_id", workspaceID).WithField("user_id", user.ID).WithField("role", userWorkspace.Role).Error("User is not an owner of the workspace")
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("user_id", user.ID).WithField("role", userWorkspace.Role).Error("User is not an owner of the workspace")
 		return &domain.ErrUnauthorized{Message: "user is not an owner of the workspace"}
 	}
 
 	// Get the workspace
-	workspace, err := s.repo.GetByID(ctx, workspaceID)
+	workspace, err := s.repo.GetByID(ctx, req.WorkspaceID)
 	if err != nil {
-		s.logger.WithField("workspace_id", workspaceID).WithField("error", err.Error()).Error("Failed to get workspace")
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("error", err.Error()).Error("Failed to get workspace")
 		return err
 	}
 
 	// Find the existing integration
-	existingIntegration := workspace.GetIntegrationByID(integrationID)
+	existingIntegration := workspace.GetIntegrationByID(req.IntegrationID)
 	if existingIntegration == nil {
-		s.logger.WithField("workspace_id", workspaceID).WithField("integration_id", integrationID).Error("Integration not found")
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", req.IntegrationID).Error("Integration not found")
 		return fmt.Errorf("integration not found")
 	}
 
 	// Update the integration
 	updatedIntegration := domain.Integration{
-		ID:            integrationID,
-		Name:          name,
-		Type:          existingIntegration.Type, // Type cannot be changed
-		EmailProvider: provider,
-		CreatedAt:     existingIntegration.CreatedAt,
-		UpdatedAt:     time.Now().UTC(),
+		ID:        req.IntegrationID,
+		Name:      req.Name,
+		Type:      existingIntegration.Type, // Type cannot be changed
+		CreatedAt: existingIntegration.CreatedAt,
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	// Update type-specific settings
+	switch existingIntegration.Type {
+	case domain.IntegrationTypeEmail:
+		updatedIntegration.EmailProvider = req.Provider
+	case domain.IntegrationTypeSupabase:
+		// Preserve existing encrypted keys if new keys are not provided
+		if req.SupabaseSettings != nil {
+			// Start with the new settings
+			updatedIntegration.SupabaseSettings = req.SupabaseSettings
+
+			// If auth email hook signature key is not provided, preserve the existing one
+			if req.SupabaseSettings.AuthEmailHook.SignatureKey == "" &&
+				req.SupabaseSettings.AuthEmailHook.EncryptedSignatureKey == "" &&
+				existingIntegration.SupabaseSettings != nil {
+				updatedIntegration.SupabaseSettings.AuthEmailHook.EncryptedSignatureKey =
+					existingIntegration.SupabaseSettings.AuthEmailHook.EncryptedSignatureKey
+			}
+
+			// If before user created hook signature key is not provided, preserve the existing one
+			if req.SupabaseSettings.BeforeUserCreatedHook.SignatureKey == "" &&
+				req.SupabaseSettings.BeforeUserCreatedHook.EncryptedSignatureKey == "" &&
+				existingIntegration.SupabaseSettings != nil {
+				updatedIntegration.SupabaseSettings.BeforeUserCreatedHook.EncryptedSignatureKey =
+					existingIntegration.SupabaseSettings.BeforeUserCreatedHook.EncryptedSignatureKey
+			}
+		} else {
+			// If no settings provided, preserve existing
+			updatedIntegration.SupabaseSettings = existingIntegration.SupabaseSettings
+		}
 	}
 
 	// Validate the updated integration
 	if err := updatedIntegration.Validate(s.secretKey); err != nil {
-		s.logger.WithField("workspace_id", workspaceID).WithField("integration_id", integrationID).WithField("error", err.Error()).Error("Failed to validate updated integration")
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", req.IntegrationID).WithField("error", err.Error()).Error("Failed to validate updated integration")
 		return err
 	}
 
@@ -1186,7 +1253,7 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, workspaceID, i
 
 	// Save the updated workspace
 	if err := s.repo.Update(ctx, workspace); err != nil {
-		s.logger.WithField("workspace_id", workspaceID).WithField("integration_id", integrationID).WithField("error", err.Error()).Error("Failed to update workspace with updated integration")
+		s.logger.WithField("workspace_id", req.WorkspaceID).WithField("integration_id", req.IntegrationID).WithField("error", err.Error()).Error("Failed to update workspace with updated integration")
 		return err
 	}
 
@@ -1227,29 +1294,45 @@ func (s *WorkspaceService) DeleteIntegration(ctx context.Context, workspaceID, i
 		return fmt.Errorf("integration not found")
 	}
 
-	// Before removing the integration, attempt to unregister webhooks for email integrations (except SMTP which doesn't support webhooks)
-	if integration.Type == domain.IntegrationTypeEmail && s.webhookRegService != nil && integration.EmailProvider.Kind != domain.EmailProviderKindSMTP {
-		// Try to get webhook status to check what's registered
-		status, err := s.webhookRegService.GetWebhookStatus(ctx, workspaceID, integrationID)
-		if err != nil {
-			// Just log the error, don't prevent deletion
-			s.logger.WithField("workspace_id", workspaceID).
-				WithField("integration_id", integrationID).
-				WithField("error", err.Error()).
-				Warn("Failed to get webhook status during integration deletion")
-		} else if status != nil && status.IsRegistered {
-			// Log that we're removing webhooks
-			s.logger.WithField("workspace_id", workspaceID).
-				WithField("integration_id", integrationID).
-				Info("Unregistering webhooks for integration that is being deleted")
+	// Handle type-specific cleanup before removing the integration
+	switch integration.Type {
+	case domain.IntegrationTypeEmail:
+		// Attempt to unregister webhooks for email integrations (except SMTP which doesn't support webhooks)
+		if s.webhookRegService != nil && integration.EmailProvider.Kind != domain.EmailProviderKindSMTP {
+			// Try to get webhook status to check what's registered
+			status, err := s.webhookRegService.GetWebhookStatus(ctx, workspaceID, integrationID)
+			if err != nil {
+				// Just log the error, don't prevent deletion
+				s.logger.WithField("workspace_id", workspaceID).
+					WithField("integration_id", integrationID).
+					WithField("error", err.Error()).
+					Warn("Failed to get webhook status during integration deletion")
+			} else if status != nil && status.IsRegistered {
+				// Log that we're removing webhooks
+				s.logger.WithField("workspace_id", workspaceID).
+					WithField("integration_id", integrationID).
+					Info("Unregistering webhooks for integration that is being deleted")
 
-			// Use the dedicated method to unregister webhooks
-			err := s.webhookRegService.UnregisterWebhooks(ctx, workspaceID, integrationID)
+				// Use the dedicated method to unregister webhooks
+				err := s.webhookRegService.UnregisterWebhooks(ctx, workspaceID, integrationID)
+				if err != nil {
+					s.logger.WithField("workspace_id", workspaceID).
+						WithField("integration_id", integrationID).
+						WithField("error", err.Error()).
+						Warn("Failed to unregister webhooks during integration deletion, continuing with deletion anyway")
+				}
+			}
+		}
+
+	case domain.IntegrationTypeSupabase:
+		// Delete all templates and transactional notifications associated with this integration
+		if s.supabaseService != nil {
+			err := s.deleteSupabaseIntegrationResources(ctx, workspaceID, integrationID)
 			if err != nil {
 				s.logger.WithField("workspace_id", workspaceID).
 					WithField("integration_id", integrationID).
 					WithField("error", err.Error()).
-					Warn("Failed to unregister webhooks during integration deletion, continuing with deletion anyway")
+					Warn("Failed to delete Supabase integration resources, continuing with deletion anyway")
 			}
 		}
 	}
@@ -1275,6 +1358,16 @@ func (s *WorkspaceService) DeleteIntegration(ctx context.Context, workspaceID, i
 	}
 
 	return nil
+}
+
+// deleteSupabaseIntegrationResources deletes all templates and transactional notifications associated with a Supabase integration
+func (s *WorkspaceService) deleteSupabaseIntegrationResources(ctx context.Context, workspaceID, integrationID string) error {
+	// Delegate to the Supabase service which has access to all necessary repositories
+	if s.supabaseService == nil {
+		return fmt.Errorf("supabase service not available")
+	}
+
+	return s.supabaseService.DeleteIntegrationResources(ctx, workspaceID, integrationID)
 }
 
 // GenerateSecureKey generates a cryptographically secure random key

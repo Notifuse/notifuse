@@ -635,6 +635,145 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
+
+	t.Run("create supabase integration with templates and notifications", func(t *testing.T) {
+		// Create Supabase integration
+		createReq := domain.CreateIntegrationRequest{
+			WorkspaceID: workspaceID,
+			Name:        "Test Supabase Integration",
+			Type:        domain.IntegrationTypeSupabase,
+			SupabaseSettings: &domain.SupabaseIntegrationSettings{
+				AuthEmailHook: domain.SupabaseAuthEmailHookSettings{
+					SignatureKey: "v1,whsec_test_key_1234567890",
+				},
+				BeforeUserCreatedHook: domain.SupabaseUserCreatedHookSettings{
+					SignatureKey:    "v1,whsec_test_key_0987654321",
+					AddUserToLists:  []string{},
+					CustomJSONField: "custom_json_1",
+				},
+			},
+		}
+
+		resp, err := client.Post("/api/workspaces.createIntegration", createReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+
+		assert.Equal(t, "success", response["status"])
+		assert.Contains(t, response, "integration_id")
+		integrationID := response["integration_id"].(string)
+		assert.NotEmpty(t, integrationID)
+
+		// Verify integration was added to workspace
+		getResp, err := client.Get("/api/workspaces.get", map[string]string{
+			"id": workspaceID,
+		})
+		require.NoError(t, err)
+		defer getResp.Body.Close()
+
+		var getResponse map[string]interface{}
+		err = json.NewDecoder(getResp.Body).Decode(&getResponse)
+		require.NoError(t, err)
+
+		workspaceData := getResponse["workspace"].(map[string]interface{})
+		integrations := workspaceData["integrations"].([]interface{})
+		
+		// Find the Supabase integration
+		var supabaseIntegration map[string]interface{}
+		for _, integ := range integrations {
+			integMap := integ.(map[string]interface{})
+			if integMap["type"] == "supabase" {
+				supabaseIntegration = integMap
+				break
+			}
+		}
+		
+		require.NotNil(t, supabaseIntegration, "Supabase integration not found")
+		assert.Equal(t, integrationID, supabaseIntegration["id"])
+		assert.Equal(t, "Test Supabase Integration", supabaseIntegration["name"])
+		assert.Equal(t, "supabase", supabaseIntegration["type"])
+
+		// Verify templates were created
+		templatesResp, err := client.Get("/api/templates.list", map[string]string{
+			"workspace_id": workspaceID,
+		})
+		require.NoError(t, err)
+		defer templatesResp.Body.Close()
+
+		var templatesResponse map[string]interface{}
+		err = json.NewDecoder(templatesResp.Body).Decode(&templatesResponse)
+		require.NoError(t, err)
+
+		templates := templatesResponse["templates"].([]interface{})
+		
+		// Count templates with this integration_id
+		supabaseTemplateCount := 0
+		expectedTemplateNames := []string{
+			"Supabase Signup Confirmation",
+			"Supabase Magic Link",
+			"Supabase Password Recovery",
+			"Supabase Email Change (Current)",
+			"Supabase Email Change (New)",
+			"Supabase User Invitation",
+		}
+		foundTemplateNames := []string{}
+		
+		for _, tmpl := range templates {
+			tmplMap := tmpl.(map[string]interface{})
+			if integID, ok := tmplMap["integration_id"]; ok && integID == integrationID {
+				supabaseTemplateCount++
+				foundTemplateNames = append(foundTemplateNames, tmplMap["name"].(string))
+			}
+		}
+		
+		assert.Equal(t, 6, supabaseTemplateCount, "Expected 6 Supabase templates to be created")
+		for _, expectedName := range expectedTemplateNames {
+			assert.Contains(t, foundTemplateNames, expectedName, "Template %s not found", expectedName)
+		}
+
+		// Verify transactional notifications were created
+		notificationsResp, err := client.Get("/api/transactional.list", map[string]string{
+			"workspace_id": workspaceID,
+		})
+		require.NoError(t, err)
+		defer notificationsResp.Body.Close()
+
+		var notificationsResponse map[string]interface{}
+		err = json.NewDecoder(notificationsResp.Body).Decode(&notificationsResponse)
+		require.NoError(t, err)
+
+		notifications := notificationsResponse["notifications"].([]interface{})
+		
+		// Count notifications with this integration_id
+		supabaseNotificationCount := 0
+		expectedNotificationNames := []string{
+			"Supabase Signup Confirmation",
+			"Supabase Magic Link",
+			"Supabase Password Recovery",
+			"Supabase Email Change (Current)",
+			"Supabase Email Change (New)",
+			"Supabase User Invitation",
+		}
+		foundNotificationNames := []string{}
+		
+		for _, notif := range notifications {
+			notifMap := notif.(map[string]interface{})
+			if integID, ok := notifMap["integration_id"]; ok && integID == integrationID {
+				supabaseNotificationCount++
+				foundNotificationNames = append(foundNotificationNames, notifMap["name"].(string))
+			}
+		}
+		
+		assert.Equal(t, 6, supabaseNotificationCount, "Expected 6 Supabase transactional notifications to be created")
+		for _, expectedName := range expectedNotificationNames {
+			assert.Contains(t, foundNotificationNames, expectedName, "Notification %s not found", expectedName)
+		}
+	})
 }
 
 func TestWorkspaceAPIKeyFlow(t *testing.T) {

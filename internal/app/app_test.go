@@ -525,6 +525,58 @@ func TestAppInitServices(t *testing.T) {
 	assert.NotNil(t, appImpl.taskService, "Task service should be initialized")
 	assert.NotNil(t, appImpl.transactionalNotificationService, "TransactionalNotification service should be initialized")
 	assert.NotNil(t, appImpl.eventBus, "Event bus should be initialized")
+	assert.NotNil(t, appImpl.supabaseService, "Supabase service should be initialized")
+}
+
+// TestAppInitSupabaseService tests that the Supabase service is properly initialized and linked
+func TestAppInitSupabaseService(t *testing.T) {
+	// Set up mock DB
+	mockDB, _, err := setupTestDBMock()
+	require.NoError(t, err)
+	defer mockDB.Close()
+
+	// Create app with test config and mocks
+	cfg := createTestConfig()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	// Set up expectations for any logger calls
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Fatal(gomock.Any()).AnyTimes()
+
+	app := NewApp(cfg, WithLogger(mockLogger), WithMockDB(mockDB))
+
+	// Initialize connection manager before repositories
+	err = pkgDatabase.InitializeConnectionManager(cfg, mockDB)
+	require.NoError(t, err)
+	defer pkgDatabase.ResetConnectionManager()
+
+	// Setup repositories (required for services)
+	err = app.InitRepositories()
+	assert.NoError(t, err)
+
+	// Test service initialization
+	err = app.InitServices()
+	assert.NoError(t, err)
+
+	// Cast to *App to access service fields
+	appImpl, ok := app.(*App)
+	require.True(t, ok, "app should be *App")
+
+	// Verify Supabase service was initialized
+	assert.NotNil(t, appImpl.supabaseService, "Supabase service should be initialized")
+
+	// Verify Supabase service is properly linked to workspace service
+	// We can't directly test the private field, but we can test that the service was created
+	// and that no errors occurred during initialization
+	assert.NotNil(t, appImpl.workspaceService, "Workspace service should be initialized")
 }
 
 // TestAppInitHandlers tests the InitHandlers method

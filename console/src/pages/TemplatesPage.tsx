@@ -23,6 +23,7 @@ import {
   faPaperPlane,
   faCopy
 } from '@fortawesome/free-regular-svg-icons'
+import { faTerminal } from '@fortawesome/free-solid-svg-icons'
 import { CreateTemplateDrawer } from '../components/templates/CreateTemplateDrawer'
 import { renderCategoryTag } from '../components/templates'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
@@ -31,6 +32,16 @@ import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 
 const { Title, Paragraph, Text } = Typography
+
+// Helper function to get integration icon
+const getIntegrationIcon = (integrationType: string) => {
+  switch (integrationType) {
+    case 'supabase':
+      return <img src="/supabase.png" alt="Supabase" className="h-3" />
+    default:
+      return <FontAwesomeIcon icon={faTerminal} className="text-gray-600" />
+  }
+}
 
 // Define search params interface
 interface TemplatesSearch {
@@ -137,11 +148,21 @@ export function TemplatesPage() {
       title: 'Template',
       dataIndex: 'name',
       key: 'name',
-      render: (text: string, record: Template) => (
-        <Tooltip title={'ID for API: ' + record.id}>
-          <Text strong>{text}</Text>
-        </Tooltip>
-      )
+      render: (text: string, record: Template) => {
+        const integration = workspace?.integrations?.find((i) => i.id === record.integration_id)
+        return (
+          <Space size="large">
+            {record.integration_id && integration && (
+              <Tooltip title={`Managed by ${integration.name} (${integration.type} integration)`}>
+                {getIntegrationIcon(integration.type)}
+              </Tooltip>
+            )}
+            <Tooltip title={'ID for API: ' + record.id}>
+              <Text strong>{text}</Text>
+            </Tooltip>
+          </Space>
+        )
+      }
     },
     {
       title: 'Category',
@@ -156,7 +177,7 @@ export function TemplatesPage() {
         if (workspace && record.email?.sender_id) {
           const isMarketing = record.category === 'marketing'
           const emailProvider = isMarketing ? marketingEmailProvider : transactionalEmailProvider
-          if (emailProvider) {
+          if (emailProvider?.email_provider) {
             const sender = emailProvider.email_provider.senders.find(
               (sender) => sender.id === record.email?.sender_id
             )
@@ -254,16 +275,18 @@ export function TemplatesPage() {
           )}
           <Tooltip
             title={
-              !permissions?.templates?.write
-                ? "You don't have write permission for templates"
-                : 'Delete Template'
+              record.integration_id
+                ? `This template is managed by an integration and cannot be deleted`
+                : !permissions?.templates?.write
+                  ? "You don't have write permission for templates"
+                  : 'Delete Template'
             }
           >
             <Button
               type="text"
               icon={<FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />}
               loading={deleteMutation.isPending}
-              disabled={!permissions?.templates?.write}
+              disabled={!permissions?.templates?.write || !!record.integration_id}
               onClick={() => {
                 Modal.confirm({
                   title: 'Delete template?',

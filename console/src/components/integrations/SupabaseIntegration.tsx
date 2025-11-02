@@ -1,0 +1,232 @@
+import React, { useState, useEffect } from 'react'
+import { Form, Input, Select, Space, Divider, Alert, message, Tooltip, Switch } from 'antd'
+import { InfoCircleOutlined } from '@ant-design/icons'
+import { Integration, SupabaseIntegrationSettings, Workspace } from '../../services/api/types'
+import { listsApi, List } from '../../services/api/list'
+
+interface SupabaseIntegrationProps {
+  integration?: Integration
+  workspace: Workspace
+  onSave: (integration: Integration) => Promise<void>
+  isOwner: boolean
+  formRef?: React.RefObject<any>
+}
+
+export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
+  integration,
+  workspace,
+  onSave,
+  isOwner,
+  formRef
+}) => {
+  const [form] = Form.useForm()
+
+  // Expose form instance to parent via ref
+  React.useEffect(() => {
+    if (formRef) {
+      ;(formRef as any).current = form
+    }
+  }, [form, formRef])
+
+  const [lists, setLists] = useState<List[]>([])
+  const [loading, setLoading] = useState(true)
+
+  // Fetch lists on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const listsResponse = await listsApi.list({ workspace_id: workspace.id })
+        setLists(listsResponse.lists || [])
+      } catch (error) {
+        console.error('Failed to fetch lists:', error)
+        message.error('Failed to load contact lists')
+        // Ensure we have empty array on error
+        setLists([])
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [workspace.id])
+
+  useEffect(() => {
+    if (integration?.supabase_settings) {
+      const settings = integration.supabase_settings
+
+      form.setFieldsValue({
+        name: integration.name,
+        auth_email_signature_key: settings.auth_email_hook?.signature_key || '',
+        user_created_signature_key: settings.before_user_created_hook?.signature_key || '',
+        add_user_created_to_lists: settings.before_user_created_hook?.add_user_to_lists || [],
+        user_created_custom_json_field:
+          settings.before_user_created_hook?.custom_json_field || undefined,
+        reject_disposable_email: settings.before_user_created_hook?.reject_disposable_email || false
+      })
+    } else {
+      // Default values for new integration
+      form.setFieldsValue({
+        name: 'Supabase'
+      })
+    }
+  }, [integration, form])
+
+  const handleSave = async (values: any) => {
+    if (!isOwner) {
+      message.error('Only workspace owners can modify integrations')
+      return
+    }
+
+    try {
+      const supabaseSettings: SupabaseIntegrationSettings = {
+        auth_email_hook: {
+          signature_key: values.auth_email_signature_key || undefined
+        },
+        before_user_created_hook: {
+          signature_key: values.user_created_signature_key || undefined,
+          add_user_to_lists: values.add_user_created_to_lists || [],
+          custom_json_field: values.user_created_custom_json_field || undefined,
+          reject_disposable_email: values.reject_disposable_email || false
+        }
+      }
+
+      const integrationData: Integration = {
+        id: integration?.id || `int_${Date.now()}`,
+        name: values.name,
+        type: 'supabase',
+        supabase_settings: supabaseSettings,
+        created_at: integration?.created_at || new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }
+
+      await onSave(integrationData)
+      // Success message is shown by parent component (Integrations.tsx)
+    } catch (error) {
+      console.error('Failed to save Supabase integration:', error)
+      message.error('Failed to save integration')
+    }
+  }
+
+  return (
+    <Form form={form} layout="vertical" onFinish={handleSave} disabled={!isOwner}>
+      <Form.Item
+        label="Integration Name"
+        name="name"
+        rules={[{ required: true, message: 'Please enter integration name' }]}
+      >
+        <Input placeholder="e.g., My Supabase Integration" />
+      </Form.Item>
+
+      <div className="mt-12">
+        <Divider orientation="center" plain>
+          Auth Email Hook
+        </Divider>
+      </div>
+
+      <Form.Item
+        label={
+          <Space>
+            <span>Auth Email Hook Secret</span>
+            <Tooltip title="Generate this key in Supabase Auth Hooks settings">
+              <InfoCircleOutlined />
+            </Tooltip>
+          </Space>
+        }
+        name="auth_email_signature_key"
+      >
+        <Input.Password placeholder="v1,whsec_..." />
+      </Form.Item>
+
+      <div className="mt-12">
+        <Divider orientation="center" plain>
+          User Created Hook
+        </Divider>
+      </div>
+
+      <Form.Item
+        label={
+          <Space>
+            <span>User Created Hook Secret</span>
+            <Tooltip title="Generate this key in Supabase Auth Hooks settings">
+              <InfoCircleOutlined />
+            </Tooltip>
+          </Space>
+        }
+        name="user_created_signature_key"
+      >
+        <Input.Password placeholder="v1,whsec_..." />
+      </Form.Item>
+
+      <Form.Item
+        label={
+          <Space>
+            <span>Subscribe users to these lists (Optional)</span>
+            <Tooltip title="Automatically add new users to the selected lists">
+              <InfoCircleOutlined />
+            </Tooltip>
+          </Space>
+        }
+        name="add_user_created_to_lists"
+      >
+        <Select
+          placeholder="Select lists (optional)"
+          mode="multiple"
+          allowClear
+          showSearch
+          optionFilterProp="children"
+          loading={loading}
+        >
+          {lists.map((list) => (
+            <Select.Option key={list.id} value={list.id}>
+              {list.name}
+            </Select.Option>
+          ))}
+        </Select>
+      </Form.Item>
+
+      <Form.Item
+        label={
+          <Space>
+            <span>Save user metadata to this custom JSON field (Optional)</span>
+            <Tooltip title="The user_metadata field in Supabase will be saved to this custom JSON field">
+              <InfoCircleOutlined />
+            </Tooltip>
+          </Space>
+        }
+        name="user_created_custom_json_field"
+      >
+        <Select placeholder="Select custom JSON field (optional)" allowClear>
+          {[1, 2, 3, 4, 5].map((num) => {
+            const fieldName = `custom_json_${num}`
+            const friendlyName =
+              workspace.settings?.custom_field_labels?.[fieldName] || `Custom JSON ${num}`
+            return (
+              <Select.Option key={fieldName} value={fieldName}>
+                {friendlyName}
+              </Select.Option>
+            )
+          })}
+        </Select>
+      </Form.Item>
+
+      <Form.Item
+        label={
+          <Space>
+            <span>Reject Disposable Email Addresses</span>
+            <Tooltip title="When enabled, user creation will be rejected if a disposable email address is detected">
+              <InfoCircleOutlined />
+            </Tooltip>
+          </Space>
+        }
+        name="reject_disposable_email"
+        valuePropName="checked"
+      >
+        <Switch />
+      </Form.Item>
+
+      <Alert
+        description="This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
+        type="info"
+      />
+    </Form>
+  )
+}

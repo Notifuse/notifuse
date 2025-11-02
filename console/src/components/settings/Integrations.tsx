@@ -36,6 +36,7 @@ import {
 } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { emailService } from '../../services/api/email'
+import { listsApi } from '../../services/api/list'
 import { Section } from './Section'
 import {
   faCheck,
@@ -43,7 +44,8 @@ import {
   faEnvelope,
   faExclamationTriangle,
   faPlus,
-  faTerminal
+  faTerminal,
+  faTimes
 } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -51,12 +53,33 @@ import {
   registerWebhook,
   WebhookRegistrationStatus
 } from '../../services/api/webhook_registration'
-import { faPaperPlane, faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
+import {
+  faCopy,
+  faPaperPlane,
+  faPenToSquare,
+  faTrashCan
+} from '@fortawesome/free-regular-svg-icons'
 import { emailProviders } from '../integrations/EmailProviders'
+import { SupabaseIntegration } from '../integrations/SupabaseIntegration'
 import { v4 as uuidv4 } from 'uuid'
 
 // Provider types that only support transactional emails, not marketing emails
 const transactionalEmailOnly: EmailProviderKind[] = ['postmark']
+
+// Helper function to generate Supabase webhook URLs
+const generateSupabaseWebhookURL = (
+  hookType: 'auth-email' | 'user-created',
+  workspaceID: string,
+  integrationID: string
+): string => {
+  let defaultOrigin = window.location.origin
+  if (defaultOrigin.includes('notifusedev.com')) {
+    defaultOrigin = 'https://localapi.notifuse.com:4000'
+  }
+  const apiEndpoint = window.API_ENDPOINT?.trim() || defaultOrigin
+
+  return `${apiEndpoint}/webhooks/supabase/${hookType}?workspace_id=${workspaceID}&integration_id=${integrationID}`
+}
 
 // Component Props
 interface IntegrationsProps {
@@ -447,6 +470,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
   // Drawer state
   const [providerDrawerVisible, setProviderDrawerVisible] = useState(false)
+  const [supabaseDrawerVisible, setSupabaseDrawerVisible] = useState(false)
+  const [editingSupabaseIntegration, setEditingSupabaseIntegration] = useState<Integration | null>(
+    null
+  )
+  const [supabaseSaving, setSupabaseSaving] = useState(false)
+  const supabaseFormRef = React.useRef<any>(null)
 
   // Test email modal state
   const [testModalVisible, setTestModalVisible] = useState(false)
@@ -454,6 +483,24 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   const [testingIntegrationId, setTestingIntegrationId] = useState<string | null>(null)
   const [testingProvider, setTestingProvider] = useState<EmailProvider | null>(null)
   const [testingEmailLoading, setTestingEmailLoading] = useState(false)
+
+  // Lists state for Supabase integration
+  const [lists, setLists] = useState<any[]>([])
+
+  // Fetch lists for Supabase integration display
+  useEffect(() => {
+    const fetchLists = async () => {
+      if (!workspace) return
+      try {
+        const listsResponse = await listsApi.list({ workspace_id: workspace.id })
+        setLists(listsResponse.lists || [])
+      } catch (error) {
+        console.error('Failed to fetch lists:', error)
+        setLists([])
+      }
+    }
+    fetchLists()
+  }, [workspace?.id])
 
   if (!workspace) {
     return null
@@ -515,7 +562,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
   // Start editing an existing email provider
   const startEditEmailProvider = (integration: Integration) => {
-    if (integration.type !== 'email') return
+    if (integration.type !== 'email' || !integration.email_provider) return
 
     setEditingIntegrationId(integration.id)
     setSelectedProviderType(integration.email_provider.kind)
@@ -609,7 +656,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   // Start testing an email provider
   const startTestEmailProvider = (integrationId: string) => {
     const integration = getIntegrationById(integrationId)
-    if (!integration || integration.type !== 'email') {
+    if (!integration || integration.type !== 'email' || !integration.email_provider) {
       message.error('Integration not found or not an email provider')
       return
     }
@@ -637,6 +684,56 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       senders: []
     })
     setProviderDrawerVisible(true)
+  }
+
+  // Handle Supabase selection
+  const handleSelectSupabase = () => {
+    setEditingSupabaseIntegration(null)
+    setSupabaseDrawerVisible(true)
+  }
+
+  // Start editing a Supabase integration
+  const startEditSupabaseIntegration = (integration: Integration) => {
+    setEditingSupabaseIntegration(integration)
+    setSupabaseDrawerVisible(true)
+  }
+
+  // Save Supabase integration
+  const saveSupabaseIntegration = async (integration: Integration) => {
+    setSupabaseSaving(true)
+    try {
+      if (editingSupabaseIntegration) {
+        // Update existing integration
+        await workspaceService.updateIntegration({
+          workspace_id: workspace.id,
+          integration_id: integration.id,
+          name: integration.name,
+          supabase_settings: integration.supabase_settings
+        })
+      } else {
+        // Create new integration
+        await workspaceService.createIntegration({
+          workspace_id: workspace.id,
+          name: integration.name,
+          type: 'supabase',
+          supabase_settings: integration.supabase_settings
+        })
+      }
+
+      // Refresh workspace data
+      const response = await workspaceService.get(workspace.id)
+      await onSave(response.workspace)
+
+      setSupabaseDrawerVisible(false)
+      setEditingSupabaseIntegration(null)
+      message.success('Supabase integration saved successfully')
+    } catch (error) {
+      console.error('Error saving Supabase integration:', error)
+      message.error('Failed to save Supabase integration')
+      throw error
+    } finally {
+      setSupabaseSaving(false)
+    }
   }
 
   // Close provider drawer
@@ -739,13 +836,17 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       // If testing an existing integration
       if (testingIntegrationId) {
         const integration = getIntegrationById(testingIntegrationId)
-        if (!integration || integration.type !== 'email') {
+        if (!integration || integration.type !== 'email' || !integration.email_provider) {
           message.error('Integration not found or not an email provider')
           return
         }
         providerToTest = integration.email_provider
       } else {
         // Testing a provider that hasn't been saved yet
+        if (!testingProvider) {
+          message.error('No provider configured for testing')
+          return
+        }
         providerToTest = testingProvider
       }
 
@@ -796,6 +897,29 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             </Button>
           </div>
         ))}
+
+        {/* Supabase Integration */}
+        <div
+          key="supabase"
+          onClick={() => handleSelectSupabase()}
+          className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-all cursor-pointer mb-4 relative"
+        >
+          <div className="flex items-center">
+            <img src="/supabase.png" alt="Supabase" style={{ height: 13 }} />
+            <span className="ml-3 font-medium">Supabase</span>
+          </div>
+          <Button
+            type="primary"
+            ghost
+            size="small"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleSelectSupabase()
+            }}
+          >
+            Configure
+          </Button>
+        </div>
       </>
     )
   }
@@ -809,12 +933,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
     return (
       <>
         {workspace?.integrations.map((integration) => {
-          if (integration.type === 'email') {
+          if (integration.type === 'email' && integration.email_provider) {
             return (
               <div key={integration.id} className="mb-4">
                 <EmailIntegration
                   key={integration.id}
-                  integration={integration}
+                  integration={integration as Integration & { email_provider: EmailProvider }}
                   isOwner={isOwner}
                   workspace={workspace}
                   getIntegrationPurpose={getIntegrationPurpose}
@@ -825,6 +949,185 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                   setIntegrationAsDefault={setIntegrationAsDefault}
                   deleteIntegration={deleteIntegration}
                 />
+              </div>
+            )
+          }
+
+          if (integration.type === 'supabase') {
+            const hasAuthEmailHook = !!integration.supabase_settings?.auth_email_hook?.signature_key
+            const hasBeforeUserCreatedHook =
+              !!integration.supabase_settings?.before_user_created_hook?.signature_key
+            const addToLists =
+              integration.supabase_settings?.before_user_created_hook?.add_user_to_lists || []
+            const customJsonField =
+              integration.supabase_settings?.before_user_created_hook?.custom_json_field
+            const rejectDisposableEmail =
+              integration.supabase_settings?.before_user_created_hook?.reject_disposable_email
+
+            // Generate webhook URLs dynamically
+            const authEmailWebhookURL = generateSupabaseWebhookURL(
+              'auth-email',
+              workspace.id,
+              integration.id
+            )
+            const beforeUserCreatedWebhookURL = generateSupabaseWebhookURL(
+              'user-created',
+              workspace.id,
+              integration.id
+            )
+
+            return (
+              <div key={integration.id} className="mb-4">
+                <Card
+                  title={
+                    <>
+                      <div className="float-right">
+                        {isOwner && (
+                          <Space>
+                            <Tooltip title="Edit">
+                              <Button
+                                type="text"
+                                onClick={() => startEditSupabaseIntegration(integration)}
+                                size="small"
+                              >
+                                <FontAwesomeIcon icon={faPenToSquare} />
+                              </Button>
+                            </Tooltip>
+                            <Popconfirm
+                              title="Delete this integration?"
+                              description="This action cannot be undone."
+                              onConfirm={() => deleteIntegration(integration.id)}
+                              okText="Yes"
+                              cancelText="No"
+                            >
+                              <Tooltip title="Delete">
+                                <Button size="small" type="text">
+                                  <FontAwesomeIcon icon={faTrashCan} />
+                                </Button>
+                              </Tooltip>
+                            </Popconfirm>
+                          </Space>
+                        )}
+                      </div>
+                      <Tooltip title={integration.id}>
+                        <img src="/supabase.png" alt="Supabase" style={{ height: 24 }} />
+                      </Tooltip>
+                    </>
+                  }
+                >
+                  <Descriptions bordered size="small" column={1} className="mt-2">
+                    <Descriptions.Item label="Name">{integration.name}</Descriptions.Item>
+                    <Descriptions.Item label="Auth Email Hook">
+                      {hasAuthEmailHook ? (
+                        <Space direction="vertical">
+                          <Tag bordered={false} color="green" className="mb-2">
+                            <FontAwesomeIcon icon={faCheck} className="mr-1" /> Configured
+                          </Tag>
+                          <div className="mt-2 text-xs text-gray-500">Webhook endpoint:</div>
+
+                          <Input
+                            value={authEmailWebhookURL}
+                            readOnly
+                            size="small"
+                            variant="filled"
+                            suffix={
+                              <Tooltip title="Copy Webhook endpoint">
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(authEmailWebhookURL)
+                                    message.success('Webhook endpoint copied to clipboard')
+                                  }}
+                                  icon={<FontAwesomeIcon icon={faCopy} />}
+                                  className="mt-1"
+                                >
+                                  Copy
+                                </Button>
+                              </Tooltip>
+                            }
+                          />
+                        </Space>
+                      ) : (
+                        <Tag bordered={false} color="default">
+                          Not configured
+                        </Tag>
+                      )}
+                    </Descriptions.Item>
+                    <Descriptions.Item label="Before User Created Hook">
+                      {hasBeforeUserCreatedHook ? (
+                        <Space direction="vertical">
+                          <Tag bordered={false} color="green" className="mb-2">
+                            <FontAwesomeIcon icon={faCheck} className="mr-1" /> Configured
+                          </Tag>
+                          <div className="mt-2 text-xs text-gray-500">Webhook endpoint:</div>
+
+                          <Input
+                            value={beforeUserCreatedWebhookURL}
+                            readOnly
+                            size="small"
+                            variant="filled"
+                            suffix={
+                              <Tooltip title="Copy Webhook endpoint">
+                                <Button
+                                  type="link"
+                                  size="small"
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(beforeUserCreatedWebhookURL)
+                                    message.success('Webhook endpoint copied to clipboard')
+                                  }}
+                                  icon={<FontAwesomeIcon icon={faCopy} />}
+                                  className="mt-1"
+                                >
+                                  Copy
+                                </Button>
+                              </Tooltip>
+                            }
+                          />
+                        </Space>
+                      ) : (
+                        <Tag bordered={false} color="default">
+                          Not configured
+                        </Tag>
+                      )}
+                    </Descriptions.Item>
+                    {hasBeforeUserCreatedHook && addToLists.length > 0 && (
+                      <Descriptions.Item label="Auto-subscribe to Lists">
+                        {addToLists.map((listId) => {
+                          const list = lists.find((l: any) => l.id === listId)
+                          return (
+                            <Tag key={listId} bordered={false} color="blue" className="mb-1">
+                              {list?.name || listId}
+                            </Tag>
+                          )
+                        })}
+                      </Descriptions.Item>
+                    )}
+                    {hasBeforeUserCreatedHook && customJsonField && (
+                      <Descriptions.Item label="User Metadata Field">
+                        <Tag bordered={false} color="purple">
+                          {workspace.settings?.custom_field_labels?.[customJsonField] ||
+                            customJsonField}
+                        </Tag>
+                      </Descriptions.Item>
+                    )}
+                    {hasBeforeUserCreatedHook && (
+                      <Descriptions.Item label="Reject Disposable Email">
+                        <Tag bordered={false} color={rejectDisposableEmail ? 'green' : 'default'}>
+                          {rejectDisposableEmail ? (
+                            <>
+                              <FontAwesomeIcon icon={faCheck} className="mr-1" /> Enabled
+                            </>
+                          ) : (
+                            <>
+                              <FontAwesomeIcon icon={faTimes} className="mr-1" /> Disabled
+                            </>
+                          )}
+                        </Tag>
+                      </Descriptions.Item>
+                    )}
+                  </Descriptions>
+                </Card>
               </div>
             )
           }
@@ -937,10 +1240,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
             </Row>
             <Row gutter={16}>
               <Col span={12}>
-                <Form.Item
-                  name={['smtp', 'username']}
-                  label="SMTP Username"
-                >
+                <Form.Item name={['smtp', 'username']} label="SMTP Username">
                   <Input placeholder="Username (optional)" disabled={!isOwner} />
                 </Form.Item>
               </Col>
@@ -1282,14 +1582,22 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   }
 
   // Add integration dropdown menu items
-  const integrationMenuItems = emailProviders.map((provider) => ({
-    key: provider.kind,
-    label: provider.name,
-    icon: React.cloneElement(
-      provider.getIcon('h-6 w-12 object-contain mr-1') as React.ReactElement
-    ),
-    onClick: () => handleSelectProviderType(provider.kind)
-  }))
+  const integrationMenuItems = [
+    ...emailProviders.map((provider) => ({
+      key: provider.kind,
+      label: provider.name,
+      icon: React.cloneElement(
+        provider.getIcon('h-6 w-12 object-contain mr-1') as React.ReactElement
+      ),
+      onClick: () => handleSelectProviderType(provider.kind)
+    })),
+    {
+      key: 'supabase',
+      label: 'Supabase',
+      icon: <img src="/supabase.png" alt="Supabase" style={{ height: 10, marginRight: 8 }} />,
+      onClick: () => handleSelectSupabase()
+    }
+  ]
 
   return (
     <Section
@@ -1412,6 +1720,50 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           showIcon
         />
       </Modal>
+
+      {/* Supabase Integration Drawer */}
+      <Drawer
+        title={
+          editingSupabaseIntegration ? 'Edit SUPABASE Integration' : 'Add New SUPABASE Integration'
+        }
+        width={600}
+        open={supabaseDrawerVisible}
+        onClose={() => {
+          setSupabaseDrawerVisible(false)
+          setEditingSupabaseIntegration(null)
+        }}
+        footer={
+          <div style={{ textAlign: 'right' }}>
+            <Space>
+              <Button
+                onClick={() => {
+                  setSupabaseDrawerVisible(false)
+                  setEditingSupabaseIntegration(null)
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="primary"
+                onClick={() => supabaseFormRef.current?.submit()}
+                loading={supabaseSaving}
+                disabled={!isOwner}
+              >
+                Save
+              </Button>
+            </Space>
+          </div>
+        }
+        destroyOnClose
+      >
+        <SupabaseIntegration
+          integration={editingSupabaseIntegration || undefined}
+          workspace={workspace}
+          onSave={saveSupabaseIntegration}
+          isOwner={isOwner}
+          formRef={supabaseFormRef}
+        />
+      </Drawer>
     </Section>
   )
 }

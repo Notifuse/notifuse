@@ -46,12 +46,13 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 			email, 
 			category, 
 			template_macro_id, 
+			integration_id,
 			test_data, 
 			settings, 
 			created_at, 
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		template.ID,
@@ -61,6 +62,7 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 		template.Email,
 		template.Category,
 		template.TemplateMacroID,
+		template.IntegrationID,
 		template.TestData,
 		template.Settings,
 		template.CreatedAt,
@@ -94,6 +96,7 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 				email, 
 				category, 
 				template_macro_id, 
+				integration_id,
 				test_data, 
 				settings, 
 				created_at, 
@@ -113,6 +116,7 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 				email, 
 				category, 
 				template_macro_id, 
+				integration_id,
 				test_data, 
 				settings, 
 				created_at, 
@@ -189,6 +193,7 @@ func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID strin
 		"t.email",
 		"t.category",
 		"t.template_macro_id",
+		"t.integration_id",
 		"t.test_data",
 		"t.settings",
 		"t.created_at",
@@ -257,12 +262,13 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 			email, 
 			category, 
 			template_macro_id, 
+			integration_id,
 			test_data, 
 			settings, 
 			created_at, 
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		template.ID,
@@ -272,6 +278,7 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 		template.Email,
 		template.Category,
 		template.TemplateMacroID,
+		template.IntegrationID,
 		template.TestData,
 		template.Settings,
 		template.CreatedAt,
@@ -318,6 +325,7 @@ func scanTemplate(scanner interface {
 	var (
 		template        domain.Template
 		templateMacroID sql.NullString
+		integrationID   sql.NullString
 	)
 
 	err := scanner.Scan(
@@ -328,6 +336,7 @@ func scanTemplate(scanner interface {
 		&template.Email,
 		&template.Category,
 		&templateMacroID,
+		&integrationID,
 		&template.TestData,
 		&template.Settings,
 		&template.CreatedAt,
@@ -340,6 +349,9 @@ func scanTemplate(scanner interface {
 	// Handle nullable fields
 	if templateMacroID.Valid {
 		template.TemplateMacroID = &templateMacroID.String
+	}
+	if integrationID.Valid {
+		template.IntegrationID = &integrationID.String
 	}
 
 	return &template, nil

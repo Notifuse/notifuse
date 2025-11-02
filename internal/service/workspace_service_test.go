@@ -1064,7 +1064,12 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 		// No webhook registration expected for SMTP provider
 		mockConfig.APIEndpoint = "https://api.example.com"
 
-		integrationID, err := service.CreateIntegration(ctx, workspaceID, integrationName, domain.IntegrationTypeEmail, provider)
+		integrationID, err := service.CreateIntegration(ctx, domain.CreateIntegrationRequest{
+			WorkspaceID: workspaceID,
+			Name:        integrationName,
+			Type:        domain.IntegrationTypeEmail,
+			Provider:    provider,
+		})
 		require.NoError(t, err)
 		require.NotEmpty(t, integrationID)
 	})
@@ -1084,7 +1089,12 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
 		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
 
-		integrationID, err := service.CreateIntegration(ctx, workspaceID, integrationName, domain.IntegrationTypeEmail, provider)
+		integrationID, err := service.CreateIntegration(ctx, domain.CreateIntegrationRequest{
+			WorkspaceID: workspaceID,
+			Name:        integrationName,
+			Type:        domain.IntegrationTypeEmail,
+			Provider:    provider,
+		})
 		require.Error(t, err)
 		require.Empty(t, integrationID)
 		require.IsType(t, &domain.ErrUnauthorized{}, err)
@@ -1105,7 +1115,12 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(nil, errors.New("workspace not found"))
 
-		integrationID, err := service.CreateIntegration(ctx, workspaceID, integrationName, domain.IntegrationTypeEmail, provider)
+		integrationID, err := service.CreateIntegration(ctx, domain.CreateIntegrationRequest{
+			WorkspaceID: workspaceID,
+			Name:        integrationName,
+			Type:        domain.IntegrationTypeEmail,
+			Provider:    provider,
+		})
 		require.Error(t, err)
 		require.Empty(t, integrationID)
 		require.Contains(t, err.Error(), "workspace not found")
@@ -1132,7 +1147,12 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
 		mockRepo.EXPECT().Update(ctx, gomock.Any()).Return(errors.New("update error"))
 
-		integrationID, err := service.CreateIntegration(ctx, workspaceID, integrationName, domain.IntegrationTypeEmail, provider)
+		integrationID, err := service.CreateIntegration(ctx, domain.CreateIntegrationRequest{
+			WorkspaceID: workspaceID,
+			Name:        integrationName,
+			Type:        domain.IntegrationTypeEmail,
+			Provider:    provider,
+		})
 		require.Error(t, err)
 		require.Empty(t, integrationID)
 		require.Contains(t, err.Error(), "update error")
@@ -1255,7 +1275,12 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 			return nil
 		})
 
-		err := service.UpdateIntegration(ctx, workspaceID, integrationID, integrationName, provider)
+		err := service.UpdateIntegration(ctx, domain.UpdateIntegrationRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: integrationID,
+			Name:          integrationName,
+			Provider:      provider,
+		})
 		require.NoError(t, err)
 	})
 
@@ -1274,7 +1299,12 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
 		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
 
-		err := service.UpdateIntegration(ctx, workspaceID, integrationID, integrationName, provider)
+		err := service.UpdateIntegration(ctx, domain.UpdateIntegrationRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: integrationID,
+			Name:          integrationName,
+			Provider:      provider,
+		})
 		require.Error(t, err)
 		require.IsType(t, &domain.ErrUnauthorized{}, err)
 	})
@@ -1300,7 +1330,12 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
 
-		err := service.UpdateIntegration(ctx, workspaceID, integrationID, integrationName, provider)
+		err := service.UpdateIntegration(ctx, domain.UpdateIntegrationRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: integrationID,
+			Name:          integrationName,
+			Provider:      provider,
+		})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "integration not found")
 	})
@@ -2642,4 +2677,52 @@ func TestWorkspaceService_SetUserPermissions(t *testing.T) {
 		err := service.SetUserPermissions(ctx, workspaceID, targetUserID, permissions)
 		require.NoError(t, err) // Should still succeed despite session error
 	})
+}
+
+func TestWorkspaceService_SetSupabaseService(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockMailer := pkgmocks.NewMockMailer(ctrl)
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockContactListService := mocks.NewMockContactListService(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
+
+	service := NewWorkspaceService(
+		mockRepo,
+		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
+		mockLogger,
+		mockUserService,
+		mockAuthService,
+		mockMailer,
+		mockConfig,
+		mockContactService,
+		mockListService,
+		mockContactListService,
+		mockTemplateService,
+		mockWebhookRegService,
+		"secret_key",
+	)
+
+	// Initially supabaseService should be nil
+	assert.Nil(t, service.supabaseService)
+
+	// Create a mock Supabase service
+	mockSupabaseService := &SupabaseService{}
+
+	// Set the Supabase service
+	service.SetSupabaseService(mockSupabaseService)
+
+	// Verify it's set
+	assert.NotNil(t, service.supabaseService)
+	assert.Equal(t, mockSupabaseService, service.supabaseService)
 }

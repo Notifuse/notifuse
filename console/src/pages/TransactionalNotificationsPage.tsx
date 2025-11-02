@@ -207,7 +207,9 @@ export function TransactionalNotificationsPage() {
         <Space>
           <Tooltip
             title={
-              !permissions?.transactional?.write
+              record.integration_id
+                ? 'This notification is managed by an integration and cannot be edited'
+                : !permissions?.transactional?.write
                 ? "You don't have write permission for transactional notifications"
                 : 'Edit'
             }
@@ -221,7 +223,7 @@ export function TransactionalNotificationsPage() {
                   buttonProps={{
                     type: 'text',
                     size: 'small',
-                    disabled: !permissions?.transactional?.write
+                    disabled: !permissions?.transactional?.write || !!record.integration_id
                   }}
                 />
               )}
@@ -261,7 +263,9 @@ export function TransactionalNotificationsPage() {
           </Tooltip>
           <Tooltip
             title={
-              !permissions?.transactional?.write
+              record.integration_id
+                ? 'This notification is managed by an integration and cannot be deleted'
+                : !permissions?.transactional?.write
                 ? "You don't have write permission for transactional notifications"
                 : 'Delete'
             }
@@ -273,8 +277,13 @@ export function TransactionalNotificationsPage() {
               okText="Yes, Delete"
               cancelText="Cancel"
               placement="topRight"
+              disabled={!!record.integration_id}
             >
-              <Button type="text" size="small" disabled={!permissions?.transactional?.write}>
+              <Button
+                type="text"
+                size="small"
+                disabled={!permissions?.transactional?.write || !!record.integration_id}
+              >
                 <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
               </Button>
             </Popconfirm>

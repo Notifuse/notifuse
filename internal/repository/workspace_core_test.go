@@ -662,7 +662,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 	}
 
 	mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
-		WithArgs(w.Name, sqlmock.AnyArg(), nil, sqlmock.AnyArg(), w.ID).
+		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), w.ID).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
 	err := repo.Update(context.Background(), w)
@@ -671,7 +671,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 
 	// not found (0 rows affected)
 	mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
-		WithArgs(w.Name, sqlmock.AnyArg(), nil, sqlmock.AnyArg(), "missing").
+		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), "missing").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 
 	wMissing := *w
@@ -682,7 +682,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 
 	// db error during update
 	mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
-		WithArgs(w.Name, sqlmock.AnyArg(), nil, sqlmock.AnyArg(), w.ID).
+		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), w.ID).
 		WillReturnError(fmt.Errorf("update failed"))
 
 	err = repo.Update(context.Background(), w)
@@ -691,7 +691,7 @@ func TestWorkspaceRepository_Update_Postgres(t *testing.T) {
 
 	// error getting affected rows
 	mock.ExpectExec(`UPDATE workspaces\s+SET name = \$1, settings = \$2, integrations = \$3, updated_at = \$4\s+WHERE id = \$5`).
-		WithArgs(w.Name, sqlmock.AnyArg(), nil, sqlmock.AnyArg(), w.ID).
+		WithArgs(w.Name, sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg(), w.ID).
 		WillReturnResult(sqlmock.NewErrorResult(fmt.Errorf("rows affected error")))
 
 	err = repo.Update(context.Background(), w)

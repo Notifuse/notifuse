@@ -31,6 +31,10 @@ export type {
   MailjetSettings,
   IntegrationType,
   Integration,
+  SupabaseAuthEmailHookSettings,
+  SupabaseUserCreatedHookSettings,
+  SupabaseWebhookEndpoints,
+  SupabaseIntegrationSettings,
   CreateWorkspaceRequest,
   Workspace,
   CreateWorkspaceResponse,
@@ -115,8 +119,6 @@ export type {
 // Re-export from segment.ts
 export type {
   SegmentStatus,
-  TreeNodeType,
-  RuleOperator,
   BooleanOperator,
   TreeNode,
   Segment,

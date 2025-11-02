@@ -908,6 +908,12 @@ func TestTransactionalNotificationService_DeleteNotification(t *testing.T) {
 	workspace := "test-workspace"
 	notificationID := uuid.New().String()
 
+	existingNotification := &domain.TransactionalNotification{
+		ID:          notificationID,
+		Name:        "Test Notification",
+		Description: "Test Description",
+	}
+
 	tests := []testCase{
 		{
 			name: "Success_DeleteNotification",
@@ -924,6 +930,11 @@ func TestTransactionalNotificationService_DeleteNotification(t *testing.T) {
 							domain.PermissionResourceTransactional: {Read: true, Write: true},
 						},
 					}, nil)
+
+				// Get the notification first to check if it's integration-managed
+				mockRepo.EXPECT().
+					Get(gomock.Any(), workspace, notificationID).
+					Return(existingNotification, nil)
 
 				mockRepo.EXPECT().
 					Delete(gomock.Any(), workspace, notificationID).
@@ -946,9 +957,65 @@ func TestTransactionalNotificationService_DeleteNotification(t *testing.T) {
 						},
 					}, nil)
 
+				// Get the notification first to check if it's integration-managed
+				mockRepo.EXPECT().
+					Get(gomock.Any(), workspace, notificationID).
+					Return(existingNotification, nil)
+
 				mockRepo.EXPECT().
 					Delete(gomock.Any(), workspace, notificationID).
 					Return(errors.New("delete failed"))
+			},
+			expectedError: true,
+		},
+		{
+			name: "Error_NotificationNotFound",
+			id:   notificationID,
+			mockSetup: func() {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+						UserID:      "user-123",
+						WorkspaceID: workspace,
+						Role:        "member",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceTransactional: {Read: true, Write: true},
+						},
+					}, nil)
+
+				// Get fails - notification not found
+				mockRepo.EXPECT().
+					Get(gomock.Any(), workspace, notificationID).
+					Return(nil, errors.New("notification not found"))
+			},
+			expectedError: true,
+		},
+		{
+			name: "Error_IntegrationManagedNotification",
+			id:   notificationID,
+			mockSetup: func() {
+				mockAuthService.EXPECT().
+					AuthenticateUserForWorkspace(gomock.Any(), workspace).
+					Return(ctx, &domain.User{ID: "user-123"}, &domain.UserWorkspace{
+						UserID:      "user-123",
+						WorkspaceID: workspace,
+						Role:        "member",
+						Permissions: domain.UserPermissions{
+							domain.PermissionResourceTransactional: {Read: true, Write: true},
+						},
+					}, nil)
+
+				// Notification is integration-managed
+				integrationID := "integration-123"
+				integrationManagedNotification := &domain.TransactionalNotification{
+					ID:            notificationID,
+					Name:          "Integration Managed Notification",
+					IntegrationID: &integrationID,
+				}
+				mockRepo.EXPECT().
+					Get(gomock.Any(), workspace, notificationID).
+					Return(integrationManagedNotification, nil)
+				// Delete should NOT be called for integration-managed notifications
 			},
 			expectedError: true,
 		},

@@ -124,6 +124,7 @@ type App struct {
 	segmentService                   *service.SegmentService
 	settingService                   *service.SettingService
 	setupService                     *service.SetupService
+	supabaseService                  *service.SupabaseService
 	taskScheduler                    *service.TaskScheduler
 	// providers
 	postmarkService  *service.PostmarkService
@@ -587,6 +588,23 @@ func (a *App) InitServices() error {
 		a.messageHistoryRepo,
 	)
 
+	// Initialize Supabase service
+	a.supabaseService = service.NewSupabaseService(
+		a.workspaceRepo,
+		a.emailService,
+		a.contactService,
+		a.listRepo,
+		a.contactListRepo,
+		a.templateRepo,
+		a.templateService,
+		a.transactionalNotificationRepo,
+		a.transactionalNotificationService,
+		a.logger,
+	)
+
+	// Link Supabase service to Workspace service (for integration template creation)
+	a.workspaceService.SetSupabaseService(a.supabaseService)
+
 	// Initialize broadcast service
 	a.broadcastService = service.NewBroadcastService(
 		a.logger,
@@ -806,6 +824,7 @@ func (a *App) InitHandlers() error {
 	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, getJWTSecret, a.logger, a.config.IsDemo())
 	webhookEventHandler := httpHandler.NewWebhookEventHandler(a.webhookEventService, getJWTSecret, a.logger)
 	webhookRegistrationHandler := httpHandler.NewWebhookRegistrationHandler(a.webhookRegistrationService, getJWTSecret, a.logger)
+	supabaseWebhookHandler := httpHandler.NewSupabaseWebhookHandler(a.supabaseService, a.logger)
 	messageHistoryHandler := httpHandler.NewMessageHistoryHandler(
 		a.messageHistoryService,
 		a.authService,
@@ -853,6 +872,7 @@ func (a *App) InitHandlers() error {
 	transactionalHandler.RegisterRoutes(a.mux)
 	webhookEventHandler.RegisterRoutes(a.mux)
 	webhookRegistrationHandler.RegisterRoutes(a.mux)
+	supabaseWebhookHandler.RegisterRoutes(a.mux)
 	messageHistoryHandler.RegisterRoutes(a.mux)
 	notificationCenterHandler.RegisterRoutes(a.mux)
 	analyticsHandler.RegisterRoutes(a.mux)

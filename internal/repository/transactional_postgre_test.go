@@ -38,10 +38,12 @@ func setupTransactionalTest(t *testing.T) (*mocks.MockWorkspaceRepository, domai
 
 func createSampleTransactionalNotification() *domain.TransactionalNotification {
 	now := time.Now().UTC()
+	integrationID := "integration-123"
 	return &domain.TransactionalNotification{
-		ID:          "trans-123",
-		Name:        "Welcome Email",
-		Description: "Sent when a user signs up",
+		ID:            "trans-123",
+		Name:          "Welcome Email",
+		Description:   "Sent when a user signs up",
+		IntegrationID: &integrationID,
 		Channels: domain.ChannelTemplates{
 			domain.TransactionalChannelEmail: domain.ChannelTemplate{
 				TemplateID: "template-123",
@@ -86,6 +88,7 @@ func TestTransactionalNotificationRepository_Create(t *testing.T) {
 				sqlmock.AnyArg(), // channels (complex type)
 				sqlmock.AnyArg(), // tracking_settings (complex type)
 				sqlmock.AnyArg(), // metadata (complex type)
+				notification.IntegrationID,
 				sqlmock.AnyArg(), // created_at
 				sqlmock.AnyArg(), // updated_at
 			).
@@ -118,6 +121,7 @@ func TestTransactionalNotificationRepository_Create(t *testing.T) {
 				sqlmock.AnyArg(), // channels (complex type)
 				sqlmock.AnyArg(), // tracking_settings (complex type)
 				sqlmock.AnyArg(), // metadata (complex type)
+				notification.IntegrationID,
 				sqlmock.AnyArg(), // created_at
 				sqlmock.AnyArg(), // updated_at
 			).
@@ -149,6 +153,7 @@ func TestTransactionalNotificationRepository_Update(t *testing.T) {
 				sqlmock.AnyArg(), // channels (complex type)
 				sqlmock.AnyArg(), // tracking_settings (complex type)
 				sqlmock.AnyArg(), // metadata (complex type)
+				notification.IntegrationID,
 				sqlmock.AnyArg(), // updated_at
 				notification.ID,
 			).
@@ -180,6 +185,7 @@ func TestTransactionalNotificationRepository_Update(t *testing.T) {
 				sqlmock.AnyArg(), // channels (complex type)
 				sqlmock.AnyArg(), // tracking_settings (complex type)
 				sqlmock.AnyArg(), // metadata (complex type)
+				notification.IntegrationID,
 				sqlmock.AnyArg(), // updated_at
 				notification.ID,
 			).
@@ -202,6 +208,7 @@ func TestTransactionalNotificationRepository_Update(t *testing.T) {
 				sqlmock.AnyArg(), // channels (complex type)
 				sqlmock.AnyArg(), // tracking_settings (complex type)
 				sqlmock.AnyArg(), // metadata (complex type)
+				notification.IntegrationID,
 				sqlmock.AnyArg(), // updated_at
 				notification.ID,
 			).
@@ -227,6 +234,7 @@ func TestTransactionalNotificationRepository_Update(t *testing.T) {
 				sqlmock.AnyArg(), // channels (complex type)
 				sqlmock.AnyArg(), // tracking_settings (complex type)
 				sqlmock.AnyArg(), // metadata (complex type)
+				notification.IntegrationID,
 				sqlmock.AnyArg(), // updated_at
 				notification.ID,
 			).
@@ -262,7 +270,7 @@ func TestTransactionalNotificationRepository_Get(t *testing.T) {
 
 		rows := sqlmock.NewRows([]string{
 			"id", "name", "description", "channels", "tracking_settings",
-			"metadata", "created_at", "updated_at", "deleted_at",
+			"metadata", "integration_id", "created_at", "updated_at", "deleted_at",
 		}).AddRow(
 			notification.ID,
 			notification.Name,
@@ -270,6 +278,7 @@ func TestTransactionalNotificationRepository_Get(t *testing.T) {
 			channelsJSON,
 			trackingSettingsJSON,
 			metadataJSON,
+			notification.IntegrationID,
 			notification.CreatedAt,
 			notification.UpdatedAt,
 			nil, // deleted_at is nil
@@ -361,7 +370,7 @@ func TestTransactionalNotificationRepository_List(t *testing.T) {
 		// Set up data query
 		dataRows := sqlmock.NewRows([]string{
 			"id", "name", "description", "channels", "tracking_settings",
-			"metadata", "created_at", "updated_at", "deleted_at",
+			"metadata", "integration_id", "created_at", "updated_at", "deleted_at",
 		}).AddRow(
 			notification.ID,
 			notification.Name,
@@ -369,6 +378,7 @@ func TestTransactionalNotificationRepository_List(t *testing.T) {
 			channelsJSON,
 			trackingSettingsJSON,
 			metadataJSON,
+			notification.IntegrationID,
 			notification.CreatedAt,
 			notification.UpdatedAt,
 			nil, // deleted_at is nil
@@ -412,7 +422,7 @@ func TestTransactionalNotificationRepository_List(t *testing.T) {
 		// Set up data query with search param
 		dataRows := sqlmock.NewRows([]string{
 			"id", "name", "description", "channels", "tracking_settings",
-			"metadata", "created_at", "updated_at", "deleted_at",
+			"metadata", "integration_id", "created_at", "updated_at", "deleted_at",
 		}).AddRow(
 			notification.ID,
 			notification.Name,
@@ -420,6 +430,7 @@ func TestTransactionalNotificationRepository_List(t *testing.T) {
 			channelsJSON,
 			trackingSettingsJSON,
 			metadataJSON,
+			notification.IntegrationID,
 			notification.CreatedAt,
 			notification.UpdatedAt,
 			nil, // deleted_at is nil
@@ -529,7 +540,7 @@ func TestTransactionalNotificationRepository_List(t *testing.T) {
 		// Create rows with an error during iteration
 		dataRows := sqlmock.NewRows([]string{
 			"id", "name", "description", "channels", "tracking_settings",
-			"metadata", "created_at", "updated_at", "deleted_at",
+			"metadata", "integration_id", "created_at", "updated_at", "deleted_at",
 		}).AddRow(
 			notification.ID,
 			notification.Name,
@@ -537,6 +548,7 @@ func TestTransactionalNotificationRepository_List(t *testing.T) {
 			channelsJSON,
 			trackingSettingsJSON,
 			metadataJSON,
+			notification.IntegrationID,
 			notification.CreatedAt,
 			notification.UpdatedAt,
 			nil, // deleted_at is nil

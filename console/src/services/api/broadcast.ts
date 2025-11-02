@@ -40,6 +40,7 @@ export interface Template {
   email: EmailTemplate
   category: string
   template_macro_id?: string
+  integration_id?: string
   utm_source?: string
   utm_medium?: string
   utm_campaign?: string

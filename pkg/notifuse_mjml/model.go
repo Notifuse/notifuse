@@ -1023,9 +1023,15 @@ func UnmarshalEmailBlock(data []byte) (EmailBlock, error) {
 		block = rawBlock
 
 	default:
-		// For other types, create a basic structure
-		// This is a simplified approach - in a full implementation, you'd handle all types
-		return nil, fmt.Errorf("unsupported block type for manual unmarshaling: %s", blockJSON.Type)
+		// For other types, provide detailed error information
+		typeStr := string(blockJSON.Type)
+		if typeStr == "" {
+			typeStr = "(empty string)"
+		}
+		// Include block ID and attributes for debugging
+		attrsJSON, _ := json.Marshal(blockJSON.Attributes)
+		return nil, fmt.Errorf("unsupported block type for manual unmarshaling: type=%q, id=%q, attributes=%s",
+			typeStr, blockJSON.ID, string(attrsJSON))
 	}
 
 	return block, nil
