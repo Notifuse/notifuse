@@ -189,12 +189,12 @@ func testSupabaseInstallation(t *testing.T, suite *testutil.IntegrationTestSuite
 
 		// Verify each template type exists
 		expectedTemplates := map[string]string{
-			"signup":       "Supabase Signup Confirmation",
-			"magiclink":    "Supabase Magic Link",
-			"recovery":     "Supabase Password Recovery",
-			"email_change": "Supabase Email Change",
-			"invite":       "Supabase User Invitation",
-			"reauth":       "Supabase Reauthentication",
+			"signup":       "Signup Confirmation",
+			"magiclink":    "Magic Link",
+			"recovery":     "Password Recovery",
+			"email_change": "Email Change",
+			"invite":       "User Invitation",
+			"reauth":       "Reauthentication",
 		}
 
 		foundTemplates := make(map[string]bool)
@@ -239,12 +239,12 @@ func testSupabaseInstallation(t *testing.T, suite *testutil.IntegrationTestSuite
 
 		// Verify each notification type exists
 		expectedNotifications := map[string]string{
-			"signup":       "Supabase Signup Confirmation",
-			"magiclink":    "Supabase Magic Link",
-			"recovery":     "Supabase Password Recovery",
-			"email_change": "Supabase Email Change",
-			"invite":       "Supabase User Invitation",
-			"reauth":       "Supabase Reauthentication",
+			"signup":       "Signup Confirmation",
+			"magiclink":    "Magic Link",
+			"recovery":     "Password Recovery",
+			"email_change": "Email Change",
+			"invite":       "User Invitation",
+			"reauth":       "Reauthentication",
 		}
 
 		foundNotifications := make(map[string]domain.TransactionalNotification)
