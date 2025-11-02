@@ -898,10 +898,7 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 			SenderID: emailSender.ID,
 			ReplyTo:  "support@example.com",
 			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:   "root",
-					Type: notifuse_mjml.MJMLComponentMjml,
-				},
+				BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
 			},
 		},
 	}

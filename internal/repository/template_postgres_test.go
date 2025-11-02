@@ -170,57 +170,30 @@ func (m *MockWorkspaceRepository) WithWorkspaceTransaction(ctx context.Context, 
 // Helper function to create a simple text block for testing
 func createTestTextBlock(id, textContent string) notifuse_mjml.EmailBlock {
 	content := textContent
-	return &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   id,
-			Type: notifuse_mjml.MJMLComponentMjText,
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &content,
-	}
+	base := notifuse_mjml.NewBaseBlock(id, notifuse_mjml.MJMLComponentMjText)
+	base.Content = &content
+	return &notifuse_mjml.MJTextBlock{BaseBlock: base}
 }
 
 // Helper function to create a valid MJML tree structure for testing
 func createValidTestTree() notifuse_mjml.EmailBlock {
 	textBlock := createTestTextBlock("txt1", "Test content")
-	columnBlock := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "col1",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{textBlock},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{textBlock},
-	}
-	sectionBlock := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "sec1",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{columnBlock},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjSection,
-		Children: []notifuse_mjml.EmailBlock{columnBlock},
-	}
-	bodyBlock := &notifuse_mjml.MJBodyBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "body1",
-			Type:     notifuse_mjml.MJMLComponentMjBody,
-			Children: []interface{}{sectionBlock},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjBody,
-		Children: []notifuse_mjml.EmailBlock{sectionBlock},
-	}
-	return &notifuse_mjml.MJMLBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:         "root",
-			Type:       notifuse_mjml.MJMLComponentMjml,
-			Attributes: map[string]interface{}{"version": "4.0.0"},
-			Children:   []interface{}{bodyBlock},
-		},
-		Type:       notifuse_mjml.MJMLComponentMjml,
-		Attributes: map[string]interface{}{"version": "4.0.0"},
-		Children:   []notifuse_mjml.EmailBlock{bodyBlock},
-	}
+	columnBase := notifuse_mjml.NewBaseBlock("col1", notifuse_mjml.MJMLComponentMjColumn)
+	columnBase.Children = []notifuse_mjml.EmailBlock{textBlock}
+	columnBlock := &notifuse_mjml.MJColumnBlock{BaseBlock: columnBase}
+	
+	sectionBase := notifuse_mjml.NewBaseBlock("sec1", notifuse_mjml.MJMLComponentMjSection)
+	sectionBase.Children = []notifuse_mjml.EmailBlock{columnBlock}
+	sectionBlock := &notifuse_mjml.MJSectionBlock{BaseBlock: sectionBase}
+	
+	bodyBase := notifuse_mjml.NewBaseBlock("body1", notifuse_mjml.MJMLComponentMjBody)
+	bodyBase.Children = []notifuse_mjml.EmailBlock{sectionBlock}
+	bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+	
+	rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+	rootBase.Attributes["version"] = "4.0.0"
+	rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
 }
 
 // Helper function to create a valid template for testing

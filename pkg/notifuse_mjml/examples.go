@@ -6,114 +6,72 @@ import (
 )
 
 // NewBaseBlock creates a new base block with default values
-func NewBaseBlock(id string, componentType MJMLComponentType) BaseBlock {
-	return BaseBlock{
+func NewBaseBlock(id string, componentType MJMLComponentType) *BaseBlock {
+	return &BaseBlock{
 		ID:         id,
 		Type:       componentType,
-		Children:   make([]interface{}, 0),
+		Children:   make([]EmailBlock, 0),
 		Attributes: GetDefaultAttributes(componentType),
 	}
 }
 
 // CreateSimpleEmail creates a basic MJML email structure
 func CreateSimpleEmail() *MJMLBlock {
-	// Create head section
-	head := &MJHeadBlock{
-		BaseBlock: NewBaseBlock("head-1", MJMLComponentMjHead),
-	}
-
 	// Add title to head
-	title := &MJTitleBlock{
-		BaseBlock: NewBaseBlock("title-1", MJMLComponentMjTitle),
-		Content:   stringPtr("Welcome Email"),
-	}
-	head.BaseBlock.Children = []interface{}{title}
+	titleBase := NewBaseBlock("title-1", MJMLComponentMjTitle)
+	titleBase.Content = stringPtr("Welcome Email")
+	title := &MJTitleBlock{BaseBlock: titleBase}
 
-	// Create body section
-	body := &MJBodyBlock{
-		BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody),
-		Attributes: &MJBodyAttributes{
-			BackgroundAttributes: BackgroundAttributes{
-				BackgroundColor: stringPtr("#f4f4f4"),
-			},
-			Width: stringPtr("600px"),
-		},
-	}
-
-	// Create section
-	section := &MJSectionBlock{
-		BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection),
-		Attributes: &MJSectionAttributes{
-			BackgroundAttributes: BackgroundAttributes{
-				BackgroundColor: stringPtr("#ffffff"),
-			},
-			PaddingAttributes: PaddingAttributes{
-				PaddingTop:    stringPtr("20px"),
-				PaddingBottom: stringPtr("20px"),
-			},
-		},
-	}
-
-	// Create column
-	column := &MJColumnBlock{
-		BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn),
-		Attributes: &MJColumnAttributes{
-			PaddingAttributes: PaddingAttributes{
-				PaddingLeft:  stringPtr("20px"),
-				PaddingRight: stringPtr("20px"),
-			},
-		},
-	}
+	// Create head section
+	head := &MJHeadBlock{BaseBlock: NewBaseBlock("head-1", MJMLComponentMjHead)}
+	head.Children = []EmailBlock{title}
 
 	// Create text block
-	textBlock := &MJTextBlock{
-		BaseBlock: NewBaseBlock("text-1", MJMLComponentMjText),
-		Content:   stringPtr("Welcome to our newsletter!"),
-		Attributes: &MJTextAttributes{
-			TextAttributes: TextAttributes{
-				FontSize:   stringPtr("16px"),
-				LineHeight: stringPtr("1.5"),
-				Color:      stringPtr("#333333"),
-				Align:      stringPtr("center"),
-			},
-		},
-	}
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("Welcome to our newsletter!")
+	textBase.Attributes["fontSize"] = "16px"
+	textBase.Attributes["lineHeight"] = "1.5"
+	textBase.Attributes["color"] = "#333333"
+	textBase.Attributes["align"] = "center"
+	textBlock := &MJTextBlock{BaseBlock: textBase}
 
 	// Create button
-	button := &MJButtonBlock{
-		BaseBlock: NewBaseBlock("button-1", MJMLComponentMjButton),
-		Content:   stringPtr("Get Started"),
-		Attributes: &MJButtonAttributes{
-			BackgroundAttributes: BackgroundAttributes{
-				BackgroundColor: stringPtr("#007bff"),
-			},
-			TextAttributes: TextAttributes{
-				Color:      stringPtr("#ffffff"),
-				FontWeight: stringPtr("bold"),
-			},
-			BorderAttributes: BorderAttributes{
-				BorderRadius: stringPtr("5px"),
-			},
-			LinkAttributes: LinkAttributes{
-				Href: stringPtr("https://example.com"),
-			},
-			PaddingAttributes: PaddingAttributes{
-				PaddingTop:    stringPtr("10px"),
-				PaddingBottom: stringPtr("10px"),
-			},
-		},
-	}
+	buttonBase := NewBaseBlock("button-1", MJMLComponentMjButton)
+	buttonBase.Content = stringPtr("Get Started")
+	buttonBase.Attributes["backgroundColor"] = "#007bff"
+	buttonBase.Attributes["color"] = "#ffffff"
+	buttonBase.Attributes["fontWeight"] = "bold"
+	buttonBase.Attributes["borderRadius"] = "5px"
+	buttonBase.Attributes["href"] = "https://example.com"
+	buttonBase.Attributes["paddingTop"] = "10px"
+	buttonBase.Attributes["paddingBottom"] = "10px"
+	button := &MJButtonBlock{BaseBlock: buttonBase}
 
-	// Assemble the structure
-	column.BaseBlock.Children = []interface{}{textBlock, button}
-	section.BaseBlock.Children = []interface{}{column}
-	body.BaseBlock.Children = []interface{}{section}
+	// Create column
+	columnBase := NewBaseBlock("column-1", MJMLComponentMjColumn)
+	columnBase.Attributes["paddingLeft"] = "20px"
+	columnBase.Attributes["paddingRight"] = "20px"
+	column := &MJColumnBlock{BaseBlock: columnBase}
+	column.Children = []EmailBlock{textBlock, button}
+	
+	// Create section
+	sectionBase := NewBaseBlock("section-1", MJMLComponentMjSection)
+	sectionBase.Attributes["backgroundColor"] = "#ffffff"
+	sectionBase.Attributes["paddingTop"] = "20px"
+	sectionBase.Attributes["paddingBottom"] = "20px"
+	section := &MJSectionBlock{BaseBlock: sectionBase}
+	section.Children = []EmailBlock{column}
+	
+	// Create body section
+	bodyBase := NewBaseBlock("body-1", MJMLComponentMjBody)
+	bodyBase.Attributes["backgroundColor"] = "#f4f4f4"
+	bodyBase.Attributes["width"] = "600px"
+	body := &MJBodyBlock{BaseBlock: bodyBase}
+	body.Children = []EmailBlock{section}
 
 	// Create root MJML block
-	mjml := &MJMLBlock{
-		BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml),
-	}
-	mjml.BaseBlock.Children = []interface{}{head, body}
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{head, body}
 
 	return mjml
 }
@@ -123,39 +81,28 @@ func CreateEmailWithImage() *MJMLBlock {
 	mjml := CreateSimpleEmail()
 
 	// Find the body and add an image section
-	if len(mjml.BaseBlock.Children) > 1 {
-		if body, ok := mjml.BaseBlock.Children[1].(*MJBodyBlock); ok {
+	if len(mjml.Children) > 1 {
+		if body, ok := mjml.Children[1].(*MJBodyBlock); ok {
+			// Create image
+			imageBase := NewBaseBlock("image-1", MJMLComponentMjImage)
+			imageBase.Attributes["src"] = "https://via.placeholder.com/600x300"
+			imageBase.Attributes["alt"] = "Placeholder Image"
+			imageBase.Attributes["fluidOnMobile"] = "true"
+			imageBase.Attributes["width"] = "600px"
+			image := &MJImageBlock{BaseBlock: imageBase}
+
+			// Create image column
+			imageColumn := &MJColumnBlock{BaseBlock: NewBaseBlock("image-column-1", MJMLComponentMjColumn)}
+			imageColumn.Children = []EmailBlock{image}
+			
 			// Create new section with image
-			imageSection := &MJSectionBlock{
-				BaseBlock: NewBaseBlock("image-section-1", MJMLComponentMjSection),
-				Attributes: &MJSectionAttributes{
-					BackgroundAttributes: BackgroundAttributes{
-						BackgroundColor: stringPtr("#ffffff"),
-					},
-				},
-			}
-
-			imageColumn := &MJColumnBlock{
-				BaseBlock: NewBaseBlock("image-column-1", MJMLComponentMjColumn),
-			}
-
-			image := &MJImageBlock{
-				BaseBlock: NewBaseBlock("image-1", MJMLComponentMjImage),
-				Attributes: &MJImageAttributes{
-					Src:           stringPtr("https://via.placeholder.com/600x300"),
-					Alt:           stringPtr("Placeholder Image"),
-					FluidOnMobile: stringPtr("true"),
-					LayoutAttributes: LayoutAttributes{
-						Width: stringPtr("600px"),
-					},
-				},
-			}
-
-			imageColumn.BaseBlock.Children = []interface{}{image}
-			imageSection.BaseBlock.Children = []interface{}{imageColumn}
+			imageSectionBase := NewBaseBlock("image-section-1", MJMLComponentMjSection)
+			imageSectionBase.Attributes["backgroundColor"] = "#ffffff"
+			imageSection := &MJSectionBlock{BaseBlock: imageSectionBase}
+			imageSection.Children = []EmailBlock{imageColumn}
 
 			// Insert image section before the existing section
-			body.BaseBlock.Children = append([]interface{}{imageSection}, body.BaseBlock.Children...)
+			body.Children = append([]EmailBlock{imageSection}, body.Children...)
 		}
 	}
 
@@ -167,61 +114,44 @@ func CreateSocialEmail() *MJMLBlock {
 	mjml := CreateSimpleEmail()
 
 	// Find the body and add a social section
-	if len(mjml.BaseBlock.Children) > 1 {
-		if body, ok := mjml.BaseBlock.Children[1].(*MJBodyBlock); ok {
-			// Create social section
-			socialSection := &MJSectionBlock{
-				BaseBlock: NewBaseBlock("social-section-1", MJMLComponentMjSection),
-				Attributes: &MJSectionAttributes{
-					BackgroundAttributes: BackgroundAttributes{
-						BackgroundColor: stringPtr("#f8f9fa"),
-					},
-					PaddingAttributes: PaddingAttributes{
-						PaddingTop:    stringPtr("30px"),
-						PaddingBottom: stringPtr("30px"),
-					},
-				},
-			}
-
-			socialColumn := &MJColumnBlock{
-				BaseBlock: NewBaseBlock("social-column-1", MJMLComponentMjColumn),
-			}
-
-			socialBlock := &MJSocialBlock{
-				BaseBlock: NewBaseBlock("social-1", MJMLComponentMjSocial),
-				Attributes: &MJSocialAttributes{
-					Align:        stringPtr("center"),
-					IconSize:     stringPtr("40px"),
-					Mode:         stringPtr("horizontal"),
-					InnerPadding: stringPtr("4px"),
-				},
-			}
-
+	if len(mjml.Children) > 1 {
+		if body, ok := mjml.Children[1].(*MJBodyBlock); ok {
 			// Add social elements
-			facebookElement := &MJSocialElementBlock{
-				BaseBlock: NewBaseBlock("facebook-1", MJMLComponentMjSocialElement),
-				Attributes: &MJSocialElementAttributes{
-					Name:            stringPtr("facebook"),
-					Href:            stringPtr("https://facebook.com"),
-					BackgroundColor: stringPtr("#1877f2"),
-				},
-			}
+			facebookBase := NewBaseBlock("facebook-1", MJMLComponentMjSocialElement)
+			facebookBase.Attributes["name"] = "facebook"
+			facebookBase.Attributes["href"] = "https://facebook.com"
+			facebookBase.Attributes["backgroundColor"] = "#1877f2"
+			facebookElement := &MJSocialElementBlock{BaseBlock: facebookBase}
 
-			twitterElement := &MJSocialElementBlock{
-				BaseBlock: NewBaseBlock("twitter-1", MJMLComponentMjSocialElement),
-				Attributes: &MJSocialElementAttributes{
-					Name:            stringPtr("twitter"),
-					Href:            stringPtr("https://twitter.com"),
-					BackgroundColor: stringPtr("#1da1f2"),
-				},
-			}
+			twitterBase := NewBaseBlock("twitter-1", MJMLComponentMjSocialElement)
+			twitterBase.Attributes["name"] = "twitter"
+			twitterBase.Attributes["href"] = "https://twitter.com"
+			twitterBase.Attributes["backgroundColor"] = "#1da1f2"
+			twitterElement := &MJSocialElementBlock{BaseBlock: twitterBase}
 
-			socialBlock.BaseBlock.Children = []interface{}{facebookElement, twitterElement}
-			socialColumn.BaseBlock.Children = []interface{}{socialBlock}
-			socialSection.BaseBlock.Children = []interface{}{socialColumn}
+			// Create social block
+			socialBase := NewBaseBlock("social-1", MJMLComponentMjSocial)
+			socialBase.Attributes["align"] = "center"
+			socialBase.Attributes["iconSize"] = "40px"
+			socialBase.Attributes["mode"] = "horizontal"
+			socialBase.Attributes["innerPadding"] = "4px"
+			socialBlock := &MJSocialBlock{BaseBlock: socialBase}
+			socialBlock.Children = []EmailBlock{facebookElement, twitterElement}
+			
+			// Create social column
+			socialColumn := &MJColumnBlock{BaseBlock: NewBaseBlock("social-column-1", MJMLComponentMjColumn)}
+			socialColumn.Children = []EmailBlock{socialBlock}
+			
+			// Create social section
+			socialSectionBase := NewBaseBlock("social-section-1", MJMLComponentMjSection)
+			socialSectionBase.Attributes["backgroundColor"] = "#f8f9fa"
+			socialSectionBase.Attributes["paddingTop"] = "30px"
+			socialSectionBase.Attributes["paddingBottom"] = "30px"
+			socialSection := &MJSectionBlock{BaseBlock: socialSectionBase}
+			socialSection.Children = []EmailBlock{socialColumn}
 
 			// Add social section to the end
-			body.BaseBlock.Children = append(body.BaseBlock.Children, socialSection)
+			body.Children = append(body.Children, socialSection)
 		}
 	}
 

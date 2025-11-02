@@ -255,15 +255,11 @@ func TestHandleGet(t *testing.T) {
 				SenderID:        "sender123",
 				Subject:         "Test Subject",
 				CompiledPreview: "<p>Test HTML content</p>",
-				VisualEditorTree: &notifusemjml.MJMLBlock{
-					BaseBlock: notifusemjml.BaseBlock{
-						ID:         "root",
-						Type:       notifusemjml.MJMLComponentMjml,
-						Attributes: map[string]interface{}{"version": "4.0.0"},
-					},
-					Type:       notifusemjml.MJMLComponentMjml,
-					Attributes: map[string]interface{}{"version": "4.0.0"},
-				},
+			VisualEditorTree: func() notifusemjml.EmailBlock {
+				base := notifusemjml.NewBaseBlock("root", notifusemjml.MJMLComponentMjml)
+				base.Attributes["version"] = "4.0.0"
+				return &notifusemjml.MJMLBlock{BaseBlock: base}
+			}(),
 			},
 			Category:  "marketing",
 			CreatedAt: time.Now(),

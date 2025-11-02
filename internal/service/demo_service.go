@@ -728,243 +728,96 @@ func (s *DemoService) createNewsletterMJMLStructure() notifuse_mjml.EmailBlock {
 	previewContent := "Your weekly dose of updates and insights"
 
 	// Create header text block
-	headerText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "header-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "24px",
-				"font-weight": "bold",
-				"align":       "center",
-				"color":       "#2c3e50",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &titleContent,
-	}
+	headerTextBase := notifuse_mjml.NewBaseBlock("header-text", notifuse_mjml.MJMLComponentMjText)
+	headerTextBase.Content = &titleContent
+	headerText := &notifuse_mjml.MJTextBlock{BaseBlock: headerTextBase}
 
 	// Create main text block
-	mainText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "main-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "16px",
-				"line-height": "1.6",
-				"color":       "#34495e",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &textContent,
-	}
+	mainTextBase := notifuse_mjml.NewBaseBlock("main-text", notifuse_mjml.MJMLComponentMjText)
+	mainTextBase.Content = &textContent
+	mainText := &notifuse_mjml.MJTextBlock{BaseBlock: mainTextBase}
 
 	// Create divider
 	divider := &notifuse_mjml.MJDividerBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "divider",
-			Type: notifuse_mjml.MJMLComponentMjDivider,
-			Attributes: map[string]interface{}{
-				"border-width": "1px",
-				"border-color": "#ecf0f1",
-			},
-		},
-		Type: notifuse_mjml.MJMLComponentMjDivider,
+		BaseBlock: notifuse_mjml.NewBaseBlock("divider", notifuse_mjml.MJMLComponentMjDivider),
 	}
 
 	// Create highlights title
-	highlightsText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "highlights-title",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "18px",
-				"font-weight": "bold",
-				"color":       "#2c3e50",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &highlightsContent,
-	}
+	highlightsTextBase := notifuse_mjml.NewBaseBlock("highlights-title", notifuse_mjml.MJMLComponentMjText)
+	highlightsTextBase.Content = &highlightsContent
+	highlightsText := &notifuse_mjml.MJTextBlock{BaseBlock: highlightsTextBase}
 
 	// Create highlights list
-	highlightsList := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "highlights-list",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "14px",
-				"line-height": "1.6",
-				"color":       "#34495e",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &listContent,
-	}
+	highlightsListBase := notifuse_mjml.NewBaseBlock("highlights-list", notifuse_mjml.MJMLComponentMjText)
+	highlightsListBase.Content = &listContent
+	highlightsList := &notifuse_mjml.MJTextBlock{BaseBlock: highlightsListBase}
 
 	// Create button
-	button := &notifuse_mjml.MJButtonBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "cta-button",
-			Type: notifuse_mjml.MJMLComponentMjButton,
-			Attributes: map[string]interface{}{
-				"background-color": "#3498db",
-				"color":            "#ffffff",
-				"font-size":        "16px",
-				"padding":          "12px 24px",
-				"border-radius":    "6px",
-				"href":             "https://demo.notifuse.com/newsletter?utm_source={{utm_source}}&utm_medium={{utm_medium}}&utm_campaign={{utm_campaign}}",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjButton,
-		Content: &buttonContent,
-	}
+	buttonBase := notifuse_mjml.NewBaseBlock("cta-button", notifuse_mjml.MJMLComponentMjButton)
+	buttonBase.Attributes["background-color"] = "#3498db"
+	buttonBase.Attributes["color"] = "#ffffff"
+	buttonBase.Attributes["font-size"] = "16px"
+	buttonBase.Attributes["padding"] = "12px 24px"
+	buttonBase.Attributes["border-radius"] = "6px"
+	buttonBase.Attributes["href"] = "https://demo.notifuse.com/newsletter?utm_source={{utm_source}}&utm_medium={{utm_medium}}&utm_campaign={{utm_campaign}}"
+	buttonBase.Content = &buttonContent
+	button := &notifuse_mjml.MJButtonBlock{BaseBlock: buttonBase}
 
 	// Create title and preview blocks
-	title := &notifuse_mjml.MJTitleBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "title",
-			Type: notifuse_mjml.MJMLComponentMjTitle,
-		},
-		Type:    notifuse_mjml.MJMLComponentMjTitle,
-		Content: &titleContent,
-	}
+	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
+	titleBase.Content = &titleContent
+	title := &notifuse_mjml.MJTitleBlock{BaseBlock: titleBase}
 
-	preview := &notifuse_mjml.MJPreviewBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "preview",
-			Type: notifuse_mjml.MJMLComponentMjPreview,
-		},
-		Type:    notifuse_mjml.MJMLComponentMjPreview,
-		Content: &previewContent,
-	}
+	previewBase := notifuse_mjml.NewBaseBlock("preview", notifuse_mjml.MJMLComponentMjPreview)
+	previewBase.Content = &previewContent
+	preview := &notifuse_mjml.MJPreviewBlock{BaseBlock: previewBase}
 
 	// Create footer text
 	footerContent := "You received this email because you're subscribed to our newsletter.<br><a href=\"{{unsubscribe_url}}\">Unsubscribe</a> | <a href=\"https://demo.notifuse.com\">Visit our website</a>"
-	footerText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "footer-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size": "12px",
-				"color":     "#7f8c8d",
-				"align":     "center",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &footerContent,
-	}
+	footerTextBase := notifuse_mjml.NewBaseBlock("footer-text", notifuse_mjml.MJMLComponentMjText)
+	footerTextBase.Content = &footerContent
+	footerText := &notifuse_mjml.MJTextBlock{BaseBlock: footerTextBase}
 
 	// Create columns for layout
-	headerColumn := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "header-column",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{headerText},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{headerText},
-	}
+	headerColumnBase := notifuse_mjml.NewBaseBlock("header-column", notifuse_mjml.MJMLComponentMjColumn)
+	headerColumnBase.Children = []notifuse_mjml.EmailBlock{headerText}
+	headerColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: headerColumnBase}
 
-	contentColumn := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "content-column",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{mainText, divider, highlightsText, highlightsList, button},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{mainText, divider, highlightsText, highlightsList, button},
-	}
+	contentColumnBase := notifuse_mjml.NewBaseBlock("content-column", notifuse_mjml.MJMLComponentMjColumn)
+	contentColumnBase.Children = []notifuse_mjml.EmailBlock{mainText, divider, highlightsText, highlightsList, button}
+	contentColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: contentColumnBase}
 
-	footerColumn := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "footer-column",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{footerText},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{footerText},
-	}
+	footerColumnBase := notifuse_mjml.NewBaseBlock("footer-column", notifuse_mjml.MJMLComponentMjColumn)
+	footerColumnBase.Children = []notifuse_mjml.EmailBlock{footerText}
+	footerColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: footerColumnBase}
 
 	// Create sections
-	headerSection := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "header-section",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{headerColumn},
-			Attributes: map[string]interface{}{
-				"background-color": "#f8f9fa",
-				"padding":          "20px 0",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjSection,
-		Children: []notifuse_mjml.EmailBlock{headerColumn},
-	}
+	headerSectionBase := notifuse_mjml.NewBaseBlock("header-section", notifuse_mjml.MJMLComponentMjSection)
+	headerSectionBase.Children = []notifuse_mjml.EmailBlock{headerColumn}
+	headerSection := &notifuse_mjml.MJSectionBlock{BaseBlock: headerSectionBase}
 
-	contentSection := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "content-section",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{contentColumn},
-			Attributes: map[string]interface{}{
-				"background-color": "#ffffff",
-				"padding":          "20px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjSection,
-		Children: []notifuse_mjml.EmailBlock{contentColumn},
-	}
+	contentSectionBase := notifuse_mjml.NewBaseBlock("content-section", notifuse_mjml.MJMLComponentMjSection)
+	contentSectionBase.Children = []notifuse_mjml.EmailBlock{contentColumn}
+	contentSection := &notifuse_mjml.MJSectionBlock{BaseBlock: contentSectionBase}
 
-	footerSection := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "footer-section",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{footerColumn},
-			Attributes: map[string]interface{}{
-				"background-color": "#f8f9fa",
-				"padding":          "20px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjSection,
-		Children: []notifuse_mjml.EmailBlock{footerColumn},
-	}
+	footerSectionBase := notifuse_mjml.NewBaseBlock("footer-section", notifuse_mjml.MJMLComponentMjSection)
+	footerSectionBase.Children = []notifuse_mjml.EmailBlock{footerColumn}
+	footerSection := &notifuse_mjml.MJSectionBlock{BaseBlock: footerSectionBase}
 
 	// Create head and body
-	head := &notifuse_mjml.MJHeadBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "head",
-			Type:     notifuse_mjml.MJMLComponentMjHead,
-			Children: []interface{}{title, preview},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjHead,
-		Children: []notifuse_mjml.EmailBlock{title, preview},
-	}
+	headBase := notifuse_mjml.NewBaseBlock("head", notifuse_mjml.MJMLComponentMjHead)
+	headBase.Children = []notifuse_mjml.EmailBlock{title, preview}
+	head := &notifuse_mjml.MJHeadBlock{BaseBlock: headBase}
 
-	body := &notifuse_mjml.MJBodyBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "body",
-			Type:     notifuse_mjml.MJMLComponentMjBody,
-			Children: []interface{}{headerSection, contentSection, footerSection},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjBody,
-		Children: []notifuse_mjml.EmailBlock{headerSection, contentSection, footerSection},
-	}
+	bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+	bodyBase.Children = []notifuse_mjml.EmailBlock{headerSection, contentSection, footerSection}
+	body := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
 
 	// Create root MJML block
-	return &notifuse_mjml.MJMLBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "mjml-root",
-			Type: notifuse_mjml.MJMLComponentMjml,
-			Attributes: map[string]interface{}{
-				"lang": "en",
-			},
-			Children: []interface{}{head, body},
-		},
-		Type: notifuse_mjml.MJMLComponentMjml,
-		Attributes: map[string]interface{}{
-			"lang": "en",
-		},
-		Children: []notifuse_mjml.EmailBlock{head, body},
-	}
+	rootBase := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
+	rootBase.Attributes["lang"] = "en"
+	rootBase.Children = []notifuse_mjml.EmailBlock{head, body}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
 }
 
 // createNewsletterV2MJMLStructure creates the MJML structure for the newsletter v2 template (modern card-based design)
@@ -988,371 +841,127 @@ func (s *DemoService) createNewsletterV2MJMLStructure() notifuse_mjml.EmailBlock
 	buttonContent := "Explore More"
 
 	// Create title and preview blocks
-	title := &notifuse_mjml.MJTitleBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "title",
-			Type: notifuse_mjml.MJMLComponentMjTitle,
-		},
-		Type:    notifuse_mjml.MJMLComponentMjTitle,
-		Content: &titleContent,
-	}
+	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
+	titleBase.Content = &titleContent
+	title := &notifuse_mjml.MJTitleBlock{BaseBlock: titleBase}
 
-	preview := &notifuse_mjml.MJPreviewBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "preview",
-			Type: notifuse_mjml.MJMLComponentMjPreview,
-		},
-		Type:    notifuse_mjml.MJMLComponentMjPreview,
-		Content: &previewContent,
-	}
+	previewBase := notifuse_mjml.NewBaseBlock("preview", notifuse_mjml.MJMLComponentMjPreview)
+	previewBase.Content = &previewContent
+	preview := &notifuse_mjml.MJPreviewBlock{BaseBlock: previewBase}
 
 	// Create hero section
-	heroText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "hero-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "32px",
-				"font-weight": "bold",
-				"align":       "center",
-				"color":       "#1a202c",
-				"padding":     "20px 0",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &heroContent,
-	}
+	heroTextBase := notifuse_mjml.NewBaseBlock("hero-text", notifuse_mjml.MJMLComponentMjText)
+	heroTextBase.Content = &heroContent
+	heroText := &notifuse_mjml.MJTextBlock{BaseBlock: heroTextBase}
 
-	introText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "intro-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "16px",
-				"line-height": "1.6",
-				"color":       "#4a5568",
-				"align":       "center",
-				"padding":     "0 20px 30px",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &introContent,
-	}
+	introTextBase := notifuse_mjml.NewBaseBlock("intro-text", notifuse_mjml.MJMLComponentMjText)
+	introTextBase.Content = &introContent
+	introText := &notifuse_mjml.MJTextBlock{BaseBlock: introTextBase}
 
 	// Create feature cards
-	feature1TitleText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "feature1-title",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "18px",
-				"font-weight": "bold",
-				"color":       "#2d3748",
-				"padding":     "10px 20px 5px",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &feature1Title,
-	}
+	feature1TitleTextBase := notifuse_mjml.NewBaseBlock("feature1-title", notifuse_mjml.MJMLComponentMjText)
+	feature1TitleTextBase.Content = &feature1Title
+	feature1TitleText := &notifuse_mjml.MJTextBlock{BaseBlock: feature1TitleTextBase}
 
-	feature1ContentText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "feature1-content",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "14px",
-				"line-height": "1.5",
-				"color":       "#4a5568",
-				"padding":     "0 20px 20px",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &feature1Content,
-	}
+	feature1ContentTextBase := notifuse_mjml.NewBaseBlock("feature1-content", notifuse_mjml.MJMLComponentMjText)
+	feature1ContentTextBase.Content = &feature1Content
+	feature1ContentText := &notifuse_mjml.MJTextBlock{BaseBlock: feature1ContentTextBase}
 
-	feature2TitleText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "feature2-title",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "18px",
-				"font-weight": "bold",
-				"color":       "#2d3748",
-				"padding":     "10px 20px 5px",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &feature2Title,
-	}
+	feature2TitleTextBase := notifuse_mjml.NewBaseBlock("feature2-title", notifuse_mjml.MJMLComponentMjText)
+	feature2TitleTextBase.Content = &feature2Title
+	feature2TitleText := &notifuse_mjml.MJTextBlock{BaseBlock: feature2TitleTextBase}
 
-	feature2ContentText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "feature2-content",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "14px",
-				"line-height": "1.5",
-				"color":       "#4a5568",
-				"padding":     "0 20px 20px",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &feature2Content,
-	}
+	feature2ContentTextBase := notifuse_mjml.NewBaseBlock("feature2-content", notifuse_mjml.MJMLComponentMjText)
+	feature2ContentTextBase.Content = &feature2Content
+	feature2ContentText := &notifuse_mjml.MJTextBlock{BaseBlock: feature2ContentTextBase}
 
-	feature3TitleText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "feature3-title",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "18px",
-				"font-weight": "bold",
-				"color":       "#2d3748",
-				"padding":     "10px 20px 5px",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &feature3Title,
-	}
+	feature3TitleTextBase := notifuse_mjml.NewBaseBlock("feature3-title", notifuse_mjml.MJMLComponentMjText)
+	feature3TitleTextBase.Content = &feature3Title
+	feature3TitleText := &notifuse_mjml.MJTextBlock{BaseBlock: feature3TitleTextBase}
 
-	feature3ContentText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "feature3-content",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "14px",
-				"line-height": "1.5",
-				"color":       "#4a5568",
-				"padding":     "0 20px 20px",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &feature3Content,
-	}
+	feature3ContentTextBase := notifuse_mjml.NewBaseBlock("feature3-content", notifuse_mjml.MJMLComponentMjText)
+	feature3ContentTextBase.Content = &feature3Content
+	feature3ContentText := &notifuse_mjml.MJTextBlock{BaseBlock: feature3ContentTextBase}
 
 	// Create CTA button
-	button := &notifuse_mjml.MJButtonBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "cta-button",
-			Type: notifuse_mjml.MJMLComponentMjButton,
-			Attributes: map[string]interface{}{
-				"background-color": "#667eea",
-				"color":            "#ffffff",
-				"font-size":        "16px",
-				"font-weight":      "bold",
-				"padding":          "15px 30px",
-				"border-radius":    "8px",
-				"href":             "https://demo.notifuse.com/weekly-digest?utm_source={{utm_source}}&utm_medium={{utm_medium}}&utm_campaign={{utm_campaign}}",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjButton,
-		Content: &buttonContent,
-	}
+	buttonBase2 := notifuse_mjml.NewBaseBlock("cta-button", notifuse_mjml.MJMLComponentMjButton)
+	buttonBase2.Attributes["background-color"] = "#667eea"
+	buttonBase2.Attributes["color"] = "#ffffff"
+	buttonBase2.Attributes["font-size"] = "16px"
+	buttonBase2.Attributes["font-weight"] = "bold"
+	buttonBase2.Attributes["padding"] = "15px 30px"
+	buttonBase2.Attributes["border-radius"] = "8px"
+	buttonBase2.Attributes["href"] = "https://demo.notifuse.com/weekly-digest?utm_source={{utm_source}}&utm_medium={{utm_medium}}&utm_campaign={{utm_campaign}}"
+	buttonBase2.Content = &buttonContent
+	button := &notifuse_mjml.MJButtonBlock{BaseBlock: buttonBase2}
 
 	// Create footer
 	footerContent := "You're receiving this because you subscribed to our weekly digest.<br><a href=\"{{unsubscribe_url}}\">Unsubscribe</a> | <a href=\"https://demo.notifuse.com/preferences\">Manage Preferences</a>"
-	footerText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "footer-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size": "12px",
-				"color":     "#a0aec0",
-				"align":     "center",
-				"padding":   "20px",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &footerContent,
-	}
+	footerTextBase := notifuse_mjml.NewBaseBlock("footer-text", notifuse_mjml.MJMLComponentMjText)
+	footerTextBase.Content = &footerContent
+	footerText := &notifuse_mjml.MJTextBlock{BaseBlock: footerTextBase}
 
 	// Create columns and sections
-	heroColumn := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "hero-column",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{heroText, introText},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{heroText, introText},
-	}
+	heroColumnBase := notifuse_mjml.NewBaseBlock("hero-column", notifuse_mjml.MJMLComponentMjColumn)
+	heroColumnBase.Children = []notifuse_mjml.EmailBlock{heroText, introText}
+	heroColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: heroColumnBase}
 
 	// Create feature columns (side by side layout)
-	feature1Column := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "feature1-column",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{feature1TitleText, feature1ContentText},
-			Attributes: map[string]interface{}{
-				"width":            "50%",
-				"background-color": "#f7fafc",
-				"border-radius":    "8px",
-				"padding":          "15px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{feature1TitleText, feature1ContentText},
-	}
+	feature1ColumnBase := notifuse_mjml.NewBaseBlock("feature1-column", notifuse_mjml.MJMLComponentMjColumn)
+	feature1ColumnBase.Children = []notifuse_mjml.EmailBlock{feature1TitleText, feature1ContentText}
+	feature1Column := &notifuse_mjml.MJColumnBlock{BaseBlock: feature1ColumnBase}
 
-	feature2Column := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "feature2-column",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{feature2TitleText, feature2ContentText},
-			Attributes: map[string]interface{}{
-				"width":            "50%",
-				"background-color": "#f7fafc",
-				"border-radius":    "8px",
-				"padding":          "15px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{feature2TitleText, feature2ContentText},
-	}
+	feature2ColumnBase := notifuse_mjml.NewBaseBlock("feature2-column", notifuse_mjml.MJMLComponentMjColumn)
+	feature2ColumnBase.Children = []notifuse_mjml.EmailBlock{feature2TitleText, feature2ContentText}
+	feature2Column := &notifuse_mjml.MJColumnBlock{BaseBlock: feature2ColumnBase}
 
-	feature3Column := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "feature3-column",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{feature3TitleText, feature3ContentText},
-			Attributes: map[string]interface{}{
-				"background-color": "#f7fafc",
-				"border-radius":    "8px",
-				"padding":          "15px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{feature3TitleText, feature3ContentText},
-	}
+	feature3ColumnBase := notifuse_mjml.NewBaseBlock("feature3-column", notifuse_mjml.MJMLComponentMjColumn)
+	feature3ColumnBase.Children = []notifuse_mjml.EmailBlock{feature3TitleText, feature3ContentText}
+	feature3Column := &notifuse_mjml.MJColumnBlock{BaseBlock: feature3ColumnBase}
 
-	ctaColumn := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "cta-column",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{button},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{button},
-	}
+	ctaColumnBase := notifuse_mjml.NewBaseBlock("cta-column", notifuse_mjml.MJMLComponentMjColumn)
+	ctaColumnBase.Children = []notifuse_mjml.EmailBlock{button}
+	ctaColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: ctaColumnBase}
 
-	footerColumn := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "footer-column",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{footerText},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{footerText},
-	}
+	footerColumnBase := notifuse_mjml.NewBaseBlock("footer-column", notifuse_mjml.MJMLComponentMjColumn)
+	footerColumnBase.Children = []notifuse_mjml.EmailBlock{footerText}
+	footerColumn := &notifuse_mjml.MJColumnBlock{BaseBlock: footerColumnBase}
 
 	// Create sections
-	heroSection := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "hero-section",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{heroColumn},
-			Attributes: map[string]interface{}{
-				"background-color": "#ffffff",
-				"padding":          "30px 20px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjSection,
-		Children: []notifuse_mjml.EmailBlock{heroColumn},
-	}
+	heroSectionBase := notifuse_mjml.NewBaseBlock("hero-section", notifuse_mjml.MJMLComponentMjSection)
+	heroSectionBase.Children = []notifuse_mjml.EmailBlock{heroColumn}
+	heroSection := &notifuse_mjml.MJSectionBlock{BaseBlock: heroSectionBase}
 
-	featuresSection := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "features-section",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{feature1Column, feature2Column},
-			Attributes: map[string]interface{}{
-				"background-color": "#ffffff",
-				"padding":          "20px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjSection,
-		Children: []notifuse_mjml.EmailBlock{feature1Column, feature2Column},
-	}
+	featuresSectionBase := notifuse_mjml.NewBaseBlock("features-section", notifuse_mjml.MJMLComponentMjSection)
+	featuresSectionBase.Children = []notifuse_mjml.EmailBlock{feature1Column, feature2Column}
+	featuresSection := &notifuse_mjml.MJSectionBlock{BaseBlock: featuresSectionBase}
 
-	feature3Section := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "feature3-section",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{feature3Column},
-			Attributes: map[string]interface{}{
-				"background-color": "#ffffff",
-				"padding":          "20px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjSection,
-		Children: []notifuse_mjml.EmailBlock{feature3Column},
-	}
+	feature3SectionBase := notifuse_mjml.NewBaseBlock("feature3-section", notifuse_mjml.MJMLComponentMjSection)
+	feature3SectionBase.Children = []notifuse_mjml.EmailBlock{feature3Column}
+	feature3Section := &notifuse_mjml.MJSectionBlock{BaseBlock: feature3SectionBase}
 
-	ctaSection := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "cta-section",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{ctaColumn},
-			Attributes: map[string]interface{}{
-				"background-color": "#ffffff",
-				"padding":          "30px 20px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjSection,
-		Children: []notifuse_mjml.EmailBlock{ctaColumn},
-	}
+	ctaSectionBase := notifuse_mjml.NewBaseBlock("cta-section", notifuse_mjml.MJMLComponentMjSection)
+	ctaSectionBase.Children = []notifuse_mjml.EmailBlock{ctaColumn}
+	ctaSection := &notifuse_mjml.MJSectionBlock{BaseBlock: ctaSectionBase}
 
-	footerSection := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "footer-section",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{footerColumn},
-			Attributes: map[string]interface{}{
-				"background-color": "#edf2f7",
-				"padding":          "20px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjSection,
-		Children: []notifuse_mjml.EmailBlock{footerColumn},
-	}
+	footerSectionBase := notifuse_mjml.NewBaseBlock("footer-section", notifuse_mjml.MJMLComponentMjSection)
+	footerSectionBase.Children = []notifuse_mjml.EmailBlock{footerColumn}
+	footerSection := &notifuse_mjml.MJSectionBlock{BaseBlock: footerSectionBase}
 
 	// Create head and body
-	head := &notifuse_mjml.MJHeadBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "head",
-			Type:     notifuse_mjml.MJMLComponentMjHead,
-			Children: []interface{}{title, preview},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjHead,
-		Children: []notifuse_mjml.EmailBlock{title, preview},
-	}
+	headBase := notifuse_mjml.NewBaseBlock("head", notifuse_mjml.MJMLComponentMjHead)
+	headBase.Children = []notifuse_mjml.EmailBlock{title, preview}
+	head := &notifuse_mjml.MJHeadBlock{BaseBlock: headBase}
 
-	body := &notifuse_mjml.MJBodyBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "body",
-			Type:     notifuse_mjml.MJMLComponentMjBody,
-			Children: []interface{}{heroSection, featuresSection, feature3Section, ctaSection, footerSection},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjBody,
-		Children: []notifuse_mjml.EmailBlock{heroSection, featuresSection, feature3Section, ctaSection, footerSection},
-	}
+	bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+	bodyBase.Children = []notifuse_mjml.EmailBlock{heroSection, featuresSection, feature3Section, ctaSection, footerSection}
+	body := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
 
 	// Create root MJML block
-	return &notifuse_mjml.MJMLBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "mjml-root",
-			Type: notifuse_mjml.MJMLComponentMjml,
-			Attributes: map[string]interface{}{
-				"lang": "en",
-			},
-			Children: []interface{}{head, body},
-		},
-		Type: notifuse_mjml.MJMLComponentMjml,
-		Attributes: map[string]interface{}{
-			"lang": "en",
-		},
-		Children: []notifuse_mjml.EmailBlock{head, body},
-	}
+	rootBase := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
+	rootBase.Attributes["lang"] = "en"
+	rootBase.Children = []notifuse_mjml.EmailBlock{head, body}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
 }
 
 // createWelcomeMJMLStructure creates the MJML structure for the welcome template
@@ -1366,158 +975,60 @@ func (s *DemoService) createWelcomeMJMLStructure() notifuse_mjml.EmailBlock {
 	footerContent := "If you have any questions, feel free to reach out to our support team.<br><br>Best regards,<br>The Demo Team"
 
 	// Create blocks using concrete types
-	title := &notifuse_mjml.MJTitleBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "title",
-			Type: notifuse_mjml.MJMLComponentMjTitle,
-		},
-		Type:    notifuse_mjml.MJMLComponentMjTitle,
-		Content: &titleContent,
-	}
+	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
+	titleBase.Content = &titleContent
+	title := &notifuse_mjml.MJTitleBlock{BaseBlock: titleBase}
 
-	preview := &notifuse_mjml.MJPreviewBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "preview",
-			Type: notifuse_mjml.MJMLComponentMjPreview,
-		},
-		Type:    notifuse_mjml.MJMLComponentMjPreview,
-		Content: &previewContent,
-	}
+	previewBase := notifuse_mjml.NewBaseBlock("preview", notifuse_mjml.MJMLComponentMjPreview)
+	previewBase.Content = &previewContent
+	preview := &notifuse_mjml.MJPreviewBlock{BaseBlock: previewBase}
 
-	welcomeText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "welcome-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "28px",
-				"font-weight": "bold",
-				"align":       "center",
-				"color":       "#2c3e50",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &welcomeContent,
-	}
+	welcomeTextBase := notifuse_mjml.NewBaseBlock("welcome-text", notifuse_mjml.MJMLComponentMjText)
+	welcomeTextBase.Content = &welcomeContent
+	welcomeText := &notifuse_mjml.MJTextBlock{BaseBlock: welcomeTextBase}
 
-	mainText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "main-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "16px",
-				"line-height": "1.6",
-				"color":       "#34495e",
-				"align":       "center",
-				"padding":     "20px 0",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &mainContent,
-	}
+	mainTextBase := notifuse_mjml.NewBaseBlock("main-text", notifuse_mjml.MJMLComponentMjText)
+	mainTextBase.Content = &mainContent
+	mainText := &notifuse_mjml.MJTextBlock{BaseBlock: mainTextBase}
 
-	button := &notifuse_mjml.MJButtonBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "get-started-button",
-			Type: notifuse_mjml.MJMLComponentMjButton,
-			Attributes: map[string]interface{}{
-				"background-color": "#27ae60",
-				"color":            "#ffffff",
-				"font-size":        "16px",
-				"padding":          "12px 24px",
-				"border-radius":    "6px",
-				"href":             "https://demo.notifuse.com/getting-started?utm_source={{utm_source}}&utm_medium={{utm_medium}}&utm_campaign={{utm_campaign}}",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjButton,
-		Content: &buttonContent,
-	}
+	buttonBase3 := notifuse_mjml.NewBaseBlock("get-started-button", notifuse_mjml.MJMLComponentMjButton)
+	buttonBase3.Attributes["background-color"] = "#27ae60"
+	buttonBase3.Attributes["color"] = "#ffffff"
+	buttonBase3.Attributes["font-size"] = "16px"
+	buttonBase3.Attributes["padding"] = "12px 24px"
+	buttonBase3.Attributes["border-radius"] = "6px"
+	buttonBase3.Attributes["href"] = "https://demo.notifuse.com/getting-started?utm_source={{utm_source}}&utm_medium={{utm_medium}}&utm_campaign={{utm_campaign}}"
+	buttonBase3.Content = &buttonContent
+	button := &notifuse_mjml.MJButtonBlock{BaseBlock: buttonBase3}
 
 	divider := &notifuse_mjml.MJDividerBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "divider",
-			Type: notifuse_mjml.MJMLComponentMjDivider,
-			Attributes: map[string]interface{}{
-				"border-width": "1px",
-				"border-color": "#ecf0f1",
-				"padding":      "20px 0",
-			},
-		},
-		Type: notifuse_mjml.MJMLComponentMjDivider,
+		BaseBlock: notifuse_mjml.NewBaseBlock("divider", notifuse_mjml.MJMLComponentMjDivider),
 	}
 
-	footerText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "footer-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size": "14px",
-				"color":     "#7f8c8d",
-				"align":     "center",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &footerContent,
-	}
+	footerTextBase := notifuse_mjml.NewBaseBlock("footer-text", notifuse_mjml.MJMLComponentMjText)
+	footerTextBase.Content = &footerContent
+	footerText := &notifuse_mjml.MJTextBlock{BaseBlock: footerTextBase}
 
-	column := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "main-column",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{welcomeText, mainText, button, divider, footerText},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{welcomeText, mainText, button, divider, footerText},
-	}
+	columnBase := notifuse_mjml.NewBaseBlock("main-column", notifuse_mjml.MJMLComponentMjColumn)
+	columnBase.Children = []notifuse_mjml.EmailBlock{welcomeText, mainText, button, divider, footerText}
+	column := &notifuse_mjml.MJColumnBlock{BaseBlock: columnBase}
 
-	section := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "main-section",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{column},
-			Attributes: map[string]interface{}{
-				"background-color": "#ffffff",
-				"padding":          "40px 20px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjSection,
-		Children: []notifuse_mjml.EmailBlock{column},
-	}
+	sectionBase := notifuse_mjml.NewBaseBlock("main-section", notifuse_mjml.MJMLComponentMjSection)
+	sectionBase.Children = []notifuse_mjml.EmailBlock{column}
+	section := &notifuse_mjml.MJSectionBlock{BaseBlock: sectionBase}
 
-	head := &notifuse_mjml.MJHeadBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "head",
-			Type:     notifuse_mjml.MJMLComponentMjHead,
-			Children: []interface{}{title, preview},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjHead,
-		Children: []notifuse_mjml.EmailBlock{title, preview},
-	}
+	headBase := notifuse_mjml.NewBaseBlock("head", notifuse_mjml.MJMLComponentMjHead)
+	headBase.Children = []notifuse_mjml.EmailBlock{title, preview}
+	head := &notifuse_mjml.MJHeadBlock{BaseBlock: headBase}
 
-	body := &notifuse_mjml.MJBodyBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "body",
-			Type:     notifuse_mjml.MJMLComponentMjBody,
-			Children: []interface{}{section},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjBody,
-		Children: []notifuse_mjml.EmailBlock{section},
-	}
+	bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+	bodyBase.Children = []notifuse_mjml.EmailBlock{section}
+	body := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
 
-	return &notifuse_mjml.MJMLBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "mjml-root",
-			Type: notifuse_mjml.MJMLComponentMjml,
-			Attributes: map[string]interface{}{
-				"lang": "en",
-			},
-			Children: []interface{}{head, body},
-		},
-		Type: notifuse_mjml.MJMLComponentMjml,
-		Attributes: map[string]interface{}{
-			"lang": "en",
-		},
-		Children: []notifuse_mjml.EmailBlock{head, body},
-	}
+	rootBase7 := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
+	rootBase7.Attributes["lang"] = "en"
+	rootBase7.Children = []notifuse_mjml.EmailBlock{head, body}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase7}
 }
 
 // createSampleBroadcasts creates multiple sample broadcast campaigns and returns their IDs
@@ -1648,173 +1159,65 @@ func (s *DemoService) createPasswordResetMJMLStructure() notifuse_mjml.EmailBloc
 	footerContent := "If you didn't request a password reset, you can safely ignore this email. Your password will remain unchanged.<br><br>If you're having trouble with the button above, copy and paste the URL below into your web browser:<br>{{reset_url}}"
 
 	// Create blocks using concrete types
-	title := &notifuse_mjml.MJTitleBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "title",
-			Type: notifuse_mjml.MJMLComponentMjTitle,
-		},
-		Type:    notifuse_mjml.MJMLComponentMjTitle,
-		Content: &titleContent,
-	}
+	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
+	titleBase.Content = &titleContent
+	title := &notifuse_mjml.MJTitleBlock{BaseBlock: titleBase}
 
-	preview := &notifuse_mjml.MJPreviewBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "preview",
-			Type: notifuse_mjml.MJMLComponentMjPreview,
-		},
-		Type:    notifuse_mjml.MJMLComponentMjPreview,
-		Content: &previewContent,
-	}
+	previewBase := notifuse_mjml.NewBaseBlock("preview", notifuse_mjml.MJMLComponentMjPreview)
+	previewBase.Content = &previewContent
+	preview := &notifuse_mjml.MJPreviewBlock{BaseBlock: previewBase}
 
-	headerText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "header-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "28px",
-				"font-weight": "bold",
-				"align":       "center",
-				"color":       "#e74c3c",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &headerContent,
-	}
+	headerTextBase := notifuse_mjml.NewBaseBlock("header-text", notifuse_mjml.MJMLComponentMjText)
+	headerTextBase.Content = &headerContent
+	headerText := &notifuse_mjml.MJTextBlock{BaseBlock: headerTextBase}
 
-	mainText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "main-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size":   "16px",
-				"line-height": "1.6",
-				"color":       "#34495e",
-				"padding":     "20px 0",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &mainContent,
-	}
+	mainTextBase := notifuse_mjml.NewBaseBlock("main-text", notifuse_mjml.MJMLComponentMjText)
+	mainTextBase.Content = &mainContent
+	mainText := &notifuse_mjml.MJTextBlock{BaseBlock: mainTextBase}
 
-	button := &notifuse_mjml.MJButtonBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "reset-button",
-			Type: notifuse_mjml.MJMLComponentMjButton,
-			Attributes: map[string]interface{}{
-				"background-color": "#e74c3c",
-				"color":            "#ffffff",
-				"font-size":        "16px",
-				"font-weight":      "bold",
-				"padding":          "15px 30px",
-				"border-radius":    "6px",
-				"href":             "{{reset_url}}",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjButton,
-		Content: &buttonContent,
-	}
+	buttonBase4 := notifuse_mjml.NewBaseBlock("reset-button", notifuse_mjml.MJMLComponentMjButton)
+	buttonBase4.Attributes["background-color"] = "#e74c3c"
+	buttonBase4.Attributes["color"] = "#ffffff"
+	buttonBase4.Attributes["font-size"] = "16px"
+	buttonBase4.Attributes["font-weight"] = "bold"
+	buttonBase4.Attributes["padding"] = "15px 30px"
+	buttonBase4.Attributes["border-radius"] = "6px"
+	buttonBase4.Attributes["href"] = "{{reset_url}}"
+	buttonBase4.Content = &buttonContent
+	button := &notifuse_mjml.MJButtonBlock{BaseBlock: buttonBase4}
 
-	expireText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "expire-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size": "14px",
-				"color":     "#95a5a6",
-				"align":     "center",
-				"padding":   "10px 0",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &expireContent,
-	}
+	expireTextBase := notifuse_mjml.NewBaseBlock("expire-text", notifuse_mjml.MJMLComponentMjText)
+	expireTextBase.Content = &expireContent
+	expireText := &notifuse_mjml.MJTextBlock{BaseBlock: expireTextBase}
 
 	divider := &notifuse_mjml.MJDividerBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "divider",
-			Type: notifuse_mjml.MJMLComponentMjDivider,
-			Attributes: map[string]interface{}{
-				"border-width": "1px",
-				"border-color": "#ecf0f1",
-				"padding":      "20px 0",
-			},
-		},
-		Type: notifuse_mjml.MJMLComponentMjDivider,
+		BaseBlock: notifuse_mjml.NewBaseBlock("divider", notifuse_mjml.MJMLComponentMjDivider),
 	}
 
-	footerText := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "footer-text",
-			Type: notifuse_mjml.MJMLComponentMjText,
-			Attributes: map[string]interface{}{
-				"font-size": "14px",
-				"color":     "#7f8c8d",
-				"align":     "center",
-			},
-		},
-		Type:    notifuse_mjml.MJMLComponentMjText,
-		Content: &footerContent,
-	}
+	footerTextBase := notifuse_mjml.NewBaseBlock("footer-text", notifuse_mjml.MJMLComponentMjText)
+	footerTextBase.Content = &footerContent
+	footerText := &notifuse_mjml.MJTextBlock{BaseBlock: footerTextBase}
 
-	column := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "main-column",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{headerText, mainText, button, expireText, divider, footerText},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjColumn,
-		Children: []notifuse_mjml.EmailBlock{headerText, mainText, button, expireText, divider, footerText},
-	}
+	columnBase := notifuse_mjml.NewBaseBlock("main-column", notifuse_mjml.MJMLComponentMjColumn)
+	columnBase.Children = []notifuse_mjml.EmailBlock{headerText, mainText, button, expireText, divider, footerText}
+	column := &notifuse_mjml.MJColumnBlock{BaseBlock: columnBase}
 
-	section := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "main-section",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{column},
-			Attributes: map[string]interface{}{
-				"background-color": "#ffffff",
-				"padding":          "40px 20px",
-			},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjSection,
-		Children: []notifuse_mjml.EmailBlock{column},
-	}
+	sectionBase := notifuse_mjml.NewBaseBlock("main-section", notifuse_mjml.MJMLComponentMjSection)
+	sectionBase.Children = []notifuse_mjml.EmailBlock{column}
+	section := &notifuse_mjml.MJSectionBlock{BaseBlock: sectionBase}
 
-	head := &notifuse_mjml.MJHeadBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "head",
-			Type:     notifuse_mjml.MJMLComponentMjHead,
-			Children: []interface{}{title, preview},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjHead,
-		Children: []notifuse_mjml.EmailBlock{title, preview},
-	}
+	headBase := notifuse_mjml.NewBaseBlock("head", notifuse_mjml.MJMLComponentMjHead)
+	headBase.Children = []notifuse_mjml.EmailBlock{title, preview}
+	head := &notifuse_mjml.MJHeadBlock{BaseBlock: headBase}
 
-	body := &notifuse_mjml.MJBodyBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "body",
-			Type:     notifuse_mjml.MJMLComponentMjBody,
-			Children: []interface{}{section},
-		},
-		Type:     notifuse_mjml.MJMLComponentMjBody,
-		Children: []notifuse_mjml.EmailBlock{section},
-	}
+	bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+	bodyBase.Children = []notifuse_mjml.EmailBlock{section}
+	body := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
 
-	return &notifuse_mjml.MJMLBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "mjml-root",
-			Type: notifuse_mjml.MJMLComponentMjml,
-			Attributes: map[string]interface{}{
-				"lang": "en",
-			},
-			Children: []interface{}{head, body},
-		},
-		Type: notifuse_mjml.MJMLComponentMjml,
-		Attributes: map[string]interface{}{
-			"lang": "en",
-		},
-		Children: []notifuse_mjml.EmailBlock{head, body},
-	}
+	rootBase6 := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
+	rootBase6.Attributes["lang"] = "en"
+	rootBase6.Children = []notifuse_mjml.EmailBlock{head, body}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase6}
 }
 
 // createSampleTransactionalNotifications creates sample transactional notifications

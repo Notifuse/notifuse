@@ -13,32 +13,24 @@ import (
 
 // createValidMJMLBlock creates a valid MJML EmailBlock for testing
 func createValidMJMLBlock() notifuse_mjml.EmailBlock {
-	return &notifuse_mjml.MJMLBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "mjml-root",
-			Type: notifuse_mjml.MJMLComponentMjml,
-			Attributes: map[string]interface{}{
-				"lang": "en",
-			},
-			Children: []interface{}{
-				&notifuse_mjml.MJBodyBlock{
-					BaseBlock: notifuse_mjml.BaseBlock{
-						ID:   "body-1",
-						Type: notifuse_mjml.MJMLComponentMjBody,
-					},
-				},
-			},
-		},
+	bodyBlock := &notifuse_mjml.MJBodyBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("body-1", notifuse_mjml.MJMLComponentMjBody),
 	}
+	bodyBlock.Children = []notifuse_mjml.EmailBlock{}
+
+	mjmlBlock := &notifuse_mjml.MJMLBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml),
+	}
+	mjmlBlock.Attributes["lang"] = "en"
+	mjmlBlock.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+
+	return mjmlBlock
 }
 
 // createInvalidMJMLBlock creates an invalid MJML EmailBlock for testing
 func createInvalidMJMLBlock(blockType notifuse_mjml.MJMLComponentType) notifuse_mjml.EmailBlock {
 	return &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "text-1",
-			Type: blockType,
-		},
+		BaseBlock: notifuse_mjml.NewBaseBlock("text-1", blockType),
 	}
 }
 

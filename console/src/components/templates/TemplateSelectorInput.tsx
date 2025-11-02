@@ -23,6 +23,7 @@ interface TemplateSelectorInputProps {
     | 'other'
   placeholder?: string
   clearable?: boolean
+  disabled?: boolean
 }
 
 const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
@@ -31,7 +32,8 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   workspaceId,
   category,
   placeholder = 'Select a template',
-  clearable = true
+  clearable = true,
+  disabled = false
 }) => {
   const [open, setOpen] = useState<boolean>(false)
   const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null)
@@ -91,7 +93,9 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
   }
 
   const showDrawer = () => {
-    setOpen(true)
+    if (!disabled) {
+      setOpen(true)
+    }
   }
 
   const onClose = () => {
@@ -127,6 +131,7 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
         value={selectedTemplate?.name || ''}
         placeholder={placeholder}
         readOnly={!clearable}
+        disabled={disabled}
         onClick={showDrawer}
         onClear={() => {
           setSelectedTemplate(null)

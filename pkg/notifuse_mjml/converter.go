@@ -108,8 +108,19 @@ func convertBlockToMJML(block EmailBlock, indentLevel int, templateData string) 
 
 // convertBlockToMJMLWithParsedData recursively converts a single EmailBlock to MJML string with pre-parsed data
 func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templateData string, parsedData map[string]interface{}) string {
+	// Defensive check: ensure the block has a valid BaseBlock pointer
+	if block == nil {
+		return ""
+	}
+
+	// Check if GetType returns empty (indicates invalid/uninitialized block)
+	blockType := block.GetType()
+	if blockType == "" {
+		return ""
+	}
+
 	indent := strings.Repeat("  ", indentLevel)
-	tagName := string(block.GetType())
+	tagName := string(blockType)
 	children := block.GetChildren()
 
 	// Handle self-closing tags that don't have children but may have content
@@ -231,37 +242,11 @@ func cleanLiquidTemplate(content string) string {
 	})
 }
 
-// getBlockContent extracts content from a block using type assertion
+// getBlockContent extracts content from a block
 func getBlockContent(block EmailBlock) string {
-	switch v := block.(type) {
-	case *MJTextBlock:
-		if v.Content != nil {
-			return *v.Content
-		}
-	case *MJButtonBlock:
-		if v.Content != nil {
-			return *v.Content
-		}
-	case *MJRawBlock:
-		if v.Content != nil {
-			return *v.Content
-		}
-	case *MJPreviewBlock:
-		if v.Content != nil {
-			return *v.Content
-		}
-	case *MJStyleBlock:
-		if v.Content != nil {
-			return *v.Content
-		}
-	case *MJTitleBlock:
-		if v.Content != nil {
-			return *v.Content
-		}
-	case *MJSocialElementBlock:
-		if v.Content != nil {
-			return *v.Content
-		}
+	content := block.GetContent()
+	if content != nil {
+		return *content
 	}
 	return ""
 }

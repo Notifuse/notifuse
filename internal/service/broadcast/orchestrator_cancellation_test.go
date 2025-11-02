@@ -148,20 +148,13 @@ func TestBroadcastOrchestrator_Process_CancelledBroadcast(t *testing.T) {
 		Name: "Test Template",
 		Email: &domain.EmailTemplate{
 			Subject: "Test Subject",
-			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:   "mjml-root",
-					Type: notifuse_mjml.MJMLComponentMjml,
-					Children: []interface{}{
-						&notifuse_mjml.MJBodyBlock{
-							BaseBlock: notifuse_mjml.BaseBlock{
-								ID:   "body-1",
-								Type: notifuse_mjml.MJMLComponentMjBody,
-							},
-						},
-					},
-				},
-			},
+			VisualEditorTree: func() notifuse_mjml.EmailBlock {
+				bodyBase := notifuse_mjml.NewBaseBlock("body-1", notifuse_mjml.MJMLComponentMjBody)
+				bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+				rootBase := notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml)
+				rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+				return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+			}(),
 		},
 	}
 	mockTemplateRepo.EXPECT().

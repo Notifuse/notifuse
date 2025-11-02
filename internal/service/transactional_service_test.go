@@ -1902,15 +1902,7 @@ func TestTransactionalNotificationService_TestTemplate(t *testing.T) {
 		Email: &domain.EmailTemplate{
 			Subject: "Test Subject",
 			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:   "root",
-					Type: notifuse_mjml.MJMLComponentMjml,
-					Attributes: map[string]interface{}{
-						"version":         "4.0.0",
-						"backgroundColor": "#ffffff",
-						"width":           "600px",
-					},
-				},
+				BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
 			},
 			ReplyTo: "",
 		},
@@ -2051,15 +2043,7 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 		Email: &domain.EmailTemplate{
 			Subject: "Test Subject",
 			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:   "root",
-					Type: notifuse_mjml.MJMLComponentMjml,
-					Attributes: map[string]interface{}{
-						"version":         "4.0.0",
-						"backgroundColor": "#ffffff",
-						"width":           "600px",
-					},
-				},
+				BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
 			},
 			ReplyTo: "",
 		},

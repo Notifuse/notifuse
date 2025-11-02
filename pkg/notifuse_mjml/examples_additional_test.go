@@ -1,24 +1,10 @@
 package notifuse_mjml
 
 import (
-	"io"
 	"os"
 	"strings"
 	"testing"
 )
-
-func silenceStdout(t *testing.T) func() {
-	t.Helper()
-	old := os.Stdout
-	r, w, _ := os.Pipe()
-	os.Stdout = w
-	return func() {
-		_ = w.Close()
-		os.Stdout = old
-		_, _ = io.ReadAll(r) // drain
-		_ = r.Close()
-	}
-}
 
 func TestNewBaseBlock(t *testing.T) {
 	b := NewBaseBlock("x", MJMLComponentMjText)
@@ -36,7 +22,7 @@ func TestCreateSimpleEmailAndConversion(t *testing.T) {
 		t.Fatalf("unexpected validation error: %v", err)
 	}
 	out := ConvertJSONToMJML(email)
-	if !strings.Contains(out, "<mjml>") || !strings.Contains(out, "<mj-body>") {
+	if !strings.Contains(out, "<mjml>") || !strings.Contains(out, "<mj-body") {
 		t.Fatalf("unexpected MJML: %s", out)
 	}
 }

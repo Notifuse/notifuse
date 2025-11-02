@@ -28,8 +28,11 @@ func TestTrackingSettings_DBValueScan(t *testing.T) {
 
 func TestCompileTemplateRequest_Validate(t *testing.T) {
 	// Build a minimal valid mjml tree
-	body := &MJBodyBlock{BaseBlock: BaseBlock{ID: "body", Type: MJMLComponentMjBody, Children: []interface{}{}}}
-	root := &MJMLBlock{BaseBlock: BaseBlock{ID: "root", Type: MJMLComponentMjml, Children: []interface{}{body}}}
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{}
+	
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
 
 	req := CompileTemplateRequest{WorkspaceID: "w", MessageID: "m", VisualEditorTree: root}
 	if err := req.Validate(); err != nil {
@@ -49,11 +52,21 @@ func TestCompileTemplate_ErrorFromMJMLGo(t *testing.T) {
 
 func TestCompileTemplate_WithTemplateDataJSON(t *testing.T) {
 	// Ensure template data marshalling path is covered
-	text := &MJTextBlock{BaseBlock: BaseBlock{ID: "t", Type: MJMLComponentMjText}, Content: stringPtr("Hello {{name}}")}
-	col := &MJColumnBlock{BaseBlock: BaseBlock{ID: "c", Type: MJMLComponentMjColumn, Children: []interface{}{text}}}
-	sec := &MJSectionBlock{BaseBlock: BaseBlock{ID: "s", Type: MJMLComponentMjSection, Children: []interface{}{col}}}
-	body := &MJBodyBlock{BaseBlock: BaseBlock{ID: "b", Type: MJMLComponentMjBody, Children: []interface{}{sec}}}
-	root := &MJMLBlock{BaseBlock: BaseBlock{ID: "r", Type: MJMLComponentMjml, Children: []interface{}{body}}}
+	textBase := NewBaseBlock("t", MJMLComponentMjText)
+	textBase.Content = stringPtr("Hello {{name}}")
+	text := &MJTextBlock{BaseBlock: textBase}
+	
+	col := &MJColumnBlock{BaseBlock: NewBaseBlock("c", MJMLComponentMjColumn)}
+	col.Children = []EmailBlock{text}
+	
+	sec := &MJSectionBlock{BaseBlock: NewBaseBlock("s", MJMLComponentMjSection)}
+	sec.Children = []EmailBlock{col}
+	
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("b", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{sec}
+	
+	root := &MJMLBlock{BaseBlock: NewBaseBlock("r", MJMLComponentMjml)}
+	root.Children = []EmailBlock{body}
 
 	td := MapOfAny{"name": "Ada"}
 	req := CompileTemplateRequest{WorkspaceID: "w", MessageID: "m", VisualEditorTree: root, TemplateData: td}

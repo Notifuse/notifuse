@@ -72,46 +72,28 @@ func TestMessageSenderCreation(t *testing.T) {
 // Helper function to create a simple text block
 func createTestTextBlock(id, textContent string) notifuse_mjml.EmailBlock {
 	content := textContent
-	return &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   id,
-			Type: notifuse_mjml.MJMLComponentMjText,
-		},
-		Content: &content,
-	}
+	base := notifuse_mjml.NewBaseBlock(id, notifuse_mjml.MJMLComponentMjText)
+	base.Content = &content
+	return &notifuse_mjml.MJTextBlock{BaseBlock: base}
 }
 
 // Helper function to create a valid MJML tree structure
 func createValidTestTree(textBlock notifuse_mjml.EmailBlock) notifuse_mjml.EmailBlock {
-	columnBlock := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "col1",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{textBlock},
-		},
-	}
-	sectionBlock := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "sec1",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{columnBlock},
-		},
-	}
-	bodyBlock := &notifuse_mjml.MJBodyBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "body1",
-			Type:     notifuse_mjml.MJMLComponentMjBody,
-			Children: []interface{}{sectionBlock},
-		},
-	}
-	return &notifuse_mjml.MJMLBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:         "root",
-			Type:       notifuse_mjml.MJMLComponentMjml,
-			Attributes: map[string]interface{}{"version": "4.0.0"},
-			Children:   []interface{}{bodyBlock},
-		},
-	}
+	columnBase := notifuse_mjml.NewBaseBlock("col1", notifuse_mjml.MJMLComponentMjColumn)
+	columnBase.Children = []notifuse_mjml.EmailBlock{textBlock}
+	columnBlock := &notifuse_mjml.MJColumnBlock{BaseBlock: columnBase}
+
+	sectionBase := notifuse_mjml.NewBaseBlock("sec1", notifuse_mjml.MJMLComponentMjSection)
+	sectionBase.Children = []notifuse_mjml.EmailBlock{columnBlock}
+	sectionBlock := &notifuse_mjml.MJSectionBlock{BaseBlock: sectionBase}
+
+	bodyBase := notifuse_mjml.NewBaseBlock("body1", notifuse_mjml.MJMLComponentMjBody)
+	bodyBase.Children = []notifuse_mjml.EmailBlock{sectionBlock}
+	bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+
+	rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+	rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
 }
 
 // TestSendToRecipientSuccess tests successful sending to a recipient
@@ -1414,7 +1396,7 @@ func TestSendToRecipient_ErrorCases(t *testing.T) {
 			MaxTimes(1)
 
 		// Second message should fail due to context cancellation
-		// Note: Error could be ErrCodeRateLimitExceeded (cancelled during rate limiting) 
+		// Note: Error could be ErrCodeRateLimitExceeded (cancelled during rate limiting)
 		// or ErrCodeSendFailed (cancelled during email send)
 		err = sender.SendToRecipient(cancelCtx, workspaceID, "test-integration-id", tracking, broadcast, "message-2", "test@example.com", template, map[string]interface{}{}, emailProvider, timeoutAt)
 		assert.Error(t, err)

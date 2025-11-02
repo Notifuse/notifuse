@@ -294,57 +294,27 @@ func TestGetTrackingURL(t *testing.T) {
 
 func TestCompileTemplateWithTracking(t *testing.T) {
 	// Create a simple email with button
-	textBlock := &MJTextBlock{
-		BaseBlock: BaseBlock{
-			ID:   "text-1",
-			Type: MJMLComponentMjText,
-		},
-		Content: stringPtr("Check out our latest offers!"),
-	}
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = stringPtr("Check out our latest offers!")
+	textBlock := &MJTextBlock{BaseBlock: textBase}
 
-	buttonBlock := &MJButtonBlock{
-		BaseBlock: BaseBlock{
-			ID:   "button-1",
-			Type: MJMLComponentMjButton,
-			Attributes: map[string]interface{}{
-				"href": "https://shop.example.com/offers",
-			},
-		},
-		Content: stringPtr("Shop Now"),
-	}
+	buttonBase := NewBaseBlock("button-1", MJMLComponentMjButton)
+	buttonBase.Attributes["href"] = "https://shop.example.com/offers"
+	buttonBase.Content = stringPtr("Shop Now")
+	buttonBlock := &MJButtonBlock{BaseBlock: buttonBase}
+
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{textBlock, buttonBlock}
+
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
 
 	// Create MJML structure
-	mjml := &MJMLBlock{
-		BaseBlock: BaseBlock{
-			ID:   "mjml-1",
-			Type: MJMLComponentMjml,
-			Children: []interface{}{
-				&MJBodyBlock{
-					BaseBlock: BaseBlock{
-						ID:   "body-1",
-						Type: MJMLComponentMjBody,
-						Children: []interface{}{
-							&MJSectionBlock{
-								BaseBlock: BaseBlock{
-									ID:   "section-1",
-									Type: MJMLComponentMjSection,
-									Children: []interface{}{
-										&MJColumnBlock{
-											BaseBlock: BaseBlock{
-												ID:       "column-1",
-												Type:     MJMLComponentMjColumn,
-												Children: []interface{}{textBlock, buttonBlock},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{bodyBlock}
 
 	// Test CompileTemplate with tracking
 	req := CompileTemplateRequest{
@@ -601,51 +571,25 @@ func TestCompileTemplateWithButtonQueryParameters(t *testing.T) {
 	// Create a button with a URL containing query parameters
 	confirmURL := "https://mailing.example.com/notification-center?action=confirm&email=test@example.com&email_hmac=abc123&lid=newsletter&lname=Newsletter&mid=msg123&wid=workspace123"
 	
-	buttonBlock := &MJButtonBlock{
-		BaseBlock: BaseBlock{
-			ID:   "confirm-button",
-			Type: MJMLComponentMjButton,
-			Attributes: map[string]interface{}{
-				"href":             "{{ confirm_subscription_url }}",
-				"background-color": "#007bff",
-				"color":            "#ffffff",
-			},
-		},
-		Content: stringPtr("Confirm Subscription"),
-	}
+	buttonBase := NewBaseBlock("confirm-button", MJMLComponentMjButton)
+	buttonBase.Attributes["href"] = "{{ confirm_subscription_url }}"
+	buttonBase.Attributes["background-color"] = "#007bff"
+	buttonBase.Attributes["color"] = "#ffffff"
+	buttonBase.Content = stringPtr("Confirm Subscription")
+	buttonBlock := &MJButtonBlock{BaseBlock: buttonBase}
 
 	// Create complete MJML structure
-	column := &MJColumnBlock{
-		BaseBlock: BaseBlock{
-			ID:       "column-1",
-			Type:     MJMLComponentMjColumn,
-			Children: []interface{}{buttonBlock},
-		},
-	}
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{buttonBlock}
 
-	section := &MJSectionBlock{
-		BaseBlock: BaseBlock{
-			ID:       "section-1",
-			Type:     MJMLComponentMjSection,
-			Children: []interface{}{column},
-		},
-	}
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
 
-	body := &MJBodyBlock{
-		BaseBlock: BaseBlock{
-			ID:       "body-1",
-			Type:     MJMLComponentMjBody,
-			Children: []interface{}{section},
-		},
-	}
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
 
-	mjml := &MJMLBlock{
-		BaseBlock: BaseBlock{
-			ID:       "mjml-1",
-			Type:     MJMLComponentMjml,
-			Children: []interface{}{body},
-		},
-	}
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
 
 	// Compile template with template data
 	req := CompileTemplateRequest{
@@ -691,59 +635,29 @@ func TestCompileTemplateButtonVsTextURL(t *testing.T) {
 	confirmURL := "https://example.com/confirm?action=confirm&email=test@example.com&token=abc"
 
 	// Button with URL in href attribute
-	buttonBlock := &MJButtonBlock{
-		BaseBlock: BaseBlock{
-			ID:   "button-1",
-			Type: MJMLComponentMjButton,
-			Attributes: map[string]interface{}{
-				"href": "{{ confirm_url }}",
-			},
-		},
-		Content: stringPtr("Confirm via Button"),
-	}
+	buttonBase := NewBaseBlock("button-1", MJMLComponentMjButton)
+	buttonBase.Attributes["href"] = "{{ confirm_url }}"
+	buttonBase.Content = stringPtr("Confirm via Button")
+	buttonBlock := &MJButtonBlock{BaseBlock: buttonBase}
 
 	// Text block with URL in content
 	textContent := `<a href="{{ confirm_url }}">Confirm via Text Link</a>`
-	textBlock := &MJTextBlock{
-		BaseBlock: BaseBlock{
-			ID:   "text-1",
-			Type: MJMLComponentMjText,
-		},
-		Content: &textContent,
-	}
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = &textContent
+	textBlock := &MJTextBlock{BaseBlock: textBase}
 
 	// Create complete structure
-	column := &MJColumnBlock{
-		BaseBlock: BaseBlock{
-			ID:       "column-1",
-			Type:     MJMLComponentMjColumn,
-			Children: []interface{}{buttonBlock, textBlock},
-		},
-	}
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{buttonBlock, textBlock}
 
-	section := &MJSectionBlock{
-		BaseBlock: BaseBlock{
-			ID:       "section-1",
-			Type:     MJMLComponentMjSection,
-			Children: []interface{}{column},
-		},
-	}
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
 
-	body := &MJBodyBlock{
-		BaseBlock: BaseBlock{
-			ID:       "body-1",
-			Type:     MJMLComponentMjBody,
-			Children: []interface{}{section},
-		},
-	}
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
 
-	mjml := &MJMLBlock{
-		BaseBlock: BaseBlock{
-			ID:       "mjml-1",
-			Type:     MJMLComponentMjml,
-			Children: []interface{}{body},
-		},
-	}
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
 
 	req := CompileTemplateRequest{
 		WorkspaceID:      "test-workspace",

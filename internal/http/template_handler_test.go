@@ -56,19 +56,13 @@ func setupTemplateHandlerTest(t *testing.T) (*mocks.MockTemplateService, *pkgmoc
 }
 
 func createTestEmailTemplate() *domain.EmailTemplate {
+	base := notifusemjml.NewBaseBlock("root", notifusemjml.MJMLComponentMjml)
+	base.Attributes["version"] = "4.0.0"
 	return &domain.EmailTemplate{
-		SenderID:        "sender123",
-		Subject:         "Test Email",
-		CompiledPreview: "<html><body>Test</body></html>",
-		VisualEditorTree: &notifusemjml.MJMLBlock{
-			BaseBlock: notifusemjml.BaseBlock{
-				ID:         "root",
-				Type:       notifusemjml.MJMLComponentMjml,
-				Attributes: map[string]interface{}{"version": "4.0.0"},
-			},
-			Type:       notifusemjml.MJMLComponentMjml,
-			Attributes: map[string]interface{}{"version": "4.0.0"},
-		},
+		SenderID:         "sender123",
+		Subject:          "Test Email",
+		CompiledPreview:  "<html><body>Test</body></html>",
+		VisualEditorTree: &notifusemjml.MJMLBlock{BaseBlock: base},
 	}
 }
 
@@ -667,29 +661,17 @@ func TestTemplateHandler_HandleDelete(t *testing.T) {
 
 // Helper function from email_blocks_test.go (or define similarly here)
 func createTestRootBlockHandler(children ...notifusemjml.EmailBlock) notifusemjml.EmailBlock {
-	return &notifusemjml.MJMLBlock{
-		BaseBlock: notifusemjml.BaseBlock{
-			ID:         "root",
-			Type:       notifusemjml.MJMLComponentMjml,
-			Children:   make([]interface{}, len(children)),
-			Attributes: map[string]interface{}{"version": "4.0.0"},
-		},
-		Type:       notifusemjml.MJMLComponentMjml,
-		Children:   children,
-		Attributes: map[string]interface{}{"version": "4.0.0"},
-	}
+	base := notifusemjml.NewBaseBlock("root", notifusemjml.MJMLComponentMjml)
+	base.Children = children
+	base.Attributes["version"] = "4.0.0"
+	return &notifusemjml.MJMLBlock{BaseBlock: base}
 }
 
 func createTestTextBlockHandler(id, textContent string) notifusemjml.EmailBlock {
 	content := textContent
-	return &notifusemjml.MJTextBlock{
-		BaseBlock: notifusemjml.BaseBlock{
-			ID:   id,
-			Type: notifusemjml.MJMLComponentMjText,
-		},
-		Type:    notifusemjml.MJMLComponentMjText,
-		Content: &content,
-	}
+	base := notifusemjml.NewBaseBlock(id, notifusemjml.MJMLComponentMjText)
+	base.Content = &content
+	return &notifusemjml.MJTextBlock{BaseBlock: base}
 }
 
 func TestHandleCompile_ServiceError(t *testing.T) {

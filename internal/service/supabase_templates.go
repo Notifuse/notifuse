@@ -156,7 +156,7 @@ func (s *SupabaseService) createSignupTemplate(ctx context.Context, workspaceID,
 
 	template := &domain.Template{
 		ID:            templateID,
-		Name:          "Supabase Signup Confirmation",
+		Name:          "Signup Confirmation",
 		Version:       1,
 		Channel:       "email",
 		Category:      "transactional",
@@ -190,7 +190,7 @@ func (s *SupabaseService) createMagicLinkTemplate(ctx context.Context, workspace
 
 	template := &domain.Template{
 		ID:            templateID,
-		Name:          "Supabase Magic Link",
+		Name:          "Magic Link",
 		Version:       1,
 		Channel:       "email",
 		Category:      "transactional",
@@ -224,7 +224,7 @@ func (s *SupabaseService) createRecoveryTemplate(ctx context.Context, workspaceI
 
 	template := &domain.Template{
 		ID:            templateID,
-		Name:          "Supabase Password Recovery",
+		Name:          "Password Recovery",
 		Version:       1,
 		Channel:       "email",
 		Category:      "transactional",
@@ -260,7 +260,7 @@ func (s *SupabaseService) createEmailChangeTemplate(ctx context.Context, workspa
 
 	template := &domain.Template{
 		ID:            templateID,
-		Name:          "Supabase Email Change",
+		Name:          "Email Change",
 		Version:       1,
 		Channel:       "email",
 		Category:      "transactional",
@@ -294,7 +294,7 @@ func (s *SupabaseService) createInviteTemplate(ctx context.Context, workspaceID,
 
 	template := &domain.Template{
 		ID:            templateID,
-		Name:          "Supabase User Invitation",
+		Name:          "User Invitation",
 		Version:       1,
 		Channel:       "email",
 		Category:      "transactional",
@@ -328,7 +328,7 @@ func (s *SupabaseService) createReauthenticationTemplate(ctx context.Context, wo
 
 	template := &domain.Template{
 		ID:            templateID,
-		Name:          "Supabase Reauthentication",
+		Name:          "Reauthentication",
 		Version:       1,
 		Channel:       "email",
 		Category:      "transactional",

@@ -59,7 +59,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 		err = json.Unmarshal(treeJSON, &treeMap)
 		require.NoError(t, err, "Failed to unmarshal to map")
 		
-		templateID := fmt.Sprintf("roundtrip-all-%d", time.Now().UnixNano())
+		templateID := fmt.Sprintf("rt-all-%d", time.Now().Unix())
 		template := map[string]interface{}{
 			"workspace_id": workspace.ID,
 			"id":           templateID,
@@ -112,7 +112,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 		err = json.Unmarshal(treeJSON, &treeMap)
 		require.NoError(t, err, "Failed to unmarshal to map")
 		
-		templateID := fmt.Sprintf("roundtrip-nested-%d", time.Now().UnixNano())
+		templateID := fmt.Sprintf("rt-nest-%d", time.Now().Unix())
 		template := map[string]interface{}{
 			"workspace_id": workspace.ID,
 			"id":           templateID,
@@ -194,7 +194,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 				err = json.Unmarshal(treeJSON, &treeMap)
 				require.NoError(t, err, "Failed to unmarshal to map")
 				
-				templateID := fmt.Sprintf("supabase-%s-%d", name, time.Now().UnixNano())
+				templateID := fmt.Sprintf("sb-%s", name)
 				template := map[string]interface{}{
 					"workspace_id": workspace.ID,
 					"id":           templateID,

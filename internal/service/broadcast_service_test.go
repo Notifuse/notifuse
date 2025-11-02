@@ -42,6 +42,13 @@ func testBroadcast(workspaceID, id string) *domain.Broadcast {
 	}
 }
 
+// helper to create a minimal MJML root block
+func createMJMLRootBlock() notifusemjml.EmailBlock {
+	base := notifusemjml.NewBaseBlock("root", notifusemjml.MJMLComponentMjml)
+	base.Attributes["version"] = "4.0.0"
+	return &notifusemjml.MJMLBlock{BaseBlock: base}
+}
+
 type broadcastSvcDeps struct {
 	ctrl               *gomock.Controller
 	repo               *domainmocks.MockBroadcastRepository
@@ -264,14 +271,10 @@ func TestBroadcastService_SendToIndividual_Success(t *testing.T) {
 		Name:    "Template A",
 		Channel: "email",
 		Email: &domain.EmailTemplate{
-			SenderID:        sender.ID,
-			Subject:         "Hello",
-			CompiledPreview: "<p>preview</p>",
-			VisualEditorTree: &notifusemjml.MJMLBlock{
-				BaseBlock:  notifusemjml.BaseBlock{ID: "root", Type: notifusemjml.MJMLComponentMjml, Attributes: map[string]interface{}{"version": "4.0.0"}},
-				Type:       notifusemjml.MJMLComponentMjml,
-				Attributes: map[string]interface{}{"version": "4.0.0"},
-			},
+			SenderID:         sender.ID,
+			Subject:          "Hello",
+			CompiledPreview:  "<p>preview</p>",
+			VisualEditorTree: createMJMLRootBlock(),
 		},
 		Category:  string(domain.TemplateCategoryMarketing),
 		CreatedAt: time.Now(),

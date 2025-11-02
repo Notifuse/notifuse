@@ -101,7 +101,7 @@ func TestCreateSignupTemplate(t *testing.T) {
 
 	mockTemplateRepo.EXPECT().CreateTemplate(gomock.Any(), "workspace-123", gomock.Any()).
 		DoAndReturn(func(ctx context.Context, workspaceID string, template *domain.Template) error {
-			assert.Equal(t, "Supabase Signup Confirmation", template.Name)
+			assert.Equal(t, "Signup Confirmation", template.Name)
 			assert.Equal(t, "email", template.Channel)
 			assert.Equal(t, "transactional", template.Category)
 			assert.NotNil(t, template.IntegrationID)
@@ -134,7 +134,7 @@ func TestCreateMagicLinkTemplate(t *testing.T) {
 
 	mockTemplateRepo.EXPECT().CreateTemplate(gomock.Any(), "workspace-123", gomock.Any()).
 		DoAndReturn(func(ctx context.Context, workspaceID string, template *domain.Template) error {
-			assert.Equal(t, "Supabase Magic Link", template.Name)
+			assert.Equal(t, "Magic Link", template.Name)
 			assert.NotNil(t, template.Email)
 			assert.Equal(t, "Your sign-in link", template.Email.Subject)
 			return nil
@@ -162,7 +162,7 @@ func TestCreateRecoveryTemplate(t *testing.T) {
 
 	mockTemplateRepo.EXPECT().CreateTemplate(gomock.Any(), "workspace-123", gomock.Any()).
 		DoAndReturn(func(ctx context.Context, workspaceID string, template *domain.Template) error {
-			assert.Equal(t, "Supabase Password Recovery", template.Name)
+			assert.Equal(t, "Password Recovery", template.Name)
 			assert.NotNil(t, template.Email)
 			assert.Equal(t, "Reset your password", template.Email.Subject)
 			return nil
@@ -190,7 +190,7 @@ func TestCreateEmailChangeTemplate(t *testing.T) {
 
 	mockTemplateRepo.EXPECT().CreateTemplate(gomock.Any(), "workspace-123", gomock.Any()).
 		DoAndReturn(func(ctx context.Context, workspaceID string, template *domain.Template) error {
-			assert.Equal(t, "Supabase Email Change", template.Name)
+			assert.Equal(t, "Email Change", template.Name)
 			assert.NotNil(t, template.Email)
 			assert.Equal(t, "Confirm email change", template.Email.Subject)
 			return nil
@@ -218,7 +218,7 @@ func TestCreateInviteTemplate(t *testing.T) {
 
 	mockTemplateRepo.EXPECT().CreateTemplate(gomock.Any(), "workspace-123", gomock.Any()).
 		DoAndReturn(func(ctx context.Context, workspaceID string, template *domain.Template) error {
-			assert.Equal(t, "Supabase User Invitation", template.Name)
+			assert.Equal(t, "User Invitation", template.Name)
 			assert.NotNil(t, template.Email)
 			assert.Equal(t, "You've been invited", template.Email.Subject)
 			return nil
@@ -246,7 +246,7 @@ func TestCreateReauthenticationTemplate(t *testing.T) {
 
 	mockTemplateRepo.EXPECT().CreateTemplate(gomock.Any(), "workspace-123", gomock.Any()).
 		DoAndReturn(func(ctx context.Context, workspaceID string, template *domain.Template) error {
-			assert.Equal(t, "Supabase Reauthentication", template.Name)
+			assert.Equal(t, "Reauthentication", template.Name)
 			assert.NotNil(t, template.Email)
 			assert.Equal(t, "Verify your identity", template.Email.Subject)
 			return nil

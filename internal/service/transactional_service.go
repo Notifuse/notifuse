@@ -177,41 +177,57 @@ func (s *TransactionalNotificationService) UpdateNotification(
 		return nil, fmt.Errorf("failed to get notification: %w", err)
 	}
 
-	// Prevent modification of integration-managed notifications
-	if notification.IntegrationID != nil && *notification.IntegrationID != "" {
-		err := fmt.Errorf("cannot update integration-managed notification: notification is managed by integration %s", *notification.IntegrationID)
-		tracing.MarkSpanError(ctx, err)
-		return nil, err
-	}
+	// For integration-managed notifications, only allow updates to description and tracking_settings
+	isIntegrationManaged := notification.IntegrationID != nil && *notification.IntegrationID != ""
+	if isIntegrationManaged {
+		// Prevent updating name and channels for integration-managed notifications
+		if params.Name != "" && params.Name != notification.Name {
+			err := fmt.Errorf("cannot update name of integration-managed notification: notification is managed by integration %s", *notification.IntegrationID)
+			tracing.MarkSpanError(ctx, err)
+			return nil, err
+		}
+		if params.Channels != nil {
+			err := fmt.Errorf("cannot update channels of integration-managed notification: notification is managed by integration %s", *notification.IntegrationID)
+			tracing.MarkSpanError(ctx, err)
+			return nil, err
+		}
 
-	// Update fields if provided
-	if params.Name != "" {
-		notification.Name = params.Name
-	}
-	if params.Description != "" {
-		notification.Description = params.Description
-	}
-	// Validate the updated templates exist
-	if params.Channels != nil {
-		for channel, template := range params.Channels {
-			tracing.AddAttribute(ctx, fmt.Sprintf("channel.%s.template_id", channel), template.TemplateID)
+		// Allow updates to description and tracking_settings
+		if params.Description != "" {
+			notification.Description = params.Description
+		}
+		notification.TrackingSettings = params.TrackingSettings
+		notification.Metadata = params.Metadata
+	} else {
+		// For non-integration-managed notifications, allow all updates
+		if params.Name != "" {
+			notification.Name = params.Name
+		}
+		if params.Description != "" {
+			notification.Description = params.Description
+		}
+		// Validate the updated templates exist
+		if params.Channels != nil {
+			for channel, template := range params.Channels {
+				tracing.AddAttribute(ctx, fmt.Sprintf("channel.%s.template_id", channel), template.TemplateID)
 
-			_, err := s.templateService.GetTemplateByID(ctx, workspace, template.TemplateID, int64(0))
-			if err != nil {
-				s.logger.WithFields(map[string]interface{}{
-					"error":       err.Error(),
-					"channel":     channel,
-					"template_id": template.TemplateID,
-				}).Error("Invalid template for channel in update")
+				_, err := s.templateService.GetTemplateByID(ctx, workspace, template.TemplateID, int64(0))
+				if err != nil {
+					s.logger.WithFields(map[string]interface{}{
+						"error":       err.Error(),
+						"channel":     channel,
+						"template_id": template.TemplateID,
+					}).Error("Invalid template for channel in update")
 
-				tracing.MarkSpanError(ctx, err)
-				return nil, fmt.Errorf("invalid template for channel %s: %w", channel, err)
+					tracing.MarkSpanError(ctx, err)
+					return nil, fmt.Errorf("invalid template for channel %s: %w", channel, err)
+				}
 			}
 		}
+		notification.Channels = params.Channels
+		notification.TrackingSettings = params.TrackingSettings
+		notification.Metadata = params.Metadata
 	}
-	notification.Channels = params.Channels
-	notification.TrackingSettings = params.TrackingSettings
-	notification.Metadata = params.Metadata
 
 	// Save the updated notification
 	if err := s.transactionalRepo.Update(ctx, workspace, notification); err != nil {

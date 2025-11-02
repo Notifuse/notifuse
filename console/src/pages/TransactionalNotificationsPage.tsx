@@ -1,5 +1,15 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Typography, Space, Tooltip, Button, message, Table, Tag, Popconfirm } from 'antd'
+import {
+  Typography,
+  Space,
+  Tooltip,
+  Button,
+  message,
+  Table,
+  Tag,
+  Popconfirm,
+  notification
+} from 'antd'
 import { useParams } from '@tanstack/react-router'
 import {
   transactionalNotificationsApi,
@@ -26,6 +36,16 @@ import { Workspace } from '../services/api/types'
 import { ApiCommandModal } from '../components/transactional/ApiCommandModal'
 
 const { Title, Paragraph, Text } = Typography
+
+// Helper function to get integration icon
+const getIntegrationIcon = (integrationType: string) => {
+  switch (integrationType) {
+    case 'supabase':
+      return <img src="/supabase.png" alt="Supabase" className="h-3" />
+    default:
+      return <FontAwesomeIcon icon={faTerminal} className="text-gray-600" />
+  }
+}
 
 // Template preview component
 const TemplatePreview: React.FC<{ templateId: string; workspace: Workspace }> = ({
@@ -157,17 +177,35 @@ export function TransactionalNotificationsPage() {
     return <div>Loading...</div>
   }
 
+  const canDelete = (notification: TransactionalNotification) => {
+    return permissions?.transactional?.write && !notification.integration_id
+  }
+
+  const canWrite = permissions?.transactional?.write
+
   const columns = [
     {
       title: 'Name / ID',
       dataIndex: 'name',
       key: 'name',
-      render: (text: string, record: TransactionalNotification) => (
-        <>
-          <div className="font-bold">{text}</div>
-          <div className=" text-gray-500">{record.id}</div>
-        </>
-      )
+      render: (text: string, record: TransactionalNotification) => {
+        const integration = currentWorkspace?.integrations?.find(
+          (i) => i.id === record.integration_id
+        )
+        return (
+          <Space size="large">
+            {record.integration_id && integration && (
+              <Tooltip title={`Managed by ${integration.name} (${integration.type} integration)`}>
+                {getIntegrationIcon(integration.type)}
+              </Tooltip>
+            )}
+            <div>
+              <div className="font-bold">{text}</div>
+              <div className=" text-gray-500">{record.id}</div>
+            </div>
+          </Space>
+        )
+      }
     },
     {
       title: 'Description',
@@ -205,88 +243,60 @@ export function TransactionalNotificationsPage() {
       width: 100,
       render: (_: any, record: TransactionalNotification) => (
         <Space>
-          <Tooltip
-            title={
-              record.integration_id
-                ? 'This notification is managed by an integration and cannot be edited'
-                : !permissions?.transactional?.write
-                ? "You don't have write permission for transactional notifications"
-                : 'Edit'
-            }
-          >
-            <div>
-              {currentWorkspace && (
+          {canDelete(record) && (
+            <>
+              <Popconfirm
+                title="Delete the notification?"
+                description="Are you sure you want to delete this notification? This cannot be undone."
+                onConfirm={() => handleDeleteNotification(record)}
+                okText="Yes, Delete"
+                cancelText="Cancel"
+                placement="topRight"
+                disabled={!!record.integration_id}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  disabled={!permissions?.transactional?.write || !!record.integration_id}
+                >
+                  <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
+                </Button>
+              </Popconfirm>
+            </>
+          )}
+          {canWrite && currentWorkspace?.id && (
+            <Tooltip title={'Edit'}>
+              <>
                 <UpsertTransactionalNotificationDrawer
                   workspace={currentWorkspace}
                   notification={record}
                   buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
-                  buttonProps={{
-                    type: 'text',
-                    size: 'small',
-                    disabled: !permissions?.transactional?.write || !!record.integration_id
-                  }}
+                  buttonProps={{ type: 'text', size: 'small', disabled: !canWrite }}
                 />
-              )}
-            </div>
-          </Tooltip>
-          <Tooltip
-            title={
-              !permissions?.transactional?.write
-                ? "You don't have write permission for transactional notifications"
-                : 'Test'
-            }
-          >
-            <Button
-              type="text"
-              size="small"
-              onClick={() => handleTestNotification(record)}
-              disabled={!permissions?.transactional?.write}
-            >
-              <FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />
-            </Button>
-          </Tooltip>
-          <Tooltip
-            title={
-              !permissions?.transactional?.write
-                ? "You don't have write permission for transactional notifications"
-                : 'API Command'
-            }
-          >
+              </>
+            </Tooltip>
+          )}
+          {canWrite && (
+            <Tooltip title={'Test'}>
+              <Button
+                type="text"
+                size="small"
+                onClick={() => handleTestNotification(record)}
+                disabled={!canWrite}
+              >
+                <FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />
+              </Button>
+            </Tooltip>
+          )}
+          <Tooltip title={'API Command'}>
             <Button
               type="text"
               size="small"
               onClick={() => handleShowApiModal(record)}
-              disabled={!permissions?.transactional?.write}
+              disabled={!canWrite}
             >
               <FontAwesomeIcon icon={faTerminal} style={{ opacity: 0.7 }} />
             </Button>
-          </Tooltip>
-          <Tooltip
-            title={
-              record.integration_id
-                ? 'This notification is managed by an integration and cannot be deleted'
-                : !permissions?.transactional?.write
-                ? "You don't have write permission for transactional notifications"
-                : 'Delete'
-            }
-          >
-            <Popconfirm
-              title="Delete the notification?"
-              description="Are you sure you want to delete this notification? This cannot be undone."
-              onConfirm={() => handleDeleteNotification(record)}
-              okText="Yes, Delete"
-              cancelText="Cancel"
-              placement="topRight"
-              disabled={!!record.integration_id}
-            >
-              <Button
-                type="text"
-                size="small"
-                disabled={!permissions?.transactional?.write || !!record.integration_id}
-              >
-                <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
-              </Button>
-            </Popconfirm>
           </Tooltip>
         </Space>
       )

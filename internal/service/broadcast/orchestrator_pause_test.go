@@ -139,25 +139,21 @@ func TestBroadcastOrchestrator_Process_PausedBroadcast(t *testing.T) {
 		AnyTimes()
 
 	// Mock template repository - the orchestrator will try to load templates before detecting pause
+	bodyBlock := &notifuse_mjml.MJBodyBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("body-1", notifuse_mjml.MJMLComponentMjBody),
+	}
+
+	mjmlBlock := &notifuse_mjml.MJMLBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml),
+	}
+	mjmlBlock.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+
 	mockTemplate := &domain.Template{
 		ID:   "template-1",
 		Name: "Test Template",
 		Email: &domain.EmailTemplate{
-			Subject: "Test Subject",
-			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:   "mjml-root",
-					Type: notifuse_mjml.MJMLComponentMjml,
-					Children: []interface{}{
-						&notifuse_mjml.MJBodyBlock{
-							BaseBlock: notifuse_mjml.BaseBlock{
-								ID:   "body-1",
-								Type: notifuse_mjml.MJMLComponentMjBody,
-							},
-						},
-					},
-				},
-			},
+			Subject:          "Test Subject",
+			VisualEditorTree: mjmlBlock,
 		},
 	}
 	mockTemplateRepo.EXPECT().
@@ -324,25 +320,21 @@ func TestBroadcastOrchestrator_Process_PausedDuringProcessing(t *testing.T) {
 		AnyTimes()
 
 	// Mock template
+	bodyBlock := &notifuse_mjml.MJBodyBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("body-1", notifuse_mjml.MJMLComponentMjBody),
+	}
+
+	mjmlBlock := &notifuse_mjml.MJMLBlock{
+		BaseBlock: notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml),
+	}
+	mjmlBlock.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+
 	mockTemplate := &domain.Template{
 		ID:   "template-1",
 		Name: "Test Template",
 		Email: &domain.EmailTemplate{
-			Subject: "Test Subject",
-			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:   "mjml-root",
-					Type: notifuse_mjml.MJMLComponentMjml,
-					Children: []interface{}{
-						&notifuse_mjml.MJBodyBlock{
-							BaseBlock: notifuse_mjml.BaseBlock{
-								ID:   "body-1",
-								Type: notifuse_mjml.MJMLComponentMjBody,
-							},
-						},
-					},
-				},
-			},
+			Subject:          "Test Subject",
+			VisualEditorTree: mjmlBlock,
 		},
 	}
 	mockTemplateRepo.EXPECT().
@@ -379,11 +371,11 @@ func TestBroadcastOrchestrator_Process_PausedDuringProcessing(t *testing.T) {
 // between paused (allDone=false) and cancelled (allDone=true) broadcasts.
 func TestBroadcastOrchestrator_Process_PausedVsCancelled(t *testing.T) {
 	tests := []struct {
-		name              string
-		broadcastStatus   domain.BroadcastStatus
-		expectedAllDone   bool
-		expectedError     bool
-		testDescription   string
+		name            string
+		broadcastStatus domain.BroadcastStatus
+		expectedAllDone bool
+		expectedError   bool
+		testDescription string
 	}{
 		{
 			name:            "paused_broadcast_returns_false",
@@ -515,25 +507,21 @@ func TestBroadcastOrchestrator_Process_PausedVsCancelled(t *testing.T) {
 				Return(workspace, nil).
 				AnyTimes()
 
+			bodyBlock := &notifuse_mjml.MJBodyBlock{
+				BaseBlock: notifuse_mjml.NewBaseBlock("body-1", notifuse_mjml.MJMLComponentMjBody),
+			}
+
+			mjmlBlock := &notifuse_mjml.MJMLBlock{
+				BaseBlock: notifuse_mjml.NewBaseBlock("mjml-root", notifuse_mjml.MJMLComponentMjml),
+			}
+			mjmlBlock.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+
 			mockTemplate := &domain.Template{
 				ID:   "template-1",
 				Name: "Test Template",
 				Email: &domain.EmailTemplate{
-					Subject: "Test Subject",
-					VisualEditorTree: &notifuse_mjml.MJMLBlock{
-						BaseBlock: notifuse_mjml.BaseBlock{
-							ID:   "mjml-root",
-							Type: notifuse_mjml.MJMLComponentMjml,
-							Children: []interface{}{
-								&notifuse_mjml.MJBodyBlock{
-									BaseBlock: notifuse_mjml.BaseBlock{
-										ID:   "body-1",
-										Type: notifuse_mjml.MJMLComponentMjBody,
-									},
-								},
-							},
-						},
-					},
+					Subject:          "Test Subject",
+					VisualEditorTree: mjmlBlock,
 				},
 			}
 			mockTemplateRepo.EXPECT().
@@ -555,4 +543,3 @@ func TestBroadcastOrchestrator_Process_PausedVsCancelled(t *testing.T) {
 		})
 	}
 }
-

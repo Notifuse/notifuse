@@ -19,6 +19,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// Helper function to create a minimal valid MJML block with proper children
+func createMinimalValidMJMLBlock(id string) *notifuse_mjml.MJMLBlock {
+	bodyBase := notifuse_mjml.NewBaseBlock(id+"-body", notifuse_mjml.MJMLComponentMjBody)
+	bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+
+	rootBase := notifuse_mjml.NewBaseBlock(id, notifuse_mjml.MJMLComponentMjml)
+	rootBase.Attributes["version"] = "4.0.0"
+	rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+}
+
 func TestBroadcastOrchestrator_CanProcess(t *testing.T) {
 	// Setup
 	ctrl := gomock.NewController(t)
@@ -121,33 +132,17 @@ func TestBroadcastOrchestrator_LoadTemplates(t *testing.T) {
 	template1 := &domain.Template{
 		ID: "template-1",
 		Email: &domain.EmailTemplate{
-			Subject:  "Test Subject 1",
-			SenderID: "sender-123",
-			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:   "root1",
-					Type: notifuse_mjml.MJMLComponentMjml,
-					Attributes: map[string]interface{}{
-						"version": "4.0.0",
-					},
-				},
-			},
+			Subject:          "Test Subject 1",
+			SenderID:         "sender-123",
+			VisualEditorTree: createMinimalValidMJMLBlock("root1"),
 		},
 	}
 	template2 := &domain.Template{
 		ID: "template-2",
 		Email: &domain.EmailTemplate{
-			Subject:  "Test Subject 2",
-			SenderID: "sender-123",
-			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:   "root2",
-					Type: notifuse_mjml.MJMLComponentMjml,
-					Attributes: map[string]interface{}{
-						"version": "4.0.0",
-					},
-				},
-			},
+			Subject:          "Test Subject 2",
+			SenderID:         "sender-123",
+			VisualEditorTree: createMinimalValidMJMLBlock("root2"),
 		},
 	}
 
@@ -220,17 +215,9 @@ func TestBroadcastOrchestrator_ValidateTemplates(t *testing.T) {
 				"template-1": {
 					ID: "template-1",
 					Email: &domain.EmailTemplate{
-						Subject:  "Test Subject",
-						SenderID: "sender-123",
-						VisualEditorTree: &notifuse_mjml.MJMLBlock{
-							BaseBlock: notifuse_mjml.BaseBlock{
-								ID:   "root1",
-								Type: notifuse_mjml.MJMLComponentMjml,
-								Attributes: map[string]interface{}{
-									"version": "4.0.0",
-								},
-							},
-						},
+						Subject:          "Test Subject",
+						SenderID:         "sender-123",
+						VisualEditorTree: createMinimalValidMJMLBlock("root1"),
 					},
 				},
 			},
@@ -256,16 +243,8 @@ func TestBroadcastOrchestrator_ValidateTemplates(t *testing.T) {
 				"template-1": {
 					ID: "template-1",
 					Email: &domain.EmailTemplate{
-						SenderID: "sender-123",
-						VisualEditorTree: &notifuse_mjml.MJMLBlock{
-							BaseBlock: notifuse_mjml.BaseBlock{
-								ID:   "root1",
-								Type: notifuse_mjml.MJMLComponentMjml,
-								Attributes: map[string]interface{}{
-									"version": "4.0.0",
-								},
-							},
-						},
+						SenderID:         "sender-123",
+						VisualEditorTree: createMinimalValidMJMLBlock("root1"),
 					},
 				},
 			},
@@ -745,13 +724,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 						Subject:  "Test Subject",
 						SenderID: "sender-123",
 						VisualEditorTree: &notifuse_mjml.MJMLBlock{
-							BaseBlock: notifuse_mjml.BaseBlock{
-								ID:   "root1",
-								Type: notifuse_mjml.MJMLComponentMjml,
-								Attributes: map[string]interface{}{
-									"version": "4.0.0",
-								},
-							},
+							BaseBlock: notifuse_mjml.NewBaseBlock("root1", notifuse_mjml.MJMLComponentMjml),
 						},
 					},
 				}
@@ -883,13 +856,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 						Subject:  "Test Subject",
 						SenderID: "sender-123",
 						VisualEditorTree: &notifuse_mjml.MJMLBlock{
-							BaseBlock: notifuse_mjml.BaseBlock{
-								ID:   "root1",
-								Type: notifuse_mjml.MJMLComponentMjml,
-								Attributes: map[string]interface{}{
-									"version": "4.0.0",
-								},
-							},
+							BaseBlock: notifuse_mjml.NewBaseBlock("root1", notifuse_mjml.MJMLComponentMjml),
 						},
 					},
 				}
@@ -1215,13 +1182,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 						Subject:  "Test Subject",
 						SenderID: "sender-123",
 						VisualEditorTree: &notifuse_mjml.MJMLBlock{
-							BaseBlock: notifuse_mjml.BaseBlock{
-								ID:   "root1",
-								Type: notifuse_mjml.MJMLComponentMjml,
-								Attributes: map[string]interface{}{
-									"version": "4.0.0",
-								},
-							},
+							BaseBlock: notifuse_mjml.NewBaseBlock("root1", notifuse_mjml.MJMLComponentMjml),
 						},
 					},
 				}
@@ -1336,13 +1297,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 						Subject:  "Test Subject",
 						SenderID: "sender-123",
 						VisualEditorTree: &notifuse_mjml.MJMLBlock{
-							BaseBlock: notifuse_mjml.BaseBlock{
-								ID:   "root1",
-								Type: notifuse_mjml.MJMLComponentMjml,
-								Attributes: map[string]interface{}{
-									"version": "4.0.0",
-								},
-							},
+							BaseBlock: notifuse_mjml.NewBaseBlock("root1", notifuse_mjml.MJMLComponentMjml),
 						},
 					},
 				}
@@ -1513,7 +1468,7 @@ func TestBroadcastOrchestrator_Process_ABTestStartSetsTestingAndCompletesTestPha
 	}).Times(2)
 
 	// Template
-	tpl := &domain.Template{ID: "template-1", Email: &domain.EmailTemplate{Subject: "S", SenderID: "s", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.BaseBlock{ID: "root", Type: notifuse_mjml.MJMLComponentMjml}}}}
+	tpl := &domain.Template{ID: "template-1", Email: &domain.EmailTemplate{Subject: "S", SenderID: "s", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}}}
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "template-1", int64(0)).Return(tpl, nil)
 
 	// Contacts - since sample 100% and totalRecipients preset below = 1, expect limit 1
@@ -1638,7 +1593,7 @@ func TestBroadcastOrchestrator_Process_ValidateTemplatesFailure(t *testing.T) {
 	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
 	// Load template that will fail validation (missing subject)
-	badTpl := &domain.Template{ID: "tpl1", Email: &domain.EmailTemplate{SenderID: "s", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.BaseBlock{ID: "root", Type: notifuse_mjml.MJMLComponentMjml}}}}
+	badTpl := &domain.Template{ID: "tpl1", Email: &domain.EmailTemplate{SenderID: "s", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}}}
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "tpl1", int64(0)).Return(badTpl, nil)
 
 	config := &broadcast.Config{FetchBatchSize: 50, MaxProcessTime: 30 * time.Second}
@@ -1682,7 +1637,7 @@ func TestBroadcastOrchestrator_Process_BatchSizeZeroTriggersPhaseCompletion(t *t
 	// First UpdateBroadcast to testing during phase init, second to test_completed in handleTestPhaseCompletion
 	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 
-	tpl := &domain.Template{ID: "tpl", Email: &domain.EmailTemplate{Subject: "s", SenderID: "x", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.BaseBlock{ID: "root", Type: notifuse_mjml.MJMLComponentMjml}}}}
+	tpl := &domain.Template{ID: "tpl", Email: &domain.EmailTemplate{Subject: "s", SenderID: "x", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}}}
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "w", "tpl", int64(0)).Return(tpl, nil)
 
 	// No SaveState expectations needed; allow any
@@ -1731,7 +1686,7 @@ func TestBroadcastOrchestrator_Process_EmptyRecipientsTriggersTestCompletion(t *
 	// Update to testing then to test_completed
 	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).Times(2)
 
-	tpl := &domain.Template{ID: "tpl", Email: &domain.EmailTemplate{Subject: "s", SenderID: "x", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.BaseBlock{ID: "root", Type: notifuse_mjml.MJMLComponentMjml}}}}
+	tpl := &domain.Template{ID: "tpl", Email: &domain.EmailTemplate{Subject: "s", SenderID: "x", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}}}
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "w", "tpl", int64(0)).Return(tpl, nil)
 
 	// Return empty recipients
@@ -1826,7 +1781,7 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 	}).AnyTimes()
 
 	// Template load for tplB
-	tplB := &domain.Template{ID: "tplB", Email: &domain.EmailTemplate{Subject: "s", SenderID: "x", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.BaseBlock{ID: "root", Type: notifuse_mjml.MJMLComponentMjml}}}}
+	tplB := &domain.Template{ID: "tplB", Email: &domain.EmailTemplate{Subject: "s", SenderID: "x", VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}}}
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "w", "tplB", int64(0)).Return(tplB, nil)
 
 	// Recipient batch for winner phase (totalRecipients preset to 1 in task below)
@@ -1926,10 +1881,7 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 			Subject:  "Test Subject A",
 			SenderID: "sender-1",
 			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:   "root",
-					Type: notifuse_mjml.MJMLComponentMjml,
-				},
+				BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
 			},
 		},
 	}
@@ -1939,10 +1891,7 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 			Subject:  "Test Subject B",
 			SenderID: "sender-1",
 			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:   "root",
-					Type: notifuse_mjml.MJMLComponentMjml,
-				},
+				BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml),
 			},
 		},
 	}
@@ -2424,17 +2373,14 @@ func TestBroadcastOrchestrator_ValidateTemplates_MissingContent(t *testing.T) {
 	)
 
 	// Test with template missing content
+	emptyBase := notifuse_mjml.NewBaseBlock("", "")
 	templates := map[string]*domain.Template{
 		"template-1": {
 			ID: "template-1",
 			Email: &domain.EmailTemplate{
-				Subject:  "Test Subject",
-				SenderID: "sender-1",
-				VisualEditorTree: &notifuse_mjml.MJMLBlock{
-					BaseBlock: notifuse_mjml.BaseBlock{
-						Type: "", // Missing content type
-					},
-				},
+				Subject:          "Test Subject",
+				SenderID:         "sender-1",
+				VisualEditorTree: &notifuse_mjml.MJMLBlock{BaseBlock: emptyBase},
 			},
 		},
 	}

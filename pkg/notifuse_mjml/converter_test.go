@@ -169,145 +169,109 @@ func TestLiquidInHrefAttributes(t *testing.T) {
 	}{
 		{
 			name: "button with liquid href",
-			block: &MJButtonBlock{
-				BaseBlock: BaseBlock{
-					ID:   "btn1",
-					Type: MJMLComponentMjButton,
-					Attributes: map[string]interface{}{
-						"href":            "{{ contact.profile_url }}",
-						"backgroundColor": "#007bff",
-					},
-				},
-				Content: stringPtr("Click me!"),
-			},
+			block: func() EmailBlock {
+				b := NewBaseBlock("btn1", MJMLComponentMjButton)
+				b.Attributes["href"] = "{{ contact.profile_url }}"
+				b.Attributes["backgroundColor"] = "#007bff"
+				b.Content = stringPtr("Click me!")
+				return &MJButtonBlock{BaseBlock: b}
+			}(),
 			templateData: `{"contact": {"profile_url": "https://example.com/profile/123"}}`,
 			expectedHref: `href="https://example.com/profile/123"`,
 			expectError:  false,
 		},
 		{
 			name: "image with liquid src",
-			block: &MJImageBlock{
-				BaseBlock: BaseBlock{
-					ID:   "img1",
-					Type: MJMLComponentMjImage,
-					Attributes: map[string]interface{}{
-						"src": "{{ user.avatar_url }}",
-						"alt": "User avatar",
-					},
-				},
-			},
+			block: func() EmailBlock {
+				b := NewBaseBlock("img1", MJMLComponentMjImage)
+				b.Attributes["src"] = "{{ user.avatar_url }}"
+				b.Attributes["alt"] = "User avatar"
+				return &MJImageBlock{BaseBlock: b}
+			}(),
 			templateData: `{"user": {"avatar_url": "https://example.com/avatars/user123.jpg"}}`,
 			expectedHref: `src="https://example.com/avatars/user123.jpg"`,
 			expectError:  false,
 		},
 		{
 			name: "social element with liquid href",
-			block: &MJSocialElementBlock{
-				BaseBlock: BaseBlock{
-					ID:   "social1",
-					Type: MJMLComponentMjSocialElement,
-					Attributes: map[string]interface{}{
-						"href": "{{ company.linkedin_url }}",
-						"name": "linkedin",
-					},
-				},
-			},
+			block: func() EmailBlock {
+				b := NewBaseBlock("social1", MJMLComponentMjSocialElement)
+				b.Attributes["href"] = "{{ company.linkedin_url }}"
+				b.Attributes["name"] = "linkedin"
+				return &MJSocialElementBlock{BaseBlock: b}
+			}(),
 			templateData: `{"company": {"linkedin_url": "https://linkedin.com/company/acme"}}`,
 			expectedHref: `href="https://linkedin.com/company/acme"`,
 			expectError:  false,
 		},
 		{
 			name: "non-URL attributes should not be processed",
-			block: &MJTextBlock{
-				BaseBlock: BaseBlock{
-					ID:   "text1",
-					Type: MJMLComponentMjText,
-					Attributes: map[string]interface{}{
-						"fontSize": "{{ font_size }}", // Not a URL attribute
-						"href":     "{{ link_url }}",  // URL attribute
-					},
-				},
-				Content: stringPtr("Hello world"),
-			},
+			block: func() EmailBlock {
+				b := NewBaseBlock("text1", MJMLComponentMjText)
+				b.Attributes["fontSize"] = "{{ font_size }}" // Not a URL attribute
+				b.Attributes["href"] = "{{ link_url }}"      // URL attribute
+				b.Content = stringPtr("Hello world")
+				return &MJTextBlock{BaseBlock: b}
+			}(),
 			templateData: `{"font_size": "18px", "link_url": "https://example.com"}`,
 			expectedHref: `font-size="{{ font_size }}"`, // Should NOT be processed
 			expectError:  false,
 		},
 		{
 			name: "background-url with liquid",
-			block: &MJSectionBlock{
-				BaseBlock: BaseBlock{
-					ID:   "section1",
-					Type: MJMLComponentMjSection,
-					Attributes: map[string]interface{}{
-						"backgroundUrl": "{{ campaign.background_image }}",
-					},
-				},
-			},
+			block: func() EmailBlock {
+				b := NewBaseBlock("section1", MJMLComponentMjSection)
+				b.Attributes["backgroundUrl"] = "{{ campaign.background_image }}"
+				return &MJSectionBlock{BaseBlock: b}
+			}(),
 			templateData: `{"campaign": {"background_image": "https://example.com/bg.jpg"}}`,
 			expectedHref: `background-url="https://example.com/bg.jpg"`,
 			expectError:  false,
 		},
 		{
 			name: "liquid with conditional logic",
-			block: &MJButtonBlock{
-				BaseBlock: BaseBlock{
-					ID:   "btn2",
-					Type: MJMLComponentMjButton,
-					Attributes: map[string]interface{}{
-						"href": "{% if user.is_premium %}{{ premium_url }}{% else %}{{ regular_url }}{% endif %}",
-					},
-				},
-				Content: stringPtr("Get Started"),
-			},
+			block: func() EmailBlock {
+				b := NewBaseBlock("btn2", MJMLComponentMjButton)
+				b.Attributes["href"] = "{% if user.is_premium %}{{ premium_url }}{% else %}{{ regular_url }}{% endif %}"
+				b.Content = stringPtr("Get Started")
+				return &MJButtonBlock{BaseBlock: b}
+			}(),
 			templateData: `{"user": {"is_premium": true}, "premium_url": "https://premium.example.com", "regular_url": "https://example.com"}`,
 			expectedHref: `href="https://premium.example.com"`,
 			expectError:  false,
 		},
 		{
 			name: "empty template data",
-			block: &MJButtonBlock{
-				BaseBlock: BaseBlock{
-					ID:   "btn3",
-					Type: MJMLComponentMjButton,
-					Attributes: map[string]interface{}{
-						"href": "{{ fallback_url | default: 'https://fallback.com' }}",
-					},
-				},
-				Content: stringPtr("Fallback"),
-			},
+			block: func() EmailBlock {
+				b := NewBaseBlock("btn3", MJMLComponentMjButton)
+				b.Attributes["href"] = "{{ fallback_url | default: 'https://fallback.com' }}"
+				b.Content = stringPtr("Fallback")
+				return &MJButtonBlock{BaseBlock: b}
+			}(),
 			templateData: `{}`,
 			expectedHref: `href="https://fallback.com"`,
 			expectError:  false,
 		},
 		{
 			name: "liquid with non-breaking space should be cleaned",
-			block: &MJButtonBlock{
-				BaseBlock: BaseBlock{
-					ID:   "btn_nbsp",
-					Type: MJMLComponentMjButton,
-					Attributes: map[string]interface{}{
-						"href": "{{ \u00a0confirm_subscription_url }}",
-					},
-				},
-				Content: stringPtr("Confirm"),
-			},
+			block: func() EmailBlock {
+				b := NewBaseBlock("btn_nbsp", MJMLComponentMjButton)
+				b.Attributes["href"] = "{{ \u00a0confirm_subscription_url }}"
+				b.Content = stringPtr("Confirm")
+				return &MJButtonBlock{BaseBlock: b}
+			}(),
 			templateData: `{"confirm_subscription_url": "https://example.com/confirm"}`,
 			expectedHref: `href="https://example.com/confirm"`,
 			expectError:  false,
 		},
 		{
 			name: "invalid liquid syntax should return original",
-			block: &MJButtonBlock{
-				BaseBlock: BaseBlock{
-					ID:   "btn4",
-					Type: MJMLComponentMjButton,
-					Attributes: map[string]interface{}{
-						"href": "{{ invalid syntax",
-					},
-				},
-				Content: stringPtr("Error Test"),
-			},
+			block: func() EmailBlock {
+				b := NewBaseBlock("btn4", MJMLComponentMjButton)
+				b.Attributes["href"] = "{{ invalid syntax"
+				b.Content = stringPtr("Error Test")
+				return &MJButtonBlock{BaseBlock: b}
+			}(),
 			templateData: `{"url": "https://test.com"}`,
 			expectedHref: `href="{{ invalid syntax"`, // Should return original on error
 			expectError:  false,                      // We don't error, just log warning

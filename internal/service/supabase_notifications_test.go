@@ -106,7 +106,7 @@ func TestCreateDefaultSupabaseNotifications_FailureOnMagicLink(t *testing.T) {
 	// Mock successful signup
 	mockTransactionalRepo.EXPECT().Create(gomock.Any(), "workspace-123", gomock.Any()).
 		DoAndReturn(func(ctx context.Context, workspaceID string, notification *domain.TransactionalNotification) error {
-			if notification.Name == "Supabase Signup Confirmation" {
+			if notification.Name == "Signup Confirmation" {
 				return nil
 			}
 			return assert.AnError
@@ -267,12 +267,12 @@ func TestCreateDefaultSupabaseNotifications_VerifyDescriptions(t *testing.T) {
 	}
 
 	expectedDescriptions := map[string]string{
-		"Supabase Signup Confirmation": "Sends signup confirmation emails via Supabase integration",
-		"Supabase Magic Link":          "Sends magic link authentication emails via Supabase integration",
-		"Supabase Password Recovery":   "Sends password recovery emails via Supabase integration",
-		"Supabase Email Change":        "Sends email change confirmation via Supabase integration",
-		"Supabase User Invitation":     "Sends user invitation emails via Supabase integration",
-		"Supabase Reauthentication":    "Sends reauthentication verification via Supabase integration",
+		"Signup Confirmation": "Sends signup confirmation emails via Supabase integration",
+		"Magic Link":          "Sends magic link authentication emails via Supabase integration",
+		"Password Recovery":   "Sends password recovery emails via Supabase integration",
+		"Email Change":        "Sends email change confirmation via Supabase integration",
+		"User Invitation":     "Sends user invitation emails via Supabase integration",
+		"Reauthentication":    "Sends reauthentication verification via Supabase integration",
 	}
 
 	// Verify descriptions match expected values

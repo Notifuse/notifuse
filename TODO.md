@@ -1,8 +1,5 @@
 # TODO
 
-- ignore mj-head attributes on marshal
-- supabase import users task
-
 ## Content
 
 - page vs phplist

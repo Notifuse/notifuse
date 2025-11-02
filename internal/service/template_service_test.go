@@ -71,13 +71,13 @@ func TestTemplateService_CreateTemplate(t *testing.T) {
 			SenderID:        "sender-123",
 			Subject:         "Test Email",
 			CompiledPreview: "<p>Test</p>",
-			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:         "root",
-					Type:       notifuse_mjml.MJMLComponentMjml,
-					Attributes: map[string]interface{}{"version": "4.0.0"},
-				},
-			},
+			VisualEditorTree: func() notifuse_mjml.EmailBlock {
+				bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+				bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+				rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+				rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+				return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+			}(),
 		},
 		// Version should be set to 1 by the service
 		// CreatedAt and UpdatedAt should be set by the service
@@ -215,13 +215,13 @@ func TestTemplateService_GetTemplateByID(t *testing.T) {
 			SenderID:        "sender-123",
 			Subject:         "Test Email",
 			CompiledPreview: "<html><body>Test</body></html>",
-			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:         "root",
-					Type:       notifuse_mjml.MJMLComponentMjml,
-					Attributes: map[string]interface{}{"version": "4.0.0"},
-				},
-			},
+			VisualEditorTree: func() notifuse_mjml.EmailBlock {
+				bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+				bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+				rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+				rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+				return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+			}(),
 		},
 	}
 
@@ -443,13 +443,13 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 			SenderID:        "sender-123",
 			Subject:         "Old Subject",
 			CompiledPreview: "<p>Old</p>",
-			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:         "root",
-					Type:       notifuse_mjml.MJMLComponentMjml,
-					Attributes: map[string]interface{}{"version": "4.0.0"},
-				},
-			},
+			VisualEditorTree: func() notifuse_mjml.EmailBlock {
+				bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+				bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+				rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+				rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+				return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+			}(),
 		},
 	}
 
@@ -462,13 +462,13 @@ func TestTemplateService_UpdateTemplate(t *testing.T) {
 			SenderID:        "sender-123",   // Updated field
 			Subject:         "New Subject",  // Updated field
 			CompiledPreview: "<h1>New</h1>", // Updated field
-			VisualEditorTree: &notifuse_mjml.MJMLBlock{
-				BaseBlock: notifuse_mjml.BaseBlock{
-					ID:         "root",
-					Type:       notifuse_mjml.MJMLComponentMjml,
-					Attributes: map[string]interface{}{"version": "4.0.0"},
-				},
-			},
+			VisualEditorTree: func() notifuse_mjml.EmailBlock {
+				bodyBase := notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)
+				bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+				rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+				rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+				return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
+			}(),
 		},
 		// Version, CreatedAt, UpdatedAt should be handled by the service
 	}
@@ -826,46 +826,28 @@ func (l *MockLogger) WithFields(fields map[string]interface{}) logger.Logger { r
 // --- Helper to create a basic text block ---
 func createTestTextBlock(id, textContent string) notifuse_mjml.EmailBlock {
 	content := textContent
-	return &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   id,
-			Type: notifuse_mjml.MJMLComponentMjText,
-		},
-		Content: &content,
-	}
+	base := notifuse_mjml.NewBaseBlock(id, notifuse_mjml.MJMLComponentMjText)
+	base.Content = &content
+	return &notifuse_mjml.MJTextBlock{BaseBlock: base}
 }
 
 // --- Helper to create a valid nested structure for testing success ---
 func createValidTestTree(textBlock notifuse_mjml.EmailBlock) notifuse_mjml.EmailBlock {
-	columnBlock := &notifuse_mjml.MJColumnBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "col1",
-			Type:     notifuse_mjml.MJMLComponentMjColumn,
-			Children: []interface{}{textBlock},
-		},
-	}
-	sectionBlock := &notifuse_mjml.MJSectionBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "sec1",
-			Type:     notifuse_mjml.MJMLComponentMjSection,
-			Children: []interface{}{columnBlock},
-		},
-	}
-	bodyBlock := &notifuse_mjml.MJBodyBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:       "body1",
-			Type:     notifuse_mjml.MJMLComponentMjBody,
-			Children: []interface{}{sectionBlock},
-		},
-	}
-	return &notifuse_mjml.MJMLBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:         "root",
-			Type:       notifuse_mjml.MJMLComponentMjml,
-			Attributes: map[string]interface{}{"version": "4.0.0"},
-			Children:   []interface{}{bodyBlock},
-		},
-	}
+	columnBase := notifuse_mjml.NewBaseBlock("col1", notifuse_mjml.MJMLComponentMjColumn)
+	columnBase.Children = []notifuse_mjml.EmailBlock{textBlock}
+	columnBlock := &notifuse_mjml.MJColumnBlock{BaseBlock: columnBase}
+
+	sectionBase := notifuse_mjml.NewBaseBlock("sec1", notifuse_mjml.MJMLComponentMjSection)
+	sectionBase.Children = []notifuse_mjml.EmailBlock{columnBlock}
+	sectionBlock := &notifuse_mjml.MJSectionBlock{BaseBlock: sectionBase}
+
+	bodyBase := notifuse_mjml.NewBaseBlock("body1", notifuse_mjml.MJMLComponentMjBody)
+	bodyBase.Children = []notifuse_mjml.EmailBlock{sectionBlock}
+	bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
+
+	rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
+	rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
+	return &notifuse_mjml.MJMLBlock{BaseBlock: rootBase}
 }
 
 func TestCompileTemplate_Success(t *testing.T) {
@@ -938,13 +920,9 @@ func TestCompileTemplate_TreeToMjmlError(t *testing.T) {
 
 	// Create a tree containing a block that will cause TreeToMjml to return an error (e.g., bad liquid)
 	invalidContent := "{% invalid tag %}"
-	badLiquidBlock := &notifuse_mjml.MJTextBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:   "badliq",
-			Type: notifuse_mjml.MJMLComponentMjText,
-		},
-		Content: &invalidContent,
-	}
+	badLiquidBase := notifuse_mjml.NewBaseBlock("badliq", notifuse_mjml.MJMLComponentMjText)
+	badLiquidBase.Content = &invalidContent
+	badLiquidBlock := &notifuse_mjml.MJTextBlock{BaseBlock: badLiquidBase}
 	badLiquidTree := createValidTestTree(badLiquidBlock) // Embed the bad block in a valid structure
 
 	// Mock Auth
@@ -1054,11 +1032,7 @@ func TestCompileTemplate_InvalidTreeData(t *testing.T) {
 	workspaceID := "ws_123"
 	userID := "user_abc"
 	invalidTree := &notifuse_mjml.MJMLBlock{
-		BaseBlock: notifuse_mjml.BaseBlock{
-			ID:         "root_invalid",
-			Type:       notifuse_mjml.MJMLComponentMjml,
-			Attributes: map[string]interface{}{"version": "4.0.0"},
-		},
+		BaseBlock: notifuse_mjml.NewBaseBlock("root_invalid", notifuse_mjml.MJMLComponentMjml),
 	}
 
 	// Mock expectations

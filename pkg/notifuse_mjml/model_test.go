@@ -48,14 +48,13 @@ func TestMJMLComponentTypeConstants(t *testing.T) {
 
 func TestBaseBlockInterface(t *testing.T) {
 	// Create a test BaseBlock
+	childBase := NewBaseBlock("child-1", MJMLComponentMjText)
+	child := &MJTextBlock{BaseBlock: childBase}
+
 	baseBlock := BaseBlock{
-		ID:   "test-id",
-		Type: MJMLComponentMjText,
-		Children: []interface{}{
-			&MJTextBlock{
-				BaseBlock: BaseBlock{ID: "child-1", Type: MJMLComponentMjText},
-			},
-		},
+		ID:       "test-id",
+		Type:     MJMLComponentMjText,
+		Children: []EmailBlock{child},
 		Attributes: map[string]interface{}{
 			"fontSize": "16px",
 			"color":    "#333",
@@ -365,45 +364,20 @@ func TestGetDefaultAttributes(t *testing.T) {
 
 func TestValidateComponentHierarchy(t *testing.T) {
 	// Test valid hierarchy
-	validEmail := &MJMLBlock{
-		BaseBlock: BaseBlock{
-			ID:   "mjml-1",
-			Type: MJMLComponentMjml,
-			Children: []interface{}{
-				&MJBodyBlock{
-					BaseBlock: BaseBlock{
-						ID:   "body-1",
-						Type: MJMLComponentMjBody,
-						Children: []interface{}{
-							&MJSectionBlock{
-								BaseBlock: BaseBlock{
-									ID:   "section-1",
-									Type: MJMLComponentMjSection,
-									Children: []interface{}{
-										&MJColumnBlock{
-											BaseBlock: BaseBlock{
-												ID:   "column-1",
-												Type: MJMLComponentMjColumn,
-												Children: []interface{}{
-													&MJTextBlock{
-														BaseBlock: BaseBlock{
-															ID:       "text-1",
-															Type:     MJMLComponentMjText,
-															Children: []interface{}{},
-														},
-													},
-												},
-											},
-										},
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-	}
+	textBlock := &MJTextBlock{BaseBlock: NewBaseBlock("text-1", MJMLComponentMjText)}
+	textBlock.Children = []EmailBlock{}
+
+	columnBlock := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	columnBlock.Children = []EmailBlock{textBlock}
+
+	sectionBlock := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	sectionBlock.Children = []EmailBlock{columnBlock}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{sectionBlock}
+
+	validEmail := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	validEmail.Children = []EmailBlock{bodyBlock}
 
 	err := ValidateComponentHierarchy(validEmail)
 	if err != nil {
@@ -411,17 +385,10 @@ func TestValidateComponentHierarchy(t *testing.T) {
 	}
 
 	// Test invalid hierarchy - text with children
-	invalidEmail := &MJTextBlock{
-		BaseBlock: BaseBlock{
-			ID:   "text-1",
-			Type: MJMLComponentMjText,
-			Children: []interface{}{
-				&MJTextBlock{
-					BaseBlock: BaseBlock{ID: "child-text", Type: MJMLComponentMjText},
-				},
-			},
-		},
-	}
+	childTextBlock := &MJTextBlock{BaseBlock: NewBaseBlock("child-text", MJMLComponentMjText)}
+
+	invalidEmail := &MJTextBlock{BaseBlock: NewBaseBlock("text-1", MJMLComponentMjText)}
+	invalidEmail.Children = []EmailBlock{childTextBlock}
 
 	err = ValidateComponentHierarchy(invalidEmail)
 	if err == nil {
@@ -432,17 +399,10 @@ func TestValidateComponentHierarchy(t *testing.T) {
 	}
 
 	// Test invalid parent-child relationship
-	invalidParentChild := &MJSectionBlock{
-		BaseBlock: BaseBlock{
-			ID:   "section-1",
-			Type: MJMLComponentMjSection,
-			Children: []interface{}{
-				&MJTextBlock{ // Text cannot be direct child of section
-					BaseBlock: BaseBlock{ID: "text-1", Type: MJMLComponentMjText},
-				},
-			},
-		},
-	}
+	invalidTextBlock := &MJTextBlock{BaseBlock: NewBaseBlock("text-1", MJMLComponentMjText)} // Text cannot be direct child of section
+
+	invalidParentChild := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	invalidParentChild.Children = []EmailBlock{invalidTextBlock}
 
 	err = ValidateComponentHierarchy(invalidParentChild)
 	if err == nil {
@@ -455,20 +415,14 @@ func TestValidateComponentHierarchy(t *testing.T) {
 
 func TestValidateEmailStructure(t *testing.T) {
 	// Test valid email structure
-	validEmail := &MJMLBlock{
-		BaseBlock: BaseBlock{
-			ID:   "mjml-1",
-			Type: MJMLComponentMjml,
-			Children: []interface{}{
-				&MJHeadBlock{
-					BaseBlock: BaseBlock{ID: "head-1", Type: MJMLComponentMjHead, Children: []interface{}{}},
-				},
-				&MJBodyBlock{
-					BaseBlock: BaseBlock{ID: "body-1", Type: MJMLComponentMjBody, Children: []interface{}{}},
-				},
-			},
-		},
-	}
+	headBlock := &MJHeadBlock{BaseBlock: NewBaseBlock("head-1", MJMLComponentMjHead)}
+	headBlock.Children = []EmailBlock{}
+
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{}
+
+	validEmail := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	validEmail.Children = []EmailBlock{headBlock, bodyBlock}
 
 	err := ValidateEmailStructure(validEmail)
 	if err != nil {
@@ -476,9 +430,7 @@ func TestValidateEmailStructure(t *testing.T) {
 	}
 
 	// Test invalid root type
-	invalidRoot := &MJBodyBlock{
-		BaseBlock: BaseBlock{ID: "body-1", Type: MJMLComponentMjBody},
-	}
+	invalidRoot := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
 
 	err = ValidateEmailStructure(invalidRoot)
 	if err == nil {
@@ -489,13 +441,8 @@ func TestValidateEmailStructure(t *testing.T) {
 	}
 
 	// Test empty mjml
-	emptyMjml := &MJMLBlock{
-		BaseBlock: BaseBlock{
-			ID:       "mjml-1",
-			Type:     MJMLComponentMjml,
-			Children: []interface{}{},
-		},
-	}
+	emptyMjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	emptyMjml.Children = []EmailBlock{}
 
 	err = ValidateEmailStructure(emptyMjml)
 	if err == nil {
@@ -506,17 +453,10 @@ func TestValidateEmailStructure(t *testing.T) {
 	}
 
 	// Test mjml without body
-	mjmlWithoutBody := &MJMLBlock{
-		BaseBlock: BaseBlock{
-			ID:   "mjml-1",
-			Type: MJMLComponentMjml,
-			Children: []interface{}{
-				&MJHeadBlock{
-					BaseBlock: BaseBlock{ID: "head-1", Type: MJMLComponentMjHead},
-				},
-			},
-		},
-	}
+	headBlockOnly := &MJHeadBlock{BaseBlock: NewBaseBlock("head-1", MJMLComponentMjHead)}
+
+	mjmlWithoutBody := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjmlWithoutBody.Children = []EmailBlock{headBlockOnly}
 
 	err = ValidateEmailStructure(mjmlWithoutBody)
 	if err == nil {
@@ -527,20 +467,12 @@ func TestValidateEmailStructure(t *testing.T) {
 	}
 
 	// Test mjml with invalid child
-	mjmlWithInvalidChild := &MJMLBlock{
-		BaseBlock: BaseBlock{
-			ID:   "mjml-1",
-			Type: MJMLComponentMjml,
-			Children: []interface{}{
-				&MJTextBlock{ // Text cannot be direct child of mjml
-					BaseBlock: BaseBlock{ID: "text-1", Type: MJMLComponentMjText},
-				},
-				&MJBodyBlock{
-					BaseBlock: BaseBlock{ID: "body-1", Type: MJMLComponentMjBody},
-				},
-			},
-		},
-	}
+	invalidTextChild := &MJTextBlock{BaseBlock: NewBaseBlock("text-1", MJMLComponentMjText)} // Text cannot be direct child of mjml
+
+	bodyBlockValid := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+
+	mjmlWithInvalidChild := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjmlWithInvalidChild.Children = []EmailBlock{invalidTextChild, bodyBlockValid}
 
 	err = ValidateEmailStructure(mjmlWithInvalidChild)
 	if err == nil {
@@ -634,9 +566,7 @@ func TestFormFieldAndSavedBlock(t *testing.T) {
 
 	// Test SavedBlock
 	now := time.Now()
-	textBlock := &MJTextBlock{
-		BaseBlock: BaseBlock{ID: "text-1", Type: MJMLComponentMjText},
-	}
+	textBlock := &MJTextBlock{BaseBlock: NewBaseBlock("text-1", MJMLComponentMjText)}
 
 	savedBlock := SavedBlock{
 		ID:      "saved-1",
@@ -665,36 +595,17 @@ func TestSaveOperation(t *testing.T) {
 
 func TestEmailBlockJSONMarshaling(t *testing.T) {
 	// Create a test block with children
-	textBlock := &MJTextBlock{
-		BaseBlock: BaseBlock{
-			ID:   "text1",
-			Type: MJMLComponentMjText,
-		},
-		Type:    MJMLComponentMjText,
-		Content: stringPtr("Hello World"),
-	}
+	textBase := NewBaseBlock("text1", MJMLComponentMjText)
+	textBase.Content = stringPtr("Hello World")
+	textBlock := &MJTextBlock{BaseBlock: textBase}
 
-	bodyBlock := &MJBodyBlock{
-		BaseBlock: BaseBlock{
-			ID:       "body1",
-			Type:     MJMLComponentMjBody,
-			Children: []interface{}{textBlock},
-		},
-		Type:     MJMLComponentMjBody,
-		Children: []EmailBlock{textBlock}, // Set in concrete type too
-	}
+	bodyBlock := &MJBodyBlock{BaseBlock: NewBaseBlock("body1", MJMLComponentMjBody)}
+	bodyBlock.Children = []EmailBlock{textBlock}
 
-	block := &MJMLBlock{
-		BaseBlock: BaseBlock{
-			ID:         "test",
-			Type:       MJMLComponentMjml,
-			Attributes: map[string]interface{}{"version": "4.0.0"},
-			Children:   []interface{}{bodyBlock},
-		},
-		Type:       MJMLComponentMjml,
-		Attributes: map[string]interface{}{"version": "4.0.0"},
-		Children:   []EmailBlock{bodyBlock}, // Set in concrete type too
-	}
+	blockBase := NewBaseBlock("test", MJMLComponentMjml)
+	blockBase.Attributes["version"] = "4.0.0"
+	block := &MJMLBlock{BaseBlock: blockBase}
+	block.Children = []EmailBlock{bodyBlock}
 
 	// Marshal it
 	data, err := json.Marshal(block)

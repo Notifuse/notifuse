@@ -99,8 +99,9 @@ type ContainerAttributes struct {
 type BaseBlock struct {
 	ID         string                 `json:"id"`
 	Type       MJMLComponentType      `json:"type"`
-	Children   []interface{}          `json:"children,omitempty"`
+	Children   []EmailBlock           `json:"children,omitempty"`
 	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	Content    *string                `json:"content,omitempty"`
 }
 
 // Specific attribute types for complex blocks
@@ -287,171 +288,95 @@ type MJStyleAttributes struct {
 
 // Block interfaces
 type MJMLBlock struct {
-	BaseBlock
-	Type       MJMLComponentType      `json:"type"`
-	Children   []EmailBlock           `json:"children,omitempty"` // MJHeadBlock | MJBodyBlock
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJHeadBlock struct {
-	BaseBlock
-	Type       MJMLComponentType      `json:"type"`
-	Children   []EmailBlock           `json:"children,omitempty"` // Head components
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJAttributesBlock struct {
-	BaseBlock
-	Type       MJMLComponentType      `json:"type"`
-	Children   []EmailBlock           `json:"children,omitempty"` // MJAttributeElementBlock
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJAttributeElementBlock struct {
-	BaseBlock
-	Type       MJMLComponentType      `json:"type"`
-	Children   []EmailBlock           `json:"children,omitempty"`
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJBreakpointBlock struct {
-	BaseBlock
-	Type       MJMLComponentType       `json:"type"`
-	Children   []EmailBlock            `json:"children,omitempty"`
-	Attributes *MJBreakpointAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJFontBlock struct {
-	BaseBlock
-	Type       MJMLComponentType `json:"type"`
-	Children   []EmailBlock      `json:"children,omitempty"`
-	Attributes *MJFontAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJHtmlAttributesBlock struct {
-	BaseBlock
-	Type       MJMLComponentType      `json:"type"`
-	Children   []EmailBlock           `json:"children,omitempty"`
-	Attributes map[string]interface{} `json:"attributes,omitempty"` // Dynamic HTML attributes
+	*BaseBlock
 }
 
 type MJPreviewBlock struct {
-	BaseBlock
-	Type       MJMLComponentType      `json:"type"`
-	Children   []EmailBlock           `json:"children,omitempty"`
-	Content    *string                `json:"content,omitempty"`
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJStyleBlock struct {
-	BaseBlock
-	Type       MJMLComponentType  `json:"type"`
-	Children   []EmailBlock       `json:"children,omitempty"`
-	Content    *string            `json:"content,omitempty"`
-	Attributes *MJStyleAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJTitleBlock struct {
-	BaseBlock
-	Type       MJMLComponentType      `json:"type"`
-	Children   []EmailBlock           `json:"children,omitempty"`
-	Content    *string                `json:"content,omitempty"`
-	Attributes map[string]interface{} `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJBodyBlock struct {
-	BaseBlock
-	Type       MJMLComponentType `json:"type"`
-	Children   []EmailBlock      `json:"children,omitempty"` // MJWrapperBlock | MJSectionBlock | MJRawBlock
-	Attributes *MJBodyAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJWrapperBlock struct {
-	BaseBlock
-	Type       MJMLComponentType    `json:"type"`
-	Children   []EmailBlock         `json:"children,omitempty"` // MJSectionBlock | MJRawBlock
-	Attributes *MJWrapperAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJSectionBlock struct {
-	BaseBlock
-	Type       MJMLComponentType    `json:"type"`
-	Children   []EmailBlock         `json:"children,omitempty"` // MJColumnBlock | MJGroupBlock | MJRawBlock
-	Attributes *MJSectionAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJColumnBlock struct {
-	BaseBlock
-	Type       MJMLComponentType   `json:"type"`
-	Children   []EmailBlock        `json:"children,omitempty"` // Content blocks
-	Attributes *MJColumnAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJGroupBlock struct {
-	BaseBlock
-	Type       MJMLComponentType  `json:"type"`
-	Children   []EmailBlock       `json:"children,omitempty"` // MJColumnBlock
-	Attributes *MJGroupAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJTextBlock struct {
-	BaseBlock
-	Type       MJMLComponentType `json:"type"`
-	Children   []EmailBlock      `json:"children,omitempty"`
-	Content    *string           `json:"content,omitempty"`
-	Attributes *MJTextAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJButtonBlock struct {
-	BaseBlock
-	Type       MJMLComponentType   `json:"type"`
-	Children   []EmailBlock        `json:"children,omitempty"`
-	Content    *string             `json:"content,omitempty"`
-	Attributes *MJButtonAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJImageBlock struct {
-	BaseBlock
-	Type       MJMLComponentType  `json:"type"`
-	Children   []EmailBlock       `json:"children,omitempty"`
-	Attributes *MJImageAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJDividerBlock struct {
-	BaseBlock
-	Type       MJMLComponentType    `json:"type"`
-	Children   []EmailBlock         `json:"children,omitempty"`
-	Attributes *MJDividerAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJSpacerBlock struct {
-	BaseBlock
-	Type       MJMLComponentType   `json:"type"`
-	Children   []EmailBlock        `json:"children,omitempty"`
-	Attributes *MJSpacerAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJSocialBlock struct {
-	BaseBlock
-	Type       MJMLComponentType   `json:"type"`
-	Children   []EmailBlock        `json:"children,omitempty"` // MJSocialElementBlock
-	Attributes *MJSocialAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJSocialElementBlock struct {
-	BaseBlock
-	Type       MJMLComponentType          `json:"type"`
-	Children   []EmailBlock               `json:"children,omitempty"`
-	Content    *string                    `json:"content,omitempty"`
-	Attributes *MJSocialElementAttributes `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 type MJRawBlock struct {
-	BaseBlock
-	Type       MJMLComponentType `json:"type"`
-	Children   []EmailBlock      `json:"children,omitempty"`
-	Content    *string           `json:"content,omitempty"`
-	Attributes *MJRawAttributes  `json:"attributes,omitempty"`
+	*BaseBlock
 }
 
 // Email builder state types
@@ -534,33 +459,74 @@ type SavedBlock struct {
 // EmailBlock represents any MJML block type
 type EmailBlock interface {
 	GetID() string
+	SetID(string)
 	GetType() MJMLComponentType
 	GetChildren() []EmailBlock
+	SetChildren([]EmailBlock)
 	GetAttributes() map[string]interface{}
+	SetAttributes(map[string]interface{})
+	GetContent() *string
+	SetContent(*string)
 }
 
 // Helper methods for EmailBlock interface implementation
 func (b *BaseBlock) GetID() string {
+	if b == nil {
+		return ""
+	}
 	return b.ID
 }
 
+func (b *BaseBlock) SetID(id string) {
+	if b != nil {
+		b.ID = id
+	}
+}
+
 func (b *BaseBlock) GetType() MJMLComponentType {
+	if b == nil {
+		return ""
+	}
 	return b.Type
 }
 
 func (b *BaseBlock) GetChildren() []EmailBlock {
-	// Convert []interface{} to []EmailBlock
-	result := make([]EmailBlock, len(b.Children))
-	for i, child := range b.Children {
-		if emailBlock, ok := child.(EmailBlock); ok {
-			result[i] = emailBlock
-		}
+	if b == nil {
+		return nil
 	}
-	return result
+	return b.Children
+}
+
+func (b *BaseBlock) SetChildren(children []EmailBlock) {
+	if b != nil {
+		b.Children = children
+	}
 }
 
 func (b *BaseBlock) GetAttributes() map[string]interface{} {
+	if b == nil {
+		return nil
+	}
 	return b.Attributes
+}
+
+func (b *BaseBlock) SetAttributes(attrs map[string]interface{}) {
+	if b != nil {
+		b.Attributes = attrs
+	}
+}
+
+func (b *BaseBlock) GetContent() *string {
+	if b == nil {
+		return nil
+	}
+	return b.Content
+}
+
+func (b *BaseBlock) SetContent(content *string) {
+	if b != nil {
+		b.Content = content
+	}
 }
 
 // EmailBlockJSON is used for JSON marshaling/unmarshaling with type information
@@ -588,453 +554,101 @@ func UnmarshalEmailBlock(data []byte) (EmailBlock, error) {
 		return nil, fmt.Errorf("failed to unmarshal EmailBlock JSON: %w", err)
 	}
 
-	// Handle children recursively first
-	var children []interface{}
-	var emailBlockChildren []EmailBlock
-	if len(blockJSON.Children) > 0 {
-		children = make([]interface{}, len(blockJSON.Children))
-		emailBlockChildren = make([]EmailBlock, len(blockJSON.Children))
-		for i, childData := range blockJSON.Children {
-			childBlock, err := UnmarshalEmailBlock(childData)
-			if err != nil {
-				return nil, fmt.Errorf("failed to unmarshal child at index %d: %w", i, err)
-			}
-			children[i] = childBlock
-			emailBlockChildren[i] = childBlock
-		}
-	}
-
-	// Handle content field extraction for blocks that support it
-	var rawContent map[string]interface{}
-	if err := json.Unmarshal(data, &rawContent); err == nil {
-		if contentVal, exists := rawContent["content"]; exists {
-			if contentStr, ok := contentVal.(string); ok {
-				blockJSON.Content = &contentStr
-			}
-		}
-	}
-
-	// Helper function to convert map to typed attributes
-	convertToTypedAttributes := func(attrs map[string]interface{}, target interface{}) error {
-		if attrs == nil {
-			return nil
-		}
-		attrBytes, err := json.Marshal(attrs)
+	// Recursively unmarshal children
+	children := make([]EmailBlock, len(blockJSON.Children))
+	for i, childData := range blockJSON.Children {
+		child, err := UnmarshalEmailBlock(childData)
 		if err != nil {
-			return err
+			return nil, fmt.Errorf("failed to unmarshal child at index %d: %w", i, err)
 		}
-		return json.Unmarshal(attrBytes, target)
+		children[i] = child
 	}
 
-	// Merge default attributes with provided attributes
-	mergeAttributes := func(componentType MJMLComponentType, attrs map[string]interface{}) map[string]interface{} {
-		defaults := GetDefaultAttributes(componentType)
-		if attrs == nil {
-			return defaults
-		}
-		merged := make(map[string]interface{})
-		// Copy defaults first
-		for k, v := range defaults {
-			merged[k] = v
-		}
-		// Override with provided attributes
-		for k, v := range attrs {
-			merged[k] = v
-		}
-		return merged
+	// Merge with defaults
+	mergedAttrs := mergeAttributesWithDefaults(blockJSON.Type, blockJSON.Attributes)
+
+	// Create base block
+	base := &BaseBlock{
+		ID:         blockJSON.ID,
+		Type:       blockJSON.Type,
+		Children:   children,
+		Attributes: mergedAttrs,
+		Content:    blockJSON.Content,
 	}
 
-	// Create the appropriate concrete type based on the type field and set all fields manually
-	var block EmailBlock
-	switch blockJSON.Type {
+	// Return typed wrapper based on component type
+	return createTypedBlock(base), nil
+}
+
+// mergeAttributesWithDefaults merges default attributes with provided attributes
+func mergeAttributesWithDefaults(componentType MJMLComponentType, attrs map[string]interface{}) map[string]interface{} {
+	defaults := GetDefaultAttributes(componentType)
+	if attrs == nil {
+		return defaults
+	}
+	merged := make(map[string]interface{})
+	// Copy defaults first
+	for k, v := range defaults {
+		merged[k] = v
+	}
+	// Override with provided attributes
+	for k, v := range attrs {
+		merged[k] = v
+	}
+	return merged
+}
+
+// createTypedBlock creates a typed block wrapper for a BaseBlock
+func createTypedBlock(base *BaseBlock) EmailBlock {
+	switch base.Type {
 	case MJMLComponentMjml:
-		mjmlBlock := &MJMLBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: blockJSON.Attributes,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: blockJSON.Attributes,
-		}
-		block = mjmlBlock
-
+		return &MJMLBlock{BaseBlock: base}
 	case MJMLComponentMjHead:
-		headBlock := &MJHeadBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: blockJSON.Attributes,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: blockJSON.Attributes,
-		}
-		block = headBlock
-
+		return &MJHeadBlock{BaseBlock: base}
 	case MJMLComponentMjBody:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var bodyAttrs MJBodyAttributes
-		convertToTypedAttributes(mergedAttrs, &bodyAttrs)
-
-		bodyBlock := &MJBodyBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: &bodyAttrs,
-		}
-		block = bodyBlock
-
-	case MJMLComponentMjSection:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var sectionAttrs MJSectionAttributes
-		convertToTypedAttributes(mergedAttrs, &sectionAttrs)
-
-		sectionBlock := &MJSectionBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: &sectionAttrs,
-		}
-		block = sectionBlock
-
-	case MJMLComponentMjColumn:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var columnAttrs MJColumnAttributes
-		convertToTypedAttributes(mergedAttrs, &columnAttrs)
-
-		columnBlock := &MJColumnBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: &columnAttrs,
-		}
-		block = columnBlock
-
-	case MJMLComponentMjText:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var textAttrs MJTextAttributes
-		convertToTypedAttributes(mergedAttrs, &textAttrs)
-
-		textBlock := &MJTextBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Content:    blockJSON.Content,
-			Attributes: &textAttrs,
-		}
-		block = textBlock
-
-	case MJMLComponentMjButton:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var buttonAttrs MJButtonAttributes
-		convertToTypedAttributes(mergedAttrs, &buttonAttrs)
-
-		buttonBlock := &MJButtonBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Content:    blockJSON.Content,
-			Attributes: &buttonAttrs,
-		}
-		block = buttonBlock
-
-	case MJMLComponentMjImage:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var imageAttrs MJImageAttributes
-		convertToTypedAttributes(mergedAttrs, &imageAttrs)
-
-		imageBlock := &MJImageBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: &imageAttrs,
-		}
-		block = imageBlock
-
-	case MJMLComponentMjDivider:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var dividerAttrs MJDividerAttributes
-		convertToTypedAttributes(mergedAttrs, &dividerAttrs)
-
-		dividerBlock := &MJDividerBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: &dividerAttrs,
-		}
-		block = dividerBlock
-
-	case MJMLComponentMjSpacer:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var spacerAttrs MJSpacerAttributes
-		convertToTypedAttributes(mergedAttrs, &spacerAttrs)
-
-		spacerBlock := &MJSpacerBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: &spacerAttrs,
-		}
-		block = spacerBlock
-
-	case MJMLComponentMjSocial:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var socialAttrs MJSocialAttributes
-		convertToTypedAttributes(mergedAttrs, &socialAttrs)
-
-		socialBlock := &MJSocialBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: &socialAttrs,
-		}
-		block = socialBlock
-
-	case MJMLComponentMjSocialElement:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var socialElementAttrs MJSocialElementAttributes
-		convertToTypedAttributes(mergedAttrs, &socialElementAttrs)
-
-		socialElementBlock := &MJSocialElementBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Content:    blockJSON.Content,
-			Attributes: &socialElementAttrs,
-		}
-		block = socialElementBlock
-
+		return &MJBodyBlock{BaseBlock: base}
 	case MJMLComponentMjWrapper:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var wrapperAttrs MJWrapperAttributes
-		convertToTypedAttributes(mergedAttrs, &wrapperAttrs)
-
-		wrapperBlock := &MJWrapperBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: &wrapperAttrs,
-		}
-		block = wrapperBlock
-
+		return &MJWrapperBlock{BaseBlock: base}
+	case MJMLComponentMjSection:
+		return &MJSectionBlock{BaseBlock: base}
+	case MJMLComponentMjColumn:
+		return &MJColumnBlock{BaseBlock: base}
 	case MJMLComponentMjGroup:
-		mergedAttrs := mergeAttributes(blockJSON.Type, blockJSON.Attributes)
-		var groupAttrs MJGroupAttributes
-		convertToTypedAttributes(mergedAttrs, &groupAttrs)
-
-		groupBlock := &MJGroupBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: mergedAttrs,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: &groupAttrs,
-		}
-		block = groupBlock
-
-	case MJMLComponentMjAttributes:
-		attributesBlock := &MJAttributesBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: blockJSON.Attributes,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: blockJSON.Attributes,
-		}
-		block = attributesBlock
-
-	case MJMLComponentMjBreakpoint:
-		var breakpointAttrs MJBreakpointAttributes
-		convertToTypedAttributes(blockJSON.Attributes, &breakpointAttrs)
-
-		breakpointBlock := &MJBreakpointBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: blockJSON.Attributes,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: &breakpointAttrs,
-		}
-		block = breakpointBlock
-
-	case MJMLComponentMjFont:
-		var fontAttrs MJFontAttributes
-		convertToTypedAttributes(blockJSON.Attributes, &fontAttrs)
-
-		fontBlock := &MJFontBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: blockJSON.Attributes,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: &fontAttrs,
-		}
-		block = fontBlock
-
-	case MJMLComponentMjHtmlAttributes:
-		htmlAttributesBlock := &MJHtmlAttributesBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: blockJSON.Attributes,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Attributes: blockJSON.Attributes,
-		}
-		block = htmlAttributesBlock
-
-	case MJMLComponentMjPreview:
-		previewBlock := &MJPreviewBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: blockJSON.Attributes,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Content:    blockJSON.Content,
-			Attributes: blockJSON.Attributes,
-		}
-		block = previewBlock
-
-	case MJMLComponentMjStyle:
-		var styleAttrs MJStyleAttributes
-		convertToTypedAttributes(blockJSON.Attributes, &styleAttrs)
-
-		styleBlock := &MJStyleBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: blockJSON.Attributes,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Content:    blockJSON.Content,
-			Attributes: &styleAttrs,
-		}
-		block = styleBlock
-
-	case MJMLComponentMjTitle:
-		titleBlock := &MJTitleBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: blockJSON.Attributes,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Content:    blockJSON.Content,
-			Attributes: blockJSON.Attributes,
-		}
-		block = titleBlock
-
+		return &MJGroupBlock{BaseBlock: base}
+	case MJMLComponentMjText:
+		return &MJTextBlock{BaseBlock: base}
+	case MJMLComponentMjButton:
+		return &MJButtonBlock{BaseBlock: base}
+	case MJMLComponentMjImage:
+		return &MJImageBlock{BaseBlock: base}
+	case MJMLComponentMjDivider:
+		return &MJDividerBlock{BaseBlock: base}
+	case MJMLComponentMjSpacer:
+		return &MJSpacerBlock{BaseBlock: base}
+	case MJMLComponentMjSocial:
+		return &MJSocialBlock{BaseBlock: base}
+	case MJMLComponentMjSocialElement:
+		return &MJSocialElementBlock{BaseBlock: base}
 	case MJMLComponentMjRaw:
-		var rawAttrs MJRawAttributes
-		convertToTypedAttributes(blockJSON.Attributes, &rawAttrs)
-
-		rawBlock := &MJRawBlock{
-			BaseBlock: BaseBlock{
-				ID:         blockJSON.ID,
-				Type:       blockJSON.Type,
-				Children:   children,
-				Attributes: blockJSON.Attributes,
-			},
-			Type:       blockJSON.Type,
-			Children:   emailBlockChildren,
-			Content:    blockJSON.Content,
-			Attributes: &rawAttrs,
-		}
-		block = rawBlock
-
+		return &MJRawBlock{BaseBlock: base}
+	case MJMLComponentMjAttributes:
+		return &MJAttributesBlock{BaseBlock: base}
+	case MJMLComponentMjBreakpoint:
+		return &MJBreakpointBlock{BaseBlock: base}
+	case MJMLComponentMjFont:
+		return &MJFontBlock{BaseBlock: base}
+	case MJMLComponentMjHtmlAttributes:
+		return &MJHtmlAttributesBlock{BaseBlock: base}
+	case MJMLComponentMjPreview:
+		return &MJPreviewBlock{BaseBlock: base}
+	case MJMLComponentMjStyle:
+		return &MJStyleBlock{BaseBlock: base}
+	case MJMLComponentMjTitle:
+		return &MJTitleBlock{BaseBlock: base}
 	default:
-		// For other types, provide detailed error information
-		typeStr := string(blockJSON.Type)
-		if typeStr == "" {
-			typeStr = "(empty string)"
-		}
-		// Include block ID and attributes for debugging
-		attrsJSON, _ := json.Marshal(blockJSON.Attributes)
-		return nil, fmt.Errorf("unsupported block type for manual unmarshaling: type=%q, id=%q, attributes=%s",
-			typeStr, blockJSON.ID, string(attrsJSON))
+		// For unknown types, return the base block itself
+		return base
 	}
-
-	return block, nil
 }
 
 // Helper function to unmarshal a slice of EmailBlocks
@@ -1401,6 +1015,22 @@ func ConvertMapToTypedAttributes(attrs map[string]interface{}, target interface{
 		return fmt.Errorf("failed to unmarshal typed attributes: %w", err)
 	}
 	return nil
+}
+
+// structToMap converts a typed attribute struct to a map[string]interface{}
+func structToMap(v interface{}) (map[string]interface{}, error) {
+	if v == nil {
+		return make(map[string]interface{}), nil
+	}
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal struct: %w", err)
+	}
+	var result map[string]interface{}
+	if err := json.Unmarshal(data, &result); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal to map: %w", err)
+	}
+	return result, nil
 }
 
 // CreateBlockWithDefaults creates a block with default attributes merged with provided attributes

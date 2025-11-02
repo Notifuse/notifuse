@@ -46,6 +46,10 @@ export function UpsertTransactionalNotificationDrawer({
   const { message, modal } = App.useApp()
   const [formTouched, setFormTouched] = useState(false)
 
+  // Check if notification is managed by an integration
+  const isIntegrationManaged =
+    notification?.integration_id != null && notification.integration_id !== ''
+
   // Watch notification name changes using Form.useWatch
   const notificationName = Form.useWatch('name', form)
 
@@ -242,8 +246,13 @@ export function UpsertTransactionalNotificationDrawer({
                 name="name"
                 label="Notification name"
                 rules={[{ required: true, message: 'Please enter a notification name' }]}
+                tooltip={
+                  isIntegrationManaged
+                    ? 'This notification is managed by an integration and cannot be renamed'
+                    : undefined
+                }
               >
-                <Input placeholder="E.g. Password Reset Email" />
+                <Input placeholder="E.g. Password Reset Email" disabled={isIntegrationManaged} />
               </Form.Item>
 
               <Form.Item
@@ -261,22 +270,28 @@ export function UpsertTransactionalNotificationDrawer({
                 <Input placeholder="E.g. password_reset" disabled={!!notification} />
               </Form.Item>
 
-              <Form.Item name="description" label="Description">
-                <Input.TextArea
-                  rows={3}
-                  placeholder="A brief description of this notification's purpose"
-                />
-              </Form.Item>
-
               <Form.Item
                 name={['channels', 'email', 'template_id']}
                 label="Email Template"
                 rules={[{ required: true, message: 'Please select an email template' }]}
+                tooltip={
+                  isIntegrationManaged
+                    ? 'This notification is managed by an integration and the template cannot be changed'
+                    : undefined
+                }
               >
                 <TemplateSelectorInput
                   workspaceId={workspace.id}
                   placeholder="Select email template"
                   category="transactional"
+                  disabled={isIntegrationManaged}
+                />
+              </Form.Item>
+
+              <Form.Item name="description" label="Description">
+                <Input.TextArea
+                  rows={3}
+                  placeholder="A brief description of this notification's purpose"
                 />
               </Form.Item>
 

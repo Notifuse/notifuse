@@ -21,7 +21,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 
 	signupNotification := &domain.TransactionalNotification{
 		ID:            signupNotificationID,
-		Name:          "Supabase Signup Confirmation",
+		Name:          "Signup Confirmation",
 		Description:   "Sends signup confirmation emails via Supabase integration",
 		IntegrationID: integrationIDPtr,
 		Channels: domain.ChannelTemplates{
@@ -44,7 +44,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 	magicLinkNotificationID := fmt.Sprintf("supabase_magiclink_%06d", rand.Intn(1000000))
 	magicLinkNotification := &domain.TransactionalNotification{
 		ID:            magicLinkNotificationID,
-		Name:          "Supabase Magic Link",
+		Name:          "Magic Link",
 		Description:   "Sends magic link authentication emails via Supabase integration",
 		IntegrationID: integrationIDPtr,
 		Channels: domain.ChannelTemplates{
@@ -67,7 +67,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 	recoveryNotificationID := fmt.Sprintf("supabase_recovery_%06d", rand.Intn(1000000))
 	recoveryNotification := &domain.TransactionalNotification{
 		ID:            recoveryNotificationID,
-		Name:          "Supabase Password Recovery",
+		Name:          "Password Recovery",
 		Description:   "Sends password recovery emails via Supabase integration",
 		IntegrationID: integrationIDPtr,
 		Channels: domain.ChannelTemplates{
@@ -90,7 +90,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 	emailChangeNotificationID := fmt.Sprintf("supabase_email_change_%06d", rand.Intn(1000000))
 	emailChangeNotification := &domain.TransactionalNotification{
 		ID:            emailChangeNotificationID,
-		Name:          "Supabase Email Change",
+		Name:          "Email Change",
 		Description:   "Sends email change confirmation via Supabase integration",
 		IntegrationID: integrationIDPtr,
 		Channels: domain.ChannelTemplates{
@@ -113,7 +113,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 	inviteNotificationID := fmt.Sprintf("supabase_invite_%06d", rand.Intn(1000000))
 	inviteNotification := &domain.TransactionalNotification{
 		ID:            inviteNotificationID,
-		Name:          "Supabase User Invitation",
+		Name:          "User Invitation",
 		Description:   "Sends user invitation emails via Supabase integration",
 		IntegrationID: integrationIDPtr,
 		Channels: domain.ChannelTemplates{
@@ -136,7 +136,7 @@ func (s *SupabaseService) CreateDefaultSupabaseNotifications(ctx context.Context
 	reauthNotificationID := fmt.Sprintf("supabase_reauth_%06d", rand.Intn(1000000))
 	reauthNotification := &domain.TransactionalNotification{
 		ID:            reauthNotificationID,
-		Name:          "Supabase Reauthentication",
+		Name:          "Reauthentication",
 		Description:   "Sends reauthentication verification via Supabase integration",
 		IntegrationID: integrationIDPtr,
 		Channels: domain.ChannelTemplates{
