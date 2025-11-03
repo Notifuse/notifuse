@@ -204,7 +204,7 @@ export default function SendTemplateModal({
   }
 
   const renderIntegrationOption = (integration: Integration) => {
-    const providerKind = integration.email_provider.kind
+    const providerKind = integration.email_provider?.kind
     // Find the provider info to get the icon
     const providerInfo = emailProviders.find((p) => p.kind === providerKind)
 
@@ -270,7 +270,7 @@ export default function SendTemplateModal({
               placeholder="Select a sender"
               value={selectedSenderId}
               onChange={setSelectedSenderId}
-              options={selectedIntegration?.email_provider.senders.map((sender) => ({
+              options={selectedIntegration?.email_provider?.senders.map((sender) => ({
                 label: `${sender.name} <${sender.email}>`,
                 value: sender.id
               }))}
