@@ -8,21 +8,21 @@ import {
   faCircleExclamation,
   faTriangleExclamation,
   faArrowRightToBracket,
-  faArrowRightFromBracket
+  faArrowRightFromBracket,
+  faBolt
 } from '@fortawesome/free-solid-svg-icons'
 import { faUser, faFolderOpen, faPaperPlane, faEye } from '@fortawesome/free-regular-svg-icons'
 import {
   ContactTimelineEntry,
   ContactListEntityData,
   MessageHistoryEntityData,
-  ContactSegmentEntityData,
   WebhookEventEntityData
 } from '../../services/api/contact_timeline'
 import type { Workspace } from '../../services/api/types'
 import type { Segment } from '../../services/api/segment'
 import dayjs from '../../lib/dayjs'
 import TemplatePreviewDrawer from '../templates/TemplatePreviewDrawer'
-import { getProviderIcon, getProviderName } from '../integrations/EmailProviders'
+import { getProviderIcon } from '../integrations/EmailProviders'
 
 const { Text } = Typography
 
@@ -117,7 +117,7 @@ export function ContactTimeline({
         } else if (eventType === 'delivered') {
           return faCheck
         }
-        return faClock
+        return faBolt
       default:
         return faClock
     }
@@ -134,7 +134,7 @@ export function ContactTimeline({
   // Render title with date in standardized format
   const renderTitleWithDate = (entry: ContactTimelineEntry, titleContent: React.ReactNode) => {
     return (
-      <div className="flex items-start gap-4 mb-2">
+      <div className="flex items-center gap-4 mb-2">
         {titleContent}
         <Tooltip title={`${dayjs(entry.created_at).format('LLLL')} in ${timezone}`}>
           <span>
