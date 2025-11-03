@@ -171,7 +171,8 @@ describe('MJML to JSON Browser Converter', () => {
 
       const textBlock = columnBlock?.children?.[0]
       expect(textBlock?.type).toBe('mj-text')
-      expect((textBlock as any)?.content).toBe('Hello World')
+      // Plain text should be wrapped in <p> tags for consistency with Tiptap editor
+      expect((textBlock as any)?.content).toBe('<p>Hello World</p>')
     })
 
     test('should handle MJML with attributes', () => {
@@ -199,7 +200,8 @@ describe('MJML to JSON Browser Converter', () => {
       const textBlock = sectionBlock?.children?.[0]?.children?.[0]
       expect((textBlock?.attributes as any)?.fontSize).toBe('16px')
       expect((textBlock?.attributes as any)?.color).toBe('#333333')
-      expect((textBlock as any)?.content).toBe('Styled Text')
+      // Plain text should be wrapped in <p> tags for consistency with Tiptap editor
+      expect((textBlock as any)?.content).toBe('<p>Styled Text</p>')
     })
 
     test('should handle self-closing elements', () => {
@@ -315,6 +317,82 @@ describe('MJML to JSON Browser Converter', () => {
       // Should use the last src value (with properly escaped ampersands)
       expect((imageBlock?.attributes as any)?.src).toBe('https://example.com/img2.jpg?a=1&b=2')
       expect((imageBlock?.attributes as any)?.width).toBe('200px')
+    })
+  })
+
+  describe('mj-text Content Normalization', () => {
+    test('should wrap plain text in <p> tags', () => {
+      const mjmlInput = `
+        <mjml>
+          <mj-body>
+            <mj-section>
+              <mj-column>
+                <mj-text>Plain text content</mj-text>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
+
+      const result = convertMjmlToJsonBrowser(mjmlInput)
+      const textBlock = result.children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]
+      expect((textBlock as any)?.content).toBe('<p>Plain text content</p>')
+    })
+
+    test('should preserve content already wrapped in HTML tags', () => {
+      const mjmlInput = `
+        <mjml>
+          <mj-body>
+            <mj-section>
+              <mj-column>
+                <mj-text><p>Already wrapped</p></mj-text>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
+
+      const result = convertMjmlToJsonBrowser(mjmlInput)
+      const textBlock = result.children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]
+      expect((textBlock as any)?.content).toBe('<p>Already wrapped</p>')
+    })
+
+    test('should preserve complex HTML content', () => {
+      const mjmlInput = `
+        <mjml>
+          <mj-body>
+            <mj-section>
+              <mj-column>
+                <mj-text><p>Paragraph 1</p><p>Paragraph 2</p><strong>Bold</strong></mj-text>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
+
+      const result = convertMjmlToJsonBrowser(mjmlInput)
+      const textBlock = result.children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]
+      expect((textBlock as any)?.content).toBe('<p>Paragraph 1</p><p>Paragraph 2</p><strong>Bold</strong>')
+    })
+
+    test('should not wrap mj-button content in <p> tags', () => {
+      const mjmlInput = `
+        <mjml>
+          <mj-body>
+            <mj-section>
+              <mj-column>
+                <mj-button>Click Me</mj-button>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
+
+      const result = convertMjmlToJsonBrowser(mjmlInput)
+      const buttonBlock = result.children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]
+      expect(buttonBlock?.type).toBe('mj-button')
+      // Button content should NOT be wrapped (normalization only applies to mj-text)
+      expect((buttonBlock as any)?.content).toBe('Click Me')
     })
   })
 })

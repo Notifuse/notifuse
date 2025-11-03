@@ -158,7 +158,19 @@ function convertDomNodeToEmailBlock(element: Element): EmailBlock {
   if (contentElements.includes(tagNameLower)) {
     const innerHTML = element.innerHTML
     if (innerHTML.trim()) {
-      ;(block as any).content = innerHTML.trim()
+      let content = innerHTML.trim()
+
+      // Special normalization for mj-text: ensure content is wrapped in <p> tags
+      // Tiptap editor always wraps content in <p>, so we normalize at import time
+      if (tagNameLower === 'mj-text') {
+        // Check if content is plain text (not already wrapped in HTML tags)
+        const isPlainText = !/^\s*</.test(content)
+        if (isPlainText) {
+          content = `<p>${content}</p>`
+        }
+      }
+
+      ;(block as any).content = content
     }
     return block
   }
