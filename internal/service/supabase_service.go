@@ -84,8 +84,26 @@ func (s *SupabaseService) ProcessAuthEmailHook(ctx context.Context, workspaceID,
 
 	// Validate webhook signature
 	signatureKey := integration.SupabaseSettings.AuthEmailHook.SignatureKey
+
+	// Diagnostic logging for debugging signature key issues
+	s.logger.WithField("workspace_id", workspaceID).
+		WithField("integration_id", integrationID).
+		WithField("signature_key_length", len(signatureKey)).
+		WithField("signature_key_has_whsec_prefix", len(signatureKey) >= 6 && signatureKey[:6] == "whsec_").
+		WithField("signature_key_first_10", func() string {
+			if len(signatureKey) >= 10 {
+				return signatureKey[:10]
+			}
+			return signatureKey
+		}()).
+		Info("Attempting webhook signature validation")
+
 	if err := domain.ValidateSupabaseWebhookSignature(payload, webhookSignature, webhookTimestamp, webhookID, signatureKey); err != nil {
-		s.logger.WithField("error", err.Error()).Error("Failed to validate webhook signature")
+		s.logger.WithField("error", err.Error()).
+			WithField("workspace_id", workspaceID).
+			WithField("integration_id", integrationID).
+			WithField("signature_key_looks_valid", len(signatureKey) >= 12 && signatureKey[:6] == "whsec_").
+			Error("Failed to validate webhook signature")
 		return fmt.Errorf("invalid webhook signature: %w", err)
 	}
 
@@ -256,8 +274,26 @@ func (s *SupabaseService) ProcessUserCreatedHook(ctx context.Context, workspaceI
 
 	// Validate webhook signature
 	signatureKey := integration.SupabaseSettings.BeforeUserCreatedHook.SignatureKey
+
+	// Diagnostic logging for debugging signature key issues
+	s.logger.WithField("workspace_id", workspaceID).
+		WithField("integration_id", integrationID).
+		WithField("signature_key_length", len(signatureKey)).
+		WithField("signature_key_has_whsec_prefix", len(signatureKey) >= 6 && signatureKey[:6] == "whsec_").
+		WithField("signature_key_first_10", func() string {
+			if len(signatureKey) >= 10 {
+				return signatureKey[:10]
+			}
+			return signatureKey
+		}()).
+		Info("Attempting webhook signature validation for before user created hook")
+
 	if err := domain.ValidateSupabaseWebhookSignature(payload, webhookSignature, webhookTimestamp, webhookID, signatureKey); err != nil {
-		s.logger.WithField("error", err.Error()).Error("Failed to validate webhook signature for before user created hook")
+		s.logger.WithField("error", err.Error()).
+			WithField("workspace_id", workspaceID).
+			WithField("integration_id", integrationID).
+			WithField("signature_key_looks_valid", len(signatureKey) >= 12 && signatureKey[:6] == "whsec_").
+			Error("Failed to validate webhook signature for before user created hook")
 		return nil // Don't fail user creation
 	}
 
