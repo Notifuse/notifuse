@@ -36,6 +36,7 @@ func TestNewSupabaseService(t *testing.T) {
 		nil, // templateService
 		mockTransactionalRepo,
 		mockTransactionalService,
+		nil, // webhookEventRepo
 		mockLogger,
 	)
 
@@ -54,7 +55,7 @@ func TestProcessAuthEmailHook_WorkspaceNotFound(t *testing.T) {
 
 	service := NewSupabaseService(
 		mockWorkspaceRepo,
-		nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -77,7 +78,7 @@ func TestProcessAuthEmailHook_IntegrationNotFound(t *testing.T) {
 
 	service := NewSupabaseService(
 		mockWorkspaceRepo,
-		nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -105,7 +106,7 @@ func TestProcessAuthEmailHook_InvalidIntegrationType(t *testing.T) {
 
 	service := NewSupabaseService(
 		mockWorkspaceRepo,
-		nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -142,7 +143,7 @@ func TestProcessUserCreatedHook_AlwaysReturnsNil(t *testing.T) {
 
 	service := NewSupabaseService(
 		mockWorkspaceRepo,
-		nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -163,7 +164,7 @@ func TestBuildTemplateDataFromAuthWebhook(t *testing.T) {
 
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 	service := NewSupabaseService(
-		nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -196,6 +197,7 @@ func TestGetNotificationIDForAction(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil, nil, nil,
 		mockTransactionalRepo,
+		nil,
 		nil,
 		mockLogger,
 	)
@@ -258,6 +260,7 @@ func TestDeleteIntegrationResources_Success(t *testing.T) {
 		nil,
 		mockTransactionalRepo,
 		nil,
+		nil,
 		mockLogger,
 	)
 
@@ -319,6 +322,7 @@ func TestHandleEmailChange_SingleEmailMode(t *testing.T) {
 		nil, nil, nil, nil, nil, nil, nil,
 		mockTransactionalRepo,
 		mockTransactionalService,
+		nil,
 		mockLogger,
 	)
 
@@ -378,7 +382,7 @@ func TestProcessUserCreatedHook_Success(t *testing.T) {
 		nil, // contactService
 		nil, // listRepo
 		nil, // contactListRepo
-		nil, nil, nil, nil,
+		nil, nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -443,7 +447,7 @@ func TestProcessUserCreatedHook_RejectDisposableEmail_Enabled_DisposableDetected
 		nil, // contactService
 		nil, // listRepo
 		nil, // contactListRepo
-		nil, nil, nil, nil,
+		nil, nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -504,7 +508,7 @@ func TestProcessUserCreatedHook_RejectDisposableEmail_Enabled_ValidEmail(t *test
 		nil, // contactService
 		nil, // listRepo
 		nil, // contactListRepo
-		nil, nil, nil, nil,
+		nil, nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -561,7 +565,7 @@ func TestProcessUserCreatedHook_RejectDisposableEmail_Disabled(t *testing.T) {
 		nil, // contactService
 		nil, // listRepo
 		nil, // contactListRepo
-		nil, nil, nil, nil,
+		nil, nil, nil, nil, nil,
 		mockLogger,
 	)
 

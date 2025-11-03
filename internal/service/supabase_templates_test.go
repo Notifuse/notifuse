@@ -23,7 +23,7 @@ func TestCreateDefaultSupabaseTemplates_Success(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil,
 		mockTemplateRepo,
-		nil, nil, nil,
+		nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -70,7 +70,7 @@ func TestCreateDefaultSupabaseTemplates_FailureOnSignup(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil,
 		mockTemplateRepo,
-		nil, nil, nil,
+		nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -95,7 +95,7 @@ func TestCreateSignupTemplate(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil,
 		mockTemplateRepo,
-		nil, nil, nil,
+		nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -128,7 +128,7 @@ func TestCreateMagicLinkTemplate(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil,
 		mockTemplateRepo,
-		nil, nil, nil,
+		nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -156,7 +156,7 @@ func TestCreateRecoveryTemplate(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil,
 		mockTemplateRepo,
-		nil, nil, nil,
+		nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -184,7 +184,7 @@ func TestCreateEmailChangeTemplate(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil,
 		mockTemplateRepo,
-		nil, nil, nil,
+		nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -212,7 +212,7 @@ func TestCreateInviteTemplate(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil,
 		mockTemplateRepo,
-		nil, nil, nil,
+		nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -240,7 +240,7 @@ func TestCreateReauthenticationTemplate(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil,
 		mockTemplateRepo,
-		nil, nil, nil,
+		nil, nil, nil, nil,
 		mockLogger,
 	)
 
@@ -277,7 +277,7 @@ func TestTemplateIDUniqueness(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil,
 		mockTemplateRepo,
-		nil, nil, nil,
+		nil, nil, nil, nil,
 		mockLogger,
 	)
 

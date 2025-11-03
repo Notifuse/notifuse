@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/disposable_emails"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -23,6 +25,7 @@ type SupabaseService struct {
 	templateService      domain.TemplateService
 	transactionalRepo    domain.TransactionalNotificationRepository
 	transactionalService domain.TransactionalNotificationService
+	webhookEventRepo     domain.WebhookEventRepository
 	logger               logger.Logger
 }
 
@@ -37,6 +40,7 @@ func NewSupabaseService(
 	templateService domain.TemplateService,
 	transactionalRepo domain.TransactionalNotificationRepository,
 	transactionalService domain.TransactionalNotificationService,
+	webhookEventRepo domain.WebhookEventRepository,
 	logger logger.Logger,
 ) *SupabaseService {
 	return &SupabaseService{
@@ -49,6 +53,7 @@ func NewSupabaseService(
 		templateService:      templateService,
 		transactionalRepo:    transactionalRepo,
 		transactionalService: transactionalService,
+		webhookEventRepo:     webhookEventRepo,
 		logger:               logger,
 	}
 }
@@ -107,6 +112,12 @@ func (s *SupabaseService) ProcessAuthEmailHook(ctx context.Context, workspaceID,
 		return fmt.Errorf("failed to parse webhook payload: %w", err)
 	}
 
+	// Store webhook event for audit trail
+	if err := s.storeSupabaseWebhook(ctx, workspaceID, integrationID, webhook.User.Email, string(domain.EmailEventAuthEmail), payload, webhookTimestamp); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to store Supabase webhook event")
+		// Don't fail the webhook processing if storage fails
+	}
+
 	// Determine email action type
 	actionType := domain.SupabaseEmailActionType(webhook.EmailData.EmailActionType)
 
@@ -125,7 +136,12 @@ func (s *SupabaseService) ProcessAuthEmailHook(ctx context.Context, workspaceID,
 	templateData := s.buildTemplateDataFromAuthWebhook(&webhook)
 
 	// Send transactional notification
-	return s.sendTransactionalNotification(ctx, workspaceID, notificationID, webhook.User.Email, templateData)
+	err = s.sendTransactionalNotification(ctx, workspaceID, notificationID, webhook.User.Email, templateData)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // handleEmailChange handles the email_change action which may require sending 2 emails using the same template
@@ -289,6 +305,12 @@ func (s *SupabaseService) ProcessUserCreatedHook(ctx context.Context, workspaceI
 		return nil // Don't fail user creation
 	}
 
+	// Store webhook event for audit trail
+	if err := s.storeSupabaseWebhook(ctx, workspaceID, integrationID, webhook.User.Email, string(domain.EmailEventBeforeUserCreated), payload, webhookTimestamp); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to store Supabase webhook event")
+		// Don't fail the webhook processing if storage fails
+	}
+
 	// Check for disposable email if RejectDisposableEmail is enabled
 	if integration.SupabaseSettings.BeforeUserCreatedHook.RejectDisposableEmail {
 		// Extract domain from email
@@ -427,4 +449,29 @@ func (s *SupabaseService) DeleteIntegrationResources(ctx context.Context, worksp
 		Info("Deleted transactional notifications for Supabase integration")
 
 	return nil
+}
+
+// storeSupabaseWebhook stores a Supabase webhook event for audit trail
+func (s *SupabaseService) storeSupabaseWebhook(ctx context.Context, workspaceID, integrationID, recipientEmail, eventType string, payload []byte, webhookTimestamp string) error {
+	// Parse timestamp
+	timestamp, err := time.Parse(time.RFC3339, webhookTimestamp)
+	if err != nil {
+		timestamp = time.Now().UTC()
+	}
+
+	// Create webhook event
+	event := &domain.WebhookEvent{
+		ID:             uuid.New().String(),
+		Type:           domain.EmailEventType(eventType),
+		Source:         domain.WebhookSourceSupabase,
+		IntegrationID:  integrationID,
+		RecipientEmail: recipientEmail,
+		MessageID:      nil, // Supabase webhooks don't have message_id
+		Timestamp:      timestamp,
+		RawPayload:     string(payload),
+		CreatedAt:      time.Now().UTC(),
+	}
+
+	// Store via repository
+	return s.webhookEventRepo.StoreEvents(ctx, workspaceID, []*domain.WebhookEvent{event})
 }

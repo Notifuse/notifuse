@@ -1,15 +1,15 @@
 import { api } from './client'
 
-export type EmailEventType = 'delivered' | 'bounce' | 'complaint'
-export type EmailProviderKind = 'ses' | 'sparkpost' | 'mailgun' | 'mailjet' | 'postmark'
+export type EmailEventType = 'delivered' | 'bounce' | 'complaint' | 'auth_email' | 'before_user_created'
+export type WebhookSource = 'ses' | 'sparkpost' | 'mailgun' | 'mailjet' | 'postmark' | 'smtp' | 'supabase'
 
 export interface WebhookEvent {
   id: string
   type: EmailEventType
-  email_provider_kind: EmailProviderKind
+  source: WebhookSource
   integration_id: string
   recipient_email: string
-  message_id: string
+  message_id?: string
   transactional_id?: string
   broadcast_id?: string
   timestamp: string

@@ -1438,15 +1438,15 @@ func (s *DemoService) generateDeliveredWebhookEventsForBatch(ctx context.Context
 			data.message.ID, data.message.ContactEmail, data.engagement.deliveredTime.Format(time.RFC3339))
 
 		webhookEvent := &domain.WebhookEvent{
-			ID:                webhookEventID,
-			Type:              domain.EmailEventDelivered,
-			EmailProviderKind: domain.EmailProviderKindSMTP,
-			IntegrationID:     integrationID,
-			RecipientEmail:    data.message.ContactEmail,
-			MessageID:         data.message.ID,
-			Timestamp:         data.engagement.deliveredTime,
-			RawPayload:        rawPayload,
-			CreatedAt:         data.engagement.deliveredTime,
+			ID:             webhookEventID,
+			Type:           domain.EmailEventDelivered,
+			Source:         domain.WebhookSourceSMTP,
+			IntegrationID:  integrationID,
+			RecipientEmail: data.message.ContactEmail,
+			MessageID:      &data.message.ID,
+			Timestamp:      data.engagement.deliveredTime,
+			RawPayload:     rawPayload,
+			CreatedAt:      data.engagement.deliveredTime,
 		}
 
 		webhookEvents = append(webhookEvents, webhookEvent)

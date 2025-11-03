@@ -15,12 +15,14 @@ import {
   ContactTimelineEntry,
   ContactListEntityData,
   MessageHistoryEntityData,
-  ContactSegmentEntityData
+  ContactSegmentEntityData,
+  WebhookEventEntityData
 } from '../../services/api/contact_timeline'
 import type { Workspace } from '../../services/api/types'
 import type { Segment } from '../../services/api/segment'
 import dayjs from '../../lib/dayjs'
 import TemplatePreviewDrawer from '../templates/TemplatePreviewDrawer'
+import { getProviderIcon, getProviderName } from '../integrations/EmailProviders'
 
 const { Text } = Typography
 
@@ -454,8 +456,9 @@ export function ContactTimeline({
         )
 
       case 'webhook_event':
-        const webhookEventData = entry.entity_data as any
+        const webhookEventData = entry.entity_data as WebhookEventEntityData
         const eventType = webhookEventData?.type
+        const source = webhookEventData?.source || entry.changes?.source?.new
         const bounceType = webhookEventData?.bounce_type
         const bounceCategory = webhookEventData?.bounce_category
         const bounceDiagnostic = webhookEventData?.bounce_diagnostic
@@ -463,12 +466,37 @@ export function ContactTimeline({
         const webhookTemplateId = webhookEventData?.template_id
         const webhookTemplateVersion = webhookEventData?.template_version
 
+        const isSupabase = source === 'supabase'
+
+        // Set tag color based on event type
         if (eventType === 'bounce') {
           tagColor = 'volcano'
         } else if (eventType === 'complaint') {
           tagColor = 'magenta'
         } else if (eventType === 'delivered') {
           tagColor = 'green'
+        } else if (eventType === 'auth_email') {
+          tagColor = 'blue'
+        } else if (eventType === 'before_user_created') {
+          tagColor = 'cyan'
+        }
+
+        // Get event type label for display
+        const getEventTypeLabel = (type: string) => {
+          switch (type) {
+            case 'delivered':
+              return 'Delivered'
+            case 'bounce':
+              return 'Bounce'
+            case 'complaint':
+              return 'Complaint'
+            case 'auth_email':
+              return 'Auth Email'
+            case 'before_user_created':
+              return 'User Created'
+            default:
+              return type
+          }
         }
 
         return (
@@ -476,16 +504,24 @@ export function ContactTimeline({
             {renderTitleWithDate(
               entry,
               <>
-                <Text strong>Email</Text>
+                {source && getProviderIcon(source, 'small')}
                 {eventType && (
                   <Tag color={tagColor} bordered={false}>
-                    {eventType}
+                    {getEventTypeLabel(eventType)}
                   </Tag>
                 )}
               </>
             )}
             <div className="mb-2 space-y-1">
-              {webhookTemplateId && (
+              {isSupabase && (
+                <div>
+                  <Text type="secondary" className="text-xs">
+                    {eventType === 'auth_email' && 'Authentication email sent via Supabase'}
+                    {eventType === 'before_user_created' && 'User created and synced from Supabase'}
+                  </Text>
+                </div>
+              )}
+              {!isSupabase && webhookTemplateId && (
                 <div>
                   <Text type="secondary" className="text-xs">
                     Template:{' '}

@@ -25,18 +25,50 @@ const (
 
 	// EmailEventComplaint indicates a complaint was filed for the email
 	EmailEventComplaint EmailEventType = "complaint"
+
+	// EmailEventAuthEmail indicates a Supabase auth email webhook
+	EmailEventAuthEmail EmailEventType = "auth_email"
+
+	// EmailEventBeforeUserCreated indicates a Supabase before user created webhook
+	EmailEventBeforeUserCreated EmailEventType = "before_user_created"
 )
 
-// WebhookEvent represents an event received from an email provider webhook
+// WebhookSource defines the source of the webhook event
+type WebhookSource string
+
+const (
+	// WebhookSourceSES indicates webhook from Amazon SES
+	WebhookSourceSES WebhookSource = "ses"
+
+	// WebhookSourcePostmark indicates webhook from Postmark
+	WebhookSourcePostmark WebhookSource = "postmark"
+
+	// WebhookSourceMailgun indicates webhook from Mailgun
+	WebhookSourceMailgun WebhookSource = "mailgun"
+
+	// WebhookSourceSparkPost indicates webhook from SparkPost
+	WebhookSourceSparkPost WebhookSource = "sparkpost"
+
+	// WebhookSourceMailjet indicates webhook from Mailjet
+	WebhookSourceMailjet WebhookSource = "mailjet"
+
+	// WebhookSourceSMTP indicates webhook from SMTP
+	WebhookSourceSMTP WebhookSource = "smtp"
+
+	// WebhookSourceSupabase indicates webhook from Supabase
+	WebhookSourceSupabase WebhookSource = "supabase"
+)
+
+// WebhookEvent represents an event received from an email provider or integration webhook
 type WebhookEvent struct {
-	ID                string            `json:"id"`
-	Type              EmailEventType    `json:"type"`
-	EmailProviderKind EmailProviderKind `json:"email_provider_kind"`
-	IntegrationID     string            `json:"integration_id"`
-	RecipientEmail    string            `json:"recipient_email"`
-	MessageID         string            `json:"message_id"`
-	Timestamp         time.Time         `json:"timestamp"`
-	RawPayload        string            `json:"raw_payload"`
+	ID             string         `json:"id"`
+	Type           EmailEventType `json:"type"`
+	Source         WebhookSource  `json:"source"`
+	IntegrationID  string         `json:"integration_id"`
+	RecipientEmail string         `json:"recipient_email"`
+	MessageID      *string        `json:"message_id,omitempty"`
+	Timestamp      time.Time      `json:"timestamp"`
+	RawPayload     string         `json:"raw_payload"`
 
 	// Bounce specific fields
 	BounceType       string `json:"bounce_type,omitempty"`
@@ -53,22 +85,22 @@ type WebhookEvent struct {
 func NewWebhookEvent(
 	id string,
 	eventType EmailEventType,
-	providerKind EmailProviderKind,
+	source WebhookSource,
 	integrationID string,
 	recipientEmail string,
-	messageID string,
+	messageID *string,
 	timestamp time.Time,
 	rawPayload string,
 ) *WebhookEvent {
 	return &WebhookEvent{
-		ID:                id,
-		Type:              eventType,
-		EmailProviderKind: providerKind,
-		IntegrationID:     integrationID,
-		RecipientEmail:    recipientEmail,
-		MessageID:         messageID,
-		Timestamp:         timestamp,
-		RawPayload:        rawPayload,
+		ID:             id,
+		Type:           eventType,
+		Source:         source,
+		IntegrationID:  integrationID,
+		RecipientEmail: recipientEmail,
+		MessageID:      messageID,
+		Timestamp:      timestamp,
+		RawPayload:     rawPayload,
 	}
 }
 

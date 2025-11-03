@@ -220,10 +220,10 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TABLE IF NOT EXISTS webhook_events (
 			id UUID PRIMARY KEY,
 			type VARCHAR(50) NOT NULL,
-			email_provider_kind VARCHAR(50) NOT NULL,
+			source VARCHAR(50) NOT NULL,
 			integration_id VARCHAR(255) NOT NULL,
 			recipient_email VARCHAR(255) NOT NULL,
-			message_id VARCHAR(255) NOT NULL,
+			message_id VARCHAR(255),
 			timestamp TIMESTAMP WITH TIME ZONE NOT NULL,
 			raw_payload TEXT NOT NULL,
 			bounce_type VARCHAR(100),
@@ -438,14 +438,18 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		RETURNS TRIGGER AS $$
 		DECLARE
 			changes_json JSONB := '{}'::jsonb;
+			entity_id_value VARCHAR(255);
 		BEGIN
-			changes_json := jsonb_build_object('type', jsonb_build_object('new', NEW.type), 'email_provider_kind', jsonb_build_object('new', NEW.email_provider_kind));
+			-- Use message_id if available, otherwise use webhook event id
+			entity_id_value := COALESCE(NEW.message_id, NEW.id::text);
+			
+			changes_json := jsonb_build_object('type', jsonb_build_object('new', NEW.type), 'source', jsonb_build_object('new', NEW.source));
 			IF NEW.bounce_type IS NOT NULL AND NEW.bounce_type != '' THEN changes_json := changes_json || jsonb_build_object('bounce_type', jsonb_build_object('new', NEW.bounce_type)); END IF;
 			IF NEW.bounce_category IS NOT NULL AND NEW.bounce_category != '' THEN changes_json := changes_json || jsonb_build_object('bounce_category', jsonb_build_object('new', NEW.bounce_category)); END IF;
 			IF NEW.bounce_diagnostic IS NOT NULL AND NEW.bounce_diagnostic != '' THEN changes_json := changes_json || jsonb_build_object('bounce_diagnostic', jsonb_build_object('new', NEW.bounce_diagnostic)); END IF;
 			IF NEW.complaint_feedback_type IS NOT NULL AND NEW.complaint_feedback_type != '' THEN changes_json := changes_json || jsonb_build_object('complaint_feedback_type', jsonb_build_object('new', NEW.complaint_feedback_type)); END IF;
 			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-			VALUES (NEW.recipient_email, 'insert', 'webhook_event', 'insert_webhook_event', NEW.message_id, changes_json, CURRENT_TIMESTAMP);
+			VALUES (NEW.recipient_email, 'insert', 'webhook_event', 'insert_webhook_event', entity_id_value, changes_json, CURRENT_TIMESTAMP);
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,

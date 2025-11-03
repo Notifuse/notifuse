@@ -78,19 +78,20 @@ func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string
 					'clicked_at', mh.clicked_at,
 					'message_data', mh.message_data
 				)
-				WHEN ct.entity_type = 'webhook_event' THEN json_build_object(
-					'id', we.id,
-					'type', we.type,
-					'message_id', we.message_id,
-					'timestamp', we.timestamp,
-					'bounce_type', we.bounce_type,
-					'bounce_category', we.bounce_category,
-					'bounce_diagnostic', we.bounce_diagnostic,
-					'complaint_feedback_type', we.complaint_feedback_type,
-					'template_id', mh_we.template_id,
-					'template_version', mh_we.template_version,
-					'template_name', t_we.name
-				)
+			WHEN ct.entity_type = 'webhook_event' THEN json_build_object(
+				'id', we.id,
+				'type', we.type,
+				'source', we.source,
+				'message_id', we.message_id,
+				'timestamp', we.timestamp,
+				'bounce_type', we.bounce_type,
+				'bounce_category', we.bounce_category,
+				'bounce_diagnostic', we.bounce_diagnostic,
+				'complaint_feedback_type', we.complaint_feedback_type,
+				'template_id', mh_we.template_id,
+				'template_version', mh_we.template_version,
+				'template_name', t_we.name
+			)
 				ELSE NULL
 			END as entity_data
 		FROM contact_timeline ct
@@ -99,7 +100,7 @@ func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string
 		LEFT JOIN lists l ON cl.list_id = l.id
 		LEFT JOIN message_history mh ON ct.entity_type = 'message_history' AND ct.entity_id = mh.id
 		LEFT JOIN templates t_mh ON ct.entity_type = 'message_history' AND mh.template_id = t_mh.id AND mh.template_version = t_mh.version
-		LEFT JOIN webhook_events we ON ct.entity_type = 'webhook_event' AND ct.entity_id = we.message_id
+		LEFT JOIN webhook_events we ON ct.entity_type = 'webhook_event' AND (ct.entity_id = we.message_id OR ct.entity_id = we.id::text)
 		LEFT JOIN message_history mh_we ON ct.entity_type = 'webhook_event' AND we.message_id = mh_we.id
 		LEFT JOIN templates t_we ON ct.entity_type = 'webhook_event' AND mh_we.template_id = t_we.id AND mh_we.template_version = t_we.version
 		WHERE ct.email = $1

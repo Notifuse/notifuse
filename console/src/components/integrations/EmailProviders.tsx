@@ -10,7 +10,7 @@ export interface ProviderInfo {
   getIcon: (className?: string, size?: 'small' | 'large' | number) => React.ReactNode
 }
 
-export const getProviderName = (kind: EmailProviderKind): string => {
+export const getProviderName = (kind: string): string => {
   switch (kind) {
     case 'smtp':
       return 'SMTP'
@@ -24,9 +24,31 @@ export const getProviderName = (kind: EmailProviderKind): string => {
       return 'Mailgun'
     case 'mailjet':
       return 'Mailjet'
+    case 'supabase':
+      return 'Supabase'
     default:
       return kind
   }
+}
+
+export const getProviderIcon = (source: string, size: 'small' | 'large' | number = 'small'): React.ReactNode => {
+  const provider = emailProviders.find(p => p.kind === source)
+  if (provider) {
+    return provider.getIcon('', size)
+  }
+  
+  // Fallback for Supabase or unknown providers
+  if (source === 'supabase') {
+    return (
+      <img
+        src="/supabase.png"
+        alt="Supabase"
+        className={`${size === 'small' ? 'h-5 w-5 object-contain inline-block' : 'h-8 w-16 object-contain inline-block'}`.trim()}
+      />
+    )
+  }
+  
+  return <FontAwesomeIcon icon={faEnvelope} className={`${size === 'small' ? 'w-5 h-5' : 'w-16'}`.trim()} />
 }
 
 export const emailProviders: ProviderInfo[] = [

@@ -931,6 +931,7 @@ func setupSupabaseIntegrationForWebhooks(t *testing.T, suite *testutil.Integrati
 		nil, // templateService not needed for template/notification creation
 		suite.ServerManager.GetApp().GetTransactionalNotificationRepository(),
 		nil, // transactionalService not needed for template/notification creation
+		nil, // webhookEventRepo not needed for template/notification creation
 		suite.ServerManager.GetApp().GetLogger(),
 	)
 
@@ -987,6 +988,7 @@ func setupSupabaseIntegrationWithUserCreatedHook(t *testing.T, suite *testutil.I
 		nil, // templateService not needed for template/notification creation
 		suite.ServerManager.GetApp().GetTransactionalNotificationRepository(),
 		nil, // transactionalService not needed for template/notification creation
+		nil, // webhookEventRepo not needed for template/notification creation
 		suite.ServerManager.GetApp().GetLogger(),
 	)
 

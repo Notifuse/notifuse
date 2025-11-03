@@ -1,12 +1,12 @@
 services:
   postgres-test:
-    image: postgres:14
+    image: postgres:17
     command:
-      - "postgres"
-      - "-c"
-      - "max_connections=300"
-      - "-c"
-      - "shared_buffers=128MB"
+      - 'postgres'
+      - '-c'
+      - 'max_connections=300'
+      - '-c'
+      - 'shared_buffers=128MB'
     environment:
       POSTGRES_DB: postgres
       POSTGRES_USER: notifuse_test
@@ -37,4 +37,3 @@ services:
 volumes:
   postgres_test_data:
     driver: local
-

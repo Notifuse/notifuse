@@ -44,18 +44,18 @@ func TestWebhookEventRepository_ListEvents(t *testing.T) {
 
 	// Set up rows for the SQL query result
 	rows := sqlmock.NewRows([]string{
-		"id", "type", "email_provider_kind", "integration_id", "recipient_email",
+		"id", "type", "source", "integration_id", "recipient_email",
 		"message_id", "timestamp", "raw_payload",
 		"bounce_type", "bounce_category", "bounce_diagnostic", "complaint_feedback_type",
 		"created_at",
 	}).
 		AddRow(
-			"evt-1", domain.EmailEventBounce, domain.EmailProviderKindSES, "integration-1", "test@example.com",
+			"evt-1", domain.EmailEventBounce, domain.WebhookSourceSES, "integration-1", "test@example.com",
 			"msg-1", now, `{"key": "value1"}`,
 			"hard", "unknown", "550 user unknown", "", now,
 		).
 		AddRow(
-			"evt-2", domain.EmailEventBounce, domain.EmailProviderKindSES, "integration-2", "test@example.com",
+			"evt-2", domain.EmailEventBounce, domain.WebhookSourceSES, "integration-2", "test@example.com",
 			"msg-2", now, `{"key": "value2"}`,
 			"soft", "mailbox_full", "452 mailbox full", "", now,
 		)
@@ -109,23 +109,23 @@ func TestWebhookEventRepository_ListEvents_WithCursor(t *testing.T) {
 
 	// Set up rows for the SQL query result
 	rows := sqlmock.NewRows([]string{
-		"id", "type", "email_provider_kind", "integration_id", "recipient_email",
+		"id", "type", "source", "integration_id", "recipient_email",
 		"message_id", "timestamp", "raw_payload",
 		"bounce_type", "bounce_category", "bounce_diagnostic", "complaint_feedback_type",
 		"created_at",
 	}).
 		AddRow(
-			"evt-3", domain.EmailEventDelivered, domain.EmailProviderKindSES, "integration-3", "test3@example.com",
+			"evt-3", domain.EmailEventDelivered, domain.WebhookSourceSES, "integration-3", "test3@example.com",
 			"msg-3", now, `{"key": "value3"}`,
 			"", "", "", "", now,
 		).
 		AddRow(
-			"evt-4", domain.EmailEventDelivered, domain.EmailProviderKindSES, "integration-4", "test4@example.com",
+			"evt-4", domain.EmailEventDelivered, domain.WebhookSourceSES, "integration-4", "test4@example.com",
 			"msg-4", now, `{"key": "value4"}`,
 			"", "", "", "", now,
 		).
 		AddRow(
-			"evt-5", domain.EmailEventDelivered, domain.EmailProviderKindSES, "integration-5", "test5@example.com",
+			"evt-5", domain.EmailEventDelivered, domain.WebhookSourceSES, "integration-5", "test5@example.com",
 			"msg-5", now, `{"key": "value5"}`,
 			"", "", "", "", now,
 		)
@@ -263,14 +263,16 @@ func TestWebhookEventRepository_StoreEvents(t *testing.T) {
 	now := time.Now().UTC()
 
 	// Create a batch of events
+	msg1 := "msg-1"
+	msg2 := "msg-2"
 	events := []*domain.WebhookEvent{
 		{
 			ID:                    "evt-1",
 			Type:                  domain.EmailEventBounce,
-			EmailProviderKind:     domain.EmailProviderKindSES,
+			Source:                domain.WebhookSourceSES,
 			IntegrationID:         "integration-1",
 			RecipientEmail:        "test1@example.com",
-			MessageID:             "msg-1",
+			MessageID:             &msg1,
 			Timestamp:             now,
 			RawPayload:            `{"key": "value1"}`,
 			BounceType:            "hard",
@@ -281,10 +283,10 @@ func TestWebhookEventRepository_StoreEvents(t *testing.T) {
 		{
 			ID:                    "evt-2",
 			Type:                  domain.EmailEventDelivered,
-			EmailProviderKind:     domain.EmailProviderKindSES,
+			Source:                domain.WebhookSourceSES,
 			IntegrationID:         "integration-1",
 			RecipientEmail:        "test2@example.com",
-			MessageID:             "msg-2",
+			MessageID:             &msg2,
 			Timestamp:             now,
 			RawPayload:            `{"key": "value2"}`,
 			BounceType:            "",
@@ -303,10 +305,10 @@ func TestWebhookEventRepository_StoreEvents(t *testing.T) {
 		// We're expecting a multi-value INSERT statement
 		mock.ExpectExec("INSERT INTO webhook_events").
 			WithArgs(
-				events[0].ID, events[0].Type, events[0].EmailProviderKind, events[0].IntegrationID, events[0].RecipientEmail,
+				events[0].ID, events[0].Type, events[0].Source, events[0].IntegrationID, events[0].RecipientEmail,
 				events[0].MessageID, events[0].Timestamp, events[0].RawPayload,
 				events[0].BounceType, events[0].BounceCategory, events[0].BounceDiagnostic, events[0].ComplaintFeedbackType, sqlmock.AnyArg(),
-				events[1].ID, events[1].Type, events[1].EmailProviderKind, events[1].IntegrationID, events[1].RecipientEmail,
+				events[1].ID, events[1].Type, events[1].Source, events[1].IntegrationID, events[1].RecipientEmail,
 				events[1].MessageID, events[1].Timestamp, events[1].RawPayload,
 				events[1].BounceType, events[1].BounceCategory, events[1].BounceDiagnostic, events[1].ComplaintFeedbackType, sqlmock.AnyArg(),
 			).
@@ -334,7 +336,7 @@ func TestWebhookEventRepository_StoreEvents(t *testing.T) {
 		// We're expecting a single-value INSERT statement
 		mock.ExpectExec("INSERT INTO webhook_events").
 			WithArgs(
-				events[0].ID, events[0].Type, events[0].EmailProviderKind, events[0].IntegrationID, events[0].RecipientEmail,
+				events[0].ID, events[0].Type, events[0].Source, events[0].IntegrationID, events[0].RecipientEmail,
 				events[0].MessageID, events[0].Timestamp, events[0].RawPayload,
 				events[0].BounceType, events[0].BounceCategory, events[0].BounceDiagnostic, events[0].ComplaintFeedbackType, sqlmock.AnyArg(),
 			).
@@ -379,10 +381,10 @@ func TestWebhookEventRepository_StoreEvents(t *testing.T) {
 		// Expect the SQL query but return an error
 		mock.ExpectExec("INSERT INTO webhook_events").
 			WithArgs(
-				events[0].ID, events[0].Type, events[0].EmailProviderKind, events[0].IntegrationID, events[0].RecipientEmail,
+				events[0].ID, events[0].Type, events[0].Source, events[0].IntegrationID, events[0].RecipientEmail,
 				events[0].MessageID, events[0].Timestamp, events[0].RawPayload,
 				events[0].BounceType, events[0].BounceCategory, events[0].BounceDiagnostic, events[0].ComplaintFeedbackType, sqlmock.AnyArg(),
-				events[1].ID, events[1].Type, events[1].EmailProviderKind, events[1].IntegrationID, events[1].RecipientEmail,
+				events[1].ID, events[1].Type, events[1].Source, events[1].IntegrationID, events[1].RecipientEmail,
 				events[1].MessageID, events[1].Timestamp, events[1].RawPayload,
 				events[1].BounceType, events[1].BounceCategory, events[1].BounceDiagnostic, events[1].ComplaintFeedbackType, sqlmock.AnyArg(),
 			).
@@ -407,13 +409,14 @@ func TestWebhookEventRepository_StoreEvent(t *testing.T) {
 	now := time.Now().UTC()
 
 	// Create a single event
+	msgID := "msg-1"
 	event := &domain.WebhookEvent{
 		ID:                    "evt-1",
 		Type:                  domain.EmailEventBounce,
-		EmailProviderKind:     domain.EmailProviderKindSES,
+		Source:                domain.WebhookSourceSES,
 		IntegrationID:         "integration-1",
 		RecipientEmail:        "test1@example.com",
-		MessageID:             "msg-1",
+		MessageID:             &msgID,
 		Timestamp:             now,
 		RawPayload:            `{"key": "value1"}`,
 		BounceType:            "hard",
@@ -435,7 +438,7 @@ func TestWebhookEventRepository_StoreEvent(t *testing.T) {
 		// We're expecting a single-value INSERT statement
 		mock.ExpectExec("INSERT INTO webhook_events").
 			WithArgs(
-				event.ID, event.Type, event.EmailProviderKind, event.IntegrationID, event.RecipientEmail,
+				event.ID, event.Type, event.Source, event.IntegrationID, event.RecipientEmail,
 				event.MessageID, event.Timestamp, event.RawPayload,
 				event.BounceType, event.BounceCategory, event.BounceDiagnostic, event.ComplaintFeedbackType, sqlmock.AnyArg(),
 			).
@@ -474,7 +477,7 @@ func TestWebhookEventRepository_StoreEvent(t *testing.T) {
 		// Expect the SQL query but return an error
 		mock.ExpectExec("INSERT INTO webhook_events").
 			WithArgs(
-				event.ID, event.Type, event.EmailProviderKind, event.IntegrationID, event.RecipientEmail,
+				event.ID, event.Type, event.Source, event.IntegrationID, event.RecipientEmail,
 				event.MessageID, event.Timestamp, event.RawPayload,
 				event.BounceType, event.BounceCategory, event.BounceDiagnostic, event.ComplaintFeedbackType, sqlmock.AnyArg(),
 			).

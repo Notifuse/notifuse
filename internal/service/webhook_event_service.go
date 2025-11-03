@@ -110,7 +110,7 @@ func (s *WebhookEventService) ProcessWebhook(ctx context.Context, workspaceID st
 		var statusInfo *string
 
 		// Update message history status if we have a message ID
-		if event.MessageID != "" {
+		if event.MessageID != nil && *event.MessageID != "" {
 			var messageEvent domain.MessageEvent
 			switch event.Type {
 			case domain.EmailEventDelivered:
@@ -118,7 +118,7 @@ func (s *WebhookEventService) ProcessWebhook(ctx context.Context, workspaceID st
 			case domain.EmailEventBounce:
 				// Only process HARD bounces - soft bounces are logged in webhook_events but don't update message_history
 				if !isHardBounce(event.BounceType, event.BounceCategory) {
-					s.logger.WithField("message_id", event.MessageID).
+					s.logger.WithField("message_id", *event.MessageID).
 						WithField("bounce_type", event.BounceType).
 						WithField("bounce_category", event.BounceCategory).
 						Debug("Skipping soft bounce - not updating message history")
@@ -146,7 +146,7 @@ func (s *WebhookEventService) ProcessWebhook(ctx context.Context, workspaceID st
 			}
 
 			updates = append(updates, domain.MessageEventUpdate{
-				ID:         event.MessageID,
+				ID:         *event.MessageID,
 				Event:      messageEvent,
 				Timestamp:  event.Timestamp,
 				StatusInfo: statusInfo,
@@ -389,10 +389,10 @@ func (s *WebhookEventService) processSESWebhook(integrationID string, rawPayload
 	event := domain.NewWebhookEvent(
 		uuid.New().String(),
 		eventType,
-		domain.EmailProviderKindSES,
+		domain.WebhookSourceSES,
 		integrationID,
 		recipientEmail,
-		messageID,
+		&messageID,
 		timestamp,
 		string(rawPayload),
 	)
@@ -521,10 +521,10 @@ func (s *WebhookEventService) processPostmarkWebhook(integrationID string, rawPa
 	event := domain.NewWebhookEvent(
 		uuid.New().String(),
 		eventType,
-		domain.EmailProviderKindPostmark,
+		domain.WebhookSourcePostmark,
 		integrationID,
 		recipientEmail,
-		messageID,
+		&messageID,
 		timestamp,
 		string(rawPayload),
 	)
@@ -612,10 +612,10 @@ func (s *WebhookEventService) processMailgunWebhook(integrationID string, rawPay
 	event := domain.NewWebhookEvent(
 		uuid.New().String(),
 		eventType,
-		domain.EmailProviderKindMailgun,
+		domain.WebhookSourceMailgun,
 		integrationID,
 		recipientEmail,
-		messageID,
+		&messageID,
 		timestamp,
 		string(rawPayload),
 	)
@@ -712,10 +712,10 @@ func (s *WebhookEventService) processSparkPostWebhook(integrationID string, rawP
 		event := domain.NewWebhookEvent(
 			uuid.New().String(),
 			eventType,
-			domain.EmailProviderKindSparkPost,
+			domain.WebhookSourceSparkPost,
 			integrationID,
 			recipientEmail,
-			messageID,
+			&messageID,
 			timestamp,
 			string(rawPayload),
 		)
@@ -846,10 +846,10 @@ func (s *WebhookEventService) processSingleMailjetEvent(integrationID string, pa
 	event := domain.NewWebhookEvent(
 		uuid.New().String(),
 		eventType,
-		domain.EmailProviderKindMailjet,
+		domain.WebhookSourceMailjet,
 		integrationID,
 		recipientEmail,
-		messageID,
+		&messageID,
 		timestamp,
 		string(rawPayload),
 	)
@@ -900,10 +900,10 @@ func (s *WebhookEventService) processSMTPWebhook(integrationID string, rawPayloa
 	event := domain.NewWebhookEvent(
 		uuid.New().String(),
 		eventType,
-		domain.EmailProviderKindSMTP,
+		domain.WebhookSourceSMTP,
 		integrationID,
 		payload.Recipient,
-		payload.MessageID,
+		&payload.MessageID,
 		timestamp,
 		string(rawPayload),
 	)

@@ -23,6 +23,7 @@ func TestCreateDefaultSupabaseNotifications_Success(t *testing.T) {
 		nil, nil, nil, nil, nil, nil, nil,
 		mockTransactionalRepo,
 		nil,
+		nil,
 		mockLogger,
 	)
 
@@ -67,6 +68,7 @@ func TestCreateDefaultSupabaseNotifications_FailureOnSignup(t *testing.T) {
 		nil, nil, nil, nil, nil, nil, nil,
 		mockTransactionalRepo,
 		nil,
+		nil,
 		mockLogger,
 	)
 
@@ -94,6 +96,7 @@ func TestCreateDefaultSupabaseNotifications_FailureOnMagicLink(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil, nil, nil,
 		mockTransactionalRepo,
+		nil,
 		nil,
 		mockLogger,
 	)
@@ -128,6 +131,7 @@ func TestCreateDefaultSupabaseNotifications_VerifyNotificationIDs(t *testing.T) 
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil, nil, nil,
 		mockTransactionalRepo,
+		nil,
 		nil,
 		mockLogger,
 	)
@@ -181,6 +185,7 @@ func TestCreateDefaultSupabaseNotifications_VerifyTrackingDisabled(t *testing.T)
 		nil, nil, nil, nil, nil, nil, nil,
 		mockTransactionalRepo,
 		nil,
+		nil,
 		mockLogger,
 	)
 
@@ -215,6 +220,7 @@ func TestCreateDefaultSupabaseNotifications_VerifyIntegrationID(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil, nil, nil,
 		mockTransactionalRepo,
+		nil,
 		nil,
 		mockLogger,
 	)
@@ -253,6 +259,7 @@ func TestCreateDefaultSupabaseNotifications_VerifyDescriptions(t *testing.T) {
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil, nil, nil,
 		mockTransactionalRepo,
+		nil,
 		nil,
 		mockLogger,
 	)
@@ -300,6 +307,7 @@ func TestCreateDefaultSupabaseNotifications_VerifyChannels(t *testing.T) {
 		nil, nil, nil, nil, nil, nil, nil,
 		mockTransactionalRepo,
 		nil,
+		nil,
 		mockLogger,
 	)
 
@@ -337,6 +345,7 @@ func TestCreateDefaultSupabaseNotifications_NotificationIDUniqueness(t *testing.
 	service := NewSupabaseService(
 		nil, nil, nil, nil, nil, nil, nil,
 		mockTransactionalRepo,
+		nil,
 		nil,
 		mockLogger,
 	)

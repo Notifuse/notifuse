@@ -265,19 +265,20 @@ func TestWebhookEventHandler_handleList_Success(t *testing.T) {
 	w := httptest.NewRecorder()
 
 	// Create expected events
+	messageID := "message1"
 	events := []*domain.WebhookEvent{
 		{
-			ID:                "evt1",
-			Type:              domain.EmailEventBounce,
-			EmailProviderKind: domain.EmailProviderKindSES,
-			IntegrationID:     "integration1",
-			RecipientEmail:    "test@example.com",
-			MessageID:         "message1",
-			Timestamp:         now,
-			BounceType:        "Permanent",
-			BounceCategory:    "General",
-			BounceDiagnostic:  "550 User unknown",
-			CreatedAt:         now,
+			ID:               "evt1",
+			Type:             domain.EmailEventBounce,
+			Source:           domain.WebhookSourceSES,
+			IntegrationID:    "integration1",
+			RecipientEmail:   "test@example.com",
+			MessageID:        &messageID,
+			Timestamp:        now,
+			BounceType:       "Permanent",
+			BounceCategory:   "General",
+			BounceDiagnostic: "550 User unknown",
+			CreatedAt:        now,
 		},
 	}
 

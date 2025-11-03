@@ -13,7 +13,7 @@ func TestNewWebhookEvent(t *testing.T) {
 	// Arrange
 	id := "test-id"
 	eventType := EmailEventDelivered
-	providerKind := EmailProviderKindSES
+	source := WebhookSourceSES
 	integrationID := "integration-123"
 	recipientEmail := "test@example.com"
 	messageID := "message-123"
@@ -24,10 +24,10 @@ func TestNewWebhookEvent(t *testing.T) {
 	event := NewWebhookEvent(
 		id,
 		eventType,
-		providerKind,
+		source,
 		integrationID,
 		recipientEmail,
-		messageID,
+		&messageID,
 		timestamp,
 		rawPayload,
 	)
@@ -35,10 +35,11 @@ func TestNewWebhookEvent(t *testing.T) {
 	// Assert
 	assert.Equal(t, id, event.ID)
 	assert.Equal(t, eventType, event.Type)
-	assert.Equal(t, providerKind, event.EmailProviderKind)
+	assert.Equal(t, source, event.Source)
 	assert.Equal(t, integrationID, event.IntegrationID)
 	assert.Equal(t, recipientEmail, event.RecipientEmail)
-	assert.Equal(t, messageID, event.MessageID)
+	assert.NotNil(t, event.MessageID)
+	assert.Equal(t, messageID, *event.MessageID)
 	assert.Equal(t, timestamp, event.Timestamp)
 	assert.Equal(t, rawPayload, event.RawPayload)
 }
@@ -341,6 +342,50 @@ func TestEmailEventType_Constants(t *testing.T) {
 	assert.Equal(t, EmailEventType("delivered"), EmailEventDelivered)
 	assert.Equal(t, EmailEventType("bounce"), EmailEventBounce)
 	assert.Equal(t, EmailEventType("complaint"), EmailEventComplaint)
+	assert.Equal(t, EmailEventType("auth_email"), EmailEventAuthEmail)
+	assert.Equal(t, EmailEventType("before_user_created"), EmailEventBeforeUserCreated)
+}
+
+func TestWebhookSource_Constants(t *testing.T) {
+	// Test that the webhook source constants are defined correctly
+	assert.Equal(t, WebhookSource("ses"), WebhookSourceSES)
+	assert.Equal(t, WebhookSource("postmark"), WebhookSourcePostmark)
+	assert.Equal(t, WebhookSource("mailgun"), WebhookSourceMailgun)
+	assert.Equal(t, WebhookSource("sparkpost"), WebhookSourceSparkPost)
+	assert.Equal(t, WebhookSource("mailjet"), WebhookSourceMailjet)
+	assert.Equal(t, WebhookSource("smtp"), WebhookSourceSMTP)
+	assert.Equal(t, WebhookSource("supabase"), WebhookSourceSupabase)
+}
+
+func TestNewWebhookEvent_NullableMessageID(t *testing.T) {
+	// Test Supabase webhook with nil message_id
+	id := "test-id"
+	eventType := EmailEventAuthEmail
+	source := WebhookSourceSupabase
+	integrationID := "integration-123"
+	recipientEmail := "test@example.com"
+	timestamp := time.Now()
+	rawPayload := `{"test": "payload"}`
+
+	event := NewWebhookEvent(
+		id,
+		eventType,
+		source,
+		integrationID,
+		recipientEmail,
+		nil, // Supabase webhooks don't have message_id
+		timestamp,
+		rawPayload,
+	)
+
+	assert.Equal(t, id, event.ID)
+	assert.Equal(t, eventType, event.Type)
+	assert.Equal(t, source, event.Source)
+	assert.Equal(t, integrationID, event.IntegrationID)
+	assert.Equal(t, recipientEmail, event.RecipientEmail)
+	assert.Nil(t, event.MessageID)
+	assert.Equal(t, timestamp, event.Timestamp)
+	assert.Equal(t, rawPayload, event.RawPayload)
 }
 
 func TestWebhookEvent_BounceFields(t *testing.T) {

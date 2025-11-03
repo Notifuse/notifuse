@@ -599,6 +599,7 @@ func (a *App) InitServices() error {
 		a.templateService,
 		a.transactionalNotificationRepo,
 		a.transactionalNotificationService,
+		a.webhookEventRepo,
 		a.logger,
 	)
 

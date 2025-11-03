@@ -31,8 +31,9 @@ export interface MessageHistoryEntityData {
 
 export interface WebhookEventEntityData {
   id: string
-  type: string // delivered, bounce, complaint, opened, clicked
-  message_id: string
+  type: string // delivered, bounce, complaint, opened, clicked, auth_email, before_user_created
+  source: string // ses, postmark, mailgun, sparkpost, mailjet, smtp, supabase
+  message_id?: string | null
   timestamp: string
   bounce_type?: string | null
   bounce_category?: string | null

@@ -19,6 +19,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck, faCircleXmark } from '@fortawesome/free-regular-svg-icons'
 import { faTriangleExclamation, faRefresh } from '@fortawesome/free-solid-svg-icons'
 import dayjs from '../../lib/dayjs'
+import { getProviderIcon, getProviderName } from '../integrations/EmailProviders'
 
 const { Title, Text } = Typography
 
@@ -41,6 +42,16 @@ const eventTypeConfig: Record<
     icon: <FontAwesomeIcon className="!mr-1 opacity-70" icon={faCircleXmark} />,
     color: 'red',
     label: 'Complaint'
+  },
+  auth_email: {
+    icon: null,
+    color: 'blue',
+    label: 'Auth Email'
+  },
+  before_user_created: {
+    icon: null,
+    color: 'cyan',
+    label: 'User Created'
   }
 }
 
@@ -326,6 +337,17 @@ export const WebhookEventsTab: React.FC<WebhookEventsTabProps> = ({ workspaceId,
   // Define table columns
   const columns = [
     {
+      title: 'Provider',
+      dataIndex: 'source',
+      key: 'source',
+      width: 80,
+      render: (source: string) => (
+        <Tooltip title={getProviderName(source)}>
+          {getProviderIcon(source, 'small')}
+        </Tooltip>
+      )
+    },
+    {
       title: 'ID',
       dataIndex: 'id',
       key: 'id',
@@ -342,8 +364,8 @@ export const WebhookEventsTab: React.FC<WebhookEventsTabProps> = ({ workspaceId,
       render: (type: EmailEventType) => {
         const config = eventTypeConfig[type]
         return (
-          <Tag bordered={false} color={config.color}>
-            {config.icon} {config.label}
+          <Tag bordered={false} color={config?.color || 'default'}>
+            {config?.icon} {config?.label || type}
           </Tag>
         )
       }
@@ -355,20 +377,17 @@ export const WebhookEventsTab: React.FC<WebhookEventsTabProps> = ({ workspaceId,
       render: (email: string) => <span className="text-xs">{email}</span>
     },
     {
-      title: 'Provider',
-      dataIndex: 'email_provider_kind',
-      key: 'email_provider_kind',
-      render: (provider: string) => <span className="text-xs">{provider.toUpperCase()}</span>
-    },
-    {
       title: 'Message ID',
       dataIndex: 'message_id',
       key: 'message_id',
-      render: (id: string) => (
-        <Tooltip title={id}>
-          <span className="text-xs text-gray-500">{id.substring(0, 8) + '...'}</span>
-        </Tooltip>
-      )
+      render: (id: string | undefined) => 
+        id ? (
+          <Tooltip title={id}>
+            <span className="text-xs text-gray-500">{id.substring(0, 8) + '...'}</span>
+          </Tooltip>
+        ) : (
+          <span className="text-xs text-gray-400">-</span>
+        )
     },
     {
       title: 'Broadcast',

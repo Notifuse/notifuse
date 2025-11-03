@@ -49,7 +49,7 @@ func (r *webhookEventRepository) StoreEvents(ctx context.Context, workspaceID st
 	// Use multi-value INSERT for maximum batch efficiency
 	baseSQL := `
 		INSERT INTO webhook_events (
-			id, type, email_provider_kind, integration_id, recipient_email, 
+			id, type, source, integration_id, recipient_email, 
 			message_id, timestamp, raw_payload,
 			bounce_type, bounce_category, bounce_diagnostic, complaint_feedback_type,
 			created_at
@@ -80,21 +80,21 @@ func (r *webhookEventRepository) StoreEvents(ctx context.Context, workspaceID st
 				paramOffset+6, paramOffset+7, paramOffset+8, paramOffset+9, paramOffset+10,
 				paramOffset+11, paramOffset+12, paramOffset+13)
 
-			args = append(args,
-				event.ID,
-				event.Type,
-				event.EmailProviderKind,
-				event.IntegrationID,
-				event.RecipientEmail,
-				event.MessageID,
-				event.Timestamp,
-				event.RawPayload,
-				event.BounceType,
-				event.BounceCategory,
-				event.BounceDiagnostic,
-				event.ComplaintFeedbackType,
-				now,
-			)
+		args = append(args,
+			event.ID,
+			event.Type,
+			event.Source,
+			event.IntegrationID,
+			event.RecipientEmail,
+			event.MessageID,
+			event.Timestamp,
+			event.RawPayload,
+			event.BounceType,
+			event.BounceCategory,
+			event.BounceDiagnostic,
+			event.ComplaintFeedbackType,
+			now,
+		)
 		}
 
 		// Build and execute the SQL for this batch
@@ -137,7 +137,7 @@ func (r *webhookEventRepository) ListEvents(ctx context.Context, workspaceID str
 	// Use squirrel to build the query with placeholders
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	queryBuilder := psql.Select(
-		"id", "type", "email_provider_kind", "integration_id", "recipient_email",
+		"id", "type", "source", "integration_id", "recipient_email",
 		"message_id", "timestamp", "raw_payload",
 		"bounce_type", "bounce_category", "bounce_diagnostic", "complaint_feedback_type",
 		"created_at",
@@ -241,15 +241,15 @@ func (r *webhookEventRepository) ListEvents(ctx context.Context, workspaceID str
 	events := []*domain.WebhookEvent{}
 	for rows.Next() {
 		event := &domain.WebhookEvent{}
-		var bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType sql.NullString
+		var messageID, bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType sql.NullString
 
 		err := rows.Scan(
 			&event.ID,
 			&event.Type,
-			&event.EmailProviderKind,
+			&event.Source,
 			&event.IntegrationID,
 			&event.RecipientEmail,
-			&event.MessageID,
+			&messageID,
 			&event.Timestamp,
 			&event.RawPayload,
 			&bounceType,
@@ -264,6 +264,10 @@ func (r *webhookEventRepository) ListEvents(ctx context.Context, workspaceID str
 			tracing.MarkSpanError(ctx, err)
 			// codecov:ignore:end
 			return nil, fmt.Errorf("failed to scan webhook event row: %w", err)
+		}
+
+		if messageID.Valid {
+			event.MessageID = &messageID.String
 		}
 
 		if bounceType.Valid {
