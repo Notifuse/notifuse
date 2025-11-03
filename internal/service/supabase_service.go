@@ -201,11 +201,8 @@ func (s *SupabaseService) getNotificationIDForAction(ctx context.Context, worksp
 // buildTemplateDataFromAuthWebhook builds template data from auth webhook
 func (s *SupabaseService) buildTemplateDataFromAuthWebhook(webhook *domain.SupabaseAuthEmailWebhook) map[string]interface{} {
 	return map[string]interface{}{
-		"user":        webhook.User,
-		"token":       webhook.EmailData.Token,
-		"token_hash":  webhook.EmailData.TokenHash,
-		"redirect_to": webhook.EmailData.RedirectTo,
-		"site_url":    webhook.EmailData.SiteURL,
+		"user":       webhook.User,
+		"email_data": webhook.EmailData,
 	}
 }
 

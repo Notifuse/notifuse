@@ -183,10 +183,7 @@ func TestBuildTemplateDataFromAuthWebhook(t *testing.T) {
 
 	assert.NotNil(t, data)
 	assert.Equal(t, webhook.User, data["user"])
-	assert.Equal(t, "token-abc", data["token"])
-	assert.Equal(t, "hash-xyz", data["token_hash"])
-	assert.Equal(t, "https://example.com/confirm", data["redirect_to"])
-	assert.Equal(t, "https://site.example.com", data["site_url"])
+	assert.Equal(t, webhook.EmailData, data["email_data"])
 }
 
 func TestGetNotificationIDForAction(t *testing.T) {
