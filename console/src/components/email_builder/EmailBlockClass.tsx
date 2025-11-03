@@ -469,8 +469,20 @@ export class EmailBlockClass {
       type === 'mj-title' ||
       type === 'mj-preview'
     ) {
-      // For other content-supporting blocks, use content as-is
-      block.content = content
+      // For mj-text blocks, ensure content is wrapped in <p> tags (Tiptap always wraps in <p>)
+      if (type === 'mj-text') {
+        if (content) {
+          // Check if content is already wrapped in HTML tags
+          const isWrappedInHtml = /^\s*</.test(content)
+          block.content = isWrappedInHtml ? content : `<p>${content}</p>`
+        } else {
+          // Default content for new text blocks
+          block.content = '<p></p>'
+        }
+      } else {
+        // For other content-supporting blocks, use content as-is
+        block.content = content
+      }
     }
 
     // Add default social elements for mj-social blocks
