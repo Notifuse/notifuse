@@ -34,6 +34,85 @@ func createInvalidMJMLBlock(blockType notifuse_mjml.MJMLComponentType) notifuse_
 	}
 }
 
+func TestValidateTemplateID(t *testing.T) {
+	tests := []struct {
+		name    string
+		id      string
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name:    "valid alphanumeric",
+			id:      "template123",
+			wantErr: false,
+		},
+		{
+			name:    "valid with underscores",
+			id:      "my_template_123",
+			wantErr: false,
+		},
+		{
+			name:    "valid with hyphens",
+			id:      "my-template-123",
+			wantErr: false,
+		},
+		{
+			name:    "valid mixed underscores and hyphens",
+			id:      "my_template-123",
+			wantErr: false,
+		},
+		{
+			name:    "empty id",
+			id:      "",
+			wantErr: true,
+			errMsg:  "id is required",
+		},
+		{
+			name:    "too long",
+			id:      "this_is_a_very_long_template_id_that_exceeds_32_characters",
+			wantErr: true,
+			errMsg:  "id length must be between 1 and 32",
+		},
+		{
+			name:    "invalid characters - space",
+			id:      "my template",
+			wantErr: true,
+			errMsg:  "id must contain only letters, numbers, underscores, and hyphens",
+		},
+		{
+			name:    "invalid characters - special chars",
+			id:      "my@template",
+			wantErr: true,
+			errMsg:  "id must contain only letters, numbers, underscores, and hyphens",
+		},
+		{
+			name:    "invalid characters - dots",
+			id:      "my.template",
+			wantErr: true,
+			errMsg:  "id must contain only letters, numbers, underscores, and hyphens",
+		},
+		{
+			name:    "uppercase letters allowed",
+			id:      "MyTemplate_123",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := validateTemplateID(tt.id)
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errMsg != "" {
+					assert.Equal(t, tt.errMsg, err.Error())
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestTemplateCategory_Validate(t *testing.T) {
 	tests := []struct {
 		name     string

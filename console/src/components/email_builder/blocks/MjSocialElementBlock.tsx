@@ -239,7 +239,8 @@ export class MjSocialElementBlock extends BaseEmailBlock {
                 </div>
               </div>
             </Col>
-            <Col span={8}>
+            {/* Position control commented out - iconPosition is not supported by MJML */}
+            {/* <Col span={8}>
               <div className="mb-2">
                 <span className="text-xs text-gray-500">Position</span>
                 <div style={{ marginTop: '4px' }}>
@@ -254,7 +255,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
                   </Select>
                 </div>
               </div>
-            </Col>
+            </Col> */}
           </Row>
         </InputLayout>
 

@@ -1,4 +1,4 @@
-import type { MJMLComponentType } from '../components/email_builder/types'
+import type { MJMLComponentType } from './types'
 
 /**
  * Default attribute values for MJML components based on official documentation
@@ -249,7 +249,7 @@ export const MJ_SOCIAL_ELEMENT_DEFAULTS = {
   iconHeight: undefined, // defaults to icon-size
   iconSize: '20px',
   iconPadding: '0px',
-  iconPosition: 'right',
+  // iconPosition: 'right', // Not supported by MJML
   lineHeight: '22px',
   name: undefined,
   padding: '4px',

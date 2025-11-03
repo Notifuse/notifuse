@@ -214,7 +214,7 @@ export function CreateTemplateDrawer({
 
   const emailSender = useMemo(() => {
     if (emailProvider) {
-      return emailProvider.email_provider.senders.find((sender) => sender.id === senderID)
+      return emailProvider.email_provider?.senders.find((sender) => sender.id === senderID)
     }
     return null
   }, [emailProvider, senderID])
@@ -556,8 +556,9 @@ export function CreateTemplateDrawer({
                           {
                             required: true,
                             type: 'string',
-                            pattern: /^[a-z0-9]+(-[a-z0-9]+)*$/,
-                            message: 'ID must contain only lowercase letters, numbers, and hyphens'
+                            pattern: /^[a-z0-9_-]+$/,
+                            message:
+                              'ID must contain only lowercase letters, numbers, underscores, and hyphens'
                           },
                           {
                             validator: async (_rule, value) => {
@@ -680,7 +681,7 @@ export function CreateTemplateDrawer({
                         rules={[{ required: false, type: 'string' }]}
                       >
                         <Select
-                          options={emailProvider?.email_provider.senders.map((sender) => ({
+                          options={emailProvider?.email_provider?.senders.map((sender) => ({
                             value: sender.id,
                             label: `${sender.name} <${sender.email}>`
                           }))}

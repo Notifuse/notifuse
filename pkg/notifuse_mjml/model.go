@@ -235,11 +235,11 @@ type MJSocialElementAttributes struct {
 	IconHeight      *string `json:"iconHeight,omitempty"`
 	IconSize        *string `json:"iconSize,omitempty"`
 	IconPadding     *string `json:"iconPadding,omitempty"`
-	IconPosition    *string `json:"iconPosition,omitempty"` // left, right
-	Name            *string `json:"name,omitempty"`
-	Src             *string `json:"src,omitempty"`
-	Sizes           *string `json:"sizes,omitempty"`
-	Srcset          *string `json:"srcset,omitempty"`
+	// IconPosition    *string `json:"iconPosition,omitempty"` // not supported by MJML left, right
+	Name   *string `json:"name,omitempty"`
+	Src    *string `json:"src,omitempty"`
+	Sizes  *string `json:"sizes,omitempty"`
+	Srcset *string `json:"srcset,omitempty"`
 
 	// Text properties
 	Color          *string `json:"color,omitempty"`

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"time"
 
@@ -18,6 +19,23 @@ import (
 
 //go:generate mockgen -destination mocks/mock_template_service.go -package mocks github.com/Notifuse/notifuse/internal/domain TemplateService
 //go:generate mockgen -destination mocks/mock_template_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain TemplateRepository
+
+// templateIDPattern allows alphanumeric characters, underscores, and hyphens
+var templateIDPattern = regexp.MustCompile(`^[a-zA-Z0-9_-]+$`)
+
+// validateTemplateID checks if a template ID is valid
+func validateTemplateID(id string) error {
+	if id == "" {
+		return fmt.Errorf("id is required")
+	}
+	if len(id) > 32 {
+		return fmt.Errorf("id length must be between 1 and 32")
+	}
+	if !templateIDPattern.MatchString(id) {
+		return fmt.Errorf("id must contain only letters, numbers, underscores, and hyphens")
+	}
+	return nil
+}
 
 type TemplateCategory string
 
@@ -58,11 +76,8 @@ type Template struct {
 
 func (t *Template) Validate() error {
 	// First validate the template itself
-	if t.ID == "" {
-		return fmt.Errorf("invalid template: id is required")
-	}
-	if len(t.ID) > 32 {
-		return fmt.Errorf("invalid template: id length must be between 1 and 32")
+	if err := validateTemplateID(t.ID); err != nil {
+		return fmt.Errorf("invalid template: %w", err)
 	}
 
 	if t.Name == "" {
@@ -113,11 +128,8 @@ type TemplateReference struct {
 
 func (t *TemplateReference) Validate() error {
 	// Validate the template reference
-	if t.ID == "" {
-		return fmt.Errorf("invalid template reference: id is required")
-	}
-	if len(t.ID) > 32 {
-		return fmt.Errorf("invalid template reference: id length must be between 1 and 32")
+	if err := validateTemplateID(t.ID); err != nil {
+		return fmt.Errorf("invalid template reference: %w", err)
 	}
 
 	if t.Version < 0 {
@@ -287,11 +299,8 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 	if r.WorkspaceID == "" {
 		return nil, "", fmt.Errorf("invalid create template request: workspace_id is required")
 	}
-	if r.ID == "" {
-		return nil, "", fmt.Errorf("invalid create template request: id is required")
-	}
-	if len(r.ID) > 32 {
-		return nil, "", fmt.Errorf("invalid create template request: id length must be between 1 and 32")
+	if err := validateTemplateID(r.ID); err != nil {
+		return nil, "", fmt.Errorf("invalid create template request: %w", err)
 	}
 
 	if r.Name == "" {
@@ -376,11 +385,8 @@ func (r *GetTemplateRequest) FromURLParams(queryParams url.Values) (err error) {
 		return fmt.Errorf("invalid get template request: workspace_id is required")
 	}
 
-	if r.ID == "" {
-		return fmt.Errorf("invalid get template request: id is required")
-	}
-	if len(r.ID) > 32 {
-		return fmt.Errorf("invalid get template request: id length must be between 1 and 32")
+	if err := validateTemplateID(r.ID); err != nil {
+		return fmt.Errorf("invalid get template request: %w", err)
 	}
 
 	if versionStr != "" {
@@ -410,11 +416,8 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 	if r.WorkspaceID == "" {
 		return nil, "", fmt.Errorf("invalid update template request: workspace_id is required")
 	}
-	if r.ID == "" {
-		return nil, "", fmt.Errorf("invalid update template request: id is required")
-	}
-	if len(r.ID) > 32 {
-		return nil, "", fmt.Errorf("invalid update template request: id length must be between 1 and 32")
+	if err := validateTemplateID(r.ID); err != nil {
+		return nil, "", fmt.Errorf("invalid update template request: %w", err)
 	}
 
 	if r.Name == "" {
@@ -468,11 +471,8 @@ func (r *DeleteTemplateRequest) Validate() (workspaceID string, id string, err e
 		return "", "", fmt.Errorf("invalid delete template request: workspace_id is required")
 	}
 
-	if r.ID == "" {
-		return "", "", fmt.Errorf("invalid delete template request: id is required")
-	}
-	if len(r.ID) > 32 {
-		return "", "", fmt.Errorf("invalid delete template request: id length must be between 1 and 32")
+	if err := validateTemplateID(r.ID); err != nil {
+		return "", "", fmt.Errorf("invalid delete template request: %w", err)
 	}
 
 	return r.WorkspaceID, r.ID, nil

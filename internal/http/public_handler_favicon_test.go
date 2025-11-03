@@ -121,6 +121,34 @@ func TestResolveURL(t *testing.T) {
 			hasError: false,
 		},
 		{
+			name:     "protocol-relative URL",
+			baseURL:  "https://example.com",
+			href:     "//cdn.example.com/favicon.ico",
+			expected: "https://cdn.example.com/favicon.ico",
+			hasError: false,
+		},
+		{
+			name:     "protocol-relative URL with http base",
+			baseURL:  "http://example.com",
+			href:     "//cdn.example.com/favicon.ico",
+			expected: "http://cdn.example.com/favicon.ico",
+			hasError: false,
+		},
+		{
+			name:     "protocol-relative URL with query params",
+			baseURL:  "https://example.com",
+			href:     "//www.tediber.com/cdn/shop/files/180.png?crop=center&height=180&v=1741947022&width=180",
+			expected: "https://www.tediber.com/cdn/shop/files/180.png?crop=center&height=180&v=1741947022&width=180",
+			hasError: false,
+		},
+		{
+			name:     "relative URL with query params",
+			baseURL:  "https://example.com",
+			href:     "/favicon.ico?v=123",
+			expected: "https://example.com/favicon.ico?v=123",
+			hasError: false,
+		},
+		{
 			name:     "invalid base URL",
 			baseURL:  "://invalid",
 			href:     "/favicon.ico",
@@ -130,9 +158,9 @@ func TestResolveURL(t *testing.T) {
 		{
 			name:     "invalid href",
 			baseURL:  "https://example.com",
-			href:     "://invalid", // This isn't actually invalid for URL resolution as it's treated as a relative path
-			expected: "https://example.com/://invalid",
-			hasError: false,
+			href:     "://invalid", // Invalid URL format that url.Parse cannot handle
+			expected: "",
+			hasError: true,
 		},
 	}
 
@@ -1157,7 +1185,31 @@ func TestResolveURL_EdgeCases(t *testing.T) {
 			name:     "relative path with query parameters",
 			baseURL:  "https://example.com",
 			href:     "/image.png?v=1",
-			expected: "https://example.com/image.png%3Fv=1", // URL encoding happens
+			expected: "https://example.com/image.png?v=1", // Query params are now preserved correctly
+		},
+		{
+			name:     "protocol-relative URL",
+			baseURL:  "https://example.com",
+			href:     "//cdn.example.com/image.png",
+			expected: "https://cdn.example.com/image.png",
+		},
+		{
+			name:     "protocol-relative URL with query parameters",
+			baseURL:  "https://example.com",
+			href:     "//cdn.example.com/image.png?v=1&size=large",
+			expected: "https://cdn.example.com/image.png?v=1&size=large",
+		},
+		{
+			name:     "relative path with fragment",
+			baseURL:  "https://example.com",
+			href:     "/image.png#section",
+			expected: "https://example.com/image.png#section",
+		},
+		{
+			name:     "relative path with query and fragment",
+			baseURL:  "https://example.com",
+			href:     "/image.png?v=1#section",
+			expected: "https://example.com/image.png?v=1#section",
 		},
 	}
 
@@ -1198,7 +1250,7 @@ func TestFindManifestIcon_EdgeCases(t *testing.T) {
 	})
 
 	t.Run("with manifest icon URL resolution error", func(t *testing.T) {
-		// Create a mock HTTP client that returns invalid JSON
+		// Create a mock HTTP client that returns an invalid icon URL
 		mockClient := &http.Client{
 			Transport: &mockTransport{
 				responses: map[string]*http.Response{
@@ -1223,8 +1275,8 @@ func TestFindManifestIcon_EdgeCases(t *testing.T) {
 		doc := createMockHTMLDoc(t, html)
 
 		result := findManifestIcon(doc, baseURL)
-		// The URL resolution actually succeeds as it's treated as a relative path
-		assert.Equal(t, "https://example.com/://invalid-icon-url", result)
+		// The URL resolution now correctly fails for invalid URLs
+		assert.Equal(t, "", result)
 	})
 
 	t.Run("with network error for manifest fetch", func(t *testing.T) {

@@ -332,10 +332,24 @@ func tryDefaultFavicon(baseURL *url.URL) string {
 }
 
 func resolveURL(baseURL *url.URL, href string) (string, error) {
+	// Handle absolute URLs
 	if strings.HasPrefix(href, "http://") || strings.HasPrefix(href, "https://") {
 		return href, nil
 	}
-	resolvedURL := baseURL.ResolveReference(&url.URL{Path: href})
+
+	// Handle protocol-relative URLs (//domain.com/path)
+	if strings.HasPrefix(href, "//") {
+		return baseURL.Scheme + ":" + href, nil
+	}
+
+	// Parse the href to properly handle paths with query strings
+	refURL, err := url.Parse(href)
+	if err != nil {
+		return "", err
+	}
+
+	// Resolve the reference URL against the base URL
+	resolvedURL := baseURL.ResolveReference(refURL)
 	return resolvedURL.String(), nil
 }
 

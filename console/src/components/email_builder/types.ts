@@ -566,7 +566,7 @@ export interface MJSocialElementAttributes {
   iconHeight?: string
   iconSize?: string
   iconPadding?: string
-  iconPosition?: 'left' | 'right'
+  // iconPosition?: 'left' | 'right' // Not supported by MJML
   name?: string
   src?: string
   sizes?: string
