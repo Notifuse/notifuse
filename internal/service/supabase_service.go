@@ -85,18 +85,12 @@ func (s *SupabaseService) ProcessAuthEmailHook(ctx context.Context, workspaceID,
 	// Validate webhook signature
 	signatureKey := integration.SupabaseSettings.AuthEmailHook.SignatureKey
 
-	// Diagnostic logging for debugging signature key issues
-	s.logger.WithField("workspace_id", workspaceID).
-		WithField("integration_id", integrationID).
-		WithField("signature_key_length", len(signatureKey)).
-		WithField("signature_key_has_whsec_prefix", len(signatureKey) >= 6 && signatureKey[:6] == "whsec_").
-		WithField("signature_key_first_10", func() string {
-			if len(signatureKey) >= 10 {
-				return signatureKey[:10]
-			}
-			return signatureKey
-		}()).
-		Info("Attempting webhook signature validation")
+	// Supabase provides keys in format "v1,whsec_<base64>"
+	// Following Supabase's official example, we strip "v1,whsec_" to get just the base64 data
+	// Reference: https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook
+	if len(signatureKey) > 9 && signatureKey[:9] == "v1,whsec_" {
+		signatureKey = signatureKey[9:] // Remove "v1,whsec_" prefix
+	}
 
 	if err := domain.ValidateSupabaseWebhookSignature(payload, webhookSignature, webhookTimestamp, webhookID, signatureKey); err != nil {
 		s.logger.WithField("error", err.Error()).
@@ -275,18 +269,12 @@ func (s *SupabaseService) ProcessUserCreatedHook(ctx context.Context, workspaceI
 	// Validate webhook signature
 	signatureKey := integration.SupabaseSettings.BeforeUserCreatedHook.SignatureKey
 
-	// Diagnostic logging for debugging signature key issues
-	s.logger.WithField("workspace_id", workspaceID).
-		WithField("integration_id", integrationID).
-		WithField("signature_key_length", len(signatureKey)).
-		WithField("signature_key_has_whsec_prefix", len(signatureKey) >= 6 && signatureKey[:6] == "whsec_").
-		WithField("signature_key_first_10", func() string {
-			if len(signatureKey) >= 10 {
-				return signatureKey[:10]
-			}
-			return signatureKey
-		}()).
-		Info("Attempting webhook signature validation for before user created hook")
+	// Supabase provides keys in format "v1,whsec_<base64>"
+	// Following Supabase's official example, we strip "v1,whsec_" to get just the base64 data
+	// Reference: https://supabase.com/docs/guides/auth/auth-hooks/send-email-hook
+	if len(signatureKey) > 9 && signatureKey[:9] == "v1,whsec_" {
+		signatureKey = signatureKey[9:] // Remove "v1,whsec_" prefix
+	}
 
 	if err := domain.ValidateSupabaseWebhookSignature(payload, webhookSignature, webhookTimestamp, webhookID, signatureKey); err != nil {
 		s.logger.WithField("error", err.Error()).

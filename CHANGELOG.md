@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [16.0] - 2025-11-03
+
+### Database Schema Changes
+
+- Added `integration_id` column to `transactional_notifications` and `templates` tables for integration-managed resources
+
+### Features
+
+- **Supabase Integration**: Connect Supabase Auth with Notifuse
+  - Auth Email Hook: Send branded authentication emails (signup, magic link, password recovery, email change, reauthentication)
+  - Before User Created Hook: Automatically sync new Supabase users to Notifuse contacts
+  - Auto-generated email templates for all Supabase auth events with proper Liquid variables
+  - HMAC-SHA256 webhook signature verification for security
+  - Optional automatic list subscription and disposable email rejection
+  - Field mapping: Supabase `user_metadata` to configurable Notifuse custom JSON field
+- Integration-managed templates and transactional notifications cannot be deleted (but can be edited)
+
 ## [15.0] - 2025-11-01
 
 ### 🔒 SECURITY UPGRADE: PASETO → JWT + Enhanced Authentication Security
