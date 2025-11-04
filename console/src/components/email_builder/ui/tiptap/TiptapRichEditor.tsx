@@ -4,6 +4,7 @@ import type { TiptapRichEditorProps } from './shared/types'
 import { createRichExtensions } from './shared/extensions'
 import { injectTiptapStyles } from './shared/styles'
 import { TiptapToolbar } from './components/TiptapToolbar'
+import { sanitizeRichContent } from './shared/utils'
 
 export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
   content = '',
@@ -34,7 +35,7 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
   const editor = useEditor(
     {
       extensions: createRichExtensions(),
-      content,
+      content: sanitizeRichContent(content),
       editable: !readOnly,
       editorProps: {
         attributes: {
@@ -59,7 +60,26 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
   useEffect(() => {
     if (editor && content !== editor.getHTML()) {
       isUpdatingFromProps.current = true
-      editor.commands.setContent(content, false) // false = don't emit update
+      const sanitizedContent = sanitizeRichContent(content)
+
+      try {
+        editor.commands.setContent(sanitizedContent, false) // false = don't emit update
+      } catch (error) {
+        console.error('Error setting content in rich editor:', error)
+
+        // Fallback: try to extract just the text content
+        try {
+          const tempDiv = document.createElement('div')
+          tempDiv.innerHTML = sanitizedContent
+          const textOnly = tempDiv.textContent || tempDiv.innerText || ''
+          editor.commands.setContent(`<p>${textOnly}</p>`, false)
+          console.warn('Fell back to text-only content due to parsing error')
+        } catch (fallbackError) {
+          console.error('Fallback content extraction also failed:', fallbackError)
+          // Keep the editor as is if even fallback fails
+        }
+      }
+
       // Reset the flag after a short delay to allow for any async operations
       setTimeout(() => {
         isUpdatingFromProps.current = false

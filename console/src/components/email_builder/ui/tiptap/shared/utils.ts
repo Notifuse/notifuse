@@ -117,6 +117,52 @@ export const applyInlineFormatting = (editor: any, action: () => void) => {
   }
 }
 
+// Helper function to strip plain spans (spans without style attributes) while preserving inner content
+export const stripPlainSpans = (htmlContent: string): string => {
+  if (!htmlContent || htmlContent.trim() === '') {
+    return htmlContent
+  }
+
+  try {
+    // Use DOM parsing for accurate manipulation
+    const tempDiv = document.createElement('div')
+    tempDiv.innerHTML = htmlContent
+
+    // Recursively process all span elements
+    const processSpans = (element: Element) => {
+      const spans = Array.from(element.querySelectorAll('span'))
+
+      // Process in reverse order to handle nested spans correctly
+      spans.reverse().forEach((span) => {
+        // Check if this span has any meaningful attributes
+        // We consider style, class with style-related content, or data attributes as meaningful
+        const hasStyle = span.hasAttribute('style') && span.getAttribute('style')?.trim()
+        const hasDataInlineDoc = span.hasAttribute('data-inline-doc')
+        const hasClass = span.hasAttribute('class') && span.getAttribute('class')?.trim()
+
+        // Strip the span if it has no styling attributes
+        if (!hasStyle && !hasDataInlineDoc && !hasClass) {
+          // Create a document fragment with the span's children
+          const fragment = document.createDocumentFragment()
+          while (span.firstChild) {
+            fragment.appendChild(span.firstChild)
+          }
+
+          // Replace the span with its contents
+          span.parentNode?.replaceChild(fragment, span)
+        }
+      })
+    }
+
+    processSpans(tempDiv)
+
+    return tempDiv.innerHTML
+  } catch (error) {
+    console.error('Error during plain span stripping:', error)
+    return htmlContent
+  }
+}
+
 // Helper function to convert block-level HTML to inline spans
 export const convertBlockToInline = (htmlContent: string): string => {
   if (!htmlContent) {
@@ -253,8 +299,11 @@ export const prepareInlineContent = (content: string): string => {
   }
 
   try {
-    // First, convert block-level tags to inline spans
-    let processedContent = convertBlockToInline(content)
+    // First, strip plain spans to avoid TipTap errors
+    let processedContent = stripPlainSpans(content)
+
+    // Then, convert block-level tags to inline spans
+    processedContent = convertBlockToInline(processedContent)
 
     // For inline mode, wrap the content in our custom inline document
     // if it's not already wrapped
@@ -271,6 +320,22 @@ export const prepareInlineContent = (content: string): string => {
   }
 }
 
+// Helper function to sanitize content for rich text editor (strips plain spans, preserves styled content)
+export const sanitizeRichContent = (htmlContent: string): string => {
+  if (!htmlContent || htmlContent.trim() === '') {
+    return htmlContent
+  }
+
+  try {
+    // Strip plain spans while preserving styled spans and other valid HTML
+    const sanitized = stripPlainSpans(htmlContent)
+    return sanitized
+  } catch (error) {
+    console.error('Error during rich content sanitization:', error)
+    return htmlContent
+  }
+}
+
 // Helper function to get initial content for inline editor
 export const getInitialInlineContent = (content: string): string => {
   if (!content) {
@@ -278,9 +343,12 @@ export const getInitialInlineContent = (content: string): string => {
   }
 
   try {
+    // First, strip plain spans to avoid TipTap errors
+    let processedContent = stripPlainSpans(content)
+
     // Parse the content to check for block elements
     const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = content
+    tempDiv.innerHTML = processedContent
 
     // Check if we have block elements that need conversion
     const blockElements = tempDiv.querySelectorAll(
@@ -303,7 +371,7 @@ export const getInitialInlineContent = (content: string): string => {
       return `<span data-inline-doc="">${textContent}</span>`
     } else {
       // No block elements, just wrap the content
-      return `<span data-inline-doc="">${content}</span>`
+      return `<span data-inline-doc="">${processedContent}</span>`
     }
   } catch (error) {
     console.error('Error processing initial content:', error)

@@ -76,6 +76,19 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
           editor.commands.setContent(contentForEditor, false) // false = don't emit update
         } catch (error) {
           console.error('Error setting content in inline editor:', error)
+
+          // Fallback: try to extract just the text content
+          try {
+            const tempDiv = document.createElement('div')
+            tempDiv.innerHTML = content
+            const textOnly = tempDiv.textContent || tempDiv.innerText || ''
+            const fallbackContent = `<span data-inline-doc="">${textOnly}</span>`
+            editor.commands.setContent(fallbackContent, false)
+            console.warn('Fell back to text-only content due to parsing error')
+          } catch (fallbackError) {
+            console.error('Fallback content extraction also failed:', fallbackError)
+            // Keep the editor as is if even fallback fails
+          }
         }
 
         // Reset the flag after a short delay to allow for any async operations
