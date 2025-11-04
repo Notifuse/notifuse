@@ -940,8 +940,8 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 
 		// Setup message repository mock
 		mockMessageRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
-			DoAndReturn(func(_ context.Context, wsID string, msgHistory *domain.MessageHistory) error {
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+			DoAndReturn(func(_ context.Context, wsID string, _ string, msgHistory *domain.MessageHistory) error {
 				// Verify message history properties
 				assert.Equal(t, messageID, msgHistory.ID)
 				assert.Equal(t, contact.Email, msgHistory.ContactEmail)
@@ -1129,7 +1129,7 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 
 		// Setup message repository mock to return an error
 		mockMessageRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
 			Return(assert.AnError)
 
 		// Logger should log the error
@@ -1179,7 +1179,7 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 
 		// Setup message repository mock
 		mockMessageRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
 			Return(nil)
 
 		// Setup email provider mock to return an error
@@ -1247,7 +1247,7 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 
 		// Setup message repository mock
 		mockMessageRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
 			Return(nil)
 
 		// Setup email provider mock to return an error
@@ -1312,7 +1312,7 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 
 		// Setup message repository mock
 		mockMessageRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
 			Return(nil)
 
 		// Setup email provider mock with custom matcher to verify from_name override
@@ -1321,11 +1321,11 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 				gomock.Any(),
 				gomock.Any(),
 			).DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
-				// Verify that from_name was overridden
-				assert.Equal(t, customFromName, req.FromName, "FromName should be overridden with custom value")
-				assert.Equal(t, emailSender.Email, req.FromAddress, "FromAddress should remain unchanged")
-				return nil
-			})
+			// Verify that from_name was overridden
+			assert.Equal(t, customFromName, req.FromName, "FromName should be overridden with custom value")
+			assert.Equal(t, emailSender.Email, req.FromAddress, "FromAddress should remain unchanged")
+			return nil
+		})
 
 		// Call method under test with from_name override
 		optionsWithOverride := domain.EmailOptions{
@@ -1375,7 +1375,7 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 
 		// Setup message repository mock
 		mockMessageRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
 			Return(nil)
 
 		// Setup email provider mock to verify default from_name is used
@@ -1384,11 +1384,11 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 				gomock.Any(),
 				gomock.Any(),
 			).DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
-				// Verify that default sender name is used
-				assert.Equal(t, emailSender.Name, req.FromName, "FromName should use default sender name")
-				assert.Equal(t, emailSender.Email, req.FromAddress, "FromAddress should remain unchanged")
-				return nil
-			})
+			// Verify that default sender name is used
+			assert.Equal(t, emailSender.Name, req.FromName, "FromName should use default sender name")
+			assert.Equal(t, emailSender.Email, req.FromAddress, "FromAddress should remain unchanged")
+			return nil
+		})
 
 		// Call method under test without from_name override
 		optionsWithoutOverride := domain.EmailOptions{
@@ -1440,7 +1440,7 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 
 		// Setup message repository mock
 		mockMessageRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
 			Return(nil)
 
 		// Setup email provider mock to verify default from_name is used when empty string
@@ -1449,10 +1449,10 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 				gomock.Any(),
 				gomock.Any(),
 			).DoAndReturn(func(_ context.Context, req domain.SendEmailProviderRequest) error {
-				// Verify that default sender name is used (empty string should not override)
-				assert.Equal(t, emailSender.Name, req.FromName, "FromName should use default sender name when override is empty string")
-				return nil
-			})
+			// Verify that default sender name is used (empty string should not override)
+			assert.Equal(t, emailSender.Name, req.FromName, "FromName should use default sender name when override is empty string")
+			return nil
+		})
 
 		// Call method under test with empty string from_name
 		optionsWithEmptyOverride := domain.EmailOptions{

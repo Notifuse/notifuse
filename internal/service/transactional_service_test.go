@@ -1533,7 +1533,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 			ExternalID: &externalID,
 		}
 		mockMsgHistoryRepo.EXPECT().
-			GetByExternalID(gomock.Any(), workspace, externalID).
+			GetByExternalID(gomock.Any(), workspace, gomock.Any(), externalID).
 			Return(existingMessage, nil)
 
 		// Call the method
@@ -1829,7 +1829,7 @@ func TestTransactionalNotificationService_SendNotification(t *testing.T) {
 
 		// External ID check fails with a real database error (not "not found")
 		mockMsgHistoryRepo.EXPECT().
-			GetByExternalID(gomock.Any(), workspace, externalID).
+			GetByExternalID(gomock.Any(), workspace, gomock.Any(), externalID).
 			Return(nil, errors.New("database connection failed"))
 
 		// Call the method
@@ -1973,7 +1973,7 @@ func TestTransactionalNotificationService_TestTemplate(t *testing.T) {
 
 	// Expect message history creation
 	mockMsgHistoryRepo.EXPECT().
-		Create(gomock.Any(), workspaceID, gomock.Any()).
+		Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
 		Return(nil)
 
 	// Call the method
@@ -2122,8 +2122,8 @@ func TestTransactionalNotificationService_TestTemplate_WithChannelOptions(t *tes
 	}
 
 	mockMsgHistoryRepo.EXPECT().
-		Create(gomock.Any(), workspaceID, gomock.Any()).
-		DoAndReturn(func(ctx context.Context, workspaceID string, message *domain.MessageHistory) error {
+		Create(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workspaceID string, secretKey string, message *domain.MessageHistory) error {
 			// Verify ChannelOptions are set
 			require.NotNil(t, message.ChannelOptions)
 			require.NotNil(t, message.ChannelOptions.FromName)

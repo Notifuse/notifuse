@@ -148,25 +148,25 @@ type MessageHistoryStatusSum struct {
 // MessageHistoryRepository defines methods for message history persistence
 type MessageHistoryRepository interface {
 	// Create adds a new message history record
-	Create(ctx context.Context, workspaceID string, message *MessageHistory) error
+	Create(ctx context.Context, workspaceID string, secretKey string, message *MessageHistory) error
 
 	// Update updates an existing message history record
 	Update(ctx context.Context, workspaceID string, message *MessageHistory) error
 
 	// Get retrieves a message history by ID
-	Get(ctx context.Context, workspaceID, id string) (*MessageHistory, error)
+	Get(ctx context.Context, workspaceID string, secretKey string, id string) (*MessageHistory, error)
 
 	// GetByExternalID retrieves a message history by external ID for idempotency checks
-	GetByExternalID(ctx context.Context, workspaceID, externalID string) (*MessageHistory, error)
+	GetByExternalID(ctx context.Context, workspaceID string, secretKey string, externalID string) (*MessageHistory, error)
 
 	// GetByContact retrieves message history for a specific contact
-	GetByContact(ctx context.Context, workspaceID, contactEmail string, limit, offset int) ([]*MessageHistory, int, error)
+	GetByContact(ctx context.Context, workspaceID string, secretKey string, contactEmail string, limit, offset int) ([]*MessageHistory, int, error)
 
 	// GetByBroadcast retrieves message history for a specific broadcast
-	GetByBroadcast(ctx context.Context, workspaceID, broadcastID string, limit, offset int) ([]*MessageHistory, int, error)
+	GetByBroadcast(ctx context.Context, workspaceID string, secretKey string, broadcastID string, limit, offset int) ([]*MessageHistory, int, error)
 
 	// ListMessages retrieves message history with cursor-based pagination and filtering
-	ListMessages(ctx context.Context, workspaceID string, params MessageListParams) ([]*MessageHistory, string, error)
+	ListMessages(ctx context.Context, workspaceID string, secretKey string, params MessageListParams) ([]*MessageHistory, string, error)
 
 	// SetStatusesIfNotSet updates multiple message statuses in a batch if they haven't been set before
 	SetStatusesIfNotSet(ctx context.Context, workspaceID string, updates []MessageEventUpdate) error

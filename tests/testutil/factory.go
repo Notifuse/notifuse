@@ -235,7 +235,13 @@ func (tdf *TestDataFactory) CreateMessageHistory(workspaceID string, opts ...Mes
 		opt(message)
 	}
 
-	err := tdf.messageHistoryRepo.Create(context.Background(), workspaceID, message)
+	// Get workspace to retrieve secret key for encryption
+	workspace, err := tdf.workspaceRepo.GetByID(context.Background(), workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace: %w", err)
+	}
+
+	err = tdf.messageHistoryRepo.Create(context.Background(), workspaceID, workspace.Settings.SecretKey, message)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create message history via repository: %w", err)
 	}

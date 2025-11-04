@@ -652,7 +652,7 @@ func (a *App) InitServices() error {
 	a.broadcastService.SetTaskService(a.taskService)
 
 	// Initialize message history service
-	a.messageHistoryService = service.NewMessageHistoryService(a.messageHistoryRepo, a.logger, a.authService)
+	a.messageHistoryService = service.NewMessageHistoryService(a.messageHistoryRepo, a.workspaceRepo, a.logger, a.authService)
 
 	// Initialize notification center service
 	a.notificationCenterService = service.NewNotificationCenterService(

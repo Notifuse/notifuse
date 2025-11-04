@@ -537,7 +537,7 @@ func (s *TransactionalNotificationService) SendNotification(
 
 	// Check for idempotency if external_id is provided
 	if params.ExternalID != nil && *params.ExternalID != "" {
-		existingMessage, err := s.messageHistoryRepo.GetByExternalID(ctx, workspaceID, *params.ExternalID)
+		existingMessage, err := s.messageHistoryRepo.GetByExternalID(ctx, workspaceID, workspace.Settings.SecretKey, *params.ExternalID)
 		if err == nil && existingMessage != nil {
 			// Message with this external_id already exists, return success with existing message ID
 			s.logger.WithFields(map[string]interface{}{
@@ -843,7 +843,7 @@ func (s *TransactionalNotificationService) TestTemplate(ctx context.Context, wor
 	}
 
 	// record the message history
-	return s.messageHistoryRepo.Create(ctx, workspaceID, &domain.MessageHistory{
+	return s.messageHistoryRepo.Create(ctx, workspaceID, workspace.Settings.SecretKey, &domain.MessageHistory{
 		ID:              messageID,
 		ExternalID:      nil, // No external ID for test messages
 		ContactEmail:    recipientEmail,

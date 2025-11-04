@@ -8,6 +8,16 @@ All notable changes to this project will be documented in this file.
 
 - Added `integration_id` column to `transactional_notifications` and `templates` tables for integration-managed resources
 
+### Security
+
+- **Message Data Encryption**: Template data variables are now encrypted at rest in the database
+  - Message history `message_data.data` field is encrypted using AES-256-GCM with workspace secret key
+  - Only new messages are encrypted (no migration of existing data)
+  - Automatic encryption on message creation and decryption on retrieval
+  - Backward compatible: unencrypted messages from before this version can still be read
+  - Metadata remains unencrypted for query performance
+  - Protects sensitive data like tokens, API keys, and personal information in template variables
+
 ### Features
 
 - **Supabase Integration**: Connect Supabase Auth with Notifuse

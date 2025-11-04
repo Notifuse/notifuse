@@ -20,6 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const testSecretKey = "test-secret-key-for-encryption-tests"
+
 // StringArrayConverter is a custom ValueConverter for pq.StringArray to handle it in sqlmock.
 // This is needed because sqlmock doesn't natively support PostgreSQL array types.
 //
@@ -135,7 +137,7 @@ func TestMessageHistoryRepository_Create(t *testing.T) {
 			).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		err := repo.Create(ctx, workspaceID, message)
+		err := repo.Create(ctx, workspaceID, testSecretKey, message)
 		require.NoError(t, err)
 	})
 
@@ -144,7 +146,7 @@ func TestMessageHistoryRepository_Create(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(nil, errors.New("connection error"))
 
-		err := repo.Create(ctx, workspaceID, message)
+		err := repo.Create(ctx, workspaceID, testSecretKey, message)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to get workspace connection")
 	})
@@ -181,7 +183,7 @@ func TestMessageHistoryRepository_Create(t *testing.T) {
 			).
 			WillReturnError(errors.New("execution error"))
 
-		err := repo.Create(ctx, workspaceID, message)
+		err := repo.Create(ctx, workspaceID, testSecretKey, message)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to create message history")
 	})
@@ -328,7 +330,7 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 			WithArgs(messageID).
 			WillReturnRows(rows)
 
-		result, err := repo.Get(ctx, workspaceID, messageID)
+		result, err := repo.Get(ctx, workspaceID, testSecretKey, messageID)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, message.ID, result.ID)
@@ -345,7 +347,7 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 			WithArgs(messageID).
 			WillReturnError(sql.ErrNoRows)
 
-		result, err := repo.Get(ctx, workspaceID, messageID)
+		result, err := repo.Get(ctx, workspaceID, testSecretKey, messageID)
 		require.Error(t, err)
 		require.Nil(t, result)
 		require.Contains(t, err.Error(), "message history with id msg-123 not found")
@@ -356,7 +358,7 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(nil, errors.New("connection error"))
 
-		result, err := repo.Get(ctx, workspaceID, messageID)
+		result, err := repo.Get(ctx, workspaceID, testSecretKey, messageID)
 		require.Error(t, err)
 		require.Nil(t, result)
 		require.Contains(t, err.Error(), "failed to get workspace connection")
@@ -383,7 +385,7 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 			WithArgs(messageID).
 			WillReturnRows(rows)
 
-		result, err := repo.Get(ctx, workspaceID, messageID)
+		result, err := repo.Get(ctx, workspaceID, testSecretKey, messageID)
 		require.Error(t, err)
 		require.Nil(t, result)
 		require.Contains(t, err.Error(), "failed to get message history")
@@ -441,7 +443,7 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 			WithArgs(externalID).
 			WillReturnRows(rows)
 
-		result, err := repo.GetByExternalID(ctx, workspaceID, externalID)
+		result, err := repo.GetByExternalID(ctx, workspaceID, testSecretKey, externalID)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, message.ID, result.ID)
@@ -458,7 +460,7 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 			WithArgs(externalID).
 			WillReturnError(sql.ErrNoRows)
 
-		result, err := repo.GetByExternalID(ctx, workspaceID, externalID)
+		result, err := repo.GetByExternalID(ctx, workspaceID, testSecretKey, externalID)
 		require.Error(t, err)
 		require.Nil(t, result)
 		require.Contains(t, err.Error(), "message history with external_id ext-123 not found")
@@ -469,7 +471,7 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(nil, errors.New("connection error"))
 
-		result, err := repo.GetByExternalID(ctx, workspaceID, externalID)
+		result, err := repo.GetByExternalID(ctx, workspaceID, testSecretKey, externalID)
 		require.Error(t, err)
 		require.Nil(t, result)
 		require.Contains(t, err.Error(), "failed to get workspace connection")
@@ -496,7 +498,7 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 			WithArgs(externalID).
 			WillReturnRows(rows)
 
-		result, err := repo.GetByExternalID(ctx, workspaceID, externalID)
+		result, err := repo.GetByExternalID(ctx, workspaceID, testSecretKey, externalID)
 		require.Error(t, err)
 		require.Nil(t, result)
 		require.Contains(t, err.Error(), "failed to get message history by external_id")
@@ -563,7 +565,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 			WithArgs(contactEmail, limit, offset).
 			WillReturnRows(dataRows)
 
-		results, count, err := repo.GetByContact(ctx, workspaceID, contactEmail, limit, offset)
+		results, count, err := repo.GetByContact(ctx, workspaceID, testSecretKey, contactEmail, limit, offset)
 		require.NoError(t, err)
 		require.NotNil(t, results)
 		require.Equal(t, 1, count)
@@ -577,7 +579,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(nil, errors.New("connection error"))
 
-		results, count, err := repo.GetByContact(ctx, workspaceID, contactEmail, limit, offset)
+		results, count, err := repo.GetByContact(ctx, workspaceID, testSecretKey, contactEmail, limit, offset)
 		require.Error(t, err)
 		require.Nil(t, results)
 		require.Zero(t, count)
@@ -593,7 +595,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 			WithArgs(contactEmail).
 			WillReturnError(errors.New("count error"))
 
-		results, count, err := repo.GetByContact(ctx, workspaceID, contactEmail, limit, offset)
+		results, count, err := repo.GetByContact(ctx, workspaceID, testSecretKey, contactEmail, limit, offset)
 		require.Error(t, err)
 		require.Nil(t, results)
 		require.Zero(t, count)
@@ -616,7 +618,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 			WithArgs(contactEmail, limit, offset).
 			WillReturnError(errors.New("query error"))
 
-		results, count, err := repo.GetByContact(ctx, workspaceID, contactEmail, limit, offset)
+		results, count, err := repo.GetByContact(ctx, workspaceID, testSecretKey, contactEmail, limit, offset)
 		require.Error(t, err)
 		require.Nil(t, results)
 		require.Zero(t, count)
@@ -642,7 +644,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 			WithArgs(contactEmail, limit, offset).
 			WillReturnRows(dataRows)
 
-		results, count, err := repo.GetByContact(ctx, workspaceID, contactEmail, limit, offset)
+		results, count, err := repo.GetByContact(ctx, workspaceID, testSecretKey, contactEmail, limit, offset)
 		require.Error(t, err)
 		require.Nil(t, results)
 		require.Zero(t, count)
@@ -694,7 +696,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 			))
 
 		// Call with negative limit and offset
-		results, count, err := repo.GetByContact(ctx, workspaceID, contactEmail, -5, -10)
+		results, count, err := repo.GetByContact(ctx, workspaceID, testSecretKey, contactEmail, -5, -10)
 		require.NoError(t, err)
 		require.NotNil(t, results)
 		require.Equal(t, 1, count)
@@ -762,7 +764,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 			WithArgs(broadcastID, limit, offset).
 			WillReturnRows(dataRows)
 
-		results, count, err := repo.GetByBroadcast(ctx, workspaceID, broadcastID, limit, offset)
+		results, count, err := repo.GetByBroadcast(ctx, workspaceID, testSecretKey, broadcastID, limit, offset)
 		require.NoError(t, err)
 		require.NotNil(t, results)
 		require.Equal(t, 1, count)
@@ -776,7 +778,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(nil, errors.New("connection error"))
 
-		results, count, err := repo.GetByBroadcast(ctx, workspaceID, broadcastID, limit, offset)
+		results, count, err := repo.GetByBroadcast(ctx, workspaceID, testSecretKey, broadcastID, limit, offset)
 		require.Error(t, err)
 		require.Nil(t, results)
 		require.Zero(t, count)
@@ -792,7 +794,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 			WithArgs(broadcastID).
 			WillReturnError(errors.New("count error"))
 
-		results, count, err := repo.GetByBroadcast(ctx, workspaceID, broadcastID, limit, offset)
+		results, count, err := repo.GetByBroadcast(ctx, workspaceID, testSecretKey, broadcastID, limit, offset)
 		require.Error(t, err)
 		require.Nil(t, results)
 		require.Zero(t, count)
@@ -815,7 +817,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 			WithArgs(broadcastID, limit, offset).
 			WillReturnError(errors.New("query error"))
 
-		results, count, err := repo.GetByBroadcast(ctx, workspaceID, broadcastID, limit, offset)
+		results, count, err := repo.GetByBroadcast(ctx, workspaceID, testSecretKey, broadcastID, limit, offset)
 		require.Error(t, err)
 		require.Nil(t, results)
 		require.Zero(t, count)
@@ -841,7 +843,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 			WithArgs(broadcastID, limit, offset).
 			WillReturnRows(dataRows)
 
-		results, count, err := repo.GetByBroadcast(ctx, workspaceID, broadcastID, limit, offset)
+		results, count, err := repo.GetByBroadcast(ctx, workspaceID, testSecretKey, broadcastID, limit, offset)
 		require.Error(t, err)
 		require.Nil(t, results)
 		require.Zero(t, count)
@@ -893,7 +895,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 			))
 
 		// Call with negative limit and offset
-		results, count, err := repo.GetByBroadcast(ctx, workspaceID, broadcastID, -5, -10)
+		results, count, err := repo.GetByBroadcast(ctx, workspaceID, testSecretKey, broadcastID, -5, -10)
 		require.NoError(t, err)
 		require.NotNil(t, results)
 		require.Equal(t, 1, count)
@@ -1588,7 +1590,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 21`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 2)
 		assert.Equal(t, "", nextCursor) // No next cursor since we have fewer than limit+1 results
@@ -1625,7 +1627,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			WithArgs("email").
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -1661,7 +1663,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			WithArgs("user1@example.com").
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -1697,7 +1699,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			WithArgs("broadcast-1").
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -1733,7 +1735,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			WithArgs("template-1").
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -1773,7 +1775,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE delivered_at IS NOT NULL AND opened_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -1812,7 +1814,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			WithArgs(sentAfter, sentBefore).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -1854,7 +1856,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			WithArgs(cursorTime, cursorTime, message1.ID).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -1897,7 +1899,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 2`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)        // Should return only the limit, not the extra row
 		assert.NotEqual(t, "", nextCursor) // Should have a next cursor
@@ -1920,7 +1922,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(nil, errors.New("connection error"))
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to get workspace connection")
 		require.Nil(t, messages)
@@ -1937,7 +1939,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "invalid cursor encoding")
 		require.Nil(t, messages)
@@ -1957,7 +1959,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "invalid cursor format")
 		require.Nil(t, messages)
@@ -1977,7 +1979,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "invalid cursor timestamp format")
 		require.Nil(t, messages)
@@ -1996,7 +1998,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnError(errors.New("query execution error"))
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to query message history")
 		require.Nil(t, messages)
@@ -2029,7 +2031,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to scan message history row")
 		require.Nil(t, messages)
@@ -2065,7 +2067,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "error iterating message history rows")
 		require.Nil(t, messages)
@@ -2091,7 +2093,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history ORDER BY created_at DESC, id DESC LIMIT 21`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 0)
 		assert.Equal(t, "", nextCursor)
@@ -2126,7 +2128,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE sent_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -2153,7 +2155,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE sent_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 0)
 		assert.Equal(t, "", nextCursor)
@@ -2180,7 +2182,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE failed_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 0)
 		assert.Equal(t, "", nextCursor)
@@ -2215,7 +2217,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE clicked_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -2242,7 +2244,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE bounced_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 0)
 		assert.Equal(t, "", nextCursor)
@@ -2277,7 +2279,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE complained_at IS NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -2304,7 +2306,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		mock.ExpectQuery(`SELECT id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, failed_at, opened_at, clicked_at, bounced_at, complained_at, unsubscribed_at, created_at, updated_at FROM message_history WHERE unsubscribed_at IS NOT NULL ORDER BY created_at DESC, id DESC LIMIT 11`).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 0)
 		assert.Equal(t, "", nextCursor)
@@ -2343,7 +2345,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			WithArgs(updatedAfter, updatedBefore).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -2378,7 +2380,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			WithArgs("msg-1").
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -2416,7 +2418,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			WithArgs("ext-123").
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -2453,7 +2455,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			WithArgs("list-abc").
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
@@ -2498,7 +2500,7 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 			WithArgs("email", "user1@example.com", "broadcast-1", "template-1", twoHoursAgo).
 			WillReturnRows(rows)
 
-		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, params)
+		messages, nextCursor, err := repo.ListMessages(ctx, workspaceID, testSecretKey, params)
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)

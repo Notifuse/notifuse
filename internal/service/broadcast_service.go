@@ -951,7 +951,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 	}
 
 	// Record message in history
-	return s.messageHistoryRepo.Create(ctx, request.WorkspaceID, message)
+	return s.messageHistoryRepo.Create(ctx, request.WorkspaceID, workspace.Settings.SecretKey, message)
 }
 
 // GetTestResults retrieves A/B test results for a broadcast

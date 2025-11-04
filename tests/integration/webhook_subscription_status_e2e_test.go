@@ -144,7 +144,10 @@ func testHardBounceUpdatesContactListStatus(t *testing.T, suite *testutil.Integr
 
 	// Verify message history was updated with bounced_at
 	messageHistoryRepo := app.GetMessageHistoryRepository()
-	updatedMessage, err := messageHistoryRepo.Get(context.Background(), workspaceID, messageID)
+	workspaceRepo := app.GetWorkspaceRepository()
+	workspace, err := workspaceRepo.GetByID(context.Background(), workspaceID)
+	require.NoError(t, err)
+	updatedMessage, err := messageHistoryRepo.Get(context.Background(), workspaceID, workspace.Settings.SecretKey, messageID)
 	require.NoError(t, err)
 	assert.NotNil(t, updatedMessage.BouncedAt, "Message should have bounced_at set")
 
@@ -216,7 +219,10 @@ func testComplaintUpdatesContactListStatus(t *testing.T, suite *testutil.Integra
 
 	// Verify message history was updated with complained_at
 	messageHistoryRepo := app.GetMessageHistoryRepository()
-	updatedMessage, err := messageHistoryRepo.Get(context.Background(), workspaceID, messageID)
+	workspaceRepo := app.GetWorkspaceRepository()
+	workspace, err := workspaceRepo.GetByID(context.Background(), workspaceID)
+	require.NoError(t, err)
+	updatedMessage, err := messageHistoryRepo.Get(context.Background(), workspaceID, workspace.Settings.SecretKey, messageID)
 	require.NoError(t, err)
 	assert.NotNil(t, updatedMessage.ComplainedAt, "Message should have complained_at set")
 
@@ -289,7 +295,10 @@ func testSoftBounceDoesNotUpdateContactListStatus(t *testing.T, suite *testutil.
 
 	// Verify message history was NOT updated with bounced_at (soft bounces don't set it)
 	messageHistoryRepo := app.GetMessageHistoryRepository()
-	updatedMessage, err := messageHistoryRepo.Get(context.Background(), workspaceID, messageID)
+	workspaceRepo := app.GetWorkspaceRepository()
+	workspace, err := workspaceRepo.GetByID(context.Background(), workspaceID)
+	require.NoError(t, err)
+	updatedMessage, err := messageHistoryRepo.Get(context.Background(), workspaceID, workspace.Settings.SecretKey, messageID)
 	require.NoError(t, err)
 	assert.Nil(t, updatedMessage.BouncedAt, "Soft bounce should not set bounced_at")
 

@@ -185,23 +185,23 @@ func TestDemoService_CompileTemplateToHTML_Basic(t *testing.T) {
 	titleBase := notifuse_mjml.NewBaseBlock("title", notifuse_mjml.MJMLComponentMjTitle)
 	titleBase.Content = &titleContent
 	title := &notifuse_mjml.MJTitleBlock{BaseBlock: titleBase}
-	
+
 	head := &notifuse_mjml.MJHeadBlock{BaseBlock: notifuse_mjml.NewBaseBlock("head", notifuse_mjml.MJMLComponentMjHead)}
 	head.Children = []notifuse_mjml.EmailBlock{title}
 
 	textBase := notifuse_mjml.NewBaseBlock("text", notifuse_mjml.MJMLComponentMjText)
 	textBase.Content = &textContent
 	text := &notifuse_mjml.MJTextBlock{BaseBlock: textBase}
-	
+
 	col := &notifuse_mjml.MJColumnBlock{BaseBlock: notifuse_mjml.NewBaseBlock("col", notifuse_mjml.MJMLComponentMjColumn)}
 	col.Children = []notifuse_mjml.EmailBlock{text}
-	
+
 	sec := &notifuse_mjml.MJSectionBlock{BaseBlock: notifuse_mjml.NewBaseBlock("sec", notifuse_mjml.MJMLComponentMjSection)}
 	sec.Children = []notifuse_mjml.EmailBlock{col}
-	
+
 	body := &notifuse_mjml.MJBodyBlock{BaseBlock: notifuse_mjml.NewBaseBlock("body", notifuse_mjml.MJMLComponentMjBody)}
 	body.Children = []notifuse_mjml.EmailBlock{sec}
-	
+
 	root := &notifuse_mjml.MJMLBlock{BaseBlock: notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)}
 	root.Children = []notifuse_mjml.EmailBlock{head, body}
 
@@ -517,12 +517,12 @@ func TestDemoService_GenerateMessagesPerContact(t *testing.T) {
 	broadcastIDs := []string{"broadcast-1", "broadcast-2", "broadcast-3", "broadcast-4"}
 
 	// Mock message history creation - each contact gets 2-4 messages
-	mockMessageHistoryRepo.EXPECT().Create(ctx, "demo", gomock.Any()).Return(nil).AnyTimes()
+	mockMessageHistoryRepo.EXPECT().Create(ctx, "demo", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	// Mock SetOpened and SetClicked for message_history updates (triggers timeline entries)
 	mockMessageHistoryRepo.EXPECT().SetOpened(ctx, "demo", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 	mockMessageHistoryRepo.EXPECT().SetClicked(ctx, "demo", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
-	count, err := svc.generateMessagesPerContact(ctx, "demo", contacts, broadcastIDs)
+	count, err := svc.generateMessagesPerContact(ctx, "demo", "test-secret-key", contacts, broadcastIDs)
 	// No error expected - webhook generation errors are logged but don't fail the operation
 	assert.NoError(t, err)
 	// With 2 contacts getting 2-4 messages each, expect at least 4 messages
@@ -537,7 +537,7 @@ func TestDemoService_GenerateMessagesPerContact_EmptyContacts(t *testing.T) {
 
 	ctx := context.Background()
 	broadcastIDs := []string{"broadcast-1", "broadcast-2", "broadcast-3", "broadcast-4"}
-	count, err := svc.generateMessagesPerContact(ctx, "demo", []*domain.Contact{}, broadcastIDs)
+	count, err := svc.generateMessagesPerContact(ctx, "demo", "test-secret-key", []*domain.Contact{}, broadcastIDs)
 
 	assert.NoError(t, err)
 	assert.Equal(t, 0, count)

@@ -586,7 +586,7 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 		}
 
 		// Record the message
-		if err := s.messageHistoryRepo.Create(ctx, workspaceID, message); err != nil {
+		if err := s.messageHistoryRepo.Create(ctx, workspaceID, workspaceSecretKey, message); err != nil {
 			s.logger.WithFields(map[string]interface{}{
 				"broadcast_id": broadcastID,
 				"workspace_id": workspaceID,

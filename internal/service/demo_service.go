@@ -1258,6 +1258,12 @@ func (s *DemoService) createSampleTransactionalNotifications(ctx context.Context
 func (s *DemoService) generateSampleMessageHistory(ctx context.Context, workspaceID string, broadcastIDs []string) error {
 	s.logger.WithField("workspace_id", workspaceID).Info("Generating sample message history with ~3 emails per contact")
 
+	// Get workspace to retrieve secret key
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace: %w", err)
+	}
+
 	// Get all contacts to create message history for
 	contactsReq := &domain.GetContactsRequest{
 		WorkspaceID: workspaceID,
@@ -1276,7 +1282,7 @@ func (s *DemoService) generateSampleMessageHistory(ctx context.Context, workspac
 
 	// Generate messages per contact (2-4 emails each)
 	// This also generates webhook events and updates for engagement (delivered, opened, clicked)
-	totalMessages, err := s.generateMessagesPerContact(ctx, workspaceID, contactsResp.Contacts, broadcastIDs)
+	totalMessages, err := s.generateMessagesPerContact(ctx, workspaceID, workspace.Settings.SecretKey, contactsResp.Contacts, broadcastIDs)
 	if err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to generate message history")
 		return err
@@ -1297,7 +1303,7 @@ type messageEngagement struct {
 }
 
 // generateMessagesPerContact creates message history by assigning 2-4 emails to each contact
-func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceID string, contacts []*domain.Contact, broadcastIDs []string) (int, error) {
+func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceID string, secretKey string, contacts []*domain.Contact, broadcastIDs []string) (int, error) {
 	s.logger.WithField("workspace_id", workspaceID).Info("Generating messages per contact")
 
 	// Define available campaign/message templates over the last 10 days
@@ -1365,7 +1371,7 @@ func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceI
 					message, engagement = s.generateTransactionalMessageHistoryForContact(contact, campaign.templateID, campaign.templateVersion, campaign.messageType, campaignTime)
 				}
 
-				if err := s.messageHistoryRepo.Create(ctx, workspaceID, message); err != nil {
+				if err := s.messageHistoryRepo.Create(ctx, workspaceID, secretKey, message); err != nil {
 					s.logger.WithField("contact_email", contact.Email).WithField("error", err.Error()).Debug("Failed to create message history record")
 					continue
 				}

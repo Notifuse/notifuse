@@ -480,8 +480,9 @@ func TestSendBatch(t *testing.T) {
 		Create(
 			ctx,
 			workspaceID,
+			gomock.Any(), // secretKey
 			gomock.Any(), // message
-		).Do(func(_ context.Context, _ string, msg *domain.MessageHistory) {
+		).Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 		// Verify list_ids is populated from broadcast audience
 		assert.NotNil(t, msg.ListIDs)
 		assert.Equal(t, domain.ListIDs([]string{"list-1"}), msg.ListIDs)
@@ -748,8 +749,9 @@ func TestSendBatch_WithFailure(t *testing.T) {
 		Create(
 			ctx,
 			workspaceID,
+			gomock.Any(), // secretKey
 			gomock.Any(), // message
-		).Do(func(_ context.Context, _ string, msg *domain.MessageHistory) {
+		).Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 		// Verify list_ids is populated from broadcast audience
 		assert.NotNil(t, msg.ListIDs)
 		assert.Equal(t, domain.ListIDs([]string{"list-1"}), msg.ListIDs)
@@ -865,8 +867,9 @@ func TestSendBatch_RecordMessageFails(t *testing.T) {
 		Create(
 			ctx,
 			workspaceID,
+			gomock.Any(), // secretKey
 			gomock.Any(), // message
-		).Do(func(_ context.Context, _ string, msg *domain.MessageHistory) {
+		).Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 		// Verify list_ids is populated from broadcast audience
 		assert.NotNil(t, msg.ListIDs)
 		assert.Equal(t, domain.ListIDs([]string{"list-1"}), msg.ListIDs)
@@ -1602,8 +1605,8 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			Return(nil).Times(2)
 
 		mockMessageHistoryRepo.EXPECT().
-			Create(ctx, workspaceID, gomock.Any()).
-			Do(func(_ context.Context, _ string, msg *domain.MessageHistory) {
+			Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
+			Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 				// Verify list_ids is populated from broadcast audience
 				assert.NotNil(t, msg.ListIDs)
 				assert.Equal(t, domain.ListIDs(broadcast.Audience.Lists), msg.ListIDs)
@@ -1681,8 +1684,8 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			Return(nil)
 
 		mockMessageHistoryRepo.EXPECT().
-			Create(ctx, workspaceID, gomock.Any()).
-			Do(func(_ context.Context, _ string, msg *domain.MessageHistory) {
+			Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
+			Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 				// Verify list_ids is populated from broadcast audience
 				assert.NotNil(t, msg.ListIDs)
 				assert.Equal(t, domain.ListIDs(broadcast.Audience.Lists), msg.ListIDs)
@@ -1764,8 +1767,8 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 
 		// Message history should still be recorded for failed messages
 		mockMessageHistoryRepo.EXPECT().
-			Create(ctx, workspaceID, gomock.Any()).
-			Do(func(_ context.Context, _ string, msg *domain.MessageHistory) {
+			Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
+			Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 				// Verify list_ids is populated from broadcast audience
 				assert.NotNil(t, msg.ListIDs)
 				assert.Equal(t, domain.ListIDs(broadcast.Audience.Lists), msg.ListIDs)
@@ -1991,8 +1994,8 @@ func TestSendBatch_TemplateDataBuildFailure(t *testing.T) {
 		Return(nil).AnyTimes()
 
 	mockMessageHistoryRepo.EXPECT().
-		Create(ctx, workspaceID, gomock.Any()).
-		Do(func(_ context.Context, _ string, msg *domain.MessageHistory) {
+		Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
+		Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_ids is populated from broadcast audience
 			assert.NotNil(t, msg.ListIDs)
 			assert.Equal(t, domain.ListIDs(broadcast.Audience.Lists), msg.ListIDs)
@@ -2094,8 +2097,8 @@ func TestSendBatch_EmptyEmailContact(t *testing.T) {
 		Return(nil).Times(1)
 
 	mockMessageHistoryRepo.EXPECT().
-		Create(ctx, workspaceID, gomock.Any()).
-		Do(func(_ context.Context, _ string, msg *domain.MessageHistory) {
+		Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
+		Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_ids is populated from broadcast audience
 			assert.NotNil(t, msg.ListIDs)
 			assert.Equal(t, domain.ListIDs(broadcast.Audience.Lists), msg.ListIDs)

@@ -1,5 +1,7 @@
 # TODO
 
+- redact private vars
+
 ## Content
 
 - page vs phplist

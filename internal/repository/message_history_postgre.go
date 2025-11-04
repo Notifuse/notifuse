@@ -11,6 +11,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/tracing"
 )
 
@@ -24,6 +25,71 @@ func NewMessageHistoryRepository(workspaceRepo domain.WorkspaceRepository) *Mess
 	return &MessageHistoryRepository{
 		workspaceRepo: workspaceRepo,
 	}
+}
+
+// encryptMessageData encrypts the Data field in MessageData
+// Stores encrypted data as {"_encrypted": "hex_string"}
+func encryptMessageData(data domain.MessageData, secretKey string) (domain.MessageData, error) {
+	// If Data is empty or nil, return as-is
+	if len(data.Data) == 0 {
+		return data, nil
+	}
+
+	// Marshal the Data map to JSON
+	jsonBytes, err := json.Marshal(data.Data)
+	if err != nil {
+		return data, fmt.Errorf("failed to marshal data for encryption: %w", err)
+	}
+
+	// Encrypt the JSON string
+	encrypted, err := crypto.EncryptString(string(jsonBytes), secretKey)
+	if err != nil {
+		return data, fmt.Errorf("failed to encrypt data: %w", err)
+	}
+
+	// Create new MessageData with encrypted content
+	encryptedData := domain.MessageData{
+		Data:     map[string]interface{}{"_encrypted": encrypted},
+		Metadata: data.Metadata, // Metadata is not encrypted
+	}
+
+	return encryptedData, nil
+}
+
+// decryptMessageData decrypts the Data field in MessageData
+// Detects if data is encrypted by checking for "_encrypted" key
+func decryptMessageData(data domain.MessageData, secretKey string) (domain.MessageData, error) {
+	// Check if data is encrypted (contains "_encrypted" key)
+	encryptedStr, isEncrypted := data.Data["_encrypted"]
+	if !isEncrypted {
+		// Data is not encrypted (legacy format), return as-is
+		return data, nil
+	}
+
+	// Extract the encrypted string
+	encryptedHex, ok := encryptedStr.(string)
+	if !ok {
+		return data, fmt.Errorf("encrypted data is not a string")
+	}
+
+	// Decrypt the hex string
+	decrypted, err := crypto.DecryptFromHexString(encryptedHex, secretKey)
+	if err != nil {
+		// If decryption fails, return error (don't expose encrypted data)
+		return data, fmt.Errorf("failed to decrypt data: %w", err)
+	}
+
+	// Unmarshal the decrypted JSON back to map
+	var decryptedData map[string]interface{}
+	if err := json.Unmarshal([]byte(decrypted), &decryptedData); err != nil {
+		return data, fmt.Errorf("failed to unmarshal decrypted data: %w", err)
+	}
+
+	// Return MessageData with decrypted content
+	return domain.MessageData{
+		Data:     decryptedData,
+		Metadata: data.Metadata,
+	}, nil
 }
 
 // scanMessage scans a message history row including attachments and channel options
@@ -79,11 +145,17 @@ func messageHistorySelectFields() string {
 }
 
 // Create adds a new message history record
-func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID string, message *domain.MessageHistory) error {
+func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID string, secretKey string, message *domain.MessageHistory) error {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// Encrypt message data before storage
+	encryptedMessageData, err := encryptMessageData(message.MessageData, secretKey)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt message data: %w", err)
 	}
 
 	// Serialize attachments to JSON for storage
@@ -118,7 +190,7 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 		message.TemplateVersion,
 		message.Channel,
 		message.StatusInfo,
-		message.MessageData,
+		encryptedMessageData,
 		message.ChannelOptions,
 		attachmentsJSON,
 		message.SentAt,
@@ -213,7 +285,7 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 }
 
 // Get retrieves a message history by ID
-func (r *MessageHistoryRepository) Get(ctx context.Context, workspaceID, id string) (*domain.MessageHistory, error) {
+func (r *MessageHistoryRepository) Get(ctx context.Context, workspaceID string, secretKey string, id string) (*domain.MessageHistory, error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -232,11 +304,18 @@ func (r *MessageHistoryRepository) Get(ctx context.Context, workspaceID, id stri
 		return nil, fmt.Errorf("failed to get message history: %w", err)
 	}
 
+	// Decrypt message data after reading from database
+	decryptedMessageData, err := decryptMessageData(message.MessageData, secretKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt message data: %w", err)
+	}
+	message.MessageData = decryptedMessageData
+
 	return &message, nil
 }
 
 // GetByExternalID retrieves a message history by external ID for idempotency checks
-func (r *MessageHistoryRepository) GetByExternalID(ctx context.Context, workspaceID, externalID string) (*domain.MessageHistory, error) {
+func (r *MessageHistoryRepository) GetByExternalID(ctx context.Context, workspaceID string, secretKey string, externalID string) (*domain.MessageHistory, error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -255,11 +334,18 @@ func (r *MessageHistoryRepository) GetByExternalID(ctx context.Context, workspac
 		return nil, fmt.Errorf("failed to get message history by external_id: %w", err)
 	}
 
+	// Decrypt message data after reading from database
+	decryptedMessageData, err := decryptMessageData(message.MessageData, secretKey)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decrypt message data: %w", err)
+	}
+	message.MessageData = decryptedMessageData
+
 	return &message, nil
 }
 
 // GetByContact retrieves message history for a specific contact
-func (r *MessageHistoryRepository) GetByContact(ctx context.Context, workspaceID, contactEmail string, limit, offset int) ([]*domain.MessageHistory, int, error) {
+func (r *MessageHistoryRepository) GetByContact(ctx context.Context, workspaceID string, secretKey string, contactEmail string, limit, offset int) ([]*domain.MessageHistory, int, error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -302,6 +388,14 @@ func (r *MessageHistoryRepository) GetByContact(ctx context.Context, workspaceID
 		if err := scanMessage(rows, &message); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan message history: %w", err)
 		}
+		
+		// Decrypt message data after reading from database
+		decryptedMessageData, err := decryptMessageData(message.MessageData, secretKey)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to decrypt message data: %w", err)
+		}
+		message.MessageData = decryptedMessageData
+		
 		messages = append(messages, &message)
 	}
 
@@ -313,7 +407,7 @@ func (r *MessageHistoryRepository) GetByContact(ctx context.Context, workspaceID
 }
 
 // GetByBroadcast retrieves message history for a specific broadcast
-func (r *MessageHistoryRepository) GetByBroadcast(ctx context.Context, workspaceID, broadcastID string, limit, offset int) ([]*domain.MessageHistory, int, error) {
+func (r *MessageHistoryRepository) GetByBroadcast(ctx context.Context, workspaceID string, secretKey string, broadcastID string, limit, offset int) ([]*domain.MessageHistory, int, error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -356,6 +450,14 @@ func (r *MessageHistoryRepository) GetByBroadcast(ctx context.Context, workspace
 		if err := scanMessage(rows, &message); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan message history: %w", err)
 		}
+		
+		// Decrypt message data after reading from database
+		decryptedMessageData, err := decryptMessageData(message.MessageData, secretKey)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to decrypt message data: %w", err)
+		}
+		message.MessageData = decryptedMessageData
+		
 		messages = append(messages, &message)
 	}
 
@@ -517,7 +619,7 @@ func (r *MessageHistoryRepository) SetOpened(ctx context.Context, workspaceID, i
 }
 
 // ListMessages retrieves message history with cursor-based pagination and filtering
-func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID string, params domain.MessageListParams) ([]*domain.MessageHistory, string, error) {
+func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID string, secretKey string, params domain.MessageListParams) ([]*domain.MessageHistory, string, error) {
 	// codecov:ignore:start
 	ctx, span := tracing.StartServiceSpan(ctx, "MessageHistoryRepository", "ListMessages")
 	defer tracing.EndSpan(span, nil)
@@ -803,6 +905,16 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 				return nil, "", fmt.Errorf("failed to unmarshal attachments: %w", err)
 			}
 		}
+
+		// Decrypt message data after reading from database
+		decryptedMessageData, err := decryptMessageData(message.MessageData, secretKey)
+		if err != nil {
+			// codecov:ignore:start
+			tracing.MarkSpanError(ctx, err)
+			// codecov:ignore:end
+			return nil, "", fmt.Errorf("failed to decrypt message data: %w", err)
+		}
+		message.MessageData = decryptedMessageData
 
 		messages = append(messages, message)
 	}

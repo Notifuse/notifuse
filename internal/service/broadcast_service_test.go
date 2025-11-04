@@ -289,8 +289,8 @@ func TestBroadcastService_SendToIndividual_Success(t *testing.T) {
 
 	d.emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
 
-	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any()).Do(
-		func(_ context.Context, _ string, msg *domain.MessageHistory) {
+	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
+		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_ids is populated from broadcast audience
 			assert.NotNil(t, msg.ListIDs)
 			assert.Equal(t, domain.ListIDs(b.Audience.Lists), msg.ListIDs)
@@ -1541,7 +1541,7 @@ func TestBroadcastService_SendToIndividual_MessageHistoryFailure(t *testing.T) {
 
 	d.emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
 
-	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any()).Return(errors.New("message history failed"))
+	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Return(errors.New("message history failed"))
 
 	err := d.svc.SendToIndividual(ctx, req)
 	require.Error(t, err)
@@ -1924,8 +1924,8 @@ func TestBroadcastService_SendToIndividual_WithContact(t *testing.T) {
 
 	d.emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
 
-	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any()).Do(
-		func(_ context.Context, _ string, msg *domain.MessageHistory) {
+	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
+		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_ids is populated from broadcast audience
 			assert.NotNil(t, msg.ListIDs)
 			assert.Equal(t, domain.ListIDs(b.Audience.Lists), msg.ListIDs)
@@ -2001,8 +2001,8 @@ func TestBroadcastService_SendToIndividual_WithCustomEndpoint(t *testing.T) {
 
 	d.emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
 
-	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any()).Do(
-		func(_ context.Context, _ string, msg *domain.MessageHistory) {
+	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
+		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_ids is populated from broadcast audience
 			assert.NotNil(t, msg.ListIDs)
 			assert.Equal(t, domain.ListIDs(b.Audience.Lists), msg.ListIDs)
@@ -2325,8 +2325,8 @@ func TestBroadcastService_SendToIndividual_ContactToMapError(t *testing.T) {
 	)
 
 	d.emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
-	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any()).Do(
-		func(_ context.Context, _ string, msg *domain.MessageHistory) {
+	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
+		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_ids is populated from broadcast audience
 			assert.NotNil(t, msg.ListIDs)
 			assert.Equal(t, domain.ListIDs(b.Audience.Lists), msg.ListIDs)

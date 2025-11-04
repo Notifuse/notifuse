@@ -12,17 +12,19 @@ import (
 
 // MessageHistoryService implements domain.MessageHistoryService interface
 type MessageHistoryService struct {
-	repo        domain.MessageHistoryRepository
-	logger      logger.Logger
-	authService domain.AuthService
+	repo          domain.MessageHistoryRepository
+	workspaceRepo domain.WorkspaceRepository
+	logger        logger.Logger
+	authService   domain.AuthService
 }
 
 // NewMessageHistoryService creates a new message history service
-func NewMessageHistoryService(repo domain.MessageHistoryRepository, logger logger.Logger, authService domain.AuthService) *MessageHistoryService {
+func NewMessageHistoryService(repo domain.MessageHistoryRepository, workspaceRepo domain.WorkspaceRepository, logger logger.Logger, authService domain.AuthService) *MessageHistoryService {
 	return &MessageHistoryService{
-		repo:        repo,
-		logger:      logger,
-		authService: authService,
+		repo:          repo,
+		workspaceRepo: workspaceRepo,
+		logger:        logger,
+		authService:   authService,
 	}
 }
 
@@ -50,8 +52,14 @@ func (s *MessageHistoryService) ListMessages(ctx context.Context, workspaceID st
 		)
 	}
 
+	// Get workspace to retrieve secret key for decryption
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace: %w", err)
+	}
+
 	// Call repository method with pagination and filtering parameters
-	messages, nextCursor, err := s.repo.ListMessages(ctx, workspaceID, params)
+	messages, nextCursor, err := s.repo.ListMessages(ctx, workspaceID, workspace.Settings.SecretKey, params)
 
 	// codecov:ignore:start
 	if err != nil {

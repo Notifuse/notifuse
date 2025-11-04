@@ -521,11 +521,214 @@ func TestMessageHistoryDataFactory(t *testing.T) {
 		// Verify message exists in database using repository
 		app := suite.ServerManager.GetApp()
 		messageHistoryRepo := app.GetMessageHistoryRepository()
+		workspaceRepo := app.GetWorkspaceRepository()
+		ws, err := workspaceRepo.GetByID(context.Background(), workspace.ID)
+		require.NoError(t, err)
 
-		retrievedMessage, err := messageHistoryRepo.Get(context.Background(), workspace.ID, message.ID)
+		retrievedMessage, err := messageHistoryRepo.Get(context.Background(), workspace.ID, ws.Settings.SecretKey, message.ID)
 		require.NoError(t, err)
 		require.NotNil(t, retrievedMessage)
 		assert.Equal(t, contact.Email, retrievedMessage.ContactEmail)
 		assert.Equal(t, template.ID, retrievedMessage.TemplateID)
+	})
+}
+
+func TestMessageDataEncryption(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+
+	factory := suite.DataFactory
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+
+	t.Run("Message data is encrypted in database", func(t *testing.T) {
+		contact, err := factory.CreateContact(workspace.ID)
+		require.NoError(t, err)
+		template, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+
+		// Create message with specific data to verify encryption
+		testData := map[string]interface{}{
+			"email":      "test@example.com",
+			"first_name": "John",
+			"last_name":  "Doe",
+			"token":      "secret-token-12345",
+			"amount":     99.99,
+		}
+
+		message, err := factory.CreateMessageHistory(workspace.ID,
+			testutil.WithMessageContact(contact.Email),
+			testutil.WithMessageTemplate(template.ID),
+			func(m *domain.MessageHistory) {
+				m.MessageData.Data = testData
+			})
+		require.NoError(t, err)
+		require.NotNil(t, message)
+
+		// Query the database directly to verify data is encrypted
+		app := suite.ServerManager.GetApp()
+		workspaceRepo := app.GetWorkspaceRepository()
+		workspaceDB, err := workspaceRepo.GetConnection(context.Background(), workspace.ID)
+		require.NoError(t, err)
+
+		var rawMessageData json.RawMessage
+		query := `SELECT message_data FROM message_history WHERE id = $1`
+		err = workspaceDB.QueryRowContext(context.Background(), query, message.ID).Scan(&rawMessageData)
+		require.NoError(t, err)
+
+		// Parse the raw JSON to verify it contains _encrypted key
+		var messageData map[string]interface{}
+		err = json.Unmarshal(rawMessageData, &messageData)
+		require.NoError(t, err)
+
+		// Verify the data field contains the _encrypted marker
+		data, ok := messageData["data"].(map[string]interface{})
+		require.True(t, ok, "message_data.data should be a map")
+
+		encryptedValue, hasEncrypted := data["_encrypted"]
+		assert.True(t, hasEncrypted, "message_data.data should contain _encrypted key")
+		assert.NotEmpty(t, encryptedValue, "_encrypted value should not be empty")
+
+		// Verify it's a string (hex-encoded encrypted data)
+		encryptedStr, ok := encryptedValue.(string)
+		assert.True(t, ok, "_encrypted value should be a string")
+		assert.Greater(t, len(encryptedStr), 50, "encrypted data should be substantial")
+
+		// Verify metadata is NOT encrypted (should be plaintext)
+		metadata, ok := messageData["metadata"].(map[string]interface{})
+		assert.True(t, ok, "metadata should exist")
+		// Metadata should not have _encrypted key
+		_, hasEncryptedMetadata := metadata["_encrypted"]
+		assert.False(t, hasEncryptedMetadata, "metadata should not be encrypted")
+	})
+
+	t.Run("Encrypted data is properly decrypted when retrieved", func(t *testing.T) {
+		contact, err := factory.CreateContact(workspace.ID)
+		require.NoError(t, err)
+		template, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+
+		// Create message with specific test data
+		originalData := map[string]interface{}{
+			"email":       "user@example.com",
+			"first_name":  "Jane",
+			"last_name":   "Smith",
+			"api_key":     "sk_test_abcdef123456",
+			"amount":      250.50,
+			"items":       []interface{}{"item1", "item2", "item3"},
+			"nested_data": map[string]interface{}{"key": "value", "count": float64(42)},
+		}
+
+		message, err := factory.CreateMessageHistory(workspace.ID,
+			testutil.WithMessageContact(contact.Email),
+			testutil.WithMessageTemplate(template.ID),
+			func(m *domain.MessageHistory) {
+				m.MessageData.Data = originalData
+				m.MessageData.Metadata = map[string]interface{}{
+					"source":     "test",
+					"test_value": true,
+				}
+			})
+		require.NoError(t, err)
+
+		// Retrieve the message using the repository (should decrypt automatically)
+		app := suite.ServerManager.GetApp()
+		messageHistoryRepo := app.GetMessageHistoryRepository()
+		workspaceRepo := app.GetWorkspaceRepository()
+		ws, err := workspaceRepo.GetByID(context.Background(), workspace.ID)
+		require.NoError(t, err)
+
+		retrievedMessage, err := messageHistoryRepo.Get(context.Background(), workspace.ID, ws.Settings.SecretKey, message.ID)
+		require.NoError(t, err)
+		require.NotNil(t, retrievedMessage)
+
+		// Verify the decrypted data matches the original
+		assert.Equal(t, originalData["email"], retrievedMessage.MessageData.Data["email"])
+		assert.Equal(t, originalData["first_name"], retrievedMessage.MessageData.Data["first_name"])
+		assert.Equal(t, originalData["last_name"], retrievedMessage.MessageData.Data["last_name"])
+		assert.Equal(t, originalData["api_key"], retrievedMessage.MessageData.Data["api_key"])
+		assert.Equal(t, originalData["amount"], retrievedMessage.MessageData.Data["amount"])
+
+		// Verify complex nested structures are preserved
+		items, ok := retrievedMessage.MessageData.Data["items"].([]interface{})
+		assert.True(t, ok)
+		assert.Len(t, items, 3)
+		assert.Equal(t, "item1", items[0])
+
+		nestedData, ok := retrievedMessage.MessageData.Data["nested_data"].(map[string]interface{})
+		assert.True(t, ok)
+		assert.Equal(t, "value", nestedData["key"])
+		assert.Equal(t, float64(42), nestedData["count"])
+
+		// Verify metadata is preserved and not encrypted
+		assert.Equal(t, "test", retrievedMessage.MessageData.Metadata["source"])
+		assert.Equal(t, true, retrievedMessage.MessageData.Metadata["test_value"])
+	})
+
+	t.Run("Backward compatibility: unencrypted messages can still be read", func(t *testing.T) {
+		contact, err := factory.CreateContact(workspace.ID)
+		require.NoError(t, err)
+		template, err := factory.CreateTemplate(workspace.ID)
+		require.NoError(t, err)
+
+		// Insert an old-style unencrypted message directly into the database
+		app := suite.ServerManager.GetApp()
+		workspaceRepo := app.GetWorkspaceRepository()
+		workspaceDB, err := workspaceRepo.GetConnection(context.Background(), workspace.ID)
+		require.NoError(t, err)
+
+		messageID := "legacy-msg-" + time.Now().Format("20060102150405")
+		legacyData := map[string]interface{}{
+			"subject": "Old Message",
+			"body":    "This is legacy data",
+			"token":   "legacy-token-xyz",
+		}
+
+		messageData := domain.MessageData{
+			Data: legacyData,
+			Metadata: map[string]interface{}{
+				"legacy": true,
+			},
+		}
+
+		messageDataJSON, err := json.Marshal(messageData)
+		require.NoError(t, err)
+
+		now := time.Now().UTC()
+		insertQuery := `
+			INSERT INTO message_history (
+				id, contact_email, template_id, template_version, channel,
+				message_data, sent_at, created_at, updated_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		`
+		_, err = workspaceDB.ExecContext(context.Background(), insertQuery,
+			messageID, contact.Email, template.ID, 1, "email",
+			messageDataJSON, now, now, now)
+		require.NoError(t, err)
+
+		// Retrieve the legacy message (should work without decryption)
+		messageHistoryRepo := app.GetMessageHistoryRepository()
+		ws, err := workspaceRepo.GetByID(context.Background(), workspace.ID)
+		require.NoError(t, err)
+
+		retrievedMessage, err := messageHistoryRepo.Get(context.Background(), workspace.ID, ws.Settings.SecretKey, messageID)
+		require.NoError(t, err)
+		require.NotNil(t, retrievedMessage)
+
+		// Verify the legacy data is readable
+		assert.Equal(t, "Old Message", retrievedMessage.MessageData.Data["subject"])
+		assert.Equal(t, "This is legacy data", retrievedMessage.MessageData.Data["body"])
+		assert.Equal(t, "legacy-token-xyz", retrievedMessage.MessageData.Data["token"])
+		assert.Equal(t, true, retrievedMessage.MessageData.Metadata["legacy"])
+
+		// Verify there's no _encrypted key in the decrypted data
+		_, hasEncrypted := retrievedMessage.MessageData.Data["_encrypted"]
+		assert.False(t, hasEncrypted, "decrypted data should not contain _encrypted key")
 	})
 }

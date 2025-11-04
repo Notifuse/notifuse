@@ -385,7 +385,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 	}
 
 	// Save to message history
-	if err := s.messageRepo.Create(ctx, request.WorkspaceID, messageHistory); err != nil {
+	if err := s.messageRepo.Create(ctx, request.WorkspaceID, workspace.Settings.SecretKey, messageHistory); err != nil {
 		s.logger.WithFields(map[string]interface{}{
 			"error":      err.Error(),
 			"message_id": request.MessageID,
