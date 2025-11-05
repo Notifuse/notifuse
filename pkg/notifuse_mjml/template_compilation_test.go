@@ -55,7 +55,7 @@ func TestTrackLinks(t *testing.T) {
 				MessageID:      "test-message",
 			},
 			expectedContains: []string{
-				"https://track.example.com/redirect/visit?mid=test-message&wid=test-workspace&url=",
+				"https://track.example.com/redirect/visit?mid=test-message&wid=test-workspace&ts=",
 			},
 			shouldError: false,
 		},
@@ -140,7 +140,7 @@ func TestTrackLinks(t *testing.T) {
 				MessageID:      "test-message",
 			},
 			expectedContains: []string{
-				"https://track.example.com/redirect/visit?mid=test-message&wid=test-workspace&url=",
+				"https://track.example.com/redirect/visit?mid=test-message&wid=test-workspace&ts=",
 			},
 			shouldError: false,
 		},
@@ -176,7 +176,7 @@ func TestTrackLinks(t *testing.T) {
 				MessageID:      "test-message",
 			},
 			expectedContains: []string{
-				"https://track.example.com/visit?mid=test-message&wid=test-workspace&url=",
+				"https://track.example.com/visit?mid=test-message&wid=test-workspace&ts=",
 				"class=\"button\"",
 				"<span>Click Here</span>",
 			},
@@ -457,14 +457,17 @@ func TestTrackingPixelPlacement(t *testing.T) {
 	}
 
 	// Check that the tracking pixel is inserted before the closing body tag
-	expectedPixel := `<img src="https://track.example.com/opens?mid=test-message&wid=test-workspace" alt="" width="1" height="1">`
-	if !strings.Contains(result, expectedPixel) {
-		t.Errorf("Expected tracking pixel to be present in the HTML. Result: %s", result)
+	// Check for the pattern with ts parameter (which is dynamic)
+	hasPixelPattern := strings.Contains(result, `opens?mid=test-message&wid=test-workspace&ts=`) &&
+		strings.Contains(result, `alt="" width="1" height="1">`)
+	if !hasPixelPattern {
+		t.Errorf("Expected tracking pixel pattern to be present in the HTML. Result: %s", result)
 	}
 
 	// Check that the pixel is placed before the closing body tag
 	bodyCloseIndex := strings.Index(result, "</body>")
-	pixelIndex := strings.Index(result, expectedPixel)
+	pixelMarker := `opens?mid=test-message&wid=test-workspace&ts=`
+	pixelIndex := strings.Index(result, pixelMarker)
 
 	if bodyCloseIndex == -1 {
 		t.Error("Expected closing body tag to be present")
@@ -496,13 +499,15 @@ func TestTrackingPixelWithoutBodyTag(t *testing.T) {
 	}
 
 	// Check that the tracking pixel is appended to the end as fallback
-	expectedPixel := `<img src="https://track.example.com/opens?mid=test-message&wid=test-workspace" alt="" width="1" height="1">`
-	if !strings.Contains(result, expectedPixel) {
-		t.Error("Expected tracking pixel to be present in the HTML")
+	// Check for the pattern with ts parameter (which is dynamic)
+	hasPixelPattern := strings.Contains(result, `opens?mid=test-message&wid=test-workspace&ts=`) &&
+		strings.Contains(result, `alt="" width="1" height="1">`)
+	if !hasPixelPattern {
+		t.Error("Expected tracking pixel pattern to be present in the HTML")
 	}
 
-	// Check that the pixel is at the end
-	if !strings.HasSuffix(result, expectedPixel) {
+	// Check that the pixel is at the end (check for the closing tag pattern)
+	if !strings.HasSuffix(strings.TrimSpace(result), `alt="" width="1" height="1">`) {
 		t.Error("Expected tracking pixel to be at the end when no body tag is present")
 	}
 }
@@ -567,10 +572,10 @@ func TestDecodeHTMLEntitiesInURLAttributes(t *testing.T) {
 
 func TestCompileTemplateWithButtonQueryParameters(t *testing.T) {
 	// Test the complete flow: button with confirm_subscription_url containing query parameters
-	
+
 	// Create a button with a URL containing query parameters
 	confirmURL := "https://mailing.example.com/notification-center?action=confirm&email=test@example.com&email_hmac=abc123&lid=newsletter&lname=Newsletter&mid=msg123&wid=workspace123"
-	
+
 	buttonBase := NewBaseBlock("confirm-button", MJMLComponentMjButton)
 	buttonBase.Attributes["href"] = "{{ confirm_subscription_url }}"
 	buttonBase.Attributes["background-color"] = "#007bff"
@@ -683,9 +688,9 @@ func TestCompileTemplateButtonVsTextURL(t *testing.T) {
 	// Both should have properly decoded URLs with & not &amp;
 	expectedURLPart := "action=confirm&email=test@example.com"
 	occurrences := strings.Count(*resp.HTML, expectedURLPart)
-	
+
 	if occurrences < 2 {
-		t.Errorf("Expected at least 2 occurrences of properly decoded URL (button + text), got %d\nHTML:\n%s", 
+		t.Errorf("Expected at least 2 occurrences of properly decoded URL (button + text), got %d\nHTML:\n%s",
 			occurrences, *resp.HTML)
 	}
 }

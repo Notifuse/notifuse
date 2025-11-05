@@ -7,7 +7,9 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 
@@ -265,13 +267,10 @@ func TestEmailHandler_HandleTestEmailProvider(t *testing.T) {
 }
 
 func TestEmailHandler_HandleClickRedirection(t *testing.T) {
-	// Setup
-	mockEmailService, _, handler, _ := setupEmailHandlerTest(t)
-
 	tests := []struct {
 		name               string
 		queryParams        map[string]string
-		setupExpectations  func()
+		setupExpectations  func(*mocks.MockEmailServiceInterface)
 		expectedStatusCode int
 		expectedRedirectTo string
 		expectedBody       string
@@ -282,8 +281,9 @@ func TestEmailHandler_HandleClickRedirection(t *testing.T) {
 				"mid": "message-123",
 				"wid": "workspace-123",
 				"url": "https://example.com",
+				"ts":  strconv.FormatInt(time.Now().Add(-10*time.Second).Unix(), 10), // 10 seconds ago
 			},
-			setupExpectations: func() {
+			setupExpectations: func(mockEmailService *mocks.MockEmailServiceInterface) {
 				mockEmailService.EXPECT().
 					VisitLink(gomock.Any(), "message-123", "workspace-123").
 					Return(nil)
@@ -296,14 +296,14 @@ func TestEmailHandler_HandleClickRedirection(t *testing.T) {
 			queryParams: map[string]string{
 				"url": "https://example.com",
 			},
-			setupExpectations:  func() {},
+			setupExpectations:  func(*mocks.MockEmailServiceInterface) {},
 			expectedStatusCode: http.StatusSeeOther,
 			expectedRedirectTo: "https://example.com",
 		},
 		{
 			name:               "Missing URL parameter",
 			queryParams:        map[string]string{},
-			setupExpectations:  func() {},
+			setupExpectations:  func(*mocks.MockEmailServiceInterface) {},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedBody:       "Missing redirect URL\n",
 		},
@@ -311,6 +311,9 @@ func TestEmailHandler_HandleClickRedirection(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Setup - create fresh mocks for each test case
+			mockEmailService, _, handler, _ := setupEmailHandlerTest(t)
+
 			// Setup request
 			req := httptest.NewRequest(http.MethodGet, "/visit", nil)
 			q := req.URL.Query()
@@ -318,9 +321,11 @@ func TestEmailHandler_HandleClickRedirection(t *testing.T) {
 				q.Add(key, value)
 			}
 			req.URL.RawQuery = q.Encode()
+			// Set a normal browser user-agent to pass bot detection
+			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0")
 
 			// Setup expectations
-			tt.setupExpectations()
+			tt.setupExpectations(mockEmailService)
 
 			// Create response recorder
 			w := httptest.NewRecorder()
@@ -344,13 +349,10 @@ func TestEmailHandler_HandleClickRedirection(t *testing.T) {
 }
 
 func TestEmailHandler_HandleOpens(t *testing.T) {
-	// Setup
-	mockEmailService, _, handler, _ := setupEmailHandlerTest(t)
-
 	tests := []struct {
 		name                string
 		queryParams         map[string]string
-		setupExpectations   func()
+		setupExpectations   func(*mocks.MockEmailServiceInterface)
 		expectedStatusCode  int
 		expectedBody        string
 		expectedContentType string
@@ -360,8 +362,9 @@ func TestEmailHandler_HandleOpens(t *testing.T) {
 			queryParams: map[string]string{
 				"mid": "message-123",
 				"wid": "workspace-123",
+				"ts":  strconv.FormatInt(time.Now().Add(-10*time.Second).Unix(), 10), // 10 seconds ago
 			},
-			setupExpectations: func() {
+			setupExpectations: func(mockEmailService *mocks.MockEmailServiceInterface) {
 				mockEmailService.EXPECT().
 					OpenEmail(gomock.Any(), "message-123", "workspace-123").
 					Return(nil)
@@ -374,7 +377,7 @@ func TestEmailHandler_HandleOpens(t *testing.T) {
 			queryParams: map[string]string{
 				"wid": "workspace-123",
 			},
-			setupExpectations:  func() {},
+			setupExpectations:  func(*mocks.MockEmailServiceInterface) {},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedBody:       "Missing message ID or workspace ID\n",
 		},
@@ -383,14 +386,14 @@ func TestEmailHandler_HandleOpens(t *testing.T) {
 			queryParams: map[string]string{
 				"mid": "message-123",
 			},
-			setupExpectations:  func() {},
+			setupExpectations:  func(*mocks.MockEmailServiceInterface) {},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedBody:       "Missing message ID or workspace ID\n",
 		},
 		{
 			name:               "Missing both IDs",
 			queryParams:        map[string]string{},
-			setupExpectations:  func() {},
+			setupExpectations:  func(*mocks.MockEmailServiceInterface) {},
 			expectedStatusCode: http.StatusBadRequest,
 			expectedBody:       "Missing message ID or workspace ID\n",
 		},
@@ -398,6 +401,9 @@ func TestEmailHandler_HandleOpens(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Setup - create fresh mocks for each test case
+			mockEmailService, _, handler, _ := setupEmailHandlerTest(t)
+
 			// Setup request
 			req := httptest.NewRequest(http.MethodGet, "/opens", nil)
 			q := req.URL.Query()
@@ -405,9 +411,11 @@ func TestEmailHandler_HandleOpens(t *testing.T) {
 				q.Add(key, value)
 			}
 			req.URL.RawQuery = q.Encode()
+			// Set a normal browser user-agent to pass bot detection
+			req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0")
 
 			// Setup expectations
-			tt.setupExpectations()
+			tt.setupExpectations(mockEmailService)
 
 			// Create response recorder
 			w := httptest.NewRecorder()

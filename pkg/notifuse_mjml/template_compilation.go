@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"regexp"
 	"strings"
+	"time"
 
 	mjmlgo "github.com/Boostport/mjml-go"
 )
@@ -170,21 +171,21 @@ type CompileTemplateResponse struct {
 }
 
 // GenerateEmailRedirectionEndpoint generates the email redirection endpoint URL
-func GenerateEmailRedirectionEndpoint(workspaceID string, messageID string, apiEndpoint string, destinationURL string) string {
+func GenerateEmailRedirectionEndpoint(workspaceID string, messageID string, apiEndpoint string, destinationURL string, sentTimestamp int64) string {
 	// URL encode the parameters to handle special characters
 	encodedMID := url.QueryEscape(messageID)
 	encodedWID := url.QueryEscape(workspaceID)
 	encodedURL := url.QueryEscape(destinationURL)
-	return fmt.Sprintf("%s/visit?mid=%s&wid=%s&url=%s",
-		apiEndpoint, encodedMID, encodedWID, encodedURL)
+	return fmt.Sprintf("%s/visit?mid=%s&wid=%s&ts=%d&url=%s",
+		apiEndpoint, encodedMID, encodedWID, sentTimestamp, encodedURL)
 }
 
-func GenerateHTMLOpenTrackingPixel(workspaceID string, messageID string, apiEndpoint string) string {
+func GenerateHTMLOpenTrackingPixel(workspaceID string, messageID string, apiEndpoint string, sentTimestamp int64) string {
 	// URL encode the parameters to handle special characters
 	encodedMID := url.QueryEscape(messageID)
 	encodedWID := url.QueryEscape(workspaceID)
-	pixelURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s",
-		apiEndpoint, encodedMID, encodedWID)
+	pixelURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
+		apiEndpoint, encodedMID, encodedWID, sentTimestamp)
 	return fmt.Sprintf(`<img src="%s" alt="" width="1" height="1">`, pixelURL)
 }
 
@@ -274,7 +275,7 @@ func decodeHTMLEntitiesInURLAttributes(html string) string {
 			return match // Return original if parsing fails
 		}
 
-		beforeURL := parts[1] // href=" or src=" or action="
+		beforeURL := parts[1]  // href=" or src=" or action="
 		encodedURL := parts[2] // the URL with HTML entities
 		afterURL := parts[3]   // closing "
 
@@ -318,7 +319,9 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 		trackedURL := trackingSettings.GetTrackingURL(originalURL)
 
 		if trackingSettings.EnableTracking {
-			trackedURL = GenerateEmailRedirectionEndpoint(trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint, originalURL)
+			// Use current Unix timestamp (seconds) for bot detection
+			sentTimestamp := time.Now().Unix()
+			trackedURL = GenerateEmailRedirectionEndpoint(trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint, originalURL, sentTimestamp)
 		}
 
 		// Return the updated tag
@@ -327,7 +330,9 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 
 	if trackingSettings.EnableTracking {
 		// Insert tracking pixel at the end of the body tag
-		trackingPixel := GenerateHTMLOpenTrackingPixel(trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint)
+		// Use current Unix timestamp (seconds) for bot detection
+		sentTimestamp := time.Now().Unix()
+		trackingPixel := GenerateHTMLOpenTrackingPixel(trackingSettings.WorkspaceID, trackingSettings.MessageID, trackingSettings.Endpoint, sentTimestamp)
 
 		// Find the closing </body> tag and insert the pixel before it
 		bodyCloseRegex := regexp.MustCompile(`(?i)(<\/body>)`)

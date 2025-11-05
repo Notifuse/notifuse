@@ -3,10 +3,14 @@ package http
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
-	"github.com/Notifuse/notifuse/pkg/logger")
+	"github.com/Notifuse/notifuse/pkg/botdetection"
+	"github.com/Notifuse/notifuse/pkg/logger"
+)
 
 // EmailHandler handles HTTP requests for email operations
 type EmailHandler struct {
@@ -92,10 +96,41 @@ func (h *EmailHandler) handleClickRedirection(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	// increment the click count and ignore errors
-	h.emailService.VisitLink(r.Context(), messageID, workspaceID)
+	// Bot detection: check time and user agent before recording
+	shouldRecord := true
+	userAgent := r.Header.Get("User-Agent")
 
-	// redirect to the url
+	// Check if bot based on user agent
+	if botdetection.IsBotUserAgent(userAgent) {
+		shouldRecord = false
+		h.logger.WithField("user_agent", userAgent).Debug("Bot detected by user agent - not recording click")
+	}
+
+	// Check if click is too fast (< 7 seconds) using timestamp from URL
+	if shouldRecord {
+		tsParam := r.URL.Query().Get("ts")
+		if tsParam != "" {
+			sentTimestamp, err := strconv.ParseInt(tsParam, 10, 64)
+			if err == nil {
+				sentAt := time.Unix(sentTimestamp, 0)
+				timeSinceSent := time.Since(sentAt)
+				if timeSinceSent < 7*time.Second {
+					shouldRecord = false
+					h.logger.WithFields(map[string]interface{}{
+						"time_since_sent": timeSinceSent.Seconds(),
+						"message_id":      messageID,
+					}).Debug("Click too fast - not recording (likely bot)")
+				}
+			}
+		}
+	}
+
+	// Record click only if it passes bot detection
+	if shouldRecord {
+		h.emailService.VisitLink(r.Context(), messageID, workspaceID)
+	}
+
+	// Always redirect regardless of whether we recorded
 	http.Redirect(w, r, redirectTo, http.StatusSeeOther)
 }
 
@@ -110,12 +145,42 @@ func (h *EmailHandler) handleOpens(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// ignore errors
-	h.emailService.OpenEmail(r.Context(), messageID, workspaceID)
+	// Bot detection: check time and user agent before recording
+	shouldRecord := true
+	userAgent := r.Header.Get("User-Agent")
 
-	// return a transparent 1x1 pixel
+	// Check if bot based on user agent
+	if botdetection.IsBotUserAgent(userAgent) {
+		shouldRecord = false
+		h.logger.WithField("user_agent", userAgent).Debug("Bot detected by user agent - not recording open")
+	}
+
+	// Check if open is too fast (< 7 seconds) using timestamp from URL
+	if shouldRecord {
+		tsParam := r.URL.Query().Get("ts")
+		if tsParam != "" {
+			sentTimestamp, err := strconv.ParseInt(tsParam, 10, 64)
+			if err == nil {
+				sentAt := time.Unix(sentTimestamp, 0)
+				timeSinceSent := time.Since(sentAt)
+				if timeSinceSent < 7*time.Second {
+					shouldRecord = false
+					h.logger.WithFields(map[string]interface{}{
+						"time_since_sent": timeSinceSent.Seconds(),
+						"message_id":      messageID,
+					}).Debug("Open too fast - not recording (likely bot)")
+				}
+			}
+		}
+	}
+
+	// Record open only if it passes bot detection
+	if shouldRecord {
+		h.emailService.OpenEmail(r.Context(), messageID, workspaceID)
+	}
+
+	// Always return pixel regardless of whether we recorded
 	w.Header().Set("Content-Type", "image/png")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4, 0x89, 0x00, 0x00, 0x00, 0x0B, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0x60, 0x00, 0x00, 0x00, 0x02, 0x00, 0x01, 0xE2, 0x21, 0xBC, 0x33, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82})
-
 }

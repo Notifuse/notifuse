@@ -1301,13 +1301,16 @@ func TestBuildTemplateData(t *testing.T) {
 
 // TestGenerateEmailRedirectionEndpoint tests the generation of the URL for tracking email redirections
 func TestGenerateEmailRedirectionEndpoint(t *testing.T) {
+	// Use a fixed timestamp for consistent testing
+	testTimestamp := int64(1699564800)
+
 	tests := []struct {
 		name           string
 		workspaceID    string
 		messageID      string
 		apiEndpoint    string
 		destinationURL string
-		expected       string
+		expectedBase   string // The base URL without timestamp
 	}{
 		{
 			name:           "with all parameters",
@@ -1315,7 +1318,7 @@ func TestGenerateEmailRedirectionEndpoint(t *testing.T) {
 			messageID:      "msg-456",
 			apiEndpoint:    "https://api.example.com",
 			destinationURL: "https://example.com",
-			expected:       "https://api.example.com/visit?mid=msg-456&wid=ws-123&url=https%3A%2F%2Fexample.com",
+			expectedBase:   "https://api.example.com/visit?mid=msg-456&wid=ws-123&ts=1699564800&url=https%3A%2F%2Fexample.com",
 		},
 		{
 			name:           "with empty api endpoint",
@@ -1323,7 +1326,7 @@ func TestGenerateEmailRedirectionEndpoint(t *testing.T) {
 			messageID:      "msg-456",
 			apiEndpoint:    "",
 			destinationURL: "https://example.com",
-			expected:       "/visit?mid=msg-456&wid=ws-123&url=https%3A%2F%2Fexample.com",
+			expectedBase:   "/visit?mid=msg-456&wid=ws-123&ts=1699564800&url=https%3A%2F%2Fexample.com",
 		},
 		{
 			name:           "with special characters that need encoding",
@@ -1331,14 +1334,14 @@ func TestGenerateEmailRedirectionEndpoint(t *testing.T) {
 			messageID:      "msg=456?test=1",
 			apiEndpoint:    "https://api.example.com",
 			destinationURL: "https://example.com/page?param=value&other=test",
-			expected:       "https://api.example.com/visit?mid=msg%3D456%3Ftest%3D1&wid=ws%2F123%26test%3D1&url=https%3A%2F%2Fexample.com%2Fpage%3Fparam%3Dvalue%26other%3Dtest",
+			expectedBase:   "https://api.example.com/visit?mid=msg%3D456%3Ftest%3D1&wid=ws%2F123%26test%3D1&ts=1699564800&url=https%3A%2F%2Fexample.com%2Fpage%3Fparam%3Dvalue%26other%3Dtest",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			url := notifuse_mjml.GenerateEmailRedirectionEndpoint(tt.workspaceID, tt.messageID, tt.apiEndpoint, tt.destinationURL)
-			assert.Equal(t, tt.expected, url)
+			url := notifuse_mjml.GenerateEmailRedirectionEndpoint(tt.workspaceID, tt.messageID, tt.apiEndpoint, tt.destinationURL, testTimestamp)
+			assert.Equal(t, tt.expectedBase, url)
 		})
 	}
 }

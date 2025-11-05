@@ -687,9 +687,10 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 	messageID := url.QueryEscape(req.MessageID)
 	workspaceID := url.QueryEscape(req.WorkspaceID)
 
-	// Tracking pixel for opens
-	trackingPixelURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s",
-		req.TrackingSettings.Endpoint, messageID, workspaceID)
+	// Tracking pixel for opens (with timestamp for bot detection)
+	sentTimestamp := time.Now().Unix()
+	trackingPixelURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
+		req.TrackingSettings.Endpoint, messageID, workspaceID, sentTimestamp)
 
 	templateData["tracking_opens_url"] = trackingPixelURL
 

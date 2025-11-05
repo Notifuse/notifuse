@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/tests/testutil"
@@ -30,6 +31,14 @@ func TestEmailHandler_Integration(t *testing.T) {
 
 	t.Run("HandleOpens", func(t *testing.T) {
 		testEmailHandlerOpens(t, suite)
+	})
+
+	t.Run("BotDetection_ClickTracking", func(t *testing.T) {
+		testBotDetectionClickTracking(t, suite)
+	})
+
+	t.Run("BotDetection_OpenTracking", func(t *testing.T) {
+		testBotDetectionOpenTracking(t, suite)
 	})
 
 	t.Run("HandleTestEmailProvider", func(t *testing.T) {
@@ -406,6 +415,403 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 		defer resp.Body.Close()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	})
+}
+
+func testBotDetectionClickTracking(t *testing.T, suite *testutil.IntegrationTestSuite) {
+	baseURL := suite.ServerManager.GetURL()
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+
+	t.Run("bot user-agent not tracked but redirects", func(t *testing.T) {
+		redirectURL := "https://example.com/bot-test"
+		messageID := "msg-bot-test"
+		workspaceID := "ws-bot-test"
+		timestamp := time.Now().Add(-10 * time.Second).Unix() // Old enough to pass time check
+
+		visitURL := fmt.Sprintf("%s/visit?url=%s&mid=%s&wid=%s&ts=%d",
+			baseURL,
+			url.QueryEscape(redirectURL),
+			messageID,
+			workspaceID,
+			timestamp,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, visitURL, nil)
+		require.NoError(t, err)
+		
+		// Set a known bot user-agent
+		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should still redirect properly (bot gets redirected)
+		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+		location := resp.Header.Get("Location")
+		assert.Equal(t, redirectURL, location)
+
+		// Note: We can't directly verify the click wasn't recorded without
+		// querying the database, but the behavior is that bots get redirected
+		// without recording. The unit tests verify the logic.
+	})
+
+	t.Run("fast click not tracked but redirects (< 7 seconds)", func(t *testing.T) {
+		redirectURL := "https://example.com/fast-click"
+		messageID := "msg-fast-click"
+		workspaceID := "ws-fast-click"
+		// Timestamp very recent (< 7 seconds ago)
+		timestamp := time.Now().Add(-2 * time.Second).Unix()
+
+		visitURL := fmt.Sprintf("%s/visit?url=%s&mid=%s&wid=%s&ts=%d",
+			baseURL,
+			url.QueryEscape(redirectURL),
+			messageID,
+			workspaceID,
+			timestamp,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, visitURL, nil)
+		require.NoError(t, err)
+		
+		// Use a normal browser user-agent (not a bot)
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should still redirect properly (fast clicks get redirected)
+		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+		location := resp.Header.Get("Location")
+		assert.Equal(t, redirectURL, location)
+	})
+
+	t.Run("human user-agent with proper timing redirects", func(t *testing.T) {
+		redirectURL := "https://example.com/human-click"
+		messageID := "msg-human-click"
+		workspaceID := "ws-human-click"
+		// Timestamp old enough (> 7 seconds ago)
+		timestamp := time.Now().Add(-20 * time.Second).Unix()
+
+		visitURL := fmt.Sprintf("%s/visit?url=%s&mid=%s&wid=%s&ts=%d",
+			baseURL,
+			url.QueryEscape(redirectURL),
+			messageID,
+			workspaceID,
+			timestamp,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, visitURL, nil)
+		require.NoError(t, err)
+		
+		// Use a normal browser user-agent
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should redirect properly
+		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+		location := resp.Header.Get("Location")
+		assert.Equal(t, redirectURL, location)
+	})
+
+	t.Run("empty user-agent treated as bot", func(t *testing.T) {
+		redirectURL := "https://example.com/empty-ua"
+		messageID := "msg-empty-ua"
+		workspaceID := "ws-empty-ua"
+		timestamp := time.Now().Add(-10 * time.Second).Unix()
+
+		visitURL := fmt.Sprintf("%s/visit?url=%s&mid=%s&wid=%s&ts=%d",
+			baseURL,
+			url.QueryEscape(redirectURL),
+			messageID,
+			workspaceID,
+			timestamp,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, visitURL, nil)
+		require.NoError(t, err)
+		
+		// Don't set User-Agent header (will be empty)
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should still redirect properly (bot gets redirected)
+		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+		location := resp.Header.Get("Location")
+		assert.Equal(t, redirectURL, location)
+	})
+
+	t.Run("email security scanner patterns", func(t *testing.T) {
+		scannerUserAgents := []string{
+			"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/70.0.3538.102 Safari/537.36 Edge/18.18362 (Microsoft Outlook SafeLinks PreFetch)",
+			"Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 Chrome/42.0.2311.135 Safari/537.36 (Proofpoint URL Defense)",
+			"Mimecast-URL-Rewriter/1.0",
+		}
+
+		for i, ua := range scannerUserAgents {
+			t.Run(fmt.Sprintf("scanner_%d", i), func(t *testing.T) {
+				redirectURL := fmt.Sprintf("https://example.com/scanner-%d", i)
+				messageID := fmt.Sprintf("msg-scanner-%d", i)
+				workspaceID := fmt.Sprintf("ws-scanner-%d", i)
+				timestamp := time.Now().Add(-10 * time.Second).Unix()
+
+				visitURL := fmt.Sprintf("%s/visit?url=%s&mid=%s&wid=%s&ts=%d",
+					baseURL,
+					url.QueryEscape(redirectURL),
+					messageID,
+					workspaceID,
+					timestamp,
+				)
+
+				req, err := http.NewRequest(http.MethodGet, visitURL, nil)
+				require.NoError(t, err)
+				req.Header.Set("User-Agent", ua)
+
+				resp, err := client.Do(req)
+				require.NoError(t, err)
+				defer resp.Body.Close()
+
+				// Email scanners should still get redirected
+				assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+				location := resp.Header.Get("Location")
+				assert.Equal(t, redirectURL, location)
+			})
+		}
+	})
+
+	t.Run("missing timestamp parameter still works", func(t *testing.T) {
+		// Backward compatibility test - old URLs without ts parameter
+		redirectURL := "https://example.com/no-ts"
+		messageID := "msg-no-ts"
+		workspaceID := "ws-no-ts"
+
+		visitURL := fmt.Sprintf("%s/visit?url=%s&mid=%s&wid=%s",
+			baseURL,
+			url.QueryEscape(redirectURL),
+			messageID,
+			workspaceID,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, visitURL, nil)
+		require.NoError(t, err)
+		req.Header.Set("User-Agent", "Mozilla/5.0 Chrome/120.0.0.0")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should still work (time check is skipped if no ts parameter)
+		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
+		location := resp.Header.Get("Location")
+		assert.Equal(t, redirectURL, location)
+	})
+}
+
+func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestSuite) {
+	baseURL := suite.ServerManager.GetURL()
+	client := &http.Client{}
+
+	t.Run("bot user-agent not tracked but returns pixel", func(t *testing.T) {
+		messageID := "msg-bot-open"
+		workspaceID := "ws-bot-open"
+		timestamp := time.Now().Add(-10 * time.Second).Unix()
+
+		openURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
+			baseURL,
+			messageID,
+			workspaceID,
+			timestamp,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, openURL, nil)
+		require.NoError(t, err)
+		
+		// Set a known bot user-agent
+		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Googlebot/2.1)")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should still return a pixel (bot gets the image)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
+
+		// Verify it's a valid PNG
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err)
+		assert.True(t, len(body) > 0)
+		
+		expectedSignature := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
+		assert.Equal(t, expectedSignature, body[:8])
+	})
+
+	t.Run("fast open not tracked but returns pixel (< 7 seconds)", func(t *testing.T) {
+		messageID := "msg-fast-open"
+		workspaceID := "ws-fast-open"
+		// Timestamp very recent (< 7 seconds ago)
+		timestamp := time.Now().Add(-3 * time.Second).Unix()
+
+		openURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
+			baseURL,
+			messageID,
+			workspaceID,
+			timestamp,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, openURL, nil)
+		require.NoError(t, err)
+		
+		// Use a normal browser user-agent
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should still return a pixel
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
+	})
+
+	t.Run("human user-agent with proper timing returns pixel", func(t *testing.T) {
+		messageID := "msg-human-open"
+		workspaceID := "ws-human-open"
+		// Timestamp old enough (> 7 seconds ago)
+		timestamp := time.Now().Add(-30 * time.Second).Unix()
+
+		openURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
+			baseURL,
+			messageID,
+			workspaceID,
+			timestamp,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, openURL, nil)
+		require.NoError(t, err)
+		
+		// Use a normal browser user-agent
+		req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should return a pixel
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
+	})
+
+	t.Run("headless browser detected as bot", func(t *testing.T) {
+		messageID := "msg-headless"
+		workspaceID := "ws-headless"
+		timestamp := time.Now().Add(-10 * time.Second).Unix()
+
+		openURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
+			baseURL,
+			messageID,
+			workspaceID,
+			timestamp,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, openURL, nil)
+		require.NoError(t, err)
+		
+		// HeadlessChrome user-agent
+		req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 HeadlessChrome/120.0.0.0")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should still return a pixel
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
+	})
+
+	t.Run("invalid timestamp format ignored", func(t *testing.T) {
+		messageID := "msg-invalid-ts"
+		workspaceID := "ws-invalid-ts"
+
+		openURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=invalid",
+			baseURL,
+			messageID,
+			workspaceID,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, openURL, nil)
+		require.NoError(t, err)
+		req.Header.Set("User-Agent", "Mozilla/5.0 Chrome/120.0.0.0")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should still work (invalid ts is ignored, time check skipped)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
+	})
+
+	t.Run("timestamp exactly at 7 second boundary", func(t *testing.T) {
+		messageID := "msg-boundary"
+		workspaceID := "ws-boundary"
+		// Exactly 7 seconds ago - should pass (>= 7 seconds is allowed)
+		timestamp := time.Now().Add(-7 * time.Second).Unix()
+
+		openURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
+			baseURL,
+			messageID,
+			workspaceID,
+			timestamp,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, openURL, nil)
+		require.NoError(t, err)
+		req.Header.Set("User-Agent", "Mozilla/5.0 Chrome/120.0.0.0")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should return a pixel
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
+	})
+
+	t.Run("very old timestamp still works", func(t *testing.T) {
+		messageID := "msg-old"
+		workspaceID := "ws-old"
+		// Very old timestamp (1 hour ago)
+		timestamp := time.Now().Add(-1 * time.Hour).Unix()
+
+		openURL := fmt.Sprintf("%s/opens?mid=%s&wid=%s&ts=%d",
+			baseURL,
+			messageID,
+			workspaceID,
+			timestamp,
+		)
+
+		req, err := http.NewRequest(http.MethodGet, openURL, nil)
+		require.NoError(t, err)
+		req.Header.Set("User-Agent", "Mozilla/5.0 Chrome/120.0.0.0")
+
+		resp, err := client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should work fine
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, "image/png", resp.Header.Get("Content-Type"))
 	})
 }
 

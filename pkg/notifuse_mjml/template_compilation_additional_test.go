@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestTrackingSettings_DBValueScan(t *testing.T) {
@@ -30,7 +31,7 @@ func TestCompileTemplateRequest_Validate(t *testing.T) {
 	// Build a minimal valid mjml tree
 	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
 	body.Children = []EmailBlock{}
-	
+
 	root := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
 	root.Children = []EmailBlock{body}
 
@@ -55,16 +56,16 @@ func TestCompileTemplate_WithTemplateDataJSON(t *testing.T) {
 	textBase := NewBaseBlock("t", MJMLComponentMjText)
 	textBase.Content = stringPtr("Hello {{name}}")
 	text := &MJTextBlock{BaseBlock: textBase}
-	
+
 	col := &MJColumnBlock{BaseBlock: NewBaseBlock("c", MJMLComponentMjColumn)}
 	col.Children = []EmailBlock{text}
-	
+
 	sec := &MJSectionBlock{BaseBlock: NewBaseBlock("s", MJMLComponentMjSection)}
 	sec.Children = []EmailBlock{col}
-	
+
 	body := &MJBodyBlock{BaseBlock: NewBaseBlock("b", MJMLComponentMjBody)}
 	body.Children = []EmailBlock{sec}
-	
+
 	root := &MJMLBlock{BaseBlock: NewBaseBlock("r", MJMLComponentMjml)}
 	root.Children = []EmailBlock{body}
 
@@ -80,14 +81,25 @@ func TestCompileTemplate_WithTemplateDataJSON(t *testing.T) {
 }
 
 func TestGenerateEmailRedirectionAndPixel(t *testing.T) {
-	redir := GenerateEmailRedirectionEndpoint("w id", "m/id", "https://api.example.com", "https://example.com/x?y=1")
+	// Use a fixed timestamp for testing
+	testTimestamp := time.Now().Unix()
+
+	redir := GenerateEmailRedirectionEndpoint("w id", "m/id", "https://api.example.com", "https://example.com/x?y=1", testTimestamp)
 	if redir == "" || redir == "https://api.example.com/visit?mid=m/id&wid=w id&url=https://example.com/x?y=1" {
 		t.Fatalf("expected URL-encoded params, got: %s", redir)
 	}
+	// Verify timestamp is included in the URL
+	if !strings.Contains(redir, "ts=") {
+		t.Fatalf("expected 'ts=' parameter in URL, got: %s", redir)
+	}
 
-	pixel := GenerateHTMLOpenTrackingPixel("w", "m", "https://api.example.com")
+	pixel := GenerateHTMLOpenTrackingPixel("w", "m", "https://api.example.com", testTimestamp)
 	if pixel == "" || !strings.Contains(pixel, "<img src=") {
 		t.Fatalf("unexpected pixel: %s", pixel)
+	}
+	// Verify timestamp is included in the pixel URL
+	if !strings.Contains(pixel, "ts=") {
+		t.Fatalf("expected 'ts=' parameter in pixel URL, got: %s", pixel)
 	}
 }
 
