@@ -252,7 +252,6 @@ export class MjWrapperBlock extends BaseEmailBlock {
     }
 
     const innerWrapperStyle: React.CSSProperties = {
-      maxWidth: '600px',
       margin: '0 auto',
       backgroundColor: attrs.backgroundColor,
       paddingTop: attrs.paddingTop,

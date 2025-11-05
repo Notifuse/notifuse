@@ -17,6 +17,7 @@ import PaddingInput from '../ui/PaddingInput'
 import InputLayout from '../ui/InputLayout'
 import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
 import BorderInput from '../ui/BorderInput'
+import BorderRadiusInput from '../ui/BorderRadiusInput'
 import FileSrc from '../ui/FileSrc'
 import PanelLayout from '../panels/PanelLayout'
 import WidthPxInput from '../ui/WidthPxInput'
@@ -318,6 +319,14 @@ export class MjImageBlock extends BaseEmailBlock {
             onChange={(color) => {
               onUpdate({ containerBackgroundColor: color || undefined })
             }}
+          />
+        </InputLayout>
+
+        <InputLayout label="Border Radius">
+          <BorderRadiusInput
+            value={currentAttributes.borderRadius}
+            onChange={(value) => onUpdate({ borderRadius: value })}
+            defaultValue={blockDefaults.borderRadius}
           />
         </InputLayout>
 

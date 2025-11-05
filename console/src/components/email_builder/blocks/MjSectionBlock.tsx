@@ -73,7 +73,7 @@ export class MjSectionBlock extends BaseEmailBlock {
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
     blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
+    _emailTree?: EmailBlock
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJSectionAttributes
 
@@ -262,7 +262,6 @@ export class MjSectionBlock extends BaseEmailBlock {
             ...(attrs.backgroundPositionY && { backgroundPositionY: attrs.backgroundPositionY })
           }),
       margin: '0px auto',
-      maxWidth: attrs.fullWidth === 'full-width' ? undefined : '600px',
       borderRadius: attrs.borderRadius !== '0px' ? attrs.borderRadius : undefined,
       ...selectionStyle
     }

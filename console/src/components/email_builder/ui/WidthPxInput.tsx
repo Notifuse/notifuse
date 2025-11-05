@@ -21,7 +21,7 @@ const WidthPxInput: React.FC<WidthPxInputProps> = memo(
     placeholder,
     defaultValue,
     min = 0,
-    max = 650,
+    max = 2000,
     step = 1,
     disabled = false,
     size = 'small',
