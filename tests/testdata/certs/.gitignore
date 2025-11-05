@@ -1,0 +1,9 @@
+# Keep the directory structure but ignore certificate files in case they're regenerated
+# The actual test certificates are committed to the repo for convenience
+# but we ignore any locally generated ones
+
+*.pem.bak
+*.key.bak
+*.csr
+*.old
+

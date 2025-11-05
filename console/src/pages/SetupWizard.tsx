@@ -27,10 +27,12 @@ export default function SetupWizard() {
     smtp_configured: boolean
     api_endpoint_configured: boolean
     root_email_configured: boolean
+    smtp_relay_configured: boolean
   }>({
     smtp_configured: false,
     api_endpoint_configured: false,
-    root_email_configured: false
+    root_email_configured: false,
+    smtp_relay_configured: false
   })
   const { message } = App.useApp()
 
@@ -50,7 +52,8 @@ export default function SetupWizard() {
         setConfigStatus({
           smtp_configured: status.smtp_configured,
           api_endpoint_configured: status.api_endpoint_configured,
-          root_email_configured: status.root_email_configured
+          root_email_configured: status.root_email_configured,
+          smtp_relay_configured: status.smtp_relay_configured
         })
       } catch (error) {
         message.error('Failed to fetch setup status')
@@ -109,6 +112,17 @@ export default function SetupWizard() {
         setupConfig.smtp_password = values.smtp_password || ''
         setupConfig.smtp_from_email = values.smtp_from_email
         setupConfig.smtp_from_name = values.smtp_from_name || 'Notifuse'
+      }
+
+      // SMTP Relay configuration (only if not configured via env)
+      if (!configStatus.smtp_relay_configured) {
+        setupConfig.smtp_relay_enabled = values.smtp_relay_enabled || false
+        if (values.smtp_relay_enabled) {
+          setupConfig.smtp_relay_domain = values.smtp_relay_domain
+          setupConfig.smtp_relay_port = values.smtp_relay_port || 587
+          setupConfig.smtp_relay_tls_cert_base64 = values.smtp_relay_tls_cert_base64
+          setupConfig.smtp_relay_tls_key_base64 = values.smtp_relay_tls_key_base64
+        }
       }
 
       // Telemetry and check for updates settings
@@ -511,6 +525,172 @@ export default function SetupWizard() {
                                 </Form.Item>
                               </Col>
                             </Row>
+
+                            <Divider style={{ marginTop: 24, marginBottom: 24 }} />
+
+                            {/* SMTP Relay Configuration - Hidden if configured via env */}
+                            {!configStatus.smtp_relay_configured && (
+                              <>
+                                <Form.Item
+                                  name="smtp_relay_enabled"
+                                  valuePropName="checked"
+                                  label="Enable SMTP Relay Server"
+                                  tooltip="Allow receiving emails to trigger transactional notifications. Requires TLS certificates."
+                                >
+                                  <Switch />
+                                </Form.Item>
+
+                                <Form.Item
+                                  noStyle
+                                  shouldUpdate={(prevValues, currentValues) =>
+                                    prevValues.smtp_relay_enabled !==
+                                    currentValues.smtp_relay_enabled
+                                  }
+                                >
+                                  {({ getFieldValue }) =>
+                                    getFieldValue('smtp_relay_enabled') ? (
+                                      <div
+                                        style={{
+                                          marginTop: 16,
+                                          paddingLeft: 24,
+                                          borderLeft: '3px solid #1890ff'
+                                        }}
+                                      >
+                                        <Form.Item
+                                          label="Domain"
+                                          name="smtp_relay_domain"
+                                          rules={[
+                                            {
+                                              required: true,
+                                              message: 'SMTP relay domain is required'
+                                            }
+                                          ]}
+                                          tooltip="Domain for the SMTP relay server (e.g., smtp.yourcompany.com)"
+                                        >
+                                          <Input placeholder="smtp.yourcompany.com" />
+                                        </Form.Item>
+
+                                        <Form.Item
+                                          label="Port"
+                                          name="smtp_relay_port"
+                                          initialValue={587}
+                                          rules={[
+                                            {
+                                              required: true,
+                                              message: 'SMTP relay port is required'
+                                            }
+                                          ]}
+                                          tooltip="Port for the SMTP relay server (default: 587)"
+                                        >
+                                          <InputNumber
+                                            min={1}
+                                            max={65535}
+                                            style={{ width: '100%' }}
+                                          />
+                                        </Form.Item>
+
+                                        <Form.Item
+                                          label="TLS Certificate (Base64)"
+                                          name="smtp_relay_tls_cert_base64"
+                                          rules={[
+                                            {
+                                              required: true,
+                                              message: 'TLS certificate is required'
+                                            }
+                                          ]}
+                                          tooltip="Base64 encoded TLS certificate. Run: cat fullchain.pem | base64 -w 0"
+                                        >
+                                          <Input.TextArea
+                                            rows={4}
+                                            placeholder="LS0tLS1CRUdJTi..."
+                                            style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                                          />
+                                        </Form.Item>
+
+                                        <Form.Item
+                                          label="TLS Private Key (Base64)"
+                                          name="smtp_relay_tls_key_base64"
+                                          rules={[
+                                            {
+                                              required: true,
+                                              message: 'TLS private key is required'
+                                            }
+                                          ]}
+                                          tooltip="Base64 encoded TLS private key. Run: cat privkey.pem | base64 -w 0"
+                                        >
+                                          <Input.TextArea
+                                            rows={4}
+                                            placeholder="LS0tLS1CRUdJTi..."
+                                            style={{ fontFamily: 'monospace', fontSize: '12px' }}
+                                          />
+                                        </Form.Item>
+
+                                        <div
+                                          style={{
+                                            background: '#f0f5ff',
+                                            border: '1px solid #adc6ff',
+                                            borderRadius: '4px',
+                                            padding: '12px',
+                                            marginTop: 8
+                                          }}
+                                        >
+                                          <div
+                                            style={{
+                                              fontSize: '12px',
+                                              color: '#1890ff',
+                                              marginBottom: 8
+                                            }}
+                                          >
+                                            <strong>How to get TLS certificates:</strong>
+                                          </div>
+                                          <ol
+                                            style={{ fontSize: '12px', margin: 0, paddingLeft: 20 }}
+                                          >
+                                            <li>
+                                              Install certbot:{' '}
+                                              <code
+                                                style={{ background: '#fff', padding: '2px 6px' }}
+                                              >
+                                                apt-get install certbot
+                                              </code>
+                                            </li>
+                                            <li>
+                                              Get certificate:{' '}
+                                              <code
+                                                style={{ background: '#fff', padding: '2px 6px' }}
+                                              >
+                                                certbot certonly --manual --preferred-challenges dns
+                                                -d smtp.yourcompany.com
+                                              </code>
+                                            </li>
+                                            <li>
+                                              Encode certificate:{' '}
+                                              <code
+                                                style={{ background: '#fff', padding: '2px 6px' }}
+                                              >
+                                                cat
+                                                /etc/letsencrypt/live/smtp.yourcompany.com/fullchain.pem
+                                                | base64 -w 0
+                                              </code>
+                                            </li>
+                                            <li>
+                                              Encode key:{' '}
+                                              <code
+                                                style={{ background: '#fff', padding: '2px 6px' }}
+                                              >
+                                                cat
+                                                /etc/letsencrypt/live/smtp.yourcompany.com/privkey.pem
+                                                | base64 -w 0
+                                              </code>
+                                            </li>
+                                          </ol>
+                                        </div>
+                                      </div>
+                                    ) : null
+                                  }
+                                </Form.Item>
+                              </>
+                            )}
                           </>
                         )
                       }

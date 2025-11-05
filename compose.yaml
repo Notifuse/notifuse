@@ -9,6 +9,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - '8081:8080'
+      - '587:587'
     environment:
       # Server Configuration
       - SERVER_PORT=${SERVER_PORT:-8080}

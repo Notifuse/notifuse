@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -77,6 +78,18 @@ func NewIntegrationTestSuite(t *testing.T, appFactory func(*config.Config) AppIn
 	suite.Config = suite.ServerManager.GetApp().GetConfig()
 
 	return suite
+}
+
+// FindAvailablePort finds an available TCP port for testing
+func FindAvailablePort(t *testing.T) int {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Failed to find available port: %v", err)
+	}
+	defer listener.Close()
+
+	addr := listener.Addr().(*net.TCPAddr)
+	return addr.Port
 }
 
 // Cleanup cleans up all test resources

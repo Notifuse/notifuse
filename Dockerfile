@@ -78,8 +78,9 @@ COPY --from=console-frontend-builder /build/console/dist/ /app/console/dist/
 # Copy the built notification center files
 COPY --from=notification-center-builder /build/notification_center/dist/ /app/notification_center/dist/
 
-# Expose the application port
+# Expose the application ports
 EXPOSE 8080
+EXPOSE 587
 
 # Run the application
 CMD ["/app/server"] 

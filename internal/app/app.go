@@ -23,6 +23,7 @@ import (
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/mailer"
+	"github.com/Notifuse/notifuse/pkg/smtp_relay"
 	"github.com/Notifuse/notifuse/pkg/tracing"
 
 	"contrib.go.opencensus.io/integrations/ocsql"
@@ -136,6 +137,14 @@ type App struct {
 	// HTTP handlers
 	mux    *http.ServeMux
 	server *http.Server
+
+	// SMTP relay server
+	smtpRelayHandlerService *service.SMTPRelayHandlerService
+	smtpRelayRateLimiter    *service.RateLimiter
+	smtpRelayServer         interface {
+		Start() error
+		Shutdown(context.Context) error
+	}
 
 	// Server synchronization
 	serverMu      sync.RWMutex
@@ -431,16 +440,21 @@ func (a *App) InitServices() error {
 
 	// Initialize setup service with environment config from config loader
 	// Config tracks which values came from actual env vars (not database, not generated)
-	rootEmail, apiEndpoint, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName, smtpPort := a.config.GetEnvValues()
+	rootEmail, apiEndpoint, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName, smtpPort, smtpRelayEnabled, smtpRelayDomain, smtpRelayTLSCertBase64, smtpRelayTLSKeyBase64, smtpRelayPort := a.config.GetEnvValues()
 	envConfig := &service.EnvironmentConfig{
-		RootEmail:     rootEmail,
-		APIEndpoint:   apiEndpoint,
-		SMTPHost:      smtpHost,
-		SMTPPort:      smtpPort,
-		SMTPUsername:  smtpUsername,
-		SMTPPassword:  smtpPassword,
-		SMTPFromEmail: smtpFromEmail,
-		SMTPFromName:  smtpFromName,
+		RootEmail:              rootEmail,
+		APIEndpoint:            apiEndpoint,
+		SMTPHost:               smtpHost,
+		SMTPPort:               smtpPort,
+		SMTPUsername:           smtpUsername,
+		SMTPPassword:           smtpPassword,
+		SMTPFromEmail:          smtpFromEmail,
+		SMTPFromName:           smtpFromName,
+		SMTPRelayEnabled:       smtpRelayEnabled,
+		SMTPRelayDomain:        smtpRelayDomain,
+		SMTPRelayPort:          smtpRelayPort,
+		SMTPRelayTLSCertBase64: smtpRelayTLSCertBase64,
+		SMTPRelayTLSKeyBase64:  smtpRelayTLSKeyBase64,
 	}
 
 	a.setupService = service.NewSetupService(
@@ -772,6 +786,64 @@ func (a *App) InitServices() error {
 		a.config.TaskScheduler.MaxTasks,
 	)
 
+	// Create rate limiter for SMTP relay (5 attempts per minute)
+	a.smtpRelayRateLimiter = service.NewRateLimiter(5, 1*time.Minute)
+
+	// Initialize SMTP relay handler service
+	a.smtpRelayHandlerService = service.NewSMTPRelayHandlerService(
+		a.authService,
+		a.transactionalNotificationService,
+		a.workspaceRepo,
+		a.logger,
+		a.config.Security.JWTSecret,
+		a.smtpRelayRateLimiter,
+	)
+
+	// Initialize SMTP relay server if enabled
+	if a.config.SMTPRelay.Enabled {
+		// Setup TLS configuration
+		tlsConfig, err := smtp_relay.SetupTLS(smtp_relay.TLSConfig{
+			CertBase64: a.config.SMTPRelay.TLSCertBase64,
+			KeyBase64:  a.config.SMTPRelay.TLSKeyBase64,
+			Logger:     a.logger,
+		})
+		if err != nil {
+			a.logger.WithField("error", err.Error()).Error("Failed to setup TLS for SMTP relay")
+			return fmt.Errorf("failed to setup TLS for SMTP relay: %w", err)
+		}
+
+		// Create SMTP backend with authentication and message handlers
+		backend := smtp_relay.NewBackend(
+			a.smtpRelayHandlerService.Authenticate,
+			a.smtpRelayHandlerService.HandleMessage,
+			a.logger,
+		)
+
+		// Create SMTP server configuration
+		smtpConfig := smtp_relay.ServerConfig{
+			Host:       a.config.SMTPRelay.Host,
+			Port:       a.config.SMTPRelay.Port,
+			Domain:     a.config.SMTPRelay.Domain,
+			TLSConfig:  tlsConfig,
+			RequireTLS: a.config.IsProduction(),
+			Logger:     a.logger,
+		}
+
+		// Create the SMTP server
+		smtpRelayServer, err := smtp_relay.NewServer(smtpConfig, backend)
+		if err != nil {
+			a.logger.WithField("error", err.Error()).Error("Failed to create SMTP relay server")
+			return fmt.Errorf("failed to create SMTP relay server: %w", err)
+		}
+
+		a.smtpRelayServer = smtpRelayServer
+		a.logger.WithFields(map[string]interface{}{
+			"port":   a.config.SMTPRelay.Port,
+			"domain": a.config.SMTPRelay.Domain,
+			"tls":    tlsConfig != nil,
+		}).Info("SMTP relay server initialized successfully")
+	}
+
 	return nil
 }
 
@@ -959,6 +1031,16 @@ func (a *App) Start() error {
 		a.telemetryService.StartDailyScheduler(ctx)
 	}
 
+	// Start SMTP relay server if enabled
+	if a.smtpRelayServer != nil {
+		go func() {
+			a.logger.Info("Starting SMTP relay server...")
+			if err := a.smtpRelayServer.Start(); err != nil {
+				a.logger.WithField("error", err.Error()).Error("SMTP relay server error")
+			}
+		}()
+	}
+
 	// Start the server based on SSL configuration
 	if a.config.Server.SSL.Enabled {
 		a.logger.WithField("cert_file", a.config.Server.SSL.CertFile).Info("SSL enabled")
@@ -978,6 +1060,24 @@ func (a *App) Shutdown(ctx context.Context) error {
 	// Stop task scheduler first (before stopping server)
 	if a.taskScheduler != nil {
 		a.taskScheduler.Stop()
+	}
+
+	// Stop SMTP relay rate limiter
+	if a.smtpRelayRateLimiter != nil {
+		a.smtpRelayRateLimiter.Stop()
+	}
+
+	// Shutdown SMTP relay server if running
+	if a.smtpRelayServer != nil {
+		a.logger.Info("Shutting down SMTP relay server...")
+		smtpShutdownCtx, smtpShutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer smtpShutdownCancel()
+
+		if err := a.smtpRelayServer.Shutdown(smtpShutdownCtx); err != nil {
+			a.logger.WithField("error", err.Error()).Error("Error shutting down SMTP relay server")
+		} else {
+			a.logger.Info("SMTP relay server shut down successfully")
+		}
 	}
 
 	// Get server reference

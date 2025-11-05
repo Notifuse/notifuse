@@ -14,16 +14,21 @@ import (
 
 // SetupConfig represents the setup initialization configuration
 type SetupConfig struct {
-	RootEmail        string
-	APIEndpoint      string
-	SMTPHost         string
-	SMTPPort         int
-	SMTPUsername     string
-	SMTPPassword     string
-	SMTPFromEmail    string
-	SMTPFromName     string
-	TelemetryEnabled bool
-	CheckForUpdates  bool
+	RootEmail              string
+	APIEndpoint            string
+	SMTPHost               string
+	SMTPPort               int
+	SMTPUsername           string
+	SMTPPassword           string
+	SMTPFromEmail          string
+	SMTPFromName           string
+	TelemetryEnabled       bool
+	CheckForUpdates        bool
+	SMTPRelayEnabled       bool
+	SMTPRelayDomain        string
+	SMTPRelayPort          int
+	SMTPRelayTLSCertBase64 string
+	SMTPRelayTLSKeyBase64  string
 }
 
 // SMTPTestConfig represents SMTP configuration for testing
@@ -39,6 +44,7 @@ type ConfigurationStatus struct {
 	SMTPConfigured        bool
 	APIEndpointConfigured bool
 	RootEmailConfigured   bool
+	SMTPRelayConfigured   bool
 }
 
 // SetupService handles setup wizard operations
@@ -54,14 +60,19 @@ type SetupService struct {
 
 // EnvironmentConfig holds configuration from environment variables
 type EnvironmentConfig struct {
-	RootEmail     string
-	APIEndpoint   string
-	SMTPHost      string
-	SMTPPort      int
-	SMTPUsername  string
-	SMTPPassword  string
-	SMTPFromEmail string
-	SMTPFromName  string
+	RootEmail              string
+	APIEndpoint            string
+	SMTPHost               string
+	SMTPPort               int
+	SMTPUsername           string
+	SMTPPassword           string
+	SMTPFromEmail          string
+	SMTPFromName           string
+	SMTPRelayEnabled       bool
+	SMTPRelayDomain        string
+	SMTPRelayPort          int
+	SMTPRelayTLSCertBase64 string
+	SMTPRelayTLSKeyBase64  string
 }
 
 // NewSetupService creates a new setup service
@@ -92,6 +103,7 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 			SMTPConfigured:        false,
 			APIEndpointConfigured: false,
 			RootEmailConfigured:   false,
+			SMTPRelayConfigured:   false,
 		}
 	}
 
@@ -101,10 +113,17 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 		s.envConfig.SMTPPort > 0 &&
 		s.envConfig.SMTPFromEmail != ""
 
+	// SMTP Relay is configured if enabled and has required fields
+	smtpRelayConfigured := s.envConfig.SMTPRelayEnabled &&
+		s.envConfig.SMTPRelayDomain != "" &&
+		s.envConfig.SMTPRelayTLSCertBase64 != "" &&
+		s.envConfig.SMTPRelayTLSKeyBase64 != ""
+
 	return &ConfigurationStatus{
 		SMTPConfigured:        smtpConfigured,
 		APIEndpointConfigured: s.envConfig.APIEndpoint != "",
 		RootEmailConfigured:   s.envConfig.RootEmail != "",
+		SMTPRelayConfigured:   smtpRelayConfigured,
 	}
 }
 
@@ -180,19 +199,45 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		smtpFromName = config.SMTPFromName
 	}
 
+	// Handle SMTP Relay configuration
+	var smtpRelayEnabled bool
+	var smtpRelayDomain, smtpRelayTLSCertBase64, smtpRelayTLSKeyBase64 string
+	var smtpRelayPort int
+
+	if status.SMTPRelayConfigured {
+		// Use env-configured SMTP Relay
+		smtpRelayEnabled = s.envConfig.SMTPRelayEnabled
+		smtpRelayDomain = s.envConfig.SMTPRelayDomain
+		smtpRelayPort = s.envConfig.SMTPRelayPort
+		smtpRelayTLSCertBase64 = s.envConfig.SMTPRelayTLSCertBase64
+		smtpRelayTLSKeyBase64 = s.envConfig.SMTPRelayTLSKeyBase64
+	} else {
+		// Use user-provided SMTP Relay
+		smtpRelayEnabled = config.SMTPRelayEnabled
+		smtpRelayDomain = config.SMTPRelayDomain
+		smtpRelayPort = config.SMTPRelayPort
+		smtpRelayTLSCertBase64 = config.SMTPRelayTLSCertBase64
+		smtpRelayTLSKeyBase64 = config.SMTPRelayTLSKeyBase64
+	}
+
 	// Store system settings
 	systemConfig := &SystemConfig{
-		IsInstalled:      true,
-		RootEmail:        finalConfig.RootEmail,
-		APIEndpoint:      finalConfig.APIEndpoint,
-		SMTPHost:         smtpHost,
-		SMTPPort:         smtpPort,
-		SMTPUsername:     smtpUsername,
-		SMTPPassword:     smtpPassword,
-		SMTPFromEmail:    smtpFromEmail,
-		SMTPFromName:     smtpFromName,
-		TelemetryEnabled: config.TelemetryEnabled,
-		CheckForUpdates:  config.CheckForUpdates,
+		IsInstalled:            true,
+		RootEmail:              finalConfig.RootEmail,
+		APIEndpoint:            finalConfig.APIEndpoint,
+		SMTPHost:               smtpHost,
+		SMTPPort:               smtpPort,
+		SMTPUsername:           smtpUsername,
+		SMTPPassword:           smtpPassword,
+		SMTPFromEmail:          smtpFromEmail,
+		SMTPFromName:           smtpFromName,
+		TelemetryEnabled:       config.TelemetryEnabled,
+		CheckForUpdates:        config.CheckForUpdates,
+		SMTPRelayEnabled:       smtpRelayEnabled,
+		SMTPRelayDomain:        smtpRelayDomain,
+		SMTPRelayPort:          smtpRelayPort,
+		SMTPRelayTLSCertBase64: smtpRelayTLSCertBase64,
+		SMTPRelayTLSKeyBase64:  smtpRelayTLSKeyBase64,
 	}
 
 	if err := s.settingService.SetSystemConfig(ctx, systemConfig, s.secretKey); err != nil {

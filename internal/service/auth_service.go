@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 var (
@@ -233,6 +233,7 @@ func (s *AuthService) GenerateAPIAuthToken(user *domain.User) string {
 
 	claims := UserClaims{
 		UserID: user.ID,
+		Email:  user.Email, // Include email for SMTP Relay authentication
 		Type:   string(domain.UserTypeAPIKey),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour * 24 * 365 * 10)),

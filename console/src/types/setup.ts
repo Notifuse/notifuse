@@ -9,6 +9,11 @@ export interface SetupConfig {
   smtp_from_name?: string
   telemetry_enabled?: boolean
   check_for_updates?: boolean
+  smtp_relay_enabled?: boolean
+  smtp_relay_domain?: string
+  smtp_relay_port?: number
+  smtp_relay_tls_cert_base64?: string
+  smtp_relay_tls_key_base64?: string
 }
 
 export interface SetupStatus {
@@ -16,6 +21,7 @@ export interface SetupStatus {
   smtp_configured: boolean
   api_endpoint_configured: boolean
   root_email_configured: boolean
+  smtp_relay_configured: boolean
 }
 
 export interface InitializeResponse {

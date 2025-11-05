@@ -8,6 +8,12 @@ This directory contains the integration testing framework for the Notifuse API, 
 tests/
 ├── README.md                    # This file
 ├── compose.test.yaml            # Test infrastructure (PostgreSQL, MailHog)
+├── testdata/                    # Test data and fixtures
+│   └── certs/                   # Test TLS certificates
+│       ├── test_cert.pem        # Self-signed certificate for localhost
+│       ├── test_key.pem         # Private key for test certificate
+│       ├── README.md            # Certificate setup guide
+│       └── TEST_USAGE.md        # Test certificate usage guide
 ├── testutil/                    # Test utilities and helpers
 │   ├── database.go              # Database management for tests
 │   ├── server.go                # Test server management
@@ -17,7 +23,9 @@ tests/
 └── integration/                 # Integration test files
     ├── database_test.go         # Database integration tests
     ├── api_test.go              # Basic API integration tests
-    └── contact_api_test.go      # Contact API integration tests
+    ├── contact_api_test.go      # Contact API integration tests
+    ├── smtp_relay_e2e_test.go   # SMTP relay end-to-end tests
+    └── ...                      # Other integration tests
 ```
 
 ## Quick Start
