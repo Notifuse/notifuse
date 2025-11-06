@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [16.1] - 2025-11-06
+
+### Features
+
+- **SMTP Relay for Transactional Emails**: Built-in SMTP relay server for sending transactional emails via standard SMTP clients
+  - Send transactional emails using SMTP protocol instead of HTTP API calls
+  - Useful for integrating legacy systems and standard email libraries
+  - TLS encryption support on port 587 with STARTTLS
+  - Authentication using workspace API credentials
+  - Email body contains JSON payload matching Transactional API format
+  - Configuration via environment variables: `SMTP_RELAY_ENABLED`, `SMTP_RELAY_PORT`, `SMTP_RELAY_DOMAIN`, `SMTP_RELAY_TLS_CERT_BASE64`, `SMTP_RELAY_TLS_KEY_BASE64`
+
 ## [16.0] - 2025-11-03
 
 ### Database Schema Changes
