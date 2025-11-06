@@ -42,6 +42,10 @@ type AppInterface interface {
 	GetMessageHistoryRepository() domain.MessageHistoryRepository
 	GetContactListRepository() domain.ContactListRepository
 	GetTransactionalNotificationRepository() domain.TransactionalNotificationRepository
+
+	// Service getters for testing
+	GetAuthService() interface{} // Returns *service.AuthService but defined as interface{} to avoid import cycle
+	GetTransactionalNotificationService() domain.TransactionalNotificationService
 }
 
 // NewServerManager creates a new server manager for testing

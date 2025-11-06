@@ -50,7 +50,7 @@ type EnvValues struct {
 	SMTPPassword           string
 	SMTPFromEmail          string
 	SMTPFromName           string
-	SMTPRelayEnabled       bool
+	SMTPRelayEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
 	SMTPRelayDomain        string
 	SMTPRelayPort          int
 	SMTPRelayTLSCertBase64 string
@@ -352,7 +352,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("SMTP_FROM_NAME", "Notifuse")
 
 	// SMTP Relay defaults
-	v.SetDefault("SMTP_RELAY_ENABLED", false)
+	// NOTE: Don't set default for SMTP_RELAY_ENABLED - we need to detect when it's truly unset
 	v.SetDefault("SMTP_RELAY_PORT", 587)
 
 	// Default tracing config
@@ -476,6 +476,11 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 
 	// Track env var values from viper (before any database fallbacks are applied)
 	// Note: These come from environment variables or .env file, not from defaults or database
+	var smtpRelayEnabledStr string
+	if v.IsSet("SMTP_RELAY_ENABLED") {
+		smtpRelayEnabledStr = v.GetString("SMTP_RELAY_ENABLED")
+	} // else: leave empty string (not set)
+
 	envVals := EnvValues{
 		RootEmail:              v.GetString("ROOT_EMAIL"),
 		APIEndpoint:            v.GetString("API_ENDPOINT"),
@@ -485,7 +490,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		SMTPPassword:           v.GetString("SMTP_PASSWORD"),
 		SMTPFromEmail:          v.GetString("SMTP_FROM_EMAIL"),
 		SMTPFromName:           v.GetString("SMTP_FROM_NAME"),
-		SMTPRelayEnabled:       v.GetBool("SMTP_RELAY_ENABLED"),
+		SMTPRelayEnabled:       smtpRelayEnabledStr, // "true", "false", or "" (empty = not set)
 		SMTPRelayDomain:        v.GetString("SMTP_RELAY_DOMAIN"),
 		SMTPRelayPort:          v.GetInt("SMTP_RELAY_PORT"),
 		SMTPRelayTLSCertBase64: v.GetString("SMTP_RELAY_TLS_CERT_BASE64"),
@@ -565,7 +570,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 
 		// SMTP Relay settings - env vars override database
 		smtpRelayConfig = SMTPRelayConfig{
-			Enabled:       envVals.SMTPRelayEnabled,
+			Enabled:       envVals.SMTPRelayEnabled == "true",
 			Port:          envVals.SMTPRelayPort,
 			Host:          "0.0.0.0",
 			Domain:        envVals.SMTPRelayDomain,
@@ -574,7 +579,8 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		}
 
 		// Use database values as fallback
-		if !v.IsSet("SMTP_RELAY_ENABLED") {
+		if envVals.SMTPRelayEnabled == "" {
+			// Only use DB value if env var is not set (empty string)
 			smtpRelayConfig.Enabled = systemSettings.SMTPRelayEnabled
 		}
 		if smtpRelayConfig.Domain == "" {
@@ -613,7 +619,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		}
 
 		smtpRelayConfig = SMTPRelayConfig{
-			Enabled:       envVals.SMTPRelayEnabled,
+			Enabled:       envVals.SMTPRelayEnabled == "true",
 			Port:          envVals.SMTPRelayPort,
 			Host:          "0.0.0.0",
 			Domain:        envVals.SMTPRelayDomain,
@@ -750,7 +756,7 @@ func (c *Config) IsProduction() bool {
 
 // GetEnvValues returns configuration values that came from actual environment variables
 // This is used by the setup service to determine which settings are already configured
-func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string, smtpPort int, smtpRelayEnabled bool, smtpRelayDomain, smtpRelayTLSCertBase64, smtpRelayTLSKeyBase64 string, smtpRelayPort int) {
+func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string, smtpPort int, smtpRelayEnabled string, smtpRelayDomain, smtpRelayTLSCertBase64, smtpRelayTLSKeyBase64 string, smtpRelayPort int) {
 	return c.EnvValues.RootEmail,
 		c.EnvValues.APIEndpoint,
 		c.EnvValues.SMTPHost,

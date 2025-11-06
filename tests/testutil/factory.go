@@ -455,7 +455,7 @@ func (tdf *TestDataFactory) SetupWorkspaceWithSMTPProvider(workspaceID string, o
 
 	// Set the integration as the marketing email provider
 	workspace.Settings.MarketingEmailProviderID = integration.ID
-	
+
 	// Set the integration as the transactional email provider
 	workspace.Settings.TransactionalEmailProviderID = integration.ID
 
@@ -1137,6 +1137,59 @@ func WithTransactionalNotificationMetadata(metadata map[string]interface{}) Tran
 	return func(tn *domain.TransactionalNotification) {
 		tn.Metadata = metadata
 	}
+}
+
+// WithNotificationTemplateID sets the template ID for email channel
+func WithNotificationTemplateID(templateID string) TransactionalNotificationOption {
+	return func(n *domain.TransactionalNotification) {
+		if config, exists := n.Channels[domain.TransactionalChannelEmail]; exists {
+			config.TemplateID = templateID
+			n.Channels[domain.TransactionalChannelEmail] = config
+		}
+	}
+}
+
+// WithNotificationID is an alias for WithTransactionalNotificationID for consistency
+func WithNotificationID(id string) TransactionalNotificationOption {
+	return WithTransactionalNotificationID(id)
+}
+
+// CreateAPIKey creates an API key user for a workspace
+func (tdf *TestDataFactory) CreateAPIKey(workspaceID string, opts ...UserOption) (*domain.User, error) {
+	apiUser := &domain.User{
+		ID:        uuid.New().String(),
+		Email:     fmt.Sprintf("api-%s@example.com", uuid.New().String()[:8]),
+		Name:      "API Key User",
+		Type:      domain.UserTypeAPIKey,
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(apiUser)
+	}
+
+	err := tdf.userRepo.CreateUser(context.Background(), apiUser)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create API key user: %w", err)
+	}
+
+	// Add API user to workspace
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      apiUser.ID,
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+	}
+
+	err = tdf.workspaceRepo.AddUserToWorkspace(context.Background(), userWorkspace)
+	if err != nil {
+		return nil, fmt.Errorf("failed to add API user to workspace: %w", err)
+	}
+
+	return apiUser, nil
 }
 
 // CleanupWorkspace removes a workspace and its database from the connection pool

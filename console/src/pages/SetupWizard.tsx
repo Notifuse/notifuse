@@ -7,13 +7,6 @@ import { setupApi } from '../services/api/setup'
 import type { SetupConfig } from '../types/setup'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 
-declare global {
-  interface Window {
-    IS_INSTALLED?: boolean
-    API_ENDPOINT?: string
-  }
-}
-
 export default function SetupWizard() {
   const navigate = useNavigate()
 
@@ -526,11 +519,11 @@ export default function SetupWizard() {
                               </Col>
                             </Row>
 
-                            <Divider style={{ marginTop: 24, marginBottom: 24 }} />
-
                             {/* SMTP Relay Configuration - Hidden if configured via env */}
                             {!configStatus.smtp_relay_configured && (
                               <>
+                                <Divider style={{ marginTop: 24, marginBottom: 24 }} />
+
                                 <Form.Item
                                   name="smtp_relay_enabled"
                                   valuePropName="checked"
@@ -624,67 +617,6 @@ export default function SetupWizard() {
                                             style={{ fontFamily: 'monospace', fontSize: '12px' }}
                                           />
                                         </Form.Item>
-
-                                        <div
-                                          style={{
-                                            background: '#f0f5ff',
-                                            border: '1px solid #adc6ff',
-                                            borderRadius: '4px',
-                                            padding: '12px',
-                                            marginTop: 8
-                                          }}
-                                        >
-                                          <div
-                                            style={{
-                                              fontSize: '12px',
-                                              color: '#1890ff',
-                                              marginBottom: 8
-                                            }}
-                                          >
-                                            <strong>How to get TLS certificates:</strong>
-                                          </div>
-                                          <ol
-                                            style={{ fontSize: '12px', margin: 0, paddingLeft: 20 }}
-                                          >
-                                            <li>
-                                              Install certbot:{' '}
-                                              <code
-                                                style={{ background: '#fff', padding: '2px 6px' }}
-                                              >
-                                                apt-get install certbot
-                                              </code>
-                                            </li>
-                                            <li>
-                                              Get certificate:{' '}
-                                              <code
-                                                style={{ background: '#fff', padding: '2px 6px' }}
-                                              >
-                                                certbot certonly --manual --preferred-challenges dns
-                                                -d smtp.yourcompany.com
-                                              </code>
-                                            </li>
-                                            <li>
-                                              Encode certificate:{' '}
-                                              <code
-                                                style={{ background: '#fff', padding: '2px 6px' }}
-                                              >
-                                                cat
-                                                /etc/letsencrypt/live/smtp.yourcompany.com/fullchain.pem
-                                                | base64 -w 0
-                                              </code>
-                                            </li>
-                                            <li>
-                                              Encode key:{' '}
-                                              <code
-                                                style={{ background: '#fff', padding: '2px 6px' }}
-                                              >
-                                                cat
-                                                /etc/letsencrypt/live/smtp.yourcompany.com/privkey.pem
-                                                | base64 -w 0
-                                              </code>
-                                            </li>
-                                          </ol>
-                                        </div>
                                       </div>
                                     ) : null
                                   }

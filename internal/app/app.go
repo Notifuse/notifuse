@@ -54,6 +54,10 @@ type AppInterface interface {
 	GetTransactionalNotificationRepository() domain.TransactionalNotificationRepository
 	GetTelemetryRepository() domain.TelemetryRepository
 
+	// Service getters for testing
+	GetAuthService() interface{} // Returns *service.AuthService but defined as interface{} to avoid import cycle
+	GetTransactionalNotificationService() domain.TransactionalNotificationService
+
 	// Server status methods
 	IsServerCreated() bool
 	WaitForServerStart(ctx context.Context) bool
@@ -1398,6 +1402,14 @@ func (a *App) GetTransactionalNotificationRepository() domain.TransactionalNotif
 
 func (a *App) GetTelemetryRepository() domain.TelemetryRepository {
 	return a.telemetryRepo
+}
+
+func (a *App) GetAuthService() interface{} {
+	return a.authService
+}
+
+func (a *App) GetTransactionalNotificationService() domain.TransactionalNotificationService {
+	return a.transactionalNotificationService
 }
 
 // SetHandler allows setting a custom HTTP handler

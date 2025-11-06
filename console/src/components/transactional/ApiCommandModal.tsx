@@ -1,5 +1,5 @@
 import React from 'react'
-import { Modal, Button, Alert, Tabs } from 'antd'
+import { Modal, Button, Alert, Tabs, Descriptions } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCopy } from '@fortawesome/free-solid-svg-icons'
 import { Highlight, themes } from 'prism-react-renderer'
@@ -494,6 +494,96 @@ func main() {
 }`
   }
 
+  const generateSMTPPayload = () => {
+    if (!notification) return ''
+
+    return `{
+  "workspace_id": "${workspaceId}",
+  "notification": {
+    "id": "${notification.id}",
+    "external_id": "your-unique-id-123",
+    "channels": ["email"],
+    "contact": {
+      "email": "recipient@example.com",
+      "first_name": "John",
+      "last_name": "Doe",
+      "external_id": "user-123",
+      "timezone": "America/New_York",
+      "language": "en"
+    },
+    "data": {
+      "your_template_variable": "value",
+      "product_name": "Premium Plan",
+      "amount": "$99.99",
+      "discount_code": "WELCOME20"
+    },
+    "email_options": {
+      "reply_to": "support@example.com",
+      "cc": ["manager@example.com"],
+      "bcc": ["audit@example.com"]
+    }
+  }
+}`
+  }
+
+  const renderSMTPInstructions = () => {
+    const smtpHost = window.SMTP_RELAY_DOMAIN || 'your-smtp-domain.com'
+    const smtpPort = window.SMTP_RELAY_PORT || 587
+    const tlsEnabled = window.SMTP_RELAY_TLS_ENABLED !== false
+
+    return (
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-base font-semibold mb-3">Connection Details</h3>
+          <Descriptions column={1} size="small" bordered>
+            <Descriptions.Item label="Host">{smtpHost}</Descriptions.Item>
+            <Descriptions.Item label="Port">{smtpPort}</Descriptions.Item>
+            <Descriptions.Item label="Security">
+              {tlsEnabled ? 'STARTTLS required' : 'Plain text (not recommended for production)'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Username">
+              Your workspace API email (the email associated with your API key)
+            </Descriptions.Item>
+            <Descriptions.Item label="Password">Your workspace API key</Descriptions.Item>
+          </Descriptions>
+        </div>
+
+        <div>
+          <h3 className="text-base font-semibold mb-3">Email Body Payload</h3>
+          <p className="mb-3 text-sm">
+            The email body must contain a JSON payload with your notification data. The SMTP
+            envelope To/From addresses are ignored - the actual recipient is determined by{' '}
+            <code>contact.email</code> in the payload.
+          </p>
+          <CodeBlock code={generateSMTPPayload()} language="json" />
+        </div>
+
+        <div>
+          <h3 className="text-base font-semibold mb-3">Important Notes</h3>
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            <li>
+              <strong>JSON Payload Required:</strong> The email body must contain valid JSON
+              matching the format above
+            </li>
+            <li>
+              <strong>Contact Email:</strong> The <code>contact.email</code> field is required
+            </li>
+            <li>
+              <strong>Deduplication:</strong> Use <code>external_id</code> to prevent duplicate
+              sends
+            </li>
+            <li>
+              <strong>Template Variables:</strong> Use <code>data</code> for template variables
+            </li>
+            <li>
+              <strong>Email Options:</strong> Supports reply_to, cc, bcc, and attachments
+            </li>
+          </ul>
+        </div>
+      </div>
+    )
+  }
+
   const generateJavaCode = () => {
     if (!notification) return ''
 
@@ -838,7 +928,26 @@ public class NotificationSender {
           <CodeBlock code={generateJavaCode()} language="java" />
         </div>
       )
-    }
+    },
+    ...(window.SMTP_RELAY_ENABLED
+      ? [
+          {
+            key: 'smtp',
+            label: 'SMTP',
+            children: (
+              <div>
+                <div className="mb-4">
+                  <p className="text-sm">
+                    Send transactional notifications using SMTP relay. Perfect for integrating with
+                    existing email systems or applications that support SMTP.
+                  </p>
+                </div>
+                {renderSMTPInstructions()}
+              </div>
+            )
+          }
+        ]
+      : [])
   ]
 
   const [activeTab, setActiveTab] = React.useState('curl')
@@ -855,6 +964,8 @@ public class NotificationSender {
         return generateGolangCode()
       case 'java':
         return generateJavaCode()
+      case 'smtp':
+        return generateSMTPPayload()
       default:
         return generateCurlCommand()
     }
@@ -872,6 +983,8 @@ public class NotificationSender {
         return 'Go'
       case 'java':
         return 'Java'
+      case 'smtp':
+        return 'JSON Payload'
       default:
         return 'cURL'
     }

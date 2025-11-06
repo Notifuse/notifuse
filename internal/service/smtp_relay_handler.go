@@ -220,8 +220,12 @@ func (s *SMTPRelayHandlerService) HandleMessage(userID string, from string, to [
 		return fmt.Errorf("notification.contact.email is required")
 	}
 
+	// Set SystemCallKey in context to skip authentication in SendNotification
+	// since we've already authenticated the user via JWT token in the SMTP relay
+	systemCtx := context.WithValue(ctx, domain.SystemCallKey, true)
+
 	// Send the transactional notification
-	sentMessageID, err := s.transactionalNotificationService.SendNotification(ctx, workspaceID, payload.Notification)
+	sentMessageID, err := s.transactionalNotificationService.SendNotification(systemCtx, workspaceID, payload.Notification)
 	if err != nil {
 		s.logger.WithFields(map[string]interface{}{
 			"workspace_id":    workspaceID,

@@ -83,7 +83,8 @@ read -r -d '' JSON_PAYLOAD <<'EOF' || true
     "data": {
       "reset_token": "abc123xyz",
       "expires_in": "1 hour",
-      "test_timestamp": "TIMESTAMP_PLACEHOLDER"
+      "test_timestamp": "TIMESTAMP_PLACEHOLDER",
+      "custom_var": "CUSTOM_VAR_PLACEHOLDER"
     },
     "metadata": {
       "source": "smtp_relay_test_script",
@@ -98,6 +99,7 @@ JSON_PAYLOAD="${JSON_PAYLOAD//WORKSPACE_ID_PLACEHOLDER/$WORKSPACE_ID}"
 JSON_PAYLOAD="${JSON_PAYLOAD//NOTIFICATION_ID_PLACEHOLDER/$NOTIFICATION_ID}"
 JSON_PAYLOAD="${JSON_PAYLOAD//TIMESTAMP_PLACEHOLDER/$(date +%Y-%m-%dT%H:%M:%S%z)}"
 JSON_PAYLOAD="${JSON_PAYLOAD//TEST_ID_PLACEHOLDER/$(date +%s)}"
+JSON_PAYLOAD="${JSON_PAYLOAD//CUSTOM_VAR_PLACEHOLDER/test-$(openssl rand -hex 8)}"
 
 # Check if server is reachable
 print_info "Checking SMTP server connectivity..."

@@ -241,6 +241,7 @@ export function TransactionalNotificationsPage() {
       title: '',
       key: 'actions',
       width: 100,
+      align: 'right',
       render: (_: any, record: TransactionalNotification) => (
         <Space>
           {canDelete(record) && (

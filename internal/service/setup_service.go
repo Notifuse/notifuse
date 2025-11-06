@@ -68,7 +68,7 @@ type EnvironmentConfig struct {
 	SMTPPassword           string
 	SMTPFromEmail          string
 	SMTPFromName           string
-	SMTPRelayEnabled       bool
+	SMTPRelayEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
 	SMTPRelayDomain        string
 	SMTPRelayPort          int
 	SMTPRelayTLSCertBase64 string
@@ -113,11 +113,14 @@ func (s *SetupService) GetConfigurationStatus() *ConfigurationStatus {
 		s.envConfig.SMTPPort > 0 &&
 		s.envConfig.SMTPFromEmail != ""
 
-	// SMTP Relay is configured if enabled and has required fields
-	smtpRelayConfigured := s.envConfig.SMTPRelayEnabled &&
-		s.envConfig.SMTPRelayDomain != "" &&
-		s.envConfig.SMTPRelayTLSCertBase64 != "" &&
-		s.envConfig.SMTPRelayTLSKeyBase64 != ""
+	// SMTP Relay is configured if:
+	// 1. SMTP_RELAY_ENABLED env var is explicitly set (even if "" or "false") - this prevents setup wizard from enabling it
+	// 2. OR if enabled ("true") and has all required fields
+	smtpRelayConfigured := s.envConfig.SMTPRelayEnabled != "" ||
+		(s.envConfig.SMTPRelayEnabled == "true" &&
+			s.envConfig.SMTPRelayDomain != "" &&
+			s.envConfig.SMTPRelayTLSCertBase64 != "" &&
+			s.envConfig.SMTPRelayTLSKeyBase64 != "")
 
 	return &ConfigurationStatus{
 		SMTPConfigured:        smtpConfigured,
@@ -205,8 +208,8 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 	var smtpRelayPort int
 
 	if status.SMTPRelayConfigured {
-		// Use env-configured SMTP Relay
-		smtpRelayEnabled = s.envConfig.SMTPRelayEnabled
+		// Use env-configured SMTP Relay (parse string to bool)
+		smtpRelayEnabled = s.envConfig.SMTPRelayEnabled == "true"
 		smtpRelayDomain = s.envConfig.SMTPRelayDomain
 		smtpRelayPort = s.envConfig.SMTPRelayPort
 		smtpRelayTLSCertBase64 = s.envConfig.SMTPRelayTLSCertBase64
