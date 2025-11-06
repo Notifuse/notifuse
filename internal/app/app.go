@@ -868,7 +868,22 @@ func (a *App) InitHandlers() error {
 		a.config,
 		getJWTSecret,
 		a.logger)
-	rootHandler := httpHandler.NewRootHandler("console/dist", "notification_center/dist", a.logger, a.config.APIEndpoint, a.config.Version, a.config.RootEmail, &a.isInstalled)
+	// Determine if SMTP relay TLS is enabled (check if cert is configured)
+	smtpRelayTLSEnabled := a.config.SMTPRelay.TLSCertBase64 != ""
+
+	rootHandler := httpHandler.NewRootHandler(
+		"console/dist",
+		"notification_center/dist",
+		a.logger,
+		a.config.APIEndpoint,
+		a.config.Version,
+		a.config.RootEmail,
+		&a.isInstalled,
+		a.config.SMTPRelay.Enabled,
+		a.config.SMTPRelay.Domain,
+		a.config.SMTPRelay.Port,
+		smtpRelayTLSEnabled,
+	)
 	setupHandler := httpHandler.NewSetupHandler(
 		a.setupService,
 		a.settingService,

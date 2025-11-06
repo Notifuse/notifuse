@@ -61,7 +61,7 @@ type InitializeRequest struct {
 	TelemetryEnabled       bool   `json:"telemetry_enabled"`
 	CheckForUpdates        bool   `json:"check_for_updates"`
 	SMTPRelayEnabled       bool   `json:"smtp_relay_enabled"`
-	SMTPRelayDomain        string `json:"smtp_relay_domain"`
+	SMTPRelayHost          string `json:"smtp_relay_domain"`
 	SMTPRelayPort          int    `json:"smtp_relay_port"`
 	SMTPRelayTLSCertBase64 string `json:"smtp_relay_tls_cert_base64"`
 	SMTPRelayTLSKeyBase64  string `json:"smtp_relay_tls_key_base64"`
@@ -176,7 +176,7 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 		TelemetryEnabled:       req.TelemetryEnabled,
 		CheckForUpdates:        req.CheckForUpdates,
 		SMTPRelayEnabled:       req.SMTPRelayEnabled,
-		SMTPRelayDomain:        req.SMTPRelayDomain,
+		SMTPRelayDomain:        req.SMTPRelayHost,
 		SMTPRelayPort:          req.SMTPRelayPort,
 		SMTPRelayTLSCertBase64: req.SMTPRelayTLSCertBase64,
 		SMTPRelayTLSKeyBase64:  req.SMTPRelayTLSKeyBase64,

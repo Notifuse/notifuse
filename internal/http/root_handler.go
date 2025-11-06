@@ -20,10 +20,14 @@ type RootHandler struct {
 	version               string
 	rootEmail             string
 	isInstalledPtr        *bool // Pointer to installation status that updates dynamically
+	smtpRelayEnabled      bool
+	smtpRelayDomain       string
+	smtpRelayPort         int
+	smtpRelayTLSEnabled   bool
 }
 
 // NewRootHandler creates a root handler that serves both console and notification center static files
-func NewRootHandler(consoleDir string, notificationCenterDir string, logger logger.Logger, apiEndpoint string, version string, rootEmail string, isInstalledPtr *bool) *RootHandler {
+func NewRootHandler(consoleDir string, notificationCenterDir string, logger logger.Logger, apiEndpoint string, version string, rootEmail string, isInstalledPtr *bool, smtpRelayEnabled bool, smtpRelayDomain string, smtpRelayPort int, smtpRelayTLSEnabled bool) *RootHandler {
 	return &RootHandler{
 		consoleDir:            consoleDir,
 		notificationCenterDir: notificationCenterDir,
@@ -32,6 +36,10 @@ func NewRootHandler(consoleDir string, notificationCenterDir string, logger logg
 		version:               version,
 		rootEmail:             rootEmail,
 		isInstalledPtr:        isInstalledPtr,
+		smtpRelayEnabled:      smtpRelayEnabled,
+		smtpRelayDomain:       smtpRelayDomain,
+		smtpRelayPort:         smtpRelayPort,
+		smtpRelayTLSEnabled:   smtpRelayTLSEnabled,
 	}
 }
 
@@ -85,13 +93,27 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 		timezonesJSON = []byte("[]")
 	}
 
+	smtpRelayEnabledStr := "false"
+	if h.smtpRelayEnabled {
+		smtpRelayEnabledStr = "true"
+	}
+
+	smtpRelayTLSEnabledStr := "false"
+	if h.smtpRelayTLSEnabled {
+		smtpRelayTLSEnabledStr = "true"
+	}
+
 	configJS := fmt.Sprintf(
-		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;\nwindow.TIMEZONES = %s;",
+		"window.API_ENDPOINT = %q;\nwindow.VERSION = %q;\nwindow.ROOT_EMAIL = %q;\nwindow.IS_INSTALLED = %s;\nwindow.TIMEZONES = %s;\nwindow.SMTP_RELAY_ENABLED = %s;\nwindow.SMTP_RELAY_DOMAIN = %q;\nwindow.SMTP_RELAY_PORT = %d;\nwindow.SMTP_RELAY_TLS_ENABLED = %s;",
 		h.apiEndpoint,
 		h.version,
 		h.rootEmail,
 		isInstalledStr,
 		string(timezonesJSON),
+		smtpRelayEnabledStr,
+		h.smtpRelayDomain,
+		h.smtpRelayPort,
+		smtpRelayTLSEnabledStr,
 	)
 	w.Write([]byte(configJS))
 }

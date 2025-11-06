@@ -45,7 +45,6 @@ cat > "$OUTPUT_DIR/.env.smtp-relay" <<EOF
 
 SMTP_RELAY_ENABLED=true
 SMTP_RELAY_PORT=587
-SMTP_RELAY_HOST=0.0.0.0
 SMTP_RELAY_DOMAIN=$DOMAIN
 
 # Base64 encoded certificate and key

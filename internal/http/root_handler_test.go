@@ -8,14 +8,8 @@ import (
 	"path/filepath"
 	"testing"
 
-
-
 	"github.com/Notifuse/notifuse/pkg/logger"
-
-
 	"github.com/stretchr/testify/assert"
-
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,7 +18,7 @@ func TestNewRootHandler(t *testing.T) {
 	testLogger := logger.NewLogger()
 
 	// Create handler with both console and notification center
-	handler := NewRootHandler("console_test", "notification_center_test", testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }())
+	handler := NewRootHandler("console_test", "notification_center_test", testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }(), false, "", 0, false)
 
 	// Assert fields are set correctly
 	assert.Equal(t, "console_test", handler.consoleDir)
@@ -34,7 +28,7 @@ func TestNewRootHandler(t *testing.T) {
 func TestRootHandler_Handle(t *testing.T) {
 	// Create a test logger
 	testLogger := logger.NewLogger()
-	handler := NewRootHandler("console_test", "notification_center_test", testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }())
+	handler := NewRootHandler("console_test", "notification_center_test", testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }(), false, "", 0, false)
 
 	// Create a test request
 	req := httptest.NewRequest("GET", "/api", nil)
@@ -60,7 +54,7 @@ func TestRootHandler_RegisterRoutes(t *testing.T) {
 
 	// Create a test logger
 	testLogger := logger.NewLogger()
-	handler := NewRootHandler("console_test", "notification_center_test", testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }())
+	handler := NewRootHandler("console_test", "notification_center_test", testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }(), false, "", 0, false)
 	mux := http.NewServeMux()
 
 	// Register routes
@@ -92,7 +86,7 @@ func TestRootHandler_RegisterRoutesWithNotificationCenter(t *testing.T) {
 	testLogger := logger.NewLogger()
 
 	// Create handler with both console and notification center
-	handler := NewRootHandler("console_test", "notification_center_test", testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }())
+	handler := NewRootHandler("console_test", "notification_center_test", testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }(), false, "", 0, false)
 
 	mux := http.NewServeMux()
 
@@ -117,7 +111,7 @@ func TestRootHandler_ServeConfigJS(t *testing.T) {
 
 	// Create a handler with a test API endpoint
 	testAPIEndpoint := "https://api.example.com"
-	handler := NewRootHandler("console_test", "notification_center_test", testLogger, testAPIEndpoint, "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }())
+	handler := NewRootHandler("console_test", "notification_center_test", testLogger, testAPIEndpoint, "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }(), false, "", 0, false)
 
 	// Create a request to /config.js
 	req := httptest.NewRequest("GET", "/config.js", nil)
@@ -144,7 +138,7 @@ func TestRootHandler_ServeConfigJS(t *testing.T) {
 	assert.Contains(t, body, "window.ROOT_EMAIL = \"root@example.com\"")
 	assert.Contains(t, body, "window.IS_INSTALLED = false")
 	assert.Contains(t, body, "window.TIMEZONES = [", "Should contain TIMEZONES array")
-	
+
 	// Verify some known timezones are in the list
 	assert.Contains(t, body, "\"UTC\"", "Should contain UTC timezone")
 	assert.Contains(t, body, "\"America/New_York\"", "Should contain America/New_York timezone")
@@ -157,7 +151,7 @@ func TestRootHandler_Handle_ConfigJS(t *testing.T) {
 
 	// Create a handler with a test API endpoint
 	testAPIEndpoint := "https://api.example.com"
-	handler := NewRootHandler("console_test", "notification_center_test", testLogger, testAPIEndpoint, "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }())
+	handler := NewRootHandler("console_test", "notification_center_test", testLogger, testAPIEndpoint, "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }(), false, "", 0, false)
 
 	// Create a request to /config.js
 	req := httptest.NewRequest("GET", "/config.js", nil)
@@ -179,7 +173,7 @@ func TestRootHandler_Handle_ConfigJS(t *testing.T) {
 	assert.Contains(t, body, "window.ROOT_EMAIL = \"root@example.com\"")
 	assert.Contains(t, body, "window.IS_INSTALLED = false")
 	assert.Contains(t, body, "window.TIMEZONES = [")
-	
+
 	// Verify some known timezones are in the list
 	assert.Contains(t, body, "\"UTC\"")
 	assert.Contains(t, body, "\"America/New_York\"")
@@ -200,7 +194,7 @@ func TestRootHandler_ServeNotificationCenter(t *testing.T) {
 	testLogger := logger.NewLogger()
 
 	// Create handler with notification center directory
-	handler := NewRootHandler("console_test", tempDir, testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }())
+	handler := NewRootHandler("console_test", tempDir, testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }(), false, "", 0, false)
 
 	t.Run("ServeExactPath", func(t *testing.T) {
 		// Create a request to /notification-center/
@@ -261,7 +255,7 @@ func TestRootHandler_ServeConsole(t *testing.T) {
 	testLogger := logger.NewLogger()
 
 	// Create handler with console directory
-	handler := NewRootHandler(tempDir, "notification_center_test", testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }())
+	handler := NewRootHandler(tempDir, "notification_center_test", testLogger, "https://api.example.com", "1.0", "root@example.com", func() *bool { isInstalled := false; return &isInstalled }(), false, "", 0, false)
 
 	t.Run("ServeExactPath", func(t *testing.T) {
 		// Create a request to root (which should serve index.html)
@@ -346,6 +340,10 @@ func TestRootHandler_Handle_Comprehensive(t *testing.T) {
 		"1.0",
 		"root@example.com",
 		func() *bool { isInstalled := false; return &isInstalled }(),
+		false,
+		"",
+		0,
+		false,
 	)
 
 	t.Run("NotFoundAPIPath", func(t *testing.T) {
