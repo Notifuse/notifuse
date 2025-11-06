@@ -238,7 +238,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 		// Try to create many workspaces
 		// Note: Test pool is configured with maxConnections=10 but doesn't
 		// enforce strict limits like production connection manager
-		numWorkspaces := 10  // Reduced from 15 to avoid connection exhaustion
+		numWorkspaces := 10 // Reduced from 15 to avoid connection exhaustion
 		successCount := 0
 
 		for i := 0; i < numWorkspaces; i++ {
@@ -263,7 +263,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 
 		// Test pool allows creation but verifies they all work
 		assert.Equal(t, numWorkspaces, successCount, "All workspaces should be created successfully")
-		
+
 		// Verify connection count is tracked correctly
 		count := pool.GetConnectionCount()
 		assert.Equal(t, numWorkspaces, count, "Connection count should match workspace count")

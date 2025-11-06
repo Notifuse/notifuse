@@ -75,8 +75,11 @@ func (pool *TestConnectionPool) GetWorkspaceConnection(workspaceID string) (*sql
 
 	// Check if we already have a connection for this workspace
 	if db, exists := pool.workspacePools[workspaceID]; exists {
-		// Test if connection is still alive
-		if err := db.Ping(); err == nil {
+		// Test if connection is still alive with timeout
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := db.PingContext(ctx); err == nil {
 			return db, nil
 		}
 		// Connection is dead, remove it
@@ -203,6 +206,14 @@ func (pool *TestConnectionPool) Cleanup() error {
 		workspaceDBName := fmt.Sprintf("%s_ws_%s", pool.config.Prefix, workspaceID)
 		workspaceDBNames = append(workspaceDBNames, workspaceDBName)
 
+		// Force immediate closure of all idle connections
+		db.SetMaxIdleConns(0)
+		db.SetMaxOpenConns(1)
+		db.SetConnMaxLifetime(0)
+
+		// Give connections time to drain before closing
+		time.Sleep(10 * time.Millisecond)
+
 		if err := db.Close(); err != nil {
 			errors = append(errors, fmt.Errorf("error closing workspace pool %s: %w", workspaceID, err))
 		}
@@ -210,7 +221,7 @@ func (pool *TestConnectionPool) Cleanup() error {
 	}
 
 	// Step 2: Wait for connections to actually close
-	// Increased delay to ensure PostgreSQL releases connections
+	// Brief delay to ensure PostgreSQL releases connections
 	time.Sleep(500 * time.Millisecond)
 
 	// Step 3: Drop workspace databases using system connection
@@ -224,10 +235,19 @@ func (pool *TestConnectionPool) Cleanup() error {
 
 	// Step 4: Close system connection last
 	if pool.systemPool != nil {
+		// Force immediate closure of all idle connections
+		pool.systemPool.SetMaxIdleConns(0)
+		pool.systemPool.SetMaxOpenConns(1)
+		pool.systemPool.SetConnMaxLifetime(0)
+		time.Sleep(50 * time.Millisecond)
+
 		if err := pool.systemPool.Close(); err != nil {
 			errors = append(errors, fmt.Errorf("error closing system pool: %w", err))
 		}
 		pool.systemPool = nil
+
+		// Final wait to ensure system connection is fully released
+		time.Sleep(200 * time.Millisecond)
 	}
 
 	pool.connectionCount = 0
@@ -279,7 +299,7 @@ func GetGlobalTestPool() *TestConnectionPool {
 		// to the actual container IP or accessible hostname
 		defaultHost := "localhost"
 		defaultPort := 5433
-		
+
 		// Check if we're likely in a containerized environment
 		// If TEST_DB_HOST is explicitly set, use it with its port
 		testHost := getEnvOrDefault("TEST_DB_HOST", defaultHost)
@@ -292,7 +312,7 @@ func GetGlobalTestPool() *TestConnectionPool {
 				testPort = 5432 // Default to internal port when using custom host
 			}
 		}
-		
+
 		config := &config.DatabaseConfig{
 			Host:     testHost,
 			Port:     testPort,

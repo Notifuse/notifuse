@@ -38,17 +38,21 @@ The SMTP relay uses a modified authentication scheme where:
 ## Why This Design?
 
 ### Email as Username
+
 - **More intuitive**: SMTP traditionally uses email addresses
 - **Human-readable**: Easy to identify which API key is being used
 - **Secure**: Email is embedded in the JWT and verified
 
 ### workspace_id in JSON Payload
+
 - **Flexibility**: One API key could potentially access multiple workspaces (future feature)
 - **Explicit**: Clear which workspace the notification should be sent from
 - **Validated**: Server verifies access before processing
 
 ### JWT Includes Email
+
 The API key JWT token now includes the email claim:
+
 ```go
 claims := UserClaims{
     UserID: user.ID,
@@ -111,11 +115,11 @@ swaks --to test@example.com \
 
 ```json
 {
-  "workspace_id": "workspace_abc123",  // ← REQUIRED
+  "workspace_id": "workspace_abc123", // ← REQUIRED
   "notification": {
-    "id": "notification_template_id",  // ← REQUIRED
+    "id": "notification_template_id", // ← REQUIRED
     "contact": {
-      "email": "user@example.com"      // ← REQUIRED
+      "email": "user@example.com" // ← REQUIRED
     }
   }
 }
@@ -136,9 +140,7 @@ swaks --to test@example.com \
     "data": {
       "order_id": "12345",
       "total": "99.99",
-      "items": [
-        {"name": "Product A", "quantity": 2}
-      ]
+      "items": [{ "name": "Product A", "quantity": 2 }]
     },
     "email_options": {
       "cc": ["manager@example.com"],
@@ -165,32 +167,35 @@ swaks --to test@example.com \
 
 ### Authentication Errors
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `invalid API key` | JWT parsing failed | Check token format and secret |
-| `invalid API key token` | Token validation failed | Check expiration and signature |
-| `token must be an API key` | Wrong user type | Use an API key, not a user token |
-| `email does not match token` | Username != email in JWT | Use the correct email address |
+| Error                        | Cause                    | Solution                         |
+| ---------------------------- | ------------------------ | -------------------------------- |
+| `invalid API key`            | JWT parsing failed       | Check token format and secret    |
+| `invalid API key token`      | Token validation failed  | Check expiration and signature   |
+| `token must be an API key`   | Wrong user type          | Use an API key, not a user token |
+| `email does not match token` | Username != email in JWT | Use the correct email address    |
 
 ### Message Processing Errors
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `workspace_id is required in JSON payload` | Missing workspace_id | Add workspace_id to JSON |
-| `user does not have access to workspace` | Invalid workspace access | Check workspace membership |
-| `email body is not valid JSON` | Malformed JSON | Validate JSON syntax |
-| `notification.id is required` | Missing notification ID | Add notification.id |
-| `notification.contact.email is required` | Missing contact email | Add contact.email |
+| Error                                      | Cause                    | Solution                   |
+| ------------------------------------------ | ------------------------ | -------------------------- |
+| `workspace_id is required in JSON payload` | Missing workspace_id     | Add workspace_id to JSON   |
+| `user does not have access to workspace`   | Invalid workspace access | Check workspace membership |
+| `email body is not valid JSON`             | Malformed JSON           | Validate JSON syntax       |
+| `notification.id is required`              | Missing notification ID  | Add notification.id        |
+| `notification.contact.email is required`   | Missing contact email    | Add contact.email          |
 
 ## Testing
 
 ### Unit Tests
+
 Tests are in `internal/service/smtp_relay_handler_test.go`
 
 ### E2E Tests
+
 Tests are in `tests/integration/smtp_relay_e2e_test.go`
 
 Run tests:
+
 ```bash
 # Unit tests
 go test ./internal/service -run "TestSMTPRelay" -v
@@ -202,6 +207,7 @@ go test ./tests/integration -run "TestSMTPRelayE2E" -v
 ### Manual Testing
 
 Use the test scripts:
+
 ```bash
 # Simple test
 ./scripts/test-smtp-relay.sh "api@yourdomain.com" "YOUR_JWT_TOKEN"
@@ -244,4 +250,3 @@ Use the test scripts:
 
 **Last Updated**: November 5, 2025  
 **Breaking Change**: Yes (from workspace_id auth to email auth)
-
