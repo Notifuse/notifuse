@@ -354,7 +354,6 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	// SMTP Relay defaults
 	v.SetDefault("SMTP_RELAY_ENABLED", false)
 	v.SetDefault("SMTP_RELAY_PORT", 587)
-	v.SetDefault("SMTP_RELAY_HOST", "0.0.0.0")
 
 	// Default tracing config
 	v.SetDefault("TRACING_ENABLED", false)
@@ -568,7 +567,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		smtpRelayConfig = SMTPRelayConfig{
 			Enabled:       envVals.SMTPRelayEnabled,
 			Port:          envVals.SMTPRelayPort,
-			Host:          v.GetString("SMTP_RELAY_HOST"),
+			Host:          "0.0.0.0",
 			Domain:        envVals.SMTPRelayDomain,
 			TLSCertBase64: envVals.SMTPRelayTLSCertBase64,
 			TLSKeyBase64:  envVals.SMTPRelayTLSKeyBase64,
@@ -616,7 +615,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		smtpRelayConfig = SMTPRelayConfig{
 			Enabled:       envVals.SMTPRelayEnabled,
 			Port:          envVals.SMTPRelayPort,
-			Host:          v.GetString("SMTP_RELAY_HOST"),
+			Host:          "0.0.0.0",
 			Domain:        envVals.SMTPRelayDomain,
 			TLSCertBase64: envVals.SMTPRelayTLSCertBase64,
 			TLSKeyBase64:  envVals.SMTPRelayTLSKeyBase64,
