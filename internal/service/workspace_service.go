@@ -337,13 +337,23 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 					WithField("domain", *settings.CustomEndpointURL).
 					WithField("error", err.Error()).
 					Warn("DNS verification failed")
-				return nil, fmt.Errorf("domain verification failed: %w", err)
-			}
 
-			s.logger.
-				WithField("workspace_id", id).
-				WithField("domain", *settings.CustomEndpointURL).
-				Info("DNS verification successful")
+				// In production, fail the request; in non-production, just log and continue
+				if s.config.IsProduction() {
+					// Return the validation error as-is without wrapping
+					return nil, err
+				}
+
+				s.logger.
+					WithField("workspace_id", id).
+					WithField("domain", *settings.CustomEndpointURL).
+					Info("DNS verification failed but continuing in non-production environment")
+			} else {
+				s.logger.
+					WithField("workspace_id", id).
+					WithField("domain", *settings.CustomEndpointURL).
+					Info("DNS verification successful")
+			}
 		}
 	}
 

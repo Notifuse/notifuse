@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
@@ -29,12 +30,12 @@ func (s *DNSVerificationService) VerifyDomainOwnership(ctx context.Context, doma
 	// Extract hostname from custom_endpoint_url
 	parsed, err := url.Parse(domainURL)
 	if err != nil {
-		return fmt.Errorf("invalid domain URL: %w", err)
+		return domain.ValidationError{Message: fmt.Sprintf("invalid domain URL: %v", err)}
 	}
 
 	hostname := parsed.Hostname()
 	if hostname == "" {
-		return fmt.Errorf("no hostname found in URL")
+		return domain.ValidationError{Message: "no hostname found in URL"}
 	}
 
 	s.logger.WithFields(map[string]interface{}{
@@ -45,7 +46,10 @@ func (s *DNSVerificationService) VerifyDomainOwnership(ctx context.Context, doma
 	// Look up CNAME record
 	cname, err := net.LookupCNAME(hostname)
 	if err != nil {
-		return fmt.Errorf("CNAME lookup failed: %w (ensure DNS is configured with CNAME record)", err)
+		return domain.ValidationError{
+			Message: fmt.Sprintf("CNAME lookup failed for %s: %v. Please ensure DNS is configured with a CNAME record pointing to %s",
+				hostname, err, s.expectedTarget),
+		}
 	}
 
 	// Verify CNAME points to expected target
@@ -58,16 +62,20 @@ func (s *DNSVerificationService) VerifyDomainOwnership(ctx context.Context, doma
 		"expected_target": expectedTarget,
 	}).Debug("CNAME lookup result")
 
-	// Check if CNAME ends with expected target (allows subdomains)
-	if !strings.HasSuffix(cname, expectedTarget) && cname != hostname {
-		return fmt.Errorf("CNAME verification failed: %s points to %s, expected %s",
-			hostname, cname, expectedTarget)
-	}
-
 	// If CNAME points to itself, it means no CNAME record exists (A record instead)
 	if cname == hostname+"." || cname == hostname {
-		return fmt.Errorf("no CNAME record found for %s. Please create a CNAME record pointing to %s",
-			hostname, expectedTarget)
+		return domain.ValidationError{
+			Message: fmt.Sprintf("No CNAME record found for %s. Please create a CNAME record pointing to %s",
+				hostname, expectedTarget),
+		}
+	}
+
+	// Check if CNAME ends with expected target (allows subdomains)
+	if !strings.HasSuffix(cname, expectedTarget) && cname != hostname {
+		return domain.ValidationError{
+			Message: fmt.Sprintf("CNAME verification failed: %s points to %s, but expected it to point to %s",
+				hostname, cname, expectedTarget),
+		}
 	}
 
 	s.logger.WithFields(map[string]interface{}{
@@ -83,18 +91,18 @@ func (s *DNSVerificationService) VerifyDomainOwnership(ctx context.Context, doma
 func (s *DNSVerificationService) VerifyTXTRecord(ctx context.Context, domainURL, expectedToken string) error {
 	parsed, err := url.Parse(domainURL)
 	if err != nil {
-		return fmt.Errorf("invalid domain URL: %w", err)
+		return domain.ValidationError{Message: fmt.Sprintf("invalid domain URL: %v", err)}
 	}
 
 	hostname := parsed.Hostname()
 	if hostname == "" {
-		return fmt.Errorf("no hostname found in URL")
+		return domain.ValidationError{Message: "no hostname found in URL"}
 	}
 
 	// Look up TXT records
 	txtRecords, err := net.LookupTXT(hostname)
 	if err != nil {
-		return fmt.Errorf("TXT lookup failed: %w", err)
+		return domain.ValidationError{Message: fmt.Sprintf("TXT lookup failed: %v", err)}
 	}
 
 	// Look for verification token
@@ -109,5 +117,7 @@ func (s *DNSVerificationService) VerifyTXTRecord(ctx context.Context, domainURL,
 		}
 	}
 
-	return fmt.Errorf("TXT verification failed: no matching verification record found. Please add TXT record: %s", expectedRecord)
+	return domain.ValidationError{
+		Message: fmt.Sprintf("TXT verification failed: no matching verification record found. Please add TXT record: %s", expectedRecord),
+	}
 }

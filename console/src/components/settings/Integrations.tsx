@@ -905,7 +905,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-all cursor-pointer mb-4 relative"
         >
           <div className="flex items-center">
-            <img src="/supabase.png" alt="Supabase" style={{ height: 13 }} />
+            <img src="/console/supabase.png" alt="Supabase" style={{ height: 13 }} />
             <span className="ml-3 font-medium">Supabase</span>
           </div>
           <Button
@@ -1010,7 +1010,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                         )}
                       </div>
                       <Tooltip title={integration.id}>
-                        <img src="/supabase.png" alt="Supabase" style={{ height: 24 }} />
+                        <img src="/console/supabase.png" alt="Supabase" style={{ height: 24 }} />
                       </Tooltip>
                     </>
                   }
@@ -1594,7 +1594,9 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
     {
       key: 'supabase',
       label: 'Supabase',
-      icon: <img src="/supabase.png" alt="Supabase" style={{ height: 10, marginRight: 8 }} />,
+      icon: (
+        <img src="/console/supabase.png" alt="Supabase" style={{ height: 10, marginRight: 8 }} />
+      ),
       onClick: () => handleSelectSupabase()
     }
   ]

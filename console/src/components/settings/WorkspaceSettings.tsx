@@ -6,6 +6,7 @@ import { workspaceService } from '../../services/api/workspace'
 import { Section } from './Section'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { LogoInput } from './LogoInput'
+import { WebPublicationSettings } from './WebPublicationSettings'
 
 interface WorkspaceSettingsProps {
   workspace: Workspace | null
@@ -65,9 +66,11 @@ export function WorkspaceSettings({
 
       setFormTouched(false)
       message.success('Workspace settings updated successfully')
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to update workspace settings', error)
-      message.error('Failed to update workspace settings')
+      // Extract the actual error message from the API response
+      const errorMessage = error?.message || 'Failed to update workspace settings'
+      message.error(errorMessage)
     } finally {
       setSavingSettings(false)
     }
@@ -189,6 +192,12 @@ export function WorkspaceSettings({
             </Descriptions.Item>
           </Descriptions>
         </Section>
+
+        <WebPublicationSettings
+          workspace={workspace}
+          onWorkspaceUpdate={onWorkspaceUpdate}
+          isOwner={isOwner}
+        />
       </>
     )
   }
@@ -302,8 +311,9 @@ export function WorkspaceSettings({
             help={
               <div className="mb-4">
                 <div>
-                  Configure a custom domain for email links, notification center, and web publications. 
-                  DNS verification will be performed before saving to ensure you control this domain.
+                  Configure a custom domain for email links, notification center, and web
+                  publications. DNS verification will be performed before saving to ensure you
+                  control this domain.
                 </div>
                 <div
                   style={{
@@ -364,6 +374,12 @@ export function WorkspaceSettings({
           </Form.Item>
         </Form>
       </Section>
+
+      <WebPublicationSettings
+        workspace={workspace}
+        onWorkspaceUpdate={onWorkspaceUpdate}
+        isOwner={isOwner}
+      />
     </>
   )
 }

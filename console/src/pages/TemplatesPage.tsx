@@ -37,7 +37,7 @@ const { Title, Paragraph, Text } = Typography
 const getIntegrationIcon = (integrationType: string) => {
   switch (integrationType) {
     case 'supabase':
-      return <img src="/supabase.png" alt="Supabase" className="h-3" />
+      return <img src="/console/supabase.png" alt="Supabase" className="h-3" />
     default:
       return <FontAwesomeIcon icon={faTerminal} className="text-gray-600" />
   }
