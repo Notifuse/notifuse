@@ -283,8 +283,8 @@ func (r *GetSegmentRequest) Validate() (workspaceID string, id string, err error
 	if r.ID == "" {
 		return "", "", fmt.Errorf("invalid get segment request: id is required")
 	}
-	if !govalidator.IsAlphanumeric(r.ID) {
-		return "", "", fmt.Errorf("invalid get segment request: id must be alphanumeric")
+	if !govalidator.Matches(r.ID, "^[a-z0-9_]+$") {
+		return "", "", fmt.Errorf("invalid get segment request: id must contain only lowercase letters, numbers, and underscores")
 	}
 	if len(r.ID) > 32 {
 		return "", "", fmt.Errorf("invalid get segment request: id length must be between 1 and 32")
@@ -309,8 +309,8 @@ func (r *UpdateSegmentRequest) Validate() (segment *Segment, workspaceID string,
 	if r.ID == "" {
 		return nil, "", fmt.Errorf("invalid update segment request: id is required")
 	}
-	if !govalidator.IsAlphanumeric(r.ID) {
-		return nil, "", fmt.Errorf("invalid update segment request: id must be alphanumeric")
+	if !govalidator.Matches(r.ID, "^[a-z0-9_]+$") {
+		return nil, "", fmt.Errorf("invalid update segment request: id must contain only lowercase letters, numbers, and underscores")
 	}
 	if len(r.ID) > 32 {
 		return nil, "", fmt.Errorf("invalid update segment request: id length must be between 1 and 32")
@@ -367,8 +367,8 @@ func (r *DeleteSegmentRequest) Validate() (workspaceID string, id string, err er
 	if r.ID == "" {
 		return "", "", fmt.Errorf("invalid delete segment request: id is required")
 	}
-	if !govalidator.IsAlphanumeric(r.ID) {
-		return "", "", fmt.Errorf("invalid delete segment request: id must be alphanumeric")
+	if !govalidator.Matches(r.ID, "^[a-z0-9_]+$") {
+		return "", "", fmt.Errorf("invalid delete segment request: id must contain only lowercase letters, numbers, and underscores")
 	}
 	if len(r.ID) > 32 {
 		return "", "", fmt.Errorf("invalid delete segment request: id length must be between 1 and 32")
