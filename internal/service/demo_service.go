@@ -1830,6 +1830,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 	}
 
 	// Segment 3: Engaged Users (behavioral - email opens) - demonstrates timeline-based filtering
+	timeframeOperator := "anytime"
 	engagedSegment := &domain.CreateSegmentRequest{
 		WorkspaceID: workspaceID,
 		ID:          "engaged_users",
@@ -1846,9 +1847,12 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 						Leaf: &domain.TreeNodeLeaf{
 							Table: "contact_timeline",
 							ContactTimeline: &domain.ContactTimelineCondition{
-								Kind:          "open_email",
-								CountOperator: "at_least",
-								CountValue:    3,
+								Kind:              "open_email",
+								CountOperator:     "at_least",
+								CountValue:        3,
+								TimeframeOperator: &timeframeOperator,
+								TimeframeValues:   []string{},
+								Filters:           []*domain.DimensionFilter{},
 							},
 						},
 					},
