@@ -113,7 +113,7 @@ const DrawerSegment = (props: {
   setDrawserVisible: any
   onSuccess?: () => void
 }) => {
-  const { workspaceId } = useParams({ from: '/workspace/$workspaceId' })
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { workspaces } = useAuth()
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [form] = Form.useForm()
@@ -623,7 +623,11 @@ const DrawerSegment = (props: {
               }
             ]}
           >
-            <TreeNodeInput schemas={schemas} lists={lists} />
+            <TreeNodeInput
+              schemas={schemas}
+              lists={lists}
+              customFieldLabels={workspace?.settings?.custom_field_labels}
+            />
           </Form.Item>
         </Form>
       </>

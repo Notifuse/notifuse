@@ -626,3 +626,41 @@ func (r *workspaceRepository) GetWorkspaceUsersWithEmail(ctx context.Context, wo
 
 	return userWorkspaces, nil
 }
+
+// GetWorkspaceByCustomDomain finds a workspace by its custom endpoint URL
+func (r *workspaceRepository) GetWorkspaceByCustomDomain(ctx context.Context, customDomain string) (*domain.Workspace, error) {
+	// Query workspace where custom_endpoint_url matches the domain
+	query := `
+		SELECT id, name, settings, created_at, updated_at
+		FROM workspaces
+		WHERE settings->>'custom_endpoint_url' = $1
+		LIMIT 1
+	`
+
+	var workspace domain.Workspace
+	var settingsJSON []byte
+
+	err := r.systemDB.QueryRowContext(ctx, query, customDomain).Scan(
+		&workspace.ID,
+		&workspace.Name,
+		&settingsJSON,
+		&workspace.CreatedAt,
+		&workspace.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("workspace not found for custom domain: %s", customDomain)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace by custom domain: %w", err)
+	}
+
+	// Parse settings JSON
+	if len(settingsJSON) > 0 {
+		if err := json.Unmarshal(settingsJSON, &workspace.Settings); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal workspace settings: %w", err)
+		}
+	}
+
+	return &workspace, nil
+}

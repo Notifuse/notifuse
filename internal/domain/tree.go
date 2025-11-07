@@ -52,10 +52,15 @@ type ContactTimelineCondition struct {
 // DimensionFilter represents a single filter condition on a field
 type DimensionFilter struct {
 	FieldName    string    `json:"field_name"`
-	FieldType    string    `json:"field_type"` // "string", "number", "time"
+	FieldType    string    `json:"field_type"` // "string", "number", "time", "json"
 	Operator     string    `json:"operator"`   // "equals", "not_equals", "gt", "gte", "lt", "lte", "contains", etc.
 	StringValues []string  `json:"string_values,omitempty"`
 	NumberValues []float64 `json:"number_values,omitempty"`
+
+	// JSON-specific field for navigating nested JSON structures
+	// Each element is either a key name or a numeric index (as string)
+	// Example: ["user", "tags", "0"] represents user.tags[0]
+	JSONPath []string `json:"json_path,omitempty"`
 }
 
 // Validate validates the tree structure
@@ -206,19 +211,81 @@ func (f *DimensionFilter) Validate() error {
 		return fmt.Errorf("filter must have 'field_type'")
 	}
 
-	if f.FieldType != "string" && f.FieldType != "number" && f.FieldType != "time" {
-		return fmt.Errorf("invalid field_type: %s (must be 'string', 'number', or 'time')", f.FieldType)
+	if f.FieldType != "string" && f.FieldType != "number" && f.FieldType != "time" && f.FieldType != "json" {
+		return fmt.Errorf("invalid field_type: %s (must be 'string', 'number', 'time', or 'json')", f.FieldType)
 	}
 
 	if f.Operator == "" {
 		return fmt.Errorf("filter must have 'operator'")
 	}
 
-	// Validate that we have appropriate values based on field type
-	// (except for operators like is_set/is_not_set that don't need values)
-	if f.Operator != "is_set" && f.Operator != "is_not_set" {
+	// Validate JSONPath usage
+	if len(f.JSONPath) > 0 {
+		// JSONPath can only be used with custom_json fields
+		validJSONFields := map[string]bool{
+			"custom_json_1": true,
+			"custom_json_2": true,
+			"custom_json_3": true,
+			"custom_json_4": true,
+			"custom_json_5": true,
+		}
+		if !validJSONFields[f.FieldName] {
+			return fmt.Errorf("json_path can only be used with custom_json fields (custom_json_1 through custom_json_5)")
+		}
+
+		// Validate each path segment is non-empty
+		for i, segment := range f.JSONPath {
+			if segment == "" {
+				return fmt.Errorf("json_path segment %d is empty", i)
+			}
+		}
+
+		// field_type indicates what type to cast the JSON value to (string, number, time, or json for uncast)
+		if f.FieldType != "string" && f.FieldType != "number" && f.FieldType != "time" && f.FieldType != "json" {
+			return fmt.Errorf("json fields must have field_type of 'string', 'number', 'time', or 'json'")
+		}
+	}
+
+	// Special validation for json field_type (when field_type is explicitly "json")
+	if f.FieldType == "json" {
+		// json field_type can only be used with custom_json fields
+		validJSONFields := map[string]bool{
+			"custom_json_1": true,
+			"custom_json_2": true,
+			"custom_json_3": true,
+			"custom_json_4": true,
+			"custom_json_5": true,
+		}
+		if !validJSONFields[f.FieldName] {
+			return fmt.Errorf("field_type 'json' can only be used with custom_json fields")
+		}
+
+		// JSONPath is required for json field type (except for existence checks on the root)
+		if len(f.JSONPath) == 0 && f.Operator != "is_set" && f.Operator != "is_not_set" {
+			return fmt.Errorf("json filter must have 'json_path'")
+		}
+	}
+
+	// Validate that we have appropriate values based on field type and operator
+	// Operators that don't require values
+	operatorsWithoutValues := map[string]bool{
+		"is_set":     true,
+		"is_not_set": true,
+	}
+
+	if !operatorsWithoutValues[f.Operator] {
+		// Special handling for in_array operator
+		if f.Operator == "in_array" {
+			if len(f.StringValues) == 0 {
+				return fmt.Errorf("in_array operator must have 'string_values'")
+			}
+			return nil
+		}
+
+		// Regular value-based operators
 		switch f.FieldType {
-		case "string", "time":
+		case "string", "time", "json":
+			// These types require values in string format
 			if len(f.StringValues) == 0 {
 				return fmt.Errorf("%s filter must have 'string_values'", f.FieldType)
 			}

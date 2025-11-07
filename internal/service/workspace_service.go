@@ -18,21 +18,22 @@ import (
 )
 
 type WorkspaceService struct {
-	repo               domain.WorkspaceRepository
-	userRepo           domain.UserRepository
-	taskRepo           domain.TaskRepository
-	logger             logger.Logger
-	userService        domain.UserServiceInterface
-	authService        domain.AuthService
-	mailer             mailer.Mailer
-	config             *config.Config
-	contactService     domain.ContactService
-	listService        domain.ListService
-	contactListService domain.ContactListService
-	templateService    domain.TemplateService
-	webhookRegService  domain.WebhookRegistrationService
-	supabaseService    *SupabaseService
-	secretKey          string
+	repo                   domain.WorkspaceRepository
+	userRepo               domain.UserRepository
+	taskRepo               domain.TaskRepository
+	logger                 logger.Logger
+	userService            domain.UserServiceInterface
+	authService            domain.AuthService
+	mailer                 mailer.Mailer
+	config                 *config.Config
+	contactService         domain.ContactService
+	listService            domain.ListService
+	contactListService     domain.ContactListService
+	templateService        domain.TemplateService
+	webhookRegService      domain.WebhookRegistrationService
+	supabaseService        *SupabaseService
+	secretKey              string
+	dnsVerificationService *DNSVerificationService
 }
 
 func NewWorkspaceService(
@@ -72,6 +73,11 @@ func NewWorkspaceService(
 // SetSupabaseService sets the Supabase service (used to avoid circular dependencies)
 func (s *WorkspaceService) SetSupabaseService(supabaseService *SupabaseService) {
 	s.supabaseService = supabaseService
+}
+
+// SetDNSVerificationService sets the DNS verification service
+func (s *WorkspaceService) SetDNSVerificationService(dnsVerificationService *DNSVerificationService) {
+	s.dnsVerificationService = dnsVerificationService
 }
 
 // ListWorkspaces returns all workspaces for a user
@@ -317,6 +323,30 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	existingWorkspace.Settings.TransactionalEmailProviderID = settings.TransactionalEmailProviderID
 	existingWorkspace.Settings.MarketingEmailProviderID = settings.MarketingEmailProviderID
 	existingWorkspace.Settings.EmailTrackingEnabled = settings.EmailTrackingEnabled
+
+	// Verify DNS ownership if custom endpoint URL is being set or changed
+	if settings.CustomEndpointURL != nil && *settings.CustomEndpointURL != "" {
+		isDomainChanging := existingWorkspace.Settings.CustomEndpointURL == nil ||
+			*existingWorkspace.Settings.CustomEndpointURL != *settings.CustomEndpointURL
+
+		if isDomainChanging && s.dnsVerificationService != nil {
+			// Verify DNS ownership
+			if err := s.dnsVerificationService.VerifyDomainOwnership(ctx, *settings.CustomEndpointURL); err != nil {
+				s.logger.
+					WithField("workspace_id", id).
+					WithField("domain", *settings.CustomEndpointURL).
+					WithField("error", err.Error()).
+					Warn("DNS verification failed")
+				return nil, fmt.Errorf("domain verification failed: %w", err)
+			}
+
+			s.logger.
+				WithField("workspace_id", id).
+				WithField("domain", *settings.CustomEndpointURL).
+				Info("DNS verification successful")
+		}
+	}
+
 	existingWorkspace.Settings.CustomEndpointURL = settings.CustomEndpointURL
 	existingWorkspace.Settings.CustomFieldLabels = settings.CustomFieldLabels
 

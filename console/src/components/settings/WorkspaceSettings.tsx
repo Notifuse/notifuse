@@ -302,8 +302,8 @@ export function WorkspaceSettings({
             help={
               <div className="mb-4">
                 <div>
-                  To use a custom domain, create a CNAME record pointing your domain to the API
-                  endpoint and ensure SSL certificates are configured.
+                  Configure a custom domain for email links, notification center, and web publications. 
+                  DNS verification will be performed before saving to ensure you control this domain.
                 </div>
                 <div
                   style={{
@@ -315,7 +315,7 @@ export function WorkspaceSettings({
                     borderRadius: '4px'
                   }}
                 >
-                  <strong>DNS Record:</strong>
+                  <strong>DNS Record Required:</strong>
                   <br />
                   Type: CNAME
                   <br />
@@ -326,9 +326,9 @@ export function WorkspaceSettings({
                       if (customUrl) {
                         return new URL(customUrl).hostname
                       }
-                      return 'api.yourdomain.com'
+                      return 'blog.yourdomain.com'
                     } catch {
-                      return 'api.yourdomain.com'
+                      return 'blog.yourdomain.com'
                     }
                   })()}
                   <br />
@@ -341,6 +341,10 @@ export function WorkspaceSettings({
                       return 'your-api-endpoint.com'
                     }
                   })()}
+                  <br />
+                  <span style={{ color: '#999', fontSize: '11px' }}>
+                    DNS verification prevents domain squatting
+                  </span>
                 </div>
               </div>
             }

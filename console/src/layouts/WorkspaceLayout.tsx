@@ -29,7 +29,7 @@ import { isRootUser } from '../services/api/auth'
 const { Content, Sider } = Layout
 
 export function WorkspaceLayout() {
-  const { workspaceId } = useParams({ from: '/workspace/$workspaceId' })
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { signout, workspaces, user, refreshWorkspaces } = useAuth()
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
@@ -132,12 +132,12 @@ export function WorkspaceLayout() {
   const handleWorkspaceChange = (workspaceId: string) => {
     if (workspaceId === 'new-workspace') {
       // Navigate to workspace creation page or open a modal
-      navigate({ to: '/workspace/create' })
+      navigate({ to: '/console/workspace/create' })
       return
     }
 
     navigate({
-      to: '/workspace/$workspaceId',
+      to: '/console/workspace/$workspaceId',
       params: { workspaceId }
     })
   }
@@ -176,7 +176,7 @@ export function WorkspaceLayout() {
       key: 'analytics',
       icon: <FontAwesomeIcon icon={faChartLine} size="sm" style={{ opacity: 0.7 }} />,
       label: (
-        <Link to="/workspace/$workspaceId" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId" params={{ workspaceId }}>
           Dashboard
         </Link>
       )
@@ -185,7 +185,7 @@ export function WorkspaceLayout() {
       key: 'contacts',
       icon: <FontAwesomeIcon icon={faUserGroup} size="sm" style={{ opacity: 0.7 }} />,
       label: (
-        <Link to="/workspace/$workspaceId/contacts" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId/contacts" params={{ workspaceId }}>
           Contacts
         </Link>
       )
@@ -194,7 +194,7 @@ export function WorkspaceLayout() {
       key: 'lists',
       icon: <FontAwesomeIcon icon={faFolderOpen} size="sm" style={{ opacity: 0.7 }} />,
       label: (
-        <Link to="/workspace/$workspaceId/lists" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId/lists" params={{ workspaceId }}>
           Lists
         </Link>
       )
@@ -203,7 +203,7 @@ export function WorkspaceLayout() {
       key: 'templates',
       icon: <FontAwesomeIcon icon={faObjectGroup} size="sm" style={{ opacity: 0.7 }} />,
       label: (
-        <Link to="/workspace/$workspaceId/templates" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId/templates" params={{ workspaceId }}>
           Templates
         </Link>
       )
@@ -212,7 +212,7 @@ export function WorkspaceLayout() {
       key: 'broadcasts',
       icon: <FontAwesomeIcon icon={faPaperPlane} size="sm" style={{ opacity: 0.7 }} />,
       label: (
-        <Link to="/workspace/$workspaceId/broadcasts" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId/broadcasts" params={{ workspaceId }}>
           Broadcasts
         </Link>
       )
@@ -221,7 +221,7 @@ export function WorkspaceLayout() {
       key: 'transactional-notifications',
       icon: <FontAwesomeIcon icon={faTerminal} size="sm" style={{ opacity: 0.7 }} />,
       label: (
-        <Link to="/workspace/$workspaceId/transactional-notifications" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId/transactional-notifications" params={{ workspaceId }}>
           Transactional
         </Link>
       )
@@ -230,7 +230,7 @@ export function WorkspaceLayout() {
       key: 'file-manager',
       icon: <FontAwesomeIcon icon={faImage} size="sm" style={{ opacity: 0.7 }} />,
       label: (
-        <Link to="/workspace/$workspaceId/file-manager" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId/file-manager" params={{ workspaceId }}>
           File Manager
         </Link>
       )
@@ -239,7 +239,7 @@ export function WorkspaceLayout() {
       key: 'logs',
       icon: <FontAwesomeIcon icon={faBarsStaggered} size="sm" style={{ opacity: 0.7 }} />,
       label: (
-        <Link to="/workspace/$workspaceId/logs" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId/logs" params={{ workspaceId }}>
           Logs
         </Link>
       )
@@ -248,7 +248,7 @@ export function WorkspaceLayout() {
       key: 'settings',
       icon: <FontAwesomeIcon icon={faGear} size="sm" style={{ opacity: 0.7 }} />,
       label: (
-        <Link to="/workspace/$workspaceId/settings" params={{ workspaceId }}>
+        <Link to="/console/workspace/$workspaceId/settings" params={{ workspaceId }}>
           Settings
         </Link>
       )

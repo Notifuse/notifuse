@@ -84,7 +84,7 @@ const TemplatePreviewButton = ({
 }
 
 export function ListsPage() {
-  const { workspaceId } = useParams({ from: '/workspace/$workspaceId/lists' })
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/lists' })
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [listToDelete, setListToDelete] = useState<List | null>(null)
   const [confirmationInput, setConfirmationInput] = useState('')

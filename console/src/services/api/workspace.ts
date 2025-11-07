@@ -11,6 +11,17 @@ export interface TemplateBlock {
 }
 
 // Workspace types
+export interface WebPublicationSettings {
+  slug?: string
+  meta_title?: string
+  meta_description?: string
+  og_title?: string
+  og_description?: string
+  og_image?: string
+  canonical_url?: string
+  keywords?: string[]
+}
+
 export interface WorkspaceSettings {
   website_url?: string
   logo_url?: string | null
@@ -23,6 +34,8 @@ export interface WorkspaceSettings {
   template_blocks?: TemplateBlock[]
   custom_endpoint_url?: string
   custom_field_labels?: Record<string, string>
+  web_publications_enabled?: boolean
+  web_publication_settings?: WebPublicationSettings
 }
 
 export interface FileManagerSettings {

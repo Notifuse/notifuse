@@ -1048,7 +1048,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
 }
 
 export function BroadcastsPage() {
-  const { workspaceId } = useParams({ from: '/workspace/$workspaceId/broadcasts' })
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/broadcasts' })
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [broadcastToDelete, setBroadcastToDelete] = useState<Broadcast | null>(null)
   const [confirmationInput, setConfirmationInput] = useState('')

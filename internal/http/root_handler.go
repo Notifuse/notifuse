@@ -1,10 +1,12 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -24,10 +26,28 @@ type RootHandler struct {
 	smtpRelayDomain       string
 	smtpRelayPort         int
 	smtpRelayTLSEnabled   bool
+	webPublicationHandler *WebPublicationHandler
+	workspaceRepo         domain.WorkspaceRepository
+	broadcastRepo         domain.BroadcastRepository
 }
 
 // NewRootHandler creates a root handler that serves both console and notification center static files
-func NewRootHandler(consoleDir string, notificationCenterDir string, logger logger.Logger, apiEndpoint string, version string, rootEmail string, isInstalledPtr *bool, smtpRelayEnabled bool, smtpRelayDomain string, smtpRelayPort int, smtpRelayTLSEnabled bool) *RootHandler {
+func NewRootHandler(
+	consoleDir string,
+	notificationCenterDir string,
+	logger logger.Logger,
+	apiEndpoint string,
+	version string,
+	rootEmail string,
+	isInstalledPtr *bool,
+	smtpRelayEnabled bool,
+	smtpRelayDomain string,
+	smtpRelayPort int,
+	smtpRelayTLSEnabled bool,
+	webPublicationHandler *WebPublicationHandler,
+	workspaceRepo domain.WorkspaceRepository,
+	broadcastRepo domain.BroadcastRepository,
+) *RootHandler {
 	return &RootHandler{
 		consoleDir:            consoleDir,
 		notificationCenterDir: notificationCenterDir,
@@ -40,38 +60,82 @@ func NewRootHandler(consoleDir string, notificationCenterDir string, logger logg
 		smtpRelayDomain:       smtpRelayDomain,
 		smtpRelayPort:         smtpRelayPort,
 		smtpRelayTLSEnabled:   smtpRelayTLSEnabled,
+		webPublicationHandler: webPublicationHandler,
+		workspaceRepo:         workspaceRepo,
+		broadcastRepo:         broadcastRepo,
 	}
 }
 
 func (h *RootHandler) Handle(w http.ResponseWriter, r *http.Request) {
-	// Handle config.js request
+	// 1. Handle /config.js
 	if r.URL.Path == "/config.js" {
 		h.serveConfigJS(w, r)
 		return
 	}
 
-	// Handle notification center requests
+	// 2. Handle /console/* - serve console SPA
+	if strings.HasPrefix(r.URL.Path, "/console") {
+		h.serveConsole(w, r)
+		return
+	}
+
+	// 3. Handle /notification-center/*
 	if strings.HasPrefix(r.URL.Path, "/notification-center") || strings.Contains(r.Header.Get("Referer"), "/notification-center") {
 		h.serveNotificationCenter(w, r)
 		return
 	}
 
-	// If  path doesn't start with /api
-	if !strings.HasPrefix(r.URL.Path, "/api") {
-		h.serveConsole(w, r)
+	// 4. Handle /api/*
+	if strings.HasPrefix(r.URL.Path, "/api") {
+		// Default API root response
+		if r.URL.Path == "/api" || r.URL.Path == "/api/" {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(map[string]string{
+				"status": "api running",
+			})
+		}
+		// Other API routes handled by other handlers
 		return
 	}
 
-	// Default API root response
-	if r.URL.Path == "/api" || r.URL.Path == "/api/" {
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{
-			"status": "api running",
-		})
-	} else {
-		// For unhandled API paths
-		http.NotFound(w, r)
+	// 5. ROOT PATH LOGIC: Detect workspace by host header
+	host := strings.Split(r.Host, ":")[0] // Strip port
+	workspace := h.detectWorkspaceByHost(r.Context(), host)
+
+	if workspace == nil {
+		// No workspace found for this domain → redirect to console
+		http.Redirect(w, r, "/console", http.StatusTemporaryRedirect)
+		return
 	}
+
+	// 6. Workspace found - check if web publications are enabled
+	// If broadcastRepo is nil (e.g., in tests), redirect to console
+	if h.broadcastRepo == nil {
+		http.Redirect(w, r, "/console", http.StatusTemporaryRedirect)
+		return
+	}
+
+	hasWebPublications, err := h.broadcastRepo.HasWebPublications(r.Context(), workspace.ID)
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to check web publications")
+		http.Redirect(w, r, "/console", http.StatusTemporaryRedirect)
+		return
+	}
+
+	if !hasWebPublications {
+		// Web publications not activated → redirect to console
+		http.Redirect(w, r, "/console", http.StatusTemporaryRedirect)
+		return
+	}
+
+	// 7. Web publications enabled - serve web content
+	// If webPublicationHandler is nil (e.g., in tests), redirect to console
+	if h.webPublicationHandler == nil {
+		http.Redirect(w, r, "/console", http.StatusTemporaryRedirect)
+		return
+	}
+
+	h.webPublicationHandler.Handle(w, r, workspace)
 }
 
 // serveConfigJS generates and serves the config.js file with environment variables
@@ -125,6 +189,13 @@ func (h *RootHandler) serveConsole(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Strip /console prefix before serving files
+	originalPath := r.URL.Path
+	r.URL.Path = strings.TrimPrefix(r.URL.Path, "/console")
+	if r.URL.Path == "" {
+		r.URL.Path = "/"
+	}
+
 	// Create file server for console files
 	fs := http.FileServer(http.Dir(h.consoleDir))
 
@@ -133,6 +204,8 @@ func (h *RootHandler) serveConsole(w http.ResponseWriter, r *http.Request) {
 		// If the requested file doesn't exist, serve index.html for SPA routing
 		r.URL.Path = "/"
 	}
+
+	h.logger.WithField("original_path", originalPath).WithField("served_path", r.URL.Path).Debug("Serving console")
 
 	fs.ServeHTTP(w, r)
 }
@@ -161,6 +234,47 @@ func (h *RootHandler) serveNotificationCenter(w http.ResponseWriter, r *http.Req
 	}
 
 	fs.ServeHTTP(w, r)
+}
+
+// detectWorkspaceByHost finds a workspace by matching the custom endpoint URL hostname
+func (h *RootHandler) detectWorkspaceByHost(ctx context.Context, host string) *domain.Workspace {
+	// Return nil if workspace repo not configured (e.g., in tests)
+	if h.workspaceRepo == nil {
+		return nil
+	}
+
+	// List all workspaces and find one that matches the host
+	// Note: This could be optimized with a dedicated repository method in the future
+	workspaces, err := h.workspaceRepo.List(ctx)
+	if err != nil {
+		h.logger.WithField("error", err.Error()).Error("Failed to list workspaces for host detection")
+		return nil
+	}
+
+	for _, workspace := range workspaces {
+		if workspace.Settings.CustomEndpointURL == nil {
+			continue
+		}
+
+		customURL := *workspace.Settings.CustomEndpointURL
+		parsedURL, err := url.Parse(customURL)
+		if err != nil {
+			continue
+		}
+
+		// Compare hostnames (case-insensitive)
+		if strings.EqualFold(parsedURL.Hostname(), host) {
+			h.logger.
+				WithField("workspace_id", workspace.ID).
+				WithField("workspace_name", workspace.Name).
+				WithField("host", host).
+				Debug("Workspace detected by host")
+			return workspace
+		}
+	}
+
+	h.logger.WithField("host", host).Debug("No workspace found for host")
+	return nil
 }
 
 func (h *RootHandler) RegisterRoutes(mux *http.ServeMux) {

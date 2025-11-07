@@ -35,8 +35,9 @@ func (r *listRepository) CreateList(ctx context.Context, workspaceID string, lis
 	query := `
 		INSERT INTO lists (id, name, is_double_optin, is_public, description, 
 		                   double_optin_template, welcome_template, unsubscribe_template,
+		                   slug, web_publication_enabled, web_publication_settings,
 		                   created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		list.ID,
@@ -47,6 +48,9 @@ func (r *listRepository) CreateList(ctx context.Context, workspaceID string, lis
 		list.DoubleOptInTemplate,
 		list.WelcomeTemplate,
 		list.UnsubscribeTemplate,
+		list.Slug,
+		list.WebPublicationEnabled,
+		list.WebPublicationSettings,
 		list.CreatedAt,
 		list.UpdatedAt,
 	)
@@ -65,7 +69,8 @@ func (r *listRepository) GetListByID(ctx context.Context, workspaceID string, id
 
 	query := `
 		SELECT id, name, is_double_optin, is_public, description, double_optin_template, 
-		welcome_template, unsubscribe_template, created_at, updated_at, deleted_at
+		welcome_template, unsubscribe_template, slug, web_publication_enabled, web_publication_settings,
+		created_at, updated_at, deleted_at
 		FROM lists
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -93,7 +98,8 @@ func (r *listRepository) GetLists(ctx context.Context, workspaceID string) ([]*d
 
 	query := `
 		SELECT id, name, is_double_optin, is_public, description, double_optin_template, 
-		welcome_template, unsubscribe_template, created_at, updated_at, deleted_at
+		welcome_template, unsubscribe_template, slug, web_publication_enabled, web_publication_settings,
+		created_at, updated_at, deleted_at
 		FROM lists
 		WHERE deleted_at IS NULL
 		ORDER BY created_at DESC
@@ -133,8 +139,9 @@ func (r *listRepository) UpdateList(ctx context.Context, workspaceID string, lis
 	query := `
 		UPDATE lists
 		SET name = $1, is_double_optin = $2, is_public = $3, description = $4, updated_at = $5,
-		    double_optin_template = $6, welcome_template = $7, unsubscribe_template = $8
-		WHERE id = $9 AND deleted_at IS NULL
+		    double_optin_template = $6, welcome_template = $7, unsubscribe_template = $8,
+		    slug = $9, web_publication_enabled = $10, web_publication_settings = $11
+		WHERE id = $12 AND deleted_at IS NULL
 	`
 
 	result, err := workspaceDB.ExecContext(ctx, query,
@@ -146,6 +153,9 @@ func (r *listRepository) UpdateList(ctx context.Context, workspaceID string, lis
 		list.DoubleOptInTemplate,
 		list.WelcomeTemplate,
 		list.UnsubscribeTemplate,
+		list.Slug,
+		list.WebPublicationEnabled,
+		list.WebPublicationSettings,
 		list.ID,
 	)
 
@@ -253,4 +263,124 @@ func (r *listRepository) GetListStats(ctx context.Context, workspaceID string, i
 	}
 
 	return stats, nil
+}
+
+// GetBySlug retrieves a list by its slug
+func (r *listRepository) GetBySlug(ctx context.Context, workspaceID, slug string) (*domain.List, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		SELECT id, name, is_double_optin, is_public, description, double_optin_template,
+		welcome_template, unsubscribe_template, slug, web_publication_enabled, web_publication_settings,
+		created_at, updated_at, deleted_at
+		FROM lists
+		WHERE slug = $1 AND deleted_at IS NULL
+		LIMIT 1
+	`
+
+	row := workspaceDB.QueryRowContext(ctx, query, slug)
+	list, err := domain.ScanList(row)
+
+	if err == sql.ErrNoRows {
+		return nil, fmt.Errorf("list not found with slug: %s", slug)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get list by slug: %w", err)
+	}
+
+	return list, nil
+}
+
+// GetPublishedLists retrieves all lists with web publications enabled
+func (r *listRepository) GetPublishedLists(ctx context.Context, workspaceID string) ([]*domain.List, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		SELECT id, name, is_double_optin, is_public, description, double_optin_template,
+		welcome_template, unsubscribe_template, slug, web_publication_enabled, web_publication_settings,
+		created_at, updated_at, deleted_at
+		FROM lists
+		WHERE deleted_at IS NULL
+		  AND web_publication_enabled = true
+		  AND slug IS NOT NULL
+		ORDER BY name ASC
+	`
+
+	rows, err := workspaceDB.QueryContext(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get published lists: %w", err)
+	}
+	defer rows.Close()
+
+	lists := []*domain.List{}
+	for rows.Next() {
+		list, err := domain.ScanList(rows)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan list: %w", err)
+		}
+		lists = append(lists, list)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating list rows: %w", err)
+	}
+
+	return lists, nil
+}
+
+// SlugExistsInWorkspace checks if a slug already exists in the workspace
+func (r *listRepository) SlugExistsInWorkspace(ctx context.Context, workspaceID, slug, excludeListID string) (bool, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		SELECT EXISTS(
+			SELECT 1
+			FROM lists
+			WHERE slug = $1
+			  AND id != $2
+			  AND deleted_at IS NULL
+		)
+	`
+
+	var exists bool
+	err = workspaceDB.QueryRowContext(ctx, query, slug, excludeListID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check slug existence: %w", err)
+	}
+
+	return exists, nil
+}
+
+// UnpublishBroadcastsInList clears web_published_at for all broadcasts in a list
+// This makes them invisible on web when the list is deleted
+func (r *listRepository) UnpublishBroadcastsInList(ctx context.Context, workspaceID, listID string) error {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `
+		UPDATE broadcasts
+		SET web_published_at = NULL
+		WHERE workspace_id = $1
+		  AND audience->'lists' @> $2::jsonb
+		  AND channels->>'web' = 'true'
+	`
+
+	listJSON := fmt.Sprintf(`["%s"]`, listID)
+	_, err = workspaceDB.ExecContext(ctx, query, workspaceID, listJSON)
+	if err != nil {
+		return fmt.Errorf("failed to unpublish broadcasts in list: %w", err)
+	}
+
+	return nil
 }

@@ -18,6 +18,7 @@ export type LeafFormProps = {
   setEditingNodeLeaf: Dispatch<SetStateAction<EditingNodeLeaf | undefined>>
   cancelOrDeleteNode: () => void
   lists?: Array<{ id: string; name: string }>
+  customFieldLabels?: Record<string, string>
 }
 
 export const LeafContactForm = (props: LeafFormProps) => {
@@ -72,7 +73,7 @@ export const LeafContactForm = (props: LeafFormProps) => {
         colon={false}
         rules={[{ required: true, type: 'array', min: 1, message: Messages.RequiredField }]}
       >
-        <InputDimensionFilters schema={props.schema} />
+        <InputDimensionFilters schema={props.schema} customFieldLabels={props.customFieldLabels} />
       </Form.Item>
 
       {/* CONFIRM / CANCEL */}
@@ -454,7 +455,12 @@ export const LeafActionForm = (props: LeafFormProps) => {
                   { required: false, type: 'array', min: 0, message: Messages.RequiredField }
                 ]}
               >
-                <InputDimensionFilters schema={props.schema} btnType="link" btnGhost={true} />
+                <InputDimensionFilters
+                  schema={props.schema}
+                  btnType="link"
+                  btnGhost={true}
+                  customFieldLabels={props.customFieldLabels}
+                />
               </Form.Item>
             </Space>
           </div>

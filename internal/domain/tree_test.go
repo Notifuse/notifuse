@@ -324,6 +324,138 @@ func TestDimensionFilter_Validate(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "must have 'number_values'")
 	})
+
+	// JSON filter tests
+	t.Run("valid JSON filter with json_path", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName:    "custom_json_1",
+			FieldType:    "json",
+			Operator:     "equals",
+			JSONPath:     []string{"user", "name"},
+			StringValues: []string{"John"},
+		}
+
+		err := filter.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("valid JSON filter with number type casting", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName:    "custom_json_2",
+			FieldType:    "number",
+			Operator:     "gt",
+			JSONPath:     []string{"age"},
+			NumberValues: []float64{25},
+		}
+
+		err := filter.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("valid JSON filter with time type casting", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName:    "custom_json_3",
+			FieldType:    "time",
+			Operator:     "lt",
+			JSONPath:     []string{"last_login"},
+			StringValues: []string{"2024-01-01T00:00:00Z"},
+		}
+
+		err := filter.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("valid JSON filter with array index in path", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName:    "custom_json_4",
+			FieldType:    "json",
+			Operator:     "equals",
+			JSONPath:     []string{"items", "0", "name"},
+			StringValues: []string{"Product A"},
+		}
+
+		err := filter.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("JSON filter with invalid field_name", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName:    "invalid_field",
+			FieldType:    "json",
+			Operator:     "equals",
+			JSONPath:     []string{"name"},
+			StringValues: []string{"John"},
+		}
+
+		err := filter.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "can only be used with custom_json fields")
+	})
+
+	t.Run("json_path used with non-JSON field", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName:    "country",
+			FieldType:    "string",
+			Operator:     "equals",
+			JSONPath:     []string{"name"},
+			StringValues: []string{"US"},
+		}
+
+		err := filter.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "can only be used with custom_json fields")
+	})
+
+	t.Run("JSON filter with empty json_path segment", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName:    "custom_json_1",
+			FieldType:    "json",
+			Operator:     "equals",
+			JSONPath:     []string{"user", "", "name"},
+			StringValues: []string{"John"},
+		}
+
+		err := filter.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "json_path segment 1 is empty")
+	})
+
+	t.Run("JSON filter with missing json_path (non-existence check)", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName:    "custom_json_1",
+			FieldType:    "json",
+			Operator:     "equals",
+			StringValues: []string{"John"},
+		}
+
+		err := filter.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "must have 'json_path'")
+	})
+
+	t.Run("JSON filter with is_set operator (no json_path required)", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName: "custom_json_1",
+			FieldType: "json",
+			Operator:  "is_set",
+		}
+
+		err := filter.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("valid in_array operator", func(t *testing.T) {
+		filter := &DimensionFilter{
+			FieldName:    "custom_json_1",
+			FieldType:    "json",
+			Operator:     "in_array",
+			JSONPath:     []string{"tags"},
+			StringValues: []string{"premium"},
+		}
+
+		err := filter.Validate()
+		assert.NoError(t, err)
+	})
 }
 
 func TestTreeNode_JSONMarshaling(t *testing.T) {

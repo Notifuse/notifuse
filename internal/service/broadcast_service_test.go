@@ -61,6 +61,7 @@ type broadcastSvcDeps struct {
 	authService        *domainmocks.MockAuthService
 	eventBus           *domainmocks.MockEventBus
 	messageHistoryRepo *domainmocks.MockMessageHistoryRepository
+	listService        *domainmocks.MockListService
 	svc                *BroadcastService
 }
 
@@ -78,6 +79,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 	authService := domainmocks.NewMockAuthService(ctrl)
 	eventBus := domainmocks.NewMockEventBus(ctrl)
 	messageHistoryRepo := domainmocks.NewMockMessageHistoryRepository(ctrl)
+	listService := domainmocks.NewMockListService(ctrl)
 
 	// use real no-op logger
 	log := logger.NewLoggerWithLevel("disabled")
@@ -94,6 +96,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 		authService,
 		eventBus,
 		messageHistoryRepo,
+		listService,
 		"https://api.example.test",
 	)
 
@@ -109,6 +112,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 		authService:        authService,
 		eventBus:           eventBus,
 		messageHistoryRepo: messageHistoryRepo,
+		listService:        listService,
 		svc:                svc,
 	}
 }

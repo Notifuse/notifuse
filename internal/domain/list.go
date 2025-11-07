@@ -14,17 +14,20 @@ import (
 
 // List represents a subscription list
 type List struct {
-	ID                  string             `json:"id"`
-	Name                string             `json:"name"`
-	IsDoubleOptin       bool               `json:"is_double_optin" db:"is_double_optin"`
-	IsPublic            bool               `json:"is_public" db:"is_public"`
-	Description         string             `json:"description,omitempty"`
-	DoubleOptInTemplate *TemplateReference `json:"double_optin_template,omitempty"`
-	WelcomeTemplate     *TemplateReference `json:"welcome_template,omitempty"`
-	UnsubscribeTemplate *TemplateReference `json:"unsubscribe_template,omitempty"`
-	CreatedAt           time.Time          `json:"created_at"`
-	UpdatedAt           time.Time          `json:"updated_at"`
-	DeletedAt           *time.Time         `json:"-" db:"deleted_at"`
+	ID                     string                      `json:"id"`
+	Name                   string                      `json:"name"`
+	IsDoubleOptin          bool                        `json:"is_double_optin" db:"is_double_optin"`
+	IsPublic               bool                        `json:"is_public" db:"is_public"`
+	Description            string                      `json:"description,omitempty"`
+	Slug                   *string                     `json:"slug,omitempty"`                         // URL slug for web publications
+	WebPublicationEnabled  bool                        `json:"web_publication_enabled"`                // Enable web publications for this list
+	WebPublicationSettings *WebPublicationSettings     `json:"web_publication_settings,omitempty"`     // SEO settings for list page
+	DoubleOptInTemplate    *TemplateReference          `json:"double_optin_template,omitempty"`
+	WelcomeTemplate        *TemplateReference          `json:"welcome_template,omitempty"`
+	UnsubscribeTemplate    *TemplateReference          `json:"unsubscribe_template,omitempty"`
+	CreatedAt              time.Time                   `json:"created_at"`
+	UpdatedAt              time.Time                   `json:"updated_at"`
+	DeletedAt              *time.Time                  `json:"-" db:"deleted_at"`
 }
 
 // Validate performs validation on the list fields
@@ -70,17 +73,20 @@ func (l *List) Validate() error {
 
 // For database scanning
 type dbList struct {
-	ID                  string
-	Name                string
-	IsDoubleOptin       bool
-	IsPublic            bool
-	Description         string
-	DoubleOptInTemplate *TemplateReference
-	WelcomeTemplate     *TemplateReference
-	UnsubscribeTemplate *TemplateReference
-	CreatedAt           time.Time
-	UpdatedAt           time.Time
-	DeletedAt           *time.Time
+	ID                     string
+	Name                   string
+	IsDoubleOptin          bool
+	IsPublic               bool
+	Description            string
+	DoubleOptInTemplate    *TemplateReference
+	WelcomeTemplate        *TemplateReference
+	UnsubscribeTemplate    *TemplateReference
+	Slug                   *string
+	WebPublicationEnabled  bool
+	WebPublicationSettings *WebPublicationSettings
+	CreatedAt              time.Time
+	UpdatedAt              time.Time
+	DeletedAt              *time.Time
 }
 
 // ScanList scans a list from the database
@@ -97,6 +103,9 @@ func ScanList(scanner interface {
 		&dbl.DoubleOptInTemplate,
 		&dbl.WelcomeTemplate,
 		&dbl.UnsubscribeTemplate,
+		&dbl.Slug,
+		&dbl.WebPublicationEnabled,
+		&dbl.WebPublicationSettings,
 		&dbl.CreatedAt,
 		&dbl.UpdatedAt,
 		&dbl.DeletedAt,
@@ -105,11 +114,14 @@ func ScanList(scanner interface {
 	}
 
 	l := &List{
-		ID:                  dbl.ID,
-		Name:                dbl.Name,
-		IsDoubleOptin:       dbl.IsDoubleOptin,
-		IsPublic:            dbl.IsPublic,
-		Description:         dbl.Description,
+		ID:                     dbl.ID,
+		Name:                   dbl.Name,
+		IsDoubleOptin:          dbl.IsDoubleOptin,
+		IsPublic:               dbl.IsPublic,
+		Description:            dbl.Description,
+		Slug:                   dbl.Slug,
+		WebPublicationEnabled:  dbl.WebPublicationEnabled,
+		WebPublicationSettings: dbl.WebPublicationSettings,
 		DoubleOptInTemplate: dbl.DoubleOptInTemplate,
 		WelcomeTemplate:     dbl.WelcomeTemplate,
 		UnsubscribeTemplate: dbl.UnsubscribeTemplate,
@@ -432,6 +444,12 @@ type ListRepository interface {
 	DeleteList(ctx context.Context, workspaceID string, id string) error
 
 	GetListStats(ctx context.Context, workspaceID string, id string) (*ListStats, error)
+
+	// Web publication methods
+	GetBySlug(ctx context.Context, workspaceID, slug string) (*List, error)
+	GetPublishedLists(ctx context.Context, workspaceID string) ([]*List, error)
+	SlugExistsInWorkspace(ctx context.Context, workspaceID, slug, excludeListID string) (bool, error)
+	UnpublishBroadcastsInList(ctx context.Context, workspaceID, listID string) error
 }
 
 // ErrListNotFound is returned when a list is not found

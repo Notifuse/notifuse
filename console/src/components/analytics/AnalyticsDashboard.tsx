@@ -111,7 +111,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   const handleNavigateToSettings = () => {
     navigate({
-      to: '/workspace/$workspaceId/settings',
+      to: '/console/workspace/$workspaceId/settings',
       params: { workspaceId: workspace.id }
     })
   }

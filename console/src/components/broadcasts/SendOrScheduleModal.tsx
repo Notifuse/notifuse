@@ -174,7 +174,7 @@ export function SendOrScheduleModal({
             showIcon
             className="!mb-4"
             action={
-              <Button type="link" size="small" href={`/workspace/${workspaceId}/settings`}>
+              <Button type="link" size="small" href={`/console/workspace/${workspaceId}/settings`}>
                 Configure Provider
               </Button>
             }

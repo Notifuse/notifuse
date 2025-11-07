@@ -50,14 +50,14 @@ const rootRoute = createRootRoute({
 // Create the index route
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
+  path: '/console/',
   component: DashboardPage
 })
 
 // Create the signin route
 const signinRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/signin',
+  path: '/console/signin',
   component: SignInPage,
   validateSearch: (search: Record<string, unknown>): SignInSearch => ({
     email: search.email as string | undefined
@@ -67,21 +67,21 @@ const signinRoute = createRoute({
 // Create the logout route
 const logoutRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/logout',
+  path: '/console/logout',
   component: LogoutPage
 })
 
 // Create the setup wizard route
 const setupRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/setup',
+  path: '/console/setup',
   component: SetupWizard
 })
 
 // Create the accept invitation route
 const acceptInvitationRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/accept-invitation',
+  path: '/console/accept-invitation',
   component: AcceptInvitationPage,
   validateSearch: (search: Record<string, unknown>): AcceptInvitationSearch => ({
     token: search.token as string | undefined
@@ -91,14 +91,14 @@ const acceptInvitationRoute = createRoute({
 // Create the workspace create route
 const workspaceCreateRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/workspace/create',
+  path: '/console/workspace/create',
   component: CreateWorkspacePage
 })
 
 // Create the workspace route
 const workspaceRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/workspace/$workspaceId',
+  path: '/console/workspace/$workspaceId',
   component: WorkspaceLayout
 })
 

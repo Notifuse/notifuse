@@ -94,6 +94,22 @@ export type BroadcastStatus =
   | 'test_completed'
   | 'winner_selected'
 
+export interface BroadcastChannels {
+  email: boolean
+  web: boolean
+}
+
+export interface WebPublicationSettings {
+  slug?: string
+  meta_title?: string
+  meta_description?: string
+  og_title?: string
+  og_description?: string
+  og_image?: string
+  canonical_url?: string
+  keywords?: string[]
+}
+
 export interface Broadcast {
   id: string
   workspace_id: string
@@ -104,6 +120,9 @@ export interface Broadcast {
   test_settings: BroadcastTestSettings
   utm_parameters?: UTMParameters
   metadata?: Record<string, any>
+  channels: BroadcastChannels
+  web_publication_settings?: WebPublicationSettings
+  web_published_at?: string
   sent_count: number
   delivered_count: number
   failed_count: number
@@ -132,6 +151,8 @@ export interface CreateBroadcastRequest {
   test_settings: BroadcastTestSettings
   utm_parameters?: UTMParameters
   metadata?: Record<string, any>
+  channels: BroadcastChannels
+  web_publication_settings?: WebPublicationSettings
 }
 
 export interface UpdateBroadcastRequest {
@@ -143,6 +164,8 @@ export interface UpdateBroadcastRequest {
   test_settings: BroadcastTestSettings
   utm_parameters?: UTMParameters
   metadata?: Record<string, any>
+  channels: BroadcastChannels
+  web_settings?: WebSettings
 }
 
 export interface ListBroadcastsRequest {

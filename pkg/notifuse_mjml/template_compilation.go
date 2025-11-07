@@ -114,6 +114,7 @@ type CompileTemplateRequest struct {
 	VisualEditorTree EmailBlock       `json:"visual_editor_tree"`
 	TemplateData     MapOfAny         `json:"test_data,omitempty"`
 	TrackingSettings TrackingSettings `json:"tracking_settings,omitempty"`
+	Channel          string           `json:"channel,omitempty"` // "email" or "web" - filters blocks by visibility
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for CompileTemplateRequest
@@ -191,9 +192,16 @@ func GenerateHTMLOpenTrackingPixel(workspaceID string, messageID string, apiEndp
 
 // CompileTemplate compiles a visual editor tree to MJML and HTML
 func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse, err error) {
+	// Apply channel filtering if specified
+	tree := req.VisualEditorTree
+	if req.Channel != "" {
+		tree = FilterBlocksByChannel(req.VisualEditorTree, req.Channel)
+	}
+
 	// Prepare template data JSON string
+	// Note: Web channel doesn't use template data (no contact personalization)
 	var templateDataStr string
-	if len(req.TemplateData) > 0 {
+	if len(req.TemplateData) > 0 && req.Channel != "web" {
 		jsonDataBytes, err := json.Marshal(req.TemplateData)
 		if err != nil {
 			return &CompileTemplateResponse{
@@ -212,7 +220,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	var mjmlString string
 	if templateDataStr != "" {
 		var err error
-		mjmlString, err = ConvertJSONToMJMLWithData(req.VisualEditorTree, templateDataStr)
+		mjmlString, err = ConvertJSONToMJMLWithData(tree, templateDataStr)
 		if err != nil {
 			return &CompileTemplateResponse{
 				Success: false,
@@ -224,7 +232,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 			}, nil
 		}
 	} else {
-		mjmlString = ConvertJSONToMJML(req.VisualEditorTree)
+		mjmlString = ConvertJSONToMJML(tree)
 	}
 
 	// Compile MJML to HTML using mjml-go library
@@ -245,7 +253,17 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 	// The MJML-to-HTML compiler doesn't always decode &amp; back to & in href attributes
 	htmlResult = decodeHTMLEntitiesInURLAttributes(htmlResult)
 
-	// Apply link tracking to the HTML output
+	// Skip tracking for web channel
+	if req.Channel == "web" {
+		return &CompileTemplateResponse{
+			Success: true,
+			MJML:    &mjmlString,
+			HTML:    &htmlResult, // No tracking applied for web
+			Error:   nil,
+		}, nil
+	}
+
+	// Apply link tracking to the HTML output (email channel only)
 	trackedHTML, err := TrackLinks(htmlResult, req.TrackingSettings)
 	if err != nil {
 		return nil, err

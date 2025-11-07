@@ -131,6 +131,8 @@ type App struct {
 	setupService                     *service.SetupService
 	supabaseService                  *service.SupabaseService
 	taskScheduler                    *service.TaskScheduler
+	dnsVerificationService           *service.DNSVerificationService
+	webPublicationService            *service.WebPublicationService
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -578,6 +580,23 @@ func (a *App) InitServices() error {
 		a.config.Security.SecretKey,
 	)
 
+	// Initialize DNS verification service
+	a.dnsVerificationService = service.NewDNSVerificationService(
+		a.logger,
+		a.config.APIEndpoint, // Expected CNAME target
+	)
+
+	// Set DNS verification service on workspace service
+	a.workspaceService.SetDNSVerificationService(a.dnsVerificationService)
+
+	// Initialize web publication service
+	a.webPublicationService = service.NewWebPublicationService(
+		a.broadcastRepo,
+		a.templateRepo,
+		a.workspaceRepo,
+		a.logger,
+	)
+
 	// Initialize task service
 	a.taskService = service.NewTaskService(a.taskRepo, a.settingRepo, a.logger, a.authService, a.config.APIEndpoint)
 
@@ -637,6 +656,7 @@ func (a *App) InitServices() error {
 		a.authService,
 		a.eventBus,           // Pass the event bus
 		a.messageHistoryRepo, // Message history repository
+		a.listService,        // List service for web publication validation
 		a.config.APIEndpoint, // API endpoint for tracking URLs
 	)
 
@@ -782,6 +802,20 @@ func (a *App) InitServices() error {
 	// Initialize contact timeline service
 	a.contactTimelineService = service.NewContactTimelineService(a.contactTimelineRepo)
 
+	// Initialize DNS verification service
+	dnsVerificationService := service.NewDNSVerificationService(a.logger, a.config.APIEndpoint)
+
+	// Set DNS verification service on workspace service
+	a.workspaceService.SetDNSVerificationService(dnsVerificationService)
+
+	// Initialize web publication service
+	a.webPublicationService = service.NewWebPublicationService(
+		a.broadcastRepo,
+		a.templateRepo,
+		a.workspaceRepo,
+		a.logger,
+	)
+
 	// Initialize task scheduler
 	a.taskScheduler = service.NewTaskScheduler(
 		a.taskService,
@@ -875,6 +909,12 @@ func (a *App) InitHandlers() error {
 	// Determine if SMTP relay TLS is enabled (check if cert is configured)
 	smtpRelayTLSEnabled := a.config.SMTPRelay.TLSCertBase64 != ""
 
+	// Initialize web publication handler
+	webPublicationHandler := httpHandler.NewWebPublicationHandler(
+		a.webPublicationService,
+		a.logger,
+	)
+
 	rootHandler := httpHandler.NewRootHandler(
 		"console/dist",
 		"notification_center/dist",
@@ -887,6 +927,9 @@ func (a *App) InitHandlers() error {
 		a.config.SMTPRelay.Domain,
 		a.config.SMTPRelay.Port,
 		smtpRelayTLSEnabled,
+		webPublicationHandler,
+		a.workspaceRepo,
+		a.broadcastRepo,
 	)
 	setupHandler := httpHandler.NewSetupHandler(
 		a.setupService,

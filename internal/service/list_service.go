@@ -167,6 +167,14 @@ func (s *ListService) DeleteList(ctx context.Context, workspaceID string, id str
 		)
 	}
 
+	// Before deleting list, unpublish all web broadcasts in it
+	// This is done by clearing web_published_at to make posts invisible on web
+	err = s.repo.UnpublishBroadcastsInList(ctx, workspaceID, id)
+	if err != nil {
+		s.logger.WithField("list_id", id).WithField("error", err.Error()).Warn("Failed to unpublish broadcasts in list")
+		// Continue with deletion - this is a best-effort cleanup
+	}
+
 	if err := s.repo.DeleteList(ctx, workspaceID, id); err != nil {
 		s.logger.WithField("list_id", id).Error(fmt.Sprintf("Failed to delete list: %v", err))
 		return fmt.Errorf("failed to delete list: %w", err)

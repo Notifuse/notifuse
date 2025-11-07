@@ -69,6 +69,127 @@ func (b *BroadcastTestSettings) Scan(value interface{}) error {
 	return json.Unmarshal(cloned, b)
 }
 
+// BroadcastChannels defines which channels are enabled for a broadcast
+type BroadcastChannels struct {
+	Email bool `json:"email"`
+	Web   bool `json:"web"`
+}
+
+// Value implements the driver.Valuer interface for database serialization
+func (c BroadcastChannels) Value() (driver.Value, error) {
+	return json.Marshal(c)
+}
+
+// Scan implements the sql.Scanner interface for database deserialization
+func (c *BroadcastChannels) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	v, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
+	}
+
+	cloned := bytes.Clone(v)
+	return json.Unmarshal(cloned, c)
+}
+
+// WebPublicationSettings contains web publication SEO and slug configuration
+// Reusable across workspace (homepage), list (list page), and broadcast (post page)
+type WebPublicationSettings struct {
+	Slug            string   `json:"slug,omitempty"`             // URL slug (required for broadcasts/lists, not workspace)
+	MetaTitle       string   `json:"meta_title,omitempty"`       // SEO meta title
+	MetaDescription string   `json:"meta_description,omitempty"` // SEO meta description
+	OGTitle         string   `json:"og_title,omitempty"`         // Open Graph title
+	OGDescription   string   `json:"og_description,omitempty"`   // Open Graph description
+	OGImage         string   `json:"og_image,omitempty"`         // Open Graph image URL
+	CanonicalURL    string   `json:"canonical_url,omitempty"`    // Canonical URL (posts only)
+	Keywords        []string `json:"keywords,omitempty"`         // SEO keywords
+}
+
+// Value implements the driver.Valuer interface for database serialization
+func (w WebPublicationSettings) Value() (driver.Value, error) {
+	return json.Marshal(w)
+}
+
+// Scan implements the sql.Scanner interface for database deserialization
+func (w *WebPublicationSettings) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	v, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
+	}
+
+	cloned := bytes.Clone(v)
+	return json.Unmarshal(cloned, w)
+}
+
+// MergeWithDefaults merges settings with fallback values (optional use for inheritance)
+func (w *WebPublicationSettings) MergeWithDefaults(defaults *WebPublicationSettings) *WebPublicationSettings {
+	if w == nil && defaults == nil {
+		return &WebPublicationSettings{}
+	}
+	if w == nil {
+		return defaults
+	}
+	if defaults == nil {
+		return w
+	}
+
+	merged := &WebPublicationSettings{}
+
+	// Slug always from original (not merged)
+	merged.Slug = w.Slug
+
+	// Meta fields with fallback
+	if w.MetaTitle != "" {
+		merged.MetaTitle = w.MetaTitle
+	} else {
+		merged.MetaTitle = defaults.MetaTitle
+	}
+
+	if w.MetaDescription != "" {
+		merged.MetaDescription = w.MetaDescription
+	} else {
+		merged.MetaDescription = defaults.MetaDescription
+	}
+
+	// OG Image fallback
+	if w.OGImage != "" {
+		merged.OGImage = w.OGImage
+	} else {
+		merged.OGImage = defaults.OGImage
+	}
+
+	// Keywords merge
+	if len(w.Keywords) > 0 {
+		merged.Keywords = w.Keywords
+	} else if len(defaults.Keywords) > 0 {
+		merged.Keywords = defaults.Keywords
+	}
+
+	// OG fields
+	if w.OGTitle != "" {
+		merged.OGTitle = w.OGTitle
+	} else {
+		merged.OGTitle = defaults.OGTitle
+	}
+
+	if w.OGDescription != "" {
+		merged.OGDescription = w.OGDescription
+	} else {
+		merged.OGDescription = defaults.OGDescription
+	}
+
+	merged.CanonicalURL = w.CanonicalURL
+
+	return merged
+}
+
 // BroadcastVariation represents a single variation in an A/B test
 type BroadcastVariation struct {
 	VariationName string            `json:"variation_name"`
@@ -242,29 +363,32 @@ func (s *ScheduleSettings) SetScheduledDateTime(t time.Time, timezone string) er
 
 // Broadcast represents a broadcast message campaign
 type Broadcast struct {
-	ID                        string                `json:"id"`
-	WorkspaceID               string                `json:"workspace_id"`
-	Name                      string                `json:"name"`
-	ChannelType               string                `json:"channel_type"` // email, sms, push, etc.
-	Status                    BroadcastStatus       `json:"status"`       // pending, sending, completed, failed
-	Audience                  AudienceSettings      `json:"audience"`
-	Schedule                  ScheduleSettings      `json:"schedule"`
-	TestSettings              BroadcastTestSettings `json:"test_settings"`
-	UTMParameters             *UTMParameters        `json:"utm_parameters,omitempty"`
-	Metadata                  MapOfAny              `json:"metadata,omitempty"`
-	WinningTemplate           string                `json:"winning_template,omitempty"`
-	TestSentAt                *time.Time            `json:"test_sent_at,omitempty"`
-	WinnerSentAt              *time.Time            `json:"winner_sent_at,omitempty"`
-	TestPhaseRecipientCount   int                   `json:"test_phase_recipient_count"`
-	WinnerPhaseRecipientCount int                   `json:"winner_phase_recipient_count"`
-	CreatedAt                 time.Time             `json:"created_at"`
-	UpdatedAt                 time.Time             `json:"updated_at"`
-	StartedAt                 *time.Time            `json:"started_at,omitempty"`
-	CompletedAt               *time.Time            `json:"completed_at,omitempty"`
-	CancelledAt               *time.Time            `json:"cancelled_at,omitempty"`
-	PausedAt                  *time.Time            `json:"paused_at,omitempty"`
-	PauseReason               string                `json:"pause_reason,omitempty"`
-	SentAt                    *time.Time            `json:"sent_at,omitempty"`
+	ID                        string                  `json:"id"`
+	WorkspaceID               string                  `json:"workspace_id"`
+	Name                      string                  `json:"name"`
+	ChannelType               string                  `json:"channel_type"` // email, sms, push, etc.
+	Status                    BroadcastStatus         `json:"status"`       // pending, sending, completed, failed
+	Audience                  AudienceSettings        `json:"audience"`
+	Schedule                  ScheduleSettings        `json:"schedule"`
+	TestSettings              BroadcastTestSettings   `json:"test_settings"`
+	UTMParameters             *UTMParameters          `json:"utm_parameters,omitempty"`
+	Metadata                  MapOfAny                `json:"metadata,omitempty"`
+	Channels                  BroadcastChannels       `json:"channels"`                           // Publication channels (email, web)
+	WebPublicationSettings    *WebPublicationSettings `json:"web_publication_settings,omitempty"` // Web SEO settings and slug
+	WebPublishedAt            *time.Time              `json:"web_published_at,omitempty"`         // Web publication timestamp (separate column)
+	WinningTemplate           string                  `json:"winning_template,omitempty"`
+	TestSentAt                *time.Time              `json:"test_sent_at,omitempty"`
+	WinnerSentAt              *time.Time              `json:"winner_sent_at,omitempty"`
+	TestPhaseRecipientCount   int                     `json:"test_phase_recipient_count"`
+	WinnerPhaseRecipientCount int                     `json:"winner_phase_recipient_count"`
+	CreatedAt                 time.Time               `json:"created_at"`
+	UpdatedAt                 time.Time               `json:"updated_at"`
+	StartedAt                 *time.Time              `json:"started_at,omitempty"`
+	CompletedAt               *time.Time              `json:"completed_at,omitempty"`
+	CancelledAt               *time.Time              `json:"cancelled_at,omitempty"`
+	PausedAt                  *time.Time              `json:"paused_at,omitempty"`
+	PauseReason               string                  `json:"pause_reason,omitempty"`
+	SentAt                    *time.Time              `json:"sent_at,omitempty"`
 }
 
 // UTMParameters contains UTM tracking parameters for the broadcast
@@ -366,9 +490,9 @@ func (b *Broadcast) Validate() error {
 	}
 
 	// Validate audience settings
-	// Lists are mandatory, segments are optional and act as filters on lists
-	if len(b.Audience.Lists) == 0 {
-		return fmt.Errorf("at least one list must be specified")
+	// CHANGED: Exactly one list required (for all broadcasts, not just web)
+	if len(b.Audience.Lists) != 1 {
+		return fmt.Errorf("exactly one list must be specified")
 	}
 
 	// Validate schedule settings
@@ -870,6 +994,14 @@ type BroadcastRepository interface {
 	UpdateBroadcast(ctx context.Context, broadcast *Broadcast) error
 	DeleteBroadcast(ctx context.Context, workspaceID, broadcastID string) error
 	ListBroadcasts(ctx context.Context, params ListBroadcastsParams) (*BroadcastListResponse, error)
+
+	// Web publication methods
+	GetBySlug(ctx context.Context, workspaceID, slug string) (*Broadcast, error)
+	GetPublishedWebBroadcasts(ctx context.Context, workspaceID string, limit, offset int) ([]*Broadcast, int, error)
+	GetPublishedWebBroadcastsByList(ctx context.Context, workspaceID, listID string, limit, offset int) ([]*Broadcast, int, error)
+	GetByListAndSlug(ctx context.Context, workspaceID, listID, slug string) (*Broadcast, error)
+	GetPublishedCountsByList(ctx context.Context, workspaceID string) (map[string]int, error)
+	HasWebPublications(ctx context.Context, workspaceID string) (bool, error)
 
 	// Transaction management
 	WithTransaction(ctx context.Context, workspaceID string, fn func(*sql.Tx) error) error

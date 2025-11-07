@@ -73,7 +73,7 @@ const DEFAULT_VISIBLE_COLUMNS = {
 }
 
 export function ContactsPage() {
-  const { workspaceId } = useParams({ from: '/workspace/$workspaceId/contacts' })
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/contacts' })
   const search = useSearch({ from: workspaceContactsRoute.id })
   const navigate = useNavigate()
   const queryClient = useQueryClient()

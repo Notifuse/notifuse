@@ -39,7 +39,7 @@ export default function SetupWizard() {
         const status = await setupApi.getStatus()
         // console.log('status', status)
         if (status.is_installed) {
-          navigate({ to: '/signin' })
+          navigate({ to: '/console/signin' })
           return
         }
         setConfigStatus({

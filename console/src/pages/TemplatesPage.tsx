@@ -49,10 +49,10 @@ interface TemplatesSearch {
 }
 
 export function TemplatesPage() {
-  const { workspaceId } = useParams({ from: '/workspace/$workspaceId/templates' })
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/templates' })
   // Use useSearch to get query params
-  const search = useSearch({ from: '/workspace/$workspaceId/templates' }) as TemplatesSearch
-  const navigate = useNavigate({ from: '/workspace/$workspaceId/templates' })
+  const search = useSearch({ from: '/console/workspace/$workspaceId/templates' }) as TemplatesSearch
+  const navigate = useNavigate({ from: '/console/workspace/$workspaceId/templates' })
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId)

@@ -58,7 +58,7 @@ export function BroadcastStats({ workspaceId, broadcastId }: BroadcastStatsProps
       searchParams.set(filterType, 'true')
     }
 
-    const url = `/workspace/${workspaceId}/logs?${searchParams.toString()}`
+    const url = `/console/workspace/${workspaceId}/logs?${searchParams.toString()}`
     navigate({ to: url as any })
   }
 

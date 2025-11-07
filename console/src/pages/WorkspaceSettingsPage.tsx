@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
 
 export function WorkspaceSettingsPage() {
-  const { workspaceId } = useParams({ from: '/workspace/$workspaceId/settings' })
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/settings' })
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [members, setMembers] = useState<WorkspaceMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
@@ -51,7 +51,7 @@ export function WorkspaceSettingsPage() {
   }
 
   const handleWorkspaceDelete = async () => {
-    navigate({ to: '/' })
+    navigate({ to: '/console/' })
     await refreshWorkspaces()
   }
 

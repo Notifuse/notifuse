@@ -19,7 +19,7 @@ export type BooleanOperator = 'and' | 'or'
 export type TableType = 'contacts' | 'contact_lists' | 'contact_timeline'
 
 // Dimension filter types
-export type FieldType = 'string' | 'number' | 'time'
+export type FieldType = 'string' | 'number' | 'time' | 'json'
 export type FilterOperator =
   | 'is_set'
   | 'is_not_set'
@@ -38,6 +38,7 @@ export type FilterOperator =
   | 'before_date'
   | 'after_date'
   | 'in_the_last_days'
+  | 'in_array'
 
 // Contact list operators
 export type ContactListOperator = 'in' | 'not_in'
@@ -57,6 +58,10 @@ export interface DimensionFilter {
   operator: FilterOperator
   string_values?: string[]
   number_values?: number[]
+  // JSON-specific field for navigating nested JSON structures
+  // Each element is either a key name or a numeric index (as string)
+  // Example: ["user", "tags", "0"] represents user.tags[0]
+  json_path?: string[]
 }
 
 export interface ContactCondition {
@@ -146,11 +151,16 @@ export type Operator =
   | 'before_date'
   | 'after_date'
   | 'in_the_last_days'
+  | 'in_array'
 
 // Field type renderer interfaces
 export interface FieldTypeRenderer {
   operators: IOperator[]
-  render: (filter: DimensionFilter, schema: FieldSchema) => JSX.Element
+  render: (
+    filter: DimensionFilter,
+    schema: FieldSchema,
+    customFieldLabels?: Record<string, string>
+  ) => JSX.Element
   renderFormItems: (fieldType: FieldTypeValue, fieldName: string, form: FormInstance) => JSX.Element
 }
 
@@ -178,7 +188,7 @@ export interface FieldSchema {
   name: string
   title: string
   description?: string
-  type: 'string' | 'number' | 'time' | 'boolean'
+  type: 'string' | 'number' | 'time' | 'boolean' | 'json'
   shown?: boolean
   options?: FieldOption[] // For predefined values (e.g., countries, languages)
 }

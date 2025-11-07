@@ -713,13 +713,14 @@ export function CreateTemplateDrawer({
                       <EmailBuilder
                         tree={visualEditorTree}
                         onTreeChange={setVisualEditorTree}
-                        onCompile={async (tree: EmailBlock, testData?: any) => {
+                        onCompile={async (tree: EmailBlock, testData?: any, channel?: string) => {
                           try {
                             const response = await templatesApi.compile({
                               workspace_id: workspace.id,
                               message_id: 'preview',
                               visual_editor_tree: tree as any,
                               test_data: testData || {},
+                              channel: channel || 'email',
                               tracking_settings: {
                                 enable_tracking:
                                   workspace.settings?.email_tracking_enabled || false,

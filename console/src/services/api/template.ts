@@ -129,6 +129,7 @@ export interface CompileTemplateRequest {
   visual_editor_tree: EmailBlock
   test_data?: Record<string, any> | null
   tracking_settings?: TrackingSettings
+  channel?: string // "email" or "web" - filters blocks by visibility
 }
 
 export interface CompileTemplateResponse {

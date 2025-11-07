@@ -10,7 +10,7 @@ export function LogoutPage() {
   useEffect(() => {
     const performSignout = async () => {
       await signout()
-      navigate({ to: '/signin' })
+      navigate({ to: '/console/signin' })
     }
     performSignout()
   }, [signout, navigate])

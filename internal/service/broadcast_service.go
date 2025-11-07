@@ -26,6 +26,7 @@ type BroadcastService struct {
 	authService        domain.AuthService
 	eventBus           domain.EventBus
 	messageHistoryRepo domain.MessageHistoryRepository
+	listService        domain.ListService
 	apiEndpoint        string
 }
 
@@ -42,6 +43,7 @@ func NewBroadcastService(
 	authService domain.AuthService,
 	eventBus domain.EventBus,
 	messageHistoryRepository domain.MessageHistoryRepository,
+	listService domain.ListService,
 	apiEndpoint string,
 ) *BroadcastService {
 	return &BroadcastService{
@@ -56,6 +58,7 @@ func NewBroadcastService(
 		authService:        authService,
 		eventBus:           eventBus,
 		messageHistoryRepo: messageHistoryRepository,
+		listService:        listService,
 		apiEndpoint:        apiEndpoint,
 	}
 }
@@ -89,6 +92,27 @@ func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.
 	if err != nil {
 		s.logger.Error("Failed to validate broadcast creation request")
 		return nil, err
+	}
+
+	// Set default channels if not specified
+	if !broadcast.Channels.Email && !broadcast.Channels.Web {
+		broadcast.Channels.Email = true // Default to email if nothing selected
+	}
+
+	// Validate web channel requirements
+	if broadcast.Channels.Web {
+		// Get workspace to check for custom endpoint
+		workspace, err := s.workspaceRepo.GetByID(ctx, request.WorkspaceID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get workspace: %w", err)
+		}
+
+		// Web channel requires custom endpoint URL
+		if workspace.Settings.CustomEndpointURL == nil || *workspace.Settings.CustomEndpointURL == "" {
+			return nil, fmt.Errorf("web channel requires a custom endpoint URL to be configured in workspace settings")
+		}
+
+		// Web publication settings and slug validation already done above
 	}
 
 	// Generate a unique ID for the broadcast if not provided
@@ -171,6 +195,57 @@ func (s *BroadcastService) UpdateBroadcast(ctx context.Context, request *domain.
 	if err != nil {
 		s.logger.Error("Failed to validate broadcast update request")
 		return nil, err
+	}
+
+	// Validate web channel requirements (similar to CreateBroadcast)
+	if updatedBroadcast.Channels.Web {
+		// Can only enable web channel for draft broadcasts
+		if updatedBroadcast.Status != domain.BroadcastStatusDraft {
+			return nil, fmt.Errorf("web channel can only be enabled for draft broadcasts")
+		}
+
+		// Get workspace to check settings
+		workspace, err := s.workspaceRepo.GetByID(ctx, request.WorkspaceID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get workspace: %w", err)
+		}
+
+		// Check workspace has web publications enabled
+		if !workspace.Settings.WebPublicationsEnabled {
+			return nil, fmt.Errorf("web publications not enabled for this workspace. Enable in workspace settings first.")
+		}
+
+		// Web channel requires custom endpoint URL
+		if workspace.Settings.CustomEndpointURL == nil || *workspace.Settings.CustomEndpointURL == "" {
+			return nil, fmt.Errorf("web channel requires a custom endpoint URL to be configured in workspace settings")
+		}
+
+		// Get the list
+		listID := updatedBroadcast.Audience.Lists[0]
+		list, err := s.listService.GetListByID(ctx, request.WorkspaceID, listID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get list: %w", err)
+		}
+
+		// Check list has web publications enabled
+		if !list.WebPublicationEnabled {
+			return nil, fmt.Errorf("list '%s' does not have web publications enabled", list.Name)
+		}
+
+		// Check list has slug
+		if list.Slug == nil || *list.Slug == "" {
+			return nil, fmt.Errorf("list '%s' must have a slug configured for web publications", list.Name)
+		}
+
+		// Validate post slug is provided
+		if updatedBroadcast.WebPublicationSettings == nil || updatedBroadcast.WebPublicationSettings.Slug == "" {
+			return nil, fmt.Errorf("post slug is required for web publications")
+		}
+
+		// Validate slug format
+		if err := ValidateSlug(updatedBroadcast.WebPublicationSettings.Slug); err != nil {
+			return nil, fmt.Errorf("invalid post slug: %w", err)
+		}
 	}
 
 	// Set the updated time
@@ -303,6 +378,11 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 			broadcast.Status = domain.BroadcastStatusSending
 			now := time.Now().UTC()
 			broadcast.StartedAt = &now
+
+			// Set web_published_at for web channel if enabled and not already set
+			if broadcast.Channels.Web && broadcast.WebPublishedAt == nil {
+				broadcast.WebPublishedAt = &now
+			}
 		} else {
 			// Update the schedule settings with the requested settings
 			broadcast.Schedule.IsScheduled = true
@@ -1122,4 +1202,24 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 
 		return nil
 	})
+}
+
+// ValidateSlug checks if slug is valid format (no nanoid - clean slugs)
+func ValidateSlug(slug string) error {
+	if slug == "" {
+		return fmt.Errorf("slug cannot be empty")
+	}
+
+	if len(slug) > 100 {
+		return fmt.Errorf("slug too long (max 100 characters)")
+	}
+
+	// Check format: lowercase letters, numbers, and hyphens only
+	for _, r := range slug {
+		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-') {
+			return fmt.Errorf("slug must contain only lowercase letters, numbers, and hyphens")
+		}
+	}
+
+	return nil
 }

@@ -398,6 +398,138 @@ export function UpsertBroadcastDrawer({
                   </Form.Item>
 
                   <div className="text-xs mt-12 mb-4 font-bold border-b border-solid border-gray-400 pb-2 text-gray-900">
+                    Publishing Channels
+                  </div>
+
+                  <Form.Item label="Channels" extra="Select where to publish this broadcast">
+                    <Space>
+                      <Form.Item
+                        name={['channels', 'email']}
+                        valuePropName="checked"
+                        initialValue={true}
+                        noStyle
+                      >
+                        <Switch checkedChildren="Email" unCheckedChildren="Email" />
+                      </Form.Item>
+                      <Form.Item
+                        name={['channels', 'web']}
+                        valuePropName="checked"
+                        initialValue={false}
+                        noStyle
+                      >
+                        <Switch
+                          checkedChildren="Web"
+                          unCheckedChildren="Web"
+                          disabled={broadcast?.status !== 'draft' && broadcast?.status !== undefined}
+                        />
+                      </Form.Item>
+                    </Space>
+                  </Form.Item>
+
+                  {/* Web Settings Section - shown when web channel is enabled */}
+                  <Form.Item noStyle dependencies={[['channels', 'web']]}>
+                    {({ getFieldValue }) => {
+                      const webEnabled = getFieldValue(['channels', 'web'])
+                      const customEndpoint = workspace.settings?.custom_endpoint_url
+
+                      if (!webEnabled) return null
+
+                      if (!customEndpoint) {
+                        return (
+                          <Alert
+                            type="warning"
+                            message="Web publications require a custom domain"
+                            description="Go to workspace settings and configure a custom endpoint URL to enable web publications."
+                            showIcon
+                            className="mb-4"
+                          />
+                        )
+                      }
+
+                      return (
+                        <div className="mb-4">
+                          <Form.Item
+                            name={['web_publication_settings', 'slug']}
+                            label="URL Slug"
+                            help="Final URL will include a unique ID automatically"
+                            rules={[
+                              { required: true, message: 'Please enter a URL slug' },
+                              {
+                                pattern: /^[a-z0-9-]+$/,
+                                message: 'Only lowercase letters, numbers, and hyphens allowed'
+                              }
+                            ]}
+                          >
+                            <Input
+                              placeholder="my-blog-post"
+                              addonBefore={`${customEndpoint}/`}
+                              addonAfter="-xxxxxx"
+                            />
+                          </Form.Item>
+
+                          <Form.Item
+                            name={['web_publication_settings', 'meta_title']}
+                            label="Meta Title (SEO)"
+                            help="Recommended: 50-60 characters"
+                          >
+                            <Input maxLength={60} showCount placeholder="Page title for search engines" />
+                          </Form.Item>
+
+                          <Form.Item
+                            name={['web_publication_settings', 'meta_description']}
+                            label="Meta Description (SEO)"
+                            help="Recommended: 150-160 characters"
+                          >
+                            <Input.TextArea
+                              maxLength={160}
+                              rows={3}
+                              showCount
+                              placeholder="Brief description for search results"
+                            />
+                          </Form.Item>
+
+                          <Form.Item
+                            name={['web_publication_settings', 'og_title']}
+                            label="Open Graph Title"
+                            help="Title when shared on social media (optional)"
+                          >
+                            <Input maxLength={60} showCount placeholder="Defaults to meta title" />
+                          </Form.Item>
+
+                          <Form.Item
+                            name={['web_publication_settings', 'og_description']}
+                            label="Open Graph Description"
+                            help="Description when shared on social media (optional)"
+                          >
+                            <Input.TextArea
+                              maxLength={160}
+                              rows={2}
+                              showCount
+                              placeholder="Defaults to meta description"
+                            />
+                          </Form.Item>
+
+                          <Form.Item
+                            name={['web_publication_settings', 'og_image']}
+                            label="Open Graph Image URL"
+                            help="Image when shared on social media (optional)"
+                          >
+                            <Input placeholder="https://example.com/image.jpg" />
+                          </Form.Item>
+
+                          <Form.Item
+                            name={['web_publication_settings', 'keywords']}
+                            label="SEO Keywords (optional)"
+                            help="Press Enter to add keywords"
+                          >
+                            <Select mode="tags" placeholder="Add keywords..." />
+                          </Form.Item>
+                        </div>
+                      )
+                    }}
+                  </Form.Item>
+
+                  <div className="text-xs mt-12 mb-4 font-bold border-b border-solid border-gray-400 pb-2 text-gray-900">
                     URL Tracking Parameters
                   </div>
                   <Alert

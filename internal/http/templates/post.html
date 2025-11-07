@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{if .Post.MetaTitle}}{{.Post.MetaTitle}}{{else}}{{.Post.Name}}{{end}}</title>
+    
+    <!-- SEO Meta Tags -->
+    {{if .Post.MetaDescription}}
+    <meta name="description" content="{{.Post.MetaDescription}}">
+    {{end}}
+    {{if .Post.Keywords}}
+    <meta name="keywords" content="{{range $index, $keyword := .Post.Keywords}}{{if $index}}, {{end}}{{$keyword}}{{end}}">
+    {{end}}
+    {{if .Post.CanonicalURL}}
+    <link rel="canonical" href="{{.Post.CanonicalURL}}">
+    {{end}}
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="{{if .Post.OGTitle}}{{.Post.OGTitle}}{{else if .Post.MetaTitle}}{{.Post.MetaTitle}}{{else}}{{.Post.Name}}{{end}}">
+    <meta property="og:type" content="article">
+    {{if .Post.OGDescription}}
+    <meta property="og:description" content="{{.Post.OGDescription}}">
+    {{else if .Post.MetaDescription}}
+    <meta property="og:description" content="{{.Post.MetaDescription}}">
+    {{end}}
+    {{if .Post.OGImage}}
+    <meta property="og:image" content="{{.Post.OGImage}}">
+    {{end}}
+    <meta property="og:url" content="{{.CurrentURL}}">
+    <meta property="article:published_time" content="{{.Post.PublishedAt.Format "2006-01-02T15:04:05Z07:00"}}">
+    
+    <!-- Twitter Card Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{if .Post.OGTitle}}{{.Post.OGTitle}}{{else if .Post.MetaTitle}}{{.Post.MetaTitle}}{{else}}{{.Post.Name}}{{end}}">
+    {{if .Post.OGDescription}}
+    <meta name="twitter:description" content="{{.Post.OGDescription}}">
+    {{else if .Post.MetaDescription}}
+    <meta name="twitter:description" content="{{.Post.MetaDescription}}">
+    {{end}}
+    {{if .Post.OGImage}}
+    <meta name="twitter:image" content="{{.Post.OGImage}}">
+    {{end}}
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        header {
+            background: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .back-link {
+            color: #0066cc;
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 1rem 0;
+            line-height: 1.2;
+        }
+        .post-meta {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 2rem;
+        }
+        article {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .content {
+            /* MJML-generated content will be inserted here */
+        }
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+        }
+        footer a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <a href="/" class="back-link">← Back to all posts</a>
+            <h1>{{.Post.Name}}</h1>
+            <div class="post-meta">
+                Published on {{.Post.PublishedAt.Format "January 2, 2006"}}
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <article>
+            <div class="content">
+                {{.Post.Content}}
+            </div>
+        </article>
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p><a href="/">← Back to all posts</a> | <a href="/console">Admin Console</a></p>
+        </div>
+    </footer>
+</body>
+</html>
