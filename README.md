@@ -10,7 +10,7 @@
 
 Notifuse is a modern, self-hosted emailing platform that allows you to send newsletters and transactional emails at a fraction of the cost. Built with Go and React, it provides enterprise-grade features with the flexibility of open-source software.
 
-<img src="https://www.notifuse.com/_astro/email_editor.CGyLoCOD.png" alt="Email Editor">
+<img alt="Email Editor" src="https://github.com/user-attachments/assets/f650ac1b-58fd-44fb-884d-e9811255f1e4" />
 
 ## 🚀 Key Features
 
