@@ -16,14 +16,42 @@ import { SettingsSidebar, SettingsSection } from '../components/settings/Setting
 const { Sider, Content } = Layout
 
 export function WorkspaceSettingsPage() {
-  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/settings' })
+  const { workspaceId, section } = useParams({
+    from: '/console/workspace/$workspaceId/settings/$section'
+  })
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [members, setMembers] = useState<WorkspaceMember[]>([])
   const [loadingMembers, setLoadingMembers] = useState(false)
   const [isOwner, setIsOwner] = useState(false)
-  const [activeSection, setActiveSection] = useState<SettingsSection>('team')
   const { refreshWorkspaces, user, workspaces } = useAuth()
   const navigate = useNavigate()
+
+  // Valid settings sections
+  const validSections: SettingsSection[] = [
+    'team',
+    'integrations',
+    'custom-fields',
+    'smtp-relay',
+    'general',
+    'web-publications',
+    'danger-zone'
+  ]
+
+  // Get active section from URL or default to 'team'
+  const activeSection: SettingsSection = validSections.includes(section as SettingsSection)
+    ? (section as SettingsSection)
+    : 'team'
+
+  useEffect(() => {
+    // Redirect to team section if invalid section is provided
+    if (!validSections.includes(section as SettingsSection)) {
+      navigate({
+        to: '/console/workspace/$workspaceId/settings/$section',
+        params: { workspaceId, section: 'team' },
+        replace: true
+      })
+    }
+  }, [section, workspaceId, navigate])
 
   useEffect(() => {
     // Find the workspace from the auth context
@@ -60,6 +88,13 @@ export function WorkspaceSettingsPage() {
   const handleWorkspaceDelete = async () => {
     navigate({ to: '/console' })
     await refreshWorkspaces()
+  }
+
+  const handleSectionChange = (newSection: SettingsSection) => {
+    navigate({
+      to: '/console/workspace/$workspaceId/settings/$section',
+      params: { workspaceId, section: newSection }
+    })
   }
 
   const renderSection = () => {
@@ -135,7 +170,7 @@ export function WorkspaceSettingsPage() {
       >
         <SettingsSidebar
           activeSection={activeSection}
-          onSectionChange={setActiveSection}
+          onSectionChange={handleSectionChange}
           isOwner={isOwner}
         />
       </Sider>

@@ -1,4 +1,5 @@
-import { createRootRoute, createRoute } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { createRootRoute, createRoute, useParams, useNavigate } from '@tanstack/react-router'
 import { RootLayout } from './layouts/RootLayout'
 import { WorkspaceLayout } from './layouts/WorkspaceLayout'
 import { SignInPage } from './pages/SignInPage'
@@ -164,9 +165,28 @@ export const workspaceContactsRoute = createRoute({
   })
 })
 
-const workspaceSettingsRoute = createRoute({
+const workspaceSettingsRedirectRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/settings',
+  component: () => {
+    const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/settings' })
+    const navigate = useNavigate()
+
+    useEffect(() => {
+      navigate({
+        to: '/console/workspace/$workspaceId/settings/$section',
+        params: { workspaceId, section: 'team' },
+        replace: true
+      })
+    }, [workspaceId, navigate])
+
+    return null
+  }
+})
+
+const workspaceSettingsRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/settings/$section',
   component: WorkspaceSettingsPage
 })
 
@@ -204,6 +224,7 @@ const routeTree = rootRoute.addChildren([
     workspaceTransactionalNotificationsRoute,
     workspaceLogsRoute,
     workspaceFileManagerRoute,
+    workspaceSettingsRedirectRoute,
     workspaceSettingsRoute,
     workspaceTemplatesRoute,
     workspaceAnalyticsRoute,

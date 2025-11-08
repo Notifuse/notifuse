@@ -1,13 +1,14 @@
 import { Descriptions } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
+import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 export function SMTPRelaySettings() {
   return (
     <>
-      <div className="text-2xl font-medium mb-2">SMTP Relay</div>
-      <div className="text-gray-500 mb-16">
-        SMTP relay server for forwarding transactional emails
-      </div>
+      <SettingsSectionHeader
+        title="SMTP Relay"
+        description="SMTP relay server for forwarding transactional emails"
+      />
 
       {window.SMTP_RELAY_ENABLED ? (
         <>

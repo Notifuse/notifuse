@@ -5,6 +5,7 @@ import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { LogoInput } from './LogoInput'
+import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 interface GeneralSettingsProps {
   workspace: Workspace | null
@@ -79,8 +80,10 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
     // Render read-only settings for non-owner users
     return (
       <>
-        <div className="text-2xl font-medium mb-2">General Settings</div>
-        <div className="text-gray-500 mb-16">General settings for your workspace</div>
+        <SettingsSectionHeader
+          title="General Settings"
+          description="General settings for your workspace"
+        />
 
         <Descriptions
           bordered
@@ -136,8 +139,10 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
 
   return (
     <>
-      <div className="text-2xl font-medium mb-2">General Settings</div>
-      <div className="text-gray-500 mb-16">General settings for your workspace</div>
+      <SettingsSectionHeader
+        title="General Settings"
+        description="General settings for your workspace"
+      />
 
       <Form
         form={form}

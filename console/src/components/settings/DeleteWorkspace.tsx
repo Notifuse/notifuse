@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button, Input, Typography, App } from 'antd'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
+import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 const { Text, Title, Paragraph } = Typography
 
@@ -39,8 +40,7 @@ export function DeleteWorkspaceSection({
 
   return (
     <>
-      <div className="text-2xl font-medium mb-2">Danger Zone</div>
-      <div className="text-gray-500 mb-16">This action cannot be undone.</div>
+      <SettingsSectionHeader title="Danger Zone" description="This action cannot be undone." />
 
       <div>
         <p style={{ marginTop: 16 }}>

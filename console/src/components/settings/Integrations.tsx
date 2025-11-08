@@ -62,6 +62,7 @@ import {
 import { emailProviders } from '../integrations/EmailProviders'
 import { SupabaseIntegration } from '../integrations/SupabaseIntegration'
 import { v4 as uuidv4 } from 'uuid'
+import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 // Provider types that only support transactional emails, not marketing emails
 const transactionalEmailOnly: EmailProviderKind[] = ['postmark']
@@ -1603,8 +1604,10 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
   return (
     <>
-      <div className="text-2xl font-medium mb-2">Integrations</div>
-      <div className="text-gray-500 mb-16">Connect and manage external services</div>
+      <SettingsSectionHeader
+        title="Integrations"
+        description="Connect and manage external services"
+      />
 
       {isOwner && (workspace?.integrations?.length ?? 0) > 0 && (
         <div style={{ textAlign: 'right', marginBottom: 16 }}>

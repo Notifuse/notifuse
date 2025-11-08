@@ -1252,7 +1252,11 @@ export function BroadcastsPage() {
           showIcon
           className="!mb-6"
           action={
-            <Button type="primary" size="small" href={`/workspace/${workspaceId}/settings`}>
+            <Button
+              type="primary"
+              size="small"
+              href={`/console/workspace/${workspaceId}/settings/integrations`}
+            >
               Configure Provider
             </Button>
           }

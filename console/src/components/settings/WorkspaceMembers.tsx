@@ -22,6 +22,7 @@ import { faRefresh, faUserCog } from '@fortawesome/free-solid-svg-icons'
 import { WorkspaceMember, UserPermissions } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { EditPermissionsModal } from './EditPermissionsModal'
+import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 const { Text } = Typography
 
@@ -500,8 +501,7 @@ export function WorkspaceMembers({
 
   return (
     <>
-      <div className="text-2xl font-medium mb-2">Team</div>
-      <div className="text-gray-500 mb-16">Manage your workspace members</div>
+      <SettingsSectionHeader title="Team" description="Manage your workspace members" />
 
       {isOwner && (
         <div className="flex justify-end mb-4">

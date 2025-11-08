@@ -4,6 +4,7 @@ import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { SEOSettingsForm } from '../seo/SEOSettingsForm'
+import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 interface WebPublicationSettingsProps {
   workspace: Workspace | null
@@ -82,8 +83,10 @@ export function WebPublicationSettings({
   if (!isOwner) {
     return (
       <>
-        <div className="text-2xl font-medium mb-2">Web Publications</div>
-        <div className="text-gray-500 mb-16">Default SEO settings for web publications</div>
+        <SettingsSectionHeader
+          title="Web Publications"
+          description="Default SEO settings for web publications"
+        />
 
         <Descriptions
           bordered
@@ -147,11 +150,10 @@ export function WebPublicationSettings({
 
   return (
     <>
-      <div className="text-2xl font-medium mb-2">Web Publications</div>
-      <div className="text-gray-500 mb-16">
-        Configure default SEO settings for web publications. These will be used as defaults for blog
-        posts published to the web.
-      </div>
+      <SettingsSectionHeader
+        title="Web Publications"
+        description="Configure default SEO settings for web publications. These will be used as defaults for blog posts published to the web."
+      />
 
       <Form
         form={form}

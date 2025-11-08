@@ -1,4 +1,4 @@
-import { Menu, Typography } from 'antd'
+import { Menu, Divider } from 'antd'
 import {
   TeamOutlined,
   ApiOutlined,
@@ -8,8 +8,6 @@ import {
   ExclamationCircleOutlined,
   MailOutlined
 } from '@ant-design/icons'
-
-const { Title } = Typography
 
 export type SettingsSection =
   | 'team'
@@ -71,8 +69,8 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div className="text-xl font-medium p-6 pb-4">Settings</div>
-
+      <div className="text-xl font-medium pt-6 pl-6">Settings</div>
+      <Divider className="!my-4" />
       <Menu
         mode="inline"
         selectedKeys={[activeSection]}

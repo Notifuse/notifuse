@@ -1,6 +1,14 @@
 # TODO
 
-- redact private vars
+- send newsletter to all contacts+previous customers
+- post supabase on twitter and facebook
+- fix in the last operator in the UI
+- add telemetry for web publication enabled
+- server settings panel for root user
+
+## Web Publications
+
+- enable web publications in mailing list settings
 
 ## Content
 
