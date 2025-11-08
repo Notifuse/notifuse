@@ -21,7 +21,6 @@ import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { faRefresh, faUserCog } from '@fortawesome/free-solid-svg-icons'
 import { WorkspaceMember, UserPermissions } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
-import { Section } from './Section'
 import { EditPermissionsModal } from './EditPermissionsModal'
 
 const { Text } = Typography
@@ -501,35 +500,36 @@ export function WorkspaceMembers({
 
   return (
     <>
-      <Section title="Members" description="Manage your workspace members">
-        {isOwner && (
-          <div className="flex justify-end mb-4">
-            <Space size="middle">
-              <Button type="primary" size="small" ghost onClick={() => setApiKeyModalVisible(true)}>
-                Create API Key
-              </Button>
-              <Button type="primary" size="small" ghost onClick={() => setInviteModalVisible(true)}>
-                Invite Member
-              </Button>
-            </Space>
-          </div>
-        )}
+      <div className="text-2xl font-medium mb-2">Team</div>
+      <div className="text-gray-500 mb-16">Manage your workspace members</div>
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <Spin />
-          </div>
-        ) : (
-          <Table
-            dataSource={members}
-            columns={columns}
-            rowKey="user_id"
-            pagination={false}
-            locale={{ emptyText: 'No members found' }}
-            className="border border-gray-200 rounded-md"
-          />
-        )}
-      </Section>
+      {isOwner && (
+        <div className="flex justify-end mb-4">
+          <Space size="middle">
+            <Button type="primary" size="small" ghost onClick={() => setApiKeyModalVisible(true)}>
+              Create API Key
+            </Button>
+            <Button type="primary" size="small" ghost onClick={() => setInviteModalVisible(true)}>
+              Invite Member
+            </Button>
+          </Space>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <Spin />
+        </div>
+      ) : (
+        <Table
+          dataSource={members}
+          columns={columns}
+          rowKey="user_id"
+          pagination={false}
+          locale={{ emptyText: 'No members found' }}
+          className="border border-gray-200 rounded-md"
+        />
+      )}
 
       <Modal
         title="Invite Member"

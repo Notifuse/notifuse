@@ -3,7 +3,6 @@ import { Button, Form, App, Switch, Descriptions } from 'antd'
 import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
-import { Section } from './Section'
 import { SEOSettingsForm } from '../seo/SEOSettingsForm'
 
 interface WebPublicationSettingsProps {
@@ -23,6 +22,9 @@ export function WebPublicationSettings({
   const { message } = App.useApp()
 
   useEffect(() => {
+    // Only set form values if user is owner (form exists)
+    if (!isOwner) return
+
     // Set form values from workspace data whenever workspace changes
     form.setFieldsValue({
       web_publications_enabled: workspace?.settings.web_publications_enabled || false,
@@ -36,21 +38,24 @@ export function WebPublicationSettings({
       }
     })
     setFormTouched(false)
-  }, [workspace, form])
+  }, [workspace, form, isOwner])
 
   const handleSaveSettings = async (values: any) => {
     if (!workspace) return
 
     setSavingSettings(true)
     try {
-      await workspaceService.update({
+      const updatedSettings = {
+        ...workspace.settings,
+        web_publications_enabled: values.web_publications_enabled === true,
+        web_publication_settings: values.web_publication_settings || null
+      }
+      const payload = {
         ...workspace,
-        settings: {
-          ...workspace.settings,
-          web_publications_enabled: values.web_publications_enabled || false,
-          web_publication_settings: values.web_publication_settings || null
-        }
-      })
+        settings: updatedSettings
+      }
+
+      await workspaceService.update(payload)
 
       // Refresh the workspace data
       const response = await workspaceService.get(workspace.id)
@@ -76,10 +81,10 @@ export function WebPublicationSettings({
 
   if (!isOwner) {
     return (
-      <Section
-        title="Web Publication Settings"
-        description="Default SEO settings for web publications"
-      >
+      <>
+        <div className="text-2xl font-medium mb-2">Web Publications</div>
+        <div className="text-gray-500 mb-16">Default SEO settings for web publications</div>
+
         <Descriptions
           bordered
           column={1}
@@ -136,15 +141,18 @@ export function WebPublicationSettings({
             </>
           )}
         </Descriptions>
-      </Section>
+      </>
     )
   }
 
   return (
-    <Section
-      title="Web Publication Settings"
-      description="Configure default SEO settings for web publications. These will be used as defaults for blog posts published to the web."
-    >
+    <>
+      <div className="text-2xl font-medium mb-2">Web Publications</div>
+      <div className="text-gray-500 mb-16">
+        Configure default SEO settings for web publications. These will be used as defaults for blog
+        posts published to the web.
+      </div>
+
       <Form
         form={form}
         layout="vertical"
@@ -170,6 +178,7 @@ export function WebPublicationSettings({
           name="web_publications_enabled"
           label="Enable Web Publications"
           tooltip="Allow broadcasting content to a public blog on your custom domain"
+          valuePropName="checked"
         >
           <Switch disabled={!workspace?.settings.custom_endpoint_url} />
         </Form.Item>
@@ -191,13 +200,12 @@ export function WebPublicationSettings({
             return (
               <>
                 <div style={{ marginBottom: 16, color: '#666' }}>
-                  These settings will be used as defaults for all web publications. Individual
-                  posts can override these values.
+                  These settings will be used as defaults for all web publications. Individual posts
+                  can override these values.
                 </div>
 
                 <SEOSettingsForm
                   namePrefix={['web_publication_settings']}
-                  showCanonical={false}
                   titlePlaceholder="My Amazing Blog"
                   descriptionPlaceholder="Welcome to my blog where I share insights about..."
                 />
@@ -207,17 +215,11 @@ export function WebPublicationSettings({
         </Form.Item>
 
         <Form.Item>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={savingSettings}
-            disabled={!formTouched}
-          >
+          <Button type="primary" htmlType="submit" loading={savingSettings} disabled={!formTouched}>
             Save Changes
           </Button>
         </Form.Item>
       </Form>
-    </Section>
+    </>
   )
 }
-

@@ -31,9 +31,8 @@ func TestNewRootHandler(t *testing.T) {
 		"",
 		0,
 		false,
-		nil, // webPublicationHandler
-		nil, // workspaceRepo
-		nil, // broadcastRepo
+		WebPublicationHandler{}, // webPublicationHandler
+		nil,                      // workspaceRepo
 	)
 
 	// Assert fields are set correctly
@@ -57,9 +56,8 @@ func TestRootHandler_Handle(t *testing.T) {
 		"",
 		0,
 		false,
-		nil, // webPublicationHandler
-		nil, // workspaceRepo
-		nil, // broadcastRepo
+		WebPublicationHandler{}, // webPublicationHandler
+		nil,                      // workspaceRepo
 	)
 
 	// Create a test request
@@ -99,9 +97,8 @@ func TestRootHandler_RegisterRoutes(t *testing.T) {
 		"",
 		0,
 		false,
-		nil, // webPublicationHandler
-		nil, // workspaceRepo
-		nil, // broadcastRepo
+		WebPublicationHandler{}, // webPublicationHandler
+		nil,                      // workspaceRepo
 	)
 	mux := http.NewServeMux()
 
@@ -147,9 +144,8 @@ func TestRootHandler_RegisterRoutesWithNotificationCenter(t *testing.T) {
 		"",
 		0,
 		false,
-		nil, // webPublicationHandler
-		nil, // workspaceRepo
-		nil, // broadcastRepo
+		WebPublicationHandler{}, // webPublicationHandler
+		nil,                      // workspaceRepo
 	)
 
 	mux := http.NewServeMux()
@@ -188,9 +184,8 @@ func TestRootHandler_ServeConfigJS(t *testing.T) {
 		"",
 		0,
 		false,
-		nil, // webPublicationHandler
-		nil, // workspaceRepo
-		nil, // broadcastRepo
+		WebPublicationHandler{}, // webPublicationHandler
+		nil,                      // workspaceRepo
 	)
 
 	// Create a request to /config.js
@@ -244,9 +239,8 @@ func TestRootHandler_Handle_ConfigJS(t *testing.T) {
 		"",
 		0,
 		false,
-		nil, // webPublicationHandler
-		nil, // workspaceRepo
-		nil, // broadcastRepo
+		WebPublicationHandler{}, // webPublicationHandler
+		nil,                      // workspaceRepo
 	)
 
 	// Create a request to /config.js
@@ -303,9 +297,8 @@ func TestRootHandler_ServeNotificationCenter(t *testing.T) {
 		"",
 		0,
 		false,
-		nil, // webPublicationHandler
-		nil, // workspaceRepo
-		nil, // broadcastRepo
+		WebPublicationHandler{}, // webPublicationHandler
+		nil,                      // workspaceRepo
 	)
 
 	t.Run("ServeExactPath", func(t *testing.T) {
@@ -380,9 +373,8 @@ func TestRootHandler_ServeConsole(t *testing.T) {
 		"",
 		0,
 		false,
-		nil, // webPublicationHandler
-		nil, // workspaceRepo
-		nil, // broadcastRepo
+		WebPublicationHandler{}, // webPublicationHandler
+		nil,                      // workspaceRepo
 	)
 
 	t.Run("ServeExactPath", func(t *testing.T) {
@@ -473,9 +465,8 @@ func TestRootHandler_Handle_Comprehensive(t *testing.T) {
 		"",
 		0,
 		false,
-		nil, // webPublicationHandler
-		nil, // workspaceRepo
-		nil, // broadcastRepo
+		WebPublicationHandler{}, // webPublicationHandler
+		nil,                      // workspaceRepo
 	)
 
 	t.Run("NotFoundAPIPath", func(t *testing.T) {

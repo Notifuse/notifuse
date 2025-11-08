@@ -23,6 +23,7 @@ import {
   Col,
   Table
 } from 'antd'
+
 import {
   EmailProvider,
   EmailProviderKind,
@@ -37,7 +38,6 @@ import {
 import { workspaceService } from '../../services/api/workspace'
 import { emailService } from '../../services/api/email'
 import { listsApi } from '../../services/api/list'
-import { Section } from './Section'
 import {
   faCheck,
   faChevronDown,
@@ -1602,19 +1602,20 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   ]
 
   return (
-    <Section
-      title="Integrations"
-      description="Connect and manage external services"
-      extra={
-        isOwner && (workspace?.integrations?.length ?? 0) > 0 ? (
+    <>
+      <div className="text-2xl font-medium mb-2">Integrations</div>
+      <div className="text-gray-500 mb-16">Connect and manage external services</div>
+
+      {isOwner && (workspace?.integrations?.length ?? 0) > 0 && (
+        <div style={{ textAlign: 'right', marginBottom: 16 }}>
           <Dropdown menu={{ items: integrationMenuItems }} trigger={['click']}>
             <Button type="primary" size="small" ghost>
               Add Integration <FontAwesomeIcon icon={faChevronDown} />
             </Button>
           </Dropdown>
-        ) : null
-      }
-    >
+        </div>
+      )}
+
       {/* Check and display alert for missing email provider configuration */}
       {workspace && (
         <>
@@ -1766,6 +1767,6 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           formRef={supabaseFormRef}
         />
       </Drawer>
-    </Section>
+    </>
   )
 }

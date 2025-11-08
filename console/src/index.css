@@ -81,3 +81,8 @@ h1 {
 .ant-alert.ant-alert-error {
   border-left-color: #ff4d4f !important;
 }
+
+/* Required mark inscreses the line height of the form item creating discrepancy when using 2 columns */
+:where(.css-dev-only-do-not-override-1d0rgb4).ant-form-item .ant-form-item-label > label.ant-form-item-required::before {
+  font-family: inherit;
+}

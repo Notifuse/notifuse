@@ -594,6 +594,7 @@ func (a *App) InitServices() error {
 		a.broadcastRepo,
 		a.templateRepo,
 		a.workspaceRepo,
+		a.listRepo,
 		a.logger,
 	)
 
@@ -813,6 +814,7 @@ func (a *App) InitServices() error {
 		a.broadcastRepo,
 		a.templateRepo,
 		a.workspaceRepo,
+		a.listRepo,
 		a.logger,
 	)
 
@@ -927,9 +929,8 @@ func (a *App) InitHandlers() error {
 		a.config.SMTPRelay.Domain,
 		a.config.SMTPRelay.Port,
 		smtpRelayTLSEnabled,
-		webPublicationHandler,
+		*webPublicationHandler,
 		a.workspaceRepo,
-		a.broadcastRepo,
 	)
 	setupHandler := httpHandler.NewSetupHandler(
 		a.setupService,

@@ -104,12 +104,14 @@ func NewWebPublicationService(
 	broadcastRepo domain.BroadcastRepository,
 	templateRepo domain.TemplateRepository,
 	workspaceRepo domain.WorkspaceRepository,
+	listRepo domain.ListRepository,
 	logger logger.Logger,
 ) *WebPublicationService {
 	return &WebPublicationService{
 		broadcastRepo: broadcastRepo,
 		templateRepo:  templateRepo,
 		workspaceRepo: workspaceRepo,
+		listRepo:      listRepo,
 		logger:        logger,
 		cache:         NewPostCache(),
 	}

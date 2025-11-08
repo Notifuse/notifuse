@@ -26,9 +26,8 @@ type RootHandler struct {
 	smtpRelayDomain       string
 	smtpRelayPort         int
 	smtpRelayTLSEnabled   bool
-	webPublicationHandler *WebPublicationHandler
+	webPublicationHandler WebPublicationHandler
 	workspaceRepo         domain.WorkspaceRepository
-	broadcastRepo         domain.BroadcastRepository
 }
 
 // NewRootHandler creates a root handler that serves both console and notification center static files
@@ -44,9 +43,8 @@ func NewRootHandler(
 	smtpRelayDomain string,
 	smtpRelayPort int,
 	smtpRelayTLSEnabled bool,
-	webPublicationHandler *WebPublicationHandler,
+	webPublicationHandler WebPublicationHandler,
 	workspaceRepo domain.WorkspaceRepository,
-	broadcastRepo domain.BroadcastRepository,
 ) *RootHandler {
 	return &RootHandler{
 		consoleDir:            consoleDir,
@@ -62,7 +60,6 @@ func NewRootHandler(
 		smtpRelayTLSEnabled:   smtpRelayTLSEnabled,
 		webPublicationHandler: webPublicationHandler,
 		workspaceRepo:         workspaceRepo,
-		broadcastRepo:         broadcastRepo,
 	}
 }
 
@@ -108,33 +105,14 @@ func (h *RootHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 6. Workspace found - check if web publications are enabled
-	// If broadcastRepo is nil (e.g., in tests), redirect to console
-	if h.broadcastRepo == nil {
-		http.Redirect(w, r, "/console", http.StatusTemporaryRedirect)
-		return
-	}
-
-	hasWebPublications, err := h.broadcastRepo.HasWebPublications(r.Context(), workspace.ID)
-	if err != nil {
-		h.logger.WithField("error", err.Error()).Error("Failed to check web publications")
-		http.Redirect(w, r, "/console", http.StatusTemporaryRedirect)
-		return
-	}
-
-	if !hasWebPublications {
-		// Web publications not activated → redirect to console
+	// 6. Workspace found - check if web publications feature is enabled
+	if !workspace.Settings.WebPublicationsEnabled {
+		// Web publications not enabled → redirect to console
 		http.Redirect(w, r, "/console", http.StatusTemporaryRedirect)
 		return
 	}
 
 	// 7. Web publications enabled - serve web content
-	// If webPublicationHandler is nil (e.g., in tests), redirect to console
-	if h.webPublicationHandler == nil {
-		http.Redirect(w, r, "/console", http.StatusTemporaryRedirect)
-		return
-	}
-
 	h.webPublicationHandler.Handle(w, r, workspace)
 }
 

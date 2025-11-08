@@ -165,7 +165,7 @@ export interface UpdateBroadcastRequest {
   utm_parameters?: UTMParameters
   metadata?: Record<string, any>
   channels: BroadcastChannels
-  web_settings?: WebSettings
+  web_publication_settings?: WebPublicationSettings
 }
 
 export interface ListBroadcastsRequest {

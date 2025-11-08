@@ -1,11 +1,9 @@
 import { useState } from 'react'
-import { Button, Modal, Input, Space, Typography, App } from 'antd'
-import { ExclamationCircleOutlined } from '@ant-design/icons'
+import { Button, Input, Typography, App } from 'antd'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
-import { Section } from './Section'
 
-const { Text } = Typography
+const { Text, Title, Paragraph } = Typography
 
 interface DeleteWorkspaceSectionProps {
   workspace: Workspace
@@ -41,31 +39,32 @@ export function DeleteWorkspaceSection({
 
   return (
     <>
-      <Section title="Delete Workspace" description="This action cannot be undone.">
-        <div>
-          <p style={{ marginTop: 16 }}>
-            This will permanently delete the workspace "{workspace.name}" and all of its data. To
-            confirm, please enter the workspace ID: <Text code>{workspace.id}</Text>
-          </p>
+      <div className="text-2xl font-medium mb-2">Danger Zone</div>
+      <div className="text-gray-500 mb-16">This action cannot be undone.</div>
 
-          <Input
-            value={confirmWorkspaceId}
-            onChange={(e) => setConfirmWorkspaceId(e.target.value)}
-            placeholder="Enter workspace ID"
-            style={{ marginBottom: 16 }}
-          />
+      <div>
+        <p style={{ marginTop: 16 }}>
+          This will permanently delete the workspace "{workspace.name}" and all of its data. To
+          confirm, please enter the workspace ID: <Text code>{workspace.id}</Text>
+        </p>
 
-          <Button
-            danger
-            type="primary"
-            loading={deletingWorkspace}
-            disabled={confirmWorkspaceId !== workspace.id}
-            onClick={handleDeleteWorkspace}
-          >
-            Delete Workspace
-          </Button>
-        </div>
-      </Section>
+        <Input
+          value={confirmWorkspaceId}
+          onChange={(e) => setConfirmWorkspaceId(e.target.value)}
+          placeholder="Enter workspace ID"
+          style={{ marginBottom: 16 }}
+        />
+
+        <Button
+          danger
+          type="primary"
+          loading={deletingWorkspace}
+          disabled={confirmWorkspaceId !== workspace.id}
+          onClick={handleDeleteWorkspace}
+        >
+          Delete Workspace
+        </Button>
+      </div>
     </>
   )
 }

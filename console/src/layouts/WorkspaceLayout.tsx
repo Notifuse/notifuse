@@ -39,6 +39,7 @@ export function WorkspaceLayout() {
   // Use useMatches to determine the current route path
   const matches = useMatches()
   const currentPath = matches[matches.length - 1]?.pathname || ''
+  const isSettingsPage = currentPath.includes('/settings')
 
   // Fetch user permissions for the current workspace
   useEffect(() => {
@@ -436,7 +437,7 @@ export function WorkspaceLayout() {
           <Layout
             style={{
               marginLeft: collapsed ? '80px' : '250px',
-              padding: '24px',
+              padding: isSettingsPage ? '0' : '24px',
               transition: 'margin-left 0.2s'
             }}
           >

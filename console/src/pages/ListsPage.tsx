@@ -22,7 +22,7 @@ import { CreateListDrawer } from '../components/lists/ListDrawer'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { faRefresh } from '@fortawesome/free-solid-svg-icons'
-import { Check, X } from 'lucide-react'
+import { Check, X, Globe } from 'lucide-react'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { CreateTemplateDrawer } from '../components/templates/CreateTemplateDrawer'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
@@ -31,7 +31,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ImportContactsToListButton } from '../components/lists/ImportContactsToListButton'
 import { ListStats } from '../components/lists/ListStats'
 
-const { Title, Paragraph, Text } = Typography
+const { Title, Paragraph, Text, Link } = Typography
 
 // Component to fetch template data and render the preview popover
 const TemplatePreviewButton = ({
@@ -161,10 +161,15 @@ export function ListsPage() {
                 className="opacity-70 hover:opacity-100"
               />
             </Tooltip>
-            <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : undefined}>
+            <Tooltip
+              title={
+                !permissions?.lists?.write ? "You don't have write permission for lists" : undefined
+              }
+            >
               <div>
                 <CreateListDrawer
                   workspaceId={workspaceId}
+                  workspace={workspace}
                   buttonProps={{
                     disabled: !permissions?.lists?.write
                   }}
@@ -194,7 +199,13 @@ export function ListsPage() {
               }
               extra={
                 <Space>
-                  <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : "Delete List"}>
+                  <Tooltip
+                    title={
+                      !permissions?.lists?.write
+                        ? "You don't have write permission for lists"
+                        : 'Delete List'
+                    }
+                  >
                     <Button
                       type="text"
                       size="small"
@@ -204,10 +215,17 @@ export function ListsPage() {
                       <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
                     </Button>
                   </Tooltip>
-                  <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : "Edit List"}>
+                  <Tooltip
+                    title={
+                      !permissions?.lists?.write
+                        ? "You don't have write permission for lists"
+                        : 'Edit List'
+                    }
+                  >
                     <div>
                       <CreateListDrawer
                         workspaceId={workspaceId}
+                        workspace={workspace}
                         list={list}
                         buttonProps={{
                           type: 'text',
@@ -220,7 +238,13 @@ export function ListsPage() {
                       />
                     </div>
                   </Tooltip>
-                  <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : undefined}>
+                  <Tooltip
+                    title={
+                      !permissions?.lists?.write
+                        ? "You don't have write permission for lists"
+                        : undefined
+                    }
+                  >
                     <div>
                       <ImportContactsToListButton
                         list={list}
@@ -298,7 +322,131 @@ export function ListsPage() {
                     <X size={16} className="text-slate-500 mt-1" />
                   )}
                 </Descriptions.Item>
+
+                {/* Web Publication Settings (with per-setting Description) */}
+                <Descriptions.Item label="Web Publication">
+                  {list.web_publication_enabled ? (
+                    <Space direction="vertical" size="small" className="w-full">
+                      {/* Enabled status */}
+                      <div className="flex items-center gap-2">
+                        <Tag bordered={false} color="green">
+                          Enabled
+                        </Tag>
+                      </div>
+                    </Space>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <Tag bordered={false} color="volcano">
+                        Disabled
+                      </Tag>
+                    </div>
+                  )}
+                </Descriptions.Item>
+
+                {list.web_publication_enabled && (
+                  <>
+                    <Descriptions.Item label="Public URL" span={1}>
+                      {list.web_publication_settings?.slug &&
+                      workspace?.settings?.custom_endpoint_url ? (
+                        <div className="flex items-center gap-2">
+                          <Link
+                            href={`${workspace.settings.custom_endpoint_url}/${list.web_publication_settings.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm"
+                          >
+                            {workspace.settings.custom_endpoint_url}/
+                            {list.web_publication_settings.slug}
+                          </Link>
+                        </div>
+                      ) : (
+                        <Text type="secondary">Not set</Text>
+                      )}
+                    </Descriptions.Item>
+
+                    {/* SEO Title */}
+                    <Descriptions.Item label="SEO Title">
+                      {list.web_publication_settings?.meta_title ? (
+                        <span>{list.web_publication_settings.meta_title}</span>
+                      ) : (
+                        <Text type="secondary">Not set</Text>
+                      )}
+                    </Descriptions.Item>
+
+                    {/* SEO Description */}
+                    <Descriptions.Item label="SEO Description">
+                      {list.web_publication_settings?.meta_description ? (
+                        <span>{list.web_publication_settings.meta_description}</span>
+                      ) : (
+                        <Text type="secondary">Not set</Text>
+                      )}
+                    </Descriptions.Item>
+
+                    {/* SEO Keywords */}
+                    <Descriptions.Item label="SEO Keywords">
+                      {list.web_publication_settings?.keywords &&
+                      list.web_publication_settings.keywords.length > 0 ? (
+                        <Space size={4} wrap>
+                          {list.web_publication_settings.keywords.map((keyword, idx) => (
+                            <Tag key={idx} bordered={false} className="text-xs">
+                              {keyword}
+                            </Tag>
+                          ))}
+                        </Space>
+                      ) : (
+                        <Text type="secondary">None</Text>
+                      )}
+                    </Descriptions.Item>
+                  </>
+                )}
               </Descriptions>
+
+              {/* Open Graph Preview - Separate section */}
+              {list.web_publication_enabled && list.web_publication_settings && (
+                <Descriptions size="small" layout="vertical" column={1} style={{ marginTop: 8 }}>
+                  <Descriptions.Item label="Open Graph Preview">
+                    <div
+                      className="border border-gray-200 rounded-lg overflow-hidden bg-white flex"
+                      style={{ width: 350 }}
+                    >
+                      {/* OG Image - Square on the left */}
+                      {list.web_publication_settings.og_image ? (
+                        <div className="w-24 h-24 flex-shrink-0 bg-gray-100 overflow-hidden">
+                          <img
+                            src={list.web_publication_settings.og_image}
+                            alt={list.web_publication_settings.og_title || list.name}
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-24 h-24 flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                          <Globe size={24} className="text-blue-300" />
+                        </div>
+                      )}
+
+                      {/* OG Content - Text on the right */}
+                      <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
+                        {workspace?.settings?.custom_endpoint_url && (
+                          <div className="text-xs text-gray-500 mb-1 truncate">
+                            {workspace.settings.custom_endpoint_url.replace(/^https?:\/\//, '')}
+                          </div>
+                        )}
+                        <div className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">
+                          {list.web_publication_settings.og_title ||
+                            list.web_publication_settings.meta_title ||
+                            list.name}
+                        </div>
+                        <div className="text-xs text-gray-600 line-clamp-2">
+                          {list.web_publication_settings.og_description ||
+                            list.web_publication_settings.meta_description ||
+                            list.description ||
+                            'Subscribe to receive updates from this list.'}
+                        </div>
+                      </div>
+                    </div>
+                  </Descriptions.Item>
+                </Descriptions>
+              )}
             </Card>
           ))}
         </Space>
@@ -309,7 +457,11 @@ export function ListsPage() {
           </Title>
           <Paragraph type="secondary">Create your first list to get started</Paragraph>
           <div className="mt-4">
-            <CreateListDrawer workspaceId={workspaceId} buttonProps={{ size: 'large' }} />
+            <CreateListDrawer
+              workspaceId={workspaceId}
+              workspace={workspace}
+              buttonProps={{ size: 'large' }}
+            />
           </div>
         </div>
       )}

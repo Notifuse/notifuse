@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/asaskevich/govalidator"
@@ -12,22 +13,34 @@ import (
 //go:generate mockgen -destination mocks/mock_list_service.go -package mocks github.com/Notifuse/notifuse/internal/domain ListService
 //go:generate mockgen -destination mocks/mock_list_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain ListRepository
 
+// Reserved paths that cannot be used as list slugs
+var reservedListSlugs = map[string]bool{
+	"console":              true,
+	"notification-center":  true,
+	"api":                  true,
+	"preferences":          true,
+	"subscribe":            true,
+	"unsubscribe-oneclick": true,
+	"health":               true,
+	"config.js":            true,
+}
+
 // List represents a subscription list
 type List struct {
-	ID                     string                      `json:"id"`
-	Name                   string                      `json:"name"`
-	IsDoubleOptin          bool                        `json:"is_double_optin" db:"is_double_optin"`
-	IsPublic               bool                        `json:"is_public" db:"is_public"`
-	Description            string                      `json:"description,omitempty"`
-	Slug                   *string                     `json:"slug,omitempty"`                         // URL slug for web publications
-	WebPublicationEnabled  bool                        `json:"web_publication_enabled"`                // Enable web publications for this list
-	WebPublicationSettings *WebPublicationSettings     `json:"web_publication_settings,omitempty"`     // SEO settings for list page
-	DoubleOptInTemplate    *TemplateReference          `json:"double_optin_template,omitempty"`
-	WelcomeTemplate        *TemplateReference          `json:"welcome_template,omitempty"`
-	UnsubscribeTemplate    *TemplateReference          `json:"unsubscribe_template,omitempty"`
-	CreatedAt              time.Time                   `json:"created_at"`
-	UpdatedAt              time.Time                   `json:"updated_at"`
-	DeletedAt              *time.Time                  `json:"-" db:"deleted_at"`
+	ID                     string                  `json:"id"`
+	Name                   string                  `json:"name"`
+	IsDoubleOptin          bool                    `json:"is_double_optin" db:"is_double_optin"`
+	IsPublic               bool                    `json:"is_public" db:"is_public"`
+	Description            string                  `json:"description,omitempty"`
+	Slug                   *string                 `json:"slug,omitempty"`                     // URL slug for web publications
+	WebPublicationEnabled  bool                    `json:"web_publication_enabled"`            // Enable web publications for this list
+	WebPublicationSettings *WebPublicationSettings `json:"web_publication_settings,omitempty"` // SEO settings for list page
+	DoubleOptInTemplate    *TemplateReference      `json:"double_optin_template,omitempty"`
+	WelcomeTemplate        *TemplateReference      `json:"welcome_template,omitempty"`
+	UnsubscribeTemplate    *TemplateReference      `json:"unsubscribe_template,omitempty"`
+	CreatedAt              time.Time               `json:"created_at"`
+	UpdatedAt              time.Time               `json:"updated_at"`
+	DeletedAt              *time.Time              `json:"-" db:"deleted_at"`
 }
 
 // Validate performs validation on the list fields
@@ -122,12 +135,12 @@ func ScanList(scanner interface {
 		Slug:                   dbl.Slug,
 		WebPublicationEnabled:  dbl.WebPublicationEnabled,
 		WebPublicationSettings: dbl.WebPublicationSettings,
-		DoubleOptInTemplate: dbl.DoubleOptInTemplate,
-		WelcomeTemplate:     dbl.WelcomeTemplate,
-		UnsubscribeTemplate: dbl.UnsubscribeTemplate,
-		CreatedAt:           dbl.CreatedAt,
-		UpdatedAt:           dbl.UpdatedAt,
-		DeletedAt:           dbl.DeletedAt,
+		DoubleOptInTemplate:    dbl.DoubleOptInTemplate,
+		WelcomeTemplate:        dbl.WelcomeTemplate,
+		UnsubscribeTemplate:    dbl.UnsubscribeTemplate,
+		CreatedAt:              dbl.CreatedAt,
+		UpdatedAt:              dbl.UpdatedAt,
+		DeletedAt:              dbl.DeletedAt,
 	}
 
 	return l, nil
@@ -135,15 +148,17 @@ func ScanList(scanner interface {
 
 // Request/Response types
 type CreateListRequest struct {
-	WorkspaceID         string             `json:"workspace_id"`
-	ID                  string             `json:"id"`
-	Name                string             `json:"name"`
-	IsDoubleOptin       bool               `json:"is_double_optin"`
-	IsPublic            bool               `json:"is_public"`
-	Description         string             `json:"description,omitempty"`
-	DoubleOptInTemplate *TemplateReference `json:"double_optin_template,omitempty"`
-	WelcomeTemplate     *TemplateReference `json:"welcome_template,omitempty"`
-	UnsubscribeTemplate *TemplateReference `json:"unsubscribe_template,omitempty"`
+	WorkspaceID            string                  `json:"workspace_id"`
+	ID                     string                  `json:"id"`
+	Name                   string                  `json:"name"`
+	IsDoubleOptin          bool                    `json:"is_double_optin"`
+	IsPublic               bool                    `json:"is_public"`
+	Description            string                  `json:"description,omitempty"`
+	WebPublicationEnabled  bool                    `json:"web_publication_enabled"`
+	WebPublicationSettings *WebPublicationSettings `json:"web_publication_settings,omitempty"`
+	DoubleOptInTemplate    *TemplateReference      `json:"double_optin_template,omitempty"`
+	WelcomeTemplate        *TemplateReference      `json:"welcome_template,omitempty"`
+	UnsubscribeTemplate    *TemplateReference      `json:"unsubscribe_template,omitempty"`
 }
 
 func (r *CreateListRequest) Validate() (list *List, workspaceID string, err error) {
@@ -190,15 +205,49 @@ func (r *CreateListRequest) Validate() (list *List, workspaceID string, err erro
 		return nil, "", fmt.Errorf("invalid create list request: double opt-in template is required when is_double_optin is true")
 	}
 
+	// Validate web publication settings if enabled
+	var slug *string
+	if r.WebPublicationEnabled {
+		// Web publication requires the list to be public
+		if !r.IsPublic {
+			return nil, "", fmt.Errorf("invalid create list request: list must be public when web_publication_enabled is true")
+		}
+
+		if r.WebPublicationSettings == nil || r.WebPublicationSettings.Slug == "" {
+			return nil, "", fmt.Errorf("invalid create list request: slug is required when web_publication_enabled is true")
+		}
+
+		// Check if slug is reserved
+		if reservedListSlugs[r.WebPublicationSettings.Slug] {
+			return nil, "", fmt.Errorf("invalid create list request: slug '%s' is a reserved path and cannot be used", r.WebPublicationSettings.Slug)
+		}
+
+		// Validate slug format: lowercase letters, numbers, and hyphens only
+		slugPattern := regexp.MustCompile(`^[a-z0-9-]+$`)
+		if !slugPattern.MatchString(r.WebPublicationSettings.Slug) {
+			return nil, "", fmt.Errorf("invalid create list request: slug must contain only lowercase letters, numbers, and hyphens")
+		}
+
+		// Validate slug length
+		if len(r.WebPublicationSettings.Slug) > 100 {
+			return nil, "", fmt.Errorf("invalid create list request: slug must be less than 100 characters")
+		}
+
+		slug = &r.WebPublicationSettings.Slug
+	}
+
 	return &List{
-		ID:                  r.ID,
-		Name:                r.Name,
-		IsDoubleOptin:       r.IsDoubleOptin,
-		IsPublic:            r.IsPublic,
-		Description:         r.Description,
-		DoubleOptInTemplate: r.DoubleOptInTemplate,
-		WelcomeTemplate:     r.WelcomeTemplate,
-		UnsubscribeTemplate: r.UnsubscribeTemplate,
+		ID:                     r.ID,
+		Name:                   r.Name,
+		IsDoubleOptin:          r.IsDoubleOptin,
+		IsPublic:               r.IsPublic,
+		Description:            r.Description,
+		Slug:                   slug,
+		WebPublicationEnabled:  r.WebPublicationEnabled,
+		WebPublicationSettings: r.WebPublicationSettings,
+		DoubleOptInTemplate:    r.DoubleOptInTemplate,
+		WelcomeTemplate:        r.WelcomeTemplate,
+		UnsubscribeTemplate:    r.UnsubscribeTemplate,
 	}, r.WorkspaceID, nil
 }
 
@@ -246,15 +295,17 @@ func (r *GetListRequest) FromURLParams(queryParams url.Values) (err error) {
 }
 
 type UpdateListRequest struct {
-	WorkspaceID         string             `json:"workspace_id"`
-	ID                  string             `json:"id"`
-	Name                string             `json:"name"`
-	IsDoubleOptin       bool               `json:"is_double_optin"`
-	IsPublic            bool               `json:"is_public"`
-	Description         string             `json:"description,omitempty"`
-	DoubleOptInTemplate *TemplateReference `json:"double_optin_template,omitempty"`
-	WelcomeTemplate     *TemplateReference `json:"welcome_template,omitempty"`
-	UnsubscribeTemplate *TemplateReference `json:"unsubscribe_template,omitempty"`
+	WorkspaceID            string                  `json:"workspace_id"`
+	ID                     string                  `json:"id"`
+	Name                   string                  `json:"name"`
+	IsDoubleOptin          bool                    `json:"is_double_optin"`
+	IsPublic               bool                    `json:"is_public"`
+	Description            string                  `json:"description,omitempty"`
+	WebPublicationEnabled  bool                    `json:"web_publication_enabled"`
+	WebPublicationSettings *WebPublicationSettings `json:"web_publication_settings,omitempty"`
+	DoubleOptInTemplate    *TemplateReference      `json:"double_optin_template,omitempty"`
+	WelcomeTemplate        *TemplateReference      `json:"welcome_template,omitempty"`
+	UnsubscribeTemplate    *TemplateReference      `json:"unsubscribe_template,omitempty"`
 }
 
 func (r *UpdateListRequest) Validate() (list *List, workspaceID string, err error) {
@@ -301,15 +352,49 @@ func (r *UpdateListRequest) Validate() (list *List, workspaceID string, err erro
 		return nil, "", fmt.Errorf("invalid update list request: double opt-in template is required when is_double_optin is true")
 	}
 
+	// Validate web publication settings if enabled
+	var slug *string
+	if r.WebPublicationEnabled {
+		// Web publication requires the list to be public
+		if !r.IsPublic {
+			return nil, "", fmt.Errorf("invalid update list request: list must be public when web_publication_enabled is true")
+		}
+
+		if r.WebPublicationSettings == nil || r.WebPublicationSettings.Slug == "" {
+			return nil, "", fmt.Errorf("invalid update list request: slug is required when web_publication_enabled is true")
+		}
+
+		// Check if slug is reserved
+		if reservedListSlugs[r.WebPublicationSettings.Slug] {
+			return nil, "", fmt.Errorf("invalid update list request: slug '%s' is a reserved path and cannot be used", r.WebPublicationSettings.Slug)
+		}
+
+		// Validate slug format: lowercase letters, numbers, and hyphens only
+		slugPattern := regexp.MustCompile(`^[a-z0-9-]+$`)
+		if !slugPattern.MatchString(r.WebPublicationSettings.Slug) {
+			return nil, "", fmt.Errorf("invalid update list request: slug must contain only lowercase letters, numbers, and hyphens")
+		}
+
+		// Validate slug length
+		if len(r.WebPublicationSettings.Slug) > 100 {
+			return nil, "", fmt.Errorf("invalid update list request: slug must be less than 100 characters")
+		}
+
+		slug = &r.WebPublicationSettings.Slug
+	}
+
 	return &List{
-		ID:                  r.ID,
-		Name:                r.Name,
-		IsDoubleOptin:       r.IsDoubleOptin,
-		IsPublic:            r.IsPublic,
-		Description:         r.Description,
-		DoubleOptInTemplate: r.DoubleOptInTemplate,
-		WelcomeTemplate:     r.WelcomeTemplate,
-		UnsubscribeTemplate: r.UnsubscribeTemplate,
+		ID:                     r.ID,
+		Name:                   r.Name,
+		IsDoubleOptin:          r.IsDoubleOptin,
+		IsPublic:               r.IsPublic,
+		Description:            r.Description,
+		Slug:                   slug,
+		WebPublicationEnabled:  r.WebPublicationEnabled,
+		WebPublicationSettings: r.WebPublicationSettings,
+		DoubleOptInTemplate:    r.DoubleOptInTemplate,
+		WelcomeTemplate:        r.WelcomeTemplate,
+		UnsubscribeTemplate:    r.UnsubscribeTemplate,
 	}, r.WorkspaceID, nil
 }
 
