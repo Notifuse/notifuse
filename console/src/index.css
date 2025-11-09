@@ -41,6 +41,10 @@ h1 {
   transition: none !important;
 } */
 
+.ant-table-tbody>tr:hover>td, .tr-hover:hover>td {
+  border-bottom: 1px solid rgba(78, 108, 255, 0.4) !important;
+}
+
 .drawer-body-no-padding .ant-drawer-body {
   padding: 0;
 }

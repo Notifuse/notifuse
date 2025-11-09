@@ -30,6 +30,7 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ImportContactsToListButton } from '../components/lists/ImportContactsToListButton'
 import { ListStats } from '../components/lists/ListStats'
+import { OpenGraphPreview } from '../components/seo/OpenGraphPreview'
 
 const { Title, Paragraph, Text, Link } = Typography
 
@@ -405,45 +406,15 @@ export function ListsPage() {
               {list.web_publication_enabled && list.web_publication_settings && (
                 <Descriptions size="small" layout="vertical" column={1} style={{ marginTop: 8 }}>
                   <Descriptions.Item label="Open Graph Preview">
-                    <div
-                      className="border border-gray-200 rounded-lg overflow-hidden bg-white flex"
-                      style={{ width: 350 }}
-                    >
-                      {/* OG Image - Square on the left */}
-                      {list.web_publication_settings.og_image ? (
-                        <div className="w-24 h-24 flex-shrink-0 bg-gray-100 overflow-hidden">
-                          <img
-                            src={list.web_publication_settings.og_image}
-                            alt={list.web_publication_settings.og_title || list.name}
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      ) : (
-                        <div className="w-24 h-24 flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-                          <Globe size={24} className="text-blue-300" />
-                        </div>
-                      )}
-
-                      {/* OG Content - Text on the right */}
-                      <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
-                        {workspace?.settings?.custom_endpoint_url && (
-                          <div className="text-xs text-gray-500 mb-1 truncate">
-                            {workspace.settings.custom_endpoint_url.replace(/^https?:\/\//, '')}
-                          </div>
-                        )}
-                        <div className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">
-                          {list.web_publication_settings.og_title ||
-                            list.web_publication_settings.meta_title ||
-                            list.name}
-                        </div>
-                        <div className="text-xs text-gray-600 line-clamp-2">
-                          {list.web_publication_settings.og_description ||
-                            list.web_publication_settings.meta_description ||
-                            list.description ||
-                            'Subscribe to receive updates from this list.'}
-                        </div>
-                      </div>
-                    </div>
+                    <OpenGraphPreview
+                      webPublicationSettings={list.web_publication_settings}
+                      broadcastName={list.name}
+                      customEndpointUrl={workspace?.settings?.custom_endpoint_url}
+                      fallbackIcon={<Globe size={24} className="text-blue-300" />}
+                      defaultDescription={
+                        list.description || 'Subscribe to receive updates from this list.'
+                      }
+                    />
                   </Descriptions.Item>
                 </Descriptions>
               )}

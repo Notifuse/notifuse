@@ -7,7 +7,6 @@ import {
   Space,
   Tooltip,
   Button,
-  Divider,
   Modal,
   Input,
   App,
@@ -18,10 +17,11 @@ import {
   Alert,
   Popconfirm,
   Pagination,
-  Tag
+  Tag,
+  Table
 } from 'antd'
 import { useParams } from '@tanstack/react-router'
-import { broadcastApi, Broadcast, BroadcastVariation } from '../services/api/broadcast'
+import { broadcastApi, Broadcast } from '../services/api/broadcast'
 import { listsApi } from '../services/api/list'
 import { taskApi } from '../services/api/task'
 import { listSegments } from '../services/api/segment'
@@ -53,11 +53,16 @@ import { SendOrScheduleModal } from '../components/broadcasts/SendOrScheduleModa
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { BroadcastStats } from '../components/broadcasts/BroadcastStats'
-import { List, Workspace } from '../services/api/types'
+import { Integration, List, Sender } from '../services/api/types'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import { Template } from '../services/api/types'
+import { OpenGraphPreview } from '../components/seo/OpenGraphPreview'
 
 const { Title, Paragraph, Text } = Typography
+
+const Subtitle = ({ className, children }: { className?: string; children: React.ReactNode }) => {
+  return <div className={`text-xs font-medium mb-2 ${className}`}>{children}</div>
+}
 
 // Helper function to calculate remaining test time
 const getRemainingTestTime = (broadcast: Broadcast, testResults?: any) => {
@@ -135,259 +140,6 @@ const getStatusBadge = (broadcast: Broadcast, remainingTime?: string | null) => 
     default:
       return <Badge status="default" text={broadcast.status} />
   }
-}
-
-// Component for rendering a single A/B test variation card
-interface VariationCardProps {
-  variation: BroadcastVariation
-  workspace: Workspace
-  colSpan: number
-  index: number
-  broadcast: Broadcast
-  onSelectWinner?: (templateId: string) => void
-  testResults?: any
-  permissions?: any
-  onTestTemplate?: (template: Template) => void
-}
-
-const VariationCard: React.FC<VariationCardProps> = ({
-  variation,
-  workspace,
-  colSpan,
-  index,
-  broadcast,
-  onSelectWinner,
-  testResults,
-  permissions,
-  onTestTemplate
-}) => {
-  const emailProvider = workspace.integrations?.find(
-    (i) =>
-      i.id ===
-      (variation.template?.category === 'marketing'
-        ? workspace.settings?.marketing_email_provider_id
-        : workspace.settings?.transactional_email_provider_id)
-  )?.email_provider
-
-  const templateSender = emailProvider?.senders.find(
-    (s) => s.id === variation.template?.email?.sender_id
-  )
-
-  // Get test results for this variation
-  const variationResult = testResults?.variation_results?.[variation.template_id]
-  const isWinner = testResults?.winning_template === variation.template_id
-  const isRecommendedWinner = testResults?.recommended_winner === variation.template_id
-  const canSelectWinner =
-    broadcast.status === 'test_completed' && !broadcast.test_settings.auto_send_winner
-
-  return (
-    <Col span={colSpan} key={index}>
-      <Card
-        size="small"
-        title={
-          <Space>
-            {`Variation ${index + 1}: ${variation.template?.name || 'Untitled'}`}
-            {isWinner && <Badge status="success" text="Winner" />}
-            {isRecommendedWinner && !isWinner && <Badge status="processing" text="Recommended" />}
-          </Space>
-        }
-        type="inner"
-        extra={
-          <Space>
-            {variation.template ? (
-              <TemplatePreviewDrawer record={variation.template as any} workspace={workspace}>
-                <Button size="small" type="primary" ghost>
-                  Preview
-                </Button>
-              </TemplatePreviewDrawer>
-            ) : (
-              <Button size="small" type="primary" ghost disabled>
-                Preview
-              </Button>
-            )}
-            {variation.template && onTestTemplate && (
-              <Tooltip
-                title={
-                  !(permissions?.templates?.read && permissions?.contacts?.write)
-                    ? 'You need read template and write contact permissions to send test emails'
-                    : 'Send Test Email'
-                }
-              >
-                <Button
-                  size="small"
-                  type="text"
-                  icon={<FontAwesomeIcon icon={faPaperPlane} />}
-                  onClick={() => onTestTemplate(variation.template as Template)}
-                  disabled={!(permissions?.templates?.read && permissions?.contacts?.write)}
-                />
-              </Tooltip>
-            )}
-            {canSelectWinner && variation.template_id && onSelectWinner && (
-              <Tooltip
-                title={
-                  !permissions?.broadcasts?.write
-                    ? "You don't have write permission for broadcasts"
-                    : undefined
-                }
-              >
-                <Popconfirm
-                  title="Select Winner"
-                  description={`Are you sure you want to select "${variation.template?.name || 'this variation'}" as the winner? The broadcast will be sent to the remaining recipients.`}
-                  onConfirm={() => onSelectWinner(variation.template_id)}
-                  okText="Yes, Select Winner"
-                  cancelText="Cancel"
-                >
-                  <Button size="small" type="primary" disabled={!permissions?.broadcasts?.write}>
-                    Select Winner
-                  </Button>
-                </Popconfirm>
-              </Tooltip>
-            )}
-          </Space>
-        }
-      >
-        <Space direction="vertical" size="small">
-          <Space>
-            <Text strong>From:</Text>
-            {templateSender ? (
-              <>
-                {templateSender.name} &lt;{templateSender.email}&gt;
-              </>
-            ) : (
-              <Text>Default sender</Text>
-            )}
-          </Space>
-          <Space>
-            <Text strong>Subject:</Text>
-            {variation.template?.email.subject || 'N/A'}
-          </Space>
-          {variation.template?.email.subject_preview && (
-            <Space>
-              <Text strong>Subject Preview:</Text>
-              {variation.template?.email?.subject_preview}
-            </Space>
-          )}
-          {variation.template?.email?.reply_to && (
-            <Text>Reply-to: {variation.template?.email?.reply_to}</Text>
-          )}
-
-          {(variation.metrics || variationResult) && (
-            <>
-              <Divider style={{ margin: '8px 0' }} />
-              <div className="grid grid-cols-3 gap-2 mt-2">
-                <div>
-                  <div className="font-medium text-purple-500 flex items-center">
-                    <FontAwesomeIcon icon={faEye} className="mr-1" style={{ opacity: 0.7 }} /> Opens
-                  </div>
-                  <div>
-                    {variationResult ? (
-                      <Tooltip
-                        title={`${variationResult.opens} opens out of ${variationResult.recipients} recipients`}
-                      >
-                        <span className="cursor-help">
-                          {(variationResult.open_rate * 100).toFixed(1)}%
-                        </span>
-                      </Tooltip>
-                    ) : variation.metrics ? (
-                      <Tooltip
-                        title={`${variation.metrics.opens} opens out of ${variation.metrics.recipients} recipients`}
-                      >
-                        <span className="cursor-help">
-                          {(variation.metrics.open_rate * 100).toFixed(1)}%
-                        </span>
-                      </Tooltip>
-                    ) : (
-                      <Tooltip title="0 opens out of 0 recipients">
-                        <span className="cursor-help">0.0%</span>
-                      </Tooltip>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div className="font-medium text-cyan-500 flex items-center">
-                    <FontAwesomeIcon
-                      icon={faArrowPointer}
-                      className="mr-1"
-                      style={{ opacity: 0.7 }}
-                    />{' '}
-                    Clicks
-                  </div>
-                  <div>
-                    {variationResult ? (
-                      <Tooltip
-                        title={`${variationResult.clicks} clicks out of ${variationResult.recipients} recipients`}
-                      >
-                        <span className="cursor-help">
-                          {(variationResult.click_rate * 100).toFixed(1)}%
-                        </span>
-                      </Tooltip>
-                    ) : variation.metrics ? (
-                      <Tooltip
-                        title={`${variation.metrics.clicks} clicks out of ${variation.metrics.recipients} recipients`}
-                      >
-                        <span className="cursor-help">
-                          {(variation.metrics.click_rate * 100).toFixed(1)}%
-                        </span>
-                      </Tooltip>
-                    ) : (
-                      <Tooltip title="0 clicks out of 0 recipients">
-                        <span className="cursor-help">0.0%</span>
-                      </Tooltip>
-                    )}
-                  </div>
-                </div>
-                <div>
-                  <div className="font-medium text-green-500 flex items-center">
-                    <FontAwesomeIcon
-                      icon={faCircleCheck}
-                      className="mr-1"
-                      style={{ opacity: 0.7 }}
-                    />{' '}
-                    Delivered
-                  </div>
-                  <div>
-                    {variationResult ? (
-                      <Tooltip
-                        title={`${variationResult.delivered || 0} successfully delivered out of ${variationResult.recipients || 0} total recipients`}
-                      >
-                        <span className="cursor-help">
-                          {variationResult.recipients && variationResult.recipients > 0
-                            ? (
-                                (variationResult.delivered / variationResult.recipients) *
-                                100
-                              ).toFixed(1)
-                            : '0.0'}
-                          %
-                        </span>
-                      </Tooltip>
-                    ) : variation.metrics ? (
-                      <Tooltip
-                        title={`${variation.metrics.delivered || 0} successfully delivered out of ${variation.metrics.recipients || 0} total recipients`}
-                      >
-                        <span className="cursor-help">
-                          {variation.metrics.recipients && variation.metrics.recipients > 0
-                            ? (
-                                (variation.metrics.delivered / variation.metrics.recipients) *
-                                100
-                              ).toFixed(1)
-                            : '0.0'}
-                          %
-                        </span>
-                      </Tooltip>
-                    ) : (
-                      <Tooltip title="0 delivered out of 0 recipients">
-                        <span className="cursor-help">0.0%</span>
-                      </Tooltip>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </Space>
-      </Card>
-    </Col>
-  )
 }
 
 // Component for rendering a single broadcast card
@@ -777,7 +529,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
         <BroadcastStats workspaceId={workspaceId} broadcastId={broadcast.id} />
       </div>
 
-      <div className="bg-gray-50">
+      <div className={`bg-gradient-to-br from-gray-50 to-violet-50 border-t border-gray-200`}>
         <div className="text-center py-2">
           <Button type="link" onClick={() => setShowDetails(!showDetails)}>
             {showDetails ? (
@@ -796,41 +548,260 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
 
         {showDetails && (
           <div className="p-6">
-            <Row gutter={[24, 16]}>
-              {/* Left Column: Descriptions */}
-              <Col xs={24} lg={12} xl={10}>
-                <Descriptions bordered={false} size="small" column={1}>
-                  {broadcast.started_at && (
-                    <Descriptions.Item label="Started">
-                      {dayjs(broadcast.started_at).fromNow()}
-                    </Descriptions.Item>
-                  )}
+            <div className="flex items-center gap-2 mb-2">
+              <Subtitle className="!mb-0">Variations</Subtitle>
+            </div>
+            <div className="mb-6">
+              <Table
+                showHeader={false}
+                dataSource={broadcast.test_settings.variations.map((variation, index) => {
+                  const emailProvider = currentWorkspace?.integrations?.find(
+                    (i: Integration) =>
+                      i.id ===
+                      (variation.template?.category === 'marketing'
+                        ? currentWorkspace.settings?.marketing_email_provider_id
+                        : currentWorkspace.settings?.transactional_email_provider_id)
+                  )?.email_provider
 
-                  {broadcast.completed_at && (
-                    <Descriptions.Item label="Completed">
-                      {dayjs(broadcast.completed_at).fromNow()}
-                    </Descriptions.Item>
-                  )}
+                  const templateSender = emailProvider?.senders.find(
+                    (s: Sender) => s.id === variation.template?.email?.sender_id
+                  )
 
-                  {broadcast.paused_at && (
-                    <Descriptions.Item label="Paused">
-                      <Space direction="vertical" size="small">
-                        <div>{dayjs(broadcast.paused_at).fromNow()}</div>
-                        {broadcast.pause_reason && (
-                          <div className="text-orange-600 text-sm">
-                            <strong>Reason:</strong> {broadcast.pause_reason}
+                  const variationResult = testResults?.variation_results?.[variation.template_id]
+                  const isWinner = testResults?.winning_template === variation.template_id
+
+                  return {
+                    key: variation.template_id || index,
+                    index: index + 1,
+                    isWinner,
+                    templateName: variation.template?.name || 'Untitled',
+                    template: variation.template,
+                    sender: templateSender
+                      ? `${templateSender.name} <${templateSender.email}>`
+                      : 'Default sender',
+                    subject: variation.template?.email?.subject || 'N/A',
+                    subjectPreview: variation.template?.email?.subject_preview,
+                    replyTo: variation.template?.email?.reply_to || '-',
+                    metrics: variationResult || variation.metrics,
+                    variation,
+                    templateId: variation.template_id
+                  }
+                })}
+                columns={[
+                  {
+                    title: '#',
+                    dataIndex: 'index',
+                    key: 'index',
+                    render: (index, record) => (
+                      <Space>
+                        {'#' + index}
+                        {record.isWinner && <Badge status="success" />}
+                      </Space>
+                    )
+                  },
+                  {
+                    title: 'Template',
+                    key: 'templateName',
+                    render: (record) => <Tooltip title="Template">{record.templateName}</Tooltip>
+                  },
+                  {
+                    title: 'Subject',
+                    dataIndex: 'subject',
+                    key: 'subject',
+                    render: (subject, record) => (
+                      <div>
+                        <div>{subject}</div>
+                        {record.subjectPreview && (
+                          <div className="text-xs text-gray-500">{record.subjectPreview}</div>
+                        )}
+                      </div>
+                    )
+                  },
+                  {
+                    title: 'Info',
+                    key: 'sender',
+                    render: (record) => (
+                      <div>
+                        <div>
+                          <span className="font-medium text-gray-500">From:</span> {record.sender}
+                        </div>
+                        {record.replyTo && record.replyTo !== '-' && (
+                          <div>
+                            <span className="font-medium text-gray-500">Reply To:</span>{' '}
+                            {record.replyTo}
                           </div>
                         )}
-                      </Space>
-                    </Descriptions.Item>
-                  )}
+                      </div>
+                    )
+                  },
+                  ...(broadcast.status !== 'draft'
+                    ? [
+                        {
+                          title: 'Opens',
+                          key: 'opens',
+                          width: 80,
+                          render: (_: any, record: any) => {
+                            const metrics = record.metrics
+                            if (!metrics) {
+                              return (
+                                <Tooltip title="0 opens out of 0 recipients">
+                                  <>
+                                    <FontAwesomeIcon icon={faEye} style={{ opacity: 0.7 }} />
+                                    <span className="cursor-help ml-1">N/A</span>
+                                  </>
+                                </Tooltip>
+                              )
+                            }
+                            const openRate = metrics.open_rate || 0
+                            const opens = metrics.opens || 0
+                            const recipients = metrics.recipients || 0
+                            return (
+                              <Tooltip title={`${opens} opens out of ${recipients} recipients`}>
+                                <>
+                                  <FontAwesomeIcon icon={faEye} style={{ opacity: 0.7 }} />{' '}
+                                  <span className="cursor-help ml-1">
+                                    {(openRate * 100).toFixed(1)}%
+                                  </span>
+                                </>
+                              </Tooltip>
+                            )
+                          }
+                        },
+                        {
+                          title: 'Clicks',
+                          key: 'clicks',
+                          width: 80,
+                          render: (_: any, record: any) => {
+                            const metrics = record.metrics
+                            if (!metrics) {
+                              return (
+                                <Tooltip title="0 clicks out of 0 recipients">
+                                  <>
+                                    <FontAwesomeIcon
+                                      icon={faArrowPointer}
+                                      style={{ opacity: 0.7 }}
+                                    />{' '}
+                                    <span className="cursor-help ml-1">N/A</span>
+                                  </>
+                                </Tooltip>
+                              )
+                            }
+                            const clickRate = metrics.click_rate || 0
+                            const clicks = metrics.clicks || 0
+                            const recipients = metrics.recipients || 0
+                            return (
+                              <Tooltip title={`${clicks} clicks out of ${recipients} recipients`}>
+                                <>
+                                  <FontAwesomeIcon icon={faArrowPointer} style={{ opacity: 0.7 }} />{' '}
+                                  <span className="cursor-help ml-1">
+                                    {(clickRate * 100).toFixed(1)}%
+                                  </span>
+                                </>
+                              </Tooltip>
+                            )
+                          }
+                        }
+                      ]
+                    : []),
+                  {
+                    title: 'Actions',
+                    key: 'actions',
+                    width: 150,
+                    align: 'right',
+                    render: (_, record) => {
+                      const canSelectWinner =
+                        broadcast.status === 'test_completed' &&
+                        !broadcast.test_settings.auto_send_winner
+                      return (
+                        <Space size="small">
+                          {record.template && (
+                            <Tooltip
+                              title={
+                                !(permissions?.templates?.read && permissions?.contacts?.write)
+                                  ? 'You need read template and write contact permissions to send test emails'
+                                  : 'Send Test Email'
+                              }
+                            >
+                              <Button
+                                size="small"
+                                type="text"
+                                icon={
+                                  <FontAwesomeIcon icon={faPaperPlane} className="opacity-70" />
+                                }
+                                onClick={() => handleTestTemplate(record.template as Template)}
+                                disabled={
+                                  !(permissions?.templates?.read && permissions?.contacts?.write)
+                                }
+                              />
+                            </Tooltip>
+                          )}
+                          <Tooltip title="Preview Template">
+                            <>
+                              {record.template ? (
+                                <TemplatePreviewDrawer
+                                  record={record.template as any}
+                                  workspace={currentWorkspace}
+                                >
+                                  <Button
+                                    size="small"
+                                    type="text"
+                                    ghost
+                                    icon={<FontAwesomeIcon icon={faEye} className="opacity-70" />}
+                                  />
+                                </TemplatePreviewDrawer>
+                              ) : (
+                                <Button
+                                  size="small"
+                                  type="text"
+                                  ghost
+                                  icon={<FontAwesomeIcon icon={faEye} className="opacity-70" />}
+                                  disabled
+                                />
+                              )}
+                            </>
+                          </Tooltip>
+                          {canSelectWinner && record.templateId && (
+                            <Tooltip
+                              title={
+                                !permissions?.broadcasts?.write
+                                  ? "You don't have write permission for broadcasts"
+                                  : undefined
+                              }
+                            >
+                              <Popconfirm
+                                title="Select Winner"
+                                description={`Are you sure you want to select "${record.templateName}" as the winner? The broadcast will be sent to the remaining recipients.`}
+                                onConfirm={() => handleSelectWinner(record.templateId)}
+                                okText="Yes, Select Winner"
+                                cancelText="Cancel"
+                              >
+                                <Button
+                                  size="small"
+                                  type="primary"
+                                  disabled={!permissions?.broadcasts?.write}
+                                >
+                                  Select
+                                </Button>
+                              </Popconfirm>
+                            </Tooltip>
+                          )}
+                        </Space>
+                      )
+                    }
+                  }
+                ]}
+                size="small"
+                pagination={false}
+                scroll={{ x: 'max-content' }}
+                rowClassName={(record) => (record.isWinner ? 'bg-green-50' : '')}
+              />
+            </div>
 
-                  {broadcast.cancelled_at && (
-                    <Descriptions.Item label="Cancelled">
-                      {dayjs(broadcast.cancelled_at).fromNow()}
-                    </Descriptions.Item>
-                  )}
+            <Row gutter={32}>
+              <Col span={12}>
+                <Subtitle className="mb-4">Audience</Subtitle>
 
+                <Descriptions bordered={false} size="small" column={1}>
                   {/* Audience Information */}
                   {broadcast.audience.segments && broadcast.audience.segments.length > 0 && (
                     <Descriptions.Item label="Segments">
@@ -873,6 +844,27 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                       />
                     )}
                   </Descriptions.Item>
+                </Descriptions>
+
+                <Subtitle className="mt-8 mb-4">Email Settings</Subtitle>
+                <Descriptions bordered={false} size="small" column={1}>
+                  {/* enabled email channel */}
+                  {broadcast.channels.email && (
+                    <Descriptions.Item label="Channel">
+                      <Tag bordered={false} color="green">
+                        Enabled
+                      </Tag>
+                    </Descriptions.Item>
+                  )}
+
+                  {/* disabled email channel */}
+                  {!broadcast.channels.email && (
+                    <Descriptions.Item label="Channel">
+                      <Tag bordered={false} color="red">
+                        Disabled
+                      </Tag>
+                    </Descriptions.Item>
+                  )}
 
                   {broadcast.utm_parameters?.source && (
                     <Descriptions.Item label="UTM Source">
@@ -903,7 +895,101 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                       {broadcast.utm_parameters.content}
                     </Descriptions.Item>
                   )}
+                </Descriptions>
 
+                {broadcast.test_settings.enabled && (
+                  <>
+                    <Subtitle className="mt-8 mb-4">A/B Test</Subtitle>
+                    <Descriptions bordered={false} size="small" column={1}>
+                      <Descriptions.Item label="Sample Percentage">
+                        {broadcast.test_settings.sample_percentage}%
+                      </Descriptions.Item>
+
+                      {broadcast.test_settings.auto_send_winner &&
+                        broadcast.test_settings.auto_send_winner_metric &&
+                        broadcast.test_settings.test_duration_hours && (
+                          <Descriptions.Item label="Auto-send Winner">
+                            <div className="flex items-center">
+                              <FontAwesomeIcon
+                                icon={faCircleCheck}
+                                className="text-green-500 mr-2"
+                                size="sm"
+                                style={{ opacity: 0.7 }}
+                              />
+                              <span>
+                                After {broadcast.test_settings.test_duration_hours} hours based on
+                                highest{' '}
+                                {broadcast.test_settings.auto_send_winner_metric === 'open_rate'
+                                  ? 'opens'
+                                  : 'clicks'}
+                              </span>
+                            </div>
+                          </Descriptions.Item>
+                        )}
+
+                      {testResults && testResults.recommended_winner && (
+                        <Descriptions.Item label="Recommended Winner">
+                          <Space>
+                            <Badge status="processing" text="Recommended" />
+                            {Object.values(testResults.variation_results).find(
+                              (result) => result.template_id === testResults.recommended_winner
+                            )?.template_name || 'Unknown'}
+                          </Space>
+                        </Descriptions.Item>
+                      )}
+
+                      {testResults && testResults.winning_template && (
+                        <Descriptions.Item label="Selected Winner">
+                          <Space>
+                            <Badge status="success" text="Winner" />
+                            {Object.values(testResults.variation_results).find(
+                              (result) => result.template_id === testResults.winning_template
+                            )?.template_name || 'Unknown'}
+                          </Space>
+                        </Descriptions.Item>
+                      )}
+                    </Descriptions>
+                  </>
+                )}
+
+                {/* sending */}
+                <Descriptions bordered={false} size="small" column={1}>
+                  {broadcast.started_at && (
+                    <Descriptions.Item label="Started">
+                      {dayjs(broadcast.started_at).fromNow()}
+                    </Descriptions.Item>
+                  )}
+
+                  {broadcast.completed_at && (
+                    <Descriptions.Item label="Completed">
+                      {dayjs(broadcast.completed_at).fromNow()}
+                    </Descriptions.Item>
+                  )}
+
+                  {broadcast.paused_at && (
+                    <Descriptions.Item label="Paused">
+                      <Space direction="vertical" size="small">
+                        <div>{dayjs(broadcast.paused_at).fromNow()}</div>
+                        {broadcast.pause_reason && (
+                          <div className="text-orange-600 text-sm">
+                            <strong>Reason:</strong> {broadcast.pause_reason}
+                          </div>
+                        )}
+                      </Space>
+                    </Descriptions.Item>
+                  )}
+
+                  {broadcast.cancelled_at && (
+                    <Descriptions.Item label="Cancelled">
+                      {dayjs(broadcast.cancelled_at).fromNow()}
+                    </Descriptions.Item>
+                  )}
+                </Descriptions>
+              </Col>
+
+              <Col span={12}>
+                <Subtitle className="mb-4">Web Settings</Subtitle>
+                <Descriptions bordered={false} size="small" column={1}>
                   {/* Web Publication Settings */}
                   <Descriptions.Item label="Web Channel">
                     {broadcast.channels?.web ? (
@@ -978,175 +1064,39 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                         )}
                     </>
                   )}
-
-                  {/* Schedule Information */}
-                  {broadcast.schedule.is_scheduled &&
-                    broadcast.schedule.scheduled_date &&
-                    broadcast.schedule.scheduled_time && (
-                      <Descriptions.Item label="Scheduled">
-                        {dayjs(
-                          `${broadcast.schedule.scheduled_date} ${broadcast.schedule.scheduled_time}`
-                        ).format('lll')}
-                        {' in '}
-                        {broadcast.schedule.use_recipient_timezone
-                          ? 'recipients timezone'
-                          : broadcast.schedule.timezone}
-                      </Descriptions.Item>
-                    )}
-
-                  {/* A/B Test Settings */}
-                  {!broadcast.test_settings.enabled && (
-                    <Descriptions.Item label="Test Sample">
-                      <Badge status="warning" text="A/B Test Disabled" />
-                    </Descriptions.Item>
-                  )}
-                  {broadcast.test_settings.enabled && (
-                    <Descriptions.Item label="Test Sample">
-                      {broadcast.test_settings.sample_percentage}%
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.test_settings.auto_send_winner &&
-                    broadcast.test_settings.auto_send_winner_metric &&
-                    broadcast.test_settings.test_duration_hours && (
-                      <Descriptions.Item label="Auto-send Winner">
-                        <div className="flex items-center">
-                          <FontAwesomeIcon
-                            icon={faCircleCheck}
-                            className="text-green-500 mr-2"
-                            size="sm"
-                            style={{ opacity: 0.7 }}
-                          />
-                          <span>
-                            After {broadcast.test_settings.test_duration_hours} hours based on
-                            highest{' '}
-                            {broadcast.test_settings.auto_send_winner_metric === 'open_rate'
-                              ? 'opens'
-                              : 'clicks'}
-                          </span>
-                        </div>
-                      </Descriptions.Item>
-                    )}
-
-                  {/* Test Results Summary */}
-                  {testResults && testResults.test_started_at && (
-                    <Descriptions.Item label="Test Started">
-                      {dayjs(testResults.test_started_at).fromNow()}
-                    </Descriptions.Item>
-                  )}
-
-                  {testResults && testResults.test_completed_at && (
-                    <Descriptions.Item label="Test Completed">
-                      {dayjs(testResults.test_completed_at).fromNow()}
-                    </Descriptions.Item>
-                  )}
-
-                  {testResults && testResults.recommended_winner && (
-                    <Descriptions.Item label="Recommended Winner">
-                      <Space>
-                        <Badge status="processing" text="Recommended" />
-                        {Object.values(testResults.variation_results).find(
-                          (result) => result.template_id === testResults.recommended_winner
-                        )?.template_name || 'Unknown'}
-                      </Space>
-                    </Descriptions.Item>
-                  )}
-
-                  {testResults && testResults.winning_template && (
-                    <Descriptions.Item label="Selected Winner">
-                      <Space>
-                        <Badge status="success" text="Winner" />
-                        {Object.values(testResults.variation_results).find(
-                          (result) => result.template_id === testResults.winning_template
-                        )?.template_name || 'Unknown'}
-                      </Space>
-                    </Descriptions.Item>
-                  )}
                 </Descriptions>
 
                 {/* Open Graph Preview - Separate section */}
                 {broadcast.channels?.web && broadcast.web_publication_settings && (
-                  <Descriptions
-                    size="small"
-                    layout="vertical"
-                    column={1}
-                    style={{ marginTop: 16 }}
-                  >
+                  <Descriptions size="small" layout="vertical" column={1} style={{ marginTop: 8 }}>
                     <Descriptions.Item label="Open Graph Preview">
-                      <div
-                        className="border border-gray-200 rounded-lg overflow-hidden bg-white flex"
-                        style={{ width: 350 }}
-                      >
-                        {/* OG Image - Square on the left */}
-                        {broadcast.web_publication_settings.og_image ? (
-                          <div className="w-24 h-24 flex-shrink-0 bg-gray-100 overflow-hidden">
-                            <img
-                              src={broadcast.web_publication_settings.og_image}
-                              alt={
-                                broadcast.web_publication_settings.og_title || broadcast.name
-                              }
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        ) : (
-                          <div className="w-24 h-24 flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-                            <FontAwesomeIcon
-                              icon={faCircleCheck}
-                              className="text-blue-300"
-                              size="2x"
-                            />
-                          </div>
-                        )}
-
-                        {/* OG Content - Text on the right */}
-                        <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
-                          {currentWorkspace?.settings?.custom_endpoint_url && (
-                            <div className="text-xs text-gray-500 mb-1 truncate">
-                              {currentWorkspace.settings.custom_endpoint_url.replace(
-                                /^https?:\/\//,
-                                ''
-                              )}
-                            </div>
-                          )}
-                          <div className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">
-                            {broadcast.web_publication_settings.og_title ||
-                              broadcast.web_publication_settings.meta_title ||
-                              broadcast.name}
-                          </div>
-                          <div className="text-xs text-gray-600 line-clamp-2">
-                            {broadcast.web_publication_settings.og_description ||
-                              broadcast.web_publication_settings.meta_description ||
-                              `Read the latest post from this broadcast.`}
-                          </div>
-                        </div>
-                      </div>
+                      <OpenGraphPreview
+                        webPublicationSettings={broadcast.web_publication_settings}
+                        broadcastName={broadcast.name}
+                        customEndpointUrl={currentWorkspace?.settings?.custom_endpoint_url}
+                      />
                     </Descriptions.Item>
                   </Descriptions>
                 )}
               </Col>
-
-              {/* Right Column: Templates */}
-              <Col xs={24} lg={12} xl={14}>
-                <Row gutter={[16, 16]}>
-                  {broadcast.test_settings.variations.map((variation, index) => {
-                    return (
-                      <VariationCard
-                        key={index}
-                        variation={variation}
-                        workspace={currentWorkspace}
-                        colSpan={24}
-                        index={index}
-                        broadcast={broadcast}
-                        onSelectWinner={handleSelectWinner}
-                        testResults={testResults}
-                        permissions={permissions}
-                        onTestTemplate={handleTestTemplate}
-                      />
-                    )
-                  })}
-                </Row>
-              </Col>
             </Row>
+
+            <Descriptions bordered={false} size="small" column={1}>
+              {/* Schedule Information */}
+              {broadcast.schedule.is_scheduled &&
+                broadcast.schedule.scheduled_date &&
+                broadcast.schedule.scheduled_time && (
+                  <Descriptions.Item label="Scheduled">
+                    {dayjs(
+                      `${broadcast.schedule.scheduled_date} ${broadcast.schedule.scheduled_time}`
+                    ).format('lll')}
+                    {' in '}
+                    {broadcast.schedule.use_recipient_timezone
+                      ? 'recipients timezone'
+                      : broadcast.schedule.timezone}
+                  </Descriptions.Item>
+                )}
+            </Descriptions>
           </div>
         )}
       </div>

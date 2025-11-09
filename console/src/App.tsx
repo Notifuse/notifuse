@@ -44,7 +44,8 @@ const theme: ThemeConfig = {
       headerBg: 'transparent',
       fontSize: 12,
       colorTextHeading: 'rgb(51 65 85)',
-      colorBgContainer: '#F9F9F9'
+      colorBgContainer: 'transparent',
+      rowHoverBg: 'transparent'
     },
     Drawer: {
       colorBgElevated: '#F9F9F9'
