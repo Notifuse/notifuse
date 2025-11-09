@@ -80,7 +80,7 @@ func createMockBroadcast(broadcastID string, variations []string) *domain.Broadc
 	return &domain.Broadcast{
 		ID: broadcastID,
 		Audience: domain.AudienceSettings{
-			Lists:    []string{"list-1", "list-2"},
+			List:     "list-1",
 			Segments: []string{"segment-1"},
 		},
 		TestSettings: domain.BroadcastTestSettings{

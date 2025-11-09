@@ -744,9 +744,9 @@ func WithMessageBounced(bounced bool) MessageHistoryOption {
 	}
 }
 
-func WithMessageListIDs(listIDs []string) MessageHistoryOption {
+func WithMessageListID(listID string) MessageHistoryOption {
 	return func(m *domain.MessageHistory) {
-		m.ListIDs = listIDs
+		m.ListID = listID
 	}
 }
 
@@ -850,7 +850,6 @@ func createDefaultMJMLBlock() notifuse_mjml.EmailBlock {
 func createDefaultAudience() domain.AudienceSettings {
 	return domain.AudienceSettings{
 		ExcludeUnsubscribed: true,
-		SkipDuplicateEmails: true,
 	}
 }
 

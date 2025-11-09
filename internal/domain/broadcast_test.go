@@ -36,9 +36,8 @@ func createValidBroadcast() domain.Broadcast {
 		Name:        "Test Newsletter",
 		Status:      domain.BroadcastStatusDraft,
 		Audience: domain.AudienceSettings{
-			Lists:               []string{"list123"},
+			List:                "list123",
 			ExcludeUnsubscribed: true,
-			SkipDuplicateEmails: true,
 		},
 		Schedule: domain.ScheduleSettings{
 			IsScheduled: false,
@@ -160,18 +159,18 @@ func TestBroadcast_Validate(t *testing.T) {
 			name: "missing audience selection",
 			broadcast: func() domain.Broadcast {
 				b := createValidBroadcast()
-				b.Audience.Lists = []string{}
+				b.Audience.List = ""
 				b.Audience.Segments = []string{}
 				return b
 			}(),
 			wantErr: true,
-			errMsg:  "at least one list must be specified",
+			errMsg:  "list is required",
 		},
 		{
-			name: "both lists and segments specified (valid - segments filter lists)",
+			name: "list and segments specified (valid - segments filter list)",
 			broadcast: func() domain.Broadcast {
 				b := createValidBroadcast()
-				b.Audience.Lists = []string{"list1"}
+				b.Audience.List = "list1"
 				b.Audience.Segments = []string{"segment1"}
 				return b
 			}(),
@@ -345,10 +344,10 @@ func TestCreateBroadcastRequest_Validate(t *testing.T) {
 			request: domain.CreateBroadcastRequest{
 				WorkspaceID: "workspace123",
 				Name:        "Test Newsletter",
-				Audience: domain.AudienceSettings{
-					Lists:               []string{"list123"},
-					ExcludeUnsubscribed: true,
-				},
+			Audience: domain.AudienceSettings{
+				List:                "list123",
+				ExcludeUnsubscribed: true,
+			},
 				Schedule: domain.ScheduleSettings{
 					IsScheduled: false,
 				},
@@ -362,9 +361,9 @@ func TestCreateBroadcastRequest_Validate(t *testing.T) {
 			name: "missing workspace ID",
 			request: domain.CreateBroadcastRequest{
 				Name: "Test Newsletter",
-				Audience: domain.AudienceSettings{
-					Lists: []string{"list123"},
-				},
+			Audience: domain.AudienceSettings{
+				List: "list123",
+			},
 			},
 			wantErr: true,
 			errMsg:  "workspace_id is required",
@@ -373,9 +372,9 @@ func TestCreateBroadcastRequest_Validate(t *testing.T) {
 			name: "missing name",
 			request: domain.CreateBroadcastRequest{
 				WorkspaceID: "workspace123",
-				Audience: domain.AudienceSettings{
-					Lists: []string{"list123"},
-				},
+			Audience: domain.AudienceSettings{
+				List: "list123",
+			},
 			},
 			wantErr: true,
 			errMsg:  "name is required",
@@ -1207,10 +1206,9 @@ func TestVariationMetrics_ValueScan(t *testing.T) {
 func TestAudienceSettings_ValueScan(t *testing.T) {
 	// Test serialization
 	original := domain.AudienceSettings{
-		Lists:               []string{"list1", "list2"},
+		List:                "list1",
 		Segments:            []string{}, // Empty slice
 		ExcludeUnsubscribed: true,
-		SkipDuplicateEmails: true,
 	}
 
 	// Test Value method
@@ -1224,13 +1222,12 @@ func TestAudienceSettings_ValueScan(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify the scanned value matches the original
-	assert.Equal(t, original.Lists, scanned.Lists)
+	assert.Equal(t, original.List, scanned.List)
 	// When an empty slice is serialized to JSON and back, it may become nil
 	// so we should compare lengths instead of direct equality
 	assert.Len(t, original.Segments, 0)
 	assert.Len(t, scanned.Segments, 0)
 	assert.Equal(t, original.ExcludeUnsubscribed, scanned.ExcludeUnsubscribed)
-	assert.Equal(t, original.SkipDuplicateEmails, scanned.SkipDuplicateEmails)
 
 	// Test scanning nil value
 	var nilTarget domain.AudienceSettings
@@ -1828,9 +1825,9 @@ func TestCreateBroadcastRequest_Validate_Additional(t *testing.T) {
 	scheduledRequest := domain.CreateBroadcastRequest{
 		WorkspaceID: "workspace123",
 		Name:        "Test Scheduled Newsletter",
-		Audience: domain.AudienceSettings{
-			Lists: []string{"list123"},
-		},
+			Audience: domain.AudienceSettings{
+				List: "list123",
+			},
 		Schedule: domain.ScheduleSettings{
 			IsScheduled:   true,
 			ScheduledDate: "2023-12-31",
@@ -1841,6 +1838,48 @@ func TestCreateBroadcastRequest_Validate_Additional(t *testing.T) {
 	broadcast, err := scheduledRequest.Validate()
 	require.NoError(t, err)
 	assert.Equal(t, domain.BroadcastStatusScheduled, broadcast.Status)
+}
+
+// Test that Channels and WebPublicationSettings are properly persisted
+func TestCreateBroadcastRequest_Validate_ChannelsAndWebSettings(t *testing.T) {
+	slug := "test-post"
+	request := domain.CreateBroadcastRequest{
+		WorkspaceID: "workspace123",
+		Name:        "Test Web Broadcast",
+		Audience: domain.AudienceSettings{
+			List:                "list123",
+			ExcludeUnsubscribed: true,
+		},
+		Schedule: domain.ScheduleSettings{
+			IsScheduled: false,
+		},
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: false,
+		},
+		Channels: domain.BroadcastChannels{
+			Email: true,
+			Web:   true,
+		},
+		WebPublicationSettings: &domain.WebPublicationSettings{
+			Slug:            slug,
+			MetaTitle:       "Test Post",
+			MetaDescription: "This is a test post",
+		},
+	}
+
+	broadcast, err := request.Validate()
+	require.NoError(t, err)
+	assert.NotNil(t, broadcast)
+
+	// Verify channels are persisted
+	assert.True(t, broadcast.Channels.Email, "Email channel should be enabled")
+	assert.True(t, broadcast.Channels.Web, "Web channel should be enabled")
+
+	// Verify web publication settings are persisted
+	require.NotNil(t, broadcast.WebPublicationSettings, "WebPublicationSettings should not be nil")
+	assert.Equal(t, slug, broadcast.WebPublicationSettings.Slug)
+	assert.Equal(t, "Test Post", broadcast.WebPublicationSettings.MetaTitle)
+	assert.Equal(t, "This is a test post", broadcast.WebPublicationSettings.MetaDescription)
 }
 
 // Additional test cases for UpdateBroadcastRequest.Validate
@@ -1861,7 +1900,47 @@ func TestUpdateBroadcastRequest_Validate_Additional(t *testing.T) {
 
 	_, err := invalidAudienceRequest.Validate(&existingBroadcast)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "at least one list must be specified")
+	assert.Contains(t, err.Error(), "list is required")
+}
+
+// Test that Channels and WebPublicationSettings are properly persisted on update
+func TestUpdateBroadcastRequest_Validate_ChannelsAndWebSettings(t *testing.T) {
+	existingBroadcast := createValidBroadcast()
+
+	slug := "updated-post"
+	updateRequest := domain.UpdateBroadcastRequest{
+		WorkspaceID:  existingBroadcast.WorkspaceID,
+		ID:           existingBroadcast.ID,
+		Name:         "Updated Web Broadcast",
+		Audience:     existingBroadcast.Audience,
+		Schedule:     existingBroadcast.Schedule,
+		TestSettings: existingBroadcast.TestSettings,
+		Channels: domain.BroadcastChannels{
+			Email: true,
+			Web:   true,
+		},
+		WebPublicationSettings: &domain.WebPublicationSettings{
+			Slug:            slug,
+			MetaTitle:       "Updated Test Post",
+			MetaDescription: "This is an updated test post",
+			OGTitle:         "OG Updated Post",
+		},
+	}
+
+	broadcast, err := updateRequest.Validate(&existingBroadcast)
+	require.NoError(t, err)
+	assert.NotNil(t, broadcast)
+
+	// Verify channels are persisted
+	assert.True(t, broadcast.Channels.Email, "Email channel should be enabled")
+	assert.True(t, broadcast.Channels.Web, "Web channel should be enabled")
+
+	// Verify web publication settings are persisted
+	require.NotNil(t, broadcast.WebPublicationSettings, "WebPublicationSettings should not be nil")
+	assert.Equal(t, slug, broadcast.WebPublicationSettings.Slug)
+	assert.Equal(t, "Updated Test Post", broadcast.WebPublicationSettings.MetaTitle)
+	assert.Equal(t, "This is an updated test post", broadcast.WebPublicationSettings.MetaDescription)
+	assert.Equal(t, "OG Updated Post", broadcast.WebPublicationSettings.OGTitle)
 }
 
 // Additional test for ParseBoolParam

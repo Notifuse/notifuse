@@ -126,7 +126,7 @@ export function ContactColumnsSelector({
       }}
     >
       <Tooltip title="Select columns" placement="top">
-        <Button size="small" icon={<Columns2 size={16} />} />
+        <Button size="small" type="text" icon={<Columns2 size={16} />} className="cursor-pointer" />
       </Tooltip>
     </Popover>
   )

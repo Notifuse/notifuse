@@ -87,9 +87,11 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			updated_at, 
 			started_at, 
 			completed_at, 
-			cancelled_at
+			cancelled_at,
+			paused_at,
+			pause_reason
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
 		)
 	`
 
@@ -114,6 +116,8 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.StartedAt,
 		broadcast.CompletedAt,
 		broadcast.CancelledAt,
+		broadcast.PausedAt,
+		broadcast.PauseReason,
 	)
 
 	if err != nil {
@@ -152,7 +156,9 @@ func (r *broadcastRepository) GetBroadcast(ctx context.Context, workspaceID, id 
 			updated_at, 
 			started_at, 
 			completed_at, 
-			cancelled_at
+			cancelled_at,
+			paused_at,
+			pause_reason
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
 	`
@@ -193,7 +199,9 @@ func (r *broadcastRepository) GetBroadcastTx(ctx context.Context, tx *sql.Tx, wo
 			updated_at, 
 			started_at, 
 			completed_at, 
-			cancelled_at
+			cancelled_at,
+			paused_at,
+			pause_reason
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
 	`
@@ -241,7 +249,9 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			updated_at = $16,
 			started_at = $17,
 			completed_at = $18,
-			cancelled_at = $19
+			cancelled_at = $19,
+			paused_at = $20,
+			pause_reason = $21
 		WHERE id = $1 AND workspace_id = $2
 			AND status != 'cancelled'
 			AND status != 'sent'
@@ -267,6 +277,8 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.StartedAt,
 		broadcast.CompletedAt,
 		broadcast.CancelledAt,
+		broadcast.PausedAt,
+		broadcast.PauseReason,
 	)
 
 	if err != nil {
@@ -330,7 +342,8 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				utm_parameters, 
 				metadata, 
 				channels,
-				web_settings,
+				web_publication_settings,
+				web_published_at,
 				winning_template, 
 				test_sent_at, 
 				winner_sent_at, 
@@ -338,11 +351,13 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				updated_at, 
 				started_at, 
 				completed_at, 
-				cancelled_at
-			FROM broadcasts
-			WHERE workspace_id = $1 AND status = $2
-			ORDER BY created_at DESC
-			LIMIT $3 OFFSET $4
+			cancelled_at,
+			paused_at,
+			pause_reason
+		FROM broadcasts
+		WHERE workspace_id = $1 AND status = $2
+		ORDER BY created_at DESC
+		LIMIT $3 OFFSET $4
 		`
 		dataArgs = []interface{}{params.WorkspaceID, params.Status, params.Limit, params.Offset}
 	} else {
@@ -358,7 +373,8 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				utm_parameters, 
 				metadata, 
 				channels,
-				web_settings,
+				web_publication_settings,
+				web_published_at,
 				winning_template, 
 				test_sent_at, 
 				winner_sent_at, 
@@ -366,11 +382,13 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				updated_at, 
 				started_at, 
 				completed_at, 
-				cancelled_at
-			FROM broadcasts
-			WHERE workspace_id = $1
-			ORDER BY created_at DESC
-			LIMIT $2 OFFSET $3
+			cancelled_at,
+			paused_at,
+			pause_reason
+		FROM broadcasts
+		WHERE workspace_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
 		`
 		dataArgs = []interface{}{params.WorkspaceID, params.Limit, params.Offset}
 	}
@@ -487,6 +505,8 @@ func scanBroadcast(scanner interface {
 		&broadcast.StartedAt,
 		&broadcast.CompletedAt,
 		&broadcast.CancelledAt,
+		&broadcast.PausedAt,
+		&broadcast.PauseReason,
 	)
 
 	if err != nil {
@@ -525,9 +545,11 @@ func (r *broadcastRepository) GetBySlug(ctx context.Context, workspaceID, slug s
 			updated_at, 
 			started_at, 
 			completed_at, 
-			cancelled_at
+			cancelled_at,
+			paused_at,
+			pause_reason
 		FROM broadcasts
-		WHERE workspace_id = $1 AND web_settings->>'slug' = $2
+		WHERE workspace_id = $1 AND web_publication_settings->>'slug' = $2
 	`
 
 	row := workspaceDB.QueryRowContext(ctx, query, workspaceID, slug)
@@ -589,7 +611,9 @@ func (r *broadcastRepository) GetPublishedWebBroadcasts(ctx context.Context, wor
 			updated_at, 
 			started_at, 
 			completed_at, 
-			cancelled_at
+			cancelled_at,
+			paused_at,
+			pause_reason
 		FROM broadcasts
 		WHERE workspace_id = $1
 		  AND channels->>'web' = 'true'
@@ -635,8 +659,8 @@ func (r *broadcastRepository) HasWebPublications(ctx context.Context, workspaceI
 			FROM broadcasts
 			WHERE workspace_id = $1
 			  AND channels->>'web' = 'true'
-			  AND web_settings->>'published_at' IS NOT NULL
-			  AND (web_settings->>'published_at')::timestamp <= NOW()
+			  AND web_published_at IS NOT NULL
+			  AND web_published_at <= NOW()
 		)
 	`
 
@@ -703,7 +727,8 @@ func (r *broadcastRepository) GetByListAndSlug(ctx context.Context, workspaceID,
 			id, workspace_id, name, status, audience, schedule, test_settings,
 			utm_parameters, metadata, channels, web_publication_settings, web_published_at,
 			winning_template, test_sent_at, winner_sent_at,
-			created_at, updated_at, started_at, completed_at, cancelled_at
+			created_at, updated_at, started_at, completed_at, cancelled_at,
+			paused_at, pause_reason
 		FROM broadcasts
 		WHERE workspace_id = $1
 		  AND audience->'lists' @> $2::jsonb
@@ -757,7 +782,8 @@ func (r *broadcastRepository) GetPublishedWebBroadcastsByList(ctx context.Contex
 			id, workspace_id, name, status, audience, schedule, test_settings,
 			utm_parameters, metadata, channels, web_publication_settings, web_published_at,
 			winning_template, test_sent_at, winner_sent_at,
-			created_at, updated_at, started_at, completed_at, cancelled_at
+			created_at, updated_at, started_at, completed_at, cancelled_at,
+			paused_at, pause_reason
 		FROM broadcasts
 		WHERE workspace_id = $1
 		  AND audience->'lists' @> $2::jsonb

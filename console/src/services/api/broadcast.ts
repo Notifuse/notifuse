@@ -68,10 +68,9 @@ export interface BroadcastTestSettings {
 }
 
 export interface AudienceSettings {
-  lists?: string[]
+  list?: string
   segments?: string[]
   exclude_unsubscribed: boolean
-  skip_duplicate_emails: boolean
 }
 
 export interface ScheduleSettings {

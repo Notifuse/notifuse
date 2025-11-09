@@ -30,7 +30,7 @@ const DEFAULT_VISIBLE_COLUMNS = {
   contact_email: true,
   template_id: true,
   broadcast_id: true,
-  list_ids: true,
+  list_id: true,
   events: true,
   error: false,
   created_at: true

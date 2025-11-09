@@ -22,9 +22,9 @@ const theme: ThemeConfig = {
   components: {
     Layout: {
       // bodyBg: 'rgb(243, 246, 252)'
-      bodyBg: '#ffffff',
-      lightSiderBg: '#fdfdfd',
-      siderBg: '#fdfdfd'
+      bodyBg: '#F9F9F9',
+      lightSiderBg: '#F9F9F9',
+      siderBg: '#F9F9F9'
     },
     Button: {
       // primaryColor: '#212121',
@@ -37,12 +37,20 @@ const theme: ThemeConfig = {
       borderRadiusLG: 4,
       borderRadiusSM: 4,
       borderRadiusXS: 4,
-      colorBorderSecondary: 'var(--color-gray-200)'
+      colorBorderSecondary: 'var(--color-gray-200)',
+      colorBgContainer: '#F9F9F9'
     },
     Table: {
       headerBg: 'transparent',
       fontSize: 12,
-      colorTextHeading: 'rgb(51 65 85)'
+      colorTextHeading: 'rgb(51 65 85)',
+      colorBgContainer: '#F9F9F9'
+    },
+    Drawer: {
+      colorBgElevated: '#F9F9F9'
+    },
+    Timeline: {
+      dotBg: '#F9F9F9'
     }
   }
 }

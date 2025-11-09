@@ -9,7 +9,7 @@ import (
 )
 
 // V17Migration adds web publication support with mailing list structure
-// Broadcasts: channels, web_publication_settings JSONB, web_published_at column
+// Broadcasts: channels, web_publication_settings JSONB, web_published_at, pause_reason
 // Lists: slug, web_publication_enabled, web_publication_settings
 type V17Migration struct{}
 
@@ -46,7 +46,7 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		return fmt.Errorf("failed to add channels column to broadcasts: %w", err)
 	}
 
-	// Add web_publication_settings column (renamed from web_settings)
+	// Add web_publication_settings column
 	_, err = db.ExecContext(ctx, `
 		ALTER TABLE broadcasts
 		ADD COLUMN IF NOT EXISTS web_publication_settings JSONB
@@ -62,6 +62,15 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to add web_published_at column to broadcasts: %w", err)
+	}
+
+	// Add pause_reason column
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE broadcasts
+		ADD COLUMN IF NOT EXISTS pause_reason TEXT
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add pause_reason column to broadcasts: %w", err)
 	}
 
 	// Create index for querying published web broadcasts
@@ -82,6 +91,51 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to update existing broadcasts with default channels: %w", err)
+	}
+
+	// Migrate audience structure: convert lists array to single list, remove skip_duplicate_emails
+	_, err = db.ExecContext(ctx, `
+		UPDATE broadcasts
+		SET audience = (
+			audience 
+			- 'lists' 
+			- 'skip_duplicate_emails'
+			|| jsonb_build_object('list', COALESCE(audience->'lists'->0, 'null'::jsonb))
+		)
+		WHERE audience ? 'lists'
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to migrate audience structure: %w", err)
+	}
+
+	// ===== MESSAGE_HISTORY TABLE =====
+
+	// Add list_id column
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE message_history
+		ADD COLUMN IF NOT EXISTS list_id VARCHAR(32)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add list_id column to message_history: %w", err)
+	}
+
+	// Migrate list_ids array to list_id (keep first list)
+	_, err = db.ExecContext(ctx, `
+		UPDATE message_history
+		SET list_id = list_ids[1]
+		WHERE list_ids IS NOT NULL AND array_length(list_ids, 1) > 0
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to migrate list_ids to list_id: %w", err)
+	}
+
+	// Drop list_ids column
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE message_history
+		DROP COLUMN IF EXISTS list_ids
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to drop list_ids column from message_history: %w", err)
 	}
 
 	// ===== LISTS TABLE =====

@@ -103,9 +103,8 @@ func testCompleteABTestingFlow(t *testing.T, client *testutil.APIClient, factory
 			"workspace_id": workspaceID,
 			"name":         "E2E A/B Test Broadcast",
 			"audience": map[string]interface{}{
-				"lists":                 []string{list.ID},
-				"exclude_unsubscribed":  true,
-				"skip_duplicate_emails": true,
+				"list":                 list.ID,
+				"exclude_unsubscribed": true,
 			},
 			"schedule": map[string]interface{}{
 				"is_scheduled": false,
@@ -244,9 +243,8 @@ func testRaceConditionPrevention(t *testing.T, client *testutil.APIClient, facto
 			"workspace_id": workspaceID,
 			"name":         "Race Condition Test Broadcast",
 			"audience": map[string]interface{}{
-				"lists":                 []string{list.ID},
-				"exclude_unsubscribed":  true,
-				"skip_duplicate_emails": true,
+				"list":                 list.ID,
+				"exclude_unsubscribed": true,
 			},
 			"schedule": map[string]interface{}{
 				"is_scheduled": false,
@@ -383,9 +381,8 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 			"workspace_id": workspaceID,
 			"name":         "Manual Winner Selection Test",
 			"audience": map[string]interface{}{
-				"lists":                 []string{list.ID},
-				"exclude_unsubscribed":  true,
-				"skip_duplicate_emails": true,
+				"list":                 list.ID,
+				"exclude_unsubscribed": true,
 			},
 			"schedule": map[string]interface{}{
 				"is_scheduled": false,
@@ -517,9 +514,8 @@ func testAutoWinnerSelectionFlow(t *testing.T, client *testutil.APIClient, facto
 			"workspace_id": workspaceID,
 			"name":         "Auto Winner Selection Test",
 			"audience": map[string]interface{}{
-				"lists":                 []string{list.ID},
-				"exclude_unsubscribed":  true,
-				"skip_duplicate_emails": true,
+				"list":                 list.ID,
+				"exclude_unsubscribed": true,
 			},
 			"schedule": map[string]interface{}{
 				"is_scheduled": false,
@@ -547,7 +543,7 @@ func testAutoWinnerSelectionFlow(t *testing.T, client *testutil.APIClient, facto
 		resp, err := client.CreateBroadcast(broadcast)
 		require.NoError(t, err)
 		defer resp.Body.Close()
-		
+
 		if resp.StatusCode != http.StatusCreated {
 			body, _ := client.ReadBody(resp)
 			t.Fatalf("Failed to create broadcast: status %d, body: %s", resp.StatusCode, body)
@@ -596,14 +592,14 @@ func testAutoWinnerSelectionFlow(t *testing.T, client *testutil.APIClient, facto
 		require.NoError(t, err)
 
 		currentBroadcastData := getBroadcastResult["broadcast"].(map[string]interface{})
-		
+
 		// Verify auto_send_winner is enabled
 		if testSettings, ok := currentBroadcastData["test_settings"].(map[string]interface{}); ok {
 			autoSendWinner, _ := testSettings["auto_send_winner"].(bool)
 			assert.True(t, autoSendWinner, "Auto send winner should be enabled")
 			t.Logf("✓ Broadcast configured for auto winner selection after %v hour(s)", testSettings["test_duration_hours"])
 		}
-		
+
 		// In production, auto winner selection would happen after test_duration_hours
 		// For testing purposes, we verify the configuration is correct
 		t.Logf("✓ Auto winner selection test completed - broadcast waiting for test duration to expire")

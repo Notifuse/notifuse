@@ -210,7 +210,7 @@ func (o *BroadcastOrchestrator) GetTotalRecipientCount(ctx context.Context, work
 		"broadcast_id":      broadcastID,
 		"workspace_id":      workspaceID,
 		"recipient_count":   count,
-		"audience_lists":    len(broadcast.Audience.Lists),
+		"audience_list":     broadcast.Audience.List,
 		"audience_segments": len(broadcast.Audience.Segments),
 	}).Info("Got recipient count for broadcast")
 	// codecov:ignore:end

@@ -48,7 +48,7 @@ export function SEOSettingsForm({
               <Input.TextArea
                 placeholder={descriptionPlaceholder}
                 maxLength={160}
-                rows={2}
+                rows={1}
                 showCount
               />
             </Form.Item>
@@ -90,7 +90,7 @@ export function SEOSettingsForm({
             <Form.Item name={[...namePrefix, 'og_description']} label="Open Graph Description">
               <Input.TextArea
                 maxLength={160}
-                rows={2}
+                rows={1}
                 showCount
                 placeholder="Defaults to meta description"
               />

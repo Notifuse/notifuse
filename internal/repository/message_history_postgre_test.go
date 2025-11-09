@@ -28,7 +28,6 @@ const testSecretKey = "test-secret-key-for-encryption-tests"
 // Usage in tests:
 //   - Use pq.Array(value) when expecting array arguments in WithArgs()
 //   - Use "{}" string format for empty arrays in mock return rows (AddRow)
-//   - The domain.ListIDs type alias inherits Scan/Value methods from pq.StringArray
 type StringArrayConverter struct{}
 
 // ConvertValue converts pq.StringArray to a driver.Value for sqlmock compatibility.
@@ -78,7 +77,7 @@ func createSampleMessageHistory() *domain.MessageHistory {
 		ExternalID:      &externalID,
 		ContactEmail:    "test@example.com",
 		BroadcastID:     &broadcastID,
-		ListIDs:         domain.ListIDs([]string{}), // Empty list
+		ListID:          "", // Empty list
 		TemplateID:      "template-123",
 		TemplateVersion: 1,
 		Channel:         "email",
@@ -116,7 +115,7 @@ func TestMessageHistoryRepository_Create(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
-				message.ListIDs,
+				message.ListID,
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -162,7 +161,7 @@ func TestMessageHistoryRepository_Create(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
-				message.ListIDs,
+				message.ListID,
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -208,7 +207,7 @@ func TestMessageHistoryRepository_Update(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
-				message.ListIDs,
+				message.ListID,
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -253,7 +252,7 @@ func TestMessageHistoryRepository_Update(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
-				message.ListIDs,
+				message.ListID,
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -681,7 +680,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 				message.Channel,
 				message.StatusInfo,
 				messageDataJSON, // Use the actual JSON bytes
-			nil,             // channel_options (null)
+				nil,             // channel_options (null)
 				[]byte("[]"),    // attachments (empty array)
 				message.SentAt,
 				message.DeliveredAt,
@@ -880,7 +879,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 				message.Channel,
 				message.StatusInfo,
 				messageDataJSON, // Use the actual JSON bytes
-			nil,             // channel_options (null)
+				nil,             // channel_options (null)
 				[]byte("[]"),    // attachments (empty array)
 				message.SentAt,
 				message.DeliveredAt,
@@ -2459,8 +2458,8 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		require.NoError(t, err)
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
-		// Verify the list_ids contains the filtered list ID
-		assert.Contains(t, messages[0].ListIDs, "list-abc")
+		// Verify the list_id equals the filtered list ID
+		assert.Equal(t, "list-abc", messages[0].ListID)
 	})
 
 	t.Run("multiple filters combined", func(t *testing.T) {

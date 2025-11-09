@@ -1,17 +1,17 @@
 # TODO
 
-- send newsletter to all contacts+previous customers
-- post supabase on twitter and facebook
 - fix in the last operator in the UI
-- add telemetry for web publication enabled
-- server settings panel for root user
 
 ## Web Publications
 
-- enable web publications in mailing list settings
+- add telemetry for web publication enabled
+- quid AB testing for web publications?
+-
 
 ## Content
 
+- send newsletter to all contacts+previous customers
+- post supabase on twitter and facebook
 - page vs phplist
 - page vs sendy
 - page vs listmonk
@@ -20,6 +20,7 @@
 
 ## Eventual features
 
+- server settings panel for root user
 - better design for system email (use MJML for template)
 - add contact_list reason string
 

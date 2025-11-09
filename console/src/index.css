@@ -60,6 +60,9 @@ h1 {
   line-height: 41px;
 }
 
+.vertical-tabs .ant-tabs-nav {
+  padding-top: 32px;
+}
 /* Custom Alert styling with left border */
 .ant-alert {
   border: none !important;

@@ -567,7 +567,7 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 			ID:              messageID,
 			ContactEmail:    contact.Email,
 			BroadcastID:     &broadcastID,
-			ListIDs:         domain.ListIDs(broadcast.Audience.Lists),
+			ListID:          broadcast.Audience.List,
 			TemplateID:      templateID,
 			TemplateVersion: templates[templateID].Version,
 			Channel:         "email",

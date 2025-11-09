@@ -252,10 +252,9 @@ func (m *VariationMetrics) Scan(value interface{}) error {
 
 // AudienceSettings defines how recipients are determined for a broadcast
 type AudienceSettings struct {
-	Lists               []string `json:"lists,omitempty"`
+	List                string   `json:"list,omitempty"`
 	Segments            []string `json:"segments,omitempty"`
 	ExcludeUnsubscribed bool     `json:"exclude_unsubscribed"`
-	SkipDuplicateEmails bool     `json:"skip_duplicate_emails"`
 }
 
 // Value implements the driver.Valuer interface for database serialization
@@ -388,7 +387,6 @@ type Broadcast struct {
 	CancelledAt               *time.Time              `json:"cancelled_at,omitempty"`
 	PausedAt                  *time.Time              `json:"paused_at,omitempty"`
 	PauseReason               string                  `json:"pause_reason,omitempty"`
-	SentAt                    *time.Time              `json:"sent_at,omitempty"`
 }
 
 // UTMParameters contains UTM tracking parameters for the broadcast
@@ -490,9 +488,9 @@ func (b *Broadcast) Validate() error {
 	}
 
 	// Validate audience settings
-	// CHANGED: Exactly one list required (for all broadcasts, not just web)
-	if len(b.Audience.Lists) != 1 {
-		return fmt.Errorf("exactly one list must be specified")
+	// CHANGED: List is required (for all broadcasts, not just web)
+	if b.Audience.List == "" {
+		return fmt.Errorf("list is required")
 	}
 
 	// Validate schedule settings
@@ -525,29 +523,33 @@ func (b *Broadcast) Validate() error {
 
 // CreateBroadcastRequest defines the request to create a new broadcast
 type CreateBroadcastRequest struct {
-	WorkspaceID     string                `json:"workspace_id"`
-	Name            string                `json:"name"`
-	Audience        AudienceSettings      `json:"audience"`
-	Schedule        ScheduleSettings      `json:"schedule"`
-	TestSettings    BroadcastTestSettings `json:"test_settings"`
-	TrackingEnabled bool                  `json:"tracking_enabled"`
-	UTMParameters   *UTMParameters        `json:"utm_parameters,omitempty"`
-	Metadata        MapOfAny              `json:"metadata,omitempty"`
+	WorkspaceID            string                  `json:"workspace_id"`
+	Name                   string                  `json:"name"`
+	Audience               AudienceSettings        `json:"audience"`
+	Schedule               ScheduleSettings        `json:"schedule"`
+	TestSettings           BroadcastTestSettings   `json:"test_settings"`
+	TrackingEnabled        bool                    `json:"tracking_enabled"`
+	UTMParameters          *UTMParameters          `json:"utm_parameters,omitempty"`
+	Metadata               MapOfAny                `json:"metadata,omitempty"`
+	Channels               BroadcastChannels       `json:"channels"`
+	WebPublicationSettings *WebPublicationSettings `json:"web_publication_settings,omitempty"`
 }
 
 // Validate validates the create broadcast request
 func (r *CreateBroadcastRequest) Validate() (*Broadcast, error) {
 	broadcast := &Broadcast{
-		WorkspaceID:   r.WorkspaceID,
-		Name:          r.Name,
-		Status:        BroadcastStatusDraft,
-		Audience:      r.Audience,
-		Schedule:      r.Schedule,
-		TestSettings:  r.TestSettings,
-		UTMParameters: r.UTMParameters,
-		Metadata:      r.Metadata,
-		CreatedAt:     time.Now().UTC(),
-		UpdatedAt:     time.Now().UTC(),
+		WorkspaceID:            r.WorkspaceID,
+		Name:                   r.Name,
+		Status:                 BroadcastStatusDraft,
+		Audience:               r.Audience,
+		Schedule:               r.Schedule,
+		TestSettings:           r.TestSettings,
+		UTMParameters:          r.UTMParameters,
+		Metadata:               r.Metadata,
+		Channels:               r.Channels,
+		WebPublicationSettings: r.WebPublicationSettings,
+		CreatedAt:              time.Now().UTC(),
+		UpdatedAt:              time.Now().UTC(),
 	}
 
 	// Set status to scheduled if the broadcast is scheduled
@@ -564,15 +566,17 @@ func (r *CreateBroadcastRequest) Validate() (*Broadcast, error) {
 
 // UpdateBroadcastRequest defines the request to update an existing broadcast
 type UpdateBroadcastRequest struct {
-	WorkspaceID     string                `json:"workspace_id"`
-	ID              string                `json:"id"`
-	Name            string                `json:"name"`
-	Audience        AudienceSettings      `json:"audience"`
-	Schedule        ScheduleSettings      `json:"schedule"`
-	TestSettings    BroadcastTestSettings `json:"test_settings"`
-	TrackingEnabled bool                  `json:"tracking_enabled"`
-	UTMParameters   *UTMParameters        `json:"utm_parameters,omitempty"`
-	Metadata        MapOfAny              `json:"metadata,omitempty"`
+	WorkspaceID            string                  `json:"workspace_id"`
+	ID                     string                  `json:"id"`
+	Name                   string                  `json:"name"`
+	Audience               AudienceSettings        `json:"audience"`
+	Schedule               ScheduleSettings        `json:"schedule"`
+	TestSettings           BroadcastTestSettings   `json:"test_settings"`
+	TrackingEnabled        bool                    `json:"tracking_enabled"`
+	UTMParameters          *UTMParameters          `json:"utm_parameters,omitempty"`
+	Metadata               MapOfAny                `json:"metadata,omitempty"`
+	Channels               BroadcastChannels       `json:"channels"`
+	WebPublicationSettings *WebPublicationSettings `json:"web_publication_settings,omitempty"`
 }
 
 // Validate validates the update broadcast request
@@ -599,6 +603,8 @@ func (r *UpdateBroadcastRequest) Validate(existingBroadcast *Broadcast) (*Broadc
 	existingBroadcast.TestSettings = r.TestSettings
 	existingBroadcast.UTMParameters = r.UTMParameters
 	existingBroadcast.Metadata = r.Metadata
+	existingBroadcast.Channels = r.Channels
+	existingBroadcast.WebPublicationSettings = r.WebPublicationSettings
 	existingBroadcast.UpdatedAt = time.Now().UTC()
 
 	if err := existingBroadcast.Validate(); err != nil {

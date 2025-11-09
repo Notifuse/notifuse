@@ -154,16 +154,10 @@ export function WorkspaceSettingsPage() {
   }
 
   return (
-    <Layout
-      style={{
-        background: '#fff',
-        minHeight: 'calc(100vh - 48px)'
-      }}
-    >
+    <Layout style={{ minHeight: 'calc(100vh - 48px)' }}>
       <Sider
         width={250}
         style={{
-          background: '#fff',
           borderRight: '1px solid #f0f0f0',
           overflow: 'auto'
         }}
@@ -174,7 +168,7 @@ export function WorkspaceSettingsPage() {
           isOwner={isOwner}
         />
       </Sider>
-      <Layout style={{ background: '#fff' }}>
+      <Layout>
         <Content>
           <div style={{ maxWidth: '700px', padding: '24px' }}>{renderSection()}</div>
         </Content>

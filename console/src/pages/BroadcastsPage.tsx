@@ -851,34 +851,14 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     </Descriptions.Item>
                   )}
 
-                  {broadcast.audience.lists && broadcast.audience.lists.length > 0 && (
-                    <Descriptions.Item label="Lists">
-                      <Space direction="vertical" style={{ width: '100%' }}>
-                        {broadcast.audience.lists.map((listId) => {
-                          const list = lists.find((l) => l.id === listId)
-                          return list ? (
-                            <div key={list.id}>{list.name}</div>
-                          ) : (
-                            <div key={listId}>Unknown list ({listId})</div>
-                          )
-                        })}
-                      </Space>
+                  {broadcast.audience.list && (
+                    <Descriptions.Item label="List">
+                      {(() => {
+                        const list = lists.find((l) => l.id === broadcast.audience.list)
+                        return list ? list.name : `Unknown list (${broadcast.audience.list})`
+                      })()}
                     </Descriptions.Item>
                   )}
-
-                  <Descriptions.Item label="Skip Duplicates">
-                    {broadcast.audience.skip_duplicate_emails ? (
-                      <FontAwesomeIcon
-                        icon={faCircleCheck}
-                        className="text-green-500 opacity-70 mt-1"
-                      />
-                    ) : (
-                      <FontAwesomeIcon
-                        icon={faCircleXmark}
-                        className="text-orange-500 opacity-70 mt-1"
-                      />
-                    )}
-                  </Descriptions.Item>
 
                   <Descriptions.Item label="Exclude Unsubscribed">
                     {broadcast.audience.exclude_unsubscribed ? (
@@ -922,6 +902,81 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     <Descriptions.Item label="UTM Content">
                       {broadcast.utm_parameters.content}
                     </Descriptions.Item>
+                  )}
+
+                  {/* Web Publication Settings */}
+                  <Descriptions.Item label="Web Channel">
+                    {broadcast.channels?.web ? (
+                      <Tag bordered={false} color="green">
+                        Enabled
+                      </Tag>
+                    ) : (
+                      <Tag bordered={false} color="volcano">
+                        Disabled
+                      </Tag>
+                    )}
+                  </Descriptions.Item>
+
+                  {broadcast.channels?.web && broadcast.web_publication_settings && (
+                    <>
+                      <Descriptions.Item label="Post URL" span={1}>
+                        {broadcast.web_publication_settings.slug &&
+                        currentWorkspace?.settings?.custom_endpoint_url ? (
+                          <div className="flex items-center gap-2">
+                            {(() => {
+                              const list = lists.find((l) => l.id === broadcast.audience.list)
+                              if (list?.slug) {
+                                return (
+                                  <a
+                                    href={`${currentWorkspace.settings.custom_endpoint_url}/${list.slug}/${broadcast.web_publication_settings.slug}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-sm"
+                                  >
+                                    {currentWorkspace.settings.custom_endpoint_url}/{list.slug}/
+                                    {broadcast.web_publication_settings.slug}
+                                  </a>
+                                )
+                              }
+                              return <Text type="secondary">List slug not configured</Text>
+                            })()}
+                          </div>
+                        ) : (
+                          <Text type="secondary">Not set</Text>
+                        )}
+                      </Descriptions.Item>
+
+                      {broadcast.web_published_at && (
+                        <Descriptions.Item label="Published">
+                          {dayjs(broadcast.web_published_at).fromNow()}
+                        </Descriptions.Item>
+                      )}
+
+                      {broadcast.web_publication_settings.meta_title && (
+                        <Descriptions.Item label="SEO Title">
+                          {broadcast.web_publication_settings.meta_title}
+                        </Descriptions.Item>
+                      )}
+
+                      {broadcast.web_publication_settings.meta_description && (
+                        <Descriptions.Item label="SEO Description">
+                          {broadcast.web_publication_settings.meta_description}
+                        </Descriptions.Item>
+                      )}
+
+                      {broadcast.web_publication_settings.keywords &&
+                        broadcast.web_publication_settings.keywords.length > 0 && (
+                          <Descriptions.Item label="SEO Keywords">
+                            <Space size={4} wrap>
+                              {broadcast.web_publication_settings.keywords.map((keyword, idx) => (
+                                <Tag key={idx} bordered={false} className="text-xs">
+                                  {keyword}
+                                </Tag>
+                              ))}
+                            </Space>
+                          </Descriptions.Item>
+                        )}
+                    </>
                   )}
 
                   {/* Schedule Information */}
@@ -1008,6 +1063,66 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     </Descriptions.Item>
                   )}
                 </Descriptions>
+
+                {/* Open Graph Preview - Separate section */}
+                {broadcast.channels?.web && broadcast.web_publication_settings && (
+                  <Descriptions
+                    size="small"
+                    layout="vertical"
+                    column={1}
+                    style={{ marginTop: 16 }}
+                  >
+                    <Descriptions.Item label="Open Graph Preview">
+                      <div
+                        className="border border-gray-200 rounded-lg overflow-hidden bg-white flex"
+                        style={{ width: 350 }}
+                      >
+                        {/* OG Image - Square on the left */}
+                        {broadcast.web_publication_settings.og_image ? (
+                          <div className="w-24 h-24 flex-shrink-0 bg-gray-100 overflow-hidden">
+                            <img
+                              src={broadcast.web_publication_settings.og_image}
+                              alt={
+                                broadcast.web_publication_settings.og_title || broadcast.name
+                              }
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-24 h-24 flex-shrink-0 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+                            <FontAwesomeIcon
+                              icon={faCircleCheck}
+                              className="text-blue-300"
+                              size="2x"
+                            />
+                          </div>
+                        )}
+
+                        {/* OG Content - Text on the right */}
+                        <div className="flex-1 p-3 flex flex-col justify-center min-w-0">
+                          {currentWorkspace?.settings?.custom_endpoint_url && (
+                            <div className="text-xs text-gray-500 mb-1 truncate">
+                              {currentWorkspace.settings.custom_endpoint_url.replace(
+                                /^https?:\/\//,
+                                ''
+                              )}
+                            </div>
+                          )}
+                          <div className="text-sm font-semibold text-gray-900 mb-1 line-clamp-2">
+                            {broadcast.web_publication_settings.og_title ||
+                              broadcast.web_publication_settings.meta_title ||
+                              broadcast.name}
+                          </div>
+                          <div className="text-xs text-gray-600 line-clamp-2">
+                            {broadcast.web_publication_settings.og_description ||
+                              broadcast.web_publication_settings.meta_description ||
+                              `Read the latest post from this broadcast.`}
+                          </div>
+                        </div>
+                      </div>
+                    </Descriptions.Item>
+                  </Descriptions>
+                )}
               </Col>
 
               {/* Right Column: Templates */}

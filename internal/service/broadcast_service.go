@@ -101,10 +101,15 @@ func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.
 
 	// Validate web channel requirements
 	if broadcast.Channels.Web {
-		// Get workspace to check for custom endpoint
+		// Get workspace to check settings
 		workspace, err := s.workspaceRepo.GetByID(ctx, request.WorkspaceID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get workspace: %w", err)
+		}
+
+		// Check workspace has web publications enabled
+		if !workspace.Settings.WebPublicationsEnabled {
+			return nil, fmt.Errorf("web publications not enabled for this workspace. Enable in workspace settings first.")
 		}
 
 		// Web channel requires custom endpoint URL
@@ -112,7 +117,32 @@ func (s *BroadcastService) CreateBroadcast(ctx context.Context, request *domain.
 			return nil, fmt.Errorf("web channel requires a custom endpoint URL to be configured in workspace settings")
 		}
 
-		// Web publication settings and slug validation already done above
+		// Get the list
+		listID := broadcast.Audience.List
+		list, err := s.listService.GetListByID(ctx, request.WorkspaceID, listID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get list: %w", err)
+		}
+
+		// Check list has web publications enabled
+		if !list.WebPublicationEnabled {
+			return nil, fmt.Errorf("list '%s' does not have web publications enabled", list.Name)
+		}
+
+		// Check list has slug
+		if list.Slug == nil || *list.Slug == "" {
+			return nil, fmt.Errorf("list '%s' must have a slug configured for web publications", list.Name)
+		}
+
+		// Validate post slug is provided
+		if broadcast.WebPublicationSettings == nil || broadcast.WebPublicationSettings.Slug == "" {
+			return nil, fmt.Errorf("post slug is required for web publications")
+		}
+
+		// Validate slug format
+		if err := ValidateSlug(broadcast.WebPublicationSettings.Slug); err != nil {
+			return nil, fmt.Errorf("invalid post slug: %w", err)
+		}
 	}
 
 	// Generate a unique ID for the broadcast if not provided
@@ -221,7 +251,7 @@ func (s *BroadcastService) UpdateBroadcast(ctx context.Context, request *domain.
 		}
 
 		// Get the list
-		listID := updatedBroadcast.Audience.Lists[0]
+		listID := updatedBroadcast.Audience.List
 		list, err := s.listService.GetListByID(ctx, request.WorkspaceID, listID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get list: %w", err)
@@ -1018,7 +1048,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		ID:              messageID,
 		ContactEmail:    request.RecipientEmail,
 		BroadcastID:     &request.BroadcastID,
-		ListIDs:         domain.ListIDs(broadcast.Audience.Lists),
+		ListID:          broadcast.Audience.List,
 		TemplateID:      template.ID,
 		TemplateVersion: template.Version,
 		Channel:         "email",

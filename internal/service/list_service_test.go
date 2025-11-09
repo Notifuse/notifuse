@@ -465,6 +465,8 @@ func TestListService_DeleteList(t *testing.T) {
 			},
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		// Expect UnpublishBroadcastsInList to be called before deletion (v17 migration)
+		mockRepo.EXPECT().UnpublishBroadcastsInList(ctx, workspaceID, listID).Return(nil)
 		mockRepo.EXPECT().DeleteList(ctx, workspaceID, listID).Return(nil)
 		mockLogger.EXPECT().WithField("list_id", listID).Return(mockLogger).Times(0)
 		mockLogger.EXPECT().Error(gomock.Any()).Times(0)
@@ -491,6 +493,8 @@ func TestListService_DeleteList(t *testing.T) {
 			},
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		// Expect UnpublishBroadcastsInList to be called before deletion (v17 migration)
+		mockRepo.EXPECT().UnpublishBroadcastsInList(ctx, workspaceID, listID).Return(nil)
 		mockRepo.EXPECT().DeleteList(ctx, workspaceID, listID).Return(errors.New("db error"))
 		mockLogger.EXPECT().WithField("list_id", listID).Return(mockLogger)
 		mockLogger.EXPECT().Error(gomock.Any())

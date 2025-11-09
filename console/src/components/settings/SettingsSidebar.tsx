@@ -33,7 +33,23 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
     },
     {
       key: 'integrations',
-      icon: <ApiOutlined />,
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="lucide lucide-blocks-icon lucide-blocks"
+        >
+          <path d="M10 22V7a1 1 0 0 0-1-1H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5a1 1 0 0 0-1-1H2" />
+          <rect x="14" y="2" width="8" height="8" rx="1" />
+        </svg>
+      ),
       label: 'Integrations'
     },
     {
@@ -76,7 +92,7 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
         selectedKeys={[activeSection]}
         items={menuItems}
         onClick={({ key }) => onSectionChange(key as SettingsSection)}
-        style={{ borderRight: 0 }}
+        style={{ borderRight: 0, backgroundColor: '#F9F9F9' }}
       />
     </div>
   )

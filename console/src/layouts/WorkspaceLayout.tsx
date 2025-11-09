@@ -3,19 +3,16 @@ import { Outlet, Link, useParams, useMatches, useNavigate } from '@tanstack/reac
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faImage,
-  faFolderOpen,
-  faObjectGroup,
-  faPaperPlane
+  faPaperPlane,
+  faFileLines,
+  faQuestionCircle
 } from '@fortawesome/free-regular-svg-icons'
 import {
-  faGear,
   faPlus,
   faPowerOff,
   faRightFromBracket,
   faTerminal,
-  faUserGroup,
-  faBarsStaggered,
-  faChartLine
+  faBarsStaggered
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
 import { Workspace, UserPermissions } from '../services/api/types'
@@ -25,8 +22,14 @@ import { FileManagerProvider } from '../components/file_manager/context'
 import { FileManagerSettings } from '../components/file_manager/interfaces'
 import { workspaceService } from '../services/api/workspace'
 import { isRootUser } from '../services/api/auth'
+import {
+  FolderOpenOutlined,
+  LineChartOutlined,
+  SettingOutlined,
+  WarningOutlined
+} from '@ant-design/icons'
 
-const { Content, Sider } = Layout
+const { Content, Sider, Header } = Layout
 
 export function WorkspaceLayout() {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
@@ -175,7 +178,8 @@ export function WorkspaceLayout() {
   const menuItems = [
     hasAccess('message_history') && {
       key: 'analytics',
-      icon: <FontAwesomeIcon icon={faChartLine} size="sm" style={{ opacity: 0.7 }} />,
+      // icon: <FontAwesomeIcon icon={faChartLine} size="sm" style={{ opacity: 0.7 }} />,
+      icon: <LineChartOutlined />,
       label: (
         <Link to="/console/workspace/$workspaceId" params={{ workspaceId }}>
           Dashboard
@@ -184,7 +188,25 @@ export function WorkspaceLayout() {
     },
     hasAccess('contacts') && {
       key: 'contacts',
-      icon: <FontAwesomeIcon icon={faUserGroup} size="sm" style={{ opacity: 0.7 }} />,
+      // icon: <ContactsOutlined />,
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="lucide lucide-square-user-round-icon lucide-square-user-round opacity-70"
+        >
+          <path d="M18 21a6 6 0 0 0-12 0" />
+          <circle cx="12" cy="11" r="4" />
+          <rect width="18" height="18" x="3" y="3" rx="2" />
+        </svg>
+      ),
       label: (
         <Link to="/console/workspace/$workspaceId/contacts" params={{ workspaceId }}>
           Contacts
@@ -193,7 +215,8 @@ export function WorkspaceLayout() {
     },
     hasAccess('lists') && {
       key: 'lists',
-      icon: <FontAwesomeIcon icon={faFolderOpen} size="sm" style={{ opacity: 0.7 }} />,
+      // icon: <FontAwesomeIcon icon={faFolderOpen} size="sm" style={{ opacity: 0.7 }} />,
+      icon: <FolderOpenOutlined />,
       label: (
         <Link to="/console/workspace/$workspaceId/lists" params={{ workspaceId }}>
           Lists
@@ -202,7 +225,24 @@ export function WorkspaceLayout() {
     },
     hasAccess('templates') && {
       key: 'templates',
-      icon: <FontAwesomeIcon icon={faObjectGroup} size="sm" style={{ opacity: 0.7 }} />,
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="lucide lucide-layout-panel-top-icon lucide-layout-panel-top opacity-70"
+        >
+          <rect width="18" height="7" x="3" y="3" rx="1" />
+          <rect width="7" height="7" x="3" y="14" rx="1" />
+          <rect width="7" height="7" x="14" y="14" rx="1" />
+        </svg>
+      ),
       label: (
         <Link to="/console/workspace/$workspaceId/templates" params={{ workspaceId }}>
           Templates
@@ -222,14 +262,35 @@ export function WorkspaceLayout() {
       key: 'transactional-notifications',
       icon: <FontAwesomeIcon icon={faTerminal} size="sm" style={{ opacity: 0.7 }} />,
       label: (
-        <Link to="/console/workspace/$workspaceId/transactional-notifications" params={{ workspaceId }}>
+        <Link
+          to="/console/workspace/$workspaceId/transactional-notifications"
+          params={{ workspaceId }}
+        >
           Transactional
         </Link>
       )
     },
     hasAccess('workspace') && {
       key: 'file-manager',
-      icon: <FontAwesomeIcon icon={faImage} size="sm" style={{ opacity: 0.7 }} />,
+      icon: <FontAwesomeIcon icon={faImage} size="sm" style={{ opacity: 0.6 }} />,
+      // icon: (
+      //   <svg
+      //     xmlns="http://www.w3.org/2000/svg"
+      //     width="16"
+      //     height="16"
+      //     viewBox="0 0 24 24"
+      //     fill="none"
+      //     stroke="currentColor"
+      //     strokeWidth="2"
+      //     strokeLinecap="round"
+      //     strokeLinejoin="round"
+      //     className="lucide lucide-image-icon lucide-image opacity-70"
+      //   >
+      //     <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+      //     <circle cx="9" cy="9" r="2" />
+      //     <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+      //   </svg>
+      // ),
       label: (
         <Link to="/console/workspace/$workspaceId/file-manager" params={{ workspaceId }}>
           File Manager
@@ -247,7 +308,7 @@ export function WorkspaceLayout() {
     },
     hasAccess('workspace') && {
       key: 'settings',
-      icon: <FontAwesomeIcon icon={faGear} size="sm" style={{ opacity: 0.7 }} />,
+      icon: <SettingOutlined />,
       label: (
         <Link to="/console/workspace/$workspaceId/settings" params={{ workspaceId }}>
           Settings
@@ -258,7 +319,7 @@ export function WorkspaceLayout() {
 
   return (
     <ContactsCsvUploadProvider>
-      <Layout style={{ minHeight: '100vh' }}>
+      <Layout style={{ minHeight: '100vh', backgroundColor: '#F9F9F9' }}>
         <Layout>
           <Sider
             width={250}
@@ -269,114 +330,86 @@ export function WorkspaceLayout() {
               left: 0,
               top: 0,
               overflow: 'auto',
-              zIndex: 10
+              zIndex: 10,
+              backgroundColor: '#F9F9F9'
             }}
             collapsible
             collapsed={collapsed}
             trigger={null}
             className="border-r border-gray-200"
           >
-            <div className="flex items-center gap-2 p-6">
-              {!collapsed && (
-                <Select
-                  value={workspaceId}
-                  onChange={handleWorkspaceChange}
-                  style={{ width: '100%' }}
-                  placeholder="Select workspace"
-                  options={[
-                    ...workspaces.map((workspace: Workspace) => ({
-                      label: (
-                        <Space size="small">
-                          {workspace.settings.logo_url && (
-                            <img
-                              src={workspace.settings.logo_url}
-                              alt=""
-                              style={{
-                                height: '14px',
-                                width: '14px',
-                                objectFit: 'contain',
-                                verticalAlign: 'middle',
-                                display: 'inline-block'
-                              }}
-                            />
-                          )}
-                          {workspace.name}
-                        </Space>
-                      ),
-                      value: workspace.id
-                    })),
-                    ...(isRootUser(user?.email)
-                      ? [
-                          {
-                            label: (
-                              <Space className="text-indigo-500">
-                                <FontAwesomeIcon icon={faPlus} /> New workspace
-                              </Space>
-                            ),
-                            value: 'new-workspace'
-                          }
-                        ]
-                      : [])
-                  ]}
-                />
-              )}
-              <Button
-                type="text"
-                icon={
-                  collapsed ? (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="15"
-                      height="15"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-gray-500"
-                    >
-                      <rect width="18" height="18" x="3" y="3" rx="2" />
-                      <path d="M9 3v18" />
-                      <path d="m14 9 3 3-3 3" />
-                    </svg>
-                  ) : (
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="15"
-                      height="15"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="text-gray-500"
-                    >
-                      <rect width="18" height="18" x="3" y="3" rx="2" />
-                      <path d="M9 3v18" />
-                      <path d="m16 15-3-3 3-3" />
-                    </svg>
-                  )
-                }
-                onClick={() => setCollapsed(!collapsed)}
+            <div
+              style={{
+                padding: '16px 24px',
+                textAlign: 'center',
+                borderBottom: '1px solid #f0f0f0'
+              }}
+            >
+              <img
+                src={collapsed ? '/console/icon.png' : '/console/logo.png'}
+                alt=""
+                style={{
+                  height: '31px',
+                  width: 'auto',
+                  transition: 'height 0.2s'
+                }}
               />
             </div>
             <Menu
               mode="inline"
               selectedKeys={[selectedKey]}
-              style={{ height: 'calc(100% - 120px)', borderRight: 0, backgroundColor: '#fdfdfd' }}
+              style={{ height: 'calc(100% - 120px)', borderRight: 0, backgroundColor: '#F9F9F9' }}
               items={loadingPermissions ? [] : menuItems}
               theme="light"
             />
             <div
               style={{
                 position: 'fixed',
-                bottom: 0,
+                bottom: 60,
                 left: 0,
-                width: collapsed ? '80px' : '224px',
+                width: collapsed ? '80px' : '250px',
                 padding: '16px',
                 borderTop: '1px solid #f0f0f0',
+                backgroundColor: '#F9F9F9',
+                zIndex: 1,
+                transition: 'width 0.2s'
+              }}
+            >
+              <Button
+                type="text"
+                block
+                icon={
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="text-gray-500"
+                  >
+                    <rect width="18" height="18" x="3" y="3" rx="2" />
+                    <path d="M9 3v18" />
+                    <path d={collapsed ? 'm14 9 3 3-3 3' : 'm16 15-3-3 3-3'} />
+                  </svg>
+                }
+                onClick={() => setCollapsed(!collapsed)}
+              >
+                {!collapsed && 'Collapse'}
+              </Button>
+            </div>
+            <div
+              style={{
+                position: 'fixed',
+                bottom: 0,
+                left: 0,
+                width: collapsed ? '80px' : '250px',
+                padding: '16px',
+                borderTop: '1px solid #f0f0f0',
+                backgroundColor: '#F9F9F9',
                 zIndex: 1,
                 transition: 'width 0.2s'
               }}
@@ -434,14 +467,117 @@ export function WorkspaceLayout() {
               )}
             </div>
           </Sider>
+          <Header
+            style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              width: `calc(100% - ${collapsed ? '80px' : '250px'})`,
+              height: '64px',
+              backgroundColor: '#F9F9F9',
+              borderBottom: '1px solid #f0f0f0',
+              padding: '0 24px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              zIndex: 9,
+              transition: 'width 0.2s'
+            }}
+          >
+            <Select
+              value={workspaceId}
+              variant="filled"
+              onChange={handleWorkspaceChange}
+              style={{ width: '200px' }}
+              placeholder="Select workspace"
+              options={[
+                ...workspaces.map((workspace: Workspace) => ({
+                  label: (
+                    <Space size="small">
+                      {workspace.settings.logo_url && (
+                        <img
+                          src={workspace.settings.logo_url}
+                          alt=""
+                          style={{
+                            height: '14px',
+                            width: '14px',
+                            objectFit: 'contain',
+                            verticalAlign: 'middle',
+                            display: 'inline-block'
+                          }}
+                        />
+                      )}
+                      {workspace.name}
+                    </Space>
+                  ),
+                  value: workspace.id
+                })),
+                ...(isRootUser(user?.email)
+                  ? [
+                      {
+                        label: (
+                          <Space className="text-indigo-500">
+                            <FontAwesomeIcon icon={faPlus} /> New workspace
+                          </Space>
+                        ),
+                        value: 'new-workspace'
+                      }
+                    ]
+                  : [])
+              ]}
+            />
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                items: [
+                  {
+                    key: 'docs',
+                    label: (
+                      <a
+                        href="https://docs.notifuse.com/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <FontAwesomeIcon icon={faFileLines} className="mr-2" /> Documentation
+                      </a>
+                    )
+                  },
+                  {
+                    key: 'report-issue',
+                    label: (
+                      <a
+                        href="https://github.com/notifuse/notifuse/issues"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <WarningOutlined className="mr-2" />
+                        Report An Issue
+                      </a>
+                    )
+                  }
+                ]
+              }}
+              placement="bottomRight"
+            >
+              <Button
+                color="default"
+                variant="filled"
+                icon={<FontAwesomeIcon icon={faQuestionCircle} />}
+              >
+                Help
+              </Button>
+            </Dropdown>
+          </Header>
           <Layout
             style={{
               marginLeft: collapsed ? '80px' : '250px',
+              marginTop: '64px',
               padding: isSettingsPage ? '0' : '24px',
-              transition: 'margin-left 0.2s'
+              transition: 'margin-left 0.2s',
+              backgroundColor: '#F9F9F9'
             }}
           >
-            <Content>
+            <Content style={{ backgroundColor: '#F9F9F9' }}>
               <FileManagerProvider
                 key={`fm-${workspaceId}-${!userPermissions?.templates?.write}`}
                 settings={workspaces.find((w) => w.id === workspaceId)?.settings.file_manager}
