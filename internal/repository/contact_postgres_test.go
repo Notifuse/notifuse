@@ -1383,12 +1383,12 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				now, now, now, now, now,
 				[]byte(`{"key": "value1-2"}`), []byte(`{"key": "value2-2"}`), []byte(`{"key": "value3-2"}`), []byte(`{"key": "value4-2"}`), []byte(`{"key": "value5-2"}`),
 				now, now, now, now,
-				"list2", "Sales List", // Additional values for list filtering
+				"list1", "Marketing List", // Additional values for list filtering - same list
 			)
 
 			// Expect query with JOINS for list filtering and excludeUnsubscribed
-		mock.ExpectQuery(`SELECT c\.\*, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id IN \(\$1,\$2\) AND l\.deleted_at IS NULL AND cl\.status <> \$3 AND cl\.status <> \$4 AND cl\.status <> \$5 ORDER BY c\.created_at ASC LIMIT 10 OFFSET 0`).
-			WithArgs("list1", "list2",
+		mock.ExpectQuery(`SELECT c\.\*, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.created_at ASC LIMIT 10 OFFSET 0`).
+			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
 				domain.ContactListStatusComplained).
@@ -1407,8 +1407,8 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		assert.Equal(t, "Marketing List", contacts[0].ListName)
 
 		assert.Equal(t, "test2@example.com", contacts[1].Contact.Email)
-		assert.Equal(t, "list2", contacts[1].ListID)
-		assert.Equal(t, "Sales List", contacts[1].ListName)
+		assert.Equal(t, "list1", contacts[1].ListID)
+		assert.Equal(t, "Marketing List", contacts[1].ListName)
 	})
 
 	t.Run("should get contacts without list filtering", func(t *testing.T) {
@@ -1639,8 +1639,8 @@ func TestCountContactsForBroadcast(t *testing.T) {
 
 		// Expect query with JOINS for list filtering and excludeUnsubscribed
 		// Note: SkipDuplicateEmails is false, so we expect COUNT(*) not COUNT(DISTINCT)
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email WHERE cl\.list_id IN \(\$1,\$2\) AND cl\.status <> \$3 AND cl\.status <> \$4 AND cl\.status <> \$5`).
-			WithArgs("list1", "list2",
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email WHERE cl\.list_id = \$1 AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4`).
+			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
 				domain.ContactListStatusComplained).
@@ -1814,7 +1814,7 @@ func TestCountContactsForBroadcast(t *testing.T) {
 
 		// Expect query with JOINs for both list and segment filtering
 		// The query should join contact_lists, then also join contact_segments
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id IN \(\$1\) AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND cs\.segment_id IN \(\$5\)`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id = \$1 AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND cs\.segment_id IN \(\$5\)`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,

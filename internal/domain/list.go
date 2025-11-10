@@ -444,12 +444,6 @@ type ListRepository interface {
 	DeleteList(ctx context.Context, workspaceID string, id string) error
 
 	GetListStats(ctx context.Context, workspaceID string, id string) (*ListStats, error)
-
-	// Web publication methods
-	GetBySlug(ctx context.Context, workspaceID, slug string) (*List, error)
-	GetPublishedLists(ctx context.Context, workspaceID string) ([]*List, error)
-	SlugExistsInWorkspace(ctx context.Context, workspaceID, slug, excludeListID string) (bool, error)
-	UnpublishBroadcastsInList(ctx context.Context, workspaceID, listID string) error
 }
 
 // ErrListNotFound is returned when a list is not found

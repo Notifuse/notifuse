@@ -63,21 +63,6 @@ func (mr *MockListRepositoryMockRecorder) DeleteList(arg0, arg1, arg2 interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteList", reflect.TypeOf((*MockListRepository)(nil).DeleteList), arg0, arg1, arg2)
 }
 
-// GetBySlug mocks base method.
-func (m *MockListRepository) GetBySlug(arg0 context.Context, arg1, arg2 string) (*domain.List, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBySlug", arg0, arg1, arg2)
-	ret0, _ := ret[0].(*domain.List)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetBySlug indicates an expected call of GetBySlug.
-func (mr *MockListRepositoryMockRecorder) GetBySlug(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBySlug", reflect.TypeOf((*MockListRepository)(nil).GetBySlug), arg0, arg1, arg2)
-}
-
 // GetListByID mocks base method.
 func (m *MockListRepository) GetListByID(arg0 context.Context, arg1, arg2 string) (*domain.List, error) {
 	m.ctrl.T.Helper()
@@ -121,50 +106,6 @@ func (m *MockListRepository) GetLists(arg0 context.Context, arg1 string) ([]*dom
 func (mr *MockListRepositoryMockRecorder) GetLists(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetLists", reflect.TypeOf((*MockListRepository)(nil).GetLists), arg0, arg1)
-}
-
-// GetPublishedLists mocks base method.
-func (m *MockListRepository) GetPublishedLists(arg0 context.Context, arg1 string) ([]*domain.List, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetPublishedLists", arg0, arg1)
-	ret0, _ := ret[0].([]*domain.List)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetPublishedLists indicates an expected call of GetPublishedLists.
-func (mr *MockListRepositoryMockRecorder) GetPublishedLists(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPublishedLists", reflect.TypeOf((*MockListRepository)(nil).GetPublishedLists), arg0, arg1)
-}
-
-// SlugExistsInWorkspace mocks base method.
-func (m *MockListRepository) SlugExistsInWorkspace(arg0 context.Context, arg1, arg2, arg3 string) (bool, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SlugExistsInWorkspace", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(bool)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// SlugExistsInWorkspace indicates an expected call of SlugExistsInWorkspace.
-func (mr *MockListRepositoryMockRecorder) SlugExistsInWorkspace(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SlugExistsInWorkspace", reflect.TypeOf((*MockListRepository)(nil).SlugExistsInWorkspace), arg0, arg1, arg2, arg3)
-}
-
-// UnpublishBroadcastsInList mocks base method.
-func (m *MockListRepository) UnpublishBroadcastsInList(arg0 context.Context, arg1, arg2 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "UnpublishBroadcastsInList", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// UnpublishBroadcastsInList indicates an expected call of UnpublishBroadcastsInList.
-func (mr *MockListRepositoryMockRecorder) UnpublishBroadcastsInList(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UnpublishBroadcastsInList", reflect.TypeOf((*MockListRepository)(nil).UnpublishBroadcastsInList), arg0, arg1, arg2)
 }
 
 // UpdateList mocks base method.

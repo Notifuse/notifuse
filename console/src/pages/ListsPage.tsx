@@ -169,7 +169,6 @@ export function ListsPage() {
               <div>
                 <CreateListDrawer
                   workspaceId={workspaceId}
-                  workspace={workspace}
                   buttonProps={{
                     disabled: !permissions?.lists?.write
                   }}
@@ -225,7 +224,6 @@ export function ListsPage() {
                     <div>
                       <CreateListDrawer
                         workspaceId={workspaceId}
-                        workspace={workspace}
                         list={list}
                         buttonProps={{
                           type: 'text',
@@ -333,11 +331,7 @@ export function ListsPage() {
           </Title>
           <Paragraph type="secondary">Create your first list to get started</Paragraph>
           <div className="mt-4">
-            <CreateListDrawer
-              workspaceId={workspaceId}
-              workspace={workspace}
-              buttonProps={{ size: 'large' }}
-            />
+            <CreateListDrawer workspaceId={workspaceId} buttonProps={{ size: 'large' }} />
           </div>
         </div>
       )}
