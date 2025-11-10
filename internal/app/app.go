@@ -104,6 +104,8 @@ type App struct {
 	contactTimelineRepo           domain.ContactTimelineRepository
 	segmentRepo                   domain.SegmentRepository
 	contactSegmentQueueRepo       domain.ContactSegmentQueueRepository
+	blogCategoryRepo              domain.BlogCategoryRepository
+	blogPostRepo                  domain.BlogPostRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -127,12 +129,12 @@ type App struct {
 	analyticsService                 *service.AnalyticsService
 	contactTimelineService           domain.ContactTimelineService
 	segmentService                   *service.SegmentService
+	blogService                      *service.BlogService
 	settingService                   *service.SettingService
 	setupService                     *service.SetupService
 	supabaseService                  *service.SupabaseService
 	taskScheduler                    *service.TaskScheduler
 	dnsVerificationService           *service.DNSVerificationService
-	webPublicationService            *service.WebPublicationService
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -390,6 +392,8 @@ func (a *App) InitRepositories() error {
 	a.contactTimelineRepo = repository.NewContactTimelineRepository(a.workspaceRepo)
 	a.segmentRepo = repository.NewSegmentRepository(a.workspaceRepo)
 	a.contactSegmentQueueRepo = repository.NewContactSegmentQueueRepository(a.workspaceRepo)
+	a.blogCategoryRepo = repository.NewBlogCategoryRepository(a.workspaceRepo)
+	a.blogPostRepo = repository.NewBlogPostRepository(a.workspaceRepo)
 
 	// Initialize setting service
 	a.settingService = service.NewSettingService(a.settingRepo)
@@ -589,15 +593,6 @@ func (a *App) InitServices() error {
 	// Set DNS verification service on workspace service
 	a.workspaceService.SetDNSVerificationService(a.dnsVerificationService)
 
-	// Initialize web publication service
-	a.webPublicationService = service.NewWebPublicationService(
-		a.broadcastRepo,
-		a.templateRepo,
-		a.workspaceRepo,
-		a.listRepo,
-		a.logger,
-	)
-
 	// Initialize task service
 	a.taskService = service.NewTaskService(a.taskRepo, a.settingRepo, a.logger, a.authService, a.config.APIEndpoint)
 
@@ -720,6 +715,15 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 
+	// Initialize blog service
+	a.blogService = service.NewBlogService(
+		a.logger,
+		a.blogCategoryRepo,
+		a.blogPostRepo,
+		a.workspaceRepo,
+		a.authService,
+	)
+
 	// Initialize and register segment build processor
 	segmentBuildProcessor := service.NewSegmentBuildProcessor(
 		a.segmentRepo,
@@ -808,15 +812,6 @@ func (a *App) InitServices() error {
 
 	// Set DNS verification service on workspace service
 	a.workspaceService.SetDNSVerificationService(dnsVerificationService)
-
-	// Initialize web publication service
-	a.webPublicationService = service.NewWebPublicationService(
-		a.broadcastRepo,
-		a.templateRepo,
-		a.workspaceRepo,
-		a.listRepo,
-		a.logger,
-	)
 
 	// Initialize task scheduler
 	a.taskScheduler = service.NewTaskScheduler(
@@ -911,12 +906,6 @@ func (a *App) InitHandlers() error {
 	// Determine if SMTP relay TLS is enabled (check if cert is configured)
 	smtpRelayTLSEnabled := a.config.SMTPRelay.TLSCertBase64 != ""
 
-	// Initialize web publication handler
-	webPublicationHandler := httpHandler.NewWebPublicationHandler(
-		a.webPublicationService,
-		a.logger,
-	)
-
 	rootHandler := httpHandler.NewRootHandler(
 		"console/dist",
 		"notification_center/dist",
@@ -929,8 +918,8 @@ func (a *App) InitHandlers() error {
 		a.config.SMTPRelay.Domain,
 		a.config.SMTPRelay.Port,
 		smtpRelayTLSEnabled,
-		*webPublicationHandler,
 		a.workspaceRepo,
+		a.blogService,
 	)
 	setupHandler := httpHandler.NewSetupHandler(
 		a.setupService,
@@ -951,6 +940,7 @@ func (a *App) InitHandlers() error {
 	templateHandler := httpHandler.NewTemplateHandler(a.templateService, getJWTSecret, a.logger)
 	emailHandler := httpHandler.NewEmailHandler(a.emailService, getJWTSecret, a.logger, a.config.Security.SecretKey)
 	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getJWTSecret, a.logger, a.config.IsDemo())
+	blogHandler := httpHandler.NewBlogHandler(a.blogService, getJWTSecret, a.logger, a.config.IsDemo())
 	taskHandler := httpHandler.NewTaskHandler(
 		a.taskService,
 		getJWTSecret,
@@ -1004,6 +994,7 @@ func (a *App) InitHandlers() error {
 	templateHandler.RegisterRoutes(a.mux)
 	emailHandler.RegisterRoutes(a.mux)
 	broadcastHandler.RegisterRoutes(a.mux)
+	blogHandler.RegisterRoutes(a.mux)
 	taskHandler.RegisterRoutes(a.mux)
 	transactionalHandler.RegisterRoutes(a.mux)
 	webhookEventHandler.RegisterRoutes(a.mux)

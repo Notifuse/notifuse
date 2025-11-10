@@ -22,7 +22,7 @@ import { CreateListDrawer } from '../components/lists/ListDrawer'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { faRefresh } from '@fortawesome/free-solid-svg-icons'
-import { Check, X, Globe } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { CreateTemplateDrawer } from '../components/templates/CreateTemplateDrawer'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
@@ -30,9 +30,8 @@ import { useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { ImportContactsToListButton } from '../components/lists/ImportContactsToListButton'
 import { ListStats } from '../components/lists/ListStats'
-import { OpenGraphPreview } from '../components/seo/OpenGraphPreview'
 
-const { Title, Paragraph, Text, Link } = Typography
+const { Title, Paragraph, Text } = Typography
 
 // Component to fetch template data and render the preview popover
 const TemplatePreviewButton = ({
@@ -323,101 +322,7 @@ export function ListsPage() {
                     <X size={16} className="text-slate-500 mt-1" />
                   )}
                 </Descriptions.Item>
-
-                {/* Web Publication Settings (with per-setting Description) */}
-                <Descriptions.Item label="Web Publication">
-                  {list.web_publication_enabled ? (
-                    <Space direction="vertical" size="small" className="w-full">
-                      {/* Enabled status */}
-                      <div className="flex items-center gap-2">
-                        <Tag bordered={false} color="green">
-                          Enabled
-                        </Tag>
-                      </div>
-                    </Space>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Tag bordered={false} color="volcano">
-                        Disabled
-                      </Tag>
-                    </div>
-                  )}
-                </Descriptions.Item>
-
-                {list.web_publication_enabled && (
-                  <>
-                    <Descriptions.Item label="Public URL" span={1}>
-                      {list.web_publication_settings?.slug &&
-                      workspace?.settings?.custom_endpoint_url ? (
-                        <div className="flex items-center gap-2">
-                          <Link
-                            href={`${workspace.settings.custom_endpoint_url}/${list.web_publication_settings.slug}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm"
-                          >
-                            {workspace.settings.custom_endpoint_url}/
-                            {list.web_publication_settings.slug}
-                          </Link>
-                        </div>
-                      ) : (
-                        <Text type="secondary">Not set</Text>
-                      )}
-                    </Descriptions.Item>
-
-                    {/* SEO Title */}
-                    <Descriptions.Item label="SEO Title">
-                      {list.web_publication_settings?.meta_title ? (
-                        <span>{list.web_publication_settings.meta_title}</span>
-                      ) : (
-                        <Text type="secondary">Not set</Text>
-                      )}
-                    </Descriptions.Item>
-
-                    {/* SEO Description */}
-                    <Descriptions.Item label="SEO Description">
-                      {list.web_publication_settings?.meta_description ? (
-                        <span>{list.web_publication_settings.meta_description}</span>
-                      ) : (
-                        <Text type="secondary">Not set</Text>
-                      )}
-                    </Descriptions.Item>
-
-                    {/* SEO Keywords */}
-                    <Descriptions.Item label="SEO Keywords">
-                      {list.web_publication_settings?.keywords &&
-                      list.web_publication_settings.keywords.length > 0 ? (
-                        <Space size={4} wrap>
-                          {list.web_publication_settings.keywords.map((keyword, idx) => (
-                            <Tag key={idx} bordered={false} className="text-xs">
-                              {keyword}
-                            </Tag>
-                          ))}
-                        </Space>
-                      ) : (
-                        <Text type="secondary">None</Text>
-                      )}
-                    </Descriptions.Item>
-                  </>
-                )}
               </Descriptions>
-
-              {/* Open Graph Preview - Separate section */}
-              {list.web_publication_enabled && list.web_publication_settings && (
-                <Descriptions size="small" layout="vertical" column={1} style={{ marginTop: 8 }}>
-                  <Descriptions.Item label="Open Graph Preview">
-                    <OpenGraphPreview
-                      webPublicationSettings={list.web_publication_settings}
-                      broadcastName={list.name}
-                      customEndpointUrl={workspace?.settings?.custom_endpoint_url}
-                      fallbackIcon={<Globe size={24} className="text-blue-300" />}
-                      defaultDescription={
-                        list.description || 'Subscribe to receive updates from this list.'
-                      }
-                    />
-                  </Descriptions.Item>
-                </Descriptions>
-              )}
             </Card>
           ))}
         </Space>

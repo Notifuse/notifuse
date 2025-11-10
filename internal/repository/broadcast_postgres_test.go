@@ -513,14 +513,14 @@ func TestBroadcastRepository_GetBroadcast_Success(t *testing.T) {
 		"test_settings", "utm_parameters", "metadata",
 		"winning_template",
 		"test_sent_at", "winner_sent_at", "created_at", "updated_at",
-		"started_at", "completed_at", "cancelled_at",
+		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
 	}).
 		AddRow(
 			broadcastID, workspaceID, "Test Broadcast", domain.BroadcastStatusDraft,
 			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
 			"", // Use empty string instead of nil for winning_template
 			nil, nil, time.Now(), time.Now(),
-			nil, nil, nil,
+			nil, nil, nil, nil, "",
 		)
 
 	mock.ExpectQuery("SELECT").

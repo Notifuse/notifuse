@@ -167,9 +167,6 @@ func TestScanList(t *testing.T) {
 			nil,              // DoubleOptInTemplate
 			nil,              // WelcomeTemplate
 			nil,              // UnsubscribeTemplate
-			nil,              // Slug
-			false,            // WebPublicationEnabled
-			nil,              // WebPublicationSettings
 			now,              // CreatedAt
 			now,              // UpdatedAt
 			nil,              // DeletedAt
@@ -187,9 +184,6 @@ func TestScanList(t *testing.T) {
 	assert.Nil(t, list.DoubleOptInTemplate)
 	assert.Nil(t, list.WelcomeTemplate)
 	assert.Nil(t, list.UnsubscribeTemplate)
-	assert.Nil(t, list.Slug)
-	assert.Equal(t, false, list.WebPublicationEnabled)
-	assert.Nil(t, list.WebPublicationSettings)
 	assert.Equal(t, now, list.CreatedAt)
 	assert.Equal(t, now, list.UpdatedAt)
 	assert.Nil(t, list.DeletedAt)
@@ -233,10 +227,6 @@ func (m *listMockScanner) Scan(dest ...interface{}) error {
 				*v = nil
 			} else if s, ok := m.data[i].(string); ok {
 				*v = &s
-			}
-		case **WebPublicationSettings:
-			if wps, ok := m.data[i].(*WebPublicationSettings); ok {
-				*v = wps
 			}
 		case *time.Time:
 			if t, ok := m.data[i].(time.Time); ok {
@@ -489,146 +479,8 @@ func TestCreateListRequest_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "valid request with web publication",
-			request: CreateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				IsPublic:              true,
-				Description:           "Test description",
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug:            "my-newsletter",
-					MetaTitle:       "My Newsletter",
-					MetaDescription: "Subscribe to my newsletter",
-				},
-			},
-			wantErr: false,
-			wantList: &List{
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				IsPublic:              true,
-				Description:           "Test description",
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug:            "my-newsletter",
-					MetaTitle:       "My Newsletter",
-					MetaDescription: "Subscribe to my newsletter",
-				},
-			},
-		},
-		{
-			name: "web publication enabled without slug",
-			request: CreateListRequest{
-				WorkspaceID:            "workspace123",
-				ID:                     "list123",
-				Name:                   "My List",
-				IsDoubleOptin:          false,
-				WebPublicationEnabled:  true,
-				WebPublicationSettings: &WebPublicationSettings{},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication enabled with nil settings",
-			request: CreateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with reserved slug - console",
-			request: CreateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "console",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with reserved slug - api",
-			request: CreateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "api",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with reserved slug - notification-center",
-			request: CreateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "notification-center",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with invalid slug format - uppercase",
-			request: CreateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "MyNewsletter",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with invalid slug format - special chars",
-			request: CreateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "my_newsletter",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with slug too long",
-			request: CreateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "this-is-a-very-long-slug-that-exceeds-the-maximum-length-of-one-hundred-characters-and-should-fail-validation",
-				},
-			},
-			wantErr: true,
-		},
-	}
 
+	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			list, workspaceID, err := tt.request.Validate()
@@ -1030,144 +882,6 @@ func TestUpdateListRequest_Validate(t *testing.T) {
 				UnsubscribeTemplate: &TemplateReference{
 					ID:      "",
 					Version: 0,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "valid request with web publication",
-			request: UpdateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				IsPublic:              true,
-				Description:           "Test description",
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug:            "my-newsletter",
-					MetaTitle:       "My Newsletter",
-					MetaDescription: "Subscribe to my newsletter",
-				},
-			},
-			wantErr: false,
-			wantList: &List{
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				IsPublic:              true,
-				Description:           "Test description",
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug:            "my-newsletter",
-					MetaTitle:       "My Newsletter",
-					MetaDescription: "Subscribe to my newsletter",
-				},
-			},
-		},
-		{
-			name: "web publication enabled without slug",
-			request: UpdateListRequest{
-				WorkspaceID:            "workspace123",
-				ID:                     "list123",
-				Name:                   "My List",
-				IsDoubleOptin:          false,
-				WebPublicationEnabled:  true,
-				WebPublicationSettings: &WebPublicationSettings{},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication enabled with nil settings",
-			request: UpdateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with reserved slug - console",
-			request: UpdateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "console",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with reserved slug - api",
-			request: UpdateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "api",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with reserved slug - preferences",
-			request: UpdateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "preferences",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with invalid slug format - uppercase",
-			request: UpdateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "MyNewsletter",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with invalid slug format - spaces",
-			request: UpdateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "my newsletter",
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "web publication with slug too long",
-			request: UpdateListRequest{
-				WorkspaceID:           "workspace123",
-				ID:                    "list123",
-				Name:                  "My List",
-				IsDoubleOptin:         false,
-				WebPublicationEnabled: true,
-				WebPublicationSettings: &WebPublicationSettings{
-					Slug: "this-is-a-very-long-slug-that-exceeds-the-maximum-length-of-one-hundred-characters-and-should-fail-validation",
 				},
 			},
 			wantErr: true,

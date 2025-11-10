@@ -8,9 +8,9 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 )
 
-// V17Migration adds web publication support with mailing list structure
-// Broadcasts: channels, web_publication_settings JSONB, web_published_at, pause_reason
-// Lists: slug, web_publication_enabled, web_publication_settings
+// V17Migration updates mailing list structure
+// Broadcasts: pause_reason, audience.lists -> audience.list
+// Message history: list_ids -> list_id
 type V17Migration struct{}
 
 func (m *V17Migration) GetMajorVersion() float64 {
@@ -37,60 +37,13 @@ func (m *V17Migration) UpdateSystem(ctx context.Context, config *config.Config, 
 func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Config, workspace *domain.Workspace, db DBExecutor) error {
 	// ===== BROADCASTS TABLE =====
 
-	// Add channels column
-	_, err := db.ExecContext(ctx, `
-		ALTER TABLE broadcasts
-		ADD COLUMN IF NOT EXISTS channels JSONB DEFAULT '{"email": true, "web": false}'::jsonb
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to add channels column to broadcasts: %w", err)
-	}
-
-	// Add web_publication_settings column
-	_, err = db.ExecContext(ctx, `
-		ALTER TABLE broadcasts
-		ADD COLUMN IF NOT EXISTS web_publication_settings JSONB
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to add web_publication_settings column to broadcasts: %w", err)
-	}
-
-	// Add web_published_at column (separate from settings for performance)
-	_, err = db.ExecContext(ctx, `
-		ALTER TABLE broadcasts
-		ADD COLUMN IF NOT EXISTS web_published_at TIMESTAMP
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to add web_published_at column to broadcasts: %w", err)
-	}
-
 	// Add pause_reason column
-	_, err = db.ExecContext(ctx, `
+	_, err := db.ExecContext(ctx, `
 		ALTER TABLE broadcasts
 		ADD COLUMN IF NOT EXISTS pause_reason TEXT
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to add pause_reason column to broadcasts: %w", err)
-	}
-
-	// Create index for querying published web broadcasts
-	_, err = db.ExecContext(ctx, `
-		CREATE INDEX IF NOT EXISTS idx_broadcasts_web_published
-		ON broadcasts(workspace_id, web_published_at)
-		WHERE web_published_at IS NOT NULL
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to create index on web_published_at: %w", err)
-	}
-
-	// Update existing broadcasts to have web disabled
-	_, err = db.ExecContext(ctx, `
-		UPDATE broadcasts
-		SET channels = '{"email": true, "web": false}'::jsonb
-		WHERE channels IS NULL
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to update existing broadcasts with default channels: %w", err)
 	}
 
 	// Migrate audience structure: convert lists array to single list, remove skip_duplicate_emails
@@ -138,44 +91,80 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		return fmt.Errorf("failed to drop list_ids column from message_history: %w", err)
 	}
 
-	// ===== LISTS TABLE =====
+	// ===== BLOG_CATEGORIES TABLE =====
 
-	// Add slug column
+	// Create blog_categories table
 	_, err = db.ExecContext(ctx, `
-		ALTER TABLE lists
-		ADD COLUMN IF NOT EXISTS slug VARCHAR(100)
+		CREATE TABLE IF NOT EXISTS blog_categories (
+			id VARCHAR(32) PRIMARY KEY,
+			slug VARCHAR(100) NOT NULL UNIQUE,
+			settings JSONB NOT NULL DEFAULT '{}',
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP
+		)
 	`)
 	if err != nil {
-		return fmt.Errorf("failed to add slug column to lists: %w", err)
+		return fmt.Errorf("failed to create blog_categories table: %w", err)
 	}
 
-	// Add web_publication_enabled column
+	// Create unique index on slug
 	_, err = db.ExecContext(ctx, `
-		ALTER TABLE lists
-		ADD COLUMN IF NOT EXISTS web_publication_enabled BOOLEAN DEFAULT false
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_categories_slug 
+		ON blog_categories(slug) 
+		WHERE deleted_at IS NULL
 	`)
 	if err != nil {
-		return fmt.Errorf("failed to add web_publication_enabled column to lists: %w", err)
+		return fmt.Errorf("failed to create idx_blog_categories_workspace_slug index: %w", err)
 	}
 
-	// Add web_publication_settings column
+	// ===== BLOG_POSTS TABLE =====
+
+	// Create blog_posts table
 	_, err = db.ExecContext(ctx, `
-		ALTER TABLE lists
-		ADD COLUMN IF NOT EXISTS web_publication_settings JSONB
+		CREATE TABLE IF NOT EXISTS blog_posts (
+			id VARCHAR(32) PRIMARY KEY,
+			category_id VARCHAR(32) REFERENCES blog_categories(id) ON DELETE SET NULL,
+			slug VARCHAR(100) NOT NULL UNIQUE,
+			settings JSONB NOT NULL DEFAULT '{}',
+			published_at TIMESTAMP,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP
+		)
 	`)
 	if err != nil {
-		return fmt.Errorf("failed to add web_publication_settings column to lists: %w", err)
+		return fmt.Errorf("failed to create blog_posts table: %w", err)
 	}
 
-	// Create unique index for list slugs
-	// Note: Lists are in workspace-specific databases, so no workspace_id column needed
+	// Create index on published_at for published posts
 	_, err = db.ExecContext(ctx, `
-		CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_slug
-		ON lists(slug)
-		WHERE slug IS NOT NULL
+		CREATE INDEX IF NOT EXISTS idx_blog_posts_published 
+		ON blog_posts(published_at DESC) 
+		WHERE deleted_at IS NULL AND published_at IS NOT NULL
 	`)
 	if err != nil {
-		return fmt.Errorf("failed to create unique index on list slugs: %w", err)
+		return fmt.Errorf("failed to create idx_blog_posts_published index: %w", err)
+	}
+
+	// Create index on category_id
+	_, err = db.ExecContext(ctx, `
+		CREATE INDEX IF NOT EXISTS idx_blog_posts_category 
+		ON blog_posts(category_id) 
+		WHERE deleted_at IS NULL
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create idx_blog_posts_category index: %w", err)
+	}
+
+	// Create unique index on slug
+	_, err = db.ExecContext(ctx, `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_posts_slug 
+		ON blog_posts(slug) 
+		WHERE deleted_at IS NULL
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create idx_blog_posts_workspace_slug index: %w", err)
 	}
 
 	return nil

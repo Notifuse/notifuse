@@ -95,44 +95,25 @@ export type BroadcastStatus =
 
 export interface BroadcastChannels {
   email: boolean
-  web: boolean
-}
-
-export interface WebPublicationSettings {
-  slug?: string
-  meta_title?: string
-  meta_description?: string
-  og_title?: string
-  og_description?: string
-  og_image?: string
-  canonical_url?: string
-  keywords?: string[]
 }
 
 export interface Broadcast {
   id: string
   workspace_id: string
   name: string
+  channel_type: string
   status: BroadcastStatus
   audience: AudienceSettings
   schedule: ScheduleSettings
   test_settings: BroadcastTestSettings
   utm_parameters?: UTMParameters
   metadata?: Record<string, any>
-  channels: BroadcastChannels
-  web_publication_settings?: WebPublicationSettings
-  web_published_at?: string
-  sent_count: number
-  delivered_count: number
-  failed_count: number
-  total_opens?: number
-  total_clicks?: number
-  total_bounced?: number
-  total_complained?: number
-  total_unsubscribed?: number
+  channels?: BroadcastChannels // Legacy/frontend-only field
   winning_template?: string
   test_sent_at?: string
   winner_sent_at?: string
+  test_phase_recipient_count: number
+  winner_phase_recipient_count: number
   created_at: string
   updated_at: string
   started_at?: string
@@ -148,10 +129,9 @@ export interface CreateBroadcastRequest {
   audience: AudienceSettings
   schedule: ScheduleSettings
   test_settings: BroadcastTestSettings
+  tracking_enabled?: boolean
   utm_parameters?: UTMParameters
   metadata?: Record<string, any>
-  channels: BroadcastChannels
-  web_publication_settings?: WebPublicationSettings
 }
 
 export interface UpdateBroadcastRequest {
@@ -161,10 +141,9 @@ export interface UpdateBroadcastRequest {
   audience: AudienceSettings
   schedule: ScheduleSettings
   test_settings: BroadcastTestSettings
+  tracking_enabled?: boolean
   utm_parameters?: UTMParameters
   metadata?: Record<string, any>
-  channels: BroadcastChannels
-  web_publication_settings?: WebPublicationSettings
 }
 
 export interface ListBroadcastsRequest {

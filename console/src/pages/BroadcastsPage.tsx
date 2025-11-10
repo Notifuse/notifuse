@@ -56,7 +56,6 @@ import { BroadcastStats } from '../components/broadcasts/BroadcastStats'
 import { Integration, List, Sender } from '../services/api/types'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import { Template } from '../services/api/types'
-import { OpenGraphPreview } from '../components/seo/OpenGraphPreview'
 
 const { Title, Paragraph, Text } = Typography
 
@@ -798,7 +797,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
             </div>
 
             <Row gutter={32}>
-              <Col span={12}>
+              <Col span={8}>
                 <Subtitle className="mt-8 mb-4">Audience</Subtitle>
 
                 <Descriptions bordered={false} size="small" column={1}>
@@ -846,26 +845,58 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                   </Descriptions.Item>
                 </Descriptions>
 
-                <Subtitle className="mt-8 mb-4">Email Settings</Subtitle>
+                {/* Schedule Information */}
+                {broadcast.schedule.is_scheduled &&
+                  broadcast.schedule.scheduled_date &&
+                  broadcast.schedule.scheduled_time && (
+                    <Descriptions.Item label="Scheduled">
+                      {dayjs(
+                        `${broadcast.schedule.scheduled_date} ${broadcast.schedule.scheduled_time}`
+                      ).format('lll')}
+                      {' in '}
+                      {broadcast.schedule.use_recipient_timezone
+                        ? 'recipients timezone'
+                        : broadcast.schedule.timezone}
+                    </Descriptions.Item>
+                  )}
+
+                {/* sending */}
                 <Descriptions bordered={false} size="small" column={1}>
-                  {/* enabled email channel */}
-                  {broadcast.channels.email && (
-                    <Descriptions.Item label="Channel">
-                      <Tag bordered={false} color="green">
-                        Enabled
-                      </Tag>
+                  {broadcast.started_at && (
+                    <Descriptions.Item label="Started">
+                      {dayjs(broadcast.started_at).fromNow()}
                     </Descriptions.Item>
                   )}
 
-                  {/* disabled email channel */}
-                  {!broadcast.channels.email && (
-                    <Descriptions.Item label="Channel">
-                      <Tag bordered={false} color="red">
-                        Disabled
-                      </Tag>
+                  {broadcast.completed_at && (
+                    <Descriptions.Item label="Completed">
+                      {dayjs(broadcast.completed_at).fromNow()}
                     </Descriptions.Item>
                   )}
 
+                  {broadcast.paused_at && (
+                    <Descriptions.Item label="Paused">
+                      <Space direction="vertical" size="small">
+                        <div>{dayjs(broadcast.paused_at).fromNow()}</div>
+                        {broadcast.pause_reason && (
+                          <div className="text-orange-600 text-sm">
+                            <strong>Reason:</strong> {broadcast.pause_reason}
+                          </div>
+                        )}
+                      </Space>
+                    </Descriptions.Item>
+                  )}
+
+                  {broadcast.cancelled_at && (
+                    <Descriptions.Item label="Cancelled">
+                      {dayjs(broadcast.cancelled_at).fromNow()}
+                    </Descriptions.Item>
+                  )}
+                </Descriptions>
+              </Col>
+              <Col span={8}>
+                <Subtitle className="mt-8 mb-4">Web Analytics</Subtitle>
+                <Descriptions bordered={false} size="small" column={1}>
                   {broadcast.utm_parameters?.source && (
                     <Descriptions.Item label="UTM Source">
                       {broadcast.utm_parameters.source}
@@ -896,7 +927,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     </Descriptions.Item>
                   )}
                 </Descriptions>
-
+              </Col>
+              <Col span={8}>
                 {broadcast.test_settings.enabled && (
                   <>
                     <Subtitle className="mt-8 mb-4">A/B Test</Subtitle>
@@ -951,152 +983,8 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                     </Descriptions>
                   </>
                 )}
-
-                {/* sending */}
-                <Descriptions bordered={false} size="small" column={1}>
-                  {broadcast.started_at && (
-                    <Descriptions.Item label="Started">
-                      {dayjs(broadcast.started_at).fromNow()}
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.completed_at && (
-                    <Descriptions.Item label="Completed">
-                      {dayjs(broadcast.completed_at).fromNow()}
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.paused_at && (
-                    <Descriptions.Item label="Paused">
-                      <Space direction="vertical" size="small">
-                        <div>{dayjs(broadcast.paused_at).fromNow()}</div>
-                        {broadcast.pause_reason && (
-                          <div className="text-orange-600 text-sm">
-                            <strong>Reason:</strong> {broadcast.pause_reason}
-                          </div>
-                        )}
-                      </Space>
-                    </Descriptions.Item>
-                  )}
-
-                  {broadcast.cancelled_at && (
-                    <Descriptions.Item label="Cancelled">
-                      {dayjs(broadcast.cancelled_at).fromNow()}
-                    </Descriptions.Item>
-                  )}
-                </Descriptions>
-              </Col>
-
-              <Col span={12}>
-                <Subtitle className="mt-8 mb-4">Web Settings</Subtitle>
-                <Descriptions bordered={false} size="small" column={1}>
-                  {/* Web Publication Settings */}
-                  <Descriptions.Item label="Web Channel">
-                    {broadcast.channels?.web ? (
-                      <Tag bordered={false} color="green">
-                        Enabled
-                      </Tag>
-                    ) : (
-                      <Tag bordered={false} color="volcano">
-                        Disabled
-                      </Tag>
-                    )}
-                  </Descriptions.Item>
-
-                  {broadcast.channels?.web && broadcast.web_publication_settings && (
-                    <>
-                      <Descriptions.Item label="Post URL" span={1}>
-                        {broadcast.web_publication_settings.slug &&
-                        currentWorkspace?.settings?.custom_endpoint_url ? (
-                          <div className="flex items-center gap-2">
-                            {(() => {
-                              const list = lists.find((l) => l.id === broadcast.audience.list)
-                              if (list?.slug) {
-                                return (
-                                  <a
-                                    href={`${currentWorkspace.settings.custom_endpoint_url}/${list.slug}/${broadcast.web_publication_settings.slug}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-sm"
-                                  >
-                                    {currentWorkspace.settings.custom_endpoint_url}/{list.slug}/
-                                    {broadcast.web_publication_settings.slug}
-                                  </a>
-                                )
-                              }
-                              return <Text type="secondary">List slug not configured</Text>
-                            })()}
-                          </div>
-                        ) : (
-                          <Text type="secondary">Not set</Text>
-                        )}
-                      </Descriptions.Item>
-
-                      {broadcast.web_published_at && (
-                        <Descriptions.Item label="Published">
-                          {dayjs(broadcast.web_published_at).fromNow()}
-                        </Descriptions.Item>
-                      )}
-
-                      {broadcast.web_publication_settings.meta_title && (
-                        <Descriptions.Item label="SEO Title">
-                          {broadcast.web_publication_settings.meta_title}
-                        </Descriptions.Item>
-                      )}
-
-                      {broadcast.web_publication_settings.meta_description && (
-                        <Descriptions.Item label="SEO Description">
-                          {broadcast.web_publication_settings.meta_description}
-                        </Descriptions.Item>
-                      )}
-
-                      {broadcast.web_publication_settings.keywords &&
-                        broadcast.web_publication_settings.keywords.length > 0 && (
-                          <Descriptions.Item label="SEO Keywords">
-                            <Space size={4} wrap>
-                              {broadcast.web_publication_settings.keywords.map((keyword, idx) => (
-                                <Tag key={idx} bordered={false} className="text-xs">
-                                  {keyword}
-                                </Tag>
-                              ))}
-                            </Space>
-                          </Descriptions.Item>
-                        )}
-                    </>
-                  )}
-                </Descriptions>
-
-                {/* Open Graph Preview - Separate section */}
-                {broadcast.channels?.web && broadcast.web_publication_settings && (
-                  <Descriptions size="small" layout="vertical" column={1} style={{ marginTop: 8 }}>
-                    <Descriptions.Item label="Open Graph Preview">
-                      <OpenGraphPreview
-                        webPublicationSettings={broadcast.web_publication_settings}
-                        broadcastName={broadcast.name}
-                        customEndpointUrl={currentWorkspace?.settings?.custom_endpoint_url}
-                      />
-                    </Descriptions.Item>
-                  </Descriptions>
-                )}
               </Col>
             </Row>
-
-            <Descriptions bordered={false} size="small" column={1}>
-              {/* Schedule Information */}
-              {broadcast.schedule.is_scheduled &&
-                broadcast.schedule.scheduled_date &&
-                broadcast.schedule.scheduled_time && (
-                  <Descriptions.Item label="Scheduled">
-                    {dayjs(
-                      `${broadcast.schedule.scheduled_date} ${broadcast.schedule.scheduled_time}`
-                    ).format('lll')}
-                    {' in '}
-                    {broadcast.schedule.use_recipient_timezone
-                      ? 'recipients timezone'
-                      : broadcast.schedule.timezone}
-                  </Descriptions.Item>
-                )}
-            </Descriptions>
           </div>
         )}
       </div>

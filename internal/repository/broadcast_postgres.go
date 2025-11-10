@@ -77,9 +77,6 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			test_settings, 
 			utm_parameters, 
 			metadata, 
-			channels,
-			web_publication_settings,
-			web_published_at,
 			winning_template, 
 			test_sent_at, 
 			winner_sent_at, 
@@ -91,7 +88,7 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			paused_at,
 			pause_reason
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
 		)
 	`
 
@@ -105,9 +102,6 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.TestSettings,
 		broadcast.UTMParameters,
 		broadcast.Metadata,
-		broadcast.Channels,
-		broadcast.WebPublicationSettings,
-		broadcast.WebPublishedAt,
 		broadcast.WinningTemplate,
 		broadcast.TestSentAt,
 		broadcast.WinnerSentAt,
@@ -146,9 +140,6 @@ func (r *broadcastRepository) GetBroadcast(ctx context.Context, workspaceID, id 
 			test_settings, 
 			utm_parameters, 
 			metadata, 
-			channels,
-			web_publication_settings,
-			web_published_at,
 			winning_template, 
 			test_sent_at, 
 			winner_sent_at, 
@@ -189,9 +180,6 @@ func (r *broadcastRepository) GetBroadcastTx(ctx context.Context, tx *sql.Tx, wo
 			test_settings, 
 			utm_parameters, 
 			metadata, 
-			channels,
-			web_publication_settings,
-			web_published_at,
 			winning_template, 
 			test_sent_at, 
 			winner_sent_at, 
@@ -232,7 +220,7 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 	broadcast.UpdatedAt = time.Now().UTC()
 
 	query := `
-		UPDATE broadcasts SET
+		UPDATE broadcasts 		SET
 			name = $3,
 			status = $4,
 			audience = $5,
@@ -240,18 +228,15 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			test_settings = $7,
 			utm_parameters = $8,
 			metadata = $9,
-			channels = $10,
-			web_publication_settings = $11,
-			web_published_at = $12,
-			winning_template = $13,
-			test_sent_at = $14,
-			winner_sent_at = $15,
-			updated_at = $16,
-			started_at = $17,
-			completed_at = $18,
-			cancelled_at = $19,
-			paused_at = $20,
-			pause_reason = $21
+			winning_template = $10,
+			test_sent_at = $11,
+			winner_sent_at = $12,
+			updated_at = $13,
+			started_at = $14,
+			completed_at = $15,
+			cancelled_at = $16,
+			paused_at = $17,
+			pause_reason = $18
 		WHERE id = $1 AND workspace_id = $2
 			AND status != 'cancelled'
 			AND status != 'sent'
@@ -267,9 +252,6 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.TestSettings,
 		broadcast.UTMParameters,
 		broadcast.Metadata,
-		broadcast.Channels,
-		broadcast.WebPublicationSettings,
-		broadcast.WebPublishedAt,
 		broadcast.WinningTemplate,
 		broadcast.TestSentAt,
 		broadcast.WinnerSentAt,
@@ -341,9 +323,6 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				test_settings, 
 				utm_parameters, 
 				metadata, 
-				channels,
-				web_publication_settings,
-				web_published_at,
 				winning_template, 
 				test_sent_at, 
 				winner_sent_at, 
@@ -372,9 +351,6 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				test_settings, 
 				utm_parameters, 
 				metadata, 
-				channels,
-				web_publication_settings,
-				web_published_at,
 				winning_template, 
 				test_sent_at, 
 				winner_sent_at, 
@@ -494,9 +470,6 @@ func scanBroadcast(scanner interface {
 		&broadcast.TestSettings,
 		&broadcast.UTMParameters,
 		&broadcast.Metadata,
-		&broadcast.Channels,
-		&broadcast.WebPublicationSettings,
-		&broadcast.WebPublishedAt,
 		&broadcast.WinningTemplate,
 		&broadcast.TestSentAt,
 		&broadcast.WinnerSentAt,
@@ -514,304 +487,4 @@ func scanBroadcast(scanner interface {
 	}
 
 	return broadcast, nil
-}
-
-// GetBySlug retrieves a broadcast by its slug within a workspace
-func (r *broadcastRepository) GetBySlug(ctx context.Context, workspaceID, slug string) (*domain.Broadcast, error) {
-	// Get the workspace database connection
-	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
-	}
-
-	query := `
-		SELECT 
-			id, 
-			workspace_id,
-			name, 
-			status, 
-			audience, 
-			schedule, 
-			test_settings, 
-			utm_parameters, 
-			metadata, 
-			channels,
-			web_publication_settings,
-			web_published_at,
-			winning_template, 
-			test_sent_at, 
-			winner_sent_at, 
-			created_at, 
-			updated_at, 
-			started_at, 
-			completed_at, 
-			cancelled_at,
-			paused_at,
-			pause_reason
-		FROM broadcasts
-		WHERE workspace_id = $1 AND web_publication_settings->>'slug' = $2
-	`
-
-	row := workspaceDB.QueryRowContext(ctx, query, workspaceID, slug)
-
-	broadcast, err := scanBroadcast(row)
-	if err == sql.ErrNoRows {
-		return nil, &domain.ErrBroadcastNotFound{ID: slug}
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to get broadcast by slug: %w", err)
-	}
-
-	return broadcast, nil
-}
-
-// GetPublishedWebBroadcasts retrieves published web broadcasts for a workspace
-func (r *broadcastRepository) GetPublishedWebBroadcasts(ctx context.Context, workspaceID string, limit, offset int) ([]*domain.Broadcast, int, error) {
-	// Get the workspace database connection
-	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to get workspace connection: %w", err)
-	}
-
-	// Count total published web broadcasts
-	countQuery := `
-		SELECT COUNT(*)
-		FROM broadcasts
-		WHERE workspace_id = $1
-		  AND channels->>'web' = 'true'
-		  AND web_published_at IS NOT NULL
-		  AND web_published_at <= NOW()
-	`
-
-	var totalCount int
-	err = workspaceDB.QueryRowContext(ctx, countQuery, workspaceID).Scan(&totalCount)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count published web broadcasts: %w", err)
-	}
-
-	// Query paginated broadcasts
-	dataQuery := `
-		SELECT 
-			id, 
-			workspace_id,
-			name, 
-			status, 
-			audience, 
-			schedule, 
-			test_settings, 
-			utm_parameters, 
-			metadata, 
-			channels,
-			web_publication_settings,
-			web_published_at,
-			winning_template, 
-			test_sent_at, 
-			winner_sent_at, 
-			created_at, 
-			updated_at, 
-			started_at, 
-			completed_at, 
-			cancelled_at,
-			paused_at,
-			pause_reason
-		FROM broadcasts
-		WHERE workspace_id = $1
-		  AND channels->>'web' = 'true'
-		  AND web_published_at IS NOT NULL
-		  AND web_published_at <= NOW()
-		ORDER BY web_published_at DESC
-		LIMIT $2 OFFSET $3
-	`
-
-	rows, err := workspaceDB.QueryContext(ctx, dataQuery, workspaceID, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to query published web broadcasts: %w", err)
-	}
-	defer rows.Close()
-
-	var broadcasts []*domain.Broadcast
-	for rows.Next() {
-		broadcast, err := scanBroadcast(rows)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to scan broadcast: %w", err)
-		}
-		broadcasts = append(broadcasts, broadcast)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("error iterating broadcast rows: %w", err)
-	}
-
-	return broadcasts, totalCount, nil
-}
-
-// HasWebPublications checks if a workspace has any published web broadcasts
-func (r *broadcastRepository) HasWebPublications(ctx context.Context, workspaceID string) (bool, error) {
-	// Get the workspace database connection
-	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
-	if err != nil {
-		return false, fmt.Errorf("failed to get workspace connection: %w", err)
-	}
-
-	query := `
-		SELECT EXISTS(
-			SELECT 1
-			FROM broadcasts
-			WHERE workspace_id = $1
-			  AND channels->>'web' = 'true'
-			  AND web_published_at IS NOT NULL
-			  AND web_published_at <= NOW()
-		)
-	`
-
-	var hasPublications bool
-	err = workspaceDB.QueryRowContext(ctx, query, workspaceID).Scan(&hasPublications)
-	if err != nil {
-		return false, fmt.Errorf("failed to check web publications: %w", err)
-	}
-
-	return hasPublications, nil
-}
-
-// GetPublishedCountsByList returns post counts for each list in a single query
-func (r *broadcastRepository) GetPublishedCountsByList(ctx context.Context, workspaceID string) (map[string]int, error) {
-	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
-	}
-
-	query := `
-		SELECT 
-			audience->'lists'->>0 as list_id,
-			COUNT(*) as count
-		FROM broadcasts
-		WHERE workspace_id = $1
-		  AND channels->>'web' = 'true'
-		  AND web_published_at IS NOT NULL
-		  AND web_published_at <= NOW()
-		GROUP BY audience->'lists'->>0
-	`
-
-	rows, err := workspaceDB.QueryContext(ctx, query, workspaceID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get published counts by list: %w", err)
-	}
-	defer rows.Close()
-
-	counts := make(map[string]int)
-	for rows.Next() {
-		var listID string
-		var count int
-		if err := rows.Scan(&listID, &count); err != nil {
-			return nil, fmt.Errorf("failed to scan count: %w", err)
-		}
-		counts[listID] = count
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating count rows: %w", err)
-	}
-
-	return counts, nil
-}
-
-// GetByListAndSlug retrieves a broadcast by list ID and slug
-func (r *broadcastRepository) GetByListAndSlug(ctx context.Context, workspaceID, listID, slug string) (*domain.Broadcast, error) {
-	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
-	}
-
-	query := `
-		SELECT 
-			id, workspace_id, name, status, audience, schedule, test_settings,
-			utm_parameters, metadata, channels, web_publication_settings, web_published_at,
-			winning_template, test_sent_at, winner_sent_at,
-			created_at, updated_at, started_at, completed_at, cancelled_at,
-			paused_at, pause_reason
-		FROM broadcasts
-		WHERE workspace_id = $1
-		  AND audience->'lists' @> $2::jsonb
-		  AND web_publication_settings->>'slug' = $3
-		  AND channels->>'web' = 'true'
-		LIMIT 1
-	`
-
-	listJSON := fmt.Sprintf(`["%s"]`, listID)
-	row := workspaceDB.QueryRowContext(ctx, query, workspaceID, listJSON, slug)
-
-	broadcast, err := scanBroadcast(row)
-	if err == sql.ErrNoRows {
-		return nil, &domain.ErrBroadcastNotFound{ID: slug}
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to get broadcast by list and slug: %w", err)
-	}
-
-	return broadcast, nil
-}
-
-// GetPublishedWebBroadcastsByList returns published web broadcasts for a specific list
-func (r *broadcastRepository) GetPublishedWebBroadcastsByList(ctx context.Context, workspaceID, listID string, limit, offset int) ([]*domain.Broadcast, int, error) {
-	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to get workspace connection: %w", err)
-	}
-
-	// Count total
-	countQuery := `
-		SELECT COUNT(*)
-		FROM broadcasts
-		WHERE workspace_id = $1
-		  AND audience->'lists' @> $2::jsonb
-		  AND channels->>'web' = 'true'
-		  AND web_published_at IS NOT NULL
-		  AND web_published_at <= NOW()
-	`
-
-	listJSON := fmt.Sprintf(`["%s"]`, listID)
-	var totalCount int
-	err = workspaceDB.QueryRowContext(ctx, countQuery, workspaceID, listJSON).Scan(&totalCount)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count published web broadcasts: %w", err)
-	}
-
-	// Get data
-	dataQuery := `
-		SELECT 
-			id, workspace_id, name, status, audience, schedule, test_settings,
-			utm_parameters, metadata, channels, web_publication_settings, web_published_at,
-			winning_template, test_sent_at, winner_sent_at,
-			created_at, updated_at, started_at, completed_at, cancelled_at,
-			paused_at, pause_reason
-		FROM broadcasts
-		WHERE workspace_id = $1
-		  AND audience->'lists' @> $2::jsonb
-		  AND channels->>'web' = 'true'
-		  AND web_published_at IS NOT NULL
-		  AND web_published_at <= NOW()
-		ORDER BY web_published_at DESC
-		LIMIT $3 OFFSET $4
-	`
-
-	rows, err := workspaceDB.QueryContext(ctx, dataQuery, workspaceID, listJSON, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to get published web broadcasts: %w", err)
-	}
-	defer rows.Close()
-
-	broadcasts := []*domain.Broadcast{}
-	for rows.Next() {
-		broadcast, err := scanBroadcast(rows)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to scan broadcast: %w", err)
-		}
-		broadcasts = append(broadcasts, broadcast)
-	}
-
-	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("error iterating broadcast rows: %w", err)
-	}
-
-	return broadcasts, totalCount, nil
 }

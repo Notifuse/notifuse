@@ -31,7 +31,7 @@ func TestNewRootHandler(t *testing.T) {
 		"",
 		0,
 		false,
-		WebPublicationHandler{}, // webPublicationHandler
+		nil, // blogService
 		nil,                      // workspaceRepo
 	)
 
@@ -56,7 +56,7 @@ func TestRootHandler_Handle(t *testing.T) {
 		"",
 		0,
 		false,
-		WebPublicationHandler{}, // webPublicationHandler
+		nil, // blogService
 		nil,                      // workspaceRepo
 	)
 
@@ -97,7 +97,7 @@ func TestRootHandler_RegisterRoutes(t *testing.T) {
 		"",
 		0,
 		false,
-		WebPublicationHandler{}, // webPublicationHandler
+		nil, // blogService
 		nil,                      // workspaceRepo
 	)
 	mux := http.NewServeMux()
@@ -144,7 +144,7 @@ func TestRootHandler_RegisterRoutesWithNotificationCenter(t *testing.T) {
 		"",
 		0,
 		false,
-		WebPublicationHandler{}, // webPublicationHandler
+		nil, // blogService
 		nil,                      // workspaceRepo
 	)
 
@@ -184,7 +184,7 @@ func TestRootHandler_ServeConfigJS(t *testing.T) {
 		"",
 		0,
 		false,
-		WebPublicationHandler{}, // webPublicationHandler
+		nil, // blogService
 		nil,                      // workspaceRepo
 	)
 
@@ -239,7 +239,7 @@ func TestRootHandler_Handle_ConfigJS(t *testing.T) {
 		"",
 		0,
 		false,
-		WebPublicationHandler{}, // webPublicationHandler
+		nil, // blogService
 		nil,                      // workspaceRepo
 	)
 
@@ -297,7 +297,7 @@ func TestRootHandler_ServeNotificationCenter(t *testing.T) {
 		"",
 		0,
 		false,
-		WebPublicationHandler{}, // webPublicationHandler
+		nil, // blogService
 		nil,                      // workspaceRepo
 	)
 
@@ -373,7 +373,7 @@ func TestRootHandler_ServeConsole(t *testing.T) {
 		"",
 		0,
 		false,
-		WebPublicationHandler{}, // webPublicationHandler
+		nil, // blogService
 		nil,                      // workspaceRepo
 	)
 
@@ -465,7 +465,7 @@ func TestRootHandler_Handle_Comprehensive(t *testing.T) {
 		"",
 		0,
 		false,
-		WebPublicationHandler{}, // webPublicationHandler
+		nil, // blogService
 		nil,                      // workspaceRepo
 	)
 

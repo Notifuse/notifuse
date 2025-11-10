@@ -1840,48 +1840,6 @@ func TestCreateBroadcastRequest_Validate_Additional(t *testing.T) {
 	assert.Equal(t, domain.BroadcastStatusScheduled, broadcast.Status)
 }
 
-// Test that Channels and WebPublicationSettings are properly persisted
-func TestCreateBroadcastRequest_Validate_ChannelsAndWebSettings(t *testing.T) {
-	slug := "test-post"
-	request := domain.CreateBroadcastRequest{
-		WorkspaceID: "workspace123",
-		Name:        "Test Web Broadcast",
-		Audience: domain.AudienceSettings{
-			List:                "list123",
-			ExcludeUnsubscribed: true,
-		},
-		Schedule: domain.ScheduleSettings{
-			IsScheduled: false,
-		},
-		TestSettings: domain.BroadcastTestSettings{
-			Enabled: false,
-		},
-		Channels: domain.BroadcastChannels{
-			Email: true,
-			Web:   true,
-		},
-		WebPublicationSettings: &domain.WebPublicationSettings{
-			Slug:            slug,
-			MetaTitle:       "Test Post",
-			MetaDescription: "This is a test post",
-		},
-	}
-
-	broadcast, err := request.Validate()
-	require.NoError(t, err)
-	assert.NotNil(t, broadcast)
-
-	// Verify channels are persisted
-	assert.True(t, broadcast.Channels.Email, "Email channel should be enabled")
-	assert.True(t, broadcast.Channels.Web, "Web channel should be enabled")
-
-	// Verify web publication settings are persisted
-	require.NotNil(t, broadcast.WebPublicationSettings, "WebPublicationSettings should not be nil")
-	assert.Equal(t, slug, broadcast.WebPublicationSettings.Slug)
-	assert.Equal(t, "Test Post", broadcast.WebPublicationSettings.MetaTitle)
-	assert.Equal(t, "This is a test post", broadcast.WebPublicationSettings.MetaDescription)
-}
-
 // Additional test cases for UpdateBroadcastRequest.Validate
 func TestUpdateBroadcastRequest_Validate_Additional(t *testing.T) {
 	existingBroadcast := createValidBroadcast()
@@ -1904,58 +1862,6 @@ func TestUpdateBroadcastRequest_Validate_Additional(t *testing.T) {
 }
 
 // Test that Channels and WebPublicationSettings are properly persisted on update
-func TestUpdateBroadcastRequest_Validate_ChannelsAndWebSettings(t *testing.T) {
-	existingBroadcast := createValidBroadcast()
-
-	slug := "updated-post"
-	updateRequest := domain.UpdateBroadcastRequest{
-		WorkspaceID:  existingBroadcast.WorkspaceID,
-		ID:           existingBroadcast.ID,
-		Name:         "Updated Web Broadcast",
-		Audience:     existingBroadcast.Audience,
-		Schedule:     existingBroadcast.Schedule,
-		TestSettings: existingBroadcast.TestSettings,
-		Channels: domain.BroadcastChannels{
-			Email: true,
-			Web:   true,
-		},
-		WebPublicationSettings: &domain.WebPublicationSettings{
-			Slug:            slug,
-			MetaTitle:       "Updated Test Post",
-			MetaDescription: "This is an updated test post",
-			OGTitle:         "OG Updated Post",
-		},
-	}
-
-	broadcast, err := updateRequest.Validate(&existingBroadcast)
-	require.NoError(t, err)
-	assert.NotNil(t, broadcast)
-
-	// Verify channels are persisted
-	assert.True(t, broadcast.Channels.Email, "Email channel should be enabled")
-	assert.True(t, broadcast.Channels.Web, "Web channel should be enabled")
-
-	// Verify web publication settings are persisted
-	require.NotNil(t, broadcast.WebPublicationSettings, "WebPublicationSettings should not be nil")
-	assert.Equal(t, slug, broadcast.WebPublicationSettings.Slug)
-	assert.Equal(t, "Updated Test Post", broadcast.WebPublicationSettings.MetaTitle)
-	assert.Equal(t, "This is an updated test post", broadcast.WebPublicationSettings.MetaDescription)
-	assert.Equal(t, "OG Updated Post", broadcast.WebPublicationSettings.OGTitle)
-}
-
-// Additional test for ParseBoolParam
-func TestParseBoolParam_AdditionalCases(t *testing.T) {
-	// Test empty string
-	val, err := domain.ParseBoolParam("")
-	if err == nil {
-		t.Log("Empty string parsed without error, checking result is default false value")
-		assert.False(t, val)
-	} else {
-		// If implementation changes to consider empty string an error, this would still pass
-		t.Log("Empty string considered invalid boolean")
-	}
-}
-
 // Add more FromURLParams test cases
 func TestGetBroadcastsRequest_FromURLParams_Additional(t *testing.T) {
 	params := url.Values{

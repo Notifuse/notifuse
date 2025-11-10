@@ -27,6 +27,7 @@ type TelemetryMetrics struct {
 	ListsCount         int    `json:"lists_count"`
 	SegmentsCount      int    `json:"segments_count"`
 	UsersCount         int    `json:"users_count"`
+	BlogPostsCount     int    `json:"blog_posts_count"`
 	APIEndpoint        string `json:"api_endpoint"`
 
 	// Integration flags - boolean for each email provider
@@ -133,6 +134,7 @@ func (t *TelemetryService) sendMetricsForWorkspace(ctx context.Context, workspac
 		metrics.ListsCount = telemetryMetrics.ListsCount
 		metrics.SegmentsCount = telemetryMetrics.SegmentsCount
 		metrics.UsersCount = telemetryMetrics.UsersCount
+		metrics.BlogPostsCount = telemetryMetrics.BlogPostsCount
 		metrics.LastMessageAt = telemetryMetrics.LastMessageAt
 	}
 

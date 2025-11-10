@@ -30,7 +30,6 @@ import { DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import React from 'react'
 import extractTLD from '../../lib/tld'
 import type { List } from '../../services/api/list'
-import { SEOSettingsForm } from '../seo/SEOSettingsForm'
 
 // Custom component to handle A/B testing configuration
 const ABTestingConfig = ({ form }: { form: any }) => {
@@ -162,8 +161,6 @@ export function UpsertBroadcastDrawer({
         audience: {
           ...broadcast.audience
         },
-        channels: broadcast.channels || { email: true, web: false },
-        web_publication_settings: broadcast.web_publication_settings || undefined,
         test_settings: broadcast.test_settings,
         utm_parameters: broadcast.utm_parameters || undefined,
         metadata: broadcast.metadata || undefined
@@ -179,10 +176,6 @@ export function UpsertBroadcastDrawer({
           list: undefined,
           segments: [],
           exclude_unsubscribed: true
-        },
-        channels: {
-          email: true,
-          web: false
         },
         test_settings: {
           enabled: false,
@@ -243,12 +236,6 @@ export function UpsertBroadcastDrawer({
       fieldsToValidate.push(['name'], ['audience', 'list'])
     } else if (currentTab === 'email') {
       // Add email tab validation if needed in the future
-    } else if (currentTab === 'web') {
-      // Check if web channel is enabled
-      const webEnabled = form.getFieldValue(['channels', 'web'])
-      if (webEnabled) {
-        fieldsToValidate.push(['web_publication_settings', 'slug'])
-      }
     }
 
     try {
@@ -269,7 +256,7 @@ export function UpsertBroadcastDrawer({
     if (!isValid) return
 
     // If validation passes, proceed to next tab
-    const tabOrder = ['audience', 'email', 'web', 'content']
+    const tabOrder = ['audience', 'email', 'content']
     const currentIndex = tabOrder.indexOf(tab)
     if (currentIndex < tabOrder.length - 1) {
       setTab(tabOrder[currentIndex + 1])
@@ -278,7 +265,7 @@ export function UpsertBroadcastDrawer({
 
   const handleTabChange = async (newTab: string) => {
     // Only validate if moving forward (not backward)
-    const tabOrder = ['audience', 'email', 'web', 'content']
+    const tabOrder = ['audience', 'email', 'content']
     const currentIndex = tabOrder.indexOf(tab)
     const newIndex = tabOrder.indexOf(newTab)
 
@@ -317,20 +304,9 @@ export function UpsertBroadcastDrawer({
             </>
           )}
 
-          {tab === 'web' && (
-            <>
-              <Button type="primary" ghost onClick={() => handleTabChange('email')}>
-                Previous
-              </Button>
-              <Button type="primary" onClick={goNext}>
-                Next
-              </Button>
-            </>
-          )}
-
           {tab === 'content' && (
             <>
-              <Button type="primary" ghost onClick={() => handleTabChange('web')}>
+              <Button type="primary" ghost onClick={() => handleTabChange('email')}>
                 Previous
               </Button>
               <Button
@@ -415,13 +391,6 @@ export function UpsertBroadcastDrawer({
                 ) {
                   setTab('email')
                 } else if (
-                  (Array.isArray(info.errorFields[0].name) &&
-                    info.errorFields[0].name[0] === 'channels' &&
-                    info.errorFields[0].name[1] === 'web') ||
-                  info.errorFields[0].name[0] === 'web_publication_settings'
-                ) {
-                  setTab('web')
-                } else if (
                   Array.isArray(info.errorFields[0].name) &&
                   info.errorFields[0].name[0] === 'test_settings'
                 ) {
@@ -450,15 +419,11 @@ export function UpsertBroadcastDrawer({
                   },
                   {
                     key: 'email',
-                    label: '2. Email'
-                  },
-                  {
-                    key: 'web',
-                    label: '3. Web'
+                    label: '2. Web Analytics'
                   },
                   {
                     key: 'content',
-                    label: '4. Content'
+                    label: '3. Content'
                   }
                 ]}
               />
@@ -552,45 +517,20 @@ export function UpsertBroadcastDrawer({
                         }}
                       />
                     </Form.Item>
+
+                    <Form.Item
+                      name={['audience', 'exclude_unsubscribed']}
+                      label="Exclude unsubscribed recipients"
+                      valuePropName="checked"
+                      initialValue={true}
+                    >
+                      <Switch />
+                    </Form.Item>
                   </div>
                 </div>
 
                 <div style={{ display: tab === 'email' ? 'block' : 'none' }}>
                   <div className="pt-8 pr-8">
-                    <Row gutter={24}>
-                      <Col span={12}>
-                        <Form.Item
-                          name={['channels', 'email']}
-                          label="Send email"
-                          valuePropName="checked"
-                          initialValue={true}
-                        >
-                          <Switch />
-                        </Form.Item>
-                      </Col>
-                      <Col span={12}>
-                        <Form.Item noStyle dependencies={[['channels', 'email']]}>
-                          {({ getFieldValue }) => {
-                            const emailEnabled = getFieldValue(['channels', 'email'])
-                            if (!emailEnabled) return null
-                            return (
-                              <Form.Item
-                                name={['audience', 'exclude_unsubscribed']}
-                                label="Exclude unsubscribed recipients"
-                                valuePropName="checked"
-                                initialValue={true}
-                              >
-                                <Switch />
-                              </Form.Item>
-                            )
-                          }}
-                        </Form.Item>
-                      </Col>
-                    </Row>
-
-                    <div className="text-xs mt-4 mb-4 font-semibold border-b border-solid border-gray-300 pb-2 text-gray-500">
-                      URL Tracking Parameters
-                    </div>
                     <Alert
                       description="These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
                       type="info"
@@ -612,113 +552,8 @@ export function UpsertBroadcastDrawer({
                   </div>
                 </div>
 
-                <div style={{ display: tab === 'web' ? 'block' : 'none' }}>
-                  <div className="pt-8 pr-8">
-                    <Form.Item
-                      name={['channels', 'web']}
-                      label="Publish to web"
-                      valuePropName="checked"
-                      initialValue={false}
-                    >
-                      <Switch
-                        disabled={broadcast?.status !== 'draft' && broadcast?.status !== undefined}
-                      />
-                    </Form.Item>
-
-                    {/* Web Settings Section - shown when web channel is enabled */}
-                    <Form.Item noStyle dependencies={[['channels', 'web']]}>
-                      {({ getFieldValue }) => {
-                        const webEnabled = getFieldValue(['channels', 'web'])
-                        const customEndpoint = workspace.settings?.custom_endpoint_url
-
-                        if (!webEnabled) return null
-
-                        if (!customEndpoint) {
-                          return (
-                            <Alert
-                              type="warning"
-                              message="Web publications require a custom domain"
-                              description="Go to workspace settings and configure a custom endpoint URL to enable web publications."
-                              showIcon
-                              className="mb-4"
-                            />
-                          )
-                        }
-
-                        const listId = getFieldValue(['audience', 'list'])
-
-                        if (!listId) {
-                          return (
-                            <Alert
-                              type="warning"
-                              message="Please select a list"
-                              description="Please select a list to enable web publications."
-                              showIcon
-                              className="mb-4"
-                            />
-                          )
-                        }
-
-                        const list = lists.find((l) => l.id === listId)
-
-                        let listWebEnabled = false
-                        if (list && list.web_publication_enabled === true) {
-                          listWebEnabled = true
-                        }
-
-                        if (!listWebEnabled) {
-                          return (
-                            <Alert
-                              type="warning"
-                              message="Web publications are not enabled for this list"
-                              description="Go to list settings and enable web publications to use this feature."
-                              showIcon
-                              className="mb-4"
-                            />
-                          )
-                        }
-
-                        return (
-                          <div className="mb-4">
-                            <Form.Item
-                              name={['web_publication_settings', 'slug']}
-                              label={
-                                <span>
-                                  URL Slug{' '}
-                                  <Tooltip title="Final URL published to web" className="ml-1">
-                                    <InfoCircleOutlined style={{ color: '#999' }} />
-                                  </Tooltip>
-                                </span>
-                              }
-                              rules={[
-                                { required: true, message: 'Please enter a URL slug' },
-                                {
-                                  pattern: /^[a-z0-9-]+$/,
-                                  message: 'Only lowercase letters, numbers, and hyphens allowed'
-                                }
-                              ]}
-                            >
-                              <Input placeholder="my-blog-post" addonBefore={`${list?.slug}/`} />
-                            </Form.Item>
-
-                            <SEOSettingsForm
-                              namePrefix={['web_publication_settings']}
-                              titlePlaceholder="Page title for search engines"
-                              descriptionPlaceholder="Brief description for search results"
-                            />
-                          </div>
-                        )
-                      }}
-                    </Form.Item>
-                  </div>
-                </div>
-
                 <div style={{ display: tab === 'content' ? 'block' : 'none' }}>
-                  <div className="p-8">
-                    <div className="text-xs mb-6 font-bold border-b border-solid pb-2 border-gray-400 text-gray-900">
-                      Template
-                    </div>
-
+                  <div className="pt-8 pr-8">
                     {!workspace.settings?.email_tracking_enabled && (
                       <Alert
                         description="Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."

@@ -1,12 +1,6 @@
 # TODO
 
-- fix in the last operator in the UI
-
 ## Web Publications
-
-- add telemetry for web publication enabled
-- quid AB testing for web publications?
--
 
 ## Content
 

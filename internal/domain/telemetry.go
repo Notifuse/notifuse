@@ -16,6 +16,7 @@ type TelemetryMetrics struct {
 	ListsCount         int    `json:"lists_count"`
 	SegmentsCount      int    `json:"segments_count"`
 	UsersCount         int    `json:"users_count"`
+	BlogPostsCount     int    `json:"blog_posts_count"`
 	LastMessageAt      string `json:"last_message_at"`
 }
 
@@ -44,6 +45,9 @@ type TelemetryRepository interface {
 
 	// CountUsers counts the total number of users in a workspace from the system database
 	CountUsers(ctx context.Context, systemDB *sql.DB, workspaceID string) (int, error)
+
+	// CountBlogPosts counts the total number of blog posts in a workspace
+	CountBlogPosts(ctx context.Context, db *sql.DB) (int, error)
 
 	// GetLastMessageAt gets the timestamp of the last message sent from the workspace
 	GetLastMessageAt(ctx context.Context, db *sql.DB) (string, error)

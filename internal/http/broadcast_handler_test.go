@@ -35,7 +35,7 @@ func createTestBroadcast() *domain.Broadcast {
 		Name:        "Test Broadcast",
 		Status:      domain.BroadcastStatusDraft,
 		Audience: domain.AudienceSettings{
-			Lists:    []string{"list123"},
+			List: "list123",
 			Segments: []string{"segment123"},
 		},
 		Schedule: domain.ScheduleSettings{
@@ -386,7 +386,7 @@ func TestHandleCreate(t *testing.T) {
 			WorkspaceID: "workspace123",
 			Name:        "Test Broadcast",
 			Audience: domain.AudienceSettings{
-				Lists:    []string{"list123"},
+				List: "list123",
 				Segments: []string{"segment123"},
 			},
 			Schedule: domain.ScheduleSettings{
@@ -423,7 +423,7 @@ func TestHandleCreate(t *testing.T) {
 			WorkspaceID: "workspace123",
 			Name:        "Test Broadcast",
 			Audience: domain.AudienceSettings{
-				Lists:    []string{"list123"},
+				List: "list123",
 				Segments: []string{"segment123"},
 			},
 			Schedule: domain.ScheduleSettings{
@@ -1226,7 +1226,7 @@ func TestHandleUpdate(t *testing.T) {
 			WorkspaceID: broadcast.WorkspaceID,
 			Name:        "Updated Broadcast",
 			Audience: domain.AudienceSettings{
-				Lists:    []string{"list123"},
+				List: "list123",
 				Segments: []string{"segment123"},
 			},
 		}
@@ -1267,7 +1267,7 @@ func TestHandleUpdate(t *testing.T) {
 			WorkspaceID: broadcast.WorkspaceID,
 			Name:        "Updated Broadcast",
 			Audience: domain.AudienceSettings{
-				Lists:    []string{"list123"},
+				List: "list123",
 				Segments: []string{"segment123"},
 			},
 		}
@@ -1317,7 +1317,7 @@ func TestHandleUpdate(t *testing.T) {
 			WorkspaceID: broadcast.WorkspaceID,
 			Name:        "Updated Broadcast",
 			Audience: domain.AudienceSettings{
-				Lists:    []string{"list123"},
+				List: "list123",
 				Segments: []string{"segment123"},
 			},
 		}
@@ -1349,7 +1349,7 @@ func TestHandleUpdate(t *testing.T) {
 			WorkspaceID: broadcast.WorkspaceID,
 			Name:        "Updated Broadcast",
 			Audience: domain.AudienceSettings{
-				Lists:    []string{"list123"},
+				List: "list123",
 				Segments: []string{"segment123"},
 			},
 		}

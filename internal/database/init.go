@@ -125,9 +125,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			double_optin_template JSONB,
 			welcome_template JSONB,
 			unsubscribe_template JSONB,
-			slug VARCHAR(100),
-			web_publication_enabled BOOLEAN DEFAULT false,
-			web_publication_settings JSONB,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			deleted_at TIMESTAMP WITH TIME ZONE
@@ -167,9 +164,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			test_settings JSONB NOT NULL,
 			utm_parameters JSONB,
 			metadata JSONB,
-			channels JSONB NOT NULL DEFAULT '{"email": true, "web": false}'::jsonb,
-			web_publication_settings JSONB,
-			web_published_at TIMESTAMP WITH TIME ZONE,
 			winning_template VARCHAR(32),
 			test_sent_at TIMESTAMP WITH TIME ZONE,
 			winner_sent_at TIMESTAMP WITH TIME ZONE,
@@ -244,8 +238,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS webhook_events_timestamp_idx ON webhook_events (timestamp DESC)`,
 		`CREATE INDEX IF NOT EXISTS webhook_events_recipient_email_idx ON webhook_events (recipient_email)`,
 		`CREATE INDEX IF NOT EXISTS idx_broadcasts_status_testing ON broadcasts(status) WHERE status IN ('testing', 'test_completed', 'winner_selected')`,
-		`CREATE INDEX IF NOT EXISTS idx_broadcasts_web_published ON broadcasts(workspace_id, web_published_at) WHERE web_published_at IS NOT NULL`,
-		`CREATE UNIQUE INDEX IF NOT EXISTS idx_lists_slug ON lists(slug) WHERE slug IS NOT NULL`,
 		`CREATE TABLE IF NOT EXISTS contact_timeline (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			email VARCHAR(255) NOT NULL,
@@ -297,6 +289,28 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			size_bytes BIGINT NOT NULL,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS blog_categories (
+			id VARCHAR(32) PRIMARY KEY,
+			slug VARCHAR(100) NOT NULL UNIQUE,
+			settings JSONB NOT NULL DEFAULT '{}',
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_categories_slug ON blog_categories(slug) WHERE deleted_at IS NULL`,
+		`CREATE TABLE IF NOT EXISTS blog_posts (
+			id VARCHAR(32) PRIMARY KEY,
+			category_id VARCHAR(32) REFERENCES blog_categories(id) ON DELETE SET NULL,
+			slug VARCHAR(100) NOT NULL UNIQUE,
+			settings JSONB NOT NULL DEFAULT '{}',
+			published_at TIMESTAMP,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published_at DESC) WHERE deleted_at IS NULL AND published_at IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_blog_posts_category ON blog_posts(category_id) WHERE deleted_at IS NULL`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug) WHERE deleted_at IS NULL`,
 	}
 
 	// Run all table creation queries

@@ -291,20 +291,20 @@ const (
 
 // WorkspaceSettings contains configurable workspace settings
 type WorkspaceSettings struct {
-	WebsiteURL                   string                      `json:"website_url,omitempty"`
-	LogoURL                      string                      `json:"logo_url,omitempty"`
-	CoverURL                     string                      `json:"cover_url,omitempty"`
-	Timezone                     string                      `json:"timezone"`
-	FileManager                  FileManagerSettings         `json:"file_manager,omitempty"`
-	TransactionalEmailProviderID string                      `json:"transactional_email_provider_id,omitempty"`
-	MarketingEmailProviderID     string                      `json:"marketing_email_provider_id,omitempty"`
-	EncryptedSecretKey           string                      `json:"encrypted_secret_key,omitempty"`
-	EmailTrackingEnabled         bool                        `json:"email_tracking_enabled"`
-	TemplateBlocks               []TemplateBlock             `json:"template_blocks,omitempty"`
-	CustomEndpointURL            *string                     `json:"custom_endpoint_url,omitempty"`
-	CustomFieldLabels            map[string]string           `json:"custom_field_labels,omitempty"`
-	WebPublicationsEnabled       bool                        `json:"web_publications_enabled"`                // Enable web publications at workspace level
-	WebPublicationSettings       *WebPublicationSettings     `json:"web_publication_settings,omitempty"`      // SEO settings for blog homepage
+	WebsiteURL                   string              `json:"website_url,omitempty"`
+	LogoURL                      string              `json:"logo_url,omitempty"`
+	CoverURL                     string              `json:"cover_url,omitempty"`
+	Timezone                     string              `json:"timezone"`
+	FileManager                  FileManagerSettings `json:"file_manager,omitempty"`
+	TransactionalEmailProviderID string              `json:"transactional_email_provider_id,omitempty"`
+	MarketingEmailProviderID     string              `json:"marketing_email_provider_id,omitempty"`
+	EncryptedSecretKey           string              `json:"encrypted_secret_key,omitempty"`
+	EmailTrackingEnabled         bool                `json:"email_tracking_enabled"`
+	TemplateBlocks               []TemplateBlock     `json:"template_blocks,omitempty"`
+	CustomEndpointURL            *string             `json:"custom_endpoint_url,omitempty"`
+	CustomFieldLabels            map[string]string   `json:"custom_field_labels,omitempty"`
+	WebPublicationsEnabled       bool                `json:"web_publications_enabled"`           // Enable web publications at workspace level
+	WebPublicationSettings       *SEOSettings        `json:"web_publication_settings,omitempty"` // SEO settings for blog homepage
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`
