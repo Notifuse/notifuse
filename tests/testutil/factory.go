@@ -746,7 +746,11 @@ func WithMessageBounced(bounced bool) MessageHistoryOption {
 
 func WithMessageListID(listID string) MessageHistoryOption {
 	return func(m *domain.MessageHistory) {
-		m.ListID = listID
+		if listID != "" {
+			m.ListID = &listID
+		} else {
+			m.ListID = nil
+		}
 	}
 }
 

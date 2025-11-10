@@ -518,12 +518,12 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		BEGIN
 			-- Handle complaint events (worst status - can upgrade from any status)
 			IF NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN
-				IF NEW.list_ids IS NOT NULL AND array_length(NEW.list_ids, 1) > 0 THEN
+				IF NEW.list_id IS NOT NULL THEN
 					UPDATE contact_lists
 					SET status = 'complained',
 						updated_at = NEW.complained_at
 					WHERE email = NEW.contact_email
-					AND list_id = ANY(NEW.list_ids)
+					AND list_id = NEW.list_id
 					AND status != 'complained';
 				END IF;
 			END IF;
@@ -531,12 +531,12 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			-- Handle bounce events (ONLY HARD BOUNCES - can only update if not already complained or bounced)
 			-- Note: Application layer should only set bounced_at for hard/permanent bounces
 			IF NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN
-				IF NEW.list_ids IS NOT NULL AND array_length(NEW.list_ids, 1) > 0 THEN
+				IF NEW.list_id IS NOT NULL THEN
 					UPDATE contact_lists
 					SET status = 'bounced',
 						updated_at = NEW.bounced_at
 					WHERE email = NEW.contact_email
-					AND list_id = ANY(NEW.list_ids)
+					AND list_id = NEW.list_id
 					AND status NOT IN ('complained', 'bounced');
 				END IF;
 			END IF;

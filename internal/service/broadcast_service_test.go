@@ -296,8 +296,8 @@ func TestBroadcastService_SendToIndividual_Success(t *testing.T) {
 	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
 		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_id is populated from broadcast audience
-			assert.NotEmpty(t, msg.ListID)
-			assert.Equal(t, b.Audience.List, msg.ListID)
+			assert.NotNil(t, msg.ListID)
+			assert.Equal(t, b.Audience.List, *msg.ListID)
 		},
 	).Return(nil)
 
@@ -1931,8 +1931,8 @@ func TestBroadcastService_SendToIndividual_WithContact(t *testing.T) {
 	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
 		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_id is populated from broadcast audience
-			assert.NotEmpty(t, msg.ListID)
-			assert.Equal(t, b.Audience.List, msg.ListID)
+			assert.NotNil(t, msg.ListID)
+			assert.Equal(t, b.Audience.List, *msg.ListID)
 		},
 	).Return(nil)
 
@@ -2008,8 +2008,8 @@ func TestBroadcastService_SendToIndividual_WithCustomEndpoint(t *testing.T) {
 	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
 		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_id is populated from broadcast audience
-			assert.NotEmpty(t, msg.ListID)
-			assert.Equal(t, b.Audience.List, msg.ListID)
+			assert.NotNil(t, msg.ListID)
+			assert.Equal(t, b.Audience.List, *msg.ListID)
 		},
 	).Return(nil)
 
@@ -2332,8 +2332,8 @@ func TestBroadcastService_SendToIndividual_ContactToMapError(t *testing.T) {
 	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
 		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_id is populated from broadcast audience
-			assert.NotEmpty(t, msg.ListID)
-			assert.Equal(t, b.Audience.List, msg.ListID)
+			assert.NotNil(t, msg.ListID)
+			assert.Equal(t, b.Audience.List, *msg.ListID)
 		},
 	).Return(nil)
 

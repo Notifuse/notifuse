@@ -106,7 +106,7 @@ type MessageHistory struct {
 	ExternalID      *string              `json:"external_id,omitempty"` // For idempotency checks
 	ContactEmail    string               `json:"contact_email"`
 	BroadcastID     *string              `json:"broadcast_id,omitempty"`
-	ListID          string               `json:"list_id,omitempty"` // List this message was sent to
+	ListID          *string              `json:"list_id,omitempty"` // List this message was sent to (nullable for transactional emails)
 	TemplateID      string               `json:"template_id"`
 	TemplateVersion int64                `json:"template_version"`
 	Channel         string               `json:"channel"` // email, sms, push, etc.

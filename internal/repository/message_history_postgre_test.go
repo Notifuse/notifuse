@@ -77,7 +77,7 @@ func createSampleMessageHistory() *domain.MessageHistory {
 		ExternalID:      &externalID,
 		ContactEmail:    "test@example.com",
 		BroadcastID:     &broadcastID,
-		ListID:          "", // Empty list
+		ListID:          nil, // No list
 		TemplateID:      "template-123",
 		TemplateVersion: 1,
 		Channel:         "email",
@@ -305,7 +305,7 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-			"{}", // list_id (empty array)
+			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 			message.Channel,
@@ -375,7 +375,7 @@ func TestMessageHistoryRepository_Get(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-			"{}", // list_id (empty array)
+			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 		) // Incomplete row to cause scan error
@@ -418,7 +418,7 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-			"{}", // list_id (empty array)
+			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 			message.Channel,
@@ -488,7 +488,7 @@ func TestMessageHistoryRepository_GetByExternalID(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-			"{}", // list_id (empty array)
+			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 		) // Incomplete row to cause scan error
@@ -540,7 +540,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-			"{}", // list_id (empty array)
+			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 			message.Channel,
@@ -674,7 +674,7 @@ func TestMessageHistoryRepository_GetByContact(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
-				"{}", // list_id (empty array)
+				nil, // list_id (empty array)
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -739,7 +739,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 			message.ExternalID,
 			message.ContactEmail,
 			message.BroadcastID,
-			"{}", // list_id (empty array)
+			nil, // list_id (empty array)
 			message.TemplateID,
 			message.TemplateVersion,
 			message.Channel,
@@ -873,7 +873,7 @@ func TestMessageHistoryRepository_GetByBroadcast(t *testing.T) {
 				message.ExternalID,
 				message.ContactEmail,
 				message.BroadcastID,
-				"{}", // list_id (empty array)
+				nil, // list_id (empty array)
 				message.TemplateID,
 				message.TemplateVersion,
 				message.Channel,
@@ -2459,7 +2459,8 @@ func TestMessageHistoryRepository_ListMessages(t *testing.T) {
 		require.Len(t, messages, 1)
 		assert.Equal(t, "", nextCursor)
 		// Verify the list_id equals the filtered list ID
-		assert.Equal(t, "list-abc", messages[0].ListID)
+		require.NotNil(t, messages[0].ListID)
+		assert.Equal(t, "list-abc", *messages[0].ListID)
 	})
 
 	t.Run("multiple filters combined", func(t *testing.T) {

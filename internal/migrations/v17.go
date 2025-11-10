@@ -91,6 +91,44 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		return fmt.Errorf("failed to drop list_ids column from message_history: %w", err)
 	}
 
+	// Update trigger function to use list_id instead of list_ids
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION update_contact_lists_on_status_change()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			-- Handle complaint events (worst status - can upgrade from any status)
+			IF NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN
+				IF NEW.list_id IS NOT NULL THEN
+					UPDATE contact_lists
+					SET status = 'complained',
+						updated_at = NEW.complained_at
+					WHERE email = NEW.contact_email
+					AND list_id = NEW.list_id
+					AND status != 'complained';
+				END IF;
+			END IF;
+
+			-- Handle bounce events (ONLY HARD BOUNCES - can only update if not already complained or bounced)
+			-- Note: Application layer should only set bounced_at for hard/permanent bounces
+			IF NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN
+				IF NEW.list_id IS NOT NULL THEN
+					UPDATE contact_lists
+					SET status = 'bounced',
+						updated_at = NEW.bounced_at
+					WHERE email = NEW.contact_email
+					AND list_id = NEW.list_id
+					AND status NOT IN ('complained', 'bounced');
+				END IF;
+			END IF;
+
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to update trigger function to use list_id: %w", err)
+	}
+
 	// ===== BLOG_CATEGORIES TABLE =====
 
 	// Create blog_categories table

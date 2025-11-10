@@ -117,10 +117,12 @@ func testHardBounceUpdatesContactListStatus(t *testing.T, suite *testutil.Integr
 		testutil.WithMessageBroadcast(broadcast.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListID = list.ID
+			listID := list.ID
+			m.ListID = &listID
 		})
 	require.NoError(t, err)
-	require.Equal(t, list.ID, message.ListID)
+	require.NotNil(t, message.ListID)
+	require.Equal(t, list.ID, *message.ListID)
 
 	// Verify contact list status is initially active
 	contactListRepo := app.GetContactListRepository()
@@ -199,7 +201,8 @@ func testComplaintUpdatesContactListStatus(t *testing.T, suite *testutil.Integra
 		testutil.WithMessageBroadcast(broadcast.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListID = list.ID
+			listID := list.ID
+			m.ListID = &listID
 		})
 	require.NoError(t, err)
 
@@ -275,7 +278,8 @@ func testSoftBounceDoesNotUpdateContactListStatus(t *testing.T, suite *testutil.
 		testutil.WithMessageBroadcast(broadcast.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListID = list.ID
+			listID := list.ID
+			m.ListID = &listID
 		})
 	require.NoError(t, err)
 
@@ -357,7 +361,8 @@ func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTe
 	err = broadcastRepo.UpdateBroadcast(context.Background(), broadcast)
 	require.NoError(t, err)
 
-	// Create message history with list_ids for list1 and list2
+	// Create message history with list_id for list1
+	// Note: Since v17, messages are associated with a single list, not multiple lists
 	messageID := fmt.Sprintf("msg-%d", time.Now().UnixNano())
 	template, err := factory.CreateTemplate(workspaceID)
 	require.NoError(t, err)
@@ -368,7 +373,8 @@ func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTe
 		testutil.WithMessageBroadcast(broadcast.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListID = list1.ID
+			listID := list1.ID
+			m.ListID = &listID
 		})
 	require.NoError(t, err)
 
@@ -385,18 +391,18 @@ func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTe
 	// Give the database trigger time to process
 	time.Sleep(100 * time.Millisecond)
 
-	// Verify both list1 and list2 statuses were updated
+	// Verify only list1 status was updated (the list associated with the message)
 	contactListRepo := app.GetContactListRepository()
 
 	list1ContactList, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, domain.ContactListStatusBounced, list1ContactList.Status, "List1 status should be bounced")
 
+	// Verify list2 and list3 statuses remain active (not included in the message)
 	list2ContactList, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list2.ID)
 	require.NoError(t, err)
-	assert.Equal(t, domain.ContactListStatusBounced, list2ContactList.Status, "List2 status should be bounced")
+	assert.Equal(t, domain.ContactListStatusActive, list2ContactList.Status, "List2 status should remain active (not associated with the bounced message)")
 
-	// Verify list3 status remains active (not included in the message)
 	list3ContactList, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list3.ID)
 	require.NoError(t, err)
 	assert.Equal(t, domain.ContactListStatusActive, list3ContactList.Status, "List3 status should remain active")
@@ -445,7 +451,8 @@ func testComplaintTakesPriorityOverBounce(t *testing.T, suite *testutil.Integrat
 		testutil.WithMessageBroadcast(broadcast.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListID = list.ID
+			listID := list.ID
+			m.ListID = &listID
 		})
 	require.NoError(t, err)
 
@@ -500,7 +507,7 @@ func testWebhookWithoutListIDDoesNotUpdate(t *testing.T, suite *testutil.Integra
 		testutil.WithMessageTemplate(template.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListID = "" // No list ID
+			m.ListID = nil // No list ID
 		})
 	require.NoError(t, err)
 

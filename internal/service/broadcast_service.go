@@ -937,11 +937,12 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 	}
 
 	now := time.Now().UTC()
+	listID := broadcast.Audience.List
 	message := &domain.MessageHistory{
 		ID:              messageID,
 		ContactEmail:    request.RecipientEmail,
 		BroadcastID:     &request.BroadcastID,
-		ListID:          broadcast.Audience.List,
+		ListID:          &listID,
 		TemplateID:      template.ID,
 		TemplateVersion: template.Version,
 		Channel:         "email",

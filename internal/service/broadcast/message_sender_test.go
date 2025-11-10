@@ -484,8 +484,8 @@ func TestSendBatch(t *testing.T) {
 			gomock.Any(), // message
 		).Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 		// Verify list_id is populated from broadcast audience
-		assert.NotEmpty(t, msg.ListID)
-		assert.Equal(t, "list-1", msg.ListID)
+		assert.NotNil(t, msg.ListID)
+		assert.Equal(t, "list-1", *msg.ListID)
 	}).Return(nil).Times(2)
 
 	// Create message sender
@@ -753,8 +753,8 @@ func TestSendBatch_WithFailure(t *testing.T) {
 			gomock.Any(), // message
 		).Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 		// Verify list_id is populated from broadcast audience
-		assert.NotEmpty(t, msg.ListID)
-		assert.Equal(t, "list-1", msg.ListID)
+		assert.NotNil(t, msg.ListID)
+		assert.Equal(t, "list-1", *msg.ListID)
 	}).Return(nil)
 
 	// Create message sender
@@ -871,8 +871,8 @@ func TestSendBatch_RecordMessageFails(t *testing.T) {
 			gomock.Any(), // message
 		).Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 		// Verify list_id is populated from broadcast audience
-		assert.NotEmpty(t, msg.ListID)
-		assert.Equal(t, "list-1", msg.ListID)
+		assert.NotNil(t, msg.ListID)
+		assert.Equal(t, "list-1", *msg.ListID)
 	}).Return(fmt.Errorf("database connection error"))
 
 	// Create message sender
@@ -1542,25 +1542,25 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			"",
 		)
 
-	broadcast := &domain.Broadcast{
-		ID:          broadcastID,
-		WorkspaceID: workspaceID,
-		Audience: domain.AudienceSettings{
-			List: "test-list-1",
-		},
-		UTMParameters: &domain.UTMParameters{
-			Source:   "test",
-			Medium:   "email",
-			Campaign: "unit-test",
-		},
-		TestSettings: domain.BroadcastTestSettings{
-			Enabled: true,
-			Variations: []domain.BroadcastVariation{
-				{VariationName: "variation-1", TemplateID: "template-123"},
-				{VariationName: "variation-2", TemplateID: "template-456"},
+		broadcast := &domain.Broadcast{
+			ID:          broadcastID,
+			WorkspaceID: workspaceID,
+			Audience: domain.AudienceSettings{
+				List: "test-list-1",
 			},
-		},
-	}
+			UTMParameters: &domain.UTMParameters{
+				Source:   "test",
+				Medium:   "email",
+				Campaign: "unit-test",
+			},
+			TestSettings: domain.BroadcastTestSettings{
+				Enabled: true,
+				Variations: []domain.BroadcastVariation{
+					{VariationName: "variation-1", TemplateID: "template-123"},
+					{VariationName: "variation-2", TemplateID: "template-456"},
+				},
+			},
+		}
 
 		recipients := []*domain.ContactWithList{
 			{Contact: &domain.Contact{Email: "a@example.com"}}, // First char 'a' = ASCII 97
@@ -1608,8 +1608,8 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
 			Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 				// Verify list_id is populated from broadcast audience
-				assert.NotEmpty(t, msg.ListID)
-				assert.Equal(t, broadcast.Audience.List, msg.ListID)
+				assert.NotNil(t, msg.ListID)
+				assert.Equal(t, broadcast.Audience.List, *msg.ListID)
 			}).
 			Return(nil).Times(2)
 
@@ -1632,25 +1632,25 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 		)
 
 		broadcast := &domain.Broadcast{
-		ID:              broadcastID,
-		WorkspaceID:     workspaceID,
-		WinningTemplate: "template-winner", // Winner already selected
-		Audience: domain.AudienceSettings{
-			List: "test-list-1",
-		},
-		UTMParameters: &domain.UTMParameters{
-			Source:   "test",
-			Medium:   "email",
-			Campaign: "unit-test",
-		},
-		TestSettings: domain.BroadcastTestSettings{
-			Enabled: true,
-			Variations: []domain.BroadcastVariation{
-				{VariationName: "variation-1", TemplateID: "template-123"},
-				{VariationName: "variation-2", TemplateID: "template-456"},
+			ID:              broadcastID,
+			WorkspaceID:     workspaceID,
+			WinningTemplate: "template-winner", // Winner already selected
+			Audience: domain.AudienceSettings{
+				List: "test-list-1",
 			},
-		},
-	}
+			UTMParameters: &domain.UTMParameters{
+				Source:   "test",
+				Medium:   "email",
+				Campaign: "unit-test",
+			},
+			TestSettings: domain.BroadcastTestSettings{
+				Enabled: true,
+				Variations: []domain.BroadcastVariation{
+					{VariationName: "variation-1", TemplateID: "template-123"},
+					{VariationName: "variation-2", TemplateID: "template-456"},
+				},
+			},
+		}
 
 		recipients := []*domain.ContactWithList{
 			{Contact: &domain.Contact{Email: "test@example.com"}},
@@ -1687,8 +1687,8 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
 			Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 				// Verify list_id is populated from broadcast audience
-				assert.NotEmpty(t, msg.ListID)
-				assert.Equal(t, broadcast.Audience.List, msg.ListID)
+				assert.NotNil(t, msg.ListID)
+				assert.Equal(t, broadcast.Audience.List, *msg.ListID)
 			}).
 			Return(nil)
 
@@ -1714,26 +1714,26 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			"",
 		)
 
-	broadcast := &domain.Broadcast{
-		ID:          broadcastID,
-		WorkspaceID: workspaceID,
-		Audience: domain.AudienceSettings{
-			List: "test-list-1",
-		},
-		UTMParameters: &domain.UTMParameters{
-			Source:   "test",
-			Medium:   "email",
-			Campaign: "unit-test",
-		},
-		TestSettings: domain.BroadcastTestSettings{
-			Enabled: false,
-			Variations: []domain.BroadcastVariation{
-				{VariationName: "variation-1", TemplateID: "template-123"},
+		broadcast := &domain.Broadcast{
+			ID:          broadcastID,
+			WorkspaceID: workspaceID,
+			Audience: domain.AudienceSettings{
+				List: "test-list-1",
 			},
-		},
-	}
+			UTMParameters: &domain.UTMParameters{
+				Source:   "test",
+				Medium:   "email",
+				Campaign: "unit-test",
+			},
+			TestSettings: domain.BroadcastTestSettings{
+				Enabled: false,
+				Variations: []domain.BroadcastVariation{
+					{VariationName: "variation-1", TemplateID: "template-123"},
+				},
+			},
+		}
 
-	recipients := []*domain.ContactWithList{
+		recipients := []*domain.ContactWithList{
 			{Contact: &domain.Contact{Email: "test1@example.com"}},
 			{Contact: &domain.Contact{Email: "test2@example.com"}},
 			{Contact: &domain.Contact{Email: "test3@example.com"}},
@@ -1770,8 +1770,8 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
 			Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 				// Verify list_id is populated from broadcast audience
-				assert.NotEmpty(t, msg.ListID)
-				assert.Equal(t, broadcast.Audience.List, msg.ListID)
+				assert.NotNil(t, msg.ListID)
+				assert.Equal(t, broadcast.Audience.List, *msg.ListID)
 			}).
 			Return(nil).Times(3)
 
@@ -1997,8 +1997,8 @@ func TestSendBatch_TemplateDataBuildFailure(t *testing.T) {
 		Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
 		Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_id is populated from broadcast audience
-			assert.NotEmpty(t, msg.ListID)
-			assert.Equal(t, broadcast.Audience.List, msg.ListID)
+			assert.NotNil(t, msg.ListID)
+			assert.Equal(t, broadcast.Audience.List, *msg.ListID)
 		}).
 		Return(nil).AnyTimes()
 
@@ -2100,8 +2100,8 @@ func TestSendBatch_EmptyEmailContact(t *testing.T) {
 		Create(ctx, workspaceID, gomock.Any(), gomock.Any()).
 		Do(func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
 			// Verify list_id is populated from broadcast audience
-			assert.NotEmpty(t, msg.ListID)
-			assert.Equal(t, broadcast.Audience.List, msg.ListID)
+			assert.NotNil(t, msg.ListID)
+			assert.Equal(t, broadcast.Audience.List, *msg.ListID)
 		}).
 		Return(nil).Times(1)
 
