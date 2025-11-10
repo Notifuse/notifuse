@@ -799,7 +799,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
 
             <Row gutter={32}>
               <Col span={12}>
-                <Subtitle className="mb-4">Audience</Subtitle>
+                <Subtitle className="mt-8 mb-4">Audience</Subtitle>
 
                 <Descriptions bordered={false} size="small" column={1}>
                   {/* Audience Information */}
@@ -988,7 +988,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               </Col>
 
               <Col span={12}>
-                <Subtitle className="mb-4">Web Settings</Subtitle>
+                <Subtitle className="mt-8 mb-4">Web Settings</Subtitle>
                 <Descriptions bordered={false} size="small" column={1}>
                   {/* Web Publication Settings */}
                   <Descriptions.Item label="Web Channel">

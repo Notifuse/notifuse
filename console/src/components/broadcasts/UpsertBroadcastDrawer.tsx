@@ -685,10 +685,7 @@ export function UpsertBroadcastDrawer({
                               label={
                                 <span>
                                   URL Slug{' '}
-                                  <Tooltip
-                                    title="Final URL will include a unique ID automatically"
-                                    className="ml-1"
-                                  >
+                                  <Tooltip title="Final URL published to web" className="ml-1">
                                     <InfoCircleOutlined style={{ color: '#999' }} />
                                   </Tooltip>
                                 </span>
