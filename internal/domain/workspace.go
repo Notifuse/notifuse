@@ -26,6 +26,7 @@ const (
 	PermissionResourceTransactional  PermissionResource = "transactional"
 	PermissionResourceWorkspace      PermissionResource = "workspace"
 	PermissionResourceMessageHistory PermissionResource = "message_history"
+	PermissionResourceBlog           PermissionResource = "blog"
 )
 
 // PermissionType defines the types of permissions (read/write)
@@ -44,6 +45,7 @@ var FullPermissions = UserPermissions{
 	PermissionResourceTransactional:  ResourcePermissions{Read: true, Write: true},
 	PermissionResourceWorkspace:      ResourcePermissions{Read: true, Write: true},
 	PermissionResourceMessageHistory: ResourcePermissions{Read: true, Write: true},
+	PermissionResourceBlog:           ResourcePermissions{Read: true, Write: true},
 }
 
 // ResourcePermissions defines read/write permissions for a specific resource
@@ -289,6 +291,39 @@ const (
 	SaveOperationUpdate SaveOperation = "update"
 )
 
+// BlogSettings contains blog styling and SEO configuration
+type BlogSettings struct {
+	Title      string       `json:"title,omitempty"`
+	H1Color    string       `json:"h1_color,omitempty"`
+	H2Color    string       `json:"h2_color,omitempty"`
+	H3Color    string       `json:"h3_color,omitempty"`
+	H4Color    string       `json:"h4_color,omitempty"`
+	FontFamily string       `json:"font_family,omitempty"`
+	FontSize   string       `json:"font_size,omitempty"`
+	TextColor  string       `json:"text_color,omitempty"`
+	SEO        *SEOSettings `json:"seo,omitempty"`
+}
+
+// Value implements the driver.Valuer interface for database serialization
+func (b BlogSettings) Value() (driver.Value, error) {
+	return json.Marshal(b)
+}
+
+// Scan implements the sql.Scanner interface for database deserialization
+func (b *BlogSettings) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	v, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
+	}
+
+	cloned := bytes.Clone(v)
+	return json.Unmarshal(cloned, b)
+}
+
 // WorkspaceSettings contains configurable workspace settings
 type WorkspaceSettings struct {
 	WebsiteURL                   string              `json:"website_url,omitempty"`
@@ -303,8 +338,8 @@ type WorkspaceSettings struct {
 	TemplateBlocks               []TemplateBlock     `json:"template_blocks,omitempty"`
 	CustomEndpointURL            *string             `json:"custom_endpoint_url,omitempty"`
 	CustomFieldLabels            map[string]string   `json:"custom_field_labels,omitempty"`
-	WebPublicationsEnabled       bool                `json:"web_publications_enabled"`           // Enable web publications at workspace level
-	WebPublicationSettings       *SEOSettings        `json:"web_publication_settings,omitempty"` // SEO settings for blog homepage
+	BlogEnabled                  bool                `json:"blog_enabled"`            // Enable blog feature at workspace level
+	BlogSettings                 *BlogSettings       `json:"blog_settings,omitempty"` // Blog styling and SEO settings
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`

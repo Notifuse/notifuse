@@ -383,7 +383,7 @@ func (s *SupabaseService) DeleteIntegrationResources(ctx context.Context, worksp
 	systemCtx := context.WithValue(ctx, domain.SystemCallKey, true)
 
 	// Get all templates
-	templates, err := s.templateRepo.GetTemplates(systemCtx, workspaceID, "")
+	templates, err := s.templateRepo.GetTemplates(systemCtx, workspaceID, "", "")
 	if err != nil {
 		s.logger.WithField("workspace_id", workspaceID).
 			WithField("integration_id", integrationID).

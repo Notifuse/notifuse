@@ -17,8 +17,7 @@ interface EmailBuilderProps {
   onTreeChange: (tree: EmailBlock) => void
   onCompile: (
     tree: EmailBlock,
-    testData?: any,
-    channel?: string
+    testData?: any
   ) => Promise<{ errors?: any[]; html: string; mjml: string }>
   testData?: any
   onTestDataChange: (testData: any) => void
@@ -100,7 +99,6 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
 
   // Local state for view mode and compilation results
   const [viewMode, setViewMode] = useState<'edit' | 'preview'>('edit')
-  const [previewChannel, setPreviewChannel] = useState<string>('email')
 
   // Use forced view mode when provided (for tour), otherwise use local state
   const effectiveViewMode = forcedViewMode || viewMode
@@ -184,7 +182,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   // Function to compile email
   const compileEmail = async () => {
     try {
-      const result = await onCompile(tree, testData, previewChannel)
+      const result = await onCompile(tree, testData)
       setCompilationResults(result)
     } catch (error) {
       console.error('Compilation failed:', error)
@@ -208,12 +206,12 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     }
   }
 
-  // Recompile when testData or channel changes (only if in preview mode)
+  // Recompile when testData changes (only if in preview mode)
   useEffect(() => {
     if (effectiveViewMode === 'preview') {
       compileEmail()
     }
-  }, [testData, previewChannel, effectiveViewMode])
+  }, [testData, effectiveViewMode])
 
   // Handle forced view mode changes from tour
   useEffect(() => {
@@ -223,11 +221,6 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       setCompilationResults(null)
     }
   }, [forcedViewMode])
-
-  // Handle channel change
-  const handleChannelChange = (channel: string) => {
-    setPreviewChannel(channel)
-  }
 
   const updateTreeWithHistory = (updatedTree: EmailBlock) => {
     // Add to history for undo/redo support
@@ -819,8 +812,6 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
           testData={testData}
           onTestDataChange={onTestDataChange}
           mobileDesktopSwitcherRef={mobileDesktopSwitcherRef}
-          channel={previewChannel}
-          onChannelChange={handleChannelChange}
         />
       )}
       {effectiveViewMode === 'preview' && !compilationResults && (
@@ -845,7 +836,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                   }
                 }}
               >
-                <div className="pt-4 px-6 text-gray-900 text-sm font-bold">Email structure</div>
+                <div className="pt-4 px-6 text-gray-900 text-sm font-bold">Content structure</div>
                 <TreePanel
                   emailTree={tree}
                   selectedBlockId={effectiveSelectedBlockId}

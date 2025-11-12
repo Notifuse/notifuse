@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -42,6 +43,28 @@ func NewBlogService(
 
 // CreateCategory creates a new blog category
 func (s *BlogService) CreateCategory(ctx context.Context, request *domain.CreateBlogCategoryRequest) (*domain.BlogCategory, error) {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeWrite) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to blog required",
+		)
+	}
+
 	// Validate the request
 	if err := request.Validate(); err != nil {
 		s.logger.Error("Failed to validate category creation request")
@@ -87,16 +110,82 @@ func (s *BlogService) CreateCategory(ctx context.Context, request *domain.Create
 
 // GetCategory retrieves a blog category by ID
 func (s *BlogService) GetCategory(ctx context.Context, id string) (*domain.BlogCategory, error) {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to blog required",
+		)
+	}
+
 	return s.categoryRepo.GetCategory(ctx, id)
 }
 
 // GetCategoryBySlug retrieves a blog category by slug
 func (s *BlogService) GetCategoryBySlug(ctx context.Context, slug string) (*domain.BlogCategory, error) {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to blog required",
+		)
+	}
+
 	return s.categoryRepo.GetCategoryBySlug(ctx, slug)
 }
 
 // UpdateCategory updates an existing blog category
 func (s *BlogService) UpdateCategory(ctx context.Context, request *domain.UpdateBlogCategoryRequest) (*domain.BlogCategory, error) {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeWrite) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to blog required",
+		)
+	}
+
 	// Validate the request
 	if err := request.Validate(); err != nil {
 		s.logger.Error("Failed to validate category update request")
@@ -140,18 +229,61 @@ func (s *BlogService) UpdateCategory(ctx context.Context, request *domain.Update
 	return category, nil
 }
 
-// DeleteCategory deletes a blog category
+// DeleteCategory deletes a blog category and cascade deletes all posts in that category
 func (s *BlogService) DeleteCategory(ctx context.Context, request *domain.DeleteBlogCategoryRequest) error {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to blog required",
+		)
+	}
+
 	// Validate the request
 	if err := request.Validate(); err != nil {
 		s.logger.Error("Failed to validate category deletion request")
 		return err
 	}
 
-	// Delete the category
-	if err := s.categoryRepo.DeleteCategory(ctx, request.ID); err != nil {
-		s.logger.Error("Failed to delete category")
-		return fmt.Errorf("failed to delete category: %w", err)
+	// Use a transaction to cascade delete all posts and the category atomically
+	err = s.categoryRepo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
+		// First, soft-delete all posts belonging to this category
+		postsDeleted, err := s.postRepo.DeletePostsByCategoryIDTx(ctx, tx, request.ID)
+		if err != nil {
+			s.logger.Error("Failed to cascade delete posts for category")
+			return fmt.Errorf("failed to delete posts: %w", err)
+		}
+
+		// Log the cascade operation
+		if postsDeleted > 0 {
+			s.logger.Info(fmt.Sprintf("Cascade deleted %d posts from category %s", postsDeleted, request.ID))
+		}
+
+		// Then, soft-delete the category itself
+		if err := s.categoryRepo.DeleteCategoryTx(ctx, tx, request.ID); err != nil {
+			s.logger.Error("Failed to delete category")
+			return fmt.Errorf("failed to delete category: %w", err)
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -159,6 +291,28 @@ func (s *BlogService) DeleteCategory(ctx context.Context, request *domain.Delete
 
 // ListCategories retrieves all blog categories for a workspace
 func (s *BlogService) ListCategories(ctx context.Context) (*domain.BlogCategoryListResponse, error) {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to blog required",
+		)
+	}
+
 	categories, err := s.categoryRepo.ListCategories(ctx)
 	if err != nil {
 		s.logger.Error("Failed to list categories")
@@ -177,6 +331,28 @@ func (s *BlogService) ListCategories(ctx context.Context) (*domain.BlogCategoryL
 
 // CreatePost creates a new blog post
 func (s *BlogService) CreatePost(ctx context.Context, request *domain.CreateBlogPostRequest) (*domain.BlogPost, error) {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeWrite) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to blog required",
+		)
+	}
+
 	// Validate the request
 	if err := request.Validate(); err != nil {
 		s.logger.Error("Failed to validate post creation request")
@@ -189,12 +365,10 @@ func (s *BlogService) CreatePost(ctx context.Context, request *domain.CreateBlog
 		return nil, fmt.Errorf("post with slug '%s' already exists", request.Slug)
 	}
 
-	// Verify category exists if provided
-	if request.CategoryID != nil && *request.CategoryID != "" {
-		_, err := s.categoryRepo.GetCategory(ctx, *request.CategoryID)
-		if err != nil {
-			return nil, fmt.Errorf("category not found: %w", err)
-		}
+	// Verify category exists
+	_, err = s.categoryRepo.GetCategory(ctx, request.CategoryID)
+	if err != nil {
+		return nil, fmt.Errorf("category not found: %w", err)
 	}
 
 	// Generate a unique ID
@@ -210,7 +384,6 @@ func (s *BlogService) CreatePost(ctx context.Context, request *domain.CreateBlog
 			Template: domain.BlogPostTemplateReference{
 				TemplateID:      request.TemplateID,
 				TemplateVersion: request.TemplateVersion,
-				TemplateData:    request.TemplateData,
 			},
 			Excerpt:            request.Excerpt,
 			FeaturedImageURL:   request.FeaturedImageURL,
@@ -240,21 +413,109 @@ func (s *BlogService) CreatePost(ctx context.Context, request *domain.CreateBlog
 
 // GetPost retrieves a blog post by ID
 func (s *BlogService) GetPost(ctx context.Context, id string) (*domain.BlogPost, error) {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to blog required",
+		)
+	}
+
 	return s.postRepo.GetPost(ctx, id)
 }
 
 // GetPostBySlug retrieves a blog post by slug
 func (s *BlogService) GetPostBySlug(ctx context.Context, slug string) (*domain.BlogPost, error) {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to blog required",
+		)
+	}
+
 	return s.postRepo.GetPostBySlug(ctx, slug)
 }
 
 // GetPostByCategoryAndSlug retrieves a blog post by category slug and post slug
 func (s *BlogService) GetPostByCategoryAndSlug(ctx context.Context, categorySlug, postSlug string) (*domain.BlogPost, error) {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to blog required",
+		)
+	}
+
 	return s.postRepo.GetPostByCategoryAndSlug(ctx, categorySlug, postSlug)
 }
 
 // UpdatePost updates an existing blog post
 func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlogPostRequest) (*domain.BlogPost, error) {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeWrite) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to blog required",
+		)
+	}
+
 	// Validate the request
 	if err := request.Validate(); err != nil {
 		s.logger.Error("Failed to validate post update request")
@@ -276,12 +537,10 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 		}
 	}
 
-	// Verify category exists if provided
-	if request.CategoryID != nil && *request.CategoryID != "" {
-		_, err := s.categoryRepo.GetCategory(ctx, *request.CategoryID)
-		if err != nil {
-			return nil, fmt.Errorf("category not found: %w", err)
-		}
+	// Verify category exists
+	_, err = s.categoryRepo.GetCategory(ctx, request.CategoryID)
+	if err != nil {
+		return nil, fmt.Errorf("category not found: %w", err)
 	}
 
 	// Update the post fields
@@ -290,7 +549,6 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 	post.Settings.Title = request.Title
 	post.Settings.Template.TemplateID = request.TemplateID
 	post.Settings.Template.TemplateVersion = request.TemplateVersion
-	post.Settings.Template.TemplateData = request.TemplateData
 	post.Settings.Excerpt = request.Excerpt
 	post.Settings.FeaturedImageURL = request.FeaturedImageURL
 	post.Settings.Authors = request.Authors
@@ -315,6 +573,28 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 
 // DeletePost deletes a blog post
 func (s *BlogService) DeletePost(ctx context.Context, request *domain.DeleteBlogPostRequest) error {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to blog required",
+		)
+	}
+
 	// Validate the request
 	if err := request.Validate(); err != nil {
 		s.logger.Error("Failed to validate post deletion request")
@@ -332,6 +612,28 @@ func (s *BlogService) DeletePost(ctx context.Context, request *domain.DeleteBlog
 
 // ListPosts retrieves blog posts with filtering and pagination
 func (s *BlogService) ListPosts(ctx context.Context, params *domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for reading blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to blog required",
+		)
+	}
+
 	// Validate the request
 	if err := params.Validate(); err != nil {
 		s.logger.Error("Failed to validate post list request")
@@ -343,6 +645,28 @@ func (s *BlogService) ListPosts(ctx context.Context, params *domain.ListBlogPost
 
 // PublishPost publishes a draft blog post
 func (s *BlogService) PublishPost(ctx context.Context, request *domain.PublishBlogPostRequest) error {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to blog required",
+		)
+	}
+
 	// Validate the request
 	if err := request.Validate(); err != nil {
 		s.logger.Error("Failed to validate post publish request")
@@ -360,6 +684,28 @@ func (s *BlogService) PublishPost(ctx context.Context, request *domain.PublishBl
 
 // UnpublishPost unpublishes a published blog post
 func (s *BlogService) UnpublishPost(ctx context.Context, request *domain.UnpublishBlogPostRequest) error {
+	// Get workspace ID from context
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return fmt.Errorf("workspace_id not found in context")
+	}
+
+	// Authenticate user for workspace
+	var err error
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to authenticate user: %w", err)
+	}
+
+	// Check permission for writing blog
+	if !userWorkspace.HasPermission(domain.PermissionResourceBlog, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceBlog,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to blog required",
+		)
+	}
+
 	// Validate the request
 	if err := request.Validate(); err != nil {
 		s.logger.Error("Failed to validate post unpublish request")

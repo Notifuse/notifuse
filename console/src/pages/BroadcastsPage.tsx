@@ -56,12 +56,9 @@ import { BroadcastStats } from '../components/broadcasts/BroadcastStats'
 import { Integration, List, Sender } from '../services/api/types'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import { Template } from '../services/api/types'
+import Subtitle from '../components/common/subtitle'
 
 const { Title, Paragraph, Text } = Typography
-
-const Subtitle = ({ className, children }: { className?: string; children: React.ReactNode }) => {
-  return <div className={`text-xs font-medium mb-2 ${className}`}>{children}</div>
-}
 
 // Helper function to calculate remaining test time
 const getRemainingTestTime = (broadcast: Broadcast, testResults?: any) => {

@@ -8,7 +8,7 @@ import { GeneralSettings } from '../components/settings/GeneralSettings'
 import { SMTPRelaySettings } from '../components/settings/SMTPRelaySettings'
 import { Integrations } from '../components/settings/Integrations'
 import { CustomFieldsConfiguration } from '../components/settings/CustomFieldsConfiguration'
-import { WebPublicationSettings } from '../components/settings/WebPublicationSettings'
+import { BlogSettings } from '../components/settings/BlogSettings'
 import { useAuth } from '../contexts/AuthContext'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
 import { SettingsSidebar, SettingsSection } from '../components/settings/SettingsSidebar'
@@ -33,7 +33,7 @@ export function WorkspaceSettingsPage() {
     'custom-fields',
     'smtp-relay',
     'general',
-    'web-publications',
+    'blog',
     'danger-zone'
   ]
 
@@ -136,9 +136,9 @@ export function WorkspaceSettingsPage() {
             isOwner={isOwner}
           />
         )
-      case 'web-publications':
+      case 'blog':
         return (
-          <WebPublicationSettings
+          <BlogSettings
             workspace={workspace}
             onWorkspaceUpdate={handleWorkspaceUpdate}
             isOwner={isOwner}

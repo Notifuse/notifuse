@@ -54,7 +54,8 @@ const TemplateSelectorInput: React.FC<TemplateSelectorInputProps> = ({
       // Assume the API accepts a category parameter for filtering
       const response = await templatesApi.list({
         workspace_id: workspaceId,
-        category: category
+        category: category,
+        channel: 'email'
       })
       return response
     },

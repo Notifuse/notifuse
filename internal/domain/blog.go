@@ -173,9 +173,8 @@ func (c *BlogCategory) Validate() error {
 
 // BlogPostTemplateReference contains template information for a blog post
 type BlogPostTemplateReference struct {
-	TemplateID      string   `json:"template_id"`
-	TemplateVersion int      `json:"template_version"`
-	TemplateData    MapOfAny `json:"template_data"`
+	TemplateID      string `json:"template_id"`
+	TemplateVersion int    `json:"template_version"`
 }
 
 // BlogPostSettings contains the settings for a blog post
@@ -212,7 +211,7 @@ func (s *BlogPostSettings) Scan(value interface{}) error {
 // BlogPost represents a blog post
 type BlogPost struct {
 	ID          string           `json:"id"`
-	CategoryID  *string          `json:"category_id,omitempty"`
+	CategoryID  string           `json:"category_id"`
 	Slug        string           `json:"slug"` // URL identifier
 	Settings    BlogPostSettings `json:"settings"`
 	PublishedAt *time.Time       `json:"published_at,omitempty"` // null = draft
@@ -225,6 +224,10 @@ type BlogPost struct {
 func (p *BlogPost) Validate() error {
 	if p.ID == "" {
 		return fmt.Errorf("id is required")
+	}
+
+	if p.CategoryID == "" {
+		return fmt.Errorf("category_id is required")
 	}
 
 	if p.Slug == "" {
@@ -388,12 +391,11 @@ type BlogCategoryListResponse struct {
 
 // CreateBlogPostRequest defines the request to create a blog post
 type CreateBlogPostRequest struct {
-	CategoryID         *string      `json:"category_id,omitempty"`
+	CategoryID         string       `json:"category_id"`
 	Slug               string       `json:"slug"`
 	Title              string       `json:"title"`
 	TemplateID         string       `json:"template_id"`
 	TemplateVersion    int          `json:"template_version"`
-	TemplateData       MapOfAny     `json:"template_data"`
 	Excerpt            string       `json:"excerpt,omitempty"`
 	FeaturedImageURL   string       `json:"featured_image_url,omitempty"`
 	Authors            []BlogAuthor `json:"authors"`
@@ -403,6 +405,10 @@ type CreateBlogPostRequest struct {
 
 // Validate validates the create blog post request
 func (r *CreateBlogPostRequest) Validate() error {
+	if r.CategoryID == "" {
+		return fmt.Errorf("category_id is required")
+	}
+
 	if r.Slug == "" {
 		return fmt.Errorf("slug is required")
 	}
@@ -433,12 +439,11 @@ func (r *CreateBlogPostRequest) Validate() error {
 // UpdateBlogPostRequest defines the request to update a blog post
 type UpdateBlogPostRequest struct {
 	ID                 string       `json:"id"`
-	CategoryID         *string      `json:"category_id,omitempty"`
+	CategoryID         string       `json:"category_id"`
 	Slug               string       `json:"slug"`
 	Title              string       `json:"title"`
 	TemplateID         string       `json:"template_id"`
 	TemplateVersion    int          `json:"template_version"`
-	TemplateData       MapOfAny     `json:"template_data"`
 	Excerpt            string       `json:"excerpt,omitempty"`
 	FeaturedImageURL   string       `json:"featured_image_url,omitempty"`
 	Authors            []BlogAuthor `json:"authors"`
@@ -450,6 +455,10 @@ type UpdateBlogPostRequest struct {
 func (r *UpdateBlogPostRequest) Validate() error {
 	if r.ID == "" {
 		return fmt.Errorf("id is required")
+	}
+
+	if r.CategoryID == "" {
+		return fmt.Errorf("category_id is required")
 	}
 
 	if r.Slug == "" {
@@ -629,6 +638,7 @@ type BlogPostRepository interface {
 	GetPostBySlugTx(ctx context.Context, tx *sql.Tx, slug string) (*BlogPost, error)
 	UpdatePostTx(ctx context.Context, tx *sql.Tx, post *BlogPost) error
 	DeletePostTx(ctx context.Context, tx *sql.Tx, id string) error
+	DeletePostsByCategoryIDTx(ctx context.Context, tx *sql.Tx, categoryID string) (int64, error)
 	PublishPostTx(ctx context.Context, tx *sql.Tx, id string) error
 	UnpublishPostTx(ctx context.Context, tx *sql.Tx, id string) error
 }

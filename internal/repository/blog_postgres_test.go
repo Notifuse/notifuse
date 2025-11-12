@@ -313,18 +313,16 @@ func TestBlogPostRepository(t *testing.T) {
 
 	ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
 
-	categoryID := "cat123"
 	testPost := &domain.BlogPost{
 		ID:         "post123",
-		CategoryID: &categoryID,
+		CategoryID: "cat123",
 		Slug:       "my-first-post",
 		Settings: domain.BlogPostSettings{
 			Title: "My First Post",
 			Template: domain.BlogPostTemplateReference{
-				TemplateID:      "tpl123",
-				TemplateVersion: 1,
-				TemplateData:    domain.MapOfAny{},
-			},
+			TemplateID:      "tpl123",
+			TemplateVersion: 1,
+		},
 			Authors:            []domain.BlogAuthor{{Name: "John Doe"}},
 			ReadingTimeMinutes: 5,
 		},
@@ -769,6 +767,64 @@ func TestBlogPostRepository(t *testing.T) {
 			err := repo.UnpublishPost(ctx, testPost.ID)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "not found or not published")
+		})
+	})
+
+	t.Run("DeletePostsByCategoryIDTx", func(t *testing.T) {
+		t.Run("successful deletion of multiple posts", func(t *testing.T) {
+			sqlMock.ExpectBegin()
+			sqlMock.ExpectExec(regexp.QuoteMeta(`
+		UPDATE blog_posts
+		SET deleted_at = $1
+		WHERE category_id = $2 AND deleted_at IS NULL
+	`)).WithArgs(sqlmock.AnyArg(), "cat123").
+				WillReturnResult(sqlmock.NewResult(0, 3)) // 3 posts deleted
+			sqlMock.ExpectCommit()
+
+			tx, err := db.Begin()
+			require.NoError(t, err)
+			rowsAffected, err := repo.(*blogPostRepository).DeletePostsByCategoryIDTx(ctx, tx, "cat123")
+			require.NoError(t, err)
+			assert.Equal(t, int64(3), rowsAffected)
+			err = tx.Commit()
+			require.NoError(t, err)
+			assert.NoError(t, sqlMock.ExpectationsWereMet())
+		})
+
+		t.Run("no posts found for category", func(t *testing.T) {
+			sqlMock.ExpectBegin()
+			sqlMock.ExpectExec(regexp.QuoteMeta(`
+		UPDATE blog_posts
+		SET deleted_at = $1
+		WHERE category_id = $2 AND deleted_at IS NULL
+	`)).WithArgs(sqlmock.AnyArg(), "cat456").
+				WillReturnResult(sqlmock.NewResult(0, 0)) // 0 posts deleted
+			sqlMock.ExpectCommit()
+
+			tx, err := db.Begin()
+			require.NoError(t, err)
+			rowsAffected, err := repo.(*blogPostRepository).DeletePostsByCategoryIDTx(ctx, tx, "cat456")
+			require.NoError(t, err)
+			assert.Equal(t, int64(0), rowsAffected)
+			err = tx.Commit()
+			require.NoError(t, err)
+			assert.NoError(t, sqlMock.ExpectationsWereMet())
+		})
+
+		t.Run("database error", func(t *testing.T) {
+			sqlMock.ExpectBegin()
+			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE blog_posts`)).
+				WillReturnError(errors.New("database error"))
+			sqlMock.ExpectRollback()
+
+			tx, err := db.Begin()
+			require.NoError(t, err)
+			rowsAffected, err := repo.(*blogPostRepository).DeletePostsByCategoryIDTx(ctx, tx, "cat123")
+			require.Error(t, err)
+			assert.Equal(t, int64(0), rowsAffected)
+			assert.Contains(t, err.Error(), "failed to delete blog posts by category")
+			err = tx.Rollback()
+			require.NoError(t, err)
 		})
 	})
 }

@@ -1,6 +1,7 @@
 import { Form, Input, Select, Row, Col, Tooltip } from 'antd'
 import { InfoCircleOutlined } from '@ant-design/icons'
 import { ImageURLInput } from '../common/ImageURLInput'
+import Subtitle from '../common/subtitle'
 
 interface SEOSettingsFormProps {
   namePrefix?: (string | number)[] // For nested forms like ['web_publication_settings']
@@ -20,6 +21,9 @@ export function SEOSettingsForm({
       <>
         <Row gutter={32}>
           <Col span={12}>
+            <Subtitle className="mb-6" borderBottom primary>
+              SEO
+            </Subtitle>
             <Form.Item
               name={[...namePrefix, 'meta_title']}
               label={
@@ -73,11 +77,14 @@ export function SEOSettingsForm({
           </Col>
 
           <Col span={12}>
+            <Subtitle className="mb-6" borderBottom primary>
+              Social Share
+            </Subtitle>
             <Form.Item
               name={[...namePrefix, 'og_title']}
               label={
                 <span>
-                  Open Graph Title&nbsp;
+                  Social Share Title&nbsp;
                   <Tooltip title="Title when shared on social media (optional)">
                     <InfoCircleOutlined style={{ cursor: 'pointer' }} className="pl-1" />
                   </Tooltip>
@@ -87,7 +94,7 @@ export function SEOSettingsForm({
               <Input maxLength={60} showCount placeholder="Defaults to meta title" />
             </Form.Item>
 
-            <Form.Item name={[...namePrefix, 'og_description']} label="Open Graph Description">
+            <Form.Item name={[...namePrefix, 'og_description']} label="Social Share Description">
               <Input.TextArea
                 maxLength={160}
                 rows={1}
@@ -96,7 +103,7 @@ export function SEOSettingsForm({
               />
             </Form.Item>
 
-            <Form.Item name={[...namePrefix, 'og_image']} label="Open Graph Image URL">
+            <Form.Item name={[...namePrefix, 'og_image']} label="Social Share Image URL">
               <ImageURLInput placeholder="https://example.com/image.jpg" />
             </Form.Item>
           </Col>
@@ -107,6 +114,9 @@ export function SEOSettingsForm({
 
   return (
     <>
+      <Subtitle className="mb-6" borderBottom primary>
+        SEO
+      </Subtitle>
       <Form.Item
         name={[...namePrefix, 'meta_title']}
         label={
@@ -153,11 +163,14 @@ export function SEOSettingsForm({
         <Input placeholder="https://example.com/original-post" />
       </Form.Item>
 
+      <Subtitle className="mb-6" borderBottom primary>
+        Social Share
+      </Subtitle>
       <Form.Item
         name={[...namePrefix, 'og_title']}
         label={
           <span>
-            Open Graph Title&nbsp;
+            Social Share Title&nbsp;
             <Tooltip title="Title when shared on social media (optional)">
               <InfoCircleOutlined style={{ cursor: 'pointer' }} className="pl-1" />
             </Tooltip>
@@ -167,7 +180,7 @@ export function SEOSettingsForm({
         <Input maxLength={60} showCount placeholder="Defaults to meta title" />
       </Form.Item>
 
-      <Form.Item name={[...namePrefix, 'og_description']} label="Open Graph Description">
+      <Form.Item name={[...namePrefix, 'og_description']} label="Social Share Description">
         <Input.TextArea
           maxLength={160}
           rows={2}
@@ -176,7 +189,7 @@ export function SEOSettingsForm({
         />
       </Form.Item>
 
-      <Form.Item name={[...namePrefix, 'og_image']} label="Open Graph Image URL">
+      <Form.Item name={[...namePrefix, 'og_image']} label="Social Share Image URL">
         <ImageURLInput placeholder="https://example.com/image.jpg" />
       </Form.Item>
     </>

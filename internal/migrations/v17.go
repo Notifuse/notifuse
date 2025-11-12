@@ -8,9 +8,11 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 )
 
-// V17Migration updates mailing list structure
+// V17Migration updates mailing list structure and adds blog feature
+// System: Add blog permissions to all user workspaces
 // Broadcasts: pause_reason, audience.lists -> audience.list
 // Message history: list_ids -> list_id
+// Workspace: Create blog_categories and blog_posts tables
 type V17Migration struct{}
 
 func (m *V17Migration) GetMajorVersion() float64 {
@@ -18,7 +20,7 @@ func (m *V17Migration) GetMajorVersion() float64 {
 }
 
 func (m *V17Migration) HasSystemUpdate() bool {
-	return false
+	return true
 }
 
 func (m *V17Migration) HasWorkspaceUpdate() bool {
@@ -30,7 +32,17 @@ func (m *V17Migration) ShouldRestartServer() bool {
 }
 
 func (m *V17Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
-	// No system-level changes needed
+	// Add blog permissions to all existing user workspaces
+	_, err := db.ExecContext(ctx, `
+		UPDATE user_workspaces
+		SET permissions = permissions || '{"blog": {"read": true, "write": true}}'::jsonb
+		WHERE permissions IS NOT NULL
+		AND NOT permissions ? 'blog'
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add blog permissions to user workspaces: %w", err)
+	}
+
 	return nil
 }
 
@@ -134,7 +146,7 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 	// Create blog_categories table
 	_, err = db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS blog_categories (
-			id VARCHAR(32) PRIMARY KEY,
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			slug VARCHAR(100) NOT NULL UNIQUE,
 			settings JSONB NOT NULL DEFAULT '{}',
 			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -161,8 +173,8 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 	// Create blog_posts table
 	_, err = db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS blog_posts (
-			id VARCHAR(32) PRIMARY KEY,
-			category_id VARCHAR(32) REFERENCES blog_categories(id) ON DELETE SET NULL,
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			category_id UUID,
 			slug VARCHAR(100) NOT NULL UNIQUE,
 			settings JSONB NOT NULL DEFAULT '{}',
 			published_at TIMESTAMP,
@@ -203,6 +215,26 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create idx_blog_posts_workspace_slug index: %w", err)
+	}
+
+	// ===== TEMPLATES TABLE =====
+
+	// Make email column nullable for web templates
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE templates 
+		ALTER COLUMN email DROP NOT NULL
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to make email column nullable in templates: %w", err)
+	}
+
+	// Add web column for web/blog templates
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE templates 
+		ADD COLUMN IF NOT EXISTS web JSONB
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add web column to templates: %w", err)
 	}
 
 	return nil

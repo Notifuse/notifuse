@@ -1,17 +1,10 @@
 import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faCircleCheck } from '@fortawesome/free-regular-svg-icons'
-
-interface WebPublicationSettings {
-  og_image?: string
-  og_title?: string
-  og_description?: string
-  meta_title?: string
-  meta_description?: string
-}
+import type { SEOSettings } from '../../services/api/workspace'
 
 interface OpenGraphPreviewProps {
-  webPublicationSettings: WebPublicationSettings
+  webPublicationSettings: SEOSettings
   broadcastName: string
   customEndpointUrl?: string
   width?: number

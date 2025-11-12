@@ -853,9 +853,9 @@ export function CreateTemplateDrawer({
                 target: null // Center of screen
               },
               {
-                title: 'Email Structure Tree',
+                title: 'Content Structure Tree',
                 description:
-                  'This is your email structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another.',
+                  'This is your content structure tree. You can drag and drop blocks to reorganize your email layout. Click the + buttons to add new blocks, or drag blocks from one section to another.',
                 target: () => treePanelRef.current!,
                 placement: 'right' as const
               },

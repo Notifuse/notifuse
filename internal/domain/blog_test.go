@@ -260,10 +260,9 @@ func TestBlogPostSettings_Value(t *testing.T) {
 		settings := BlogPostSettings{
 			Title: "Test Post",
 			Template: BlogPostTemplateReference{
-				TemplateID:      "tpl123",
-				TemplateVersion: 1,
-				TemplateData:    MapOfAny{"key": "value"},
-			},
+			TemplateID:      "tpl123",
+			TemplateVersion: 1,
+		},
 			Authors: []BlogAuthor{{Name: "John"}},
 		}
 
@@ -292,8 +291,9 @@ func TestBlogPostSettings_Scan(t *testing.T) {
 func TestBlogPost_Validate(t *testing.T) {
 	t.Run("valid post", func(t *testing.T) {
 		post := &BlogPost{
-			ID:   "post123",
-			Slug: "my-first-post",
+			ID:         "post123",
+			CategoryID: "cat123",
+			Slug:       "my-first-post",
 			Settings: BlogPostSettings{
 				Title: "My First Post",
 				Template: BlogPostTemplateReference{
@@ -307,7 +307,8 @@ func TestBlogPost_Validate(t *testing.T) {
 
 	t.Run("missing id", func(t *testing.T) {
 		post := &BlogPost{
-			Slug: "my-first-post",
+			CategoryID: "cat123",
+			Slug:       "my-first-post",
 			Settings: BlogPostSettings{
 				Title: "My First Post",
 				Template: BlogPostTemplateReference{
@@ -320,9 +321,26 @@ func TestBlogPost_Validate(t *testing.T) {
 		assert.Contains(t, err.Error(), "id is required")
 	})
 
+	t.Run("missing category_id", func(t *testing.T) {
+		post := &BlogPost{
+			ID:   "post123",
+			Slug: "my-first-post",
+			Settings: BlogPostSettings{
+				Title: "My First Post",
+				Template: BlogPostTemplateReference{
+					TemplateID: "tpl123",
+				},
+			},
+		}
+		err := post.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "category_id is required")
+	})
+
 	t.Run("missing slug", func(t *testing.T) {
 		post := &BlogPost{
-			ID: "post123",
+			ID:         "post123",
+			CategoryID: "cat123",
 			Settings: BlogPostSettings{
 				Title: "My First Post",
 				Template: BlogPostTemplateReference{
@@ -337,8 +355,9 @@ func TestBlogPost_Validate(t *testing.T) {
 
 	t.Run("invalid slug", func(t *testing.T) {
 		post := &BlogPost{
-			ID:   "post123",
-			Slug: "Invalid Slug!",
+			ID:         "post123",
+			CategoryID: "cat123",
+			Slug:       "Invalid Slug!",
 			Settings: BlogPostSettings{
 				Title: "My First Post",
 				Template: BlogPostTemplateReference{
@@ -353,8 +372,9 @@ func TestBlogPost_Validate(t *testing.T) {
 
 	t.Run("slug too long", func(t *testing.T) {
 		post := &BlogPost{
-			ID:   "post123",
-			Slug: "this-is-a-very-long-slug-that-exceeds-the-maximum-allowed-length-for-slugs-in-the-system-and-should-fail",
+			ID:         "post123",
+			CategoryID: "cat123",
+			Slug:       "this-is-a-very-long-slug-that-exceeds-the-maximum-allowed-length-for-slugs-in-the-system-and-should-fail",
 			Settings: BlogPostSettings{
 				Title: "My First Post",
 				Template: BlogPostTemplateReference{
@@ -369,8 +389,9 @@ func TestBlogPost_Validate(t *testing.T) {
 
 	t.Run("missing title", func(t *testing.T) {
 		post := &BlogPost{
-			ID:   "post123",
-			Slug: "my-first-post",
+			ID:         "post123",
+			CategoryID: "cat123",
+			Slug:       "my-first-post",
 			Settings: BlogPostSettings{
 				Template: BlogPostTemplateReference{
 					TemplateID: "tpl123",
@@ -388,8 +409,9 @@ func TestBlogPost_Validate(t *testing.T) {
 			longTitle += "a"
 		}
 		post := &BlogPost{
-			ID:   "post123",
-			Slug: "my-first-post",
+			ID:         "post123",
+			CategoryID: "cat123",
+			Slug:       "my-first-post",
 			Settings: BlogPostSettings{
 				Title: longTitle,
 				Template: BlogPostTemplateReference{
@@ -404,8 +426,9 @@ func TestBlogPost_Validate(t *testing.T) {
 
 	t.Run("missing template_id", func(t *testing.T) {
 		post := &BlogPost{
-			ID:   "post123",
-			Slug: "my-first-post",
+			ID:         "post123",
+			CategoryID: "cat123",
+			Slug:       "my-first-post",
 			Settings: BlogPostSettings{
 				Title: "My First Post",
 			},
@@ -598,6 +621,7 @@ func TestGetBlogCategoryRequest_Validate(t *testing.T) {
 func TestCreateBlogPostRequest_Validate(t *testing.T) {
 	t.Run("valid request", func(t *testing.T) {
 		req := &CreateBlogPostRequest{
+			CategoryID: "cat123",
 			Slug:       "my-post",
 			Title:      "My Post",
 			TemplateID: "tpl123",
@@ -606,8 +630,20 @@ func TestCreateBlogPostRequest_Validate(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
+	t.Run("missing category_id", func(t *testing.T) {
+		req := &CreateBlogPostRequest{
+			Slug:       "my-post",
+			Title:      "My Post",
+			TemplateID: "tpl123",
+		}
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "category_id is required")
+	})
+
 	t.Run("missing slug", func(t *testing.T) {
 		req := &CreateBlogPostRequest{
+			CategoryID: "cat123",
 			Title:      "My Post",
 			TemplateID: "tpl123",
 		}
@@ -618,6 +654,7 @@ func TestCreateBlogPostRequest_Validate(t *testing.T) {
 
 	t.Run("missing title", func(t *testing.T) {
 		req := &CreateBlogPostRequest{
+			CategoryID: "cat123",
 			Slug:       "my-post",
 			TemplateID: "tpl123",
 		}
@@ -628,8 +665,9 @@ func TestCreateBlogPostRequest_Validate(t *testing.T) {
 
 	t.Run("missing template_id", func(t *testing.T) {
 		req := &CreateBlogPostRequest{
-			Slug:  "my-post",
-			Title: "My Post",
+			CategoryID: "cat123",
+			Slug:       "my-post",
+			Title:      "My Post",
 		}
 		err := req.Validate()
 		require.Error(t, err)
@@ -641,6 +679,7 @@ func TestUpdateBlogPostRequest_Validate(t *testing.T) {
 	t.Run("valid request", func(t *testing.T) {
 		req := &UpdateBlogPostRequest{
 			ID:         "post123",
+			CategoryID: "cat123",
 			Slug:       "my-post",
 			Title:      "My Post",
 			TemplateID: "tpl123",
@@ -651,6 +690,7 @@ func TestUpdateBlogPostRequest_Validate(t *testing.T) {
 
 	t.Run("missing id", func(t *testing.T) {
 		req := &UpdateBlogPostRequest{
+			CategoryID: "cat123",
 			Slug:       "my-post",
 			Title:      "My Post",
 			TemplateID: "tpl123",
@@ -658,6 +698,18 @@ func TestUpdateBlogPostRequest_Validate(t *testing.T) {
 		err := req.Validate()
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "id is required")
+	})
+
+	t.Run("missing category_id", func(t *testing.T) {
+		req := &UpdateBlogPostRequest{
+			ID:         "post123",
+			Slug:       "my-post",
+			Title:      "My Post",
+			TemplateID: "tpl123",
+		}
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "category_id is required")
 	})
 }
 

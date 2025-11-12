@@ -97,8 +97,9 @@ export function TemplatesPage() {
     // Use selectedCategory from search params in queryKey
     queryKey: ['templates', workspaceId, selectedCategory],
     queryFn: () => {
-      const params: { workspace_id: string; category?: string } = {
-        workspace_id: workspaceId
+      const params: { workspace_id: string; category?: string; channel?: string } = {
+        workspace_id: workspaceId,
+        channel: 'email'
       }
       if (selectedCategory !== 'all') {
         params.category = selectedCategory

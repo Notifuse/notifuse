@@ -375,9 +375,9 @@ func TestTemplateService_GetTemplates(t *testing.T) {
 				domain.PermissionResourceTemplates: {Read: true, Write: true},
 			},
 		}, nil)
-		mockRepo.EXPECT().GetTemplates(ctx, workspaceID, "").Return(expectedTemplates, nil)
+		mockRepo.EXPECT().GetTemplates(ctx, workspaceID, "", "").Return(expectedTemplates, nil)
 
-		templates, err := templateService.GetTemplates(ctx, workspaceID, "")
+		templates, err := templateService.GetTemplates(ctx, workspaceID, "", "")
 
 		assert.NoError(t, err)
 		assert.Equal(t, expectedTemplates, templates)
@@ -391,7 +391,7 @@ func TestTemplateService_GetTemplates(t *testing.T) {
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, authErr)
 
-		templates, err := templateService.GetTemplates(ctx, workspaceID, "")
+		templates, err := templateService.GetTemplates(ctx, workspaceID, "", "")
 
 		assert.Error(t, err)
 		assert.Nil(t, templates)
@@ -413,10 +413,10 @@ func TestTemplateService_GetTemplates(t *testing.T) {
 				domain.PermissionResourceTemplates: {Read: true, Write: true},
 			},
 		}, nil)
-		mockRepo.EXPECT().GetTemplates(ctx, workspaceID, "").Return(nil, repoErr)
+		mockRepo.EXPECT().GetTemplates(ctx, workspaceID, "", "").Return(nil, repoErr)
 		mockLogger.EXPECT().Error(fmt.Sprintf("Failed to get templates: %v", repoErr)).Return()
 
-		templates, err := templateService.GetTemplates(ctx, workspaceID, "")
+		templates, err := templateService.GetTemplates(ctx, workspaceID, "", "")
 
 		assert.Error(t, err)
 		assert.Nil(t, templates)

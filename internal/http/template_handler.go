@@ -52,7 +52,7 @@ func (h *TemplateHandler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates, err := h.service.GetTemplates(r.Context(), req.WorkspaceID, req.Category)
+	templates, err := h.service.GetTemplates(r.Context(), req.WorkspaceID, req.Category, req.Channel)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get templates")
 		WriteJSONError(w, "Failed to get templates", http.StatusInternalServerError)

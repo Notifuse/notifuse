@@ -143,7 +143,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			name VARCHAR(255) NOT NULL,
 			version INTEGER NOT NULL,
 			channel VARCHAR(20) NOT NULL,
-			email JSONB NOT NULL,
+			email JSONB,
+			web JSONB,
 			category VARCHAR(20) NOT NULL,
 			template_macro_id VARCHAR(32),
 			integration_id VARCHAR(255),
@@ -290,7 +291,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE TABLE IF NOT EXISTS blog_categories (
-			id VARCHAR(32) PRIMARY KEY,
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			slug VARCHAR(100) NOT NULL UNIQUE,
 			settings JSONB NOT NULL DEFAULT '{}',
 			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -299,8 +300,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_categories_slug ON blog_categories(slug) WHERE deleted_at IS NULL`,
 		`CREATE TABLE IF NOT EXISTS blog_posts (
-			id VARCHAR(32) PRIMARY KEY,
-			category_id VARCHAR(32) REFERENCES blog_categories(id) ON DELETE SET NULL,
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			category_id UUID,
 			slug VARCHAR(100) NOT NULL UNIQUE,
 			settings JSONB NOT NULL DEFAULT '{}',
 			published_at TIMESTAMP,

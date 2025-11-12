@@ -359,8 +359,8 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 
 	existingWorkspace.Settings.CustomEndpointURL = settings.CustomEndpointURL
 	existingWorkspace.Settings.CustomFieldLabels = settings.CustomFieldLabels
-	existingWorkspace.Settings.WebPublicationsEnabled = settings.WebPublicationsEnabled
-	existingWorkspace.Settings.WebPublicationSettings = settings.WebPublicationSettings
+	existingWorkspace.Settings.BlogEnabled = settings.BlogEnabled
+	existingWorkspace.Settings.BlogSettings = settings.BlogSettings
 
 	// Handle template blocks - ensure they have proper timestamps and IDs
 	for i := range settings.TemplateBlocks {

@@ -673,7 +673,7 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 		whereConditions = append(whereConditions, "published_at IS NULL")
 	case domain.BlogPostStatusPublished:
 		whereConditions = append(whereConditions, "published_at IS NOT NULL")
-	// BlogPostStatusAll means no filter on published_at
+		// BlogPostStatusAll means no filter on published_at
 	}
 
 	whereClause := "WHERE " + whereConditions[0]
@@ -814,4 +814,25 @@ func (r *blogPostRepository) UnpublishPostTx(ctx context.Context, tx *sql.Tx, id
 	}
 
 	return nil
+}
+
+// DeletePostsByCategoryIDTx soft deletes all posts belonging to a category within a transaction
+func (r *blogPostRepository) DeletePostsByCategoryIDTx(ctx context.Context, tx *sql.Tx, categoryID string) (int64, error) {
+	query := `
+		UPDATE blog_posts
+		SET deleted_at = $1
+		WHERE category_id = $2 AND deleted_at IS NULL
+	`
+
+	result, err := tx.ExecContext(ctx, query, time.Now().UTC(), categoryID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to delete blog posts by category: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rowsAffected, nil
 }

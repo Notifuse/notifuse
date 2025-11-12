@@ -103,7 +103,7 @@ func (h *RootHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	workspace := h.detectWorkspaceByHost(r.Context(), host)
-	if workspace != nil && workspace.Settings.WebPublicationsEnabled && h.blogService != nil {
+	if workspace != nil && workspace.Settings.BlogEnabled && h.blogService != nil {
 		h.serveBlog(w, r, workspace)
 		return
 	}
@@ -356,9 +356,9 @@ func (h *RootHandler) serveBlogSitemap(w http.ResponseWriter, r *http.Request, w
 
 	// Add posts
 	for _, post := range response.Posts {
-		if post.CategoryID != nil {
+		if post.CategoryID != "" {
 			// Get category to build the URL
-			category, err := h.blogService.GetCategory(ctx, *post.CategoryID)
+			category, err := h.blogService.GetCategory(ctx, post.CategoryID)
 			if err == nil && category != nil {
 				sitemap.WriteString("  <url>\n")
 				sitemap.WriteString(fmt.Sprintf("    <loc>https://%s/%s/%s</loc>\n", r.Host, category.Slug, post.Slug))

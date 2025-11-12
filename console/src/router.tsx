@@ -17,6 +17,7 @@ import { TransactionalNotificationsPage } from './pages/TransactionalNotificatio
 import { LogsPage } from './pages/LogsPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { DebugSegmentPage } from './pages/DebugSegmentPage'
+import { BlogPage } from './pages/BlogPage'
 import SetupWizard from './pages/SetupWizard'
 import { createRouter } from '@tanstack/react-router'
 
@@ -41,6 +42,11 @@ export interface SignInSearch {
 
 export interface AcceptInvitationSearch {
   token?: string
+}
+
+export interface BlogSearch {
+  status?: string
+  category_id?: string
 }
 
 // Create the root route
@@ -208,6 +214,16 @@ const workspaceNewSegmentRoute = createRoute({
   component: DebugSegmentPage
 })
 
+const workspaceBlogRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/blog',
+  component: BlogPage,
+  validateSearch: (search: Record<string, unknown>): BlogSearch => ({
+    status: search.status as string | undefined,
+    category_id: search.category_id as string | undefined
+  })
+})
+
 // Create the router
 const routeTree = rootRoute.addChildren([
   indexRoute,
@@ -228,7 +244,8 @@ const routeTree = rootRoute.addChildren([
     workspaceSettingsRoute,
     workspaceTemplatesRoute,
     workspaceAnalyticsRoute,
-    workspaceNewSegmentRoute
+    workspaceNewSegmentRoute,
+    workspaceBlogRoute
   ])
 ])
 

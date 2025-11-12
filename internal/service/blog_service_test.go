@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"testing"
 	"time"
@@ -41,11 +42,35 @@ func setupBlogServiceTest(t *testing.T) (
 	return service, mockCategoryRepo, mockPostRepo, mockWorkspaceRepo, mockAuthService
 }
 
+// setupBlogContextWithAuth creates a context with workspace_id and mocks authentication with permissions
+func setupBlogContextWithAuth(mockAuthService *mocks.MockAuthService, workspaceID string, readPerm, writePerm bool) context.Context {
+	ctx := context.WithValue(context.Background(), "workspace_id", workspaceID)
+
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "user123",
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceBlog: domain.ResourcePermissions{
+				Read:  readPerm,
+				Write: writePerm,
+			},
+		},
+	}
+
+	mockAuthService.EXPECT().
+		AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
+		Return(ctx, &domain.User{ID: "user123"}, userWorkspace, nil).
+		AnyTimes()
+
+	return ctx
+}
+
 func TestBlogService_CreateCategory(t *testing.T) {
-	service, mockCategoryRepo, _, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, mockCategoryRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful creation", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.CreateBlogCategoryRequest{
 			Name:        "Tech Blog",
 			Slug:        "tech-blog",
@@ -76,6 +101,7 @@ func TestBlogService_CreateCategory(t *testing.T) {
 	})
 
 	t.Run("validation error - missing name", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.CreateBlogCategoryRequest{
 			Slug: "tech-blog",
 		}
@@ -87,6 +113,7 @@ func TestBlogService_CreateCategory(t *testing.T) {
 	})
 
 	t.Run("slug already exists", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.CreateBlogCategoryRequest{
 			Name: "Tech Blog",
 			Slug: "tech-blog",
@@ -108,6 +135,7 @@ func TestBlogService_CreateCategory(t *testing.T) {
 	})
 
 	t.Run("repository error", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.CreateBlogCategoryRequest{
 			Name: "Tech Blog",
 			Slug: "tech-blog",
@@ -129,10 +157,10 @@ func TestBlogService_CreateCategory(t *testing.T) {
 }
 
 func TestBlogService_GetCategory(t *testing.T) {
-	service, mockCategoryRepo, _, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, mockCategoryRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		expectedCategory := &domain.BlogCategory{
 			ID:   "cat123",
 			Slug: "tech-blog",
@@ -151,6 +179,7 @@ func TestBlogService_GetCategory(t *testing.T) {
 	})
 
 	t.Run("category not found", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		mockCategoryRepo.EXPECT().
 			GetCategory(ctx, "nonexistent").
 			Return(nil, errors.New("not found"))
@@ -162,10 +191,10 @@ func TestBlogService_GetCategory(t *testing.T) {
 }
 
 func TestBlogService_GetCategoryBySlug(t *testing.T) {
-	service, mockCategoryRepo, _, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, mockCategoryRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		expectedCategory := &domain.BlogCategory{
 			ID:   "cat123",
 			Slug: "tech-blog",
@@ -182,10 +211,10 @@ func TestBlogService_GetCategoryBySlug(t *testing.T) {
 }
 
 func TestBlogService_UpdateCategory(t *testing.T) {
-	service, mockCategoryRepo, _, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, mockCategoryRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful update", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.UpdateBlogCategoryRequest{
 			ID:          "cat123",
 			Name:        "Updated Name",
@@ -225,6 +254,7 @@ func TestBlogService_UpdateCategory(t *testing.T) {
 	})
 
 	t.Run("validation error", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.UpdateBlogCategoryRequest{
 			ID:   "cat123",
 			Name: "Updated Name",
@@ -238,6 +268,7 @@ func TestBlogService_UpdateCategory(t *testing.T) {
 	})
 
 	t.Run("category not found", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.UpdateBlogCategoryRequest{
 			ID:   "nonexistent",
 			Name: "Updated Name",
@@ -255,6 +286,7 @@ func TestBlogService_UpdateCategory(t *testing.T) {
 	})
 
 	t.Run("new slug already exists", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.UpdateBlogCategoryRequest{
 			ID:   "cat123",
 			Name: "Updated Name",
@@ -287,16 +319,55 @@ func TestBlogService_UpdateCategory(t *testing.T) {
 }
 
 func TestBlogService_DeleteCategory(t *testing.T) {
-	service, mockCategoryRepo, _, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, mockCategoryRepo, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
 
-	t.Run("successful deletion", func(t *testing.T) {
+	t.Run("successful deletion with cascade", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.DeleteBlogCategoryRequest{
+			ID: "cat123",
+		}
+
+		// Mock the transaction execution
+		mockCategoryRepo.EXPECT().
+			WithTransaction(ctx, "workspace123", gomock.Any()).
+			DoAndReturn(func(ctx context.Context, workspaceID string, fn func(*sql.Tx) error) error {
+				// Call the function with a nil tx (we don't actually need it in the test)
+				return fn(nil)
+			})
+
+		// Mock the cascade delete of posts
+		mockPostRepo.EXPECT().
+			DeletePostsByCategoryIDTx(ctx, nil, req.ID).
+			Return(int64(3), nil) // 3 posts deleted
+
+		// Mock the category deletion
+		mockCategoryRepo.EXPECT().
+			DeleteCategoryTx(ctx, nil, req.ID).
+			Return(nil)
+
+		err := service.DeleteCategory(ctx, req)
+		require.NoError(t, err)
+	})
+
+	t.Run("successful deletion with no posts", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.DeleteBlogCategoryRequest{
 			ID: "cat123",
 		}
 
 		mockCategoryRepo.EXPECT().
-			DeleteCategory(ctx, req.ID).
+			WithTransaction(ctx, "workspace123", gomock.Any()).
+			DoAndReturn(func(ctx context.Context, workspaceID string, fn func(*sql.Tx) error) error {
+				return fn(nil)
+			})
+
+		// No posts to delete
+		mockPostRepo.EXPECT().
+			DeletePostsByCategoryIDTx(ctx, nil, req.ID).
+			Return(int64(0), nil)
+
+		mockCategoryRepo.EXPECT().
+			DeleteCategoryTx(ctx, nil, req.ID).
 			Return(nil)
 
 		err := service.DeleteCategory(ctx, req)
@@ -304,6 +375,7 @@ func TestBlogService_DeleteCategory(t *testing.T) {
 	})
 
 	t.Run("validation error", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.DeleteBlogCategoryRequest{}
 
 		err := service.DeleteCategory(ctx, req)
@@ -311,26 +383,76 @@ func TestBlogService_DeleteCategory(t *testing.T) {
 		assert.Contains(t, err.Error(), "id is required")
 	})
 
-	t.Run("repository error", func(t *testing.T) {
+	t.Run("error deleting posts", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.DeleteBlogCategoryRequest{
 			ID: "cat123",
 		}
 
 		mockCategoryRepo.EXPECT().
-			DeleteCategory(ctx, req.ID).
+			WithTransaction(ctx, "workspace123", gomock.Any()).
+			DoAndReturn(func(ctx context.Context, workspaceID string, fn func(*sql.Tx) error) error {
+				return fn(nil)
+			})
+
+		// Error when deleting posts
+		mockPostRepo.EXPECT().
+			DeletePostsByCategoryIDTx(ctx, nil, req.ID).
+			Return(int64(0), errors.New("database error"))
+
+		err := service.DeleteCategory(ctx, req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to delete posts")
+	})
+
+	t.Run("error deleting category", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.DeleteBlogCategoryRequest{
+			ID: "cat123",
+		}
+
+		mockCategoryRepo.EXPECT().
+			WithTransaction(ctx, "workspace123", gomock.Any()).
+			DoAndReturn(func(ctx context.Context, workspaceID string, fn func(*sql.Tx) error) error {
+				return fn(nil)
+			})
+
+		mockPostRepo.EXPECT().
+			DeletePostsByCategoryIDTx(ctx, nil, req.ID).
+			Return(int64(2), nil)
+
+		// Error when deleting category
+		mockCategoryRepo.EXPECT().
+			DeleteCategoryTx(ctx, nil, req.ID).
 			Return(errors.New("database error"))
 
 		err := service.DeleteCategory(ctx, req)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to delete category")
 	})
+
+	t.Run("transaction error", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.DeleteBlogCategoryRequest{
+			ID: "cat123",
+		}
+
+		// Transaction itself fails
+		mockCategoryRepo.EXPECT().
+			WithTransaction(ctx, "workspace123", gomock.Any()).
+			Return(errors.New("transaction error"))
+
+		err := service.DeleteCategory(ctx, req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "transaction error")
+	})
 }
 
 func TestBlogService_ListCategories(t *testing.T) {
-	service, mockCategoryRepo, _, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, mockCategoryRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful listing", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		expectedCategories := []*domain.BlogCategory{
 			{ID: "cat1", Slug: "tech"},
 			{ID: "cat2", Slug: "news"},
@@ -347,6 +469,7 @@ func TestBlogService_ListCategories(t *testing.T) {
 	})
 
 	t.Run("empty list", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		mockCategoryRepo.EXPECT().
 			ListCategories(ctx).
 			Return([]*domain.BlogCategory{}, nil)
@@ -358,14 +481,14 @@ func TestBlogService_ListCategories(t *testing.T) {
 }
 
 func TestBlogService_CreatePost(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, mockCategoryRepo, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
 
 	categoryID := "cat123"
 
 	t.Run("successful creation", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.CreateBlogPostRequest{
-			CategoryID: &categoryID,
+			CategoryID: categoryID,
 			Slug:       "my-first-post",
 			Title:      "My First Post",
 			TemplateID: "tpl123",
@@ -400,21 +523,25 @@ func TestBlogService_CreatePost(t *testing.T) {
 		assert.True(t, post.IsDraft())
 	})
 
-	t.Run("validation error", func(t *testing.T) {
+	t.Run("validation error - missing category", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.CreateBlogPostRequest{
 			Slug:       "my-post",
 			Title:      "My Post",
-			// Missing template_id
+			TemplateID: "tpl123",
+			// Missing category_id
 		}
 
 		post, err := service.CreatePost(ctx, req)
 		require.Error(t, err)
 		assert.Nil(t, post)
-		assert.Contains(t, err.Error(), "template_id is required")
+		assert.Contains(t, err.Error(), "category_id is required")
 	})
 
 	t.Run("slug already exists", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.CreateBlogPostRequest{
+			CategoryID: categoryID,
 			Slug:       "existing-post",
 			Title:      "My Post",
 			TemplateID: "tpl123",
@@ -436,8 +563,9 @@ func TestBlogService_CreatePost(t *testing.T) {
 	})
 
 	t.Run("category not found", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.CreateBlogPostRequest{
-			CategoryID: &categoryID,
+			CategoryID: categoryID,
 			Slug:       "my-post",
 			Title:      "My Post",
 			TemplateID: "tpl123",
@@ -456,34 +584,13 @@ func TestBlogService_CreatePost(t *testing.T) {
 		assert.Nil(t, post)
 		assert.Contains(t, err.Error(), "category not found")
 	})
-
-	t.Run("without category", func(t *testing.T) {
-		req := &domain.CreateBlogPostRequest{
-			Slug:       "my-post",
-			Title:      "My Post",
-			TemplateID: "tpl123",
-		}
-
-		mockPostRepo.EXPECT().
-			GetPostBySlug(ctx, req.Slug).
-			Return(nil, errors.New("not found"))
-
-		mockPostRepo.EXPECT().
-			CreatePost(ctx, gomock.Any()).
-			Return(nil)
-
-		post, err := service.CreatePost(ctx, req)
-		require.NoError(t, err)
-		assert.NotNil(t, post)
-		assert.Nil(t, post.CategoryID)
-	})
 }
 
 func TestBlogService_GetPost(t *testing.T) {
-	service, _, mockPostRepo, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		expectedPost := &domain.BlogPost{
 			ID:   "post123",
 			Slug: "my-post",
@@ -500,15 +607,15 @@ func TestBlogService_GetPost(t *testing.T) {
 }
 
 func TestBlogService_UpdatePost(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, mockCategoryRepo, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
 
 	categoryID := "cat123"
 
 	t.Run("successful update", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.UpdateBlogPostRequest{
 			ID:         "post123",
-			CategoryID: &categoryID,
+			CategoryID: categoryID,
 			Slug:       "updated-post",
 			Title:      "Updated Title",
 			TemplateID: "tpl123",
@@ -544,8 +651,10 @@ func TestBlogService_UpdatePost(t *testing.T) {
 	})
 
 	t.Run("post not found", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.UpdateBlogPostRequest{
 			ID:         "nonexistent",
+			CategoryID: categoryID,
 			Slug:       "my-post",
 			Title:      "My Post",
 			TemplateID: "tpl123",
@@ -562,8 +671,10 @@ func TestBlogService_UpdatePost(t *testing.T) {
 	})
 
 	t.Run("new slug already exists", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.UpdateBlogPostRequest{
 			ID:         "post123",
+			CategoryID: categoryID,
 			Slug:       "existing-slug",
 			Title:      "My Post",
 			TemplateID: "tpl123",
@@ -595,10 +706,10 @@ func TestBlogService_UpdatePost(t *testing.T) {
 }
 
 func TestBlogService_DeletePost(t *testing.T) {
-	service, _, mockPostRepo, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful deletion", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.DeleteBlogPostRequest{
 			ID: "post123",
 		}
@@ -612,6 +723,7 @@ func TestBlogService_DeletePost(t *testing.T) {
 	})
 
 	t.Run("validation error", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.DeleteBlogPostRequest{}
 
 		err := service.DeletePost(ctx, req)
@@ -621,10 +733,10 @@ func TestBlogService_DeletePost(t *testing.T) {
 }
 
 func TestBlogService_ListPosts(t *testing.T) {
-	service, _, mockPostRepo, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful listing", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		params := &domain.ListBlogPostsRequest{
 			Status: domain.BlogPostStatusAll,
 			Limit:  50,
@@ -649,6 +761,7 @@ func TestBlogService_ListPosts(t *testing.T) {
 	})
 
 	t.Run("validation error", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		params := &domain.ListBlogPostsRequest{
 			Status: "invalid",
 		}
@@ -660,10 +773,10 @@ func TestBlogService_ListPosts(t *testing.T) {
 }
 
 func TestBlogService_PublishPost(t *testing.T) {
-	service, _, mockPostRepo, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful publish", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.PublishBlogPostRequest{
 			ID: "post123",
 		}
@@ -677,6 +790,7 @@ func TestBlogService_PublishPost(t *testing.T) {
 	})
 
 	t.Run("validation error", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.PublishBlogPostRequest{}
 
 		err := service.PublishPost(ctx, req)
@@ -685,6 +799,7 @@ func TestBlogService_PublishPost(t *testing.T) {
 	})
 
 	t.Run("repository error", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.PublishBlogPostRequest{
 			ID: "post123",
 		}
@@ -700,10 +815,10 @@ func TestBlogService_PublishPost(t *testing.T) {
 }
 
 func TestBlogService_UnpublishPost(t *testing.T) {
-	service, _, mockPostRepo, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful unpublish", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.UnpublishBlogPostRequest{
 			ID: "post123",
 		}
@@ -717,6 +832,7 @@ func TestBlogService_UnpublishPost(t *testing.T) {
 	})
 
 	t.Run("validation error", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.UnpublishBlogPostRequest{}
 
 		err := service.UnpublishPost(ctx, req)
@@ -822,10 +938,10 @@ func TestBlogService_ListPublicPosts(t *testing.T) {
 }
 
 func TestBlogService_GetPostBySlug(t *testing.T) {
-	service, _, mockPostRepo, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		expectedPost := &domain.BlogPost{
 			ID:   "post123",
 			Slug: "my-post",
@@ -842,10 +958,10 @@ func TestBlogService_GetPostBySlug(t *testing.T) {
 }
 
 func TestBlogService_GetPostByCategoryAndSlug(t *testing.T) {
-	service, _, mockPostRepo, _, _ := setupBlogServiceTest(t)
-	ctx := context.Background()
+	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		expectedPost := &domain.BlogPost{
 			ID:   "post123",
 			Slug: "my-post",
@@ -860,4 +976,3 @@ func TestBlogService_GetPostByCategoryAndSlug(t *testing.T) {
 		assert.Equal(t, expectedPost, post)
 	})
 }
-

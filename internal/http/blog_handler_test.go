@@ -471,7 +471,7 @@ func TestBlogHandler_HandleListPosts(t *testing.T) {
 		posts := []*domain.BlogPost{
 			{
 				ID:         "post-1",
-				CategoryID: &catID,
+				CategoryID: catID,
 				Slug:       "test-post",
 				Settings: domain.BlogPostSettings{
 					Title: "Test Post",
@@ -599,7 +599,7 @@ func TestBlogHandler_HandleGetPost(t *testing.T) {
 		catID := "cat-1"
 		post := &domain.BlogPost{
 			ID:         postID,
-			CategoryID: &catID,
+			CategoryID: catID,
 			Slug:       "test-post",
 			Settings: domain.BlogPostSettings{
 				Title: "Test Post",
@@ -635,7 +635,7 @@ func TestBlogHandler_HandleGetPost(t *testing.T) {
 		catID := "cat-1"
 		post := &domain.BlogPost{
 			ID:         "post-1",
-			CategoryID: &catID,
+			CategoryID: catID,
 			Slug:       slug,
 			Settings: domain.BlogPostSettings{
 				Title: "Test Post",
@@ -667,7 +667,7 @@ func TestBlogHandler_HandleGetPost(t *testing.T) {
 		catID := "cat-1"
 		post := &domain.BlogPost{
 			ID:         "post-1",
-			CategoryID: &catID,
+			CategoryID: catID,
 			Slug:       postSlug,
 			Settings: domain.BlogPostSettings{
 				Title: "Test Post",
@@ -750,12 +750,11 @@ func TestBlogHandler_HandleCreatePost(t *testing.T) {
 		workspaceID := "ws-123"
 		catID := "cat-1"
 		reqBody := domain.CreateBlogPostRequest{
-			CategoryID:      &catID,
+			CategoryID:      catID,
 			Slug:            "new-post",
 			Title:           "New Post",
 			TemplateID:      "tpl-1",
 			TemplateVersion: 1,
-			TemplateData:    domain.MapOfAny{},
 		}
 
 		post := &domain.BlogPost{
@@ -767,7 +766,6 @@ func TestBlogHandler_HandleCreatePost(t *testing.T) {
 				Template: domain.BlogPostTemplateReference{
 					TemplateID:      reqBody.TemplateID,
 					TemplateVersion: reqBody.TemplateVersion,
-					TemplateData:    reqBody.TemplateData,
 				},
 			},
 			CreatedAt: time.Now(),
@@ -817,7 +815,7 @@ func TestBlogHandler_HandleCreatePost(t *testing.T) {
 		workspaceID := "ws-123"
 		catID := "cat-1"
 		reqBody := domain.CreateBlogPostRequest{
-			CategoryID: &catID,
+			CategoryID: catID,
 			Slug:       "new-post",
 			Title:      "New Post",
 			TemplateID: "tpl-1",
@@ -858,12 +856,11 @@ func TestBlogHandler_HandleUpdatePost(t *testing.T) {
 		catID := "cat-1"
 		reqBody := domain.UpdateBlogPostRequest{
 			ID:              "post-1",
-			CategoryID:      &catID,
+			CategoryID:      catID,
 			Slug:            "updated-post",
 			Title:           "Updated Post",
 			TemplateID:      "tpl-1",
 			TemplateVersion: 2,
-			TemplateData:    domain.MapOfAny{},
 		}
 
 		post := &domain.BlogPost{
@@ -875,7 +872,6 @@ func TestBlogHandler_HandleUpdatePost(t *testing.T) {
 				Template: domain.BlogPostTemplateReference{
 					TemplateID:      reqBody.TemplateID,
 					TemplateVersion: reqBody.TemplateVersion,
-					TemplateData:    reqBody.TemplateData,
 				},
 			},
 			CreatedAt: time.Now(),

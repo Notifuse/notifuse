@@ -1,6 +1,7 @@
-import { Layout, Menu, Select, Space, Button, Dropdown, message } from 'antd'
+import { Layout, Menu, Select, Space, Button, Dropdown, message, Avatar } from 'antd'
 import { Outlet, Link, useParams, useMatches, useNavigate } from '@tanstack/react-router'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import md5 from 'blueimp-md5'
 import {
   faImage,
   faPaperPlane,
@@ -10,9 +11,10 @@ import {
 import {
   faPlus,
   faPowerOff,
-  faRightFromBracket,
   faTerminal,
-  faBarsStaggered
+  faBarsStaggered,
+  faAngleLeft,
+  faAngleRight
 } from '@fortawesome/free-solid-svg-icons'
 import { useAuth } from '../contexts/AuthContext'
 import { Workspace, UserPermissions } from '../services/api/types'
@@ -26,10 +28,18 @@ import {
   FolderOpenOutlined,
   LineChartOutlined,
   SettingOutlined,
-  WarningOutlined
+  WarningOutlined,
+  DownOutlined
 } from '@ant-design/icons'
 
 const { Content, Sider, Header } = Layout
+
+// Helper function to generate Gravatar URL from email
+const getGravatarUrl = (email: string | undefined, size: number = 32): string => {
+  if (!email) return ''
+  const hash = md5(email.trim().toLowerCase())
+  return `https://www.gravatar.com/avatar/${hash}?s=${size}&d=identicon`
+}
 
 export function WorkspaceLayout() {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
@@ -42,7 +52,7 @@ export function WorkspaceLayout() {
   // Use useMatches to determine the current route path
   const matches = useMatches()
   const currentPath = matches[matches.length - 1]?.pathname || ''
-  const isSettingsPage = currentPath.includes('/settings')
+  const isSettingsPage = currentPath.includes('/settings') || currentPath.includes('/blog')
 
   // Fetch user permissions for the current workspace
   useEffect(() => {
@@ -61,7 +71,8 @@ export function WorkspaceLayout() {
           broadcasts: { read: true, write: true },
           transactional: { read: true, write: true },
           workspace: { read: true, write: true },
-          message_history: { read: true, write: true }
+          message_history: { read: true, write: true },
+          blog: { read: true, write: true }
         })
         setLoadingPermissions(false)
         return
@@ -82,7 +93,8 @@ export function WorkspaceLayout() {
             broadcasts: { read: false, write: false },
             transactional: { read: false, write: false },
             workspace: { read: false, write: false },
-            message_history: { read: false, write: false }
+            message_history: { read: false, write: false },
+            blog: { read: false, write: false }
           })
         }
       } catch (error) {
@@ -95,7 +107,8 @@ export function WorkspaceLayout() {
           broadcasts: { read: false, write: false },
           transactional: { read: false, write: false },
           workspace: { read: false, write: false },
-          message_history: { read: false, write: false }
+          message_history: { read: false, write: false },
+          blog: { read: false, write: false }
         })
       } finally {
         setLoadingPermissions(false)
@@ -121,6 +134,8 @@ export function WorkspaceLayout() {
     selectedKey = 'lists'
   } else if (currentPath.includes('/templates')) {
     selectedKey = 'templates'
+  } else if (currentPath.includes('/blog')) {
+    selectedKey = 'blog'
   } else if (currentPath.includes('/contacts')) {
     selectedKey = 'contacts'
   } else if (currentPath.includes('/file-manager')) {
@@ -271,6 +286,31 @@ export function WorkspaceLayout() {
       )
     },
     hasAccess('workspace') && {
+      key: 'blog',
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className="lucide lucide-pen-line-icon lucide-pen-line"
+        >
+          <path d="M13 21h8" />
+          <path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z" />
+        </svg>
+      ),
+      label: (
+        <Link to="/console/workspace/$workspaceId/blog" params={{ workspaceId }}>
+          Blog
+        </Link>
+      )
+    },
+    hasAccess('workspace') && {
       key: 'file-manager',
       icon: <FontAwesomeIcon icon={faImage} size="sm" style={{ opacity: 0.6 }} />,
       // icon: (
@@ -340,7 +380,7 @@ export function WorkspaceLayout() {
           >
             <div
               style={{
-                padding: '16px 24px',
+                padding: '16px 0 16px 27px',
                 textAlign: 'center',
                 borderBottom: '1px solid #f0f0f0'
               }}
@@ -365,106 +405,35 @@ export function WorkspaceLayout() {
             <div
               style={{
                 position: 'fixed',
-                bottom: 60,
+                bottom: 0,
                 left: 0,
-                width: collapsed ? '80px' : '250px',
+                width: collapsed ? '80px' : '249px',
                 padding: '16px',
-                borderTop: '1px solid #f0f0f0',
-                backgroundColor: '#F9F9F9',
-                zIndex: 1,
-                transition: 'width 0.2s'
+                // backgroundColor: '#F9F9F9',
+                zIndex: 1
               }}
             >
+              <div
+                style={{
+                  borderBottom: '1px solid #f0f0f0',
+                  textAlign: 'center',
+                  fontSize: '9px',
+                  color: '#000',
+                  opacity: 0.7,
+                  marginBottom: '8px',
+                  paddingBottom: '8px'
+                }}
+              >
+                v{window.VERSION || '1.0'}
+              </div>
               <Button
                 type="text"
                 block
-                icon={
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="text-gray-500"
-                  >
-                    <rect width="18" height="18" x="3" y="3" rx="2" />
-                    <path d="M9 3v18" />
-                    <path d={collapsed ? 'm14 9 3 3-3 3' : 'm16 15-3-3 3-3'} />
-                  </svg>
-                }
+                icon={<FontAwesomeIcon icon={collapsed ? faAngleRight : faAngleLeft} />}
                 onClick={() => setCollapsed(!collapsed)}
               >
                 {!collapsed && 'Collapse'}
               </Button>
-            </div>
-            <div
-              style={{
-                position: 'fixed',
-                bottom: 0,
-                left: 0,
-                width: collapsed ? '80px' : '250px',
-                padding: '16px',
-                borderTop: '1px solid #f0f0f0',
-                backgroundColor: '#F9F9F9',
-                zIndex: 1,
-                transition: 'width 0.2s'
-              }}
-            >
-              {!collapsed && (
-                <>
-                  <Dropdown
-                    menu={{
-                      items: [
-                        {
-                          key: 'logout',
-                          label: (
-                            <Space>
-                              <FontAwesomeIcon
-                                icon={faRightFromBracket}
-                                size="sm"
-                                style={{ opacity: 0.7 }}
-                              />
-                              Logout
-                            </Space>
-                          ),
-                          onClick: () => signout()
-                        }
-                      ]
-                    }}
-                    trigger={['click']}
-                    placement="bottomRight"
-                  >
-                    <Button type="text" block>
-                      <div style={{ padding: '4px 8px', color: '#595959', cursor: 'pointer' }}>
-                        {user?.email}
-                      </div>
-                    </Button>
-                  </Dropdown>
-                  <div
-                    style={{
-                      textAlign: 'center',
-                      marginTop: '8px',
-                      fontSize: '9px',
-                      color: '#000',
-                      opacity: 0.7
-                    }}
-                  >
-                    v{window.VERSION || '1.0'}
-                  </div>
-                </>
-              )}
-              {collapsed && (
-                <Button
-                  type="text"
-                  icon={<FontAwesomeIcon icon={faPowerOff} size="sm" style={{ opacity: 0.7 }} />}
-                  onClick={() => signout()}
-                  style={{ width: '100%' }}
-                />
-              )}
             </div>
           </Sider>
           <Header
@@ -526,47 +495,75 @@ export function WorkspaceLayout() {
                   : [])
               ]}
             />
-            <Dropdown
-              trigger={['click']}
-              menu={{
-                items: [
-                  {
-                    key: 'docs',
-                    label: (
-                      <a
-                        href="https://docs.notifuse.com/"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <FontAwesomeIcon icon={faFileLines} className="mr-2" /> Documentation
-                      </a>
-                    )
-                  },
-                  {
-                    key: 'report-issue',
-                    label: (
-                      <a
-                        href="https://github.com/notifuse/notifuse/issues"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <WarningOutlined className="mr-2" />
-                        Report An Issue
-                      </a>
-                    )
-                  }
-                ]
-              }}
-              placement="bottomRight"
-            >
-              <Button
-                color="default"
-                variant="filled"
-                icon={<FontAwesomeIcon icon={faQuestionCircle} />}
+            <Space size="middle">
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  items: [
+                    {
+                      key: 'docs',
+                      label: (
+                        <a
+                          href="https://docs.notifuse.com/"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <FontAwesomeIcon icon={faFileLines} className="mr-2" /> Documentation
+                        </a>
+                      )
+                    },
+                    {
+                      key: 'report-issue',
+                      label: (
+                        <a
+                          href="https://github.com/notifuse/notifuse/issues"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <WarningOutlined className="mr-2" />
+                          Report An Issue
+                        </a>
+                      )
+                    }
+                  ]
+                }}
+                placement="bottomRight"
               >
-                Help
-              </Button>
-            </Dropdown>
+                <Button
+                  color="default"
+                  variant="filled"
+                  icon={<FontAwesomeIcon icon={faQuestionCircle} />}
+                >
+                  Help
+                </Button>
+              </Dropdown>
+              <Dropdown
+                menu={{
+                  items: [
+                    {
+                      key: 'logout',
+                      label: (
+                        <Space>
+                          <FontAwesomeIcon icon={faPowerOff} size="sm" style={{ opacity: 0.7 }} />
+                          Logout
+                        </Space>
+                      ),
+                      onClick: () => signout()
+                    }
+                  ]
+                }}
+                trigger={['click']}
+                placement="bottomRight"
+              >
+                <Button type="text">
+                  <Space size="small">
+                    <Avatar src={getGravatarUrl(user?.email)} size={24} />
+                    {user?.email}
+                    <DownOutlined style={{ fontSize: '10px' }} />
+                  </Space>
+                </Button>
+              </Dropdown>
+            </Space>
           </Header>
           <Layout
             style={{

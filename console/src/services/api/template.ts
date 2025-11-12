@@ -8,8 +8,9 @@ export interface Template {
   id: string
   name: string
   version: number
-  channel: 'email'
+  channel: 'email' | 'web'
   email?: EmailTemplate
+  web?: WebTemplate
   category: string
   template_macro_id?: string
   integration_id?: string
@@ -32,9 +33,16 @@ export interface EmailTemplate {
   text?: string
 }
 
+export interface WebTemplate {
+  content?: any // Tiptap JSON (source of truth)
+  html?: string // Pre-rendered HTML for display
+  plain_text?: string // Extracted text for search indexing
+}
+
 export interface GetTemplatesRequest {
   workspace_id: string
   category?: string
+  channel?: string
 }
 
 export interface GetTemplateRequest {
@@ -48,7 +56,8 @@ export interface CreateTemplateRequest {
   id: string
   name: string
   channel: string
-  email: EmailTemplate
+  email?: EmailTemplate
+  web?: WebTemplate
   category: string
   template_macro_id?: string
   utm_source?: string
@@ -63,7 +72,8 @@ export interface UpdateTemplateRequest {
   id: string
   name: string
   channel: string
-  email: EmailTemplate
+  email?: EmailTemplate
+  web?: WebTemplate
   category: string
   template_macro_id?: string
   utm_source?: string
@@ -179,6 +189,9 @@ export const templatesApi: TemplatesApi = {
     let url = `/api/templates.list?workspace_id=${params.workspace_id}`
     if (params.category) {
       url += `&category=${params.category}`
+    }
+    if (params.channel) {
+      url += `&channel=${params.channel}`
     }
     const response = await api.get<GetTemplatesResponse>(url)
     return response

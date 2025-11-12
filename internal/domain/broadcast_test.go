@@ -1861,7 +1861,7 @@ func TestUpdateBroadcastRequest_Validate_Additional(t *testing.T) {
 	assert.Contains(t, err.Error(), "list is required")
 }
 
-// Test that Channels and WebPublicationSettings are properly persisted on update
+// Test that Channels are properly persisted on update
 // Add more FromURLParams test cases
 func TestGetBroadcastsRequest_FromURLParams_Additional(t *testing.T) {
 	params := url.Values{

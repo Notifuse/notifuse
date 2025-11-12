@@ -136,7 +136,7 @@ func TestTemplateHandler_HandleList(t *testing.T) {
 			queryParams: url.Values{"workspace_id": {workspaceID}},
 			setupMock: func(m *mocks.MockTemplateService) {
 				now := time.Now().UTC()
-				m.EXPECT().GetTemplates(gomock.Any(), workspaceID, "").Return([]*domain.Template{
+				m.EXPECT().GetTemplates(gomock.Any(), workspaceID, "", "").Return([]*domain.Template{
 					{ID: "template1", Name: "T1", Version: 1, Channel: "email", Category: "c1", Email: createTestEmailTemplate(), CreatedAt: now, UpdatedAt: now},
 					{ID: "template2", Name: "T2", Version: 1, Channel: "email", Category: "c2", Email: createTestEmailTemplate(), CreatedAt: now, UpdatedAt: now},
 				}, nil)
@@ -149,7 +149,7 @@ func TestTemplateHandler_HandleList(t *testing.T) {
 			name:        "Service Error",
 			queryParams: url.Values{"workspace_id": {workspaceID}},
 			setupMock: func(m *mocks.MockTemplateService) {
-				m.EXPECT().GetTemplates(gomock.Any(), workspaceID, "").Return(nil, errors.New("db error"))
+				m.EXPECT().GetTemplates(gomock.Any(), workspaceID, "", "").Return(nil, errors.New("db error"))
 			},
 			expectedStatus: http.StatusInternalServerError,
 			expectBody:     false,

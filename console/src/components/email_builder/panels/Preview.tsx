@@ -14,8 +14,6 @@ interface PreviewProps {
   testData?: any
   onTestDataChange: (testData: any) => void
   mobileDesktopSwitcherRef?: React.RefObject<HTMLDivElement>
-  channel?: string
-  onChannelChange?: (channel: string) => void
 }
 
 export interface PreviewRef {
@@ -28,7 +26,7 @@ export interface PreviewRef {
 }
 
 export const Preview = forwardRef<PreviewRef, PreviewProps>(
-  ({ html, mjml, errors, testData, onTestDataChange, mobileDesktopSwitcherRef, channel = 'email', onChannelChange }, ref) => {
+  ({ html, mjml, errors, testData, onTestDataChange, mobileDesktopSwitcherRef }, ref) => {
     const { message } = App.useApp()
     const [mobileView, setMobileView] = useState(true)
     const [leftPanelSize, setLeftPanelSize] = useState(500)
@@ -420,21 +418,8 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
                   'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAACqADAAQAAAABAAAACgAAAAA7eLj1AAAAK0lEQVQYGWP8DwQMaODZs2doIgwMTBgiOAQGUCELNodLSUlhuHQA3Ui01QDcPgnEE5wAOwAAAABJRU5ErkJggg==")'
               }}
             >
-              {/* Floating Channel and Mobile/Desktop Switchers */}
-              <div className="absolute top-4 right-4 z-10 flex flex-col gap-2 items-end">
-                {/* Channel Switcher */}
-                {onChannelChange && (
-                  <Segmented
-                    value={channel}
-                    onChange={(value) => onChannelChange(value as string)}
-                    options={[
-                      { label: 'Email', value: 'email' },
-                      { label: 'Web', value: 'web' }
-                    ]}
-                    size="small"
-                  />
-                )}
-
+              {/* Floating Mobile/Desktop Switcher */}
+              <div className="absolute top-4 right-4 z-10">
                 {/* Mobile/Desktop Switcher */}
                 <div ref={mobileDesktopSwitcherRef}>
                   <Segmented

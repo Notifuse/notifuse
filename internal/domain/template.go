@@ -37,6 +37,12 @@ func validateTemplateID(id string) error {
 	return nil
 }
 
+// Channel constants for templates
+const (
+	ChannelEmail = "email"
+	ChannelWeb   = "web"
+)
+
 type TemplateCategory string
 
 const (
@@ -47,12 +53,13 @@ const (
 	TemplateCategoryUnsubscribe   TemplateCategory = "unsubscribe"
 	TemplateCategoryBounce        TemplateCategory = "bounce"
 	TemplateCategoryBlocklist     TemplateCategory = "blocklist"
+	TemplateCategoryBlog          TemplateCategory = "blog"
 	TemplateCategoryOther         TemplateCategory = "other"
 )
 
 func (t TemplateCategory) Validate() error {
 	switch t {
-	case TemplateCategoryMarketing, TemplateCategoryTransactional, TemplateCategoryWelcome, TemplateCategoryOptIn, TemplateCategoryUnsubscribe, TemplateCategoryBounce, TemplateCategoryBlocklist, TemplateCategoryOther:
+	case TemplateCategoryMarketing, TemplateCategoryTransactional, TemplateCategoryWelcome, TemplateCategoryOptIn, TemplateCategoryUnsubscribe, TemplateCategoryBounce, TemplateCategoryBlocklist, TemplateCategoryBlog, TemplateCategoryOther:
 		return nil
 	}
 	return fmt.Errorf("invalid template category: %s", t)
@@ -62,8 +69,9 @@ type Template struct {
 	ID              string         `json:"id"`
 	Name            string         `json:"name"`
 	Version         int64          `json:"version"`
-	Channel         string         `json:"channel"` // email for now
-	Email           *EmailTemplate `json:"email"`
+	Channel         string         `json:"channel"` // email or web
+	Email           *EmailTemplate `json:"email,omitempty"`
+	Web             *WebTemplate   `json:"web,omitempty"`
 	Category        string         `json:"category"`
 	TemplateMacroID *string        `json:"template_macro_id,omitempty"`
 	IntegrationID   *string        `json:"integration_id,omitempty"` // Set if template is managed by an integration (e.g., Supabase)
@@ -98,6 +106,11 @@ func (t *Template) Validate() error {
 		return fmt.Errorf("invalid template: channel length must be between 1 and 20")
 	}
 
+	// Validate channel is either email or web
+	if t.Channel != ChannelEmail && t.Channel != ChannelWeb {
+		return fmt.Errorf("invalid template: channel must be either '%s' or '%s'", ChannelEmail, ChannelWeb)
+	}
+
 	if t.Category == "" {
 		return fmt.Errorf("invalid template: category is required")
 	}
@@ -105,17 +118,33 @@ func (t *Template) Validate() error {
 		return fmt.Errorf("invalid template: category length must be between 1 and 20")
 	}
 
-	// Then validate the email template
-	if t.Email == nil {
-		return fmt.Errorf("invalid template: email is required")
-	}
-
 	if t.TestData == nil {
 		t.TestData = MapOfAny{}
 	}
 
-	if err := t.Email.Validate(t.TestData); err != nil {
-		return fmt.Errorf("invalid template: %w", err)
+	// Channel-specific validation
+	if t.Channel == ChannelEmail {
+		// Email channel requires email field, web must be nil
+		if t.Email == nil {
+			return fmt.Errorf("invalid template: email is required for channel '%s'", ChannelEmail)
+		}
+		if t.Web != nil {
+			return fmt.Errorf("invalid template: web must be nil for channel '%s'", ChannelEmail)
+		}
+		if err := t.Email.Validate(t.TestData); err != nil {
+			return fmt.Errorf("invalid template: %w", err)
+		}
+	} else if t.Channel == ChannelWeb {
+		// Web channel requires web field, email must be nil
+		if t.Web == nil {
+			return fmt.Errorf("invalid template: web is required for channel '%s'", ChannelWeb)
+		}
+		if t.Email != nil {
+			return fmt.Errorf("invalid template: email must be nil for channel '%s'", ChannelWeb)
+		}
+		if err := t.Web.Validate(t.TestData); err != nil {
+			return fmt.Errorf("invalid template: %w", err)
+		}
 	}
 
 	return nil
@@ -189,7 +218,7 @@ func (e *EmailTemplate) Validate(testData MapOfAny) error {
 	if e.CompiledPreview == "" {
 		// Prepare template data JSON string
 		var templateDataStr string
-		if testData != nil && len(testData) > 0 {
+		if len(testData) > 0 {
 			jsonDataBytes, err := json.Marshal(testData)
 			if err != nil {
 				return fmt.Errorf("failed to marshal test_data: %w", err)
@@ -279,6 +308,65 @@ func (x *EmailTemplate) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
+type WebTemplate struct {
+	Content   MapOfAny `json:"content,omitempty"`    // Tiptap JSON (source of truth)
+	HTML      string   `json:"html,omitempty"`       // Pre-rendered HTML for display
+	PlainText string   `json:"plain_text,omitempty"` // Extracted text for search indexing
+}
+
+func (w *WebTemplate) Validate(testData MapOfAny) error {
+	// Validate that Content (Tiptap JSON) is present
+	if len(w.Content) == 0 {
+		return fmt.Errorf("invalid web template: content is required")
+	}
+
+	// HTML should be provided by frontend
+	// No need to compile or validate structure here
+	return nil
+}
+
+func (w *WebTemplate) Scan(val interface{}) error {
+	var data []byte
+
+	if b, ok := val.([]byte); ok {
+		// VERY IMPORTANT: we need to clone the bytes here
+		// The sql driver will reuse the same bytes RAM slots for future queries
+		data = bytes.Clone(b)
+	} else if s, ok := val.(string); ok {
+		data = []byte(s)
+	} else if val == nil {
+		return nil
+	}
+
+	return w.UnmarshalJSON(data)
+}
+
+func (w WebTemplate) Value() (driver.Value, error) {
+	return w.MarshalJSON()
+}
+
+// MarshalJSON implements custom JSON marshaling for WebTemplate
+func (w WebTemplate) MarshalJSON() ([]byte, error) {
+	type Alias WebTemplate
+	return json.Marshal(&struct {
+		*Alias
+	}{
+		Alias: (*Alias)(&w),
+	})
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for WebTemplate
+func (w *WebTemplate) UnmarshalJSON(data []byte) error {
+	type Alias WebTemplate
+	aux := (*Alias)(w)
+
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return fmt.Errorf("failed to unmarshal WebTemplate: %w", err)
+	}
+
+	return nil
+}
+
 //go:generate mockgen -destination mocks/mock_template_service.go -package mocks github.com/Notifuse/notifuse/internal/domain TemplateService
 //go:generate mockgen -destination mocks/mock_template_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain TemplateRepository
 
@@ -288,7 +376,8 @@ type CreateTemplateRequest struct {
 	ID              string         `json:"id"`
 	Name            string         `json:"name"`
 	Channel         string         `json:"channel"`
-	Email           *EmailTemplate `json:"email"`
+	Email           *EmailTemplate `json:"email,omitempty"`
+	Web             *WebTemplate   `json:"web,omitempty"`
 	Category        string         `json:"category"`
 	TemplateMacroID *string        `json:"template_macro_id,omitempty"`
 	TestData        MapOfAny       `json:"test_data,omitempty"`
@@ -317,6 +406,11 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid create template request: channel length must be between 1 and 20")
 	}
 
+	// Validate channel is either email or web
+	if r.Channel != ChannelEmail && r.Channel != ChannelWeb {
+		return nil, "", fmt.Errorf("invalid create template request: channel must be either '%s' or '%s'", ChannelEmail, ChannelWeb)
+	}
+
 	if r.Category == "" {
 		return nil, "", fmt.Errorf("invalid create template request: category is required")
 	}
@@ -324,12 +418,27 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid create template request: category length must be between 1 and 20")
 	}
 
-	if r.Email == nil {
-		return nil, "", fmt.Errorf("invalid create template request: email is required")
-	}
-
-	if err := r.Email.Validate(r.TestData); err != nil {
-		return nil, "", fmt.Errorf("invalid create template request: %w", err)
+	// Channel-specific validation
+	if r.Channel == ChannelEmail {
+		if r.Email == nil {
+			return nil, "", fmt.Errorf("invalid create template request: email is required for channel '%s'", ChannelEmail)
+		}
+		if r.Web != nil {
+			return nil, "", fmt.Errorf("invalid create template request: web must be nil for channel '%s'", ChannelEmail)
+		}
+		if err := r.Email.Validate(r.TestData); err != nil {
+			return nil, "", fmt.Errorf("invalid create template request: %w", err)
+		}
+	} else if r.Channel == ChannelWeb {
+		if r.Web == nil {
+			return nil, "", fmt.Errorf("invalid create template request: web is required for channel '%s'", ChannelWeb)
+		}
+		if r.Email != nil {
+			return nil, "", fmt.Errorf("invalid create template request: email must be nil for channel '%s'", ChannelWeb)
+		}
+		if err := r.Web.Validate(r.TestData); err != nil {
+			return nil, "", fmt.Errorf("invalid create template request: %w", err)
+		}
 	}
 
 	return &Template{
@@ -338,6 +447,7 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 		Version:         1, // Start with version 1 for new templates
 		Channel:         r.Channel,
 		Email:           r.Email,
+		Web:             r.Web,
 		Category:        r.Category,
 		TemplateMacroID: r.TemplateMacroID,
 		TestData:        r.TestData,
@@ -348,11 +458,13 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 type GetTemplatesRequest struct {
 	WorkspaceID string `json:"workspace_id"`
 	Category    string `json:"category,omitempty"`
+	Channel     string `json:"channel,omitempty"`
 }
 
 func (r *GetTemplatesRequest) FromURLParams(queryParams url.Values) (err error) {
 	r.WorkspaceID = queryParams.Get("workspace_id")
 	r.Category = queryParams.Get("category")
+	r.Channel = queryParams.Get("channel")
 
 	if r.WorkspaceID == "" {
 		return fmt.Errorf("invalid get templates request: workspace_id is required")
@@ -364,6 +476,12 @@ func (r *GetTemplatesRequest) FromURLParams(queryParams url.Values) (err error) 
 	if r.Category != "" {
 		if len(r.Category) > 20 {
 			return fmt.Errorf("invalid get templates request: category length must be between 1 and 20")
+		}
+	}
+
+	if r.Channel != "" {
+		if len(r.Channel) > 20 {
+			return fmt.Errorf("invalid get templates request: channel length must be between 1 and 20")
 		}
 	}
 
@@ -405,7 +523,8 @@ type UpdateTemplateRequest struct {
 	ID              string         `json:"id"`
 	Name            string         `json:"name"`
 	Channel         string         `json:"channel"`
-	Email           *EmailTemplate `json:"email"`
+	Email           *EmailTemplate `json:"email,omitempty"`
+	Web             *WebTemplate   `json:"web,omitempty"`
 	Category        string         `json:"category"`
 	TemplateMacroID *string        `json:"template_macro_id,omitempty"`
 	TestData        MapOfAny       `json:"test_data,omitempty"`
@@ -434,6 +553,11 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid update template request: channel length must be between 1 and 20")
 	}
 
+	// Validate channel is either email or web
+	if r.Channel != ChannelEmail && r.Channel != ChannelWeb {
+		return nil, "", fmt.Errorf("invalid update template request: channel must be either '%s' or '%s'", ChannelEmail, ChannelWeb)
+	}
+
 	if r.Category == "" {
 		return nil, "", fmt.Errorf("invalid update template request: category is required")
 	}
@@ -441,12 +565,27 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		return nil, "", fmt.Errorf("invalid update template request: category length must be between 1 and 20")
 	}
 
-	if r.Email == nil {
-		return nil, "", fmt.Errorf("invalid update template request: email is required")
-	}
-
-	if err := r.Email.Validate(r.TestData); err != nil {
-		return nil, "", fmt.Errorf("invalid update template request: %w", err)
+	// Channel-specific validation
+	if r.Channel == ChannelEmail {
+		if r.Email == nil {
+			return nil, "", fmt.Errorf("invalid update template request: email is required for channel '%s'", ChannelEmail)
+		}
+		if r.Web != nil {
+			return nil, "", fmt.Errorf("invalid update template request: web must be nil for channel '%s'", ChannelEmail)
+		}
+		if err := r.Email.Validate(r.TestData); err != nil {
+			return nil, "", fmt.Errorf("invalid update template request: %w", err)
+		}
+	} else if r.Channel == ChannelWeb {
+		if r.Web == nil {
+			return nil, "", fmt.Errorf("invalid update template request: web is required for channel '%s'", ChannelWeb)
+		}
+		if r.Email != nil {
+			return nil, "", fmt.Errorf("invalid update template request: email must be nil for channel '%s'", ChannelWeb)
+		}
+		if err := r.Web.Validate(r.TestData); err != nil {
+			return nil, "", fmt.Errorf("invalid update template request: %w", err)
+		}
 	}
 
 	return &Template{
@@ -454,6 +593,7 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		Name:            r.Name,
 		Channel:         r.Channel,
 		Email:           r.Email,
+		Web:             r.Web,
 		Category:        r.Category,
 		TemplateMacroID: r.TemplateMacroID,
 		TestData:        r.TestData,
@@ -493,7 +633,7 @@ type TemplateService interface {
 	GetTemplateByID(ctx context.Context, workspaceID string, id string, version int64) (*Template, error)
 
 	// GetTemplates retrieves all templates
-	GetTemplates(ctx context.Context, workspaceID string, category string) ([]*Template, error)
+	GetTemplates(ctx context.Context, workspaceID string, category string, channel string) ([]*Template, error)
 
 	// UpdateTemplate updates an existing template
 	UpdateTemplate(ctx context.Context, workspaceID string, template *Template) error
@@ -517,7 +657,7 @@ type TemplateRepository interface {
 	GetTemplateLatestVersion(ctx context.Context, workspaceID string, id string) (int64, error)
 
 	// GetTemplates retrieves all templates
-	GetTemplates(ctx context.Context, workspaceID string, category string) ([]*Template, error)
+	GetTemplates(ctx context.Context, workspaceID string, category string, channel string) ([]*Template, error)
 
 	// UpdateTemplate updates an existing template, creating a new version
 	UpdateTemplate(ctx context.Context, workspaceID string, template *Template) error

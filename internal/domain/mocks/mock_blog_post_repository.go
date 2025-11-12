@@ -92,6 +92,21 @@ func (mr *MockBlogPostRepositoryMockRecorder) DeletePostTx(arg0, arg1, arg2 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePostTx", reflect.TypeOf((*MockBlogPostRepository)(nil).DeletePostTx), arg0, arg1, arg2)
 }
 
+// DeletePostsByCategoryIDTx mocks base method.
+func (m *MockBlogPostRepository) DeletePostsByCategoryIDTx(arg0 context.Context, arg1 *sql.Tx, arg2 string) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeletePostsByCategoryIDTx", arg0, arg1, arg2)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeletePostsByCategoryIDTx indicates an expected call of DeletePostsByCategoryIDTx.
+func (mr *MockBlogPostRepositoryMockRecorder) DeletePostsByCategoryIDTx(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeletePostsByCategoryIDTx", reflect.TypeOf((*MockBlogPostRepository)(nil).DeletePostsByCategoryIDTx), arg0, arg1, arg2)
+}
+
 // GetPost mocks base method.
 func (m *MockBlogPostRepository) GetPost(arg0 context.Context, arg1 string) (*domain.BlogPost, error) {
 	m.ctrl.T.Helper()

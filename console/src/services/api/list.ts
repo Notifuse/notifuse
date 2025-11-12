@@ -1,6 +1,5 @@
 import { api } from './client'
 import type { Contact } from './contacts'
-import type { WebPublicationSettings } from './broadcast'
 
 // List types
 export interface TemplateReference {
@@ -15,8 +14,6 @@ export interface List {
   is_public: boolean
   description?: string
   slug?: string
-  web_publication_enabled: boolean
-  web_publication_settings?: WebPublicationSettings
   double_optin_template?: TemplateReference
   welcome_template?: TemplateReference
   unsubscribe_template?: TemplateReference
@@ -31,8 +28,6 @@ export interface CreateListRequest {
   is_double_optin: boolean
   is_public: boolean
   description?: string
-  web_publication_enabled?: boolean
-  web_publication_settings?: WebPublicationSettings
   double_optin_template?: TemplateReference
   welcome_template?: TemplateReference
   unsubscribe_template?: TemplateReference
@@ -55,8 +50,6 @@ export interface UpdateListRequest {
   is_double_optin: boolean
   is_public: boolean
   description?: string
-  web_publication_enabled?: boolean
-  web_publication_settings?: WebPublicationSettings
   double_optin_template?: TemplateReference
   welcome_template?: TemplateReference
   unsubscribe_template?: TemplateReference
