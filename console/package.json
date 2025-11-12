@@ -27,7 +27,10 @@
     "@tanstack/router-devtools": "^1.114.23",
     "@tiptap/extension-bubble-menu": "^2.27.1",
     "@tiptap/extension-character-count": "^2.27.1",
+    "@tiptap/extension-drag-handle": "^2.27.1",
+    "@tiptap/extension-dropcursor": "^2.27.1",
     "@tiptap/extension-floating-menu": "^2.27.1",
+    "@tiptap/extension-focus": "^2.27.1",
     "@tiptap/extension-heading": "^2.27.1",
     "@tiptap/extension-highlight": "^2.14.0",
     "@tiptap/extension-image": "^2.27.1",
@@ -80,6 +83,7 @@
     "slate-react": "^0.112.1",
     "timezone": "^1.0.23",
     "tippy.js": "^6.3.7",
+    "tiptap-extension-global-drag-handle": "^0.1.18",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

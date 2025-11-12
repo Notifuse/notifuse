@@ -268,7 +268,8 @@ const suggestion: Omit<SuggestionOptions, 'editor'> = {
           interactive: true,
           trigger: 'manual',
           placement: 'bottom-start',
-          maxWidth: 400
+          maxWidth: 400,
+          theme: 'light'
         })
       },
 

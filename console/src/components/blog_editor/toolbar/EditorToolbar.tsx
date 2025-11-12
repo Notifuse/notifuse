@@ -38,8 +38,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   const saveStatus = getSaveStatus()
 
   return (
-    <div className="border-b border-gray-200  p-2 flex items-center gap-2">
-      {/* Left: Undo/Redo + Save Status */}
+    <div className="border-b border-gray-200 p-2 grid grid-cols-3 items-center gap-2">
+      {/* Left: Undo/Redo + Save Status - Fixed width */}
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1">
           <Button
@@ -60,18 +60,21 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
           />
         </div>
 
-        {saveStatus && (
-          <Tooltip title={saveStatus.tooltip}>
-            <Badge
-              status={saveStatus.status}
-              text={<span className="text-xs text-gray-600">{saveStatus.text}</span>}
-            />
-          </Tooltip>
-        )}
+        {/* Save status with fixed width to prevent layout shift */}
+        <div style={{ minWidth: '100px' }}>
+          {saveStatus && (
+            <Tooltip title={saveStatus.tooltip}>
+              <Badge
+                status={saveStatus.status}
+                text={<span className="text-xs text-gray-600">{saveStatus.text}</span>}
+              />
+            </Tooltip>
+          )}
+        </div>
       </div>
 
       {/* Center: Edit/Preview Toggle */}
-      <div className="flex-1 flex justify-center">
+      <div className="flex justify-center">
         <Segmented
           value={mode}
           size="small"
@@ -84,11 +87,13 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       </div>
 
       {/* Right: Content Stats */}
-      {stats && (
-        <div className="text-xs text-gray-500">
-          {stats.words} words · {stats.characters} characters · {stats.readingTime} min read
-        </div>
-      )}
+      <div className="flex justify-end">
+        {stats && (
+          <div className="text-xs text-gray-500 whitespace-nowrap">
+            {stats.words} words · {stats.characters} characters · {stats.readingTime} min read
+          </div>
+        )}
+      </div>
     </div>
   )
 }

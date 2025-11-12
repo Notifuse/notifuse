@@ -47,7 +47,20 @@ export const BubbleMenu: React.FC<BubbleMenuProps> = ({ editor }) => {
         tippyOptions={{ 
           duration: 100,
           maxWidth: 'none',
-          placement: 'top'
+          placement: 'top',
+          theme: 'light',
+          // Add blur prevention
+          onCreate: (instance) => {
+            const menuElement = instance.popper.firstChild
+            if (menuElement) {
+              menuElement.addEventListener('blur', (event) => {
+                event.preventDefault()
+                event.stopImmediatePropagation()
+              })
+            }
+          },
+          // Add smooth transitions
+          moveTransition: 'transform 0.15s ease-out',
         }}
         className="bubble-menu"
       >

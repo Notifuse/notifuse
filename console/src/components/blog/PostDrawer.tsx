@@ -355,7 +355,7 @@ export function PostDrawer({
   return (
     <Drawer
       title={isEditMode ? 'Edit Post' : 'Create New Post'}
-      width={tab === 'content' ? '100%' : 1000}
+      width={1000}
       onClose={handleClose}
       open={open}
       keyboard={false}

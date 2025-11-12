@@ -19,6 +19,9 @@ export const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor }) => {
     const { view } = editor
     const { from } = view.state.selection
     
+    // Preserve focus before executing command (Critical fix!)
+    view.focus()
+    
     item.command({ 
       editor, 
       range: { from, to: from }
@@ -41,15 +44,25 @@ export const FloatingMenu: React.FC<FloatingMenuProps> = ({ editor }) => {
       editor={editor}
       tippyOptions={{ 
         duration: 100,
-        placement: 'left',
-        offset: [-8, 0]
+        placement: 'left-start',
+        offset: [0, 0],
+        theme: 'light',
+        zIndex: 100
       }}
       className="floating-menu"
-      shouldShow={({ state }) => {
-        const { $from } = state.selection
-        const isEmptyParagraph = $from.parent.type.name === 'paragraph' && 
-                                 $from.parent.nodeSize === 2
-        return isEmptyParagraph
+      shouldShow={({ state, view }) => {
+        const { selection } = state
+        const { $from } = selection
+        
+        // Show for any block-level node, but not the doc itself
+        if ($from.parent.type.name === 'doc') {
+          return false
+        }
+        
+        // Check if cursor is in a block
+        const isBlock = $from.parent.isBlock
+        
+        return isBlock
       }}
     >
       <div className="floating-menu-wrapper">

@@ -16,8 +16,10 @@ import TextAlign from '@tiptap/extension-text-align'
 import Highlight from '@tiptap/extension-highlight'
 import Placeholder from '@tiptap/extension-placeholder'
 import CharacterCount from '@tiptap/extension-character-count'
+import Dropcursor from '@tiptap/extension-dropcursor'
+import Focus from '@tiptap/extension-focus'
+import GlobalDragHandle from 'tiptap-extension-global-drag-handle'
 import { SlashCommands } from './SlashCommands'
-import { DragHandle } from './DragHandle'
 
 /**
  * Creates the blog editor extensions configuration
@@ -112,7 +114,21 @@ export const createBlogExtensions = (placeholder?: string) => [
   // Character/word count
   CharacterCount,
 
+  // Visual feedback extensions
+  Dropcursor.configure({
+    color: '#3b82f6', // Blue cursor
+    width: 2,
+  }),
+
+  Focus.configure({
+    className: 'has-focus',
+    mode: 'all',
+  }),
+
   // Notion-like features
   SlashCommands,
-  DragHandle
+  GlobalDragHandle.configure({
+    dragHandleWidth: 20,
+    scrollTreshold: 100,
+  })
 ]

@@ -40,8 +40,11 @@ Your blog editor has been successfully transformed into a **Notion-like editing 
 - Works with all block types
 
 ### 5. **Simplified Toolbar**
-- Only shows **Undo** and **Redo** buttons
-- Displays hint: "Type `/` for commands"
+- Shows **Undo** and **Redo** buttons on the left
+- **Edit/Preview** toggle in the center
+- **Save status badge** (Saving/Saved) with tooltip showing draft is saved locally
+- **Content stats** on the right (word count, character count, reading time)
+- Fixed 3-column grid layout prevents shifting when save status changes
 - Cleaner, minimal interface
 
 ## 🎨 Design Features
