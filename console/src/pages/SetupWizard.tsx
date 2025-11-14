@@ -55,7 +55,8 @@ export default function SetupWizard() {
       }
     }
     fetchStatus()
-  }, [navigate, message])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const handleTestConnection = async () => {
     try {
@@ -185,8 +186,11 @@ export default function SetupWizard() {
       })
 
       // Wait for server to restart
+      // Use the API endpoint from the form values or the already configured endpoint
+      const endpointToCheck = values.api_endpoint || apiEndpoint || window.location.origin
+
       try {
-        await waitForServerRestart()
+        await waitForServerRestart(endpointToCheck)
 
         // Success - server is back up
         message.success({
@@ -216,22 +220,23 @@ export default function SetupWizard() {
    * Wait for the server to restart after setup completion
    * Polls the health endpoint until server is back online
    */
-  const waitForServerRestart = async (): Promise<void> => {
+  const waitForServerRestart = async (configuredEndpoint: string): Promise<void> => {
     const maxAttempts = 60 // 60 seconds max wait
     const delayMs = 1000 // Check every second
+
+    // Determine the API endpoint URL - use same logic as api client
+    let apiEndpointUrl = configuredEndpoint
 
     // Wait for server to start shutting down
     await new Promise((resolve) => setTimeout(resolve, 2000))
 
-    // Poll health endpoint
+    // Poll setup status endpoint to check if server has restarted
     for (let i = 0; i < maxAttempts; i++) {
       try {
-        const response = await fetch('/api/setup.status', {
-          method: 'GET',
-          cache: 'no-cache',
-          headers: {
-            'Cache-Control': 'no-cache'
-          }
+        // Simple GET request without custom headers to avoid CORS preflight issues
+        // Add timestamp to prevent caching
+        const response = await fetch(`${apiEndpointUrl}/api/setup.status?t=${Date.now()}`, {
+          method: 'GET'
         })
 
         if (response.ok) {

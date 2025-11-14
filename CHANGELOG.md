@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [16.2] - 2025-11-14
+
+### Fixes
+
+- Fix: Setup wizard redirection loop when API_ENDPOINT differs from actual console host name
+
 ## [16.1] - 2025-11-06
 
 ### Features
