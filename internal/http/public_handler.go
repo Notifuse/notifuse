@@ -1,11 +1,13 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
@@ -47,6 +49,8 @@ func (h *NotificationCenterHandler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/unsubscribe-oneclick", h.handleUnsubscribeOneClick)
 	// public health endpoint with connection stats
 	mux.HandleFunc("/health", h.handleHealth)
+	// lightweight health check for container orchestration
+	mux.HandleFunc("/healthz", h.handleHealthz)
 	// favicon detection endpoint
 	mux.HandleFunc("/api/detect-favicon", h.HandleDetectFavicon)
 }
@@ -177,6 +181,50 @@ func (h *NotificationCenterHandler) handleHealth(w http.ResponseWriter, r *http.
 
 	// Return as JSON
 	writeJSON(w, http.StatusOK, response)
+}
+
+func (h *NotificationCenterHandler) handleHealthz(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get connection manager
+	connManager, err := pkgDatabase.GetConnectionManager()
+	if err != nil {
+		h.logger.Error("Failed to get connection manager")
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+			"status": "unavailable",
+		})
+		return
+	}
+
+	// Get system database connection
+	systemDB := connManager.GetSystemConnection()
+	if systemDB == nil {
+		h.logger.Error("System database connection is nil")
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+			"status": "unavailable",
+		})
+		return
+	}
+
+	// Ping the database with a 2-second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	if err := systemDB.PingContext(ctx); err != nil {
+		h.logger.WithField("error", err.Error()).Error("Database ping failed")
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
+			"status": "unavailable",
+		})
+		return
+	}
+
+	// Database is healthy
+	writeJSON(w, http.StatusOK, map[string]string{
+		"status": "ok",
+	})
 }
 
 func (h *NotificationCenterHandler) HandleDetectFavicon(w http.ResponseWriter, r *http.Request) {

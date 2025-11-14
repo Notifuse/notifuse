@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 ### Fixes
 
 - Fix: Setup wizard redirection loop when API_ENDPOINT differs from actual console host name
+- Add `/healthz` endpoint for container health checks that pings the database
 
 ## [16.1] - 2025-11-06
 
