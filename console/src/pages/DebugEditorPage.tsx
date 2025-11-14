@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Card, Space, Typography, Button, message } from 'antd'
-import { BlogContentEditor } from '../components/blog_editor'
+import { NotifuseEditor } from '../components/blog_editor'
 import type { JSONContent } from '@tiptap/react'
 
 const { Title, Paragraph, Text } = Typography
@@ -179,14 +179,10 @@ export const DebugEditorPage: React.FC = () => {
             )}
           </Space>
 
-          <BlogContentEditor
-            content={content}
+          <NotifuseEditor
+            initialContent={content ? JSON.stringify(content) : undefined}
             onChange={handleChange}
             placeholder="Start writing your blog post or type / to browse options..."
-            autoFocus={false}
-            minHeight="600px"
-            isSaving={isSaving}
-            lastSaved={lastSaved}
           />
         </Card>
 

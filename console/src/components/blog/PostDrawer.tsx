@@ -1,7 +1,8 @@
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { Button, Drawer, Form, Input, App, Select, InputNumber, Space, Tabs, Row, Col } from 'antd'
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query'
 import { debounce } from 'lodash'
+import { Undo, Redo } from 'lucide-react'
 import {
   blogPostsApi,
   blogCategoriesApi,
@@ -13,9 +14,10 @@ import type { CreateBlogPostRequest, UpdateBlogPostRequest } from '../../service
 import { SEOSettingsForm } from '../seo/SEOSettingsForm'
 import { ImageURLInput } from '../common/ImageURLInput'
 import { templatesApi } from '../../services/api/template'
-import { BlogContentEditor, jsonToHtml, extractTextContent } from '../blog_editor'
 import { AuthorsTable } from './AuthorsTable'
 import Subtitle from '../common/subtitle'
+import { NotifuseEditor, type NotifuseEditorRef } from '../blog_editor'
+import { jsonToHtml, extractTextContent } from './utils'
 
 const { TextArea } = Input
 
@@ -53,6 +55,11 @@ export function PostDrawer({
 
   // Template ID for new posts (generated on mount)
   const [newTemplateId] = useState<string>(() => crypto.randomUUID())
+
+  // Editor ref for undo/redo
+  const editorRef = useRef<NotifuseEditorRef>(null)
+  const [canUndo, setCanUndo] = useState(false)
+  const [canRedo, setCanRedo] = useState(false)
 
   // localStorage key for drafts
   const draftKey = `blog-post-draft-${post?.id || 'new'}-${workspaceId}`
@@ -106,6 +113,12 @@ export function PostDrawer({
   // Handle content change with auto-save
   const handleContentChange = (json: any) => {
     setBlogContent(json)
+
+    // Update undo/redo state
+    if (editorRef.current) {
+      setCanUndo(editorRef.current.canUndo())
+      setCanRedo(editorRef.current.canRedo())
+    }
 
     // Only save if content is not empty
     if (!isContentEmpty(json)) {
@@ -376,6 +389,22 @@ export function PostDrawer({
 
             {tab === 'content' && (
               <>
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Undo size={16} />}
+                  onClick={() => editorRef.current?.undo()}
+                  disabled={!canUndo}
+                  title="Undo"
+                />
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<Redo size={16} />}
+                  onClick={() => editorRef.current?.redo()}
+                  disabled={!canRedo}
+                  title="Redo"
+                />
                 <Button type="primary" ghost onClick={() => setTab('settings')}>
                   Previous
                 </Button>
@@ -584,13 +613,13 @@ export function PostDrawer({
                 </div>
               ) : (
                 <div style={{ height: `calc(100vh - ${HEADER_HEIGHT}px)`, overflow: 'auto' }}>
-                  <BlogContentEditor
-                    content={blogContent}
-                    onChange={handleContentChange}
+                  <NotifuseEditor
+                    ref={editorRef}
                     placeholder="Start writing your blog post..."
-                    // minHeight={`calc(100vh - ${HEADER_HEIGHT + 120}px)`}
-                    isSaving={isSaving}
-                    lastSaved={lastSaved}
+                    initialContent={blogContent ? jsonToHtml(blogContent) : undefined}
+                    disableH1={true}
+                    showHeader={false}
+                    onChange={handleContentChange}
                   />
                 </div>
               )}

@@ -1,0 +1,403 @@
+/* =====================================================
+  NODE STYLES
+   Dynamic styles are controlled via CSS variables from styleConfig
+   ===================================================== */
+
+/* Non-customizable CSS Variables for Node Styling */
+.notifuse-editor.ProseMirror {
+  /* Blockquote - only bar color is customizable via separator */
+  --blockquote-bg-color: #f5f5f5;
+  
+  /* Code - border and syntax highlighting colors are not customizable */
+  --notifuse-editor-inline-code-border-color: rgba(0, 0, 0, 0.1);
+  --notifuse-editor-codeblock-bg: #1e1e1e;
+  --notifuse-editor-codeblock-text: #d4d4d4;
+  --notifuse-editor-codeblock-border: #3e3e42;
+}
+
+/* =====================
+   BLOCKQUOTE
+   ===================== */
+.notifuse-editor.ProseMirror blockquote {
+  position: relative;
+  padding-left: 1em;
+  padding-top: 0.375em;
+  padding-bottom: 0.375em;
+  margin-top: var(--editor-blockquote-margin-top);
+  margin-bottom: var(--editor-blockquote-margin-bottom);
+  font-size: var(--editor-blockquote-font-size);
+  color: var(--editor-blockquote-color);
+  line-height: var(--editor-blockquote-line-height);
+}
+
+.notifuse-editor.ProseMirror blockquote p {
+  margin-top: 0;
+}
+
+.notifuse-editor.ProseMirror blockquote::before,
+.notifuse-editor.ProseMirror blockquote.is-empty::before {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 0.25em;
+  background-color: var(--blockquote-bg-color);
+  content: "";
+  border-radius: 0;
+}
+
+/* =====================
+   CODE FORMATTING
+   ===================== */
+
+/* Inline code */
+.notifuse-editor.ProseMirror code {
+  background-color: var(--editor-inline-code-background-color);
+  color: var(--editor-inline-code-color);
+  border: 1px solid var(--notifuse-editor-inline-code-border-color);
+  font-family: var(--editor-inline-code-font-family);
+  font-size: var(--editor-inline-code-font-size);
+  line-height: 1.4;
+  border-radius: 6px;
+  padding: 0.1em 0.2em;
+}
+
+/* Code blocks */
+.notifuse-editor.ProseMirror pre {
+  background-color: var(--notifuse-editor-codeblock-bg);
+  color: var(--notifuse-editor-codeblock-text);
+  border: 1px solid var(--notifuse-editor-codeblock-border);
+  margin-top: var(--editor-codeblock-margin-top);
+  margin-bottom: var(--editor-codeblock-margin-bottom);
+  padding: 1em;
+  font-size: 1rem;
+  border-radius: 6px;
+}
+
+.notifuse-editor.ProseMirror pre code {
+  background-color: transparent;
+  border: none;
+  border-radius: 0;
+  -webkit-text-fill-color: inherit;
+  color: inherit;
+}
+
+/* Caption display */
+.notifuse-editor.ProseMirror pre[data-show-caption="true"]::after {
+  content: attr(data-caption);
+  display: block;
+  margin-top: 0.5em;
+  padding: 0.5em 0;
+  font-size: var(--editor-caption-font-size);
+  font-style: italic;
+  color: var(--editor-caption-color);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  border-top: 1px solid var(--notifuse-editor-codeblock-border);
+}
+
+.notifuse-editor.ProseMirror pre[data-show-caption="true"] {
+  margin-bottom: var(--editor-codeblock-margin-bottom);
+}
+
+/* =====================
+   SYNTAX HIGHLIGHTING (VS Code Dark+ Theme)
+   ===================== */
+.notifuse-editor.ProseMirror pre code.hljs {
+  display: block;
+  overflow-x: auto;
+  padding: 0;
+}
+
+/* VS Code Dark+ Theme Colors */
+.notifuse-editor.ProseMirror .hljs-comment,
+.notifuse-editor.ProseMirror .hljs-quote {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.notifuse-editor.ProseMirror .hljs-keyword,
+.notifuse-editor.ProseMirror .hljs-selector-tag,
+.notifuse-editor.ProseMirror .hljs-subst {
+  color: #569cd6;
+  font-weight: normal;
+}
+
+.notifuse-editor.ProseMirror .hljs-number,
+.notifuse-editor.ProseMirror .hljs-literal {
+  color: #b5cea8;
+}
+
+.notifuse-editor.ProseMirror .hljs-variable,
+.notifuse-editor.ProseMirror .hljs-template-variable,
+.notifuse-editor.ProseMirror .hljs-tag .hljs-attr {
+  color: #9cdcfe;
+}
+
+.notifuse-editor.ProseMirror .hljs-string,
+.notifuse-editor.ProseMirror .hljs-doctag {
+  color: #ce9178;
+}
+
+.notifuse-editor.ProseMirror .hljs-title,
+.notifuse-editor.ProseMirror .hljs-section,
+.notifuse-editor.ProseMirror .hljs-selector-id {
+  color: #dcdcaa;
+  font-weight: normal;
+}
+
+.notifuse-editor.ProseMirror .hljs-type,
+.notifuse-editor.ProseMirror .hljs-class .hljs-title {
+  color: #4ec9b0;
+  font-weight: normal;
+}
+
+.notifuse-editor.ProseMirror .hljs-tag,
+.notifuse-editor.ProseMirror .hljs-name {
+  color: #569cd6;
+  font-weight: normal;
+}
+
+.notifuse-editor.ProseMirror .hljs-attribute {
+  color: #9cdcfe;
+  font-weight: normal;
+}
+
+.notifuse-editor.ProseMirror .hljs-regexp,
+.notifuse-editor.ProseMirror .hljs-link {
+  color: #ce9178;
+}
+
+.notifuse-editor.ProseMirror .hljs-symbol,
+.notifuse-editor.ProseMirror .hljs-bullet {
+  color: #4fc1ff;
+}
+
+.notifuse-editor.ProseMirror .hljs-built_in,
+.notifuse-editor.ProseMirror .hljs-builtin-name {
+  color: #4ec9b0;
+}
+
+.notifuse-editor.ProseMirror .hljs-meta {
+  color: #808080;
+}
+
+.notifuse-editor.ProseMirror .hljs-deletion {
+  color: #f48771;
+  background-color: #3b2626;
+}
+
+.notifuse-editor.ProseMirror .hljs-addition {
+  color: #b5cea8;
+  background-color: #233323;
+}
+
+.notifuse-editor.ProseMirror .hljs-emphasis {
+  font-style: italic;
+}
+
+.notifuse-editor.ProseMirror .hljs-strong {
+  font-weight: bold;
+}
+
+.notifuse-editor.ProseMirror .hljs-function {
+  color: #dcdcaa;
+}
+
+.notifuse-editor.ProseMirror .hljs-params {
+  color: #d4d4d4;
+}
+
+.notifuse-editor.ProseMirror .hljs-attr {
+  color: #9cdcfe;
+}
+
+.notifuse-editor.ProseMirror .hljs-selector-class {
+  color: #d7ba7d;
+}
+
+.notifuse-editor.ProseMirror .hljs-selector-pseudo {
+  color: #d7ba7d;
+}
+
+.notifuse-editor.ProseMirror .hljs-operator {
+  color: #d4d4d4;
+}
+
+.notifuse-editor.ProseMirror .hljs-title.function_ {
+  color: #dcdcaa;
+}
+
+/* =====================
+   HORIZONTAL RULE
+   ===================== */
+.notifuse-editor.ProseMirror hr {
+  border: none;
+  height: 1px;
+  background-color: var(--editor-separator-color);
+}
+
+.notifuse-editor.ProseMirror [data-type="horizontalRule"] {
+  margin-top: var(--editor-separator-margin-top);
+  margin-bottom: var(--editor-separator-margin-bottom);
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+/* =====================
+   LISTS
+   ===================== */
+
+/* Common list styles */
+.notifuse-editor.ProseMirror ol,
+.notifuse-editor.ProseMirror ul {
+  margin-top: var(--editor-list-margin-top);
+  margin-bottom: var(--editor-list-margin-bottom);
+  padding-left: var(--editor-list-padding-left);
+}
+
+.notifuse-editor.ProseMirror ol:first-child,
+.notifuse-editor.ProseMirror ul:first-child {
+  margin-top: 0;
+}
+
+.notifuse-editor.ProseMirror ol:last-child,
+.notifuse-editor.ProseMirror ul:last-child {
+  margin-bottom: 0;
+}
+
+.notifuse-editor.ProseMirror ol ol,
+.notifuse-editor.ProseMirror ol ul,
+.notifuse-editor.ProseMirror ul ol,
+.notifuse-editor.ProseMirror ul ul {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.notifuse-editor.ProseMirror li p {
+  margin-top: 0;
+  line-height: var(--editor-paragraph-line-height);
+}
+
+/* Ordered lists */
+.notifuse-editor.ProseMirror ol {
+  list-style: decimal;
+}
+
+.notifuse-editor.ProseMirror ol ol {
+  list-style: lower-alpha;
+}
+
+.notifuse-editor.ProseMirror ol ol ol {
+  list-style: lower-roman;
+}
+
+/* Unordered lists */
+.notifuse-editor.ProseMirror ul {
+  list-style: disc;
+}
+
+.notifuse-editor.ProseMirror ul ul {
+  list-style: circle;
+}
+
+.notifuse-editor.ProseMirror ul ul ul {
+  list-style: square;
+}
+
+/* =====================
+   IMAGES
+   ===================== */
+.notifuse-editor.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+.notifuse-editor.ProseMirror > img:not([data-type="emoji"] img) {
+  margin: 2rem 0;
+  outline: 0.125rem solid transparent;
+  border-radius: 0.25rem;
+}
+
+.notifuse-editor.ProseMirror img:not([data-type="emoji"] img).ProseMirror-selectednode {
+  outline-color: #3b82f6;
+}
+
+.notifuse-editor.ProseMirror .tiptap-thread:has(> img) {
+  margin: 2rem 0;
+}
+
+.notifuse-editor.ProseMirror .tiptap-thread:has(> img) img {
+  outline: 0.125rem solid transparent;
+  border-radius: 0.25rem;
+}
+
+.notifuse-editor.ProseMirror .tiptap-thread img {
+  margin: 0;
+}
+
+/* =====================
+   HEADINGS
+   ===================== */
+.notifuse-editor.ProseMirror h1,
+.notifuse-editor.ProseMirror h2,
+.notifuse-editor.ProseMirror h3,
+.notifuse-editor.ProseMirror h4 {
+  position: relative;
+  font-family: var(--editor-headings-font-family);
+  font-style: inherit;
+}
+
+.notifuse-editor.ProseMirror h1:first-child,
+.notifuse-editor.ProseMirror h1:first-of-type,
+.notifuse-editor.ProseMirror h2:first-child,
+.notifuse-editor.ProseMirror h2:first-of-type,
+.notifuse-editor.ProseMirror h3:first-child,
+.notifuse-editor.ProseMirror h3:first-of-type,
+.notifuse-editor.ProseMirror h4:first-child,
+.notifuse-editor.ProseMirror h4:first-of-type {
+  margin-top: 0;
+}
+
+.notifuse-editor.ProseMirror h1 {
+  font-size: var(--editor-h1-font-size);
+  color: var(--editor-h1-color);
+  font-weight: 700;
+  margin-top: var(--editor-h1-margin-top);
+  margin-bottom: var(--editor-h1-margin-bottom);
+}
+
+.notifuse-editor.ProseMirror h2 {
+  font-size: var(--editor-h2-font-size);
+  color: var(--editor-h2-color);
+  font-weight: 700;
+  margin-top: var(--editor-h2-margin-top);
+  margin-bottom: var(--editor-h2-margin-bottom);
+}
+
+.notifuse-editor.ProseMirror h3 {
+  font-size: var(--editor-h3-font-size);
+  color: var(--editor-h3-color);
+  font-weight: 600;
+  margin-top: var(--editor-h3-margin-top);
+  margin-bottom: var(--editor-h3-margin-bottom);
+}
+
+.notifuse-editor.ProseMirror h4 {
+  font-size: 1em;
+  font-weight: 600;
+  margin-top: 2em;
+}
+
+/* =====================
+   PARAGRAPHS
+   ===================== */
+.notifuse-editor.ProseMirror p:not(:first-child):not(td p):not(th p) {
+  font-size: var(--editor-default-font-size);
+  line-height: var(--editor-paragraph-line-height);
+  font-weight: normal;
+  margin-top: var(--editor-paragraph-margin-top);
+  margin-bottom: var(--editor-paragraph-margin-bottom);
+}
+

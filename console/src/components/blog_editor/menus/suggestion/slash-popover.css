@@ -1,0 +1,107 @@
+/* Slash Popover Content Styles - Light Theme */
+
+.slash-popover-content {
+  width: 600px;
+  max-height: 400px;
+  overflow-y: auto;
+  background: #ffffff;
+  padding: 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Category Section */
+.slash-category {
+  margin-bottom: 16px;
+}
+
+.slash-category:last-child {
+  margin-bottom: 0;
+}
+
+.slash-category__header {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  padding-left: 4px;
+}
+
+/* 3-Column Grid Layout */
+.slash-category__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+/* Menu Item */
+.slash-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  user-select: none;
+}
+
+.slash-menu-item:hover {
+  background-color: #f3f4f6;
+}
+
+.slash-menu-item.selected {
+  background-color: #e5e7eb;
+}
+
+/* Icon */
+.slash-menu-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+
+.slash-menu-item__icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Label */
+.slash-menu-item__label {
+  font-size: 13px;
+  color: #111827;
+  font-weight: 400;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Smooth scrolling */
+.slash-popover-content {
+  scroll-behavior: smooth;
+}
+
+/* Custom scrollbar for better appearance */
+.slash-popover-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.slash-popover-content::-webkit-scrollbar-track {
+  background: #f9fafb;
+  border-radius: 4px;
+}
+
+.slash-popover-content::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 4px;
+}
+
+.slash-popover-content::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
