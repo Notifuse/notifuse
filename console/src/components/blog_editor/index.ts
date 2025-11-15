@@ -6,7 +6,7 @@
 
 // Main component
 export { NotifuseEditor } from './NotifuseEditor'
-export type { NotifuseEditorProps, NotifuseEditorRef } from './NotifuseEditor'
+export type { NotifuseEditorProps, NotifuseEditorRef, TOCAnchor } from './NotifuseEditor'
 
 // Types
 export type {

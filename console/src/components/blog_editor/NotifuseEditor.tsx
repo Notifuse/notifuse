@@ -15,6 +15,7 @@ import { TextAlign } from '@tiptap/extension-text-align'
 import { Emoji, gitHubEmojis } from '@tiptap/extension-emoji'
 import { Subscript } from '@tiptap/extension-subscript'
 import { Superscript } from '@tiptap/extension-superscript'
+import TableOfContents from '@tiptap/extension-table-of-contents'
 import { common, createLowlight } from 'lowlight'
 import javascript from 'highlight.js/lib/languages/javascript'
 import typescript from 'highlight.js/lib/languages/typescript'
@@ -97,6 +98,20 @@ export interface NotifuseEditorRef {
 }
 
 /**
+ * Type definition for Table of Contents anchor
+ */
+export interface TOCAnchor {
+  dom: HTMLElement
+  id: string
+  isActive: boolean
+  isScrolledOver: boolean
+  level: number
+  node: any
+  pos: number
+  textContent: string
+}
+
+/**
  * Default initial content for the editor
  */
 const DEFAULT_INITIAL_CONTENT = `
@@ -172,6 +187,7 @@ export interface NotifuseEditorProps {
   disableH1?: boolean
   showHeader?: boolean
   onChange?: (json: any) => void
+  onTableOfContentsUpdate?: (anchors: TOCAnchor[], isCreate?: boolean) => void
 }
 
 export interface EditorProviderProps {
@@ -181,6 +197,7 @@ export interface EditorProviderProps {
   disableH1?: boolean
   showHeader?: boolean
   onChange?: (json: any) => void
+  onTableOfContentsUpdate?: (anchors: TOCAnchor[], isCreate?: boolean) => void
 }
 
 /**
@@ -222,7 +239,8 @@ export const EditorProvider = forwardRef<NotifuseEditorRef, EditorProviderProps>
     styleConfig = defaultEditorStyles,
     disableH1 = false,
     showHeader = true,
-    onChange
+    onChange,
+    onTableOfContentsUpdate
   } = props
   const editorStyles = useEditorStyles(styleConfig)
 
@@ -293,7 +311,11 @@ export const EditorProvider = forwardRef<NotifuseEditorRef, EditorProviderProps>
         disableH1
       }),
       BackgroundExtension,
-      AlignmentExtension
+      AlignmentExtension,
+      TableOfContents.configure({
+        anchorTypes: ['heading'],
+        onUpdate: onTableOfContentsUpdate
+      })
     ]
   })
 
@@ -340,7 +362,8 @@ export const NotifuseEditor = forwardRef<NotifuseEditorRef, NotifuseEditorProps>
       styleConfig = defaultEditorStyles,
       disableH1 = false,
       showHeader = true,
-      onChange
+      onChange,
+      onTableOfContentsUpdate
     },
     ref
   ) => {
@@ -353,6 +376,7 @@ export const NotifuseEditor = forwardRef<NotifuseEditorRef, NotifuseEditorProps>
         disableH1={disableH1}
         showHeader={showHeader}
         onChange={onChange}
+        onTableOfContentsUpdate={onTableOfContentsUpdate}
       />
     )
   }

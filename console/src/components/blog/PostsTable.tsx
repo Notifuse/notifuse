@@ -16,7 +16,7 @@ import { blogPostsApi, blogCategoriesApi, BlogPost, BlogPostStatus } from '../..
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { PlusOutlined } from '@ant-design/icons'
-import { useWorkspacePermissions } from '../../contexts/AuthContext'
+import { useWorkspacePermissions, useAuth } from '../../contexts/AuthContext'
 import dayjs from '../../lib/dayjs'
 import { PostDrawer } from './PostDrawer'
 import { DeletePostModal } from './DeletePostModal'
@@ -37,6 +37,14 @@ export function PostsTable() {
   const search = useSearch({ from: '/console/workspace/$workspaceId/blog' }) as PostsSearch
   const queryClient = useQueryClient()
   const { permissions } = useWorkspacePermissions(workspaceId)
+  const { workspaces } = useAuth()
+  
+  // Get the current workspace
+  const workspace = workspaces.find((w) => w.id === workspaceId)
+  
+  if (!workspace) {
+    return null // Or handle the case where workspace is not found
+  }
 
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
@@ -309,7 +317,7 @@ export function PostsTable() {
         open={drawerOpen}
         onClose={handleDrawerClose}
         post={editingPost}
-        workspaceId={workspaceId}
+        workspace={workspace}
         initialCategoryId={categoryId}
       />
 
