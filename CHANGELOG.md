@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [16.3] - 2025-11-15
+
+### Fixes
+
+- Fix: Replace hardcoded SMTP PLAIN auth with auto-discover to support Azure Communication Email and other providers requiring LOGIN authentication
+
 ## [16.2] - 2025-11-14
 
 ### Fixes
