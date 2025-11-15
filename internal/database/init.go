@@ -312,6 +312,15 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published_at DESC) WHERE deleted_at IS NULL AND published_at IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_blog_posts_category ON blog_posts(category_id) WHERE deleted_at IS NULL`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug) WHERE deleted_at IS NULL`,
+		`CREATE TABLE IF NOT EXISTS blog_themes (
+			version INTEGER NOT NULL PRIMARY KEY,
+			published_at TIMESTAMP,
+			files JSONB NOT NULL DEFAULT '{}',
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_themes_published ON blog_themes(version) WHERE published_at IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_blog_themes_version ON blog_themes(version DESC)`,
 	}
 
 	// Run all table creation queries

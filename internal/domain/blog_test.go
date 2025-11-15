@@ -864,5 +864,264 @@ func TestDriverValueScannerInterfaces(t *testing.T) {
 	t.Run("BlogPostSettings implements driver.Valuer", func(t *testing.T) {
 		var _ driver.Valuer = BlogPostSettings{}
 	})
+
+	t.Run("BlogThemeFiles implements driver.Valuer", func(t *testing.T) {
+		var _ driver.Valuer = BlogThemeFiles{}
+	})
+}
+
+// Blog Theme Tests
+
+func TestBlogThemeFiles_Value(t *testing.T) {
+	t.Run("successful serialization", func(t *testing.T) {
+		files := BlogThemeFiles{
+			Home:     "home template",
+			Category: "category template",
+			Post:     "post template",
+			Header:   "header template",
+			Footer:   "footer template",
+			Shared:   "shared template",
+		}
+
+		value, err := files.Value()
+		require.NoError(t, err)
+		assert.NotNil(t, value)
+
+		// Verify it's valid JSON
+		var decoded BlogThemeFiles
+		err = json.Unmarshal(value.([]byte), &decoded)
+		require.NoError(t, err)
+		assert.Equal(t, files.Home, decoded.Home)
+		assert.Equal(t, files.Category, decoded.Category)
+	})
+
+	t.Run("empty templates", func(t *testing.T) {
+		files := BlogThemeFiles{}
+		value, err := files.Value()
+		require.NoError(t, err)
+		assert.NotNil(t, value)
+	})
+}
+
+func TestBlogThemeFiles_Scan(t *testing.T) {
+	t.Run("successful deserialization", func(t *testing.T) {
+		jsonData := []byte(`{"home":"home","category":"cat","post":"post","header":"header","footer":"footer","shared":"shared"}`)
+		var files BlogThemeFiles
+		err := files.Scan(jsonData)
+		require.NoError(t, err)
+		assert.Equal(t, "home", files.Home)
+		assert.Equal(t, "cat", files.Category)
+		assert.Equal(t, "post", files.Post)
+	})
+
+	t.Run("nil value", func(t *testing.T) {
+		var files BlogThemeFiles
+		err := files.Scan(nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("invalid type", func(t *testing.T) {
+		var files BlogThemeFiles
+		err := files.Scan("invalid")
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "type assertion")
+	})
+
+	t.Run("invalid JSON", func(t *testing.T) {
+		var files BlogThemeFiles
+		err := files.Scan([]byte("invalid json"))
+		require.Error(t, err)
+	})
+}
+
+func TestBlogTheme_Validate(t *testing.T) {
+	t.Run("valid theme", func(t *testing.T) {
+		theme := &BlogTheme{
+			Version: 1,
+			Files: BlogThemeFiles{
+				Home: "template",
+			},
+		}
+		err := theme.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("zero version", func(t *testing.T) {
+		theme := &BlogTheme{
+			Version: 0,
+		}
+		err := theme.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "version must be positive")
+	})
+
+	t.Run("negative version", func(t *testing.T) {
+		theme := &BlogTheme{
+			Version: -1,
+		}
+		err := theme.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "version must be positive")
+	})
+
+	t.Run("empty files allowed", func(t *testing.T) {
+		theme := &BlogTheme{
+			Version: 1,
+			Files:   BlogThemeFiles{},
+		}
+		err := theme.Validate()
+		assert.NoError(t, err)
+	})
+}
+
+func TestBlogTheme_IsPublished(t *testing.T) {
+	t.Run("not published when published_at is nil", func(t *testing.T) {
+		theme := &BlogTheme{PublishedAt: nil}
+		assert.False(t, theme.IsPublished())
+	})
+
+	t.Run("published when published_at is set", func(t *testing.T) {
+		now := time.Now()
+		theme := &BlogTheme{PublishedAt: &now}
+		assert.True(t, theme.IsPublished())
+	})
+}
+
+func TestCreateBlogThemeRequest_Validate(t *testing.T) {
+	t.Run("valid request", func(t *testing.T) {
+		req := &CreateBlogThemeRequest{
+			Files: BlogThemeFiles{
+				Home: "template",
+			},
+		}
+		err := req.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("empty files allowed", func(t *testing.T) {
+		req := &CreateBlogThemeRequest{
+			Files: BlogThemeFiles{},
+		}
+		err := req.Validate()
+		assert.NoError(t, err)
+	})
+}
+
+func TestUpdateBlogThemeRequest_Validate(t *testing.T) {
+	t.Run("valid request", func(t *testing.T) {
+		req := &UpdateBlogThemeRequest{
+			Version: 1,
+			Files: BlogThemeFiles{
+				Home: "updated template",
+			},
+		}
+		err := req.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("zero version", func(t *testing.T) {
+		req := &UpdateBlogThemeRequest{
+			Version: 0,
+			Files:   BlogThemeFiles{},
+		}
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "version must be positive")
+	})
+
+	t.Run("negative version", func(t *testing.T) {
+		req := &UpdateBlogThemeRequest{
+			Version: -1,
+			Files:   BlogThemeFiles{},
+		}
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "version must be positive")
+	})
+}
+
+func TestPublishBlogThemeRequest_Validate(t *testing.T) {
+	t.Run("valid request", func(t *testing.T) {
+		req := &PublishBlogThemeRequest{Version: 1}
+		err := req.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("zero version", func(t *testing.T) {
+		req := &PublishBlogThemeRequest{Version: 0}
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "version must be positive")
+	})
+
+	t.Run("negative version", func(t *testing.T) {
+		req := &PublishBlogThemeRequest{Version: -1}
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "version must be positive")
+	})
+}
+
+func TestGetBlogThemeRequest_Validate(t *testing.T) {
+	t.Run("valid request", func(t *testing.T) {
+		req := &GetBlogThemeRequest{Version: 1}
+		err := req.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("zero version", func(t *testing.T) {
+		req := &GetBlogThemeRequest{Version: 0}
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "version must be positive")
+	})
+}
+
+func TestListBlogThemesRequest_Validate(t *testing.T) {
+	t.Run("valid request with defaults", func(t *testing.T) {
+		req := &ListBlogThemesRequest{}
+		err := req.Validate()
+		assert.NoError(t, err)
+		assert.Equal(t, 50, req.Limit)
+		assert.Equal(t, 0, req.Offset)
+	})
+
+	t.Run("valid with custom params", func(t *testing.T) {
+		req := &ListBlogThemesRequest{
+			Limit:  20,
+			Offset: 10,
+		}
+		err := req.Validate()
+		assert.NoError(t, err)
+		assert.Equal(t, 20, req.Limit)
+		assert.Equal(t, 10, req.Offset)
+	})
+
+	t.Run("limit exceeds maximum", func(t *testing.T) {
+		req := &ListBlogThemesRequest{
+			Limit: 200,
+		}
+		err := req.Validate()
+		assert.NoError(t, err)
+		assert.Equal(t, 100, req.Limit) // Should be capped at 100
+	})
+
+	t.Run("zero limit sets default", func(t *testing.T) {
+		req := &ListBlogThemesRequest{
+			Limit: 0,
+		}
+		err := req.Validate()
+		assert.NoError(t, err)
+		assert.Equal(t, 50, req.Limit)
+	})
+
+	t.Run("negative offset sets to zero", func(t *testing.T) {
+		req := &ListBlogThemesRequest{
+			Offset: -10,
+		}
+		err := req.Validate()
+		assert.NoError(t, err)
+		assert.Equal(t, 0, req.Offset)
+	})
 }
 

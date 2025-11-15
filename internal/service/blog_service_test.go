@@ -20,6 +20,7 @@ func setupBlogServiceTest(t *testing.T) (
 	*BlogService,
 	*mocks.MockBlogCategoryRepository,
 	*mocks.MockBlogPostRepository,
+	*mocks.MockBlogThemeRepository,
 	*mocks.MockWorkspaceRepository,
 	*mocks.MockAuthService,
 ) {
@@ -27,6 +28,7 @@ func setupBlogServiceTest(t *testing.T) (
 
 	mockCategoryRepo := mocks.NewMockBlogCategoryRepository(ctrl)
 	mockPostRepo := mocks.NewMockBlogPostRepository(ctrl)
+	mockThemeRepo := mocks.NewMockBlogThemeRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := logger.NewLoggerWithLevel("disabled")
@@ -35,11 +37,12 @@ func setupBlogServiceTest(t *testing.T) (
 		mockLogger,
 		mockCategoryRepo,
 		mockPostRepo,
+		mockThemeRepo,
 		mockWorkspaceRepo,
 		mockAuthService,
 	)
 
-	return service, mockCategoryRepo, mockPostRepo, mockWorkspaceRepo, mockAuthService
+	return service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockAuthService
 }
 
 // setupBlogContextWithAuth creates a context with workspace_id and mocks authentication with permissions
@@ -61,13 +64,13 @@ func setupBlogContextWithAuth(mockAuthService *mocks.MockAuthService, workspaceI
 	mockAuthService.EXPECT().
 		AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
 		Return(ctx, &domain.User{ID: "user123"}, userWorkspace, nil).
-		AnyTimes()
+		Times(1)
 
 	return ctx
 }
 
 func TestBlogService_CreateCategory(t *testing.T) {
-	service, mockCategoryRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful creation", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -157,7 +160,7 @@ func TestBlogService_CreateCategory(t *testing.T) {
 }
 
 func TestBlogService_GetCategory(t *testing.T) {
-	service, mockCategoryRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -191,7 +194,7 @@ func TestBlogService_GetCategory(t *testing.T) {
 }
 
 func TestBlogService_GetCategoryBySlug(t *testing.T) {
-	service, mockCategoryRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -211,7 +214,7 @@ func TestBlogService_GetCategoryBySlug(t *testing.T) {
 }
 
 func TestBlogService_UpdateCategory(t *testing.T) {
-	service, mockCategoryRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful update", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -319,7 +322,7 @@ func TestBlogService_UpdateCategory(t *testing.T) {
 }
 
 func TestBlogService_DeleteCategory(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful deletion with cascade", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -449,7 +452,7 @@ func TestBlogService_DeleteCategory(t *testing.T) {
 }
 
 func TestBlogService_ListCategories(t *testing.T) {
-	service, mockCategoryRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful listing", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -481,7 +484,7 @@ func TestBlogService_ListCategories(t *testing.T) {
 }
 
 func TestBlogService_CreatePost(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	categoryID := "cat123"
 
@@ -587,7 +590,7 @@ func TestBlogService_CreatePost(t *testing.T) {
 }
 
 func TestBlogService_GetPost(t *testing.T) {
-	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -607,7 +610,7 @@ func TestBlogService_GetPost(t *testing.T) {
 }
 
 func TestBlogService_UpdatePost(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	categoryID := "cat123"
 
@@ -706,7 +709,7 @@ func TestBlogService_UpdatePost(t *testing.T) {
 }
 
 func TestBlogService_DeletePost(t *testing.T) {
-	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful deletion", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -733,7 +736,7 @@ func TestBlogService_DeletePost(t *testing.T) {
 }
 
 func TestBlogService_ListPosts(t *testing.T) {
-	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful listing", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -773,7 +776,7 @@ func TestBlogService_ListPosts(t *testing.T) {
 }
 
 func TestBlogService_PublishPost(t *testing.T) {
-	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful publish", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -815,7 +818,7 @@ func TestBlogService_PublishPost(t *testing.T) {
 }
 
 func TestBlogService_UnpublishPost(t *testing.T) {
-	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful unpublish", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -842,7 +845,7 @@ func TestBlogService_UnpublishPost(t *testing.T) {
 }
 
 func TestBlogService_GetPublicPostByCategoryAndSlug(t *testing.T) {
-	service, _, mockPostRepo, _, _ := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _ := setupBlogServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("published post", func(t *testing.T) {
@@ -891,7 +894,7 @@ func TestBlogService_GetPublicPostByCategoryAndSlug(t *testing.T) {
 }
 
 func TestBlogService_ListPublicPosts(t *testing.T) {
-	service, _, mockPostRepo, _, _ := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _ := setupBlogServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("successful listing - only published", func(t *testing.T) {
@@ -938,7 +941,7 @@ func TestBlogService_ListPublicPosts(t *testing.T) {
 }
 
 func TestBlogService_GetPostBySlug(t *testing.T) {
-	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -958,7 +961,7 @@ func TestBlogService_GetPostBySlug(t *testing.T) {
 }
 
 func TestBlogService_GetPostByCategoryAndSlug(t *testing.T) {
-	service, _, mockPostRepo, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -975,4 +978,362 @@ func TestBlogService_GetPostByCategoryAndSlug(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, expectedPost, post)
 	})
+}
+
+// Blog Theme Service Tests
+
+func TestBlogService_CreateTheme(t *testing.T) {
+	service, _, _, mockThemeRepo, _, mockAuthService := setupBlogServiceTest(t)
+
+	t.Run("successful creation", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.CreateBlogThemeRequest{
+			Files: domain.BlogThemeFiles{
+				Home:     "home template",
+				Category: "category template",
+				Post:     "post template",
+			},
+		}
+
+		mockThemeRepo.EXPECT().
+			CreateTheme(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, theme *domain.BlogTheme) error {
+				theme.Version = 1
+				return nil
+			})
+
+		theme, err := service.CreateTheme(ctx, req)
+		require.NoError(t, err)
+		assert.NotNil(t, theme)
+		assert.Equal(t, 1, theme.Version)
+		assert.Equal(t, req.Files.Home, theme.Files.Home)
+	})
+
+	t.Run("validation error", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		// CreateBlogThemeRequest validation always passes, so this is just for consistency
+		req := &domain.CreateBlogThemeRequest{
+			Files: domain.BlogThemeFiles{},
+		}
+
+		mockThemeRepo.EXPECT().
+			CreateTheme(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, theme *domain.BlogTheme) error {
+				theme.Version = 1
+				return nil
+			})
+
+		theme, err := service.CreateTheme(ctx, req)
+		require.NoError(t, err)
+		assert.NotNil(t, theme)
+	})
+
+	t.Run("repository error", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.CreateBlogThemeRequest{
+			Files: domain.BlogThemeFiles{Home: "template"},
+		}
+
+		mockThemeRepo.EXPECT().
+			CreateTheme(ctx, gomock.Any()).
+			Return(errors.New("database error"))
+
+		theme, err := service.CreateTheme(ctx, req)
+		require.Error(t, err)
+		assert.Nil(t, theme)
+	})
+
+	t.Run("permission denied - no write permission", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
+		req := &domain.CreateBlogThemeRequest{
+			Files: domain.BlogThemeFiles{Home: "template"},
+		}
+
+		theme, err := service.CreateTheme(ctx, req)
+		require.Error(t, err)
+		assert.Nil(t, theme)
+		assert.Contains(t, err.Error(), "Insufficient permissions")
+	})
+}
+
+func TestBlogService_GetTheme(t *testing.T) {
+	service, _, _, mockThemeRepo, _, mockAuthService := setupBlogServiceTest(t)
+
+	t.Run("successful retrieval", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
+		expectedTheme := &domain.BlogTheme{
+			Version: 1,
+			Files:   domain.BlogThemeFiles{Home: "home"},
+		}
+
+		mockThemeRepo.EXPECT().
+			GetTheme(ctx, 1).
+			Return(expectedTheme, nil)
+
+		theme, err := service.GetTheme(ctx, 1)
+		require.NoError(t, err)
+		assert.Equal(t, expectedTheme, theme)
+	})
+
+	t.Run("theme not found", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
+
+		mockThemeRepo.EXPECT().
+			GetTheme(ctx, 999).
+			Return(nil, errors.New("blog theme not found"))
+
+		theme, err := service.GetTheme(ctx, 999)
+		require.Error(t, err)
+		assert.Nil(t, theme)
+	})
+
+	t.Run("permission denied - no read permission", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", false, false)
+
+		theme, err := service.GetTheme(ctx, 1)
+		require.Error(t, err)
+		assert.Nil(t, theme)
+		assert.Contains(t, err.Error(), "Insufficient permissions")
+	})
+}
+
+func TestBlogService_GetPublishedTheme(t *testing.T) {
+	service, _, _, mockThemeRepo, _, mockAuthService := setupBlogServiceTest(t)
+
+	t.Run("successful retrieval", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
+		publishedTime := time.Now()
+		expectedTheme := &domain.BlogTheme{
+			Version:     2,
+			PublishedAt: &publishedTime,
+			Files:       domain.BlogThemeFiles{Home: "published"},
+		}
+
+		mockThemeRepo.EXPECT().
+			GetPublishedTheme(ctx).
+			Return(expectedTheme, nil)
+
+		theme, err := service.GetPublishedTheme(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, expectedTheme, theme)
+		assert.True(t, theme.IsPublished())
+	})
+
+	t.Run("no published theme", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
+
+		mockThemeRepo.EXPECT().
+			GetPublishedTheme(ctx).
+			Return(nil, errors.New("no published blog theme found"))
+
+		theme, err := service.GetPublishedTheme(ctx)
+		require.Error(t, err)
+		assert.Nil(t, theme)
+	})
+}
+
+func TestBlogService_UpdateTheme(t *testing.T) {
+	service, _, _, mockThemeRepo, _, mockAuthService := setupBlogServiceTest(t)
+
+	t.Run("successful update", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.UpdateBlogThemeRequest{
+			Version: 1,
+			Files: domain.BlogThemeFiles{
+				Home: "updated home",
+			},
+		}
+
+		// GetTheme to check if it's not published
+		mockThemeRepo.EXPECT().
+			GetTheme(ctx, 1).
+			Return(&domain.BlogTheme{Version: 1, PublishedAt: nil}, nil)
+
+		mockThemeRepo.EXPECT().
+			UpdateTheme(ctx, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, theme *domain.BlogTheme) error {
+				assert.Equal(t, 1, theme.Version)
+				assert.Equal(t, "updated home", theme.Files.Home)
+				return nil
+			})
+
+		theme, err := service.UpdateTheme(ctx, req)
+		require.NoError(t, err)
+		assert.NotNil(t, theme)
+		assert.Equal(t, "updated home", theme.Files.Home)
+	})
+
+	t.Run("validation error - zero version", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.UpdateBlogThemeRequest{Version: 0}
+
+		theme, err := service.UpdateTheme(ctx, req)
+		require.Error(t, err)
+		assert.Nil(t, theme)
+		assert.Contains(t, err.Error(), "version must be positive")
+	})
+
+	t.Run("cannot update published theme", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		publishedTime := time.Now()
+		req := &domain.UpdateBlogThemeRequest{
+			Version: 1,
+			Files:   domain.BlogThemeFiles{Home: "updated"},
+		}
+
+		mockThemeRepo.EXPECT().
+			GetTheme(ctx, 1).
+			Return(&domain.BlogTheme{Version: 1, PublishedAt: &publishedTime}, nil)
+
+		theme, err := service.UpdateTheme(ctx, req)
+		require.Error(t, err)
+		assert.Nil(t, theme)
+		assert.Contains(t, err.Error(), "cannot update published theme")
+	})
+
+	t.Run("theme not found", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.UpdateBlogThemeRequest{
+			Version: 999,
+			Files:   domain.BlogThemeFiles{},
+		}
+
+		mockThemeRepo.EXPECT().
+			GetTheme(ctx, 999).
+			Return(nil, errors.New("blog theme not found"))
+
+		theme, err := service.UpdateTheme(ctx, req)
+		require.Error(t, err)
+		assert.Nil(t, theme)
+	})
+
+	t.Run("permission denied - no write permission", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
+		req := &domain.UpdateBlogThemeRequest{
+			Version: 1,
+			Files:   domain.BlogThemeFiles{},
+		}
+
+		theme, err := service.UpdateTheme(ctx, req)
+		require.Error(t, err)
+		assert.Nil(t, theme)
+		assert.Contains(t, err.Error(), "Insufficient permissions")
+	})
+}
+
+func TestBlogService_PublishTheme(t *testing.T) {
+	service, _, _, mockThemeRepo, _, mockAuthService := setupBlogServiceTest(t)
+
+	t.Run("successful publish", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.PublishBlogThemeRequest{Version: 1}
+
+		mockThemeRepo.EXPECT().
+			PublishTheme(ctx, 1).
+			Return(nil)
+
+		err := service.PublishTheme(ctx, req)
+		require.NoError(t, err)
+	})
+
+	t.Run("validation error - zero version", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.PublishBlogThemeRequest{Version: 0}
+
+		err := service.PublishTheme(ctx, req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "version must be positive")
+	})
+
+	t.Run("theme not found", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.PublishBlogThemeRequest{Version: 999}
+
+		mockThemeRepo.EXPECT().
+			PublishTheme(ctx, 999).
+			Return(errors.New("blog theme not found"))
+
+		err := service.PublishTheme(ctx, req)
+		require.Error(t, err)
+	})
+
+	t.Run("permission denied - no write permission", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
+		req := &domain.PublishBlogThemeRequest{Version: 1}
+
+		err := service.PublishTheme(ctx, req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "Insufficient permissions")
+	})
+}
+
+func TestBlogService_ListThemes(t *testing.T) {
+	service, _, _, mockThemeRepo, _, mockAuthService := setupBlogServiceTest(t)
+
+	t.Run("successful listing", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
+		expectedResponse := &domain.BlogThemeListResponse{
+			Themes: []*domain.BlogTheme{
+				{Version: 2, PublishedAt: timePtr(time.Now())},
+				{Version: 1, PublishedAt: nil},
+			},
+			TotalCount: 2,
+		}
+
+		mockThemeRepo.EXPECT().
+			ListThemes(ctx, domain.ListBlogThemesRequest{Limit: 50, Offset: 0}).
+			Return(expectedResponse, nil)
+
+		result, err := service.ListThemes(ctx, &domain.ListBlogThemesRequest{Limit: 50})
+		require.NoError(t, err)
+		assert.Equal(t, 2, result.TotalCount)
+		assert.Len(t, result.Themes, 2)
+	})
+
+	t.Run("with pagination", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
+		expectedResponse := &domain.BlogThemeListResponse{
+			Themes:     []*domain.BlogTheme{{Version: 1}},
+			TotalCount: 10,
+		}
+
+		mockThemeRepo.EXPECT().
+			ListThemes(ctx, domain.ListBlogThemesRequest{Limit: 10, Offset: 5}).
+			Return(expectedResponse, nil)
+
+		result, err := service.ListThemes(ctx, &domain.ListBlogThemesRequest{Limit: 10, Offset: 5})
+		require.NoError(t, err)
+		assert.Equal(t, 10, result.TotalCount)
+		assert.Len(t, result.Themes, 1)
+	})
+
+	t.Run("empty list", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
+		expectedResponse := &domain.BlogThemeListResponse{
+			Themes:     []*domain.BlogTheme{},
+			TotalCount: 0,
+		}
+
+		mockThemeRepo.EXPECT().
+			ListThemes(ctx, domain.ListBlogThemesRequest{Limit: 50, Offset: 0}).
+			Return(expectedResponse, nil)
+
+		result, err := service.ListThemes(ctx, &domain.ListBlogThemesRequest{Limit: 50})
+		require.NoError(t, err)
+		assert.Equal(t, 0, result.TotalCount)
+	})
+
+	t.Run("permission denied - no read permission", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", false, false)
+
+		result, err := service.ListThemes(ctx, &domain.ListBlogThemesRequest{Limit: 50})
+		require.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "Insufficient permissions")
+	})
+}
+
+// Helper function for tests
+func timePtr(t time.Time) *time.Time {
+	return &t
 }

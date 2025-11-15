@@ -65,6 +65,21 @@ func (mr *MockBlogServiceMockRecorder) CreatePost(arg0, arg1 interface{}) *gomoc
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreatePost", reflect.TypeOf((*MockBlogService)(nil).CreatePost), arg0, arg1)
 }
 
+// CreateTheme mocks base method.
+func (m *MockBlogService) CreateTheme(arg0 context.Context, arg1 *domain.CreateBlogThemeRequest) (*domain.BlogTheme, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateTheme", arg0, arg1)
+	ret0, _ := ret[0].(*domain.BlogTheme)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateTheme indicates an expected call of CreateTheme.
+func (mr *MockBlogServiceMockRecorder) CreateTheme(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateTheme", reflect.TypeOf((*MockBlogService)(nil).CreateTheme), arg0, arg1)
+}
+
 // DeleteCategory mocks base method.
 func (m *MockBlogService) DeleteCategory(arg0 context.Context, arg1 *domain.DeleteBlogCategoryRequest) error {
 	m.ctrl.T.Helper()
@@ -183,6 +198,36 @@ func (mr *MockBlogServiceMockRecorder) GetPublicPostByCategoryAndSlug(arg0, arg1
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPublicPostByCategoryAndSlug", reflect.TypeOf((*MockBlogService)(nil).GetPublicPostByCategoryAndSlug), arg0, arg1, arg2)
 }
 
+// GetPublishedTheme mocks base method.
+func (m *MockBlogService) GetPublishedTheme(arg0 context.Context) (*domain.BlogTheme, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPublishedTheme", arg0)
+	ret0, _ := ret[0].(*domain.BlogTheme)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPublishedTheme indicates an expected call of GetPublishedTheme.
+func (mr *MockBlogServiceMockRecorder) GetPublishedTheme(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPublishedTheme", reflect.TypeOf((*MockBlogService)(nil).GetPublishedTheme), arg0)
+}
+
+// GetTheme mocks base method.
+func (m *MockBlogService) GetTheme(arg0 context.Context, arg1 int) (*domain.BlogTheme, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetTheme", arg0, arg1)
+	ret0, _ := ret[0].(*domain.BlogTheme)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetTheme indicates an expected call of GetTheme.
+func (mr *MockBlogServiceMockRecorder) GetTheme(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetTheme", reflect.TypeOf((*MockBlogService)(nil).GetTheme), arg0, arg1)
+}
+
 // ListCategories mocks base method.
 func (m *MockBlogService) ListCategories(arg0 context.Context) (*domain.BlogCategoryListResponse, error) {
 	m.ctrl.T.Helper()
@@ -228,6 +273,21 @@ func (mr *MockBlogServiceMockRecorder) ListPublicPosts(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListPublicPosts", reflect.TypeOf((*MockBlogService)(nil).ListPublicPosts), arg0, arg1)
 }
 
+// ListThemes mocks base method.
+func (m *MockBlogService) ListThemes(arg0 context.Context, arg1 *domain.ListBlogThemesRequest) (*domain.BlogThemeListResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ListThemes", arg0, arg1)
+	ret0, _ := ret[0].(*domain.BlogThemeListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ListThemes indicates an expected call of ListThemes.
+func (mr *MockBlogServiceMockRecorder) ListThemes(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListThemes", reflect.TypeOf((*MockBlogService)(nil).ListThemes), arg0, arg1)
+}
+
 // PublishPost mocks base method.
 func (m *MockBlogService) PublishPost(arg0 context.Context, arg1 *domain.PublishBlogPostRequest) error {
 	m.ctrl.T.Helper()
@@ -240,6 +300,20 @@ func (m *MockBlogService) PublishPost(arg0 context.Context, arg1 *domain.Publish
 func (mr *MockBlogServiceMockRecorder) PublishPost(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishPost", reflect.TypeOf((*MockBlogService)(nil).PublishPost), arg0, arg1)
+}
+
+// PublishTheme mocks base method.
+func (m *MockBlogService) PublishTheme(arg0 context.Context, arg1 *domain.PublishBlogThemeRequest) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "PublishTheme", arg0, arg1)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// PublishTheme indicates an expected call of PublishTheme.
+func (mr *MockBlogServiceMockRecorder) PublishTheme(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishTheme", reflect.TypeOf((*MockBlogService)(nil).PublishTheme), arg0, arg1)
 }
 
 // UnpublishPost mocks base method.
@@ -284,4 +358,19 @@ func (m *MockBlogService) UpdatePost(arg0 context.Context, arg1 *domain.UpdateBl
 func (mr *MockBlogServiceMockRecorder) UpdatePost(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdatePost", reflect.TypeOf((*MockBlogService)(nil).UpdatePost), arg0, arg1)
+}
+
+// UpdateTheme mocks base method.
+func (m *MockBlogService) UpdateTheme(arg0 context.Context, arg1 *domain.UpdateBlogThemeRequest) (*domain.BlogTheme, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpdateTheme", arg0, arg1)
+	ret0, _ := ret[0].(*domain.BlogTheme)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpdateTheme indicates an expected call of UpdateTheme.
+func (mr *MockBlogServiceMockRecorder) UpdateTheme(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTheme", reflect.TypeOf((*MockBlogService)(nil).UpdateTheme), arg0, arg1)
 }

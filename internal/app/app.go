@@ -106,6 +106,7 @@ type App struct {
 	contactSegmentQueueRepo       domain.ContactSegmentQueueRepository
 	blogCategoryRepo              domain.BlogCategoryRepository
 	blogPostRepo                  domain.BlogPostRepository
+	blogThemeRepo                 domain.BlogThemeRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -394,6 +395,7 @@ func (a *App) InitRepositories() error {
 	a.contactSegmentQueueRepo = repository.NewContactSegmentQueueRepository(a.workspaceRepo)
 	a.blogCategoryRepo = repository.NewBlogCategoryRepository(a.workspaceRepo)
 	a.blogPostRepo = repository.NewBlogPostRepository(a.workspaceRepo)
+	a.blogThemeRepo = repository.NewBlogThemeRepository(a.workspaceRepo)
 
 	// Initialize setting service
 	a.settingService = service.NewSettingService(a.settingRepo)
@@ -720,6 +722,7 @@ func (a *App) InitServices() error {
 		a.logger,
 		a.blogCategoryRepo,
 		a.blogPostRepo,
+		a.blogThemeRepo,
 		a.workspaceRepo,
 		a.authService,
 	)
@@ -941,6 +944,7 @@ func (a *App) InitHandlers() error {
 	emailHandler := httpHandler.NewEmailHandler(a.emailService, getJWTSecret, a.logger, a.config.Security.SecretKey)
 	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getJWTSecret, a.logger, a.config.IsDemo())
 	blogHandler := httpHandler.NewBlogHandler(a.blogService, getJWTSecret, a.logger, a.config.IsDemo())
+	blogThemeHandler := httpHandler.NewBlogThemeHandler(a.blogService, getJWTSecret, a.logger)
 	taskHandler := httpHandler.NewTaskHandler(
 		a.taskService,
 		getJWTSecret,
@@ -995,6 +999,7 @@ func (a *App) InitHandlers() error {
 	emailHandler.RegisterRoutes(a.mux)
 	broadcastHandler.RegisterRoutes(a.mux)
 	blogHandler.RegisterRoutes(a.mux)
+	blogThemeHandler.RegisterRoutes(a.mux)
 	taskHandler.RegisterRoutes(a.mux)
 	transactionalHandler.RegisterRoutes(a.mux)
 	webhookEventHandler.RegisterRoutes(a.mux)

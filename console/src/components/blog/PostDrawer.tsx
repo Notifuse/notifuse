@@ -516,7 +516,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
                 style={{
                   width: '240px',
                   overflow: 'auto',
-                  padding: '24px 16px',
+                  padding: '24px 32px',
                   position: 'relative',
                   marginTop: '90px'
                 }}

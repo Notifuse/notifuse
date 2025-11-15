@@ -84,23 +84,29 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		return fmt.Errorf("failed to add list_id column to message_history: %w", err)
 	}
 
-	// Migrate list_ids array to list_id (keep first list)
+	// Migrate list_ids array to list_id and drop the column (only if it exists)
 	_, err = db.ExecContext(ctx, `
-		UPDATE message_history
-		SET list_id = list_ids[1]
-		WHERE list_ids IS NOT NULL AND array_length(list_ids, 1) > 0
+		DO $$
+		BEGIN
+			-- Check if list_ids column exists
+			IF EXISTS (
+				SELECT 1 
+				FROM information_schema.columns 
+				WHERE table_name = 'message_history' 
+				AND column_name = 'list_ids'
+			) THEN
+				-- Migrate list_ids array to list_id (keep first list)
+				UPDATE message_history
+				SET list_id = list_ids[1]
+				WHERE list_ids IS NOT NULL AND array_length(list_ids, 1) > 0;
+				
+				-- Drop list_ids column
+				ALTER TABLE message_history DROP COLUMN list_ids;
+			END IF;
+		END $$;
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to migrate list_ids to list_id: %w", err)
-	}
-
-	// Drop list_ids column
-	_, err = db.ExecContext(ctx, `
-		ALTER TABLE message_history
-		DROP COLUMN IF EXISTS list_ids
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to drop list_ids column from message_history: %w", err)
 	}
 
 	// Update trigger function to use list_id instead of list_ids
@@ -215,6 +221,50 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create idx_blog_posts_workspace_slug index: %w", err)
+	}
+
+	// ===== BLOG_THEMES TABLE =====
+
+	// Create blog_themes table
+	_, err = db.ExecContext(ctx, `
+		CREATE TABLE IF NOT EXISTS blog_themes (
+			version INTEGER NOT NULL PRIMARY KEY,
+			published_at TIMESTAMP,
+			files JSONB NOT NULL DEFAULT '{}',
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create blog_themes table: %w", err)
+	}
+
+	// Create unique index on published_at
+	_, err = db.ExecContext(ctx, `
+		CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_themes_published 
+		ON blog_themes(version) WHERE published_at IS NOT NULL
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create idx_blog_themes_published index: %w", err)
+	}
+
+	// Create index on version
+	_, err = db.ExecContext(ctx, `
+		CREATE INDEX IF NOT EXISTS idx_blog_themes_version 
+		ON blog_themes(version DESC)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create idx_blog_themes_version index: %w", err)
+	}
+
+	// Insert default theme (version 1, published)
+	_, err = db.ExecContext(ctx, `
+		INSERT INTO blog_themes (version, published_at, files) 
+		VALUES (1, NOW(), '{"home":"","category":"","post":"","header":"","footer":"","shared":""}')
+		ON CONFLICT (version) DO NOTHING
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to insert default blog theme: %w", err)
 	}
 
 	// ===== TEMPLATES TABLE =====

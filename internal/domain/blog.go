@@ -15,6 +15,7 @@ import (
 //go:generate mockgen -destination mocks/mock_blog_service.go -package mocks github.com/Notifuse/notifuse/internal/domain BlogService
 //go:generate mockgen -destination mocks/mock_blog_category_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain BlogCategoryRepository
 //go:generate mockgen -destination mocks/mock_blog_post_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain BlogPostRepository
+//go:generate mockgen -destination mocks/mock_blog_theme_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain BlogThemeRepository
 
 // Regular expression for validating slugs (lowercase letters, numbers, and hyphens)
 var slugRegex = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
@@ -667,6 +668,14 @@ type BlogService interface {
 	// Public operations (no auth required)
 	GetPublicPostByCategoryAndSlug(ctx context.Context, categorySlug, postSlug string) (*BlogPost, error)
 	ListPublicPosts(ctx context.Context, params *ListBlogPostsRequest) (*BlogPostListResponse, error)
+
+	// Theme operations
+	CreateTheme(ctx context.Context, request *CreateBlogThemeRequest) (*BlogTheme, error)
+	GetTheme(ctx context.Context, version int) (*BlogTheme, error)
+	GetPublishedTheme(ctx context.Context) (*BlogTheme, error)
+	UpdateTheme(ctx context.Context, request *UpdateBlogThemeRequest) (*BlogTheme, error)
+	PublishTheme(ctx context.Context, request *PublishBlogThemeRequest) error
+	ListThemes(ctx context.Context, params *ListBlogThemesRequest) (*BlogThemeListResponse, error)
 }
 
 // NormalizeSlug normalizes a string to be a valid slug
@@ -684,4 +693,170 @@ func NormalizeSlug(s string) string {
 		}
 	}
 	return result.String()
+}
+
+// BlogThemeFileType represents the type of blog theme file
+type BlogThemeFileType string
+
+const (
+	BlogThemeFileTypeHome     BlogThemeFileType = "home"
+	BlogThemeFileTypeCategory BlogThemeFileType = "category"
+	BlogThemeFileTypePost     BlogThemeFileType = "post"
+	BlogThemeFileTypeHeader   BlogThemeFileType = "header"
+	BlogThemeFileTypeFooter   BlogThemeFileType = "footer"
+	BlogThemeFileTypeShared   BlogThemeFileType = "shared"
+)
+
+// BlogThemeFiles contains Liquid template files for a blog theme
+type BlogThemeFiles struct {
+	Home     string `json:"home"`
+	Category string `json:"category"`
+	Post     string `json:"post"`
+	Header   string `json:"header"`
+	Footer   string `json:"footer"`
+	Shared   string `json:"shared"`
+}
+
+// Value implements the driver.Valuer interface for database serialization
+func (f BlogThemeFiles) Value() (driver.Value, error) {
+	return json.Marshal(f)
+}
+
+// Scan implements the sql.Scanner interface for database deserialization
+func (f *BlogThemeFiles) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	b, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
+	}
+
+	cloned := bytes.Clone(b)
+	return json.Unmarshal(cloned, f)
+}
+
+// BlogTheme represents a blog theme with versioned Liquid template files
+type BlogTheme struct {
+	Version     int            `json:"version"`
+	PublishedAt *time.Time     `json:"published_at,omitempty"` // non-null = published
+	Files       BlogThemeFiles `json:"files"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+}
+
+// Validate validates the blog theme
+func (t *BlogTheme) Validate() error {
+	if t.Version <= 0 {
+		return fmt.Errorf("version must be positive")
+	}
+
+	// Files don't need to be validated for emptiness as they can be empty strings
+	return nil
+}
+
+// IsPublished returns true if the theme is published
+func (t *BlogTheme) IsPublished() bool {
+	return t.PublishedAt != nil
+}
+
+// CreateBlogThemeRequest defines the request to create a blog theme
+type CreateBlogThemeRequest struct {
+	Files BlogThemeFiles `json:"files"`
+}
+
+// Validate validates the create blog theme request
+func (r *CreateBlogThemeRequest) Validate() error {
+	// Files can be empty strings, no validation needed
+	return nil
+}
+
+// UpdateBlogThemeRequest defines the request to update a blog theme
+type UpdateBlogThemeRequest struct {
+	Version int            `json:"version"`
+	Files   BlogThemeFiles `json:"files"`
+}
+
+// Validate validates the update blog theme request
+func (r *UpdateBlogThemeRequest) Validate() error {
+	if r.Version <= 0 {
+		return fmt.Errorf("version must be positive")
+	}
+	return nil
+}
+
+// PublishBlogThemeRequest defines the request to publish a blog theme
+type PublishBlogThemeRequest struct {
+	Version int `json:"version"`
+}
+
+// Validate validates the publish blog theme request
+func (r *PublishBlogThemeRequest) Validate() error {
+	if r.Version <= 0 {
+		return fmt.Errorf("version must be positive")
+	}
+	return nil
+}
+
+// GetBlogThemeRequest defines the request to get a blog theme
+type GetBlogThemeRequest struct {
+	Version int `json:"version"`
+}
+
+// Validate validates the get blog theme request
+func (r *GetBlogThemeRequest) Validate() error {
+	if r.Version <= 0 {
+		return fmt.Errorf("version must be positive")
+	}
+	return nil
+}
+
+// ListBlogThemesRequest defines the request to list blog themes
+type ListBlogThemesRequest struct {
+	Limit  int `json:"limit,omitempty"`
+	Offset int `json:"offset,omitempty"`
+}
+
+// Validate validates the list blog themes request
+func (r *ListBlogThemesRequest) Validate() error {
+	// Default limit if not specified
+	if r.Limit <= 0 {
+		r.Limit = 50
+	}
+
+	// Max limit
+	if r.Limit > 100 {
+		r.Limit = 100
+	}
+
+	if r.Offset < 0 {
+		r.Offset = 0
+	}
+
+	return nil
+}
+
+// BlogThemeListResponse defines the response for listing blog themes
+type BlogThemeListResponse struct {
+	Themes     []*BlogTheme `json:"themes"`
+	TotalCount int          `json:"total_count"`
+}
+
+// BlogThemeRepository defines the data access layer for blog themes
+type BlogThemeRepository interface {
+	CreateTheme(ctx context.Context, theme *BlogTheme) error
+	GetTheme(ctx context.Context, version int) (*BlogTheme, error)
+	GetPublishedTheme(ctx context.Context) (*BlogTheme, error)
+	UpdateTheme(ctx context.Context, theme *BlogTheme) error
+	PublishTheme(ctx context.Context, version int) error
+	ListThemes(ctx context.Context, params ListBlogThemesRequest) (*BlogThemeListResponse, error)
+
+	// Transaction management
+	WithTransaction(ctx context.Context, workspaceID string, fn func(*sql.Tx) error) error
+	CreateThemeTx(ctx context.Context, tx *sql.Tx, theme *BlogTheme) error
+	GetThemeTx(ctx context.Context, tx *sql.Tx, version int) (*BlogTheme, error)
+	GetPublishedThemeTx(ctx context.Context, tx *sql.Tx) (*BlogTheme, error)
+	UpdateThemeTx(ctx context.Context, tx *sql.Tx, theme *BlogTheme) error
+	PublishThemeTx(ctx context.Context, tx *sql.Tx, version int) error
 }
