@@ -302,7 +302,7 @@ func (s *SetupService) TestSMTPConnection(ctx context.Context, config *SMTPTestC
 		clientOptions = append(clientOptions,
 			mail.WithUsername(config.Username),
 			mail.WithPassword(config.Password),
-			mail.WithSMTPAuth(mail.SMTPAuthPlain),
+			mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover),
 		)
 	}
 

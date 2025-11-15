@@ -45,7 +45,7 @@ func (f *defaultGoMailFactory) CreateClient(host string, port int, username, pas
 		clientOptions = append(clientOptions,
 			mail.WithUsername(username),
 			mail.WithPassword(password),
-			mail.WithSMTPAuth(mail.SMTPAuthPlain),
+			mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover),
 		)
 	}
 
