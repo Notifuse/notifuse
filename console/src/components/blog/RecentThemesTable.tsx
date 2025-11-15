@@ -101,6 +101,15 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
 
   const columns = [
     {
+      title: 'Version',
+      dataIndex: 'version',
+      key: 'version',
+      width: 23,
+      render: (version: number) => {
+        return <span>{version}</span>
+      }
+    },
+    {
       title: 'Status',
       key: 'status',
       width: 100,
@@ -147,26 +156,30 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
         return (
           <Space size="small">
             <Tooltip title="Edit theme">
-              <Button size="small" icon={<EditOutlined />} onClick={() => handleEdit(record)}>
-                Edit
-              </Button>
+              <Button
+                type="text"
+                size="small"
+                icon={<EditOutlined />}
+                onClick={() => handleEdit(record)}
+              />
             </Tooltip>
             <Tooltip title="Preview this theme in a new tab">
-              <Button size="small" icon={<EyeOutlined />} onClick={() => handlePreview(record)}>
-                Preview
-              </Button>
+              <Button
+                type="text"
+                size="small"
+                icon={<EyeOutlined />}
+                onClick={() => handlePreview(record)}
+              />
             </Tooltip>
             {!isPublished && (
               <Tooltip title="Publish this theme">
                 <Button
+                  type="text"
                   size="small"
-                  type="primary"
                   icon={<CloudUploadOutlined />}
                   onClick={() => handlePublish(record)}
                   loading={publishMutation.isPending}
-                >
-                  Publish
-                </Button>
+                />
               </Tooltip>
             )}
           </Space>
@@ -218,7 +231,6 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
         rowKey="version"
         loading={isLoading}
         pagination={false}
-        size="small"
       />
 
       {hasMore && (

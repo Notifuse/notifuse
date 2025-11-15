@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { Drawer, Button, Menu, Input, App, Modal, Space, Tabs, Form } from 'antd'
-import { SaveOutlined, CloseOutlined, ExclamationCircleOutlined } from '@ant-design/icons'
+import { Drawer, Button, Input, App, Modal, Space, Tabs, Form } from 'antd'
+import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import Editor from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
@@ -66,6 +66,8 @@ export function ThemeEditorDrawer({
   const [notes, setNotes] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showRestorePrompt, setShowRestorePrompt] = useState(false)
+  const [showSaveModal, setShowSaveModal] = useState(false)
+  const [previewPage, setPreviewPage] = useState<'home' | 'category' | 'post'>('home')
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
 
@@ -285,19 +287,25 @@ export function ThemeEditorDrawer({
   })
 
   const handleSave = () => {
+    setShowSaveModal(true)
+  }
+
+  const handleConfirmSave = () => {
+    setShowSaveModal(false)
     saveMutation.mutate()
   }
 
-  const handleClose = () => {
+  const handleCancel = () => {
     if (hasUnsavedChanges) {
       modal.confirm({
         title: 'Unsaved Changes',
         icon: <ExclamationCircleOutlined />,
         content:
-          'You have unsaved changes. Your changes are saved in local storage. Are you sure you want to close?',
+          'You have unsaved changes. Are you sure you want to close? Your changes will be lost.',
         okText: 'Close',
         cancelText: 'Cancel',
         onOk: () => {
+          localStorage.removeItem(localStorageKey)
           onClose()
         }
       })
@@ -307,22 +315,12 @@ export function ThemeEditorDrawer({
     }
   }
 
-  const handleDiscard = () => {
-    modal.confirm({
-      title: 'Discard Changes',
-      icon: <ExclamationCircleOutlined />,
-      content:
-        'Are you sure you want to discard all changes? This will remove the local storage draft.',
-      okText: 'Discard',
-      okType: 'danger',
-      cancelText: 'Cancel',
-      onOk: () => {
-        localStorage.removeItem(localStorageKey)
-        setHasUnsavedChanges(false)
-        onClose()
-      }
-    })
+  const handleTabChange = (key: string) => {
+    setActiveTab(key as 'templates' | 'styles')
   }
+
+  const leftPanelSize = activeTab === 'templates' ? 50 : 40
+  const rightPanelSize = activeTab === 'templates' ? 50 : 60
 
   return (
     <>
@@ -334,65 +332,77 @@ export function ThemeEditorDrawer({
               {hasUnsavedChanges && <span style={{ color: '#faad14', marginLeft: 8 }}>●</span>}
             </span>
             <Space>
-              {hasUnsavedChanges && (
-                <Button onClick={handleDiscard} danger>
-                  Discard
-                </Button>
-              )}
+              <Button type="text" onClick={handleCancel}>
+                Cancel
+              </Button>
               <Button
                 type="primary"
-                icon={<SaveOutlined />}
                 onClick={handleSave}
                 loading={saveMutation.isPending}
                 disabled={!hasUnsavedChanges}
               >
                 Save
               </Button>
-              <Button icon={<CloseOutlined />} onClick={handleClose}>
-                Close
-              </Button>
             </Space>
           </div>
         }
         open={open}
-        onClose={handleClose}
+        onClose={handleCancel}
         width="100%"
         closable={false}
         styles={{ body: { padding: 0, height: 'calc(100vh - 55px)' } }}
       >
-        <PanelGroup direction="horizontal" autoSaveId={`theme-editor-${workspaceId}`}>
-          {/* Left: Tabs Sidebar - ~250px on typical screens */}
-          <Panel defaultSize={15} minSize={12} maxSize={25}>
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                height: '100%',
-                borderRight: '1px solid #f0f0f0'
-              }}
-            >
+        <PanelGroup key={`theme-editor-${activeTab}`} direction="horizontal">
+          {/* Left: Tabs Content */}
+          <Panel defaultSize={leftPanelSize} minSize={25} maxSize={80}>
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
               <Tabs
                 activeKey={activeTab}
-                onChange={(key) => setActiveTab(key as 'templates' | 'styles')}
-                style={{ flex: 1, display: 'flex', flexDirection: 'column' }}
+                onChange={handleTabChange}
+                style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
                 tabBarStyle={{ margin: 0, paddingLeft: 16, paddingRight: 16 }}
                 items={[
                   {
                     key: 'templates',
                     label: 'Templates',
                     children: (
-                      <div style={{ overflow: 'auto', height: '100%' }}>
-                        <Menu
-                          mode="inline"
-                          selectedKeys={[selectedFile]}
-                          items={THEME_FILES.map((file) => ({
-                            key: file.key,
-                            label: file.label,
-                            onClick: () => setSelectedFile(file.key)
-                          }))}
-                          style={{ border: 'none' }}
-                        />
-                      </div>
+                      <Tabs
+                        activeKey={selectedFile}
+                        onChange={(key) => setSelectedFile(key as keyof BlogThemeFiles)}
+                        type="card"
+                        size="small"
+                        style={{
+                          height: 'calc(100vh - 110px)',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}
+                        tabBarStyle={{ margin: 0 }}
+                        items={THEME_FILES.map((file) => ({
+                          key: file.key,
+                          label: file.label,
+                          children: (
+                            <div style={{ height: 'calc(100vh - 155px)' }}>
+                              <Editor
+                                height="100%"
+                                language="html"
+                                value={files[file.key]}
+                                onChange={handleEditorChange}
+                                onMount={handleEditorDidMount}
+                                theme="vs-light"
+                                options={{
+                                  minimap: { enabled: false },
+                                  fontSize: 14,
+                                  lineNumbers: 'on',
+                                  scrollBeyondLastLine: false,
+                                  wordWrap: 'on',
+                                  automaticLayout: true,
+                                  tabSize: 2
+                                }}
+                              />
+                            </div>
+                          )
+                        }))}
+                      />
                     )
                   },
                   {
@@ -400,11 +410,7 @@ export function ThemeEditorDrawer({
                     label: 'Styles',
                     children: (
                       <div style={{ overflow: 'auto', height: '100%', padding: 16 }}>
-                        <Form
-                          form={form}
-                          layout="vertical"
-                          onValuesChange={handleFormValuesChange}
-                        >
+                        <Form form={form} layout="vertical" onValuesChange={handleFormValuesChange}>
                           <BlogStyleSettings />
                         </Form>
                       </div>
@@ -412,24 +418,6 @@ export function ThemeEditorDrawer({
                   }
                 ]}
               />
-
-              <div
-                style={{
-                  borderTop: '1px solid #f0f0f0',
-                  padding: 16,
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}
-              >
-                <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 8 }}>VERSION NOTES</div>
-                <TextArea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Add notes about this version..."
-                  rows={4}
-                  style={{ resize: 'none' }}
-                />
-              </div>
             </div>
           </Panel>
 
@@ -442,57 +430,59 @@ export function ThemeEditorDrawer({
             }}
           />
 
-          {/* Middle: Monaco Editor (only shown for Templates tab) */}
-          {activeTab === 'templates' && (
-            <Panel defaultSize={40} minSize={25} maxSize={60}>
-              <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                <div
-                  style={{
-                    padding: '8px 16px',
-                    borderBottom: '1px solid #f0f0f0',
-                    background: '#fafafa',
-                    fontSize: 13
-                  }}
-                >
-                  Editing: <strong>{THEME_FILES.find((f) => f.key === selectedFile)?.label}</strong>
-                </div>
-                <div style={{ flex: 1 }}>
-                  <Editor
-                    height="100%"
-                    language="html"
-                    value={files[selectedFile]}
-                    onChange={handleEditorChange}
-                    onMount={handleEditorDidMount}
-                    theme="vs-light"
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 14,
-                      lineNumbers: 'on',
-                      scrollBeyondLastLine: false,
-                      wordWrap: 'on',
-                      automaticLayout: true,
-                      tabSize: 2
-                    }}
-                  />
-                </div>
-              </div>
-            </Panel>
-          )}
-
-          {activeTab === 'templates' && (
-            <PanelResizeHandle
-              style={{
-                width: 1,
-                background: '#e0e0e0',
-                cursor: 'col-resize',
-                position: 'relative'
-              }}
-            />
-          )}
-
           {/* Right: Preview */}
-          <Panel defaultSize={activeTab === 'templates' ? 40 : 80} minSize={25} maxSize={80}>
-            <ThemePreview files={previewFiles} styling={previewStyling} workspace={workspace} />
+          <Panel defaultSize={rightPanelSize} minSize={20} maxSize={75}>
+            <Tabs
+              activeKey={previewPage}
+              onChange={(key) => setPreviewPage(key as 'home' | 'category' | 'post')}
+              type="card"
+              style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
+              tabBarStyle={{ margin: 0, paddingLeft: 16, paddingRight: 16 }}
+              items={[
+                {
+                  key: 'home',
+                  label: 'Home',
+                  children: (
+                    <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
+                      <ThemePreview
+                        files={previewFiles}
+                        styling={previewStyling}
+                        workspace={workspace}
+                        view="home"
+                      />
+                    </div>
+                  )
+                },
+                {
+                  key: 'category',
+                  label: 'Category',
+                  children: (
+                    <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
+                      <ThemePreview
+                        files={previewFiles}
+                        styling={previewStyling}
+                        workspace={workspace}
+                        view="category"
+                      />
+                    </div>
+                  )
+                },
+                {
+                  key: 'post',
+                  label: 'Post',
+                  children: (
+                    <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
+                      <ThemePreview
+                        files={previewFiles}
+                        styling={previewStyling}
+                        workspace={workspace}
+                        view="post"
+                      />
+                    </div>
+                  )
+                }
+              ]}
+            />
           </Panel>
         </PanelGroup>
       </Drawer>
@@ -507,6 +497,30 @@ export function ThemeEditorDrawer({
         cancelText="Discard Draft"
       >
         <p>A newer draft was found in local storage. Would you like to restore it or discard it?</p>
+      </Modal>
+
+      {/* Save Modal */}
+      <Modal
+        title="Save Theme"
+        open={showSaveModal}
+        onOk={handleConfirmSave}
+        onCancel={() => setShowSaveModal(false)}
+        okText="Save"
+        cancelText="Cancel"
+        confirmLoading={saveMutation.isPending}
+      >
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 12, color: '#8c8c8c', marginBottom: 8 }}>
+            VERSION NOTES (OPTIONAL)
+          </div>
+          <TextArea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Add notes about this version..."
+            rows={4}
+            style={{ resize: 'none' }}
+          />
+        </div>
       </Modal>
     </>
   )

@@ -228,10 +228,6 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
 
       {workspace?.settings.blog_enabled && workspace?.settings.custom_endpoint_url && (
         <>
-          <Subtitle borderBottom={true} primary>
-            Theme
-          </Subtitle>
-
           <RecentThemesTable workspaceId={workspace.id} workspace={workspace} />
           <Divider />
         </>

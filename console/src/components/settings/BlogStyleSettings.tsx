@@ -1,6 +1,5 @@
 import { Form, Input, InputNumber, Select, ColorPicker, Row, Col, Collapse, Divider } from 'antd'
 import { DEFAULT_BLOG_STYLES } from '../../utils/defaultBlogStyles'
-import Subtitle from '../common/subtitle'
 
 const { Panel } = Collapse
 
@@ -13,12 +12,14 @@ function CSSValueInput({ value = { value: 16, unit: 'px' }, onChange }: CSSValue
   return (
     <Input.Group compact>
       <InputNumber
+        size="small"
         style={{ width: '70%' }}
         value={value.value}
         onChange={(num) => onChange?.({ ...value, value: num || 0 })}
         min={0}
       />
       <Select
+        size="small"
         style={{ width: '30%' }}
         value={value.unit}
         onChange={(unit) => onChange?.({ ...value, unit })}
@@ -33,12 +34,15 @@ function CSSValueInput({ value = { value: 16, unit: 'px' }, onChange }: CSSValue
 
 export function BlogStyleSettings() {
   return (
-    <div className="mb-4">
-      <Subtitle borderBottom={true} primary>
-        Blog Styling
-      </Subtitle>
-
-      <Collapse defaultActiveKey={['default']} ghost>
+    <div className="mb-4" style={{ fontSize: '12px' }}>
+      <style>
+        {`
+          .blog-style-settings .ant-form-item { margin-bottom: 12px; }
+          .blog-style-settings .ant-form-item-label > label { font-size: 12px; height: auto; }
+          .blog-style-settings .ant-collapse-header { font-size: 13px; padding: 8px 0; }
+        `}
+      </style>
+      <Collapse defaultActiveKey={['default']} ghost className="blog-style-settings">
         {/* Default Styles */}
         <Panel header="Default Styles" key="default">
           <Row gutter={16}>
@@ -49,7 +53,7 @@ export function BlogStyleSettings() {
                 tooltip="Base font family for all text"
                 initialValue={DEFAULT_BLOG_STYLES.default.fontFamily}
               >
-                <Input placeholder="system-ui, sans-serif" />
+                <Input size="small" placeholder="system-ui, sans-serif" />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -70,7 +74,7 @@ export function BlogStyleSettings() {
                 label="Text Color"
                 initialValue={DEFAULT_BLOG_STYLES.default.color}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -79,7 +83,7 @@ export function BlogStyleSettings() {
                 label="Background Color"
                 initialValue={DEFAULT_BLOG_STYLES.default.backgroundColor}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -88,7 +92,7 @@ export function BlogStyleSettings() {
                 label="Line Height"
                 initialValue={DEFAULT_BLOG_STYLES.default.lineHeight}
               >
-                <InputNumber min={1} max={3} step={0.1} style={{ width: '100%' }} />
+                <InputNumber size="small" min={1} max={3} step={0.1} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
           </Row>
@@ -121,7 +125,7 @@ export function BlogStyleSettings() {
                 label="Line Height"
                 initialValue={DEFAULT_BLOG_STYLES.paragraph.lineHeight}
               >
-                <InputNumber min={1} max={3} step={0.1} style={{ width: '100%' }} />
+                <InputNumber size="small" min={1} max={3} step={0.1} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
           </Row>
@@ -157,7 +161,7 @@ export function BlogStyleSettings() {
                 label="Color"
                 initialValue={DEFAULT_BLOG_STYLES.h1.color}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
             <Col span={6}>
@@ -199,7 +203,7 @@ export function BlogStyleSettings() {
                 label="Color"
                 initialValue={DEFAULT_BLOG_STYLES.h2.color}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
             <Col span={6}>
@@ -241,7 +245,7 @@ export function BlogStyleSettings() {
                 label="Color"
                 initialValue={DEFAULT_BLOG_STYLES.h3.color}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
             <Col span={6}>
@@ -283,7 +287,7 @@ export function BlogStyleSettings() {
                 label="Color"
                 initialValue={DEFAULT_BLOG_STYLES.blockquote.color}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
             <Col span={6}>
@@ -310,7 +314,7 @@ export function BlogStyleSettings() {
             label="Line Height"
             initialValue={DEFAULT_BLOG_STYLES.blockquote.lineHeight}
           >
-            <InputNumber min={1} max={3} step={0.1} style={{ width: 200 }} />
+            <InputNumber size="small" min={1} max={3} step={0.1} style={{ width: 200 }} />
           </Form.Item>
         </Panel>
 
@@ -346,7 +350,7 @@ export function BlogStyleSettings() {
                 label="Text Color"
                 initialValue={DEFAULT_BLOG_STYLES.inlineCode.color}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -355,7 +359,7 @@ export function BlogStyleSettings() {
                 label="Background Color"
                 initialValue={DEFAULT_BLOG_STYLES.inlineCode.backgroundColor}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
           </Row>
@@ -429,7 +433,7 @@ export function BlogStyleSettings() {
                 label="Link Color"
                 initialValue={DEFAULT_BLOG_STYLES.link.color}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
             <Col span={12}>
@@ -438,7 +442,7 @@ export function BlogStyleSettings() {
                 label="Hover Color"
                 initialValue={DEFAULT_BLOG_STYLES.link.hoverColor}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
           </Row>
@@ -453,7 +457,7 @@ export function BlogStyleSettings() {
                 label="Color"
                 initialValue={DEFAULT_BLOG_STYLES.separator.color}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
             <Col span={8}>
@@ -495,7 +499,7 @@ export function BlogStyleSettings() {
                 label="Color"
                 initialValue={DEFAULT_BLOG_STYLES.caption.color}
               >
-                <ColorPicker showText format="hex" />
+                <ColorPicker size="small" showText format="hex" />
               </Form.Item>
             </Col>
           </Row>
