@@ -17,7 +17,6 @@ import { TransactionalNotificationsPage } from './pages/TransactionalNotificatio
 import { LogsPage } from './pages/LogsPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { DebugSegmentPage } from './pages/DebugSegmentPage'
-import { DebugEditorPage } from './pages/DebugEditorPage'
 import { BlogPage } from './pages/BlogPage'
 import SetupWizard from './pages/SetupWizard'
 import { createRouter } from '@tanstack/react-router'
@@ -215,12 +214,6 @@ const workspaceNewSegmentRoute = createRoute({
   component: DebugSegmentPage
 })
 
-const workspaceDebugEditorRoute = createRoute({
-  getParentRoute: () => workspaceRoute,
-  path: '/debug-editor',
-  component: DebugEditorPage
-})
-
 const workspaceBlogRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/blog',
@@ -252,7 +245,6 @@ const routeTree = rootRoute.addChildren([
     workspaceTemplatesRoute,
     workspaceAnalyticsRoute,
     workspaceNewSegmentRoute,
-    workspaceDebugEditorRoute,
     workspaceBlogRoute
   ])
 ])

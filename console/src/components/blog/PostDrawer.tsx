@@ -451,6 +451,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       width="100%"
       onClose={handleClose}
       open={open}
+      keyboard={false}
       maskClosable={false}
       className={'drawer-no-transition drawer-body-no-padding'}
       extra={

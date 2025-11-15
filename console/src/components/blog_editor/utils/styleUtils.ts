@@ -72,7 +72,12 @@ export function generateEditorCSSVariables(config: EditorStyleConfig): React.CSS
 
     // Link styles
     '--editor-link-color': config.link.color,
-    '--editor-link-hover-color': config.link.hoverColor
+    '--editor-link-hover-color': config.link.hoverColor,
+
+    // Editor-only UI styles (not exported to blog post CSS)
+    '--notifuse-editor-cursor-color': config.default.color,  // Match text color
+    '--notifuse-editor-selection-color': 'rgba(59, 130, 246, 0.3)',  // Semi-transparent blue
+    '--placeholder-color': 'rgba(0, 0, 0, 0.3)'  // Light gray for placeholders
   } as React.CSSProperties
 }
 

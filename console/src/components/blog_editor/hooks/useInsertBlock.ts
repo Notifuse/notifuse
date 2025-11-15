@@ -167,14 +167,39 @@ export function insertSlashCommand(
       }
 
       // If the block has content, create a new paragraph after it with the trigger
-      return editor
-        .chain()
-        .insertContentAt(insertPos, {
-          type: 'paragraph',
-          content: [{ type: 'text', text: trigger }]
-        })
-        .focus(insertPos + 1 + trigger.length)
-        .run()
+      const docSize = editor.state.doc.content.size
+      const isAtEnd = insertPos >= docSize
+
+      // For inserting at the end of document, use a different approach
+      if (isAtEnd) {
+        // First, create an empty paragraph at the end
+        const success = editor
+          .chain()
+          .command(({ tr, state }) => {
+            const para = state.schema.nodes.paragraph.create()
+            tr.insert(tr.doc.content.size, para)
+            return true
+          })
+          .focus('end')
+          .run()
+        
+        if (!success) return false
+        
+        // Then insert the trigger character using insertContent to trigger the suggestion plugin
+        return editor.chain().insertContent(trigger).run()
+      } else {
+        // For middle positions, insert empty paragraph then trigger character
+        const success = editor
+          .chain()
+          .insertContentAt(insertPos, { type: 'paragraph' })
+          .focus(insertPos + 1)
+          .run()
+        
+        if (!success) return false
+        
+        // Insert the trigger character to trigger the suggestion plugin
+        return editor.chain().insertContent(trigger).run()
+      }
     }
 
     const { $from } = editor.state.selection

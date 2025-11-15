@@ -9,6 +9,7 @@ import { StarterKit } from '@tiptap/starter-kit'
 import { Color } from '@tiptap/extension-color'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { Placeholder } from '@tiptap/extension-placeholder'
+import { Selection } from '@tiptap/extensions'
 import { Typography } from '@tiptap/extension-typography'
 import { Highlight } from '@tiptap/extension-highlight'
 import { TextAlign } from '@tiptap/extension-text-align'
@@ -306,6 +307,7 @@ export const EditorProvider = forwardRef<NotifuseEditorRef, EditorProviderProps>
       Highlight.configure({ multicolor: true }),
       Subscript,
       Superscript,
+      Selection,
       Typography,
       ControlsExtension.configure({
         disableH1

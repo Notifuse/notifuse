@@ -72,29 +72,31 @@ export function TurnIntoDropdown({ hideWhenUnavailable = false }: TurnIntoDropdo
 
   return (
     <Tooltip title="Turn into" placement="top">
-      <Dropdown
-        menu={{ items: menuItems }}
-        trigger={['click']}
-        placement="bottomLeft"
-        disabled={!hasAvailableActions}
-      >
-        <Button
-          type="text"
-          size="small"
-          className="notifuse-editor-toolbar-turn-into"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '2px',
-            width: 'fit-content',
-            minWidth: 'auto',
-            padding: '4px 7px'
-          }}
+      <span>
+        <Dropdown
+          menu={{ items: menuItems }}
+          trigger={['click']}
+          placement="bottomLeft"
+          disabled={!hasAvailableActions}
         >
-          <span style={{ whiteSpace: 'nowrap' }}>{displayLabel}</span>
-          <ChevronDown size={12} opacity={0.7} className="mt-1 ml-1" />
-        </Button>
-      </Dropdown>
+          <Button
+            type="text"
+            size="small"
+            className="notifuse-editor-toolbar-turn-into"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '2px',
+              width: 'fit-content',
+              minWidth: 'auto',
+              padding: '4px 7px'
+            }}
+          >
+            <span style={{ whiteSpace: 'nowrap' }}>{displayLabel}</span>
+            <ChevronDown size={12} opacity={0.7} className="mt-1 ml-1" />
+          </Button>
+        </Dropdown>
+      </span>
     </Tooltip>
   )
 }
