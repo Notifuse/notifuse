@@ -230,7 +230,9 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		CREATE TABLE IF NOT EXISTS blog_themes (
 			version INTEGER NOT NULL PRIMARY KEY,
 			published_at TIMESTAMP,
+			published_by_user_id TEXT, -- user who published this theme version
 			files JSONB NOT NULL DEFAULT '{}',
+			notes TEXT,
 			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 			updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 		)

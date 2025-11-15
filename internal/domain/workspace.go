@@ -291,17 +291,10 @@ const (
 	SaveOperationUpdate SaveOperation = "update"
 )
 
-// BlogSettings contains blog styling and SEO configuration
+// BlogSettings contains blog title and SEO configuration
 type BlogSettings struct {
-	Title      string       `json:"title,omitempty"`
-	H1Color    string       `json:"h1_color,omitempty"`
-	H2Color    string       `json:"h2_color,omitempty"`
-	H3Color    string       `json:"h3_color,omitempty"`
-	H4Color    string       `json:"h4_color,omitempty"`
-	FontFamily string       `json:"font_family,omitempty"`
-	FontSize   string       `json:"font_size,omitempty"`
-	TextColor  string       `json:"text_color,omitempty"`
-	SEO        *SEOSettings `json:"seo,omitempty"`
+	Title string       `json:"title,omitempty"`
+	SEO   *SEOSettings `json:"seo,omitempty"`
 }
 
 // Value implements the driver.Valuer interface for database serialization

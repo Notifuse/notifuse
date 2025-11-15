@@ -3848,14 +3848,7 @@ func TestIntegration_SupabaseIntegrationType_Constant(t *testing.T) {
 func TestBlogSettings_ValueAndScan(t *testing.T) {
 	t.Run("value and scan with full settings", func(t *testing.T) {
 		originalSettings := BlogSettings{
-			Title:      "My Amazing Blog",
-			H1Color:    "#1a1a1a",
-			H2Color:    "#2b2b2b",
-			H3Color:    "#3c3c3c",
-			H4Color:    "#4d4d4d",
-			FontFamily: "Inter, sans-serif",
-			FontSize:   "16px",
-			TextColor:  "#333333",
+			Title: "My Amazing Blog",
 			SEO: &SEOSettings{
 				MetaTitle:       "My Blog",
 				MetaDescription: "Welcome to my blog",
@@ -3883,13 +3876,6 @@ func TestBlogSettings_ValueAndScan(t *testing.T) {
 
 		// Verify all fields match
 		assert.Equal(t, originalSettings.Title, newSettings.Title)
-		assert.Equal(t, originalSettings.H1Color, newSettings.H1Color)
-		assert.Equal(t, originalSettings.H2Color, newSettings.H2Color)
-		assert.Equal(t, originalSettings.H3Color, newSettings.H3Color)
-		assert.Equal(t, originalSettings.H4Color, newSettings.H4Color)
-		assert.Equal(t, originalSettings.FontFamily, newSettings.FontFamily)
-		assert.Equal(t, originalSettings.FontSize, newSettings.FontSize)
-		assert.Equal(t, originalSettings.TextColor, newSettings.TextColor)
 		assert.NotNil(t, newSettings.SEO)
 		assert.Equal(t, originalSettings.SEO.MetaTitle, newSettings.SEO.MetaTitle)
 		assert.Equal(t, originalSettings.SEO.MetaDescription, newSettings.SEO.MetaDescription)
@@ -3918,8 +3904,7 @@ func TestBlogSettings_ValueAndScan(t *testing.T) {
 
 	t.Run("value and scan with minimal settings", func(t *testing.T) {
 		originalSettings := BlogSettings{
-			FontFamily: "Arial",
-			TextColor:  "#000000",
+			Title: "Simple Blog",
 		}
 
 		value, err := originalSettings.Value()
@@ -3930,8 +3915,7 @@ func TestBlogSettings_ValueAndScan(t *testing.T) {
 		err = newSettings.Scan(jsonBytes)
 		assert.NoError(t, err)
 
-		assert.Equal(t, originalSettings.FontFamily, newSettings.FontFamily)
-		assert.Equal(t, originalSettings.TextColor, newSettings.TextColor)
+		assert.Equal(t, originalSettings.Title, newSettings.Title)
 		assert.Nil(t, newSettings.SEO)
 	})
 }
@@ -3942,11 +3926,7 @@ func TestWorkspaceSettings_WithBlogSettings(t *testing.T) {
 			Timezone:    "UTC",
 			BlogEnabled: true,
 			BlogSettings: &BlogSettings{
-				Title:      "My Amazing Blog",
-				H1Color:    "#1a1a1a",
-				FontFamily: "Inter, sans-serif",
-				FontSize:   "16px",
-				TextColor:  "#333333",
+				Title: "My Amazing Blog",
 				SEO: &SEOSettings{
 					MetaTitle:       "My Blog",
 					MetaDescription: "Welcome to my blog",
@@ -3968,8 +3948,6 @@ func TestWorkspaceSettings_WithBlogSettings(t *testing.T) {
 		assert.Equal(t, settings.BlogEnabled, newSettings.BlogEnabled)
 		assert.NotNil(t, newSettings.BlogSettings)
 		assert.Equal(t, settings.BlogSettings.Title, newSettings.BlogSettings.Title)
-		assert.Equal(t, settings.BlogSettings.H1Color, newSettings.BlogSettings.H1Color)
-		assert.Equal(t, settings.BlogSettings.FontFamily, newSettings.BlogSettings.FontFamily)
 		assert.Equal(t, settings.BlogSettings.SEO.MetaTitle, newSettings.BlogSettings.SEO.MetaTitle)
 	})
 

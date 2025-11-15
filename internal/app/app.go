@@ -568,32 +568,11 @@ func (a *App) InitServices() error {
 		a.config.APIEndpoint,
 	)
 
-	// Initialize workspace service
-	a.workspaceService = service.NewWorkspaceService(
-		a.workspaceRepo,
-		a.userRepo,
-		a.taskRepo,
-		a.logger,
-		a.userService,
-		a.authService,
-		a.mailer,
-		a.config,
-		a.contactService,
-		a.listService,
-		a.contactListService,
-		a.templateService,
-		a.webhookRegistrationService,
-		a.config.Security.SecretKey,
-	)
-
-	// Initialize DNS verification service
+	// Initialize DNS verification service (before workspace service)
 	a.dnsVerificationService = service.NewDNSVerificationService(
 		a.logger,
 		a.config.APIEndpoint, // Expected CNAME target
 	)
-
-	// Set DNS verification service on workspace service
-	a.workspaceService.SetDNSVerificationService(a.dnsVerificationService)
 
 	// Initialize task service
 	a.taskService = service.NewTaskService(a.taskRepo, a.settingRepo, a.logger, a.authService, a.config.APIEndpoint)
@@ -623,7 +602,7 @@ func (a *App) InitServices() error {
 		a.messageHistoryRepo,
 	)
 
-	// Initialize Supabase service
+	// Initialize Supabase service (before workspace service)
 	a.supabaseService = service.NewSupabaseService(
 		a.workspaceRepo,
 		a.emailService,
@@ -637,9 +616,6 @@ func (a *App) InitServices() error {
 		a.webhookEventRepo,
 		a.logger,
 	)
-
-	// Link Supabase service to Workspace service (for integration template creation)
-	a.workspaceService.SetSupabaseService(a.supabaseService)
 
 	// Initialize broadcast service
 	a.broadcastService = service.NewBroadcastService(
@@ -717,7 +693,7 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 
-	// Initialize blog service
+	// Initialize blog service (before workspace service)
 	a.blogService = service.NewBlogService(
 		a.logger,
 		a.blogCategoryRepo,
@@ -725,6 +701,27 @@ func (a *App) InitServices() error {
 		a.blogThemeRepo,
 		a.workspaceRepo,
 		a.authService,
+	)
+
+	// Initialize workspace service (after all its dependencies)
+	a.workspaceService = service.NewWorkspaceService(
+		a.workspaceRepo,
+		a.userRepo,
+		a.taskRepo,
+		a.logger,
+		a.userService,
+		a.authService,
+		a.mailer,
+		a.config,
+		a.contactService,
+		a.listService,
+		a.contactListService,
+		a.templateService,
+		a.webhookRegistrationService,
+		a.config.Security.SecretKey,
+		*a.supabaseService,
+		*a.dnsVerificationService,
+		*a.blogService,
 	)
 
 	// Initialize and register segment build processor
@@ -809,12 +806,6 @@ func (a *App) InitServices() error {
 
 	// Initialize contact timeline service
 	a.contactTimelineService = service.NewContactTimelineService(a.contactTimelineRepo)
-
-	// Initialize DNS verification service
-	dnsVerificationService := service.NewDNSVerificationService(a.logger, a.config.APIEndpoint)
-
-	// Set DNS verification service on workspace service
-	a.workspaceService.SetDNSVerificationService(dnsVerificationService)
 
 	// Initialize task scheduler
 	a.taskScheduler = service.NewTaskScheduler(

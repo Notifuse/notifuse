@@ -60,7 +60,7 @@
     "highlight.js": "^11.10.0",
     "html2canvas": "^1.4.1",
     "is-hotkey": "^0.2.0",
-    "liquidjs": "^10.21.0",
+    "liquidjs": "^10.24.0",
     "lodash": "^4.17.21",
     "lodash.throttle": "^4.1.1",
     "lowlight": "^3.3.0",
@@ -76,6 +76,7 @@
     "react-color": "^2.19.3",
     "react-dom": "^18.2.0",
     "react-hotkeys-hook": "^5.2.1",
+    "react-resizable-panels": "^3.0.6",
     "react-textarea-autosize": "^8.5.9",
     "short-uuid": "^5.2.0",
     "simplebar-react": "^3.3.0",
@@ -86,6 +87,7 @@
     "timezone": "^1.0.23",
     "tippy.js": "^6.3.7",
     "tiptap-extension-global-drag-handle": "^0.1.18",
+    "use-debounce": "^10.0.6",
     "uuid": "^11.1.0"
   },
   "devDependencies": {

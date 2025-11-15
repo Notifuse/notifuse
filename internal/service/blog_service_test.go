@@ -1229,7 +1229,7 @@ func TestBlogService_PublishTheme(t *testing.T) {
 		req := &domain.PublishBlogThemeRequest{Version: 1}
 
 		mockThemeRepo.EXPECT().
-			PublishTheme(ctx, 1).
+			PublishTheme(ctx, 1, "user123").
 			Return(nil)
 
 		err := service.PublishTheme(ctx, req)
@@ -1250,7 +1250,7 @@ func TestBlogService_PublishTheme(t *testing.T) {
 		req := &domain.PublishBlogThemeRequest{Version: 999}
 
 		mockThemeRepo.EXPECT().
-			PublishTheme(ctx, 999).
+			PublishTheme(ctx, 999, "user123").
 			Return(errors.New("blog theme not found"))
 
 		err := service.PublishTheme(ctx, req)

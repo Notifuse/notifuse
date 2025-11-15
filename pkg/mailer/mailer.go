@@ -283,7 +283,7 @@ func (m *SMTPMailer) createSMTPClient() (*mail.Client, error) {
 		clientOptions = append(clientOptions,
 			mail.WithUsername(m.config.SMTPUsername),
 			mail.WithPassword(m.config.SMTPPassword),
-			mail.WithSMTPAuth(mail.SMTPAuthPlain),
+			mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover),
 		)
 	}
 

@@ -1,11 +1,20 @@
 import { useEffect, useState } from 'react'
-import { Button, Form, App, Switch, Descriptions, Input, ColorPicker, Divider, Row, Col } from 'antd'
-import { CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons'
-import type { Color } from 'antd/es/color-picker'
+import { Button, Form, App, Descriptions, Input, Divider } from 'antd'
+import {
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ExclamationCircleOutlined
+} from '@ant-design/icons'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { SEOSettingsForm } from '../seo/SEOSettingsForm'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import { RecentThemesTable } from '../blog/RecentThemesTable'
+import Subtitle from '../common/subtitle'
+import { blogThemesApi } from '../../services/api/blog'
+import { DEFAULT_BLOG_TEMPLATES } from '../../utils/defaultBlogTemplates'
+import { DEFAULT_BLOG_STYLES } from '../../utils/defaultBlogStyles'
 
 interface BlogSettingsProps {
   workspace: Workspace | null
@@ -13,15 +22,20 @@ interface BlogSettingsProps {
   isOwner: boolean
 }
 
-export function BlogSettings({
-  workspace,
-  onWorkspaceUpdate,
-  isOwner
-}: BlogSettingsProps) {
+export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSettingsProps) {
   const [savingSettings, setSavingSettings] = useState(false)
   const [formTouched, setFormTouched] = useState(false)
   const [form] = Form.useForm()
-  const { message } = App.useApp()
+  const { message, modal } = App.useApp()
+  const queryClient = useQueryClient()
+
+  // Fetch themes unconditionally (even if blog is disabled)
+  const { data: themesData, isLoading: themesLoading } = useQuery({
+    queryKey: ['blog-themes', workspace?.id],
+    queryFn: () =>
+      workspace?.id ? blogThemesApi.list(workspace.id, { limit: 3, offset: 0 }) : null,
+    enabled: !!workspace?.id && isOwner
+  })
 
   useEffect(() => {
     // Only set form values if user is owner (form exists)
@@ -32,13 +46,6 @@ export function BlogSettings({
       blog_enabled: workspace?.settings.blog_enabled || false,
       blog_settings: {
         title: workspace?.settings.blog_settings?.title || '',
-        h1_color: workspace?.settings.blog_settings?.h1_color || '',
-        h2_color: workspace?.settings.blog_settings?.h2_color || '',
-        h3_color: workspace?.settings.blog_settings?.h3_color || '',
-        h4_color: workspace?.settings.blog_settings?.h4_color || '',
-        font_family: workspace?.settings.blog_settings?.font_family || '',
-        font_size: workspace?.settings.blog_settings?.font_size || '',
-        text_color: workspace?.settings.blog_settings?.text_color || '',
         seo: {
           meta_title: workspace?.settings.blog_settings?.seo?.meta_title || '',
           meta_description: workspace?.settings.blog_settings?.seo?.meta_description || '',
@@ -57,25 +64,45 @@ export function BlogSettings({
 
     setSavingSettings(true)
     try {
-      // Convert color picker values to hex strings
-      const blogSettings = values.blog_settings ? {
-        ...values.blog_settings,
-        h1_color: typeof values.blog_settings.h1_color === 'object' 
-          ? values.blog_settings.h1_color?.toHexString?.() 
-          : values.blog_settings.h1_color,
-        h2_color: typeof values.blog_settings.h2_color === 'object' 
-          ? values.blog_settings.h2_color?.toHexString?.() 
-          : values.blog_settings.h2_color,
-        h3_color: typeof values.blog_settings.h3_color === 'object' 
-          ? values.blog_settings.h3_color?.toHexString?.() 
-          : values.blog_settings.h3_color,
-        h4_color: typeof values.blog_settings.h4_color === 'object' 
-          ? values.blog_settings.h4_color?.toHexString?.() 
-          : values.blog_settings.h4_color,
-        text_color: typeof values.blog_settings.text_color === 'object' 
-          ? values.blog_settings.text_color?.toHexString?.() 
-          : values.blog_settings.text_color,
-      } : null
+      // Check if enabling blog and no themes exist
+      const isEnablingBlog = values.blog_enabled === true && !workspace.settings.blog_enabled
+      const hasNoThemes = !themesData?.themes || themesData.themes.length === 0
+
+      console.log('handleSaveSettings', {
+        isEnablingBlog,
+        hasNoThemes,
+        themesCount: themesData?.themes?.length || 0,
+        themesLoading
+      })
+
+      if (isEnablingBlog && hasNoThemes) {
+        try {
+          console.log('Creating default theme...')
+          // Create default theme
+          const createdTheme = await blogThemesApi.create(workspace.id, {
+            files: DEFAULT_BLOG_TEMPLATES,
+            styling: DEFAULT_BLOG_STYLES,
+            notes: 'Default theme'
+          })
+
+          console.log('Theme created:', createdTheme.theme.version)
+
+          // Publish the default theme
+          await blogThemesApi.publish(workspace.id, { version: createdTheme.theme.version })
+
+          console.log('Theme published successfully')
+
+          // Invalidate theme query to refetch
+          await queryClient.invalidateQueries({ queryKey: ['blog-themes', workspace.id] })
+
+          message.success('Default theme created and published')
+        } catch (themeError: any) {
+          console.error('Failed to create default theme', themeError)
+          message.warning('Blog enabled but theme creation failed. Please create a theme manually.')
+        }
+      }
+
+      const blogSettings = values.blog_settings || null
 
       const updatedSettings = {
         ...workspace.settings,
@@ -107,23 +134,45 @@ export function BlogSettings({
     }
   }
 
-  const handleFormChange = () => {
+  const handleFormChange = (changedValues: any) => {
     setFormTouched(true)
+
+    // If blog was just enabled and title is empty, set it to workspace name
+    if (changedValues.blog_enabled === true) {
+      const currentTitle = form.getFieldValue(['blog_settings', 'title'])
+      if (!currentTitle && workspace?.name) {
+        form.setFieldValue(['blog_settings', 'title'], workspace.name)
+      }
+    }
+  }
+
+  const handleDisableBlog = () => {
+    modal.confirm({
+      title: 'Disable Blog?',
+      icon: <ExclamationCircleOutlined />,
+      content:
+        'Are you sure you want to disable the blog? All SEO settings and blog visibility will be lost. This action cannot be undone.',
+      okText: 'Disable Blog',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        // Set blog_enabled to false and submit
+        form.setFieldValue('blog_enabled', false)
+        await handleSaveSettings({ ...form.getFieldsValue(), blog_enabled: false })
+      }
+    })
   }
 
   if (!isOwner) {
     return (
       <>
-        <SettingsSectionHeader
-          title="Blog"
-          description="Blog styling and SEO settings"
-        />
+        <SettingsSectionHeader title="Blog" description="Blog styling and SEO settings" />
 
         <Descriptions
           bordered
           column={1}
           size="small"
-          labelStyle={{ width: '200px', fontWeight: '500' }}
+          styles={{ label: { width: '200px', fontWeight: '500' } }}
         >
           <Descriptions.Item label="Blog">
             {workspace?.settings.blog_enabled ? (
@@ -145,22 +194,6 @@ export function BlogSettings({
                 {workspace.settings.blog_settings.title || 'Not set'}
               </Descriptions.Item>
 
-              <Descriptions.Item label="Font Family">
-                {workspace.settings.blog_settings.font_family || 'Not set'}
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Font Size">
-                {workspace.settings.blog_settings.font_size || 'Not set'}
-              </Descriptions.Item>
-
-              <Descriptions.Item label="Text Color">
-                {workspace.settings.blog_settings.text_color || 'Not set'}
-              </Descriptions.Item>
-
-              <Descriptions.Item label="H1 Color">
-                {workspace.settings.blog_settings.h1_color || 'Not set'}
-              </Descriptions.Item>
-
               <Descriptions.Item label="Meta Title">
                 {workspace.settings.blog_settings.seo?.meta_title || 'Not set'}
               </Descriptions.Item>
@@ -178,157 +211,138 @@ export function BlogSettings({
         description="Configure styling and SEO settings for your blog. These settings will be applied to all blog pages."
       />
 
+      {!workspace?.settings.custom_endpoint_url && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: '12px 16px',
+            background: '#fff7e6',
+            border: '1px solid #ffd591',
+            borderRadius: '4px'
+          }}
+        >
+          ⚠️ You must configure a Custom Endpoint URL in General Settings above before enabling the
+          blog.
+        </div>
+      )}
+
+      {workspace?.settings.blog_enabled && workspace?.settings.custom_endpoint_url && (
+        <>
+          <Subtitle borderBottom={true} primary>
+            Theme
+          </Subtitle>
+
+          <RecentThemesTable workspaceId={workspace.id} workspace={workspace} />
+          <Divider />
+        </>
+      )}
+
       <Form
         form={form}
         layout="vertical"
         onFinish={handleSaveSettings}
         onValuesChange={handleFormChange}
       >
-        {!workspace?.settings.custom_endpoint_url && (
+        {/* Show enable button only when blog is disabled */}
+        {!workspace?.settings.blog_enabled && (
           <div
             style={{
-              marginBottom: 16,
-              padding: '12px 16px',
-              background: '#fff7e6',
-              border: '1px solid #ffd591',
-              borderRadius: '4px'
+              padding: '24px',
+              border: '1px solid #d9d9d9',
+              borderRadius: '8px',
+              backgroundColor: '#fafafa',
+              marginBottom: 24
             }}
           >
-            ⚠️ You must configure a Custom Endpoint URL in General Settings above before enabling
-            the blog.
+            <h3 style={{ marginBottom: 8, fontSize: '16px', fontWeight: 600 }}>Enable Blog</h3>
+            <p style={{ marginBottom: 16, color: '#595959', lineHeight: '1.6' }}>
+              Enable the blog feature to publish articles and content on your custom domain
+              homepage. Your blog will be accessible at{' '}
+              <strong>
+                {workspace?.settings.custom_endpoint_url || 'your-custom-domain.com'}/
+              </strong>
+            </p>
+            <Button
+              type="primary"
+              size="large"
+              disabled={!workspace?.settings.custom_endpoint_url || themesLoading}
+              loading={savingSettings || themesLoading}
+              onClick={async () => {
+                form.setFieldValue('blog_enabled', true)
+                // Initialize blog_settings with title if not set
+                const currentValues = form.getFieldsValue()
+                const blogSettings = currentValues.blog_settings || {}
+                if (!blogSettings.title && workspace?.name) {
+                  blogSettings.title = workspace.name
+                }
+                await handleSaveSettings({
+                  ...currentValues,
+                  blog_enabled: true,
+                  blog_settings: blogSettings
+                })
+              }}
+            >
+              Enable Blog
+            </Button>
           </div>
         )}
 
-        <Form.Item
-          name="blog_enabled"
-          label="Enable Blog"
-          tooltip="Enable the blog feature on your custom domain"
-          valuePropName="checked"
-        >
-          <Switch disabled={!workspace?.settings.custom_endpoint_url} />
-        </Form.Item>
+        {/* Show blog settings when enabled */}
+        {workspace?.settings.blog_enabled && workspace?.settings.custom_endpoint_url && (
+          <>
+            <Subtitle borderBottom={true} primary>
+              Homepage Settings
+            </Subtitle>
 
-        <Form.Item
-          noStyle
-          shouldUpdate={(prevValues, currentValues) =>
-            prevValues.blog_enabled !== currentValues.blog_enabled
-          }
-        >
-          {({ getFieldValue }) => {
-            const blogEnabled = getFieldValue('blog_enabled')
-            const customEndpoint = workspace?.settings.custom_endpoint_url
+            <Form.Item
+              name={['blog_settings', 'title']}
+              label="Blog Title"
+              tooltip="The main title for your blog"
+            >
+              <Input placeholder={workspace?.name || 'My Amazing Blog'} />
+            </Form.Item>
 
-            if (!blogEnabled || !customEndpoint) {
-              return null
-            }
+            <SEOSettingsForm
+              namePrefix={['blog_settings', 'seo']}
+              titlePlaceholder="My Amazing Blog"
+              descriptionPlaceholder="Welcome to my blog where I share insights about..."
+            />
 
-            return (
-              <>
-                <Form.Item
-                  name={['blog_settings', 'title']}
-                  label="Blog Title"
-                  tooltip="The main title for your blog"
-                >
-                  <Input placeholder="My Amazing Blog" />
-                </Form.Item>
-
-                <Divider orientation="left">Typography & Colors</Divider>
-
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      name={['blog_settings', 'font_family']}
-                      label="Font Family"
-                      tooltip="CSS font family for blog content (e.g., 'Inter, sans-serif')"
-                    >
-                      <Input placeholder="Inter, sans-serif" />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name={['blog_settings', 'font_size']}
-                      label="Base Font Size"
-                      tooltip="Base font size for blog content (e.g., '16px', '1rem')"
-                    >
-                      <Input placeholder="16px" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      name={['blog_settings', 'text_color']}
-                      label="Text Color"
-                      tooltip="Main text color for blog content"
-                    >
-                      <ColorPicker showText format="hex" />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name={['blog_settings', 'h1_color']}
-                      label="H1 Heading Color"
-                    >
-                      <ColorPicker showText format="hex" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      name={['blog_settings', 'h2_color']}
-                      label="H2 Heading Color"
-                    >
-                      <ColorPicker showText format="hex" />
-                    </Form.Item>
-                  </Col>
-                  <Col span={12}>
-                    <Form.Item
-                      name={['blog_settings', 'h3_color']}
-                      label="H3 Heading Color"
-                    >
-                      <ColorPicker showText format="hex" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                <Row gutter={16}>
-                  <Col span={12}>
-                    <Form.Item
-                      name={['blog_settings', 'h4_color']}
-                      label="H4 Heading Color"
-                    >
-                      <ColorPicker showText format="hex" />
-                    </Form.Item>
-                  </Col>
-                </Row>
-
-                <Divider orientation="left">SEO Settings</Divider>
-
-                <div style={{ marginBottom: 16, color: '#666' }}>
-                  These SEO settings will be used as defaults for your blog homepage. Individual posts
-                  can override these values.
-                </div>
-
-                <SEOSettingsForm
-                  namePrefix={['blog_settings', 'seo']}
-                  titlePlaceholder="My Amazing Blog"
-                  descriptionPlaceholder="Welcome to my blog where I share insights about..."
-                />
-              </>
-            )
-          }}
-        </Form.Item>
-
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={savingSettings} disabled={!formTouched}>
-            Save Changes
-          </Button>
-        </Form.Item>
+            {formTouched && (
+              <div style={{ textAlign: 'right', marginBottom: 24 }}>
+                <Button type="primary" htmlType="submit" loading={savingSettings}>
+                  Save Changes
+                </Button>
+              </div>
+            )}
+          </>
+        )}
       </Form>
+
+      {/* Danger Zone - Show when blog is enabled */}
+      {workspace?.settings.blog_enabled && (
+        <>
+          <Divider />
+          <div
+            style={{
+              marginTop: 32,
+              padding: '24px',
+              border: '1px solid #ff4d4f',
+              borderRadius: '4px',
+              backgroundColor: '#fff1f0'
+            }}
+          >
+            <h3 style={{ color: '#cf1322', marginBottom: 8 }}>Danger Zone</h3>
+            <p style={{ marginBottom: 16, color: '#595959' }}>
+              Disabling the blog will remove all SEO settings and make your blog inaccessible to
+              visitors. This action will affect your blog's visibility and search engine rankings.
+            </p>
+            <Button danger onClick={handleDisableBlog}>
+              Disable Blog
+            </Button>
+          </div>
+        </>
+      )}
     </>
   )
 }
-

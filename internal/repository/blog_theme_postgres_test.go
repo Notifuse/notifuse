@@ -69,10 +69,12 @@ func TestBlogThemeRepository(t *testing.T) {
 			sqlMock.ExpectExec(regexp.QuoteMeta(`INSERT INTO blog_themes`)).
 				WithArgs(
 					1, // auto-generated version
-					sqlmock.AnyArg(),
-					sqlmock.AnyArg(),
-					sqlmock.AnyArg(),
-					sqlmock.AnyArg(),
+					sqlmock.AnyArg(), // published_at
+					sqlmock.AnyArg(), // published_by_user_id
+					sqlmock.AnyArg(), // files
+					sqlmock.AnyArg(), // notes
+					sqlmock.AnyArg(), // created_at
+					sqlmock.AnyArg(), // updated_at
 				).WillReturnResult(sqlmock.NewResult(1, 1))
 			sqlMock.ExpectCommit()
 
@@ -95,10 +97,12 @@ func TestBlogThemeRepository(t *testing.T) {
 			sqlMock.ExpectExec(regexp.QuoteMeta(`INSERT INTO blog_themes`)).
 				WithArgs(
 					6, // auto-incremented
-					sqlmock.AnyArg(),
-					sqlmock.AnyArg(),
-					sqlmock.AnyArg(),
-					sqlmock.AnyArg(),
+					sqlmock.AnyArg(), // published_at
+					sqlmock.AnyArg(), // published_by_user_id
+					sqlmock.AnyArg(), // files
+					sqlmock.AnyArg(), // notes
+					sqlmock.AnyArg(), // created_at
+					sqlmock.AnyArg(), // updated_at
 				).WillReturnResult(sqlmock.NewResult(1, 1))
 			sqlMock.ExpectCommit()
 
@@ -126,10 +130,10 @@ func TestBlogThemeRepository(t *testing.T) {
 				GetConnection(gomock.Any(), "workspace123").
 				Return(db, nil)
 
-			rows := sqlmock.NewRows([]string{"version", "published_at", "files", "created_at", "updated_at"}).
-				AddRow(testTheme.Version, nil, []byte(`{"home":"home template"}`), testTheme.CreatedAt, testTheme.UpdatedAt)
+			rows := sqlmock.NewRows([]string{"version", "published_at", "published_by_user_id", "files", "notes", "created_at", "updated_at"}).
+				AddRow(testTheme.Version, nil, nil, []byte(`{"home":"home template"}`), nil, testTheme.CreatedAt, testTheme.UpdatedAt)
 
-			sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, files, created_at, updated_at FROM blog_themes WHERE version = $1`)).
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at FROM blog_themes WHERE version = $1`)).
 				WithArgs(1).
 				WillReturnRows(rows)
 
@@ -145,7 +149,7 @@ func TestBlogThemeRepository(t *testing.T) {
 				GetConnection(gomock.Any(), "workspace123").
 				Return(db, nil)
 
-			sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, files, created_at, updated_at FROM blog_themes WHERE version = $1`)).
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at FROM blog_themes WHERE version = $1`)).
 				WithArgs(999).
 				WillReturnError(sql.ErrNoRows)
 
@@ -174,10 +178,11 @@ func TestBlogThemeRepository(t *testing.T) {
 				GetConnection(gomock.Any(), "workspace123").
 				Return(db, nil)
 
-			rows := sqlmock.NewRows([]string{"version", "published_at", "files", "created_at", "updated_at"}).
-				AddRow(publishedTheme.Version, publishedTheme.PublishedAt, []byte(`{"home":"published home"}`), publishedTheme.CreatedAt, publishedTheme.UpdatedAt)
+			userID := "user123"
+			rows := sqlmock.NewRows([]string{"version", "published_at", "published_by_user_id", "files", "notes", "created_at", "updated_at"}).
+				AddRow(publishedTheme.Version, publishedTheme.PublishedAt, userID, []byte(`{"home":"published home"}`), nil, publishedTheme.CreatedAt, publishedTheme.UpdatedAt)
 
-			sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, files, created_at, updated_at FROM blog_themes WHERE published_at IS NOT NULL`)).
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at FROM blog_themes WHERE published_at IS NOT NULL`)).
 				WillReturnRows(rows)
 
 			theme, err := repo.GetPublishedTheme(ctx)
@@ -185,6 +190,8 @@ func TestBlogThemeRepository(t *testing.T) {
 			assert.NotNil(t, theme)
 			assert.Equal(t, 2, theme.Version)
 			assert.NotNil(t, theme.PublishedAt)
+			assert.NotNil(t, theme.PublishedByUserID)
+			assert.Equal(t, userID, *theme.PublishedByUserID)
 			assert.NoError(t, sqlMock.ExpectationsWereMet())
 		})
 
@@ -193,7 +200,7 @@ func TestBlogThemeRepository(t *testing.T) {
 				GetConnection(gomock.Any(), "workspace123").
 				Return(db, nil)
 
-			sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, files, created_at, updated_at FROM blog_themes WHERE published_at IS NOT NULL`)).
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at FROM blog_themes WHERE published_at IS NOT NULL`)).
 				WillReturnError(sql.ErrNoRows)
 
 			theme, err := repo.GetPublishedTheme(ctx)
@@ -211,8 +218,9 @@ func TestBlogThemeRepository(t *testing.T) {
 				Return(db, nil)
 
 			sqlMock.ExpectBegin()
-			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE blog_themes SET files = $1, updated_at = $2 WHERE version = $3 AND published_at IS NULL`)).
+			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE blog_themes SET files = $1, notes = $2, updated_at = $3 WHERE version = $4 AND published_at IS NULL`)).
 				WithArgs(
+					sqlmock.AnyArg(),
 					sqlmock.AnyArg(),
 					sqlmock.AnyArg(),
 					testTheme.Version,
@@ -230,8 +238,9 @@ func TestBlogThemeRepository(t *testing.T) {
 				Return(db, nil)
 
 			sqlMock.ExpectBegin()
-			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE blog_themes SET files = $1, updated_at = $2 WHERE version = $3 AND published_at IS NULL`)).
+			sqlMock.ExpectExec(regexp.QuoteMeta(`UPDATE blog_themes SET files = $1, notes = $2, updated_at = $3 WHERE version = $4 AND published_at IS NULL`)).
 				WithArgs(
+					sqlmock.AnyArg(),
 					sqlmock.AnyArg(),
 					sqlmock.AnyArg(),
 					testTheme.Version,
@@ -256,24 +265,25 @@ func TestBlogThemeRepository(t *testing.T) {
 				GetConnection(gomock.Any(), "workspace123").
 				Return(db2, nil)
 
+			userID := "user123"
 			sqlMock2.ExpectBegin()
 			// Expect GetThemeTx to verify theme exists
-			rows := sqlmock.NewRows([]string{"version", "published_at", "files", "created_at", "updated_at"}).
-				AddRow(testTheme.Version, nil, []byte(`{"home":"home"}`), testTheme.CreatedAt, testTheme.UpdatedAt)
-			sqlMock2.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, files, created_at, updated_at FROM blog_themes WHERE version = $1`)).
+			rows := sqlmock.NewRows([]string{"version", "published_at", "published_by_user_id", "files", "notes", "created_at", "updated_at"}).
+				AddRow(testTheme.Version, nil, nil, []byte(`{"home":"home"}`), nil, testTheme.CreatedAt, testTheme.UpdatedAt)
+			sqlMock2.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at FROM blog_themes WHERE version = $1`)).
 				WithArgs(1).
 				WillReturnRows(rows)
 			// Expect unpublish all
-			sqlMock2.ExpectExec(regexp.QuoteMeta(`UPDATE blog_themes SET published_at = NULL, updated_at = $1 WHERE published_at IS NOT NULL`)).
+			sqlMock2.ExpectExec(regexp.QuoteMeta(`UPDATE blog_themes SET published_at = NULL, published_by_user_id = NULL, updated_at = $1 WHERE published_at IS NOT NULL`)).
 				WithArgs(sqlmock.AnyArg()).
 				WillReturnResult(sqlmock.NewResult(0, 1))
 			// Expect publish target
-			sqlMock2.ExpectExec(regexp.QuoteMeta(`UPDATE blog_themes SET published_at = $1, updated_at = $2 WHERE version = $3`)).
-				WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), 1).
+			sqlMock2.ExpectExec(regexp.QuoteMeta(`UPDATE blog_themes SET published_at = $1, published_by_user_id = $2, updated_at = $3 WHERE version = $4`)).
+				WithArgs(sqlmock.AnyArg(), userID, sqlmock.AnyArg(), 1).
 				WillReturnResult(sqlmock.NewResult(0, 1))
 			sqlMock2.ExpectCommit()
 
-			err = repo.PublishTheme(ctx, 1)
+			err = repo.PublishTheme(ctx, 1, userID)
 			require.NoError(t, err)
 			assert.NoError(t, sqlMock2.ExpectationsWereMet())
 		})
@@ -290,12 +300,12 @@ func TestBlogThemeRepository(t *testing.T) {
 
 			sqlMock3.ExpectBegin()
 			// Expect GetThemeTx to fail
-			sqlMock3.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, files, created_at, updated_at FROM blog_themes WHERE version = $1`)).
+			sqlMock3.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at FROM blog_themes WHERE version = $1`)).
 				WithArgs(999).
 				WillReturnError(sql.ErrNoRows)
 			sqlMock3.ExpectRollback()
 
-			err = repo.PublishTheme(ctx, 999)
+			err = repo.PublishTheme(ctx, 999, "user123")
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "blog theme not found")
 			assert.NoError(t, sqlMock3.ExpectationsWereMet())
@@ -318,11 +328,11 @@ func TestBlogThemeRepository(t *testing.T) {
 				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
 
 			// Expect list query
-			rows := sqlmock.NewRows([]string{"version", "published_at", "files", "created_at", "updated_at"}).
-				AddRow(2, publishedTime, []byte(`{"home":"v2"}`), time.Now(), time.Now()).
-				AddRow(1, nil, []byte(`{"home":"v1"}`), time.Now(), time.Now())
+			rows := sqlmock.NewRows([]string{"version", "published_at", "published_by_user_id", "files", "notes", "created_at", "updated_at"}).
+				AddRow(2, publishedTime, "user123", []byte(`{"home":"v2"}`), nil, time.Now(), time.Now()).
+				AddRow(1, nil, nil, []byte(`{"home":"v1"}`), nil, time.Now(), time.Now())
 
-			sqlMock4.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, files, created_at, updated_at FROM blog_themes ORDER BY version DESC LIMIT $1 OFFSET $2`)).
+			sqlMock4.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at FROM blog_themes ORDER BY version DESC LIMIT $1 OFFSET $2`)).
 				WithArgs(50, 0).
 				WillReturnRows(rows)
 
@@ -352,9 +362,9 @@ func TestBlogThemeRepository(t *testing.T) {
 				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
 
 			// Expect list query
-			rows := sqlmock.NewRows([]string{"version", "published_at", "files", "created_at", "updated_at"})
+			rows := sqlmock.NewRows([]string{"version", "published_at", "published_by_user_id", "files", "notes", "created_at", "updated_at"})
 
-			sqlMock5.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, files, created_at, updated_at FROM blog_themes ORDER BY version DESC LIMIT $1 OFFSET $2`)).
+			sqlMock5.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at FROM blog_themes ORDER BY version DESC LIMIT $1 OFFSET $2`)).
 				WithArgs(50, 0).
 				WillReturnRows(rows)
 
@@ -382,10 +392,10 @@ func TestBlogThemeRepository(t *testing.T) {
 				WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(10))
 
 			// Expect list query with offset
-			rows := sqlmock.NewRows([]string{"version", "published_at", "files", "created_at", "updated_at"}).
-				AddRow(3, nil, []byte(`{"home":"v3"}`), time.Now(), time.Now())
+			rows := sqlmock.NewRows([]string{"version", "published_at", "published_by_user_id", "files", "notes", "created_at", "updated_at"}).
+				AddRow(3, nil, nil, []byte(`{"home":"v3"}`), nil, time.Now(), time.Now())
 
-			sqlMock6.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, files, created_at, updated_at FROM blog_themes ORDER BY version DESC LIMIT $1 OFFSET $2`)).
+			sqlMock6.ExpectQuery(regexp.QuoteMeta(`SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at FROM blog_themes ORDER BY version DESC LIMIT $1 OFFSET $2`)).
 				WithArgs(10, 20).
 				WillReturnRows(rows)
 
@@ -442,7 +452,7 @@ func TestBlogThemeRepository_MissingWorkspaceID(t *testing.T) {
 	})
 
 	t.Run("PublishTheme without workspace_id", func(t *testing.T) {
-		err := repo.PublishTheme(ctx, 1)
+		err := repo.PublishTheme(ctx, 1, "user123")
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "workspace_id not found in context")
 	})

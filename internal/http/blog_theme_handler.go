@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -48,6 +49,15 @@ func (h *BlogThemeHandler) HandleCreate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	workspace_id := r.URL.Query().Get("workspace_id")
+	if workspace_id == "" {
+		WriteJSONError(w, "workspace_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Add workspace_id to context
+	ctx := context.WithValue(r.Context(), "workspace_id", workspace_id)
+
 	var req domain.CreateBlogThemeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to decode request body")
@@ -55,7 +65,7 @@ func (h *BlogThemeHandler) HandleCreate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	theme, err := h.service.CreateTheme(r.Context(), &req)
+	theme, err := h.service.CreateTheme(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create theme")
 		if permErr, ok := err.(*domain.PermissionError); ok {
@@ -78,6 +88,15 @@ func (h *BlogThemeHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	workspace_id := r.URL.Query().Get("workspace_id")
+	if workspace_id == "" {
+		WriteJSONError(w, "workspace_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Add workspace_id to context
+	ctx := context.WithValue(r.Context(), "workspace_id", workspace_id)
+
 	versionStr := r.URL.Query().Get("version")
 	if versionStr == "" {
 		WriteJSONError(w, "version parameter is required", http.StatusBadRequest)
@@ -90,7 +109,7 @@ func (h *BlogThemeHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	theme, err := h.service.GetTheme(r.Context(), version)
+	theme, err := h.service.GetTheme(ctx, version)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get theme")
 		if permErr, ok := err.(*domain.PermissionError); ok {
@@ -113,7 +132,16 @@ func (h *BlogThemeHandler) HandleGetPublished(w http.ResponseWriter, r *http.Req
 		return
 	}
 
-	theme, err := h.service.GetPublishedTheme(r.Context())
+	workspace_id := r.URL.Query().Get("workspace_id")
+	if workspace_id == "" {
+		WriteJSONError(w, "workspace_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Add workspace_id to context
+	ctx := context.WithValue(r.Context(), "workspace_id", workspace_id)
+
+	theme, err := h.service.GetPublishedTheme(ctx)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get published theme")
 		if permErr, ok := err.(*domain.PermissionError); ok {
@@ -136,6 +164,15 @@ func (h *BlogThemeHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	workspace_id := r.URL.Query().Get("workspace_id")
+	if workspace_id == "" {
+		WriteJSONError(w, "workspace_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Add workspace_id to context
+	ctx := context.WithValue(r.Context(), "workspace_id", workspace_id)
+
 	var req domain.UpdateBlogThemeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to decode request body")
@@ -143,7 +180,7 @@ func (h *BlogThemeHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	theme, err := h.service.UpdateTheme(r.Context(), &req)
+	theme, err := h.service.UpdateTheme(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update theme")
 		if permErr, ok := err.(*domain.PermissionError); ok {
@@ -166,6 +203,15 @@ func (h *BlogThemeHandler) HandlePublish(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	workspace_id := r.URL.Query().Get("workspace_id")
+	if workspace_id == "" {
+		WriteJSONError(w, "workspace_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Add workspace_id to context
+	ctx := context.WithValue(r.Context(), "workspace_id", workspace_id)
+
 	var req domain.PublishBlogThemeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to decode request body")
@@ -173,7 +219,7 @@ func (h *BlogThemeHandler) HandlePublish(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.service.PublishTheme(r.Context(), &req); err != nil {
+	if err := h.service.PublishTheme(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to publish theme")
 		if permErr, ok := err.(*domain.PermissionError); ok {
 			WriteJSONError(w, permErr.Error(), http.StatusForbidden)
@@ -195,6 +241,15 @@ func (h *BlogThemeHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	workspace_id := r.URL.Query().Get("workspace_id")
+	if workspace_id == "" {
+		WriteJSONError(w, "workspace_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Add workspace_id to context
+	ctx := context.WithValue(r.Context(), "workspace_id", workspace_id)
 
 	var req domain.ListBlogThemesRequest
 
@@ -218,7 +273,7 @@ func (h *BlogThemeHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 		req.Offset = offset
 	}
 
-	response, err := h.service.ListThemes(r.Context(), &req)
+	response, err := h.service.ListThemes(ctx, &req)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to list themes")
 		if permErr, ok := err.(*domain.PermissionError); ok {
@@ -231,4 +286,3 @@ func (h *BlogThemeHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, response)
 }
-

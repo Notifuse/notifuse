@@ -790,6 +790,7 @@ func (s *BlogService) CreateTheme(ctx context.Context, request *domain.CreateBlo
 	theme := &domain.BlogTheme{
 		PublishedAt: nil, // Unpublished by default
 		Files:       request.Files,
+		Notes:       request.Notes,
 		CreatedAt:   time.Now().UTC(),
 		UpdatedAt:   time.Now().UTC(),
 	}
@@ -901,6 +902,7 @@ func (s *BlogService) UpdateTheme(ctx context.Context, request *domain.UpdateBlo
 
 	// Update the theme fields
 	theme.Files = request.Files
+	theme.Notes = request.Notes
 	theme.UpdatedAt = time.Now().UTC()
 
 	// Validate the updated theme
@@ -928,7 +930,7 @@ func (s *BlogService) PublishTheme(ctx context.Context, request *domain.PublishB
 
 	// Authenticate user for workspace
 	var err error
-	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, user, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate user: %w", err)
 	}
@@ -949,7 +951,7 @@ func (s *BlogService) PublishTheme(ctx context.Context, request *domain.PublishB
 	}
 
 	// Publish the theme (this will atomically unpublish others)
-	if err := s.themeRepo.PublishTheme(ctx, request.Version); err != nil {
+	if err := s.themeRepo.PublishTheme(ctx, request.Version, user.ID); err != nil {
 		s.logger.Error("Failed to publish theme")
 		return fmt.Errorf("failed to publish theme: %w", err)
 	}

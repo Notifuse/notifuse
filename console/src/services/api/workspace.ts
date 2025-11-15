@@ -24,13 +24,7 @@ export interface SEOSettings {
 // Blog Settings type (styling + SEO for blog)
 export interface BlogSettings {
   title?: string
-  h1_color?: string
-  h2_color?: string
-  h3_color?: string
-  h4_color?: string
-  font_family?: string
-  font_size?: string
-  text_color?: string
+  styling?: any // EditorStyleConfig - stored as JSON
   seo?: SEOSettings
 }
 

@@ -89,7 +89,7 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
           bordered
           column={1}
           size="small"
-          labelStyle={{ width: '200px', fontWeight: '500' }}
+          styles={{ label: { width: '200px', fontWeight: '500' } }}
         >
           <Descriptions.Item label="Workspace Name">
             {workspace?.name || 'Not set'}

@@ -79,14 +79,16 @@ func (r *blogThemeRepository) CreateThemeTx(ctx context.Context, tx *sql.Tx, the
 
 	query := `
 		INSERT INTO blog_themes (
-			version, published_at, files, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5)
+			version, published_at, published_by_user_id, files, notes, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 
 	_, err = tx.ExecContext(ctx, query,
 		theme.Version,
 		theme.PublishedAt,
+		theme.PublishedByUserID,
 		theme.Files,
+		theme.Notes,
 		theme.CreatedAt,
 		theme.UpdatedAt,
 	)
@@ -110,16 +112,20 @@ func (r *blogThemeRepository) GetTheme(ctx context.Context, version int) (*domai
 	}
 
 	query := `
-		SELECT version, published_at, files, created_at, updated_at
+		SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at
 		FROM blog_themes
 		WHERE version = $1
 	`
 
 	var theme domain.BlogTheme
+	var notes sql.NullString
+	var publishedByUserID sql.NullString
 	err = workspaceDB.QueryRowContext(ctx, query, version).Scan(
 		&theme.Version,
 		&theme.PublishedAt,
+		&publishedByUserID,
 		&theme.Files,
+		&notes,
 		&theme.CreatedAt,
 		&theme.UpdatedAt,
 	)
@@ -128,6 +134,14 @@ func (r *blogThemeRepository) GetTheme(ctx context.Context, version int) (*domai
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get blog theme: %w", err)
+	}
+
+	// Convert sql.NullString to *string
+	if notes.Valid {
+		theme.Notes = &notes.String
+	}
+	if publishedByUserID.Valid {
+		theme.PublishedByUserID = &publishedByUserID.String
 	}
 
 	return &theme, nil
@@ -136,16 +150,20 @@ func (r *blogThemeRepository) GetTheme(ctx context.Context, version int) (*domai
 // GetThemeTx retrieves a blog theme by version within a transaction
 func (r *blogThemeRepository) GetThemeTx(ctx context.Context, tx *sql.Tx, version int) (*domain.BlogTheme, error) {
 	query := `
-		SELECT version, published_at, files, created_at, updated_at
+		SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at
 		FROM blog_themes
 		WHERE version = $1
 	`
 
 	var theme domain.BlogTheme
+	var notes sql.NullString
+	var publishedByUserID sql.NullString
 	err := tx.QueryRowContext(ctx, query, version).Scan(
 		&theme.Version,
 		&theme.PublishedAt,
+		&publishedByUserID,
 		&theme.Files,
+		&notes,
 		&theme.CreatedAt,
 		&theme.UpdatedAt,
 	)
@@ -154,6 +172,14 @@ func (r *blogThemeRepository) GetThemeTx(ctx context.Context, tx *sql.Tx, versio
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get blog theme: %w", err)
+	}
+
+	// Convert sql.NullString to *string
+	if notes.Valid {
+		theme.Notes = &notes.String
+	}
+	if publishedByUserID.Valid {
+		theme.PublishedByUserID = &publishedByUserID.String
 	}
 
 	return &theme, nil
@@ -172,16 +198,20 @@ func (r *blogThemeRepository) GetPublishedTheme(ctx context.Context) (*domain.Bl
 	}
 
 	query := `
-		SELECT version, published_at, files, created_at, updated_at
+		SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at
 		FROM blog_themes
 		WHERE published_at IS NOT NULL
 	`
 
 	var theme domain.BlogTheme
+	var notes sql.NullString
+	var publishedByUserID sql.NullString
 	err = workspaceDB.QueryRowContext(ctx, query).Scan(
 		&theme.Version,
 		&theme.PublishedAt,
+		&publishedByUserID,
 		&theme.Files,
+		&notes,
 		&theme.CreatedAt,
 		&theme.UpdatedAt,
 	)
@@ -190,6 +220,14 @@ func (r *blogThemeRepository) GetPublishedTheme(ctx context.Context) (*domain.Bl
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get published blog theme: %w", err)
+	}
+
+	// Convert sql.NullString to *string
+	if notes.Valid {
+		theme.Notes = &notes.String
+	}
+	if publishedByUserID.Valid {
+		theme.PublishedByUserID = &publishedByUserID.String
 	}
 
 	return &theme, nil
@@ -198,16 +236,20 @@ func (r *blogThemeRepository) GetPublishedTheme(ctx context.Context) (*domain.Bl
 // GetPublishedThemeTx retrieves the currently published blog theme within a transaction
 func (r *blogThemeRepository) GetPublishedThemeTx(ctx context.Context, tx *sql.Tx) (*domain.BlogTheme, error) {
 	query := `
-		SELECT version, published_at, files, created_at, updated_at
+		SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at
 		FROM blog_themes
 		WHERE published_at IS NOT NULL
 	`
 
 	var theme domain.BlogTheme
+	var notes sql.NullString
+	var publishedByUserID sql.NullString
 	err := tx.QueryRowContext(ctx, query).Scan(
 		&theme.Version,
 		&theme.PublishedAt,
+		&publishedByUserID,
 		&theme.Files,
+		&notes,
 		&theme.CreatedAt,
 		&theme.UpdatedAt,
 	)
@@ -216,6 +258,14 @@ func (r *blogThemeRepository) GetPublishedThemeTx(ctx context.Context, tx *sql.T
 	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get published blog theme: %w", err)
+	}
+
+	// Convert sql.NullString to *string
+	if notes.Valid {
+		theme.Notes = &notes.String
+	}
+	if publishedByUserID.Valid {
+		theme.PublishedByUserID = &publishedByUserID.String
 	}
 
 	return &theme, nil
@@ -239,12 +289,13 @@ func (r *blogThemeRepository) UpdateThemeTx(ctx context.Context, tx *sql.Tx, the
 
 	query := `
 		UPDATE blog_themes
-		SET files = $1, updated_at = $2
-		WHERE version = $3 AND published_at IS NULL
+		SET files = $1, notes = $2, updated_at = $3
+		WHERE version = $4 AND published_at IS NULL
 	`
 
 	result, err := tx.ExecContext(ctx, query,
 		theme.Files,
+		theme.Notes,
 		theme.UpdatedAt,
 		theme.Version,
 	)
@@ -265,19 +316,19 @@ func (r *blogThemeRepository) UpdateThemeTx(ctx context.Context, tx *sql.Tx, the
 }
 
 // PublishTheme publishes a blog theme by version
-func (r *blogThemeRepository) PublishTheme(ctx context.Context, version int) error {
+func (r *blogThemeRepository) PublishTheme(ctx context.Context, version int, publishedByUserID string) error {
 	workspaceID, ok := ctx.Value("workspace_id").(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
 
 	return r.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
-		return r.PublishThemeTx(ctx, tx, version)
+		return r.PublishThemeTx(ctx, tx, version, publishedByUserID)
 	})
 }
 
 // PublishThemeTx publishes a blog theme by version within a transaction
-func (r *blogThemeRepository) PublishThemeTx(ctx context.Context, tx *sql.Tx, version int) error {
+func (r *blogThemeRepository) PublishThemeTx(ctx context.Context, tx *sql.Tx, version int, publishedByUserID string) error {
 	// First, verify the theme exists
 	_, err := r.GetThemeTx(ctx, tx, version)
 	if err != nil {
@@ -287,7 +338,7 @@ func (r *blogThemeRepository) PublishThemeTx(ctx context.Context, tx *sql.Tx, ve
 	// Unpublish all themes
 	_, err = tx.ExecContext(ctx, `
 		UPDATE blog_themes
-		SET published_at = NULL, updated_at = $1
+		SET published_at = NULL, published_by_user_id = NULL, updated_at = $1
 		WHERE published_at IS NOT NULL
 	`, time.Now().UTC())
 	if err != nil {
@@ -298,9 +349,9 @@ func (r *blogThemeRepository) PublishThemeTx(ctx context.Context, tx *sql.Tx, ve
 	now := time.Now().UTC()
 	result, err := tx.ExecContext(ctx, `
 		UPDATE blog_themes
-		SET published_at = $1, updated_at = $2
-		WHERE version = $3
-	`, now, now, version)
+		SET published_at = $1, published_by_user_id = $2, updated_at = $3
+		WHERE version = $4
+	`, now, publishedByUserID, now, version)
 	if err != nil {
 		return fmt.Errorf("failed to publish blog theme: %w", err)
 	}
@@ -338,7 +389,7 @@ func (r *blogThemeRepository) ListThemes(ctx context.Context, params domain.List
 
 	// Get themes with pagination
 	query := `
-		SELECT version, published_at, files, created_at, updated_at
+		SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at
 		FROM blog_themes
 		ORDER BY version DESC
 		LIMIT $1 OFFSET $2
@@ -353,15 +404,26 @@ func (r *blogThemeRepository) ListThemes(ctx context.Context, params domain.List
 	var themes []*domain.BlogTheme
 	for rows.Next() {
 		var theme domain.BlogTheme
+		var notes sql.NullString
+		var publishedByUserID sql.NullString
 		err := rows.Scan(
 			&theme.Version,
 			&theme.PublishedAt,
+			&publishedByUserID,
 			&theme.Files,
+			&notes,
 			&theme.CreatedAt,
 			&theme.UpdatedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan blog theme: %w", err)
+		}
+		// Convert sql.NullString to *string
+		if notes.Valid {
+			theme.Notes = &notes.String
+		}
+		if publishedByUserID.Valid {
+			theme.PublishedByUserID = &publishedByUserID.String
 		}
 		themes = append(themes, &theme)
 	}

@@ -140,31 +140,31 @@ func (mr *MockBlogThemeRepositoryMockRecorder) ListThemes(arg0, arg1 interface{}
 }
 
 // PublishTheme mocks base method.
-func (m *MockBlogThemeRepository) PublishTheme(arg0 context.Context, arg1 int) error {
+func (m *MockBlogThemeRepository) PublishTheme(arg0 context.Context, arg1 int, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PublishTheme", arg0, arg1)
+	ret := m.ctrl.Call(m, "PublishTheme", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PublishTheme indicates an expected call of PublishTheme.
-func (mr *MockBlogThemeRepositoryMockRecorder) PublishTheme(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockBlogThemeRepositoryMockRecorder) PublishTheme(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishTheme", reflect.TypeOf((*MockBlogThemeRepository)(nil).PublishTheme), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishTheme", reflect.TypeOf((*MockBlogThemeRepository)(nil).PublishTheme), arg0, arg1, arg2)
 }
 
 // PublishThemeTx mocks base method.
-func (m *MockBlogThemeRepository) PublishThemeTx(arg0 context.Context, arg1 *sql.Tx, arg2 int) error {
+func (m *MockBlogThemeRepository) PublishThemeTx(arg0 context.Context, arg1 *sql.Tx, arg2 int, arg3 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PublishThemeTx", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "PublishThemeTx", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PublishThemeTx indicates an expected call of PublishThemeTx.
-func (mr *MockBlogThemeRepositoryMockRecorder) PublishThemeTx(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockBlogThemeRepositoryMockRecorder) PublishThemeTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishThemeTx", reflect.TypeOf((*MockBlogThemeRepository)(nil).PublishThemeTx), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishThemeTx", reflect.TypeOf((*MockBlogThemeRepository)(nil).PublishThemeTx), arg0, arg1, arg2, arg3)
 }
 
 // UpdateTheme mocks base method.

@@ -25,7 +25,7 @@ export function SMTPRelaySettings() {
             bordered
             column={1}
             size="small"
-            labelStyle={{ width: '200px', fontWeight: '500' }}
+            styles={{ label: { width: '200px', fontWeight: '500' } }}
           >
             <Descriptions.Item label="SMTP domain">
               {window.SMTP_RELAY_DOMAIN || 'Not set'}

@@ -96,20 +96,14 @@ func TestBlogThemeHandler_HandleCreate(t *testing.T) {
 	})
 
 	t.Run("Missing workspace_id", func(t *testing.T) {
-		handler, mockService, mockLogger, ctrl := setupBlogThemeHandler(t)
+		handler, _, _, ctrl := setupBlogThemeHandler(t)
 		defer ctrl.Finish()
 
 		reqBody := map[string]interface{}{
 			"files": map[string]interface{}{},
 		}
 
-		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger)
-		mockLogger.EXPECT().Error(gomock.Any())
-
-		// Service will be called and should return an error for missing workspace_id
-		mockService.EXPECT().
-			CreateTheme(gomock.Any(), gomock.Any()).
-			Return(nil, errors.New("workspace_id not found in context"))
+		// No mock expectations needed - validation happens before service call
 
 		body, _ := json.Marshal(reqBody)
 		req := httptest.NewRequest(http.MethodPost, "/api/blogThemes.create", bytes.NewBuffer(body))
@@ -117,7 +111,7 @@ func TestBlogThemeHandler_HandleCreate(t *testing.T) {
 
 		handler.HandleCreate(w, req)
 
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
 	t.Run("Method not allowed", func(t *testing.T) {
@@ -205,23 +199,17 @@ func TestBlogThemeHandler_HandleGet(t *testing.T) {
 	})
 
 	t.Run("Missing workspace_id", func(t *testing.T) {
-		handler, mockService, mockLogger, ctrl := setupBlogThemeHandler(t)
+		handler, _, _, ctrl := setupBlogThemeHandler(t)
 		defer ctrl.Finish()
 
-		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger)
-		mockLogger.EXPECT().Error(gomock.Any())
-
-		// Service will be called and should return an error for missing workspace_id
-		mockService.EXPECT().
-			GetTheme(gomock.Any(), 1).
-			Return(nil, errors.New("workspace_id not found in context"))
+		// No mock expectations needed - validation happens before service call
 
 		req := httptest.NewRequest(http.MethodGet, "/api/blogThemes.get?version=1", nil)
 		w := httptest.NewRecorder()
 
 		handler.HandleGet(w, req)
 
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
 	t.Run("Missing version", func(t *testing.T) {
@@ -303,23 +291,17 @@ func TestBlogThemeHandler_HandleGetPublished(t *testing.T) {
 	})
 
 	t.Run("Missing workspace_id", func(t *testing.T) {
-		handler, mockService, mockLogger, ctrl := setupBlogThemeHandler(t)
+		handler, _, _, ctrl := setupBlogThemeHandler(t)
 		defer ctrl.Finish()
 
-		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger)
-		mockLogger.EXPECT().Error(gomock.Any())
-
-		// Service will be called and should return an error for missing workspace_id
-		mockService.EXPECT().
-			GetPublishedTheme(gomock.Any()).
-			Return(nil, errors.New("workspace_id not found in context"))
+		// No mock expectations needed - validation happens before service call
 
 		req := httptest.NewRequest(http.MethodGet, "/api/blogThemes.getPublished", nil)
 		w := httptest.NewRecorder()
 
 		handler.HandleGetPublished(w, req)
 
-		assert.Equal(t, http.StatusNotFound, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
 	t.Run("No published theme", func(t *testing.T) {
@@ -537,23 +519,17 @@ func TestBlogThemeHandler_HandleList(t *testing.T) {
 	})
 
 	t.Run("Missing workspace_id", func(t *testing.T) {
-		handler, mockService, mockLogger, ctrl := setupBlogThemeHandler(t)
+		handler, _, _, ctrl := setupBlogThemeHandler(t)
 		defer ctrl.Finish()
 
-		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger)
-		mockLogger.EXPECT().Error(gomock.Any())
-
-		// Service will be called and should return an error for missing workspace_id
-		mockService.EXPECT().
-			ListThemes(gomock.Any(), gomock.Any()).
-			Return(nil, errors.New("workspace_id not found in context"))
+		// No mock expectations needed - validation happens before service call
 
 		req := httptest.NewRequest(http.MethodGet, "/api/blogThemes.list", nil)
 		w := httptest.NewRecorder()
 
 		handler.HandleList(w, req)
 
-		assert.Equal(t, http.StatusInternalServerError, w.Code)
+		assert.Equal(t, http.StatusBadRequest, w.Code)
 	})
 
 	t.Run("Service error", func(t *testing.T) {

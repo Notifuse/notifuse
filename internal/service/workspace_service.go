@@ -31,9 +31,10 @@ type WorkspaceService struct {
 	contactListService     domain.ContactListService
 	templateService        domain.TemplateService
 	webhookRegService      domain.WebhookRegistrationService
-	supabaseService        *SupabaseService
+	supabaseService        SupabaseService
 	secretKey              string
-	dnsVerificationService *DNSVerificationService
+	dnsVerificationService DNSVerificationService
+	blogService            BlogService
 }
 
 func NewWorkspaceService(
@@ -51,33 +52,29 @@ func NewWorkspaceService(
 	templateService domain.TemplateService,
 	webhookRegService domain.WebhookRegistrationService,
 	secretKey string,
+	supabaseService SupabaseService,
+	dnsVerificationService DNSVerificationService,
+	blogService BlogService,
 ) *WorkspaceService {
 	return &WorkspaceService{
-		repo:               repo,
-		userRepo:           userRepo,
-		taskRepo:           taskRepo,
-		logger:             logger,
-		userService:        userService,
-		authService:        authService,
-		mailer:             mailerInstance,
-		config:             config,
-		contactService:     contactService,
-		listService:        listService,
-		contactListService: contactListService,
-		templateService:    templateService,
-		webhookRegService:  webhookRegService,
-		secretKey:          secretKey,
+		repo:                   repo,
+		userRepo:               userRepo,
+		taskRepo:               taskRepo,
+		logger:                 logger,
+		userService:            userService,
+		authService:            authService,
+		mailer:                 mailerInstance,
+		config:                 config,
+		contactService:         contactService,
+		listService:            listService,
+		contactListService:     contactListService,
+		templateService:        templateService,
+		webhookRegService:      webhookRegService,
+		secretKey:              secretKey,
+		supabaseService:        supabaseService,
+		dnsVerificationService: dnsVerificationService,
+		blogService:            blogService,
 	}
-}
-
-// SetSupabaseService sets the Supabase service (used to avoid circular dependencies)
-func (s *WorkspaceService) SetSupabaseService(supabaseService *SupabaseService) {
-	s.supabaseService = supabaseService
-}
-
-// SetDNSVerificationService sets the DNS verification service
-func (s *WorkspaceService) SetDNSVerificationService(dnsVerificationService *DNSVerificationService) {
-	s.dnsVerificationService = dnsVerificationService
 }
 
 // ListWorkspaces returns all workspaces for a user
@@ -329,7 +326,7 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 		isDomainChanging := existingWorkspace.Settings.CustomEndpointURL == nil ||
 			*existingWorkspace.Settings.CustomEndpointURL != *settings.CustomEndpointURL
 
-		if isDomainChanging && s.dnsVerificationService != nil {
+		if isDomainChanging {
 			// Verify DNS ownership
 			if err := s.dnsVerificationService.VerifyDomainOwnership(ctx, *settings.CustomEndpointURL); err != nil {
 				s.logger.
@@ -388,6 +385,9 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 		s.logger.WithField("workspace_id", id).WithField("error", err.Error()).Error("Failed to update workspace")
 		return nil, err
 	}
+
+	// Blog themes are now created by the frontend when enabling the blog
+	// No automatic theme creation in the backend
 
 	return existingWorkspace, nil
 }
@@ -1184,25 +1184,23 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.Cre
 
 	case domain.IntegrationTypeSupabase:
 		// Create default templates and transactional notifications for Supabase integration
-		if s.supabaseService != nil {
-			// Create templates first
-			mappings, err := s.supabaseService.CreateDefaultSupabaseTemplates(ctx, req.WorkspaceID, integrationID)
+		// Create templates first
+		mappings, err := s.supabaseService.CreateDefaultSupabaseTemplates(ctx, req.WorkspaceID, integrationID)
+		if err != nil {
+			s.logger.WithField("workspace_id", req.WorkspaceID).
+				WithField("integration_id", integrationID).
+				WithField("error", err.Error()).
+				Error("Failed to create default Supabase templates")
+			// Don't fail the integration creation, templates can be created manually
+		} else {
+			// Create transactional notifications that reference the templates
+			err = s.supabaseService.CreateDefaultSupabaseNotifications(ctx, req.WorkspaceID, integrationID, mappings)
 			if err != nil {
 				s.logger.WithField("workspace_id", req.WorkspaceID).
 					WithField("integration_id", integrationID).
 					WithField("error", err.Error()).
-					Error("Failed to create default Supabase templates")
-				// Don't fail the integration creation, templates can be created manually
-			} else {
-				// Create transactional notifications that reference the templates
-				err = s.supabaseService.CreateDefaultSupabaseNotifications(ctx, req.WorkspaceID, integrationID, mappings)
-				if err != nil {
-					s.logger.WithField("workspace_id", req.WorkspaceID).
-						WithField("integration_id", integrationID).
-						WithField("error", err.Error()).
-						Error("Failed to create default Supabase notifications")
-					// Don't fail the integration creation
-				}
+					Error("Failed to create default Supabase notifications")
+				// Don't fail the integration creation
 			}
 		}
 	}
@@ -1368,14 +1366,12 @@ func (s *WorkspaceService) DeleteIntegration(ctx context.Context, workspaceID, i
 
 	case domain.IntegrationTypeSupabase:
 		// Delete all templates and transactional notifications associated with this integration
-		if s.supabaseService != nil {
-			err := s.deleteSupabaseIntegrationResources(ctx, workspaceID, integrationID)
-			if err != nil {
-				s.logger.WithField("workspace_id", workspaceID).
-					WithField("integration_id", integrationID).
-					WithField("error", err.Error()).
-					Warn("Failed to delete Supabase integration resources, continuing with deletion anyway")
-			}
+		err := s.deleteSupabaseIntegrationResources(ctx, workspaceID, integrationID)
+		if err != nil {
+			s.logger.WithField("workspace_id", workspaceID).
+				WithField("integration_id", integrationID).
+				WithField("error", err.Error()).
+				Warn("Failed to delete Supabase integration resources, continuing with deletion anyway")
 		}
 	}
 
@@ -1405,10 +1401,6 @@ func (s *WorkspaceService) DeleteIntegration(ctx context.Context, workspaceID, i
 // deleteSupabaseIntegrationResources deletes all templates and transactional notifications associated with a Supabase integration
 func (s *WorkspaceService) deleteSupabaseIntegrationResources(ctx context.Context, workspaceID, integrationID string) error {
 	// Delegate to the Supabase service which has access to all necessary repositories
-	if s.supabaseService == nil {
-		return fmt.Errorf("supabase service not available")
-	}
-
 	return s.supabaseService.DeleteIntegrationResources(ctx, workspaceID, integrationID)
 }
 

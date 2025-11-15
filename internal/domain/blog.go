@@ -739,11 +739,14 @@ func (f *BlogThemeFiles) Scan(value interface{}) error {
 
 // BlogTheme represents a blog theme with versioned Liquid template files
 type BlogTheme struct {
-	Version     int            `json:"version"`
-	PublishedAt *time.Time     `json:"published_at,omitempty"` // non-null = published
-	Files       BlogThemeFiles `json:"files"`
-	CreatedAt   time.Time      `json:"created_at"`
-	UpdatedAt   time.Time      `json:"updated_at"`
+	Version           int             `json:"version"`
+	PublishedAt       *time.Time      `json:"published_at,omitempty"`         // non-null = published
+	PublishedByUserID *string         `json:"published_by_user_id,omitempty"` // user who published this theme
+	Files             BlogThemeFiles  `json:"files"`
+	Styling           json.RawMessage `json:"styling,omitempty"` // EditorStyleConfig JSON
+	Notes             *string         `json:"notes,omitempty"`   // optional notes/description for this version
+	CreatedAt         time.Time       `json:"created_at"`
+	UpdatedAt         time.Time       `json:"updated_at"`
 }
 
 // Validate validates the blog theme
@@ -763,7 +766,9 @@ func (t *BlogTheme) IsPublished() bool {
 
 // CreateBlogThemeRequest defines the request to create a blog theme
 type CreateBlogThemeRequest struct {
-	Files BlogThemeFiles `json:"files"`
+	Files   BlogThemeFiles  `json:"files"`
+	Styling json.RawMessage `json:"styling,omitempty"`
+	Notes   *string         `json:"notes,omitempty"`
 }
 
 // Validate validates the create blog theme request
@@ -774,8 +779,10 @@ func (r *CreateBlogThemeRequest) Validate() error {
 
 // UpdateBlogThemeRequest defines the request to update a blog theme
 type UpdateBlogThemeRequest struct {
-	Version int            `json:"version"`
-	Files   BlogThemeFiles `json:"files"`
+	Version int             `json:"version"`
+	Files   BlogThemeFiles  `json:"files"`
+	Styling json.RawMessage `json:"styling,omitempty"`
+	Notes   *string         `json:"notes,omitempty"`
 }
 
 // Validate validates the update blog theme request
@@ -849,7 +856,7 @@ type BlogThemeRepository interface {
 	GetTheme(ctx context.Context, version int) (*BlogTheme, error)
 	GetPublishedTheme(ctx context.Context) (*BlogTheme, error)
 	UpdateTheme(ctx context.Context, theme *BlogTheme) error
-	PublishTheme(ctx context.Context, version int) error
+	PublishTheme(ctx context.Context, version int, publishedByUserID string) error
 	ListThemes(ctx context.Context, params ListBlogThemesRequest) (*BlogThemeListResponse, error)
 
 	// Transaction management
@@ -858,5 +865,5 @@ type BlogThemeRepository interface {
 	GetThemeTx(ctx context.Context, tx *sql.Tx, version int) (*BlogTheme, error)
 	GetPublishedThemeTx(ctx context.Context, tx *sql.Tx) (*BlogTheme, error)
 	UpdateThemeTx(ctx context.Context, tx *sql.Tx, theme *BlogTheme) error
-	PublishThemeTx(ctx context.Context, tx *sql.Tx, version int) error
+	PublishThemeTx(ctx context.Context, tx *sql.Tx, version int, publishedByUserID string) error
 }
