@@ -10,6 +10,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/PuerkitoBio/goquery"
 )
 
@@ -17,13 +18,15 @@ type NotificationCenterHandler struct {
 	service     domain.NotificationCenterService
 	listService domain.ListService
 	logger      logger.Logger
+	rateLimiter *ratelimiter.RateLimiter
 }
 
-func NewNotificationCenterHandler(service domain.NotificationCenterService, listService domain.ListService, logger logger.Logger) *NotificationCenterHandler {
+func NewNotificationCenterHandler(service domain.NotificationCenterService, listService domain.ListService, logger logger.Logger, rateLimiter *ratelimiter.RateLimiter) *NotificationCenterHandler {
 	return &NotificationCenterHandler{
 		service:     service,
 		listService: listService,
 		logger:      logger,
+		rateLimiter: rateLimiter,
 	}
 }
 
@@ -102,6 +105,25 @@ func (h *NotificationCenterHandler) handleSubscribe(w http.ResponseWriter, r *ht
 	if err := req.Validate(); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to validate request")
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	// Check rate limit by email
+	if h.rateLimiter != nil && !h.rateLimiter.Allow("subscribe:email", req.Contact.Email) {
+		retryAfter := h.rateLimiter.GetRemainingWindow("subscribe:email", req.Contact.Email)
+		w.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+		h.logger.WithField("email", req.Contact.Email).Warn("Subscribe: Rate limit exceeded")
+		WriteJSONError(w, "Too many subscription attempts. Please try again in a few minutes.", http.StatusTooManyRequests)
+		return
+	}
+
+	// Check rate limit by IP (prevents email-spam attacks)
+	clientIP := getClientIP(r)
+	if h.rateLimiter != nil && !h.rateLimiter.Allow("subscribe:ip", clientIP) {
+		retryAfter := h.rateLimiter.GetRemainingWindow("subscribe:ip", clientIP)
+		w.Header().Set("Retry-After", fmt.Sprintf("%d", retryAfter))
+		h.logger.WithField("ip", clientIP).Warn("Subscribe: IP rate limit exceeded")
+		WriteJSONError(w, "Too many subscription attempts. Please try again in a few minutes.", http.StatusTooManyRequests)
 		return
 	}
 
@@ -420,4 +442,27 @@ func parseInt(val string) (int, error) {
 	var result int
 	_, err := fmt.Sscanf(val, "%d", &result)
 	return result, err
+}
+
+// getClientIP extracts the client IP from the request, checking X-Forwarded-For first
+func getClientIP(r *http.Request) string {
+	// Check X-Forwarded-For header (if behind proxy)
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// Take first IP in the list
+		ips := strings.Split(xff, ",")
+		return strings.TrimSpace(ips[0])
+	}
+
+	// Check X-Real-IP header
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return xri
+	}
+
+	// Fall back to RemoteAddr
+	ip := r.RemoteAddr
+	// Remove port if present
+	if colon := strings.LastIndex(ip, ":"); colon != -1 {
+		ip = ip[:colon]
+	}
+	return ip
 }

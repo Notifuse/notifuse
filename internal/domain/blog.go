@@ -563,8 +563,9 @@ const (
 type ListBlogPostsRequest struct {
 	CategoryID string         `json:"category_id,omitempty"`
 	Status     BlogPostStatus `json:"status,omitempty"`
-	Limit      int            `json:"limit,omitempty"`
-	Offset     int            `json:"offset,omitempty"`
+	Page       int            `json:"page,omitempty"`   // Page number (1-indexed)
+	Limit      int            `json:"limit,omitempty"`  // Posts per page
+	Offset     int            `json:"offset,omitempty"` // Calculated from Page
 }
 
 // Validate validates the list blog posts request
@@ -583,6 +584,11 @@ func (r *ListBlogPostsRequest) Validate() error {
 		return fmt.Errorf("invalid status: %s", r.Status)
 	}
 
+	// Default page to 1 if not specified
+	if r.Page <= 0 {
+		r.Page = 1
+	}
+
 	// Default limit if not specified
 	if r.Limit <= 0 {
 		r.Limit = 50
@@ -593,13 +599,20 @@ func (r *ListBlogPostsRequest) Validate() error {
 		r.Limit = 100
 	}
 
+	// Calculate offset from page number
+	r.Offset = (r.Page - 1) * r.Limit
+
 	return nil
 }
 
 // BlogPostListResponse defines the response for listing blog posts
 type BlogPostListResponse struct {
-	Posts      []*BlogPost `json:"posts"`
-	TotalCount int         `json:"total_count"`
+	Posts           []*BlogPost `json:"posts"`
+	TotalCount      int         `json:"total_count"`
+	CurrentPage     int         `json:"current_page"`
+	TotalPages      int         `json:"total_pages"`
+	HasNextPage     bool        `json:"has_next_page"`
+	HasPreviousPage bool        `json:"has_previous_page"`
 }
 
 // BlogCategoryRepository defines the data access layer for blog categories
@@ -676,6 +689,11 @@ type BlogService interface {
 	UpdateTheme(ctx context.Context, request *UpdateBlogThemeRequest) (*BlogTheme, error)
 	PublishTheme(ctx context.Context, request *PublishBlogThemeRequest) error
 	ListThemes(ctx context.Context, params *ListBlogThemesRequest) (*BlogThemeListResponse, error)
+
+	// Blog page rendering (public, no auth required)
+	RenderHomePage(ctx context.Context, workspaceID string, page int) (string, error)
+	RenderPostPage(ctx context.Context, workspaceID, categorySlug, postSlug string) (string, error)
+	RenderCategoryPage(ctx context.Context, workspaceID, categorySlug string, page int) (string, error)
 }
 
 // NormalizeSlug normalizes a string to be a valid slug
@@ -866,4 +884,195 @@ type BlogThemeRepository interface {
 	GetPublishedThemeTx(ctx context.Context, tx *sql.Tx) (*BlogTheme, error)
 	UpdateThemeTx(ctx context.Context, tx *sql.Tx, theme *BlogTheme) error
 	PublishThemeTx(ctx context.Context, tx *sql.Tx, version int, publishedByUserID string) error
+}
+
+// BlogRenderError represents a structured error for blog page rendering
+type BlogRenderError struct {
+	Code    string // Error code for handler mapping
+	Message string // Human-readable message
+	Details error  // Underlying error
+}
+
+func (e *BlogRenderError) Error() string {
+	if e.Details != nil {
+		return fmt.Sprintf("%s: %s (%v)", e.Code, e.Message, e.Details)
+	}
+	return fmt.Sprintf("%s: %s", e.Code, e.Message)
+}
+
+// Error codes for blog rendering
+const (
+	ErrCodeThemeNotFound       = "theme_not_found"
+	ErrCodeThemeNotPublished   = "theme_not_published"
+	ErrCodePostNotFound        = "post_not_found"
+	ErrCodeCategoryNotFound    = "category_not_found"
+	ErrCodeRenderFailed        = "render_failed"
+	ErrCodeInvalidLiquidSyntax = "invalid_liquid_syntax"
+)
+
+// BlogTemplateDataRequest groups parameters for building blog template data
+// Similar to TemplateDataRequest for email templates
+type BlogTemplateDataRequest struct {
+	Workspace      *Workspace
+	Post           *BlogPost             // Optional, for post pages
+	Category       *BlogCategory         // Optional, for category pages
+	PublicLists    []*List               // Always included (empty array if none)
+	Posts          []*BlogPost           // For listings (home/category pages)
+	Categories     []*BlogCategory       // For navigation
+	ThemeStyling   json.RawMessage       // Theme styling configuration (newsletter settings, etc.)
+	CustomData     MapOfAny              // Optional additional data
+	PaginationData *BlogPostListResponse // Pagination metadata (optional, for paginated pages)
+}
+
+// BuildBlogTemplateData creates a template data map for blog Liquid templates
+// This ensures consistent data structure across all blog pages
+func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
+	templateData := MapOfAny{}
+
+	// Add workspace data
+	if req.Workspace != nil {
+		templateData["workspace"] = MapOfAny{
+			"id":   req.Workspace.ID,
+			"name": req.Workspace.Name,
+		}
+	}
+
+	// Add post data (for post pages)
+	if req.Post != nil {
+		postData := MapOfAny{
+			"id":                   req.Post.ID,
+			"slug":                 req.Post.Slug,
+			"category_id":          req.Post.CategoryID,
+			"published_at":         req.Post.PublishedAt,
+			"created_at":           req.Post.CreatedAt,
+			"updated_at":           req.Post.UpdatedAt,
+			"title":                req.Post.Settings.Title,
+			"excerpt":              req.Post.Settings.Excerpt,
+			"featured_image_url":   req.Post.Settings.FeaturedImageURL,
+			"authors":              req.Post.Settings.Authors,
+			"reading_time_minutes": req.Post.Settings.ReadingTimeMinutes,
+		}
+
+		// Add SEO data if available
+		if req.Post.Settings.SEO != nil {
+			postData["seo"] = MapOfAny{
+				"meta_title":       req.Post.Settings.SEO.MetaTitle,
+				"meta_description": req.Post.Settings.SEO.MetaDescription,
+				"og_title":         req.Post.Settings.SEO.OGTitle,
+				"og_description":   req.Post.Settings.SEO.OGDescription,
+				"og_image":         req.Post.Settings.SEO.OGImage,
+				"canonical_url":    req.Post.Settings.SEO.CanonicalURL,
+				"keywords":         req.Post.Settings.SEO.Keywords,
+			}
+		}
+
+		templateData["post"] = postData
+	}
+
+	// Add category data (for category pages)
+	if req.Category != nil {
+		categoryData := MapOfAny{
+			"id":          req.Category.ID,
+			"slug":        req.Category.Slug,
+			"name":        req.Category.Settings.Name,
+			"description": req.Category.Settings.Description,
+		}
+
+		// Add SEO data if available
+		if req.Category.Settings.SEO != nil {
+			categoryData["seo"] = MapOfAny{
+				"meta_title":       req.Category.Settings.SEO.MetaTitle,
+				"meta_description": req.Category.Settings.SEO.MetaDescription,
+				"og_title":         req.Category.Settings.SEO.OGTitle,
+				"og_description":   req.Category.Settings.SEO.OGDescription,
+				"og_image":         req.Category.Settings.SEO.OGImage,
+				"canonical_url":    req.Category.Settings.SEO.CanonicalURL,
+				"keywords":         req.Category.Settings.SEO.Keywords,
+			}
+		}
+
+		templateData["category"] = categoryData
+	}
+
+	// Add public lists (always included, even if empty)
+	publicListsData := make([]MapOfAny, 0)
+	for _, list := range req.PublicLists {
+		listData := MapOfAny{
+			"id":   list.ID,
+			"name": list.Name,
+		}
+		if list.Description != "" {
+			listData["description"] = list.Description
+		}
+		publicListsData = append(publicListsData, listData)
+	}
+	templateData["public_lists"] = publicListsData
+
+	// Add posts array (for listings)
+	if req.Posts != nil {
+		postsData := make([]MapOfAny, 0)
+		for _, post := range req.Posts {
+			postData := MapOfAny{
+				"id":                   post.ID,
+				"slug":                 post.Slug,
+				"category_id":          post.CategoryID,
+				"published_at":         post.PublishedAt,
+				"title":                post.Settings.Title,
+				"excerpt":              post.Settings.Excerpt,
+				"featured_image_url":   post.Settings.FeaturedImageURL,
+				"authors":              post.Settings.Authors,
+				"reading_time_minutes": post.Settings.ReadingTimeMinutes,
+			}
+			postsData = append(postsData, postData)
+		}
+		templateData["posts"] = postsData
+	}
+
+	// Add categories array (for navigation)
+	if req.Categories != nil {
+		categoriesData := make([]MapOfAny, 0)
+		for _, category := range req.Categories {
+			categoryData := MapOfAny{
+				"id":          category.ID,
+				"slug":        category.Slug,
+				"name":        category.Settings.Name,
+				"description": category.Settings.Description,
+			}
+			categoriesData = append(categoriesData, categoryData)
+		}
+		templateData["categories"] = categoriesData
+	}
+
+	// Add custom data if provided
+	if req.CustomData != nil {
+		for key, value := range req.CustomData {
+			templateData[key] = value
+		}
+	}
+
+	// Add pagination data if provided (for paginated pages)
+	if req.PaginationData != nil {
+		paginationData := MapOfAny{
+			"current_page": req.PaginationData.CurrentPage,
+			"total_pages":  req.PaginationData.TotalPages,
+			"has_next":     req.PaginationData.HasNextPage,
+			"has_previous": req.PaginationData.HasPreviousPage,
+			"total_count":  req.PaginationData.TotalCount,
+			"per_page":     0, // Will be set by caller if needed
+		}
+		templateData["pagination"] = paginationData
+	}
+
+	// Add current year for copyright notices, etc.
+	templateData["current_year"] = time.Now().Year()
+
+	// Add theme styling if provided (contains newsletter settings, etc.)
+	if len(req.ThemeStyling) > 0 {
+		var styling map[string]interface{}
+		if err := json.Unmarshal(req.ThemeStyling, &styling); err == nil {
+			templateData["theme"] = styling
+		}
+	}
+
+	return templateData, nil
 }

@@ -114,6 +114,15 @@ export interface LinkStyles {
 }
 
 /**
+ * Newsletter subscription settings
+ */
+export interface NewsletterStyles {
+  enabled: boolean
+  buttonColor: string
+  buttonText: string
+}
+
+/**
  * Complete editor style configuration
  */
 export interface EditorStyleConfig {
@@ -131,4 +140,5 @@ export interface EditorStyleConfig {
   inlineCode: InlineCodeStyles
   list: ListStyles
   link: LinkStyles
+  newsletter: NewsletterStyles
 }

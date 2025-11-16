@@ -99,5 +99,12 @@ export const timesJournalPreset: EditorStyleConfig = {
   link: {
     color: '#0055aa', // Classic blue
     hoverColor: '#003377' // Darker on hover
+  },
+
+  // Newsletter settings
+  newsletter: {
+    enabled: false,
+    buttonColor: '#0055aa',
+    buttonText: 'Subscribe'
   }
 }

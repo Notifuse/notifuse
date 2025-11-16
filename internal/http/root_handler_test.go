@@ -31,8 +31,9 @@ func TestNewRootHandler(t *testing.T) {
 		"",
 		0,
 		false,
+		nil, // workspaceRepo
 		nil, // blogService
-		nil,                      // workspaceRepo
+		nil, // cache
 	)
 
 	// Assert fields are set correctly
@@ -56,8 +57,9 @@ func TestRootHandler_Handle(t *testing.T) {
 		"",
 		0,
 		false,
+		nil, // workspaceRepo
 		nil, // blogService
-		nil,                      // workspaceRepo
+		nil, // cache
 	)
 
 	// Create a test request
@@ -97,8 +99,9 @@ func TestRootHandler_RegisterRoutes(t *testing.T) {
 		"",
 		0,
 		false,
+		nil, // workspaceRepo
 		nil, // blogService
-		nil,                      // workspaceRepo
+		nil, // cache
 	)
 	mux := http.NewServeMux()
 
@@ -144,8 +147,9 @@ func TestRootHandler_RegisterRoutesWithNotificationCenter(t *testing.T) {
 		"",
 		0,
 		false,
+		nil, // workspaceRepo
 		nil, // blogService
-		nil,                      // workspaceRepo
+		nil, // cache
 	)
 
 	mux := http.NewServeMux()
@@ -184,8 +188,9 @@ func TestRootHandler_ServeConfigJS(t *testing.T) {
 		"",
 		0,
 		false,
+		nil, // workspaceRepo
 		nil, // blogService
-		nil,                      // workspaceRepo
+		nil, // cache
 	)
 
 	// Create a request to /config.js
@@ -239,8 +244,9 @@ func TestRootHandler_Handle_ConfigJS(t *testing.T) {
 		"",
 		0,
 		false,
+		nil, // workspaceRepo
 		nil, // blogService
-		nil,                      // workspaceRepo
+		nil, // cache
 	)
 
 	// Create a request to /config.js
@@ -297,8 +303,9 @@ func TestRootHandler_ServeNotificationCenter(t *testing.T) {
 		"",
 		0,
 		false,
+		nil, // workspaceRepo
 		nil, // blogService
-		nil,                      // workspaceRepo
+		nil, // cache
 	)
 
 	t.Run("ServeExactPath", func(t *testing.T) {
@@ -373,8 +380,9 @@ func TestRootHandler_ServeConsole(t *testing.T) {
 		"",
 		0,
 		false,
+		nil, // workspaceRepo
 		nil, // blogService
-		nil,                      // workspaceRepo
+		nil, // cache
 	)
 
 	t.Run("ServeExactPath", func(t *testing.T) {
@@ -465,8 +473,9 @@ func TestRootHandler_Handle_Comprehensive(t *testing.T) {
 		"",
 		0,
 		false,
+		nil, // workspaceRepo
 		nil, // blogService
-		nil,                      // workspaceRepo
+		nil, // cache
 	)
 
 	t.Run("NotFoundAPIPath", func(t *testing.T) {
@@ -561,4 +570,40 @@ func TestRootHandler_Handle_Comprehensive(t *testing.T) {
 		assert.Equal(t, http.StatusTemporaryRedirect, rr.Code)
 		assert.Equal(t, "/console", rr.Header().Get("Location"))
 	})
+}
+
+func TestRootHandler_CacheIntegration(t *testing.T) {
+	// This test verifies that the cache parameter is properly initialized
+	// The actual cache behavior is tested in pkg/cache/cache_test.go
+	testLogger := logger.NewLogger()
+	isInstalled := false
+
+	t.Run("handler works without cache", func(t *testing.T) {
+		handler := NewRootHandler(
+			"console_test",
+			"notification_center_test",
+			testLogger,
+			"https://api.example.com",
+			"1.0",
+			"root@example.com",
+			&isInstalled,
+			false,
+			"",
+			0,
+			false,
+			nil, // workspaceRepo
+			nil, // blogService
+			nil, // cache - nil is allowed
+		)
+
+		// Verify handler is created successfully
+		assert.NotNil(t, handler)
+		assert.Nil(t, handler.cache)
+	})
+
+	// Note: Full integration tests for blog caching would require:
+	// - A mock BlogService to return rendered HTML
+	// - A mock WorkspaceRepository to return workspaces with custom domains
+	// - Setting up the cache and verifying cache hits/misses
+	// These are better suited for integration tests rather than unit tests
 }

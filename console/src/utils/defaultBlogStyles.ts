@@ -69,6 +69,11 @@ export const DEFAULT_BLOG_STYLES: EditorStyleConfig = {
   link: {
     color: '#2563eb',
     hoverColor: '#1d4ed8'
+  },
+  newsletter: {
+    enabled: false,
+    buttonColor: '#2563eb',
+    buttonText: 'Subscribe'
   }
 }
 

@@ -55,6 +55,12 @@ func (m *MockWorkspaceRepository) List(ctx context.Context) ([]*domain.Workspace
 	return wss, args.Error(1)
 }
 
+func (m *MockWorkspaceRepository) GetWorkspaceByCustomDomain(ctx context.Context, hostname string) (*domain.Workspace, error) {
+	args := m.Called(ctx, hostname)
+	ws, _ := args.Get(0).(*domain.Workspace)
+	return ws, args.Error(1)
+}
+
 func (m *MockWorkspaceRepository) Update(ctx context.Context, workspace *domain.Workspace) error {
 	args := m.Called(ctx, workspace)
 	return args.Error(0)

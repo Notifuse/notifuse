@@ -293,10 +293,28 @@ const (
 
 // BlogSettings contains blog title and SEO configuration
 type BlogSettings struct {
-	Title   string       `json:"title,omitempty"`
-	LogoURL *string      `json:"logo_url,omitempty"`
-	IconURL *string      `json:"icon_url,omitempty"`
-	SEO     *SEOSettings `json:"seo,omitempty"`
+	Title            string       `json:"title,omitempty"`
+	LogoURL          *string      `json:"logo_url,omitempty"`
+	IconURL          *string      `json:"icon_url,omitempty"`
+	SEO              *SEOSettings `json:"seo,omitempty"`
+	HomePageSize     int          `json:"home_page_size,omitempty"`     // Posts per page on home (default: 20)
+	CategoryPageSize int          `json:"category_page_size,omitempty"` // Posts per page on category (default: 20)
+}
+
+// GetHomePageSize returns the home page size with validation and default
+func (bs *BlogSettings) GetHomePageSize() int {
+	if bs == nil || bs.HomePageSize < 1 || bs.HomePageSize > 100 {
+		return 20 // default
+	}
+	return bs.HomePageSize
+}
+
+// GetCategoryPageSize returns the category page size with validation and default
+func (bs *BlogSettings) GetCategoryPageSize() int {
+	if bs == nil || bs.CategoryPageSize < 1 || bs.CategoryPageSize > 100 {
+		return 20 // default
+	}
+	return bs.CategoryPageSize
 }
 
 // Value implements the driver.Valuer interface for database serialization
@@ -857,6 +875,7 @@ type WorkspaceInvitation struct {
 type WorkspaceRepository interface {
 	Create(ctx context.Context, workspace *Workspace) error
 	GetByID(ctx context.Context, id string) (*Workspace, error)
+	GetWorkspaceByCustomDomain(ctx context.Context, hostname string) (*Workspace, error)
 	List(ctx context.Context) ([]*Workspace, error)
 	Update(ctx context.Context, workspace *Workspace) error
 	Delete(ctx context.Context, id string) error

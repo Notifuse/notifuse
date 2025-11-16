@@ -50,9 +50,9 @@ func TestWorkspaceService_ListWorkspaces(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	ctx := context.Background()
@@ -150,9 +150,9 @@ func TestWorkspaceService_GetWorkspace(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -274,9 +274,9 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -553,9 +553,9 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -793,9 +793,9 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -1022,9 +1022,9 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -1209,9 +1209,9 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -1394,9 +1394,9 @@ func TestWorkspaceService_DeleteIntegration(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Set up mockLogger to allow any calls
@@ -1636,9 +1636,9 @@ func TestWorkspaceService_RemoveMember(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	ctx := context.Background()
@@ -1890,9 +1890,9 @@ func TestWorkspaceService_GetInvitationByID(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	invitationID := "invitation-123"
@@ -1965,9 +1965,9 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	invitationID := "invitation-123"
@@ -2408,9 +2408,9 @@ func TestWorkspaceService_DeleteInvitation(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	ctx := context.Background()
@@ -2580,9 +2580,9 @@ func TestWorkspaceService_SetUserPermissions(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations

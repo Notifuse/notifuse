@@ -123,10 +123,25 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
     {
       title: 'Status',
       key: 'status',
-      width: 100,
+      width: 140,
       render: (record: BlogTheme) => {
-        const isLive = record.published_at !== null && record.published_at !== undefined
-        return isLive ? <Badge status="success" text="Live" /> : null
+        const isPublished = record.published_at !== null && record.published_at !== undefined
+        if (isPublished) {
+          return <Badge status="success" text="Live" />
+        }
+        return (
+          <Tooltip title="Publish this theme">
+            <Button
+              type="primary"
+              size="small"
+              icon={<CloudUploadOutlined />}
+              onClick={() => handlePublish(record)}
+              loading={publishMutation.isPending}
+            >
+              Publish
+            </Button>
+          </Tooltip>
+        )
       }
     },
     {
@@ -160,10 +175,9 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
     {
       title: 'Actions',
       key: 'actions',
-      width: 200,
+      width: 120,
       align: 'right' as const,
       render: (record: BlogTheme) => {
-        const isPublished = record.published_at !== null && record.published_at !== undefined
         return (
           <Space size="small">
             <Tooltip title="Edit theme">
@@ -182,17 +196,6 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
                 onClick={() => handlePreview(record)}
               />
             </Tooltip>
-            {!isPublished && (
-              <Tooltip title="Publish this theme">
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<CloudUploadOutlined />}
-                  onClick={() => handlePublish(record)}
-                  loading={publishMutation.isPending}
-                />
-              </Tooltip>
-            )}
           </Space>
         )
       }

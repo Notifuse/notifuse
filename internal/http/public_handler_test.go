@@ -35,7 +35,7 @@ func TestNotificationCenterHandler_RegisterRoutes(t *testing.T) {
 	mockService := mocks.NewMockNotificationCenterService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockLogger := &mockLogger{}
-	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger)
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
 
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
@@ -69,7 +69,7 @@ func TestNotificationCenterHandler_handleNotificationCenter(t *testing.T) {
 	mockService := mocks.NewMockNotificationCenterService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockLogger := &mockLogger{}
-	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger)
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
 
 	tests := []struct {
 		name               string
@@ -189,7 +189,7 @@ func TestNotificationCenterHandler_handleSubscribe(t *testing.T) {
 	mockService := mocks.NewMockNotificationCenterService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockLogger := &mockLogger{}
-	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger)
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
 
 	validRequest := domain.SubscribeToListsRequest{
 		WorkspaceID: "ws123",
@@ -292,7 +292,7 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 	mockService := mocks.NewMockNotificationCenterService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockLogger := &mockLogger{}
-	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger)
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
 
 	validRequest := domain.UnsubscribeFromListsRequest{
 		WorkspaceID: "ws123",
@@ -416,7 +416,7 @@ func TestNewNotificationCenterHandler(t *testing.T) {
 	mockListService := mocks.NewMockListService(ctrl)
 	mockLogger := &mockLogger{}
 
-	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger)
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
 
 	assert.NotNil(t, handler)
 	assert.Equal(t, mockService, handler.service)

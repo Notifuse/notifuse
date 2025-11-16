@@ -1,4 +1,4 @@
-import { Form, Input, InputNumber, Select, ColorPicker, Row, Col, Collapse, Divider } from 'antd'
+import { Form, Input, InputNumber, Select, ColorPicker, Row, Col, Collapse, Divider, Switch } from 'antd'
 import { DEFAULT_BLOG_STYLES } from '../../utils/defaultBlogStyles'
 
 const { Panel } = Collapse
@@ -500,6 +500,44 @@ export function BlogStyleSettings() {
                 initialValue={DEFAULT_BLOG_STYLES.caption.color}
               >
                 <ColorPicker size="small" showText format="hex" />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Panel>
+
+        {/* Newsletter Settings */}
+        <Panel header="Newsletter" key="newsletter">
+          <Row gutter={16}>
+            <Col span={24}>
+              <Form.Item
+                name={['blog_settings', 'styling', 'newsletter', 'enabled']}
+                label="Enable Newsletter"
+                tooltip="Show newsletter subscription form in footer"
+                initialValue={DEFAULT_BLOG_STYLES.newsletter.enabled}
+                valuePropName="checked"
+              >
+                <Switch size="small" />
+              </Form.Item>
+            </Col>
+          </Row>
+
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item
+                name={['blog_settings', 'styling', 'newsletter', 'buttonColor']}
+                label="Button Color"
+                initialValue={DEFAULT_BLOG_STYLES.newsletter.buttonColor}
+              >
+                <ColorPicker size="small" showText format="hex" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item
+                name={['blog_settings', 'styling', 'newsletter', 'buttonText']}
+                label="Button Text"
+                initialValue={DEFAULT_BLOG_STYLES.newsletter.buttonText}
+              >
+                <Input size="small" placeholder="Subscribe" />
               </Form.Item>
             </Col>
           </Row>

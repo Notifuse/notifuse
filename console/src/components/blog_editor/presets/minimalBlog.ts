@@ -101,5 +101,12 @@ export const minimalBlogPreset: EditorStyleConfig = {
   link: {
     color: '#111827',
     hoverColor: '#6b7280'
+  },
+
+  // Newsletter settings
+  newsletter: {
+    enabled: false,
+    buttonColor: '#111827',
+    buttonText: 'Subscribe'
   }
 }

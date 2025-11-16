@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"net/url"
 	"os"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/cache"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
@@ -28,6 +30,7 @@ type RootHandler struct {
 	smtpRelayTLSEnabled   bool
 	workspaceRepo         domain.WorkspaceRepository
 	blogService           domain.BlogService
+	cache                 cache.Cache
 }
 
 // NewRootHandler creates a root handler that serves both console and notification center static files
@@ -45,6 +48,7 @@ func NewRootHandler(
 	smtpRelayTLSEnabled bool,
 	workspaceRepo domain.WorkspaceRepository,
 	blogService domain.BlogService,
+	cache cache.Cache,
 ) *RootHandler {
 	return &RootHandler{
 		consoleDir:            consoleDir,
@@ -60,6 +64,7 @@ func NewRootHandler(
 		smtpRelayTLSEnabled:   smtpRelayTLSEnabled,
 		workspaceRepo:         workspaceRepo,
 		blogService:           blogService,
+		cache:                 cache,
 	}
 }
 
@@ -227,8 +232,21 @@ func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspac
 		return
 	}
 
-	// Try to parse as /{category-slug}/{post-slug}
+	// Try to parse URL parts
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	
+	// Handle /{category-slug} - category page
+	if len(parts) == 1 && parts[0] != "" {
+		categorySlug := parts[0]
+		// Try to get the category
+		category, err := h.blogService.GetCategoryBySlug(ctx, categorySlug)
+		if err == nil && category != nil {
+			h.serveBlogCategory(w, r, workspace, categorySlug)
+			return
+		}
+	}
+	
+	// Handle /{category-slug}/{post-slug} - post page
 	if len(parts) == 2 {
 		categorySlug := parts[0]
 		postSlug := parts[1]
@@ -249,66 +267,180 @@ func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspac
 func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace) {
 	ctx := context.WithValue(r.Context(), "workspace_id", workspace.ID)
 
-	// List published posts
-	params := &domain.ListBlogPostsRequest{
-		Status: domain.BlogPostStatusPublished,
-		Limit:  50,
-		Offset: 0,
+	// Extract page parameter from query string
+	pageStr := r.URL.Query().Get("page")
+	page := 1
+	if pageStr != "" {
+		var err error
+		page, err = strconv.Atoi(pageStr)
+		if err != nil || page < 1 {
+			// Invalid page parameter, redirect to page 1
+			http.Redirect(w, r, "/", http.StatusFound)
+			return
+		}
 	}
 
-	response, err := h.blogService.ListPublicPosts(ctx, params)
+	// Redirect ?page=1 to base URL to avoid duplicate content
+	if page == 1 && pageStr != "" {
+		http.Redirect(w, r, "/", http.StatusMovedPermanently)
+		return
+	}
+
+	// Try cache first (include page in cache key)
+	cacheKey := fmt.Sprintf("blog:%s:/?page=%d", r.Host, page)
+	if h.cache != nil {
+		if cached, found := h.cache.Get(cacheKey); found {
+			if html, ok := cached.(string); ok {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				w.Header().Set("Cache-Control", "public, max-age=60")
+				w.Header().Set("X-Cache", "HIT")
+				w.Write([]byte(html))
+				return
+			}
+		}
+	}
+
+	// Cache miss - render the page
+	html, err := h.blogService.RenderHomePage(ctx, workspace.ID, page)
 	if err != nil {
-		h.logger.WithField("error", err.Error()).Error("Failed to list blog posts")
+		// Map error codes to HTTP status codes (includes 404 for invalid pages)
+		if blogErr, ok := err.(*domain.BlogRenderError); ok {
+			h.handleBlogRenderError(w, blogErr)
+			return
+		}
+		// Fallback for unexpected errors
+		h.logger.WithField("error", err.Error()).Error("Failed to render blog home page")
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 
-	// Simple HTML response (you can enhance this with templates later)
+	// Store in cache
+	if h.cache != nil {
+		h.cache.Set(cacheKey, html, 60*time.Second)
+	}
+
+	// Serve the rendered HTML
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>%s Blog</title>
-</head>
-<body>
-<h1>%s Blog</h1>
-<p>Coming soon: Blog posts will be displayed here.</p>
-<p>Total posts: %d</p>
-</body>
-</html>`, workspace.Name, workspace.Name, response.TotalCount)))
+	w.Header().Set("Cache-Control", "public, max-age=60")
+	w.Header().Set("X-Cache", "MISS")
+	w.Write([]byte(html))
+}
+
+// serveBlogCategory serves a blog category page with posts in that category
+func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace, categorySlug string) {
+	ctx := context.WithValue(r.Context(), "workspace_id", workspace.ID)
+
+	// Extract page parameter from query string
+	pageStr := r.URL.Query().Get("page")
+	page := 1
+	if pageStr != "" {
+		var err error
+		page, err = strconv.Atoi(pageStr)
+		if err != nil || page < 1 {
+			// Invalid page parameter, redirect to page 1
+			http.Redirect(w, r, "/"+categorySlug, http.StatusFound)
+			return
+		}
+	}
+
+	// Redirect ?page=1 to base URL to avoid duplicate content
+	if page == 1 && pageStr != "" {
+		http.Redirect(w, r, "/"+categorySlug, http.StatusMovedPermanently)
+		return
+	}
+
+	// Try cache first (include page in cache key)
+	cacheKey := fmt.Sprintf("blog:%s:/%s?page=%d", r.Host, categorySlug, page)
+	if h.cache != nil {
+		if cached, found := h.cache.Get(cacheKey); found {
+			if html, ok := cached.(string); ok {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				w.Header().Set("Cache-Control", "public, max-age=60")
+				w.Header().Set("X-Cache", "HIT")
+				w.Write([]byte(html))
+				return
+			}
+		}
+	}
+
+	// Cache miss - render the page
+	html, err := h.blogService.RenderCategoryPage(ctx, workspace.ID, categorySlug, page)
+	if err != nil {
+		// Map error codes to HTTP status codes
+		if blogErr, ok := err.(*domain.BlogRenderError); ok {
+			h.handleBlogRenderError(w, blogErr)
+			return
+		}
+		// Fallback for unexpected errors
+		h.logger.WithField("error", err.Error()).Error("Failed to render blog category page")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Store in cache
+	if h.cache != nil {
+		h.cache.Set(cacheKey, html, 60*time.Second)
+	}
+
+	// Serve the rendered HTML
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "public, max-age=60")
+	w.Header().Set("X-Cache", "MISS")
+	w.Write([]byte(html))
 }
 
 // serveBlogPost serves a single blog post
 func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace, post *domain.BlogPost) {
-	// Simple HTML response (you can enhance this with templates later)
+	ctx := context.WithValue(r.Context(), "workspace_id", workspace.ID)
+
+	// Get category from post to build proper URL
+	// Extract category slug and post slug from URL
+	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(parts) != 2 {
+		h.serveBlog404(w, r)
+		return
+	}
+	categorySlug := parts[0]
+	postSlug := parts[1]
+
+	// Try cache first
+	cacheKey := fmt.Sprintf("blog:%s:/%s/%s", r.Host, categorySlug, postSlug)
+	if h.cache != nil {
+		if cached, found := h.cache.Get(cacheKey); found {
+			if html, ok := cached.(string); ok {
+				w.Header().Set("Content-Type", "text/html; charset=utf-8")
+				w.Header().Set("Cache-Control", "public, max-age=60")
+				w.Header().Set("X-Cache", "HIT")
+				w.Write([]byte(html))
+				return
+			}
+		}
+	}
+
+	// Cache miss - render the page
+	html, err := h.blogService.RenderPostPage(ctx, workspace.ID, categorySlug, postSlug)
+	if err != nil {
+		// Map error codes to HTTP status codes
+		if blogErr, ok := err.(*domain.BlogRenderError); ok {
+			h.handleBlogRenderError(w, blogErr)
+			return
+		}
+		// Fallback for unexpected errors
+		h.logger.WithField("error", err.Error()).Error("Failed to render blog post page")
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
+
+	// Store in cache
+	if h.cache != nil {
+		h.cache.Set(cacheKey, html, 60*time.Second)
+	}
+
+	// Serve the rendered HTML
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-	seoTitle := post.Settings.Title
-	if post.Settings.SEO != nil && post.Settings.SEO.MetaTitle != "" {
-		seoTitle = post.Settings.SEO.MetaTitle
-	}
-
-	seoDescription := post.Settings.Excerpt
-	if post.Settings.SEO != nil && post.Settings.SEO.MetaDescription != "" {
-		seoDescription = post.Settings.SEO.MetaDescription
-	}
-
-	w.Write([]byte(fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>%s</title>
-<meta name="description" content="%s">
-</head>
-<body>
-<h1>%s</h1>
-<p>Reading time: %d minutes</p>
-<p>Coming soon: Full blog post content will be displayed here.</p>
-</body>
-</html>`, seoTitle, seoDescription, post.Settings.Title, post.Settings.ReadingTimeMinutes)))
+	w.Header().Set("Cache-Control", "public, max-age=60")
+	w.Header().Set("X-Cache", "MISS")
+	w.Write([]byte(html))
 }
 
 // serveBlogRobots serves robots.txt for the blog
@@ -404,38 +536,93 @@ func (h *RootHandler) detectWorkspaceByHost(ctx context.Context, host string) *d
 		return nil
 	}
 
-	// List all workspaces and find one that matches the host
-	// Note: This could be optimized with a dedicated repository method in the future
-	workspaces, err := h.workspaceRepo.List(ctx)
+	// Use optimized repository method to find workspace by custom domain
+	workspace, err := h.workspaceRepo.GetWorkspaceByCustomDomain(ctx, host)
 	if err != nil {
-		h.logger.WithField("error", err.Error()).Error("Failed to list workspaces for host detection")
+		h.logger.WithField("error", err.Error()).Error("Failed to get workspace by custom domain")
 		return nil
 	}
 
-	for _, workspace := range workspaces {
-		if workspace.Settings.CustomEndpointURL == nil {
-			continue
-		}
-
-		customURL := *workspace.Settings.CustomEndpointURL
-		parsedURL, err := url.Parse(customURL)
-		if err != nil {
-			continue
-		}
-
-		// Compare hostnames (case-insensitive)
-		if strings.EqualFold(parsedURL.Hostname(), host) {
-			h.logger.
-				WithField("workspace_id", workspace.ID).
-				WithField("workspace_name", workspace.Name).
-				WithField("host", host).
-				Debug("Workspace detected by host")
-			return workspace
-		}
+	if workspace == nil {
+		h.logger.WithField("host", host).Debug("No workspace found for host")
+		return nil
 	}
 
-	h.logger.WithField("host", host).Debug("No workspace found for host")
-	return nil
+	h.logger.
+		WithField("workspace_id", workspace.ID).
+		WithField("workspace_name", workspace.Name).
+		WithField("host", host).
+		Debug("Workspace detected by host")
+	return workspace
+}
+
+// handleBlogRenderError maps blog render error codes to HTTP status codes
+func (h *RootHandler) handleBlogRenderError(w http.ResponseWriter, blogErr *domain.BlogRenderError) {
+	// Log the error
+	h.logger.WithFields(map[string]interface{}{
+		"error_code": blogErr.Code,
+		"message":    blogErr.Message,
+		"details":    blogErr.Details,
+	}).Error("Blog render error")
+
+	// Map error codes to HTTP status codes
+	switch blogErr.Code {
+	case domain.ErrCodeThemeNotFound, domain.ErrCodeThemeNotPublished:
+		// Service unavailable - blog not properly configured
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusServiceUnavailable)
+		w.Write([]byte(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog Unavailable</title>
+</head>
+<body>
+<h1>Blog Temporarily Unavailable</h1>
+<p>The blog is currently being set up. Please check back later.</p>
+</body>
+</html>`))
+
+	case domain.ErrCodePostNotFound, domain.ErrCodeCategoryNotFound:
+		// Not found
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>404 Not Found</title>
+</head>
+<body>
+<h1>404 Not Found</h1>
+<p>The page you're looking for doesn't exist.</p>
+<p><a href="/">Go back home</a></p>
+</body>
+</html>`))
+
+	case domain.ErrCodeRenderFailed, domain.ErrCodeInvalidLiquidSyntax:
+		// Internal server error
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Error</title>
+</head>
+<body>
+<h1>Something Went Wrong</h1>
+<p>We're sorry, but something went wrong. Please try again later.</p>
+</body>
+</html>`))
+
+	default:
+		// Unknown error - treat as internal server error
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+	}
 }
 
 func (h *RootHandler) RegisterRoutes(mux *http.ServeMux) {

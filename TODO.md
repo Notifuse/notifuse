@@ -2,6 +2,9 @@
 
 ## Web Publications
 
+- cache on blog compilation
+- rate limit on /subscribe endpoint: Per IP: 10 requests per minute
+
 ## Content
 
 - send newsletter to all contacts+previous customers

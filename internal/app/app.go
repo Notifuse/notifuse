@@ -20,9 +20,11 @@ import (
 	"github.com/Notifuse/notifuse/internal/repository"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/internal/service/broadcast"
+	"github.com/Notifuse/notifuse/pkg/cache"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/mailer"
+	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/Notifuse/notifuse/pkg/smtp_relay"
 	"github.com/Notifuse/notifuse/pkg/tracing"
 
@@ -143,13 +145,18 @@ type App struct {
 	sparkPostService *service.SparkPostService
 	sesService       *service.SESService
 
+	// Cache
+	cache cache.Cache
+
 	// HTTP handlers
 	mux    *http.ServeMux
 	server *http.Server
 
+	// Rate limiter (global, namespace-based)
+	rateLimiter *ratelimiter.RateLimiter
+
 	// SMTP relay server
 	smtpRelayHandlerService *service.SMTPRelayHandlerService
-	smtpRelayRateLimiter    *service.RateLimiter
 	smtpRelayServer         interface {
 		Start() error
 		Shutdown(context.Context) error
@@ -426,23 +433,27 @@ func (a *App) InitServices() error {
 
 	var err error
 
-	// Initialize rate limiters for authentication endpoints
-	// 5 attempts per 5 minutes per email address
-	signInLimiter := service.NewRateLimiter(5, 5*time.Minute)
-	verifyCodeLimiter := service.NewRateLimiter(5, 5*time.Minute)
+	// Initialize global rate limiter with namespace support
+	a.rateLimiter = ratelimiter.NewRateLimiter()
+
+	// Configure policies for different use cases
+	a.rateLimiter.SetPolicy("signin", 5, 5*time.Minute)           // Strict auth
+	a.rateLimiter.SetPolicy("verify", 5, 5*time.Minute)           // Strict auth
+	a.rateLimiter.SetPolicy("smtp", 5, 1*time.Minute)             // SMTP relay
+	a.rateLimiter.SetPolicy("subscribe:email", 10, 1*time.Minute) // Public subscribe by email
+	a.rateLimiter.SetPolicy("subscribe:ip", 50, 1*time.Minute)    // Public subscribe by IP
 
 	// Initialize user service
 	userServiceConfig := service.UserServiceConfig{
-		Repository:        a.userRepo,
-		AuthService:       a.authService,
-		EmailSender:       a.mailer,
-		SessionExpiry:     30 * 24 * time.Hour, // 30 days
-		IsProduction:      a.config.IsProduction(),
-		Logger:            a.logger,
-		Tracer:            tracing.GetTracer(),
-		SignInLimiter:     signInLimiter,
-		VerifyCodeLimiter: verifyCodeLimiter,
-		SecretKey:         a.config.Security.SecretKey,
+		Repository:    a.userRepo,
+		AuthService:   a.authService,
+		EmailSender:   a.mailer,
+		SessionExpiry: 30 * 24 * time.Hour, // 30 days
+		IsProduction:  a.config.IsProduction(),
+		Logger:        a.logger,
+		Tracer:        tracing.GetTracer(),
+		RateLimiter:   a.rateLimiter, // Pass global rate limiter
+		SecretKey:     a.config.Security.SecretKey,
 	}
 
 	a.userService, err = service.NewUserService(userServiceConfig)
@@ -700,6 +711,7 @@ func (a *App) InitServices() error {
 		a.blogPostRepo,
 		a.blogThemeRepo,
 		a.workspaceRepo,
+		a.listRepo,
 		a.authService,
 	)
 
@@ -719,9 +731,9 @@ func (a *App) InitServices() error {
 		a.templateService,
 		a.webhookRegistrationService,
 		a.config.Security.SecretKey,
-		*a.supabaseService,
-		*a.dnsVerificationService,
-		*a.blogService,
+		a.supabaseService,
+		a.dnsVerificationService,
+		a.blogService,
 	)
 
 	// Initialize and register segment build processor
@@ -815,9 +827,6 @@ func (a *App) InitServices() error {
 		a.config.TaskScheduler.MaxTasks,
 	)
 
-	// Create rate limiter for SMTP relay (5 attempts per minute)
-	a.smtpRelayRateLimiter = service.NewRateLimiter(5, 1*time.Minute)
-
 	// Initialize SMTP relay handler service
 	a.smtpRelayHandlerService = service.NewSMTPRelayHandlerService(
 		a.authService,
@@ -825,7 +834,7 @@ func (a *App) InitServices() error {
 		a.workspaceRepo,
 		a.logger,
 		a.config.Security.JWTSecret,
-		a.smtpRelayRateLimiter,
+		a.rateLimiter, // Use global rate limiter
 	)
 
 	// Initialize SMTP relay server if enabled
@@ -914,6 +923,7 @@ func (a *App) InitHandlers() error {
 		smtpRelayTLSEnabled,
 		a.workspaceRepo,
 		a.blogService,
+		a.cache,
 	)
 	setupHandler := httpHandler.NewSetupHandler(
 		a.setupService,
@@ -956,6 +966,7 @@ func (a *App) InitHandlers() error {
 		a.notificationCenterService,
 		a.listService,
 		a.logger,
+		a.rateLimiter, // Pass global rate limiter
 	)
 	analyticsHandler := httpHandler.NewAnalyticsHandler(
 		a.analyticsService,
@@ -1107,14 +1118,20 @@ func (a *App) Shutdown(ctx context.Context) error {
 	// Signal shutdown to all components
 	a.shutdownCancel()
 
+	// Stop cache cleanup goroutine
+	if a.cache != nil {
+		a.logger.Info("Stopping cache...")
+		a.cache.Stop()
+	}
+
 	// Stop task scheduler first (before stopping server)
 	if a.taskScheduler != nil {
 		a.taskScheduler.Stop()
 	}
 
-	// Stop SMTP relay rate limiter
-	if a.smtpRelayRateLimiter != nil {
-		a.smtpRelayRateLimiter.Stop()
+	// Stop global rate limiter
+	if a.rateLimiter != nil {
+		a.rateLimiter.Stop()
 	}
 
 	// Shutdown SMTP relay server if running
@@ -1336,6 +1353,10 @@ func (a *App) Initialize() error {
 	} else {
 		a.logger.Info("System installation verified")
 	}
+
+	// Initialize cache
+	a.cache = cache.NewInMemoryCache(30 * time.Second)
+	a.logger.Info("Cache initialized with 30s cleanup interval")
 
 	if err := a.InitMailer(); err != nil {
 		return err

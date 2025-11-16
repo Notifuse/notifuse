@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/liquid"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/google/uuid"
 )
@@ -18,6 +19,7 @@ type BlogService struct {
 	postRepo      domain.BlogPostRepository
 	themeRepo     domain.BlogThemeRepository
 	workspaceRepo domain.WorkspaceRepository
+	listRepo      domain.ListRepository
 	authService   domain.AuthService
 }
 
@@ -28,6 +30,7 @@ func NewBlogService(
 	postRepository domain.BlogPostRepository,
 	themeRepository domain.BlogThemeRepository,
 	workspaceRepository domain.WorkspaceRepository,
+	listRepository domain.ListRepository,
 	authService domain.AuthService,
 ) *BlogService {
 	return &BlogService{
@@ -36,6 +39,7 @@ func NewBlogService(
 		postRepo:      postRepository,
 		themeRepo:     themeRepository,
 		workspaceRepo: workspaceRepository,
+		listRepo:      listRepository,
 		authService:   authService,
 	}
 }
@@ -990,4 +994,379 @@ func (s *BlogService) ListThemes(ctx context.Context, params *domain.ListBlogThe
 	}
 
 	return s.themeRepo.ListThemes(ctx, *params)
+}
+
+// ====================
+// Blog Page Rendering
+// ====================
+
+// getPublicListsForWorkspace fetches all public lists for a workspace
+// This is a private helper method used by rendering methods
+func (s *BlogService) getPublicListsForWorkspace(ctx context.Context, workspaceID string) ([]*domain.List, error) {
+	// Get all lists for the workspace
+	allLists, err := s.listRepo.GetLists(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get lists: %w", err)
+	}
+
+	// Filter to only public lists
+	publicLists := make([]*domain.List, 0)
+	for _, list := range allLists {
+		if list.IsPublic && list.DeletedAt == nil {
+			publicLists = append(publicLists, list)
+		}
+	}
+
+	return publicLists, nil
+}
+
+// RenderHomePage renders the blog home page with published posts
+func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, page int) (string, error) {
+	// Validate page number
+	if page < 1 {
+		page = 1
+	}
+
+	// Get workspace
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Failed to get workspace",
+			Details: err,
+		}
+	}
+
+	// Get published theme
+	theme, err := s.themeRepo.GetPublishedTheme(ctx)
+	if err != nil {
+		if err.Error() == "no published theme found" || err.Error() == "sql: no rows in result set" {
+			return "", &domain.BlogRenderError{
+				Code:    domain.ErrCodeThemeNotPublished,
+				Message: "No published theme available",
+				Details: err,
+			}
+		}
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeThemeNotFound,
+			Message: "Failed to get theme",
+			Details: err,
+		}
+	}
+
+	// Get public lists
+	publicLists, err := s.getPublicListsForWorkspace(ctx, workspaceID)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to get public lists for blog home page")
+		// Don't fail rendering if lists can't be fetched, just use empty array
+		publicLists = []*domain.List{}
+	}
+
+	// Get page size from workspace settings
+	pageSize := 20 // default
+	if workspace.Settings.BlogSettings != nil {
+		pageSize = workspace.Settings.BlogSettings.GetHomePageSize()
+	}
+
+	// Get published posts for home page
+	params := &domain.ListBlogPostsRequest{
+		Status: domain.BlogPostStatusPublished,
+		Page:   page,
+		Limit:  pageSize,
+	}
+	// Validate will calculate offset
+	if err := params.Validate(); err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Invalid pagination parameters",
+			Details: err,
+		}
+	}
+
+	postsResponse, err := s.postRepo.ListPosts(ctx, *params)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to get posts for blog home page")
+		// Don't fail rendering if posts can't be fetched
+		postsResponse = &domain.BlogPostListResponse{Posts: []*domain.BlogPost{}, TotalCount: 0}
+	}
+
+	// Return 404 if page > total_pages (and not page 1)
+	if page > 1 && postsResponse.TotalPages > 0 && page > postsResponse.TotalPages {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodePostNotFound, // Reuse for page not found
+			Message: fmt.Sprintf("Page %d does not exist (total pages: %d)", page, postsResponse.TotalPages),
+			Details: nil,
+		}
+	}
+
+	// Get all categories for navigation
+	categories, err := s.categoryRepo.ListCategories(ctx)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to get categories for blog home page")
+		categories = []*domain.BlogCategory{}
+	}
+
+	// Build template data with pagination
+	templateData, err := domain.BuildBlogTemplateData(domain.BlogTemplateDataRequest{
+		Workspace:      workspace,
+		PublicLists:    publicLists,
+		Posts:          postsResponse.Posts,
+		Categories:     categories,
+		ThemeStyling:   theme.Styling,
+		PaginationData: postsResponse,
+	})
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Failed to build template data",
+			Details: err,
+		}
+	}
+
+	// Add per_page to pagination data
+	if paginationMap, ok := templateData["pagination"].(domain.MapOfAny); ok {
+		paginationMap["per_page"] = pageSize
+	}
+
+	// Render the home template
+	html, err := liquid.RenderBlogTemplate(theme.Files.Home, templateData)
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeInvalidLiquidSyntax,
+			Message: "Failed to render home template",
+			Details: err,
+		}
+	}
+
+	return html, nil
+}
+
+// RenderPostPage renders a single blog post page
+func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categorySlug, postSlug string) (string, error) {
+	// Get workspace
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Failed to get workspace",
+			Details: err,
+		}
+	}
+
+	// Get published theme
+	theme, err := s.themeRepo.GetPublishedTheme(ctx)
+	if err != nil {
+		if err.Error() == "no published theme found" || err.Error() == "sql: no rows in result set" {
+			return "", &domain.BlogRenderError{
+				Code:    domain.ErrCodeThemeNotPublished,
+				Message: "No published theme available",
+				Details: err,
+			}
+		}
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeThemeNotFound,
+			Message: "Failed to get theme",
+			Details: err,
+		}
+	}
+
+	// Get post by category and slug
+	post, err := s.postRepo.GetPostByCategoryAndSlug(ctx, categorySlug, postSlug)
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodePostNotFound,
+			Message: "Post not found",
+			Details: err,
+		}
+	}
+
+	// Check if post is published
+	if !post.IsPublished() {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodePostNotFound,
+			Message: "Post is not published",
+			Details: nil,
+		}
+	}
+
+	// Get category
+	category, err := s.categoryRepo.GetCategory(ctx, post.CategoryID)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to get category for blog post page")
+		category = nil
+	}
+
+	// Get public lists
+	publicLists, err := s.getPublicListsForWorkspace(ctx, workspaceID)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to get public lists for blog post page")
+		publicLists = []*domain.List{}
+	}
+
+	// Get all categories for navigation
+	categories, err := s.categoryRepo.ListCategories(ctx)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to get categories for blog post page")
+		categories = []*domain.BlogCategory{}
+	}
+
+	// Build template data
+	templateData, err := domain.BuildBlogTemplateData(domain.BlogTemplateDataRequest{
+		Workspace:    workspace,
+		Post:         post,
+		Category:     category,
+		PublicLists:  publicLists,
+		Categories:   categories,
+		ThemeStyling: theme.Styling,
+	})
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Failed to build template data",
+			Details: err,
+		}
+	}
+
+	// Render the post template
+	html, err := liquid.RenderBlogTemplate(theme.Files.Post, templateData)
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeInvalidLiquidSyntax,
+			Message: "Failed to render post template",
+			Details: err,
+		}
+	}
+
+	return html, nil
+}
+
+// RenderCategoryPage renders a category page with posts in that category
+func (s *BlogService) RenderCategoryPage(ctx context.Context, workspaceID, categorySlug string, page int) (string, error) {
+	// Validate page number
+	if page < 1 {
+		page = 1
+	}
+
+	// Get workspace
+	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Failed to get workspace",
+			Details: err,
+		}
+	}
+
+	// Get published theme
+	theme, err := s.themeRepo.GetPublishedTheme(ctx)
+	if err != nil {
+		if err.Error() == "no published theme found" || err.Error() == "sql: no rows in result set" {
+			return "", &domain.BlogRenderError{
+				Code:    domain.ErrCodeThemeNotPublished,
+				Message: "No published theme available",
+				Details: err,
+			}
+		}
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeThemeNotFound,
+			Message: "Failed to get theme",
+			Details: err,
+		}
+	}
+
+	// Get category by slug
+	category, err := s.categoryRepo.GetCategoryBySlug(ctx, categorySlug)
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeCategoryNotFound,
+			Message: "Category not found",
+			Details: err,
+		}
+	}
+
+	// Get public lists
+	publicLists, err := s.getPublicListsForWorkspace(ctx, workspaceID)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to get public lists for blog category page")
+		publicLists = []*domain.List{}
+	}
+
+	// Get page size from workspace settings
+	pageSize := 20 // default
+	if workspace.Settings.BlogSettings != nil {
+		pageSize = workspace.Settings.BlogSettings.GetCategoryPageSize()
+	}
+
+	// Get published posts in this category
+	params := &domain.ListBlogPostsRequest{
+		CategoryID: category.ID,
+		Status:     domain.BlogPostStatusPublished,
+		Page:       page,
+		Limit:      pageSize,
+	}
+	// Validate will calculate offset
+	if err := params.Validate(); err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Invalid pagination parameters",
+			Details: err,
+		}
+	}
+
+	postsResponse, err := s.postRepo.ListPosts(ctx, *params)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to get posts for blog category page")
+		postsResponse = &domain.BlogPostListResponse{Posts: []*domain.BlogPost{}, TotalCount: 0}
+	}
+
+	// Return 404 if page > total_pages (and not page 1)
+	if page > 1 && postsResponse.TotalPages > 0 && page > postsResponse.TotalPages {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodePostNotFound, // Reuse for page not found
+			Message: fmt.Sprintf("Page %d does not exist (total pages: %d)", page, postsResponse.TotalPages),
+			Details: nil,
+		}
+	}
+
+	// Get all categories for navigation
+	categories, err := s.categoryRepo.ListCategories(ctx)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to get categories for blog category page")
+		categories = []*domain.BlogCategory{}
+	}
+
+	// Build template data with pagination
+	templateData, err := domain.BuildBlogTemplateData(domain.BlogTemplateDataRequest{
+		Workspace:      workspace,
+		Category:       category,
+		PublicLists:    publicLists,
+		Posts:          postsResponse.Posts,
+		Categories:     categories,
+		ThemeStyling:   theme.Styling,
+		PaginationData: postsResponse,
+	})
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeRenderFailed,
+			Message: "Failed to build template data",
+			Details: err,
+		}
+	}
+
+	// Add per_page to pagination data
+	if paginationMap, ok := templateData["pagination"].(domain.MapOfAny); ok {
+		paginationMap["per_page"] = pageSize
+	}
+
+	// Render the category template
+	html, err := liquid.RenderBlogTemplate(theme.Files.Category, templateData)
+	if err != nil {
+		return "", &domain.BlogRenderError{
+			Code:    domain.ErrCodeInvalidLiquidSyntax,
+			Message: "Failed to render category template",
+			Details: err,
+		}
+	}
+
+	return html, nil
 }

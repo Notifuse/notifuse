@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Button, Form, App, Descriptions, Input, Divider } from 'antd'
+import { Button, Form, App, Descriptions, Input, Divider, Select, Row, Col } from 'antd'
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
@@ -49,6 +49,8 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
         title: workspace?.settings.blog_settings?.title || '',
         logo_url: workspace?.settings.blog_settings?.logo_url || '',
         icon_url: workspace?.settings.blog_settings?.icon_url || '',
+        home_page_size: workspace?.settings.blog_settings?.home_page_size || 20,
+        category_page_size: workspace?.settings.blog_settings?.category_page_size || 20,
         seo: {
           meta_title: workspace?.settings.blog_settings?.seo?.meta_title || '',
           meta_description: workspace?.settings.blog_settings?.seo?.meta_description || '',
@@ -291,7 +293,7 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
         {/* Show blog settings when enabled */}
         {workspace?.settings.blog_enabled && workspace?.settings.custom_endpoint_url && (
           <>
-            <div className="text-xl font-medium mb-8">Homepage Settings</div>
+            <div className="text-xl font-medium mb-8">General Settings</div>
 
             <Form.Item
               name={['blog_settings', 'title']}
@@ -332,6 +334,43 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
                 size="middle"
               />
             </Form.Item>
+
+            <Row gutter={24}>
+              <Col span={12}>
+                <Form.Item
+                  name={['blog_settings', 'home_page_size']}
+                  label="Posts on homepage"
+                  tooltip="Number of posts to display per page on the homepage"
+                  rules={[{ required: true, message: 'Please select a page size' }]}
+                >
+                  <Select placeholder="Select page size">
+                    <Select.Option value={5}>5</Select.Option>
+                    <Select.Option value={10}>10</Select.Option>
+                    <Select.Option value={15}>15</Select.Option>
+                    <Select.Option value={20}>20</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+
+              <Col span={12}>
+                <Form.Item
+                  name={['blog_settings', 'category_page_size']}
+                  label="Posts on category pages"
+                  tooltip="Number of posts to display per page on category pages"
+                  rules={[{ required: true, message: 'Please select a page size' }]}
+                >
+                  <Select placeholder="Select page size">
+                    <Select.Option value={5}>5</Select.Option>
+                    <Select.Option value={10}>10</Select.Option>
+                    <Select.Option value={15}>15</Select.Option>
+                    <Select.Option value={20}>20</Select.Option>
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Divider className="!my-8" />
+            <Subtitle>SEO Settings</Subtitle>
 
             <SEOSettingsForm
               namePrefix={['blog_settings', 'seo']}

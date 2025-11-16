@@ -1,9 +1,23 @@
 export interface MockBlogData {
+  // Workspace info (required in backend BlogTemplateDataRequest)
+  workspace: {
+    id: string
+    name: string
+  }
+  // Public lists for newsletter subscription (required in backend)
+  public_lists: Array<{
+    id: string
+    name: string
+    description: string
+  }>
+  // Blog metadata (for preview only, not sent to backend)
   blog: {
     title: string
     description: string
+    logo_url?: string
+    icon_url?: string
   }
-  seo: {
+  seo?: {
     meta_title: string
     meta_description: string
     og_title: string
@@ -13,24 +27,32 @@ export interface MockBlogData {
     keywords: string[]
   }
   styling?: any // EditorStyleConfig from workspace settings
+  // Posts array (for home/category page listings)
   posts: Array<{
+    id: string
     title: string
     slug: string
     excerpt: string
     content: string
     featured_image_url: string
+    category_id: string
     category_slug: string
     published_at: string
     reading_time_minutes: number
     authors: Array<{ name: string; avatar_url?: string }>
   }>
+  // Categories array (for navigation)
   categories: Array<{
+    id: string
     name: string
     slug: string
     description: string
   }>
-  currentPost?: any
-  currentCategory?: any
+  // Current post (for post pages only, matches backend BlogTemplateDataRequest)
+  post?: any
+  // Current category (for category pages only, matches backend BlogTemplateDataRequest)
+  category?: any
+  // Additional helper fields
   previous_post?: any
   next_post?: any
   current_year: number
@@ -40,6 +62,25 @@ export interface MockBlogData {
 }
 
 export const MOCK_BLOG_DATA: MockBlogData = {
+  // Workspace (matches backend BlogTemplateDataRequest)
+  workspace: {
+    id: 'workspace-123',
+    name: 'My Workspace'
+  },
+  // Public lists (matches backend BlogTemplateDataRequest)
+  public_lists: [
+    {
+      id: 'list-1',
+      name: 'Weekly Newsletter',
+      description: 'Get our latest posts every week'
+    },
+    {
+      id: 'list-2',
+      name: 'Product Updates',
+      description: 'New features and improvements'
+    }
+  ],
+  // Blog metadata
   blog: {
     title: 'My Awesome Blog',
     description: 'Thoughts, ideas, and stories from our team'
@@ -127,8 +168,10 @@ export const MOCK_BLOG_DATA: MockBlogData = {
   },
   posts: [
     {
+      id: 'post-1',
       title: 'Complete Style Guide & Kitchen Sink',
       slug: 'style-guide-kitchen-sink',
+      category_id: 'cat-1',
       excerpt:
         'A comprehensive showcase of all content blocks, styling options, and typography elements available in our blog theme system.',
       content: `<p>This post demonstrates every content block type and styling option available in the theme editor. Use this as a reference to see how your theme handles different content types.</p>
@@ -251,8 +294,10 @@ console.log(message); // Output: Hello, World!</code></pre>
       authors: [{ name: 'Jane Doe' }]
     },
     {
+      id: 'post-2',
       title: 'The Future of Artificial Intelligence',
       slug: 'future-of-ai',
+      category_id: 'cat-2',
       excerpt: 'Exploring how AI will transform industries and daily life in the coming years.',
       content: `<p>Artificial Intelligence is rapidly evolving, and its impact on society is becoming more profound each day.</p>`,
       featured_image_url: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800',
@@ -262,8 +307,10 @@ console.log(message); // Output: Hello, World!</code></pre>
       authors: [{ name: 'John Smith' }]
     },
     {
+      id: 'post-3',
       title: 'Design Principles for Modern Websites',
       slug: 'design-principles-modern-websites',
+      category_id: 'cat-3',
       excerpt: 'Essential design principles that will make your website stand out in 2024.',
       content: `<p>Good design is not just about aesthetics—it's about creating an intuitive, accessible experience for all users.</p>`,
       featured_image_url: 'https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=800',
@@ -274,9 +321,24 @@ console.log(message); // Output: Hello, World!</code></pre>
     }
   ],
   categories: [
-    { name: 'Tutorials', slug: 'tutorials', description: 'Step-by-step guides and how-tos' },
-    { name: 'Technology', slug: 'technology', description: 'Latest tech news and trends' },
-    { name: 'Design', slug: 'design', description: 'Design inspiration and best practices' }
+    {
+      id: 'cat-1',
+      name: 'Tutorials',
+      slug: 'tutorials',
+      description: 'Step-by-step guides and how-tos'
+    },
+    {
+      id: 'cat-2',
+      name: 'Technology',
+      slug: 'technology',
+      description: 'Latest tech news and trends'
+    },
+    {
+      id: 'cat-3',
+      name: 'Design',
+      slug: 'design',
+      description: 'Design inspiration and best practices'
+    }
   ],
   current_year: new Date().getFullYear()
 }
@@ -286,7 +348,8 @@ export function getMockDataForView(view: 'home' | 'category' | 'post'): MockBlog
   const baseData = { ...MOCK_BLOG_DATA }
 
   if (view === 'category') {
-    baseData.currentCategory = baseData.categories[0]
+    // Match backend BlogTemplateDataRequest.Category field
+    baseData.category = baseData.categories[0]
     baseData.posts = baseData.posts.filter((p) => p.category_slug === 'tutorials')
     baseData.page_title = `${baseData.categories[0].name} - ${baseData.blog.title}`
     baseData.page_description = baseData.categories[0].description
@@ -294,13 +357,14 @@ export function getMockDataForView(view: 'home' | 'category' | 'post'): MockBlog
   }
 
   if (view === 'post') {
-    const post = baseData.posts[0]
-    baseData.currentPost = post
+    // Match backend BlogTemplateDataRequest.Post field
+    const postData = baseData.posts[0]
+    baseData.post = postData
     baseData.previous_post = baseData.posts[2]
     baseData.next_post = baseData.posts[1]
-    baseData.page_title = `${post.title} - ${baseData.blog.title}`
-    baseData.page_description = post.excerpt
-    baseData.current_url = `https://example.com/${post.category_slug}/${post.slug}`
+    baseData.page_title = `${postData.title} - ${baseData.blog.title}`
+    baseData.page_description = postData.excerpt
+    baseData.current_url = `https://example.com/${postData.category_slug}/${postData.slug}`
   }
 
   if (view === 'home') {
@@ -308,4 +372,11 @@ export function getMockDataForView(view: 'home' | 'category' | 'post'): MockBlog
   }
 
   return baseData
+}
+
+// Helper to get mock data with empty public lists (for testing empty state)
+export function getMockDataWithEmptyLists(view: 'home' | 'category' | 'post'): MockBlogData {
+  const data = getMockDataForView(view)
+  data.public_lists = []
+  return data
 }

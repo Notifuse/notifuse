@@ -124,6 +124,42 @@ func (r *workspaceRepository) GetByID(ctx context.Context, id string) (*domain.W
 	return workspace, nil
 }
 
+// GetWorkspaceByCustomDomain retrieves a workspace by custom domain hostname
+func (r *workspaceRepository) GetWorkspaceByCustomDomain(ctx context.Context, hostname string) (*domain.Workspace, error) {
+	// Query to find workspace where custom_endpoint_url contains the hostname
+	// We need to extract the hostname from the URL and compare (case-insensitive)
+	query := `
+		SELECT id, name, settings, integrations, created_at, updated_at
+		FROM workspaces
+		WHERE settings->>'custom_endpoint_url' IS NOT NULL
+		  AND settings->>'custom_endpoint_url' != ''
+		  AND LOWER(
+		      CASE 
+		        WHEN settings->>'custom_endpoint_url' LIKE 'http://%' 
+		          THEN SPLIT_PART(SPLIT_PART(settings->>'custom_endpoint_url', '://', 2), '/', 1)
+		        WHEN settings->>'custom_endpoint_url' LIKE 'https://%'
+		          THEN SPLIT_PART(SPLIT_PART(settings->>'custom_endpoint_url', '://', 2), '/', 1)
+		        ELSE SPLIT_PART(settings->>'custom_endpoint_url', '/', 1)
+		      END
+		  ) = LOWER($1)
+		LIMIT 1
+	`
+
+	workspace, err := domain.ScanWorkspace(r.systemDB.QueryRowContext(ctx, query, hostname))
+	if err == sql.ErrNoRows {
+		return nil, nil // Return nil without error when no workspace is found (not an error condition)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query workspace by custom domain: %w", err)
+	}
+
+	if err := workspace.AfterLoad(r.secretKey); err != nil {
+		return nil, fmt.Errorf("failed to decrypt workspace secrets: %w", err)
+	}
+
+	return workspace, nil
+}
+
 func (r *workspaceRepository) List(ctx context.Context) ([]*domain.Workspace, error) {
 	query := `
 		SELECT id, name, settings, integrations, created_at, updated_at
@@ -625,42 +661,4 @@ func (r *workspaceRepository) GetWorkspaceUsersWithEmail(ctx context.Context, wo
 	}
 
 	return userWorkspaces, nil
-}
-
-// GetWorkspaceByCustomDomain finds a workspace by its custom endpoint URL
-func (r *workspaceRepository) GetWorkspaceByCustomDomain(ctx context.Context, customDomain string) (*domain.Workspace, error) {
-	// Query workspace where custom_endpoint_url matches the domain
-	query := `
-		SELECT id, name, settings, created_at, updated_at
-		FROM workspaces
-		WHERE settings->>'custom_endpoint_url' = $1
-		LIMIT 1
-	`
-
-	var workspace domain.Workspace
-	var settingsJSON []byte
-
-	err := r.systemDB.QueryRowContext(ctx, query, customDomain).Scan(
-		&workspace.ID,
-		&workspace.Name,
-		&settingsJSON,
-		&workspace.CreatedAt,
-		&workspace.UpdatedAt,
-	)
-
-	if err == sql.ErrNoRows {
-		return nil, fmt.Errorf("workspace not found for custom domain: %s", customDomain)
-	}
-	if err != nil {
-		return nil, fmt.Errorf("failed to get workspace by custom domain: %w", err)
-	}
-
-	// Parse settings JSON
-	if len(settingsJSON) > 0 {
-		if err := json.Unmarshal(settingsJSON, &workspace.Settings); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal workspace settings: %w", err)
-		}
-	}
-
-	return &workspace, nil
 }

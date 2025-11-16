@@ -49,9 +49,9 @@ func TestWorkspaceService_AddUserToWorkspace(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	ctx := context.Background()
@@ -178,9 +178,9 @@ func TestWorkspaceService_RemoveUserFromWorkspace(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -347,9 +347,9 @@ func TestWorkspaceService_TransferOwnership(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	ctx := context.Background()
@@ -528,9 +528,9 @@ func TestWorkspaceService_GetWorkspaceMembersWithEmail(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	ctx := context.Background()
@@ -669,9 +669,9 @@ func TestWorkspaceService_InviteMember(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
-		SupabaseService{},
-		DNSVerificationService{},
-		BlogService{},
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Set up mockLogger to allow any calls
@@ -969,12 +969,12 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			mockListService,
 			mockContactListService,
 			mockTemplateService,
-			mockWebhookRegService,
-			"secret_key",
-			SupabaseService{},
-			DNSVerificationService{},
-			BlogService{},
-		)
+		mockWebhookRegService,
+		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
+	)
 
 		// Set up mock expectations
 		mockAuthSvc.EXPECT().
@@ -1039,12 +1039,12 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			mockListService,
 			mockContactListService,
 			mockTemplateService,
-			mockWebhookRegService,
-			"secret_key",
-			SupabaseService{},
-			DNSVerificationService{},
-			BlogService{},
-		)
+		mockWebhookRegService,
+		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
+	)
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
@@ -1078,12 +1078,12 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			mockListService,
 			mockContactListService,
 			mockTemplateService,
-			mockWebhookRegService,
-			"secret_key",
-			SupabaseService{},
-			DNSVerificationService{},
-			BlogService{},
-		)
+		mockWebhookRegService,
+		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
+	)
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
@@ -1126,12 +1126,12 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			mockListService,
 			mockContactListService,
 			mockTemplateService,
-			mockWebhookRegService,
-			"secret_key",
-			SupabaseService{},
-			DNSVerificationService{},
-			BlogService{},
-		)
+		mockWebhookRegService,
+		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
+	)
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
@@ -1178,12 +1178,12 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			mockListService,
 			mockContactListService,
 			mockTemplateService,
-			mockWebhookRegService,
-			"secret_key",
-			SupabaseService{},
-			DNSVerificationService{},
-			BlogService{},
-		)
+		mockWebhookRegService,
+		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
+	)
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).

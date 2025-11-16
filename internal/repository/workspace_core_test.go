@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"regexp"
 	"strings"
@@ -953,4 +954,111 @@ func TestWorkspaceRepository_WithWorkspaceTransaction(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "commit")
+}
+
+func TestWorkspaceRepository_GetWorkspaceByCustomDomain(t *testing.T) {
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer db.Close()
+
+	connManager := newMockConnectionManager(db)
+	dbConfig := &config.DatabaseConfig{}
+	secretKey := "test-secret-key-32-bytes-long!!"
+
+	repo := NewWorkspaceRepository(db, dbConfig, secretKey, connManager)
+
+	workspaceID := "ws-123"
+	workspaceName := "Test Workspace"
+	customDomain := "blog.example.com"
+	customURL := "https://blog.example.com"
+
+	t.Run("successful lookup with https URL", func(t *testing.T) {
+		enc, err := crypto.EncryptString("mysecret", secretKey)
+		require.NoError(t, err)
+
+		settings := domain.WorkspaceSettings{
+			Timezone:           "UTC",
+			CustomEndpointURL:  &customURL,
+			EncryptedSecretKey: enc,
+		}
+		settingsJSON, _ := json.Marshal(settings)
+
+		integrations := []domain.Integration{}
+		integrationsJSON, _ := json.Marshal(integrations)
+
+		// Use a more flexible query matcher that accounts for whitespace
+		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at"
+
+		rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
+			AddRow(workspaceID, workspaceName, settingsJSON, integrationsJSON, time.Now(), time.Now())
+
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(customDomain).
+			WillReturnRows(rows)
+
+		workspace, err := repo.GetWorkspaceByCustomDomain(context.Background(), customDomain)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, workspace)
+		assert.Equal(t, workspaceID, workspace.ID)
+		assert.Equal(t, workspaceName, workspace.Name)
+		assert.NotNil(t, workspace.Settings.CustomEndpointURL)
+		assert.Equal(t, customURL, *workspace.Settings.CustomEndpointURL)
+	})
+
+	t.Run("workspace not found", func(t *testing.T) {
+		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at"
+
+		mock.ExpectQuery(expectedQuery).
+			WithArgs("nonexistent.example.com").
+			WillReturnError(sql.ErrNoRows)
+
+		workspace, err := repo.GetWorkspaceByCustomDomain(context.Background(), "nonexistent.example.com")
+
+		assert.NoError(t, err) // Should return nil, nil when not found
+		assert.Nil(t, workspace)
+	})
+
+	t.Run("case insensitive matching", func(t *testing.T) {
+		uppercaseDomain := "BLOG.EXAMPLE.COM"
+		enc, err := crypto.EncryptString("mysecret", secretKey)
+		require.NoError(t, err)
+
+		settings := domain.WorkspaceSettings{
+			Timezone:           "UTC",
+			CustomEndpointURL:  &customURL,
+			EncryptedSecretKey: enc,
+		}
+		settingsJSON, _ := json.Marshal(settings)
+		integrationsJSON, _ := json.Marshal([]domain.Integration{})
+
+		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at"
+
+		rows := sqlmock.NewRows([]string{"id", "name", "settings", "integrations", "created_at", "updated_at"}).
+			AddRow(workspaceID, workspaceName, settingsJSON, integrationsJSON, time.Now(), time.Now())
+
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(uppercaseDomain).
+			WillReturnRows(rows)
+
+		workspace, err := repo.GetWorkspaceByCustomDomain(context.Background(), uppercaseDomain)
+
+		assert.NoError(t, err)
+		assert.NotNil(t, workspace)
+		assert.Equal(t, workspaceID, workspace.ID)
+	})
+
+	t.Run("database error", func(t *testing.T) {
+		expectedQuery := "SELECT id, name, settings, integrations, created_at, updated_at"
+
+		mock.ExpectQuery(expectedQuery).
+			WithArgs(customDomain).
+			WillReturnError(errors.New("database connection failed"))
+
+		workspace, err := repo.GetWorkspaceByCustomDomain(context.Background(), customDomain)
+
+		assert.Error(t, err)
+		assert.Nil(t, workspace)
+		assert.Contains(t, err.Error(), "failed to query workspace by custom domain")
+	})
 }

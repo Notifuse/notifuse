@@ -10,6 +10,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -41,10 +42,11 @@ func TestSMTPRelayHandlerService_Authenticate_Success(t *testing.T) {
 	}
 
 	log := logger.NewLogger()
-	rateLimiter := NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rateLimiter)
+	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	userID, err := service.Authenticate(apiEmail, apiKey)
 
@@ -60,9 +62,10 @@ func TestSMTPRelayHandlerService_Authenticate_InvalidToken(t *testing.T) {
 
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	log := logger.NewLogger()
-	rateLimiter := NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rateLimiter)
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
+	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	_, err := service.Authenticate("workspace123", "invalid-token")
 
@@ -93,9 +96,10 @@ func TestSMTPRelayHandlerService_Authenticate_WrongUserType(t *testing.T) {
 
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	log := logger.NewLogger()
-	rateLimiter := NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rateLimiter)
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
+	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	_, err := service.Authenticate(apiEmail, apiKey)
 
@@ -124,10 +128,11 @@ func TestSMTPRelayHandlerService_Authenticate_NoWorkspaceAccess(t *testing.T) {
 	apiKey, _ := token.SignedString(jwtSecret)
 
 	log := logger.NewLogger()
-	rateLimiter := NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rateLimiter)
+	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	userID, err := service.Authenticate(apiEmail, apiKey)
 
@@ -181,9 +186,10 @@ Content-Type: text/plain
 		})
 
 	log := logger.NewLogger()
-	rateLimiter := NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
-	service := NewSMTPRelayHandlerService(nil, mockTransactionalService, mockRepo, log, jwtSecret, rateLimiter)
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
+	service := NewSMTPRelayHandlerService(nil, mockTransactionalService, mockRepo, log, jwtSecret, rl)
 
 	err := service.HandleMessage(userID, "sender@example.com", []string{"test@example.com"}, []byte(emailBody))
 
@@ -206,9 +212,10 @@ This is not JSON`
 
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	log := logger.NewLogger()
-	rateLimiter := NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rateLimiter)
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
+	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	err := service.HandleMessage(userID, "sender@example.com", []string{"test@example.com"}, []byte(emailBody))
 
@@ -248,9 +255,10 @@ Content-Type: text/plain
 		}, nil)
 
 	log := logger.NewLogger()
-	rateLimiter := NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rateLimiter)
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
+	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	err := service.HandleMessage(userID, "sender@example.com", []string{"test@example.com"}, []byte(emailBody))
 
@@ -288,9 +296,10 @@ Content-Type: text/plain
 		}, nil)
 
 	log := logger.NewLogger()
-	rateLimiter := NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
-	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rateLimiter)
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
+	service := NewSMTPRelayHandlerService(nil, nil, mockRepo, log, jwtSecret, rl)
 
 	err := service.HandleMessage(userID, "sender@example.com", []string{"test@example.com"}, []byte(emailBody))
 
@@ -328,8 +337,9 @@ func TestSMTPRelayHandlerService_HandleMessage_WithEmailHeaders(t *testing.T) {
 	mockAuth := &AuthService{}
 	log := logger.NewLogger()
 	jwtSecret := []byte("test-secret")
-	rateLimiter := NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
 
 	service := NewSMTPRelayHandlerService(
 		mockAuth,
@@ -337,7 +347,7 @@ func TestSMTPRelayHandlerService_HandleMessage_WithEmailHeaders(t *testing.T) {
 		mockWorkspaceRepo,
 		log,
 		jwtSecret,
-		rateLimiter,
+		rl,
 	)
 
 	// Create test email with CC, BCC, and Reply-To headers
@@ -406,8 +416,9 @@ func TestSMTPRelayHandlerService_HandleMessage_JSONOverridesHeaders(t *testing.T
 	mockAuth := &AuthService{}
 	log := logger.NewLogger()
 	jwtSecret := []byte("test-secret")
-	rateLimiter := NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
 
 	service := NewSMTPRelayHandlerService(
 		mockAuth,
@@ -415,7 +426,7 @@ func TestSMTPRelayHandlerService_HandleMessage_JSONOverridesHeaders(t *testing.T
 		mockWorkspaceRepo,
 		log,
 		jwtSecret,
-		rateLimiter,
+		rl,
 	)
 
 	// Create test email with headers AND JSON payload specifying email options
@@ -519,9 +530,10 @@ Content-Type: text/plain
 	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockTransactionalService := mocks.NewMockTransactionalNotificationService(ctrl)
 	log := logger.NewLogger()
-	rateLimiter := NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
-	service := NewSMTPRelayHandlerService(nil, mockTransactionalService, mockRepo, log, jwtSecret, rateLimiter)
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
+	service := NewSMTPRelayHandlerService(nil, mockTransactionalService, mockRepo, log, jwtSecret, rl)
 
 	// Parse the email
 	msg, err := mail.ReadMessage(bytes.NewReader([]byte(emailBody)))

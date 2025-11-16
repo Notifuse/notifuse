@@ -36,6 +36,37 @@ const blankTheme: ThemePreset = {
       </article>
     {% endfor %}
   </div>
+
+  <!-- Pagination (from shared.liquid) -->
+  {% if pagination.total_pages > 1 %}
+  <nav class="pagination" aria-label="Pagination">
+    {% if pagination.has_previous %}
+      <a href="?page={{ pagination.current_page | minus: 1 }}" class="pagination-link pagination-prev">← Previous</a>
+    {% endif %}
+    <div class="pagination-numbers">
+      {% if pagination.current_page > 3 %}
+        <a href="?page=1" class="pagination-link">1</a>
+        {% if pagination.current_page > 4 %}<span class="pagination-ellipsis">...</span>{% endif %}
+      {% endif %}
+      {% for i in (1..pagination.total_pages) %}
+        {% assign diff = i | minus: pagination.current_page %}
+        {% if diff >= -2 and diff <= 2 %}
+          {% if i == pagination.current_page %}
+            <span class="pagination-current" aria-current="page">{{ i }}</span>
+          {% else %}
+            <a href="?page={{ i }}" class="pagination-link">{{ i }}</a>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+      {% assign last_minus_current = pagination.total_pages | minus: pagination.current_page %}
+      {% if last_minus_current > 3 %}<span class="pagination-ellipsis">...</span>{% endif %}
+      {% if last_minus_current > 2 %}<a href="?page={{ pagination.total_pages }}" class="pagination-link">{{ pagination.total_pages }}</a>{% endif %}
+    </div>
+    {% if pagination.has_next %}
+      <a href="?page={{ pagination.current_page | plus: 1 }}" class="pagination-link pagination-next">Next →</a>
+    {% endif %}
+  </nav>
+  {% endif %}
 </div>`,
 
     category: `<div class="category-page">
@@ -57,6 +88,37 @@ const blankTheme: ThemePreset = {
       </article>
     {% endfor %}
   </div>
+
+  <!-- Pagination -->
+  {% if pagination.total_pages > 1 %}
+  <nav class="pagination" aria-label="Pagination">
+    {% if pagination.has_previous %}
+      <a href="?page={{ pagination.current_page | minus: 1 }}" class="pagination-link pagination-prev">← Previous</a>
+    {% endif %}
+    <div class="pagination-numbers">
+      {% if pagination.current_page > 3 %}
+        <a href="?page=1" class="pagination-link">1</a>
+        {% if pagination.current_page > 4 %}<span class="pagination-ellipsis">...</span>{% endif %}
+      {% endif %}
+      {% for i in (1..pagination.total_pages) %}
+        {% assign diff = i | minus: pagination.current_page %}
+        {% if diff >= -2 and diff <= 2 %}
+          {% if i == pagination.current_page %}
+            <span class="pagination-current" aria-current="page">{{ i }}</span>
+          {% else %}
+            <a href="?page={{ i }}" class="pagination-link">{{ i }}</a>
+          {% endif %}
+        {% endif %}
+      {% endfor %}
+      {% assign last_minus_current = pagination.total_pages | minus: pagination.current_page %}
+      {% if last_minus_current > 3 %}<span class="pagination-ellipsis">...</span>{% endif %}
+      {% if last_minus_current > 2 %}<a href="?page={{ pagination.total_pages }}" class="pagination-link">{{ pagination.total_pages }}</a>{% endif %}
+    </div>
+    {% if pagination.has_next %}
+      <a href="?page={{ pagination.current_page | plus: 1 }}" class="pagination-link pagination-next">Next →</a>
+    {% endif %}
+  </nav>
+  {% endif %}
 </div>`,
 
     post: `<article class="blog-post">
@@ -210,6 +272,88 @@ const blankTheme: ThemePreset = {
     .hljs-selector-class, .hljs-selector-pseudo { color: #d7ba7d; }
     .hljs-operator { color: #d4d4d4; }
     .hljs-title.function_ { color: #dcdcaa; }
+
+    /* Pagination Styles */
+    .pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 48px;
+      padding: 24px 0;
+    }
+
+    .pagination-numbers {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pagination-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+      padding: 0 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      color: #1a1a1a;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .pagination-link:hover {
+      background-color: #f3f4f6;
+      border-color: #d1d5db;
+      text-decoration: none;
+    }
+
+    .pagination-current {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+      padding: 0 12px;
+      background-color: #2563eb;
+      color: white;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .pagination-ellipsis {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+      color: #6b7280;
+    }
+
+    .pagination-prev,
+    .pagination-next {
+      font-weight: 500;
+    }
+
+    /* Mobile responsiveness */
+    @media (max-width: 640px) {
+      .pagination {
+        gap: 4px;
+      }
+      
+      .pagination-link,
+      .pagination-current {
+        min-width: 32px;
+        height: 32px;
+        padding: 0 8px;
+        font-size: 14px;
+      }
+      
+      .pagination-numbers {
+        gap: 2px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -226,6 +370,9 @@ const blankTheme: ThemePreset = {
   <footer class="site-footer">
     <div class="container">
       <p>&copy; {{ current_year }} {{ blog.title }}. All rights reserved.</p>
+      <p style="margin-top: 8px; font-size: 12px; color: #9ca3af;">
+        Powered by <a href="https://www.notifuse.com" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">Notifuse</a>
+      </p>
     </div>
   </footer>
 </body>
@@ -235,7 +382,75 @@ const blankTheme: ThemePreset = {
 {% comment %}
   This file can contain reusable Liquid snippets and components
   that can be included across different templates.
-{% endcomment %}`
+{% endcomment %}
+
+<!-- Pagination Component -->
+{% comment %}
+  Smart pagination with ellipsis for large page counts.
+  Shows: Previous | 1 ... 4 5 [6] 7 8 ... 20 | Next
+{% endcomment %}
+{% if pagination.total_pages > 1 %}
+<nav class="pagination" aria-label="Pagination">
+  {% if pagination.has_previous %}
+    <a href="?page={{ pagination.current_page | minus: 1 }}" class="pagination-link pagination-prev" aria-label="Go to previous page">← Previous</a>
+  {% endif %}
+  
+  <div class="pagination-numbers">
+    {% if pagination.current_page > 3 %}
+      <a href="?page=1" class="pagination-link">1</a>
+      {% if pagination.current_page > 4 %}
+        <span class="pagination-ellipsis">...</span>
+      {% endif %}
+    {% endif %}
+    
+    {% for i in (1..pagination.total_pages) %}
+      {% assign diff = i | minus: pagination.current_page %}
+      {% if diff >= -2 and diff <= 2 %}
+        {% if i == pagination.current_page %}
+          <span class="pagination-current" aria-current="page">{{ i }}</span>
+        {% else %}
+          <a href="?page={{ i }}" class="pagination-link" aria-label="Go to page {{ i }}">{{ i }}</a>
+        {% endif %}
+      {% endif %}
+    {% endfor %}
+    
+    {% assign last_minus_current = pagination.total_pages | minus: pagination.current_page %}
+    {% if last_minus_current > 3 %}
+      <span class="pagination-ellipsis">...</span>
+    {% endif %}
+    {% if last_minus_current > 2 %}
+      <a href="?page={{ pagination.total_pages }}" class="pagination-link">{{ pagination.total_pages }}</a>
+    {% endif %}
+  </div>
+  
+  {% if pagination.has_next %}
+    <a href="?page={{ pagination.current_page | plus: 1 }}" class="pagination-link pagination-next" aria-label="Go to next page">Next →</a>
+  {% endif %}
+</nav>
+{% endif %}
+
+<!-- Newsletter Subscription Form -->
+{% if theme.newsletter.enabled %}
+<div class="newsletter-subscription" style="margin-top: 48px; padding: 32px; background-color: #f9fafb; border-radius: 8px; text-align: center;">
+  <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 1.5rem;">Subscribe to our newsletter</h3>
+  <p style="margin-bottom: 24px; color: #6b7280;">Get the latest posts delivered right to your inbox.</p>
+  <form action="/subscribe" method="POST" style="display: flex; gap: 12px; max-width: 480px; margin: 0 auto; flex-wrap: wrap; justify-content: center;">
+    <input 
+      type="email" 
+      name="email" 
+      placeholder="Enter your email" 
+      required
+      style="flex: 1; min-width: 250px; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15px;"
+    />
+    <button 
+      type="submit"
+      style="padding: 12px 32px; background-color: {{ theme.newsletter.buttonColor }}; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer;"
+    >
+      {{ theme.newsletter.buttonText }}
+    </button>
+  </form>
+</div>
+{% endif %}`
   },
   styling: {
     default: {
@@ -305,6 +520,11 @@ const blankTheme: ThemePreset = {
     link: {
       color: '#2563eb',
       hoverColor: '#1d4ed8'
+    },
+    newsletter: {
+      enabled: false,
+      buttonColor: '#2563eb',
+      buttonText: 'Subscribe'
     }
   }
 }
@@ -341,6 +561,19 @@ const minimalBlogTheme: ThemePreset = {
       </article>
     {% endfor %}
   </div>
+
+  <!-- Pagination -->
+  {% if pagination.total_pages > 1 %}
+  <nav class="pagination" aria-label="Pagination">
+    {% if pagination.has_previous %}<a href="?page={{ pagination.current_page | minus: 1 }}" class="pagination-link pagination-prev">← Previous</a>{% endif %}
+    <div class="pagination-numbers">
+      {% if pagination.current_page > 3 %}<a href="?page=1" class="pagination-link">1</a>{% if pagination.current_page > 4 %}<span class="pagination-ellipsis">...</span>{% endif %}{% endif %}
+      {% for i in (1..pagination.total_pages) %}{% assign diff = i | minus: pagination.current_page %}{% if diff >= -2 and diff <= 2 %}{% if i == pagination.current_page %}<span class="pagination-current" aria-current="page">{{ i }}</span>{% else %}<a href="?page={{ i }}" class="pagination-link">{{ i }}</a>{% endif %}{% endif %}{% endfor %}
+      {% assign last_minus_current = pagination.total_pages | minus: pagination.current_page %}{% if last_minus_current > 3 %}<span class="pagination-ellipsis">...</span>{% endif %}{% if last_minus_current > 2 %}<a href="?page={{ pagination.total_pages }}" class="pagination-link">{{ pagination.total_pages }}</a>{% endif %}
+    </div>
+    {% if pagination.has_next %}<a href="?page={{ pagination.current_page | plus: 1 }}" class="pagination-link pagination-next">Next →</a>{% endif %}
+  </nav>
+  {% endif %}
 </div>`,
 
     category: `<div class="category-page">
@@ -363,6 +596,19 @@ const minimalBlogTheme: ThemePreset = {
       </article>
     {% endfor %}
   </div>
+
+  <!-- Pagination -->
+  {% if pagination.total_pages > 1 %}
+  <nav class="pagination" aria-label="Pagination">
+    {% if pagination.has_previous %}<a href="?page={{ pagination.current_page | minus: 1 }}" class="pagination-link pagination-prev">← Previous</a>{% endif %}
+    <div class="pagination-numbers">
+      {% if pagination.current_page > 3 %}<a href="?page=1" class="pagination-link">1</a>{% if pagination.current_page > 4 %}<span class="pagination-ellipsis">...</span>{% endif %}{% endif %}
+      {% for i in (1..pagination.total_pages) %}{% assign diff = i | minus: pagination.current_page %}{% if diff >= -2 and diff <= 2 %}{% if i == pagination.current_page %}<span class="pagination-current" aria-current="page">{{ i }}</span>{% else %}<a href="?page={{ i }}" class="pagination-link">{{ i }}</a>{% endif %}{% endif %}{% endfor %}
+      {% assign last_minus_current = pagination.total_pages | minus: pagination.current_page %}{% if last_minus_current > 3 %}<span class="pagination-ellipsis">...</span>{% endif %}{% if last_minus_current > 2 %}<a href="?page={{ pagination.total_pages }}" class="pagination-link">{{ pagination.total_pages }}</a>{% endif %}
+    </div>
+    {% if pagination.has_next %}<a href="?page={{ pagination.current_page | plus: 1 }}" class="pagination-link pagination-next">Next →</a>{% endif %}
+  </nav>
+  {% endif %}
 </div>`,
 
     post: `<article class="blog-post">
@@ -583,6 +829,20 @@ const minimalBlogTheme: ThemePreset = {
     .hljs-selector-class, .hljs-selector-pseudo { color: #d7ba7d; }
     .hljs-operator { color: #d4d4d4; }
     .hljs-title.function_ { color: #dcdcaa; }
+
+    /* Pagination Styles */
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 48px; padding: 24px 0; }
+    .pagination-numbers { display: flex; align-items: center; gap: 4px; }
+    .pagination-link { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 12px; border: 1px solid #e5e7eb; border-radius: 6px; color: #1a1a1a; text-decoration: none; transition: all 0.2s; }
+    .pagination-link:hover { background-color: #f3f4f6; border-color: #d1d5db; text-decoration: none; }
+    .pagination-current { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 12px; background-color: #111827; color: white; border-radius: 6px; font-weight: 600; }
+    .pagination-ellipsis { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; color: #6b7280; }
+    .pagination-prev, .pagination-next { font-weight: 500; }
+    @media (max-width: 640px) {
+      .pagination { gap: 4px; }
+      .pagination-link, .pagination-current { min-width: 32px; height: 32px; padding: 0 8px; font-size: 14px; }
+      .pagination-numbers { gap: 2px; }
+    }
   </style>
 </head>
 <body>
@@ -599,12 +859,36 @@ const minimalBlogTheme: ThemePreset = {
   <footer class="site-footer" style="border-top: 1px solid #e5e7eb; padding: 24px 0; margin-top: 48px;">
     <div class="container" style="text-align: center; color: #9ca3af; font-size: 14px;">
       <p>&copy; {{ current_year }} {{ blog.title }}</p>
+      <p style="margin-top: 8px; font-size: 12px;">
+        Powered by <a href="https://www.notifuse.com" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">Notifuse</a>
+      </p>
     </div>
   </footer>
 </body>
 </html>`,
 
-    shared: ``
+    shared: `<!-- Newsletter Subscription Form -->
+{% if theme.newsletter.enabled %}
+<div class="newsletter-subscription" style="margin-top: 48px; padding: 32px; background-color: #f9fafb; border-radius: 8px; text-align: center;">
+  <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 1.5rem; color: #111827;">Subscribe to our newsletter</h3>
+  <p style="margin-bottom: 24px; color: #6b7280;">Get the latest posts delivered right to your inbox.</p>
+  <form action="/subscribe" method="POST" style="display: flex; gap: 12px; max-width: 480px; margin: 0 auto; flex-wrap: wrap; justify-content: center;">
+    <input 
+      type="email" 
+      name="email" 
+      placeholder="Enter your email" 
+      required
+      style="flex: 1; min-width: 250px; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 15px;"
+    />
+    <button 
+      type="submit"
+      style="padding: 12px 32px; background-color: {{ theme.newsletter.buttonColor }}; color: white; border: none; border-radius: 6px; font-size: 15px; font-weight: 600; cursor: pointer;"
+    >
+      {{ theme.newsletter.buttonText }}
+    </button>
+  </form>
+</div>
+{% endif %}`
   },
   styling: minimalBlogPreset
 }
@@ -660,6 +944,19 @@ const modernMagazineTheme: ThemePreset = {
       </article>
     {% endfor %}
   </div>
+
+  <!-- Pagination -->
+  {% if pagination.total_pages > 1 %}
+  <nav class="pagination" aria-label="Pagination">
+    {% if pagination.has_previous %}<a href="?page={{ pagination.current_page | minus: 1 }}" class="pagination-link pagination-prev">← Previous</a>{% endif %}
+    <div class="pagination-numbers">
+      {% if pagination.current_page > 3 %}<a href="?page=1" class="pagination-link">1</a>{% if pagination.current_page > 4 %}<span class="pagination-ellipsis">...</span>{% endif %}{% endif %}
+      {% for i in (1..pagination.total_pages) %}{% assign diff = i | minus: pagination.current_page %}{% if diff >= -2 and diff <= 2 %}{% if i == pagination.current_page %}<span class="pagination-current" aria-current="page">{{ i }}</span>{% else %}<a href="?page={{ i }}" class="pagination-link">{{ i }}</a>{% endif %}{% endif %}{% endfor %}
+      {% assign last_minus_current = pagination.total_pages | minus: pagination.current_page %}{% if last_minus_current > 3 %}<span class="pagination-ellipsis">...</span>{% endif %}{% if last_minus_current > 2 %}<a href="?page={{ pagination.total_pages }}" class="pagination-link">{{ pagination.total_pages }}</a>{% endif %}
+    </div>
+    {% if pagination.has_next %}<a href="?page={{ pagination.current_page | plus: 1 }}" class="pagination-link pagination-next">Next →</a>{% endif %}
+  </nav>
+  {% endif %}
 </div>`,
 
     category: `<div class="category-page">
@@ -688,6 +985,19 @@ const modernMagazineTheme: ThemePreset = {
       </article>
     {% endfor %}
   </div>
+
+  <!-- Pagination -->
+  {% if pagination.total_pages > 1 %}
+  <nav class="pagination" aria-label="Pagination">
+    {% if pagination.has_previous %}<a href="?page={{ pagination.current_page | minus: 1 }}" class="pagination-link pagination-prev">← Previous</a>{% endif %}
+    <div class="pagination-numbers">
+      {% if pagination.current_page > 3 %}<a href="?page=1" class="pagination-link">1</a>{% if pagination.current_page > 4 %}<span class="pagination-ellipsis">...</span>{% endif %}{% endif %}
+      {% for i in (1..pagination.total_pages) %}{% assign diff = i | minus: pagination.current_page %}{% if diff >= -2 and diff <= 2 %}{% if i == pagination.current_page %}<span class="pagination-current" aria-current="page">{{ i }}</span>{% else %}<a href="?page={{ i }}" class="pagination-link">{{ i }}</a>{% endif %}{% endif %}{% endfor %}
+      {% assign last_minus_current = pagination.total_pages | minus: pagination.current_page %}{% if last_minus_current > 3 %}<span class="pagination-ellipsis">...</span>{% endif %}{% if last_minus_current > 2 %}<a href="?page={{ pagination.total_pages }}" class="pagination-link">{{ pagination.total_pages }}</a>{% endif %}
+    </div>
+    {% if pagination.has_next %}<a href="?page={{ pagination.current_page | plus: 1 }}" class="pagination-link pagination-next">Next →</a>{% endif %}
+  </nav>
+  {% endif %}
 </div>`,
 
     post: `<article class="blog-post">
@@ -945,6 +1255,20 @@ const modernMagazineTheme: ThemePreset = {
     .hljs-selector-class, .hljs-selector-pseudo { color: #d7ba7d; }
     .hljs-operator { color: #d4d4d4; }
     .hljs-title.function_ { color: #dcdcaa; }
+
+    /* Pagination Styles */
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 64px; padding: 32px 0; }
+    .pagination-numbers { display: flex; align-items: center; gap: 4px; }
+    .pagination-link { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 12px; border: 1px solid #e5e7eb; border-radius: 6px; color: #111827; text-decoration: none; transition: all 0.2s; font-weight: 500; }
+    .pagination-link:hover { background-color: #000; color: #fff; border-color: #000; text-decoration: none; }
+    .pagination-current { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; padding: 0 12px; background-color: #000; color: white; border-radius: 6px; font-weight: 700; }
+    .pagination-ellipsis { display: inline-flex; align-items: center; justify-content: center; min-width: 36px; height: 36px; color: #6b7280; }
+    .pagination-prev, .pagination-next { font-weight: 600; }
+    @media (max-width: 640px) {
+      .pagination { gap: 4px; }
+      .pagination-link, .pagination-current { min-width: 32px; height: 32px; padding: 0 8px; font-size: 14px; }
+      .pagination-numbers { gap: 2px; }
+    }
   </style>
 </head>
 <body>
@@ -962,12 +1286,36 @@ const modernMagazineTheme: ThemePreset = {
     <div class="container" style="text-align: center;">
       <p style="margin-bottom: 8px; font-weight: 600; color: #fff;">{{ blog.title }}</p>
       <p>&copy; {{ current_year }} All rights reserved.</p>
+      <p style="margin-top: 12px; font-size: 12px;">
+        Powered by <a href="https://www.notifuse.com" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">Notifuse</a>
+      </p>
     </div>
   </footer>
 </body>
 </html>`,
 
-    shared: ``
+    shared: `<!-- Newsletter Subscription Form -->
+{% if theme.newsletter.enabled %}
+<div class="newsletter-subscription" style="margin-top: 64px; padding: 48px 32px; background-color: #111827; border-radius: 8px; text-align: center;">
+  <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 1.75rem; color: #ffffff; font-weight: 700;">Stay Updated</h3>
+  <p style="margin-bottom: 32px; color: #9ca3af; font-size: 16px;">Subscribe to get our latest articles delivered to your inbox.</p>
+  <form action="/subscribe" method="POST" style="display: flex; gap: 16px; max-width: 500px; margin: 0 auto; flex-wrap: wrap; justify-content: center;">
+    <input 
+      type="email" 
+      name="email" 
+      placeholder="Your email address" 
+      required
+      style="flex: 1; min-width: 280px; padding: 14px 20px; border: 1px solid #374151; background-color: #1f2937; color: #ffffff; border-radius: 6px; font-size: 16px;"
+    />
+    <button 
+      type="submit"
+      style="padding: 14px 40px; background-color: {{ theme.newsletter.buttonColor }}; color: white; border: none; border-radius: 6px; font-size: 16px; font-weight: 700; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;"
+    >
+      {{ theme.newsletter.buttonText }}
+    </button>
+  </form>
+</div>
+{% endif %}`
   },
   styling: modernMagazinePreset
 }
@@ -1003,6 +1351,19 @@ const timesJournalTheme: ThemePreset = {
       </article>
     {% endfor %}
   </div>
+
+  <!-- Pagination -->
+  {% if pagination.total_pages > 1 %}
+  <nav class="pagination" aria-label="Pagination">
+    {% if pagination.has_previous %}<a href="?page={{ pagination.current_page | minus: 1 }}" class="pagination-link pagination-prev">← Previous</a>{% endif %}
+    <div class="pagination-numbers">
+      {% if pagination.current_page > 3 %}<a href="?page=1" class="pagination-link">1</a>{% if pagination.current_page > 4 %}<span class="pagination-ellipsis">...</span>{% endif %}{% endif %}
+      {% for i in (1..pagination.total_pages) %}{% assign diff = i | minus: pagination.current_page %}{% if diff >= -2 and diff <= 2 %}{% if i == pagination.current_page %}<span class="pagination-current" aria-current="page">{{ i }}</span>{% else %}<a href="?page={{ i }}" class="pagination-link">{{ i }}</a>{% endif %}{% endif %}{% endfor %}
+      {% assign last_minus_current = pagination.total_pages | minus: pagination.current_page %}{% if last_minus_current > 3 %}<span class="pagination-ellipsis">...</span>{% endif %}{% if last_minus_current > 2 %}<a href="?page={{ pagination.total_pages }}" class="pagination-link">{{ pagination.total_pages }}</a>{% endif %}
+    </div>
+    {% if pagination.has_next %}<a href="?page={{ pagination.current_page | plus: 1 }}" class="pagination-link pagination-next">Next →</a>{% endif %}
+  </nav>
+  {% endif %}
 </div>`,
 
     category: `<div class="category-page">
@@ -1028,6 +1389,19 @@ const timesJournalTheme: ThemePreset = {
       </article>
     {% endfor %}
   </div>
+
+  <!-- Pagination -->
+  {% if pagination.total_pages > 1 %}
+  <nav class="pagination" aria-label="Pagination">
+    {% if pagination.has_previous %}<a href="?page={{ pagination.current_page | minus: 1 }}" class="pagination-link pagination-prev">← Previous</a>{% endif %}
+    <div class="pagination-numbers">
+      {% if pagination.current_page > 3 %}<a href="?page=1" class="pagination-link">1</a>{% if pagination.current_page > 4 %}<span class="pagination-ellipsis">...</span>{% endif %}{% endif %}
+      {% for i in (1..pagination.total_pages) %}{% assign diff = i | minus: pagination.current_page %}{% if diff >= -2 and diff <= 2 %}{% if i == pagination.current_page %}<span class="pagination-current" aria-current="page">{{ i }}</span>{% else %}<a href="?page={{ i }}" class="pagination-link">{{ i }}</a>{% endif %}{% endif %}{% endfor %}
+      {% assign last_minus_current = pagination.total_pages | minus: pagination.current_page %}{% if last_minus_current > 3 %}<span class="pagination-ellipsis">...</span>{% endif %}{% if last_minus_current > 2 %}<a href="?page={{ pagination.total_pages }}" class="pagination-link">{{ pagination.total_pages }}</a>{% endif %}
+    </div>
+    {% if pagination.has_next %}<a href="?page={{ pagination.current_page | plus: 1 }}" class="pagination-link pagination-next">Next →</a>{% endif %}
+  </nav>
+  {% endif %}
 </div>`,
 
     post: `<article class="blog-post">
@@ -1289,6 +1663,20 @@ const timesJournalTheme: ThemePreset = {
     .hljs-selector-class, .hljs-selector-pseudo { color: #d7ba7d; }
     .hljs-operator { color: #d4d4d4; }
     .hljs-title.function_ { color: #dcdcaa; }
+
+    /* Pagination Styles */
+    .pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 48px; padding: 32px 0; border-top: 1px solid #e5e7eb; }
+    .pagination-numbers { display: flex; align-items: center; gap: 8px; }
+    .pagination-link { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; border: 1px solid #2a2a2a; color: #2a2a2a; text-decoration: none; transition: all 0.15s; font-family: Georgia, 'Times New Roman', Times, serif; }
+    .pagination-link:hover { background-color: #2a2a2a; color: #fff; text-decoration: none; }
+    .pagination-current { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 8px; background-color: #2a2a2a; color: white; font-weight: 700; font-family: Georgia, 'Times New Roman', Times, serif; }
+    .pagination-ellipsis { display: inline-flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; color: #6b7280; font-family: Georgia, 'Times New Roman', Times, serif; }
+    .pagination-prev, .pagination-next { font-weight: 600; padding: 0 12px; }
+    @media (max-width: 640px) {
+      .pagination { gap: 8px; }
+      .pagination-link, .pagination-current { min-width: 28px; height: 28px; padding: 0 6px; font-size: 14px; }
+      .pagination-numbers { gap: 4px; }
+    }
   </style>
 </head>
 <body>
@@ -1305,12 +1693,36 @@ const timesJournalTheme: ThemePreset = {
   <footer class="site-footer" style="background: #fff; border-top: 3px double #2a2a2a; padding: 32px 0; margin-top: 32px;">
     <div class="container" style="text-align: center; font-size: 14px; color: #4a4a4a;">
       <p>&copy; {{ current_year }} {{ blog.title }}. All rights reserved.</p>
+      <p style="margin-top: 8px; font-size: 12px;">
+        Powered by <a href="https://www.notifuse.com" target="_blank" rel="noopener" style="color: inherit; text-decoration: underline;">Notifuse</a>
+      </p>
     </div>
   </footer>
 </body>
 </html>`,
 
-    shared: ``
+    shared: `<!-- Newsletter Subscription Form -->
+{% if theme.newsletter.enabled %}
+<div class="newsletter-subscription" style="margin-top: 48px; padding: 32px; background-color: #fafaf9; border: 2px solid #e5e7eb; border-radius: 4px; text-align: center;">
+  <h3 style="margin-top: 0; margin-bottom: 12px; font-size: 1.5rem; font-family: Georgia, 'Times New Roman', Times, serif; color: #000000;">Subscribe to Updates</h3>
+  <p style="margin-bottom: 24px; color: #4a4a4a; font-family: Georgia, 'Times New Roman', Times, serif; font-style: italic;">Receive our latest articles and insights in your inbox.</p>
+  <form action="/subscribe" method="POST" style="display: flex; gap: 12px; max-width: 480px; margin: 0 auto; flex-wrap: wrap; justify-content: center;">
+    <input 
+      type="email" 
+      name="email" 
+      placeholder="Email address" 
+      required
+      style="flex: 1; min-width: 250px; padding: 12px 16px; border: 1px solid #2a2a2a; border-radius: 2px; font-size: 15px; font-family: Georgia, 'Times New Roman', Times, serif;"
+    />
+    <button 
+      type="submit"
+      style="padding: 12px 32px; background-color: {{ theme.newsletter.buttonColor }}; color: white; border: none; border-radius: 2px; font-size: 15px; font-weight: 600; cursor: pointer; font-family: Georgia, 'Times New Roman', Times, serif;"
+    >
+      {{ theme.newsletter.buttonText }}
+    </button>
+  </form>
+</div>
+{% endif %}`
   },
   styling: timesJournalPreset
 }

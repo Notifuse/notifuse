@@ -556,6 +556,12 @@ func WithListDoubleOptin(enabled bool) ListOption {
 	}
 }
 
+func WithListPublic(enabled bool) ListOption {
+	return func(l *domain.List) {
+		l.IsPublic = enabled
+	}
+}
+
 // Template options
 func WithTemplateName(name string) TemplateOption {
 	return func(t *domain.Template) {

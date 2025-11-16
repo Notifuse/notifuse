@@ -392,24 +392,119 @@ export function ThemeEditorDrawer({
                           key: file.key,
                           label: file.label,
                           children: (
-                            <div style={{ height: 'calc(100vh - 155px)' }}>
-                              <Editor
-                                height="100%"
-                                language="html"
-                                value={files[file.key]}
-                                onChange={handleEditorChange}
-                                onMount={handleEditorDidMount}
-                                theme="vs-light"
-                                options={{
-                                  minimap: { enabled: false },
-                                  fontSize: 14,
-                                  lineNumbers: 'on',
-                                  scrollBeyondLastLine: false,
-                                  wordWrap: 'on',
-                                  automaticLayout: true,
-                                  tabSize: 2
-                                }}
-                              />
+                            <div
+                              style={{
+                                height: 'calc(100vh - 155px)',
+                                display: 'flex',
+                                flexDirection: 'column'
+                              }}
+                            >
+                              {file.key === 'shared' && (
+                                <div
+                                  style={{
+                                    padding: '12px 16px',
+                                    background: '#f5f7fa',
+                                    borderBottom: '1px solid #e0e0e0',
+                                    fontSize: '13px',
+                                    lineHeight: '1.6',
+                                    maxHeight: '120px',
+                                    overflowY: 'auto'
+                                  }}
+                                >
+                                  <div
+                                    style={{ fontWeight: 600, marginBottom: 6, color: '#1a1a1a' }}
+                                  >
+                                    📬 Newsletter Subscription Form
+                                  </div>
+                                  <div style={{ color: '#666', marginBottom: 8 }}>
+                                    This template includes a ready-to-use newsletter subscription
+                                    form. Copy the form HTML to your <strong>footer.liquid</strong>{' '}
+                                    or <strong>home.liquid</strong> for site-wide newsletter
+                                    signups.
+                                  </div>
+                                  <div style={{ color: '#666' }}>
+                                    <strong>Available variables:</strong>{' '}
+                                    <code
+                                      style={{
+                                        background: '#fff',
+                                        padding: '2px 4px',
+                                        borderRadius: 2
+                                      }}
+                                    >
+                                      workspace
+                                    </code>
+                                    ,{' '}
+                                    <code
+                                      style={{
+                                        background: '#fff',
+                                        padding: '2px 4px',
+                                        borderRadius: 2
+                                      }}
+                                    >
+                                      public_lists
+                                    </code>
+                                    ,{' '}
+                                    <code
+                                      style={{
+                                        background: '#fff',
+                                        padding: '2px 4px',
+                                        borderRadius: 2
+                                      }}
+                                    >
+                                      post
+                                    </code>
+                                    ,{' '}
+                                    <code
+                                      style={{
+                                        background: '#fff',
+                                        padding: '2px 4px',
+                                        borderRadius: 2
+                                      }}
+                                    >
+                                      category
+                                    </code>
+                                    ,{' '}
+                                    <code
+                                      style={{
+                                        background: '#fff',
+                                        padding: '2px 4px',
+                                        borderRadius: 2
+                                      }}
+                                    >
+                                      posts
+                                    </code>
+                                    ,{' '}
+                                    <code
+                                      style={{
+                                        background: '#fff',
+                                        padding: '2px 4px',
+                                        borderRadius: 2
+                                      }}
+                                    >
+                                      categories
+                                    </code>
+                                  </div>
+                                </div>
+                              )}
+                              <div style={{ flex: 1, minHeight: 0 }}>
+                                <Editor
+                                  height="100%"
+                                  language="html"
+                                  value={files[file.key]}
+                                  onChange={handleEditorChange}
+                                  onMount={handleEditorDidMount}
+                                  theme="vs-light"
+                                  options={{
+                                    minimap: { enabled: false },
+                                    fontSize: 14,
+                                    lineNumbers: 'on',
+                                    scrollBeyondLastLine: false,
+                                    wordWrap: 'on',
+                                    automaticLayout: true,
+                                    tabSize: 2
+                                  }}
+                                />
+                              </div>
                             </div>
                           )
                         }))}

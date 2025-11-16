@@ -734,9 +734,23 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 		return nil, fmt.Errorf("error iterating blog posts: %w", err)
 	}
 
+	// Calculate pagination metadata
+	totalPages := 0
+	if params.Limit > 0 {
+		totalPages = (totalCount + params.Limit - 1) / params.Limit // Ceiling division
+	}
+	currentPage := params.Page
+	if currentPage <= 0 {
+		currentPage = 1
+	}
+
 	return &domain.BlogPostListResponse{
-		Posts:      posts,
-		TotalCount: totalCount,
+		Posts:           posts,
+		TotalCount:      totalCount,
+		CurrentPage:     currentPage,
+		TotalPages:      totalPages,
+		HasNextPage:     currentPage < totalPages,
+		HasPreviousPage: currentPage > 1,
 	}, nil
 }
 

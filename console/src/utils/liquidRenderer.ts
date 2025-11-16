@@ -38,23 +38,9 @@ export async function renderBlogPage(
     }
 
     // Prepare data based on view
+    // Note: MockBlogData already includes post and category fields set by getMockDataForView
+    // This matches the backend BlogTemplateDataRequest structure
     let renderData = { ...data }
-
-    if (view === 'category') {
-      renderData = {
-        ...data,
-        category: data.currentCategory || data.categories[0]
-      }
-    }
-
-    if (view === 'post') {
-      renderData = {
-        ...data,
-        post: data.currentPost || data.posts[0],
-        previous_post: data.previous_post,
-        next_post: data.next_post
-      }
-    }
 
     // SECURITY: Timeout protection
     const timeoutPromise = new Promise<never>((_, reject) => {

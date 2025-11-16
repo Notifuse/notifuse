@@ -10,6 +10,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -76,6 +77,11 @@ func setupUserTest(t *testing.T) (
 			return client
 		}).AnyTimes()
 
+	// Create rate limiter with policies for testing
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("signin", 5, 5*time.Minute)
+	rl.SetPolicy("verify", 5, 5*time.Minute)
+
 	service, err := NewUserService(UserServiceConfig{
 		Repository:    mockRepo,
 		AuthService:   mockAuthService,
@@ -84,6 +90,7 @@ func setupUserTest(t *testing.T) (
 		Logger:        mockLogger,
 		IsProduction:  true,
 		Tracer:        mockTracer,
+		RateLimiter:   rl,
 		SecretKey:     "test-secret-key-for-hmac-verification",
 	})
 	require.NoError(t, err)

@@ -556,8 +556,280 @@ export const DEFAULT_BLOG_TEMPLATES: BlogThemeFiles = {
 </html>`,
 
   shared: `{%- comment -%}
-  This file is for Liquid macros, helper functions, and reusable snippets.
-  Define your custom macros here to keep your templates DRY.
+  ============================================
+  NEWSLETTER SUBSCRIPTION FORM
+  ============================================
+  
+  Available Liquid variables:
+  - workspace.id (string): Workspace ID for API calls
+  - workspace.name (string): Workspace display name
+  - public_lists (array): Public newsletter lists
+    Each list has: id, name, description
+  - post (object|null): Current post (on post pages only)
+  - category (object|null): Current category (on category pages)
+  - posts (array): Post listings (home/category pages)
+  - categories (array): Available categories for navigation
+  
+  Usage Examples:
+  
+  1. Copy entire block to footer.liquid for site-wide newsletter
+  2. Copy to home.liquid below post listings
+  3. Customize styling to match your theme
+  4. Modify form fields as needed (e.g., add name field)
+  
+  SEO & Accessibility:
+  - Uses semantic HTML (<form>, <label>, etc.)
+  - Includes aria-label attributes
+  - Mobile-responsive design
+  - No hidden fields that could trigger spam detection
+{%- endcomment -%}
+
+{% if public_lists.size > 0 %}
+<div class="newsletter-subscription" role="region" aria-label="Newsletter subscription">
+  <h3>Subscribe to our newsletter</h3>
+  <p class="newsletter-description">
+    Stay updated with our latest content and announcements.
+  </p>
+  
+  <form id="newsletter-form-{{workspace.id}}" aria-label="Newsletter subscription form">
+    <div class="form-group">
+      <label for="newsletter-email">Email address *</label>
+      <input 
+        type="email" 
+        id="newsletter-email" 
+        name="email"
+        placeholder="your@email.com" 
+        required 
+        aria-required="true"
+      />
+    </div>
+    
+    <div class="form-group">
+      <label for="newsletter-firstname">First name (optional)</label>
+      <input 
+        type="text" 
+        id="newsletter-firstname" 
+        name="first_name"
+        placeholder="John" 
+      />
+    </div>
+    
+    <div class="newsletter-lists">
+      <p class="list-heading">Select newsletters:</p>
+      {% for list in public_lists %}
+      <label class="list-option">
+        <input 
+          type="checkbox" 
+          value="{{list.id}}" 
+          name="lists" 
+          checked 
+          aria-label="Subscribe to {{list.name}}"
+        />
+        <span class="list-name">{{list.name}}</span>
+        {% if list.description %}
+          <span class="list-desc">{{list.description}}</span>
+        {% endif %}
+      </label>
+      {% endfor %}
+    </div>
+    
+    <button type="submit" id="newsletter-submit" class="submit-btn">
+      Subscribe
+    </button>
+    <div id="newsletter-message" role="alert" aria-live="polite"></div>
+  </form>
+</div>
+
+<script>
+(function() {
+  const form = document.getElementById('newsletter-form-{{workspace.id}}');
+  if (!form) return;
+  
+  form.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const email = document.getElementById('newsletter-email').value;
+    const firstName = document.getElementById('newsletter-firstname').value;
+    const checkboxes = document.querySelectorAll('input[name="lists"]:checked');
+    const listIds = Array.from(checkboxes).map(cb => cb.value);
+    
+    if (listIds.length === 0) {
+      showMessage('Please select at least one newsletter', 'error');
+      return;
+    }
+    
+    const submitBtn = document.getElementById('newsletter-submit');
+    const messageDiv = document.getElementById('newsletter-message');
+    
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Subscribing...';
+    messageDiv.textContent = '';
+    
+    try {
+      const response = await fetch('/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspace_id: '{{workspace.id}}',
+          contact: {
+            email: email,
+            first_name: firstName || null
+          },
+          list_ids: listIds
+        })
+      });
+      
+      if (response.ok) {
+        showMessage('Successfully subscribed! Check your email for confirmation.', 'success');
+        form.reset();
+      } else {
+        const error = await response.json();
+        showMessage(error.error || 'Subscription failed. Please try again.', 'error');
+      }
+    } catch (error) {
+      showMessage('Network error. Please check your connection.', 'error');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Subscribe';
+    }
+  });
+  
+  function showMessage(text, type) {
+    const messageDiv = document.getElementById('newsletter-message');
+    messageDiv.textContent = text;
+    messageDiv.className = 'message message-' + type;
+  }
+})();
+</script>
+
+<style>
+.newsletter-subscription {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 2rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+.newsletter-subscription h3 {
+  margin-top: 0;
+  font-size: 1.5rem;
+  color: #1a1a1a;
+}
+.newsletter-description {
+  color: #666;
+  margin-bottom: 1.5rem;
+}
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #333;
+}
+.newsletter-subscription input[type="email"],
+.newsletter-subscription input[type="text"] {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+.newsletter-subscription input[type="email"]:focus,
+.newsletter-subscription input[type="text"]:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+}
+.newsletter-lists {
+  margin: 1.5rem 0;
+}
+.list-heading {
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  color: #333;
+}
+.list-option {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+  cursor: pointer;
+}
+.list-option input[type="checkbox"] {
+  margin-right: 0.5rem;
+  margin-top: 0.25rem;
+}
+.list-name {
+  font-weight: 500;
+  color: #1a1a1a;
+}
+.list-desc {
+  display: block;
+  margin-left: 1.5rem;
+  color: #666;
+  font-size: 0.9em;
+}
+.submit-btn {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+.submit-btn:hover {
+  background-color: #0056b3;
+}
+.submit-btn:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+.message {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-radius: 4px;
+  text-align: center;
+}
+.message-success {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+.message-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .newsletter-subscription {
+    padding: 1.5rem;
+    margin: 1rem;
+  }
+}
+</style>
+
+{% else %}
+{%- comment -%}
+  Empty state: No public lists available
+  This section is hidden when there are no newsletter lists configured
+  Theme creators can customize this message or remove this block entirely
+{%- endcomment -%}
+{% endif %}
+
+{%- comment -%}
+  ============================================
+  REUSABLE SNIPPETS & HELPER FUNCTIONS
+  ============================================
+  
+  Add your custom macros and helper functions below.
   
   Example:
   {% macro format_date(date) %}

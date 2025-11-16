@@ -650,6 +650,60 @@ func TestBlogPostRepository(t *testing.T) {
 			assert.NoError(t, testSqlMock.ExpectationsWereMet())
 		})
 
+		t.Run("includes pagination metadata", func(t *testing.T) {
+			// Create new mocks for this test
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+			
+			testMockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+			testRepo := NewBlogPostRepository(testMockWorkspaceRepo)
+			testDB, testSqlMock, err := sqlmock.New()
+			require.NoError(t, err)
+			defer testDB.Close()
+
+			testMockWorkspaceRepo.EXPECT().
+				GetConnection(gomock.Any(), "workspace123").
+				Return(testDB, nil)
+
+			// Total count: 25 posts
+			countRows := sqlmock.NewRows([]string{"count"}).AddRow(25)
+			testSqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT COUNT(*)`)).
+				WillReturnRows(countRows)
+
+			// List query - page 2 with 10 per page
+			rows := sqlmock.NewRows([]string{
+				"id", "category_id", "slug", "settings", "published_at", "created_at", "updated_at", "deleted_at",
+			}).AddRow(
+				"post1",
+				"cat123",
+				"post1",
+				[]byte(`{"title":"Post 1","template":{"template_id":"tpl123","template_version":1,"template_data":{}},"authors":[],"reading_time_minutes":0}`),
+				nil,
+				time.Now().UTC(),
+				time.Now().UTC(),
+				nil,
+			)
+
+			testSqlMock.ExpectQuery(regexp.QuoteMeta(`SELECT id, category_id, slug, settings`)).
+				WillReturnRows(rows)
+
+			params := domain.ListBlogPostsRequest{
+				Page:   2,
+				Limit:  10,
+				Offset: 10,
+			}
+			result, err := testRepo.ListPosts(ctx, params)
+			require.NoError(t, err)
+			
+			// Check pagination metadata
+			assert.Equal(t, 25, result.TotalCount)
+			assert.Equal(t, 2, result.CurrentPage)
+			assert.Equal(t, 3, result.TotalPages) // ceiling(25/10) = 3
+			assert.Equal(t, true, result.HasNextPage) // page 2 of 3
+			assert.Equal(t, true, result.HasPreviousPage) // page 2 > 1
+			assert.NoError(t, testSqlMock.ExpectationsWereMet())
+		})
+
 		t.Run("filter by status - published only", func(t *testing.T) {
 			// Create new mocks for this test
 			ctrl := gomock.NewController(t)

@@ -47,7 +47,7 @@ func (t *errorTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestNotificationCenterHandler_HandleDetectFavicon_MethodNotAllowed(t *testing.T) {
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/detect-favicon", nil)
 	w := httptest.NewRecorder()
@@ -58,7 +58,7 @@ func TestNotificationCenterHandler_HandleDetectFavicon_MethodNotAllowed(t *testi
 }
 
 func TestNotificationCenterHandler_HandleDetectFavicon_InvalidJSON(t *testing.T) {
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	// Create a request with invalid JSON
 	req := httptest.NewRequest(http.MethodPost, "/api/detect-favicon", strings.NewReader("invalid json"))
@@ -71,7 +71,7 @@ func TestNotificationCenterHandler_HandleDetectFavicon_InvalidJSON(t *testing.T)
 }
 
 func TestNotificationCenterHandler_HandleDetectFavicon_EmptyURL(t *testing.T) {
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	// Create a request with empty URL
 	reqBody, _ := json.Marshal(FaviconRequest{URL: ""})
@@ -85,7 +85,7 @@ func TestNotificationCenterHandler_HandleDetectFavicon_EmptyURL(t *testing.T) {
 }
 
 func TestNotificationCenterHandler_HandleDetectFavicon_InvalidURL(t *testing.T) {
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	// Create a request with invalid URL
 	reqBody, _ := json.Marshal(FaviconRequest{URL: "://invalid-url"})
@@ -405,7 +405,7 @@ func TestFaviconHandler_DetectFavicon_AppleTouchIcon_Success(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -473,7 +473,7 @@ func TestFaviconHandler_DetectFavicon_ManifestIcon_Success(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -526,7 +526,7 @@ func TestFaviconHandler_DetectFavicon_Traditional_Success(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -578,7 +578,7 @@ func TestFaviconHandler_DetectFavicon_DefaultLocation_Success(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -630,7 +630,7 @@ func TestFaviconHandler_DetectFavicon_NoFaviconFound(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -659,7 +659,7 @@ func TestFaviconHandler_DetectFavicon_FailedFetch(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: "https://example.com"})
@@ -697,7 +697,7 @@ func TestFaviconHandler_DetectFavicon_InvalidHTML(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -740,7 +740,7 @@ func TestFaviconHandler_DetectFavicon_HTMLParsingError(t *testing.T) {
 	}
 
 	// Setup handler
-	handler := NewNotificationCenterHandler(nil, nil, nil)
+	handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 	// Create request
 	reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})
@@ -1108,7 +1108,7 @@ func TestFaviconHandler_DetectFavicon_WithCoverImages(t *testing.T) {
 			}
 
 			// Setup handler
-			handler := NewNotificationCenterHandler(nil, nil, nil)
+			handler := NewNotificationCenterHandler(nil, nil, nil, nil)
 
 			// Create request
 			reqBody, _ := json.Marshal(FaviconRequest{URL: testURL})

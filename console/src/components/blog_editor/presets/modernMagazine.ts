@@ -101,5 +101,12 @@ export const modernMagazinePreset: EditorStyleConfig = {
   link: {
     color: '#2563eb',
     hoverColor: '#1d4ed8'
+  },
+
+  // Newsletter settings
+  newsletter: {
+    enabled: false,
+    buttonColor: '#2563eb',
+    buttonText: 'Subscribe'
   }
 }

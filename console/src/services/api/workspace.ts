@@ -28,6 +28,8 @@ export interface BlogSettings {
   icon_url?: string
   styling?: any // EditorStyleConfig - stored as JSON
   seo?: SEOSettings
+  home_page_size?: number
+  category_page_size?: number
 }
 
 export interface WorkspaceSettings {

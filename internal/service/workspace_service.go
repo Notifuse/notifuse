@@ -31,10 +31,10 @@ type WorkspaceService struct {
 	contactListService     domain.ContactListService
 	templateService        domain.TemplateService
 	webhookRegService      domain.WebhookRegistrationService
-	supabaseService        SupabaseService
+	supabaseService        *SupabaseService
 	secretKey              string
-	dnsVerificationService DNSVerificationService
-	blogService            BlogService
+	dnsVerificationService *DNSVerificationService
+	blogService            *BlogService
 }
 
 func NewWorkspaceService(
@@ -52,9 +52,9 @@ func NewWorkspaceService(
 	templateService domain.TemplateService,
 	webhookRegService domain.WebhookRegistrationService,
 	secretKey string,
-	supabaseService SupabaseService,
-	dnsVerificationService DNSVerificationService,
-	blogService BlogService,
+	supabaseService *SupabaseService,
+	dnsVerificationService *DNSVerificationService,
+	blogService *BlogService,
 ) *WorkspaceService {
 	return &WorkspaceService{
 		repo:                   repo,
