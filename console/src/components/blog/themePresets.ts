@@ -111,7 +111,7 @@ const blankTheme: ThemePreset = {
 
     body {
       font-family: system-ui, -apple-system, sans-serif;
-      font-size: 16px;
+      font-size: 15px;
       line-height: 1.6;
       color: #1a1a1a;
       background: #ffffff;
@@ -143,6 +143,73 @@ const blankTheme: ThemePreset = {
     a:hover {
       text-decoration: underline;
     }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      margin-top: 2rem;
+    }
+
+    li {
+      margin-left: 1em;
+    }
+
+    hr {
+      border: none;
+      height: 1px;
+      background-color: #e5e7eb;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    code {
+      font-family: monospace;
+      font-size: 0.9em;
+      color: #e11d48;
+      background-color: #f3f4f6;
+      padding: 0.1em 0.2em;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    pre {
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      border: 1px solid #3e3e42;
+      padding: 1em;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      border: none;
+      padding: 0;
+    }
+
+    .hljs-comment, .hljs-quote { color: #6a9955; font-style: italic; }
+    .hljs-keyword, .hljs-selector-tag, .hljs-subst { color: #569cd6; }
+    .hljs-number, .hljs-literal { color: #b5cea8; }
+    .hljs-variable, .hljs-template-variable, .hljs-tag .hljs-attr { color: #9cdcfe; }
+    .hljs-string, .hljs-doctag { color: #ce9178; }
+    .hljs-title, .hljs-section, .hljs-selector-id { color: #dcdcaa; }
+    .hljs-type, .hljs-class .hljs-title { color: #4ec9b0; }
+    .hljs-tag, .hljs-name, .hljs-attribute { color: #9cdcfe; }
+    .hljs-regexp, .hljs-link { color: #ce9178; }
+    .hljs-symbol, .hljs-bullet { color: #4fc1ff; }
+    .hljs-built_in, .hljs-builtin-name { color: #4ec9b0; }
+    .hljs-meta { color: #808080; }
+    .hljs-deletion { color: #f48771; background-color: #3b2626; }
+    .hljs-addition { color: #b5cea8; background-color: #233323; }
+    .hljs-emphasis { font-style: italic; }
+    .hljs-strong { font-weight: bold; }
+    .hljs-function { color: #dcdcaa; }
+    .hljs-params { color: #d4d4d4; }
+    .hljs-selector-class, .hljs-selector-pseudo { color: #d7ba7d; }
+    .hljs-operator { color: #d4d4d4; }
+    .hljs-title.function_ { color: #dcdcaa; }
   </style>
 </head>
 <body>
@@ -359,7 +426,7 @@ const minimalBlogTheme: ThemePreset = {
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 18px;
+      font-size: 15px;
       line-height: 1.6;
       color: #1f2937;
       background: #ffffff;
@@ -449,6 +516,73 @@ const minimalBlogTheme: ThemePreset = {
       font-size: 14px;
       color: #9ca3af;
     }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      margin-top: 2rem;
+    }
+
+    li {
+      margin-left: 1em;
+    }
+
+    hr {
+      border: none;
+      height: 1px;
+      background-color: #e5e7eb;
+      margin-top: 2.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    code {
+      font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 0.9em;
+      color: #111827;
+      background-color: #f3f4f6;
+      padding: 0.1em 0.2em;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    pre {
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      border: 1px solid #3e3e42;
+      padding: 1em;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 1.75rem 0;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      border: none;
+      padding: 0;
+    }
+
+    .hljs-comment, .hljs-quote { color: #6a9955; font-style: italic; }
+    .hljs-keyword, .hljs-selector-tag, .hljs-subst { color: #569cd6; }
+    .hljs-number, .hljs-literal { color: #b5cea8; }
+    .hljs-variable, .hljs-template-variable, .hljs-tag .hljs-attr { color: #9cdcfe; }
+    .hljs-string, .hljs-doctag { color: #ce9178; }
+    .hljs-title, .hljs-section, .hljs-selector-id { color: #dcdcaa; }
+    .hljs-type, .hljs-class .hljs-title { color: #4ec9b0; }
+    .hljs-tag, .hljs-name, .hljs-attribute { color: #9cdcfe; }
+    .hljs-regexp, .hljs-link { color: #ce9178; }
+    .hljs-symbol, .hljs-bullet { color: #4fc1ff; }
+    .hljs-built_in, .hljs-builtin-name { color: #4ec9b0; }
+    .hljs-meta { color: #808080; }
+    .hljs-deletion { color: #f48771; background-color: #3b2626; }
+    .hljs-addition { color: #b5cea8; background-color: #233323; }
+    .hljs-emphasis { font-style: italic; }
+    .hljs-strong { font-weight: bold; }
+    .hljs-function { color: #dcdcaa; }
+    .hljs-params { color: #d4d4d4; }
+    .hljs-selector-class, .hljs-selector-pseudo { color: #d7ba7d; }
+    .hljs-operator { color: #d4d4d4; }
+    .hljs-title.function_ { color: #dcdcaa; }
   </style>
 </head>
 <body>
@@ -622,7 +756,7 @@ const modernMagazineTheme: ThemePreset = {
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      font-size: 17px;
+      font-size: 15px;
       line-height: 1.75;
       color: #111827;
       background: #ffffff;
@@ -744,6 +878,73 @@ const modernMagazineTheme: ThemePreset = {
       color: #6b7280;
       margin-top: 12px;
     }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      margin-top: 2rem;
+    }
+
+    li {
+      margin-left: 1em;
+    }
+
+    hr {
+      border: none;
+      height: 1px;
+      background-color: #e5e7eb;
+      margin-top: 3rem;
+      margin-bottom: 3rem;
+    }
+
+    code {
+      font-family: monospace;
+      font-size: 0.9em;
+      color: #e11d48;
+      background-color: #f3f4f6;
+      padding: 0.1em 0.2em;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    pre {
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      border: 1px solid #3e3e42;
+      padding: 1em;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      border: none;
+      padding: 0;
+    }
+
+    .hljs-comment, .hljs-quote { color: #6a9955; font-style: italic; }
+    .hljs-keyword, .hljs-selector-tag, .hljs-subst { color: #569cd6; }
+    .hljs-number, .hljs-literal { color: #b5cea8; }
+    .hljs-variable, .hljs-template-variable, .hljs-tag .hljs-attr { color: #9cdcfe; }
+    .hljs-string, .hljs-doctag { color: #ce9178; }
+    .hljs-title, .hljs-section, .hljs-selector-id { color: #dcdcaa; }
+    .hljs-type, .hljs-class .hljs-title { color: #4ec9b0; }
+    .hljs-tag, .hljs-name, .hljs-attribute { color: #9cdcfe; }
+    .hljs-regexp, .hljs-link { color: #ce9178; }
+    .hljs-symbol, .hljs-bullet { color: #4fc1ff; }
+    .hljs-built_in, .hljs-builtin-name { color: #4ec9b0; }
+    .hljs-meta { color: #808080; }
+    .hljs-deletion { color: #f48771; background-color: #3b2626; }
+    .hljs-addition { color: #b5cea8; background-color: #233323; }
+    .hljs-emphasis { font-style: italic; }
+    .hljs-strong { font-weight: bold; }
+    .hljs-function { color: #dcdcaa; }
+    .hljs-params { color: #d4d4d4; }
+    .hljs-selector-class, .hljs-selector-pseudo { color: #d7ba7d; }
+    .hljs-operator { color: #d4d4d4; }
+    .hljs-title.function_ { color: #dcdcaa; }
   </style>
 </head>
 <body>
@@ -889,7 +1090,7 @@ const timesJournalTheme: ThemePreset = {
 
     body {
       font-family: Georgia, "Times New Roman", Times, serif;
-      font-size: 18px;
+      font-size: 15px;
       line-height: 1.7;
       color: #1a1a1a;
       background: #fafaf9;
@@ -1021,6 +1222,73 @@ const timesJournalTheme: ThemePreset = {
       color: #003377;
       text-decoration: underline;
     }
+
+    img {
+      max-width: 100%;
+      height: auto;
+      margin-top: 2rem;
+    }
+
+    li {
+      margin-left: 1em;
+    }
+
+    hr {
+      border: none;
+      height: 1px;
+      background-color: #2a2a2a;
+      margin-top: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    code {
+      font-family: monospace;
+      font-size: 0.9em;
+      color: #e11d48;
+      background-color: #f3f4f6;
+      padding: 0.1em 0.2em;
+      border-radius: 3px;
+      border: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    pre {
+      background-color: #1e1e1e;
+      color: #d4d4d4;
+      border: 1px solid #3e3e42;
+      padding: 1em;
+      border-radius: 6px;
+      overflow-x: auto;
+      margin: 1.5rem 0;
+    }
+
+    pre code {
+      background-color: transparent;
+      color: inherit;
+      border: none;
+      padding: 0;
+    }
+
+    .hljs-comment, .hljs-quote { color: #6a9955; font-style: italic; }
+    .hljs-keyword, .hljs-selector-tag, .hljs-subst { color: #569cd6; }
+    .hljs-number, .hljs-literal { color: #b5cea8; }
+    .hljs-variable, .hljs-template-variable, .hljs-tag .hljs-attr { color: #9cdcfe; }
+    .hljs-string, .hljs-doctag { color: #ce9178; }
+    .hljs-title, .hljs-section, .hljs-selector-id { color: #dcdcaa; }
+    .hljs-type, .hljs-class .hljs-title { color: #4ec9b0; }
+    .hljs-tag, .hljs-name, .hljs-attribute { color: #9cdcfe; }
+    .hljs-regexp, .hljs-link { color: #ce9178; }
+    .hljs-symbol, .hljs-bullet { color: #4fc1ff; }
+    .hljs-built_in, .hljs-builtin-name { color: #4ec9b0; }
+    .hljs-meta { color: #808080; }
+    .hljs-deletion { color: #f48771; background-color: #3b2626; }
+    .hljs-addition { color: #b5cea8; background-color: #233323; }
+    .hljs-emphasis { font-style: italic; }
+    .hljs-strong { font-weight: bold; }
+    .hljs-function { color: #dcdcaa; }
+    .hljs-params { color: #d4d4d4; }
+    .hljs-selector-class, .hljs-selector-pseudo { color: #d7ba7d; }
+    .hljs-operator { color: #d4d4d4; }
+    .hljs-title.function_ { color: #dcdcaa; }
   </style>
 </head>
 <body>

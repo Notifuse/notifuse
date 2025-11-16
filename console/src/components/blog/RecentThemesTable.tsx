@@ -212,6 +212,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
           open={selectionModalOpen}
           onClose={() => setSelectionModalOpen(false)}
           onSelectTheme={handleSelectTheme}
+          workspace={workspace}
         />
 
         <ThemeEditorDrawer

@@ -186,16 +186,129 @@ ${scopeClass} code {
   background-color: ${config.inlineCode.backgroundColor};
   padding: 0.1em 0.2em;
   border-radius: 3px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
 }
 
 ${scopeClass} pre {
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+  border: 1px solid #3e3e42;
   margin-top: ${cssValueToString(config.codeBlock.marginTop)};
   margin-bottom: ${cssValueToString(config.codeBlock.marginBottom)};
+  padding: 1em;
+  border-radius: 6px;
+  overflow-x: auto;
 }
 
 ${scopeClass} pre code {
   background-color: transparent;
+  color: inherit;
+  border: none;
   padding: 0;
+}
+
+/* Syntax Highlighting - VS Code Dark+ Theme */
+${scopeClass} .hljs-comment,
+${scopeClass} .hljs-quote {
+  color: #6a9955;
+  font-style: italic;
+}
+
+${scopeClass} .hljs-keyword,
+${scopeClass} .hljs-selector-tag,
+${scopeClass} .hljs-subst {
+  color: #569cd6;
+}
+
+${scopeClass} .hljs-number,
+${scopeClass} .hljs-literal {
+  color: #b5cea8;
+}
+
+${scopeClass} .hljs-variable,
+${scopeClass} .hljs-template-variable,
+${scopeClass} .hljs-tag .hljs-attr {
+  color: #9cdcfe;
+}
+
+${scopeClass} .hljs-string,
+${scopeClass} .hljs-doctag {
+  color: #ce9178;
+}
+
+${scopeClass} .hljs-title,
+${scopeClass} .hljs-section,
+${scopeClass} .hljs-selector-id {
+  color: #dcdcaa;
+}
+
+${scopeClass} .hljs-type,
+${scopeClass} .hljs-class .hljs-title {
+  color: #4ec9b0;
+}
+
+${scopeClass} .hljs-tag,
+${scopeClass} .hljs-name,
+${scopeClass} .hljs-attribute {
+  color: #9cdcfe;
+}
+
+${scopeClass} .hljs-regexp,
+${scopeClass} .hljs-link {
+  color: #ce9178;
+}
+
+${scopeClass} .hljs-symbol,
+${scopeClass} .hljs-bullet {
+  color: #4fc1ff;
+}
+
+${scopeClass} .hljs-built_in,
+${scopeClass} .hljs-builtin-name {
+  color: #4ec9b0;
+}
+
+${scopeClass} .hljs-meta {
+  color: #808080;
+}
+
+${scopeClass} .hljs-deletion {
+  color: #f48771;
+  background-color: #3b2626;
+}
+
+${scopeClass} .hljs-addition {
+  color: #b5cea8;
+  background-color: #233323;
+}
+
+${scopeClass} .hljs-emphasis {
+  font-style: italic;
+}
+
+${scopeClass} .hljs-strong {
+  font-weight: bold;
+}
+
+${scopeClass} .hljs-function {
+  color: #dcdcaa;
+}
+
+${scopeClass} .hljs-params {
+  color: #d4d4d4;
+}
+
+${scopeClass} .hljs-selector-class,
+${scopeClass} .hljs-selector-pseudo {
+  color: #d7ba7d;
+}
+
+${scopeClass} .hljs-operator {
+  color: #d4d4d4;
+}
+
+${scopeClass} .hljs-title.function_ {
+  color: #dcdcaa;
 }
 
 /* Captions */
@@ -238,6 +351,10 @@ ${scopeClass} ol ol {
 
 ${scopeClass} li p {
   margin-top: 0;
+}
+
+${scopeClass} li {
+  margin-left: 1em;
 }
 
 /* Links */

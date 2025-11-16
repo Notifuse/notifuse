@@ -50,6 +50,9 @@ const theme: ThemeConfig = {
     Drawer: {
       colorBgElevated: '#F9F9F9'
     },
+    Modal: {
+      colorBgElevated: '#F9F9F9'
+    },
     Timeline: {
       dotBg: '#F9F9F9'
     }

@@ -133,9 +133,6 @@ export const MOCK_BLOG_DATA: MockBlogData = {
         'A comprehensive showcase of all content blocks, styling options, and typography elements available in our blog theme system.',
       content: `<p>This post demonstrates every content block type and styling option available in the theme editor. Use this as a reference to see how your theme handles different content types.</p>
 
-<h1>Main Heading (H1)</h1>
-<p>This is a paragraph that follows an H1 heading. It contains regular text that demonstrates the default paragraph styling, including line height, spacing, and font size.</p>
-
 <h2>Section Heading (H2)</h2>
 <p>Every blog post needs well-structured sections. This H2 heading marks a major section division. Notice the spacing above and below this heading, as well as the font size and weight.</p>
 
