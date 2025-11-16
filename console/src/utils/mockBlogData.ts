@@ -46,9 +46,11 @@ export const MOCK_BLOG_DATA: MockBlogData = {
   },
   seo: {
     meta_title: 'My Awesome Blog - Insights & Stories',
-    meta_description: 'Explore our latest thoughts, ideas, and stories on web development, technology, and design.',
+    meta_description:
+      'Explore our latest thoughts, ideas, and stories on web development, technology, and design.',
     og_title: 'My Awesome Blog',
-    og_description: 'Join us as we share insights about web development, AI, and modern design practices.',
+    og_description:
+      'Join us as we share insights about web development, AI, and modern design practices.',
     og_image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1200',
     canonical_url: 'https://example.com',
     keywords: ['web development', 'technology', 'design', 'tutorials', 'blog']
@@ -125,37 +127,136 @@ export const MOCK_BLOG_DATA: MockBlogData = {
   },
   posts: [
     {
-      title: 'Getting Started with Web Development',
-      slug: 'getting-started-web-development',
+      title: 'Complete Style Guide & Kitchen Sink',
+      slug: 'style-guide-kitchen-sink',
       excerpt:
-        'Learn the basics of HTML, CSS, and JavaScript to kickstart your web development journey.',
-      content: `<p>Web development is an exciting field that combines creativity with technical skills. In this post, we'll explore the fundamentals.</p>
-      
-<h2>The Building Blocks</h2>
-<p>Every website is built using three core technologies: HTML for structure, CSS for styling, and JavaScript for interactivity.</p>
+        'A comprehensive showcase of all content blocks, styling options, and typography elements available in our blog theme system.',
+      content: `<p>This post demonstrates every content block type and styling option available in the theme editor. Use this as a reference to see how your theme handles different content types.</p>
 
-<h3>HTML - The Structure</h3>
-<p>HTML provides the skeleton of your webpage. It defines headings, paragraphs, links, and more.</p>
+<h1>Main Heading (H1)</h1>
+<p>This is a paragraph that follows an H1 heading. It contains regular text that demonstrates the default paragraph styling, including line height, spacing, and font size.</p>
 
-<h3>CSS - The Style</h3>
-<p>CSS makes your website beautiful. It controls colors, layouts, fonts, and animations.</p>
+<h2>Section Heading (H2)</h2>
+<p>Every blog post needs well-structured sections. This H2 heading marks a major section division. Notice the spacing above and below this heading, as well as the font size and weight.</p>
 
-<h3>JavaScript - The Behavior</h3>
-<p>JavaScript brings your site to life with dynamic interactions and real-time updates.</p>
+<h3>Subsection Heading (H3)</h3>
+<p>H3 headings are perfect for subsections within your content. They provide hierarchy without overwhelming the reader. The font size should be noticeably smaller than H2 but still prominent.</p>
 
-<h2>Next Steps</h2>
-<p>Start with HTML, then move to CSS, and finally learn JavaScript. Practice by building real projects!</p>`,
+<p>Here's another paragraph with some <strong>bold text</strong>, <em>italic text</em>, and even <code>inline code</code> to show how inline formatting works. You can also include <a href="https://example.com">hyperlinks</a> that should have their own distinctive styling.</p>
+
+<hr>
+
+<h2>Blockquotes</h2>
+<p>Blockquotes are used for quotations or to highlight important passages:</p>
+
+<blockquote>
+<p>This is a blockquote. It should have distinctive styling to set it apart from regular paragraphs. Blockquotes often use different colors, margins, or even border decorations.</p>
+</blockquote>
+
+<p>And here's regular text that follows the blockquote, demonstrating proper spacing between different block types.</p>
+
+<hr>
+
+<h2>Code Blocks</h2>
+<p>For technical content, code blocks are essential. Here's an example with JavaScript:</p>
+
+<pre><code class="language-javascript">function greet(name) {
+  return \`Hello, \${name}!\`;
+}
+
+const message = greet('World');
+console.log(message); // Output: Hello, World!</code></pre>
+<p style="font-size: 14px; color: #6b7280; margin-top: -8px;">Caption: A simple JavaScript greeting function</p>
+
+<p>Code blocks should have distinct background colors and use monospace fonts for readability.</p>
+
+<hr>
+
+<h2>Lists</h2>
+<p>Both ordered and unordered lists are common in blog posts.</p>
+
+<h3>Unordered List</h3>
+<ul>
+<li>First item in an unordered list</li>
+<li>Second item with more text to show how wrapping works</li>
+<li>Third item</li>
+<li>Fourth item with a nested list:
+<ul>
+<li>Nested item one</li>
+<li>Nested item two</li>
+<li>Nested item three</li>
+</ul>
+</li>
+<li>Fifth item back at the original level</li>
+</ul>
+
+<h3>Ordered List</h3>
+<ol>
+<li>First step in a process</li>
+<li>Second step with detailed instructions</li>
+<li>Third step</li>
+<li>Fourth step with substeps:
+<ol>
+<li>Substep A</li>
+<li>Substep B</li>
+</ol>
+</li>
+<li>Final step</li>
+</ol>
+
+<hr>
+
+<h2>Images</h2>
+<p>Images are crucial for visual storytelling. Here's an example:</p>
+
+<img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800" alt="Person typing on laptop" data-caption="A developer working on a laptop" data-show-caption="true" />
+<p style="font-size: 14px; color: #6b7280; text-align: center; margin-top: 8px;">Caption: A developer working on a laptop</p>
+
+<p>Notice how images should have proper spacing above and below, and captions should be visually distinct from body text.</p>
+
+<hr>
+
+<h2>Mixed Content</h2>
+<p>Real-world blog posts combine multiple content types. Here's a paragraph followed by a list of key takeaways:</p>
+
+<ul>
+<li>All headings (H1, H2, H3) should have clear hierarchy</li>
+<li>Paragraphs need comfortable line height and spacing</li>
+<li>Code blocks require monospace fonts</li>
+<li>Links should be easily distinguishable</li>
+<li>Images need proper captions and spacing</li>
+</ul>
+
+<p>And here's more text after the list to show proper spacing. The gap between different elements should feel natural and not too cramped or too spacious.</p>
+
+<h3>Typography Details</h3>
+<p>Pay attention to these subtle but important details:</p>
+
+<ol>
+<li><strong>Line height:</strong> Should be comfortable for reading (typically 1.5-1.8)</li>
+<li><strong>Paragraph spacing:</strong> Creates breathing room between thoughts</li>
+<li><strong>Font sizes:</strong> Should scale proportionally across heading levels</li>
+<li><strong>Color contrast:</strong> Text must be readable against backgrounds</li>
+</ol>
+
+<blockquote>
+<p>Good typography is invisible. Bad typography is everywhere.</p>
+</blockquote>
+
+<h2>Conclusion</h2>
+<p>This style guide demonstrates all the essential content blocks you'll use in your blog posts. Each element should have thoughtful styling that contributes to an excellent reading experience. Whether you're writing tutorials, articles, or documentation, these building blocks form the foundation of great content.</p>
+
+<p>Use this page as a reference when customizing your theme. Make sure every element looks polished and works well together to create a cohesive, professional appearance.</p>`,
       featured_image_url: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800',
       category_slug: 'tutorials',
       published_at: 'March 15, 2024',
-      reading_time_minutes: 5,
+      reading_time_minutes: 8,
       authors: [{ name: 'Jane Doe' }]
     },
     {
       title: 'The Future of Artificial Intelligence',
       slug: 'future-of-ai',
-      excerpt:
-        'Exploring how AI will transform industries and daily life in the coming years.',
+      excerpt: 'Exploring how AI will transform industries and daily life in the coming years.',
       content: `<p>Artificial Intelligence is rapidly evolving, and its impact on society is becoming more profound each day.</p>`,
       featured_image_url: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?w=800',
       category_slug: 'technology',
@@ -166,8 +267,7 @@ export const MOCK_BLOG_DATA: MockBlogData = {
     {
       title: 'Design Principles for Modern Websites',
       slug: 'design-principles-modern-websites',
-      excerpt:
-        'Essential design principles that will make your website stand out in 2024.',
+      excerpt: 'Essential design principles that will make your website stand out in 2024.',
       content: `<p>Good design is not just about aesthetics—it's about creating an intuitive, accessible experience for all users.</p>`,
       featured_image_url: 'https://images.unsplash.com/photo-1558655146-9f40138edfeb?w=800',
       category_slug: 'design',
@@ -199,7 +299,6 @@ export function getMockDataForView(view: 'home' | 'category' | 'post'): MockBlog
   if (view === 'post') {
     const post = baseData.posts[0]
     baseData.currentPost = post
-    baseData.post = post
     baseData.previous_post = baseData.posts[2]
     baseData.next_post = baseData.posts[1]
     baseData.page_title = `${post.title} - ${baseData.blog.title}`
@@ -213,4 +312,3 @@ export function getMockDataForView(view: 'home' | 'category' | 'post'): MockBlog
 
   return baseData
 }
-

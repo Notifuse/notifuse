@@ -112,6 +112,11 @@ export const DEFAULT_BLOG_TEMPLATES: BlogThemeFiles = {
     <link rel="canonical" href="{{ seo.canonical_url }}">
   {% endif %}
   
+  <!-- Favicon -->
+  {% if blog.icon_url %}
+    <link rel="icon" href="{{ blog.icon_url }}">
+  {% endif %}
+  
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="{% if post %}article{% else %}website{% endif %}">
   <meta property="og:title" content="{% if seo.og_title %}{{ seo.og_title }}{% elsif page_title %}{{ page_title }}{% elsif seo.meta_title %}{{ seo.meta_title }}{% else %}{{ blog.title }}{% endif %}">
@@ -521,7 +526,13 @@ export const DEFAULT_BLOG_TEMPLATES: BlogThemeFiles = {
   <header class="site-header">
     <div class="container">
       <div class="site-title">
-        <a href="/">{{ blog.title }}</a>
+        <a href="/">
+          {% if blog.logo_url %}
+            <img src="{{ blog.logo_url }}" alt="{{ blog.title }}" class="site-logo" style="max-height: 40px; vertical-align: middle;">
+          {% else %}
+            {{ blog.title }}
+          {% endif %}
+        </a>
       </div>
       <nav class="site-nav">
         <a href="/">Home</a>

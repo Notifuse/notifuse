@@ -15,6 +15,7 @@ import Subtitle from '../common/subtitle'
 import { blogThemesApi } from '../../services/api/blog'
 import { DEFAULT_BLOG_TEMPLATES } from '../../utils/defaultBlogTemplates'
 import { DEFAULT_BLOG_STYLES } from '../../utils/defaultBlogStyles'
+import { ImageURLInput } from '../common/ImageURLInput'
 
 interface BlogSettingsProps {
   workspace: Workspace | null
@@ -46,6 +47,8 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
       blog_enabled: workspace?.settings.blog_enabled || false,
       blog_settings: {
         title: workspace?.settings.blog_settings?.title || '',
+        logo_url: workspace?.settings.blog_settings?.logo_url || '',
+        icon_url: workspace?.settings.blog_settings?.icon_url || '',
         seo: {
           meta_title: workspace?.settings.blog_settings?.seo?.meta_title || '',
           meta_description: workspace?.settings.blog_settings?.seo?.meta_description || '',
@@ -106,7 +109,9 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
 
       const updatedSettings = {
         ...workspace.settings,
-        blog_enabled: values.blog_enabled === true,
+        // Only update blog_enabled if it's explicitly in the form values
+        // (i.e., when enabling/disabling, not when just updating settings)
+        ...(values.blog_enabled !== undefined && { blog_enabled: values.blog_enabled === true }),
         blog_settings: blogSettings
       }
       const payload = {
@@ -229,7 +234,7 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
       {workspace?.settings.blog_enabled && workspace?.settings.custom_endpoint_url && (
         <>
           <RecentThemesTable workspaceId={workspace.id} workspace={workspace} />
-          <Divider />
+          <Divider className="!my-12" />
         </>
       )}
 
@@ -286,9 +291,7 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
         {/* Show blog settings when enabled */}
         {workspace?.settings.blog_enabled && workspace?.settings.custom_endpoint_url && (
           <>
-            <Subtitle borderBottom={true} primary>
-              Homepage Settings
-            </Subtitle>
+            <div className="text-xl font-medium mb-8">Homepage Settings</div>
 
             <Form.Item
               name={['blog_settings', 'title']}
@@ -298,19 +301,53 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
               <Input placeholder={workspace?.name || 'My Amazing Blog'} />
             </Form.Item>
 
+            <Form.Item
+              name={['blog_settings', 'logo_url']}
+              label="Logo URL"
+              tooltip="Main logo for your blog. Recommended size: 200x50px or similar aspect ratio"
+            >
+              <ImageURLInput
+                placeholder="Enter logo URL or select image"
+                acceptFileType="image/*"
+                acceptItem={(item) =>
+                  !item.is_folder && item.file_info?.content_type?.startsWith('image/')
+                }
+                buttonText="Select"
+                size="middle"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name={['blog_settings', 'icon_url']}
+              label="Icon/Favicon URL"
+              tooltip="Favicon for your blog. Recommended: 32x32px or 192x192px PNG"
+            >
+              <ImageURLInput
+                placeholder="Enter icon URL or select image"
+                acceptFileType="image/*"
+                acceptItem={(item) =>
+                  !item.is_folder && item.file_info?.content_type?.startsWith('image/')
+                }
+                buttonText="Select"
+                size="middle"
+              />
+            </Form.Item>
+
             <SEOSettingsForm
               namePrefix={['blog_settings', 'seo']}
               titlePlaceholder="My Amazing Blog"
               descriptionPlaceholder="Welcome to my blog where I share insights about..."
             />
 
-            {formTouched && (
-              <div style={{ textAlign: 'right', marginBottom: 24 }}>
-                <Button type="primary" htmlType="submit" loading={savingSettings}>
-                  Save Changes
-                </Button>
-              </div>
-            )}
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              loading={savingSettings}
+              disabled={!formTouched}
+            >
+              Save Changes
+            </Button>
           </>
         )}
       </Form>
@@ -318,7 +355,7 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
       {/* Danger Zone - Show when blog is enabled */}
       {workspace?.settings.blog_enabled && (
         <>
-          <Divider />
+          <Divider className="!my-12" />
           <div
             style={{
               marginTop: 32,

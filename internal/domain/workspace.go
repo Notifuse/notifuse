@@ -293,8 +293,10 @@ const (
 
 // BlogSettings contains blog title and SEO configuration
 type BlogSettings struct {
-	Title string       `json:"title,omitempty"`
-	SEO   *SEOSettings `json:"seo,omitempty"`
+	Title   string       `json:"title,omitempty"`
+	LogoURL *string      `json:"logo_url,omitempty"`
+	IconURL *string      `json:"icon_url,omitempty"`
+	SEO     *SEOSettings `json:"seo,omitempty"`
 }
 
 // Value implements the driver.Valuer interface for database serialization

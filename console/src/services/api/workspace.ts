@@ -24,6 +24,8 @@ export interface SEOSettings {
 // Blog Settings type (styling + SEO for blog)
 export interface BlogSettings {
   title?: string
+  logo_url?: string
+  icon_url?: string
   styling?: any // EditorStyleConfig - stored as JSON
   seo?: SEOSettings
 }

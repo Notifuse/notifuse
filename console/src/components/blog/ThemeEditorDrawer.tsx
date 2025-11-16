@@ -12,6 +12,7 @@ import { DEFAULT_BLOG_STYLES } from '../../utils/defaultBlogStyles'
 import { BlogStyleSettings } from '../settings/BlogStyleSettings'
 import { useDebouncedCallback } from 'use-debounce'
 import { Workspace } from '../../services/api/types'
+import { ThemePreset } from './themePresets'
 
 const { TextArea } = Input
 
@@ -21,6 +22,7 @@ interface ThemeEditorDrawerProps {
   theme: BlogTheme | null
   workspaceId: string
   workspace?: Workspace | null
+  presetData?: ThemePreset | null
 }
 
 interface ThemeFileType {
@@ -54,7 +56,8 @@ export function ThemeEditorDrawer({
   onClose,
   theme,
   workspaceId,
-  workspace
+  workspace,
+  presetData
 }: ThemeEditorDrawerProps) {
   const { message, modal } = App.useApp()
   const queryClient = useQueryClient()
@@ -112,18 +115,22 @@ export function ThemeEditorDrawer({
         loadThemeData()
       }
     } else {
-      // New theme - use defaults
-      setFiles(DEFAULT_BLOG_TEMPLATES)
-      setPreviewFiles(DEFAULT_BLOG_TEMPLATES)
-      setStyling(DEFAULT_BLOG_STYLES)
-      setPreviewStyling(DEFAULT_BLOG_STYLES)
-      form.setFieldsValue({ blog_settings: { styling: DEFAULT_BLOG_STYLES } })
-      setNotes('')
+      // New theme - use preset data if provided, otherwise use defaults
+      const initialFiles = presetData?.files || DEFAULT_BLOG_TEMPLATES
+      const initialStyling = presetData?.styling || DEFAULT_BLOG_STYLES
+      const initialNotes = presetData ? `Created from ${presetData.name}` : ''
+
+      setFiles(initialFiles)
+      setPreviewFiles(initialFiles)
+      setStyling(initialStyling)
+      setPreviewStyling(initialStyling)
+      form.setFieldsValue({ blog_settings: { styling: initialStyling } })
+      setNotes(initialNotes)
       setSelectedFile('home')
       setActiveTab('templates')
       setHasUnsavedChanges(false)
     }
-  }, [theme, open, localStorageKey])
+  }, [theme, open, localStorageKey, presetData])
 
   const loadThemeData = () => {
     if (theme) {
@@ -328,7 +335,11 @@ export function ThemeEditorDrawer({
         title={
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span>
-              {theme ? `Edit Theme v${theme.version}` : 'Create New Theme'}
+              {theme
+                ? `Edit Theme v${theme.version}`
+                : presetData
+                  ? `Create New Theme - ${presetData.name}`
+                  : 'Create New Theme'}
               {hasUnsavedChanges && <span style={{ color: '#faad14', marginLeft: 8 }}>●</span>}
             </span>
             <Space>

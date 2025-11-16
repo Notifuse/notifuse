@@ -10,6 +10,8 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { blogThemesApi, BlogTheme } from '../../services/api/blog'
 import { ThemeEditorDrawer } from './ThemeEditorDrawer'
+import { ThemeSelectionModal } from './ThemeSelectionModal'
+import { ThemePreset } from './themePresets'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import timezone from 'dayjs/plugin/timezone'
@@ -29,7 +31,9 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
   const queryClient = useQueryClient()
   const [limit, setLimit] = useState(3)
   const [editorOpen, setEditorOpen] = useState(false)
+  const [selectionModalOpen, setSelectionModalOpen] = useState(false)
   const [selectedTheme, setSelectedTheme] = useState<BlogTheme | null>(null)
+  const [selectedPreset, setSelectedPreset] = useState<ThemePreset | null>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['blog-themes', workspaceId, limit],
@@ -58,6 +62,13 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
   }
 
   const handleCreate = () => {
+    setSelectedTheme(null)
+    setSelectedPreset(null)
+    setSelectionModalOpen(true)
+  }
+
+  const handleSelectTheme = (preset: ThemePreset) => {
+    setSelectedPreset(preset)
     setSelectedTheme(null)
     setEditorOpen(true)
   }
@@ -197,10 +208,20 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
           </Button>
         </Empty>
 
+        <ThemeSelectionModal
+          open={selectionModalOpen}
+          onClose={() => setSelectionModalOpen(false)}
+          onSelectTheme={handleSelectTheme}
+        />
+
         <ThemeEditorDrawer
           open={editorOpen}
-          onClose={() => setEditorOpen(false)}
+          onClose={() => {
+            setEditorOpen(false)
+            setSelectedPreset(null)
+          }}
           theme={selectedTheme}
+          presetData={selectedPreset}
           workspaceId={workspaceId}
           workspace={workspace}
         />
@@ -220,7 +241,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
       >
         <h3 style={{ margin: 0 }}>Theme Versions</h3>
         <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
-          Create New Version
+          New Theme
         </Button>
       </div>
 
@@ -239,10 +260,20 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
         </div>
       )}
 
+      <ThemeSelectionModal
+        open={selectionModalOpen}
+        onClose={() => setSelectionModalOpen(false)}
+        onSelectTheme={handleSelectTheme}
+      />
+
       <ThemeEditorDrawer
         open={editorOpen}
-        onClose={() => setEditorOpen(false)}
+        onClose={() => {
+          setEditorOpen(false)
+          setSelectedPreset(null)
+        }}
         theme={selectedTheme}
+        presetData={selectedPreset}
         workspaceId={workspaceId}
         workspace={workspace}
       />
