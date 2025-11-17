@@ -43,7 +43,9 @@ function createLiquidEngineWithTemplates(files: BlogThemeFiles): Liquid {
           footer: files['footer.liquid'] || '',
           home: files['home.liquid'] || '',
           category: files['category.liquid'] || '',
-          post: files['post.liquid'] || ''
+          post: files['post.liquid'] || '',
+          styles: files['styles.css'] || '',
+          scripts: files['scripts.js'] || ''
         }
 
         if (templateMap[fileName] !== undefined) {
@@ -62,7 +64,9 @@ function createLiquidEngineWithTemplates(files: BlogThemeFiles): Liquid {
           footer: files['footer.liquid'] || '',
           home: files['home.liquid'] || '',
           category: files['category.liquid'] || '',
-          post: files['post.liquid'] || ''
+          post: files['post.liquid'] || '',
+          styles: files['styles.css'] || '',
+          scripts: files['scripts.js'] || ''
         }
 
         if (templateMap[fileName] !== undefined) {
@@ -73,11 +77,29 @@ function createLiquidEngineWithTemplates(files: BlogThemeFiles): Liquid {
       },
       existsSync: (file: string) => {
         const fileName = file.replace(/\.liquid$/, '')
-        return ['shared', 'header', 'footer', 'home', 'category', 'post'].includes(fileName)
+        return [
+          'shared',
+          'header',
+          'footer',
+          'home',
+          'category',
+          'post',
+          'styles',
+          'scripts'
+        ].includes(fileName)
       },
       exists: async (file: string) => {
         const fileName = file.replace(/\.liquid$/, '')
-        return ['shared', 'header', 'footer', 'home', 'category', 'post'].includes(fileName)
+        return [
+          'shared',
+          'header',
+          'footer',
+          'home',
+          'category',
+          'post',
+          'styles',
+          'scripts'
+        ].includes(fileName)
       },
       resolve: (_root: string, file: string, _ext: string) => {
         return file
@@ -100,22 +122,12 @@ export async function renderBlogPage(
     // Create a Liquid engine with registered templates
     const liquid = createLiquidEngineWithTemplates(files)
 
-    // Inline styles into header (replace the comment with actual styles)
-    const headerWithStyles = files['header.liquid'].replace(
-      '<!-- Styles will be inlined here by the backend -->',
-      `<style>${files['styles.css']}</style>`
-    )
-
     // Determine which view file to use
     const viewKey = `${view}.liquid` as keyof BlogThemeFiles
 
-    // Combine templates: header + selected view + footer
-    // Note: shared.liquid is available for {% include 'shared' %} via the file system
-    const template = `
-      ${headerWithStyles}
-      ${files[viewKey]}
-      ${files['footer.liquid']}
-    `
+    // The view templates (home, category, post) already include header and footer
+    // So we just render the view template directly
+    const template = files[viewKey]
 
     // SECURITY: Validate template before rendering
     const securityIssues = validateTemplateSecurity(template)

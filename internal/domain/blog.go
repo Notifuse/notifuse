@@ -734,6 +734,7 @@ type BlogThemeFiles struct {
 	FooterLiquid   string `json:"footer.liquid"`
 	SharedLiquid   string `json:"shared.liquid"`
 	StylesCSS      string `json:"styles.css"`
+	ScriptsJS      string `json:"scripts.js"`
 }
 
 // Value implements the driver.Valuer interface for database serialization
@@ -930,11 +931,36 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 
 	// Add workspace data
 	if req.Workspace != nil {
-		templateData["workspace"] = MapOfAny{
+		workspaceData := MapOfAny{
 			"id":   req.Workspace.ID,
 			"name": req.Workspace.Name,
 		}
+
+		// Add logo_url from blog settings or workspace settings
+		if req.Workspace.Settings.BlogSettings != nil && req.Workspace.Settings.BlogSettings.LogoURL != nil {
+			workspaceData["logo_url"] = *req.Workspace.Settings.BlogSettings.LogoURL
+		} else if req.Workspace.Settings.LogoURL != "" {
+			workspaceData["logo_url"] = req.Workspace.Settings.LogoURL
+		}
+
+		// Add icon_url from blog settings
+		if req.Workspace.Settings.BlogSettings != nil && req.Workspace.Settings.BlogSettings.IconURL != nil {
+			workspaceData["icon_url"] = *req.Workspace.Settings.BlogSettings.IconURL
+		}
+
+		templateData["workspace"] = workspaceData
 	}
+
+	// Add base_url from workspace website URL or custom endpoint
+	baseURL := ""
+	if req.Workspace != nil {
+		if req.Workspace.Settings.CustomEndpointURL != nil && *req.Workspace.Settings.CustomEndpointURL != "" {
+			baseURL = *req.Workspace.Settings.CustomEndpointURL
+		} else if req.Workspace.Settings.WebsiteURL != "" {
+			baseURL = req.Workspace.Settings.WebsiteURL
+		}
+	}
+	templateData["base_url"] = baseURL
 
 	// Add post data (for post pages)
 	if req.Post != nil {

@@ -10,8 +10,7 @@ import {
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { blogThemesApi, BlogTheme } from '../../services/api/blog'
 import { ThemeEditorDrawer } from './ThemeEditorDrawer'
-import { ThemeSelectionModal } from './ThemeSelectionModal'
-import { ThemePreset } from './themePresets'
+import { ThemePreset, THEME_PRESETS } from './themePresets'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import timezone from 'dayjs/plugin/timezone'
@@ -31,7 +30,6 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
   const queryClient = useQueryClient()
   const [limit, setLimit] = useState(3)
   const [editorOpen, setEditorOpen] = useState(false)
-  const [selectionModalOpen, setSelectionModalOpen] = useState(false)
   const [selectedTheme, setSelectedTheme] = useState<BlogTheme | null>(null)
   const [selectedPreset, setSelectedPreset] = useState<ThemePreset | null>(null)
 
@@ -62,14 +60,9 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
   }
 
   const handleCreate = () => {
+    // Automatically use the default theme preset
     setSelectedTheme(null)
-    setSelectedPreset(null)
-    setSelectionModalOpen(true)
-  }
-
-  const handleSelectTheme = (preset: ThemePreset) => {
-    setSelectedPreset(preset)
-    setSelectedTheme(null)
+    setSelectedPreset(THEME_PRESETS[0])
     setEditorOpen(true)
   }
 
@@ -212,13 +205,6 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
           </Button>
         </Empty>
 
-        <ThemeSelectionModal
-          open={selectionModalOpen}
-          onClose={() => setSelectionModalOpen(false)}
-          onSelectTheme={handleSelectTheme}
-          workspace={workspace}
-        />
-
         <ThemeEditorDrawer
           open={editorOpen}
           onClose={() => {
@@ -264,12 +250,6 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
           <Button onClick={handleLoadMore}>Show More ({totalCount - limit} remaining)</Button>
         </div>
       )}
-
-      <ThemeSelectionModal
-        open={selectionModalOpen}
-        onClose={() => setSelectionModalOpen(false)}
-        onSelectTheme={handleSelectTheme}
-      />
 
       <ThemeEditorDrawer
         open={editorOpen}

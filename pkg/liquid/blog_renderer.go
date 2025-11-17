@@ -40,10 +40,9 @@ func RenderBlogTemplate(template string, data map[string]interface{}, partials m
 		}
 
 		// Add each partial to the template store
+		// Include empty partials to prevent lookup errors
 		for name, content := range partials {
-			if content != "" {
-				store.templates[name] = content
-			}
+			store.templates[name] = content
 		}
 
 		// Register the template store with the engine

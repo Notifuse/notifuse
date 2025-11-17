@@ -1130,9 +1130,11 @@ func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, pa
 
 	// Prepare partials map for the template engine
 	partials := map[string]string{
-		"shared": theme.Files.SharedLiquid,
-		"header": theme.Files.HeaderLiquid,
-		"footer": theme.Files.FooterLiquid,
+		"shared":  theme.Files.SharedLiquid,
+		"header":  theme.Files.HeaderLiquid,
+		"footer":  theme.Files.FooterLiquid,
+		"styles":  theme.Files.StylesCSS,
+		"scripts": theme.Files.ScriptsJS,
 	}
 
 	// Render the home template with partials
@@ -1236,9 +1238,11 @@ func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categoryS
 
 	// Prepare partials map for the template engine
 	partials := map[string]string{
-		"shared": theme.Files.SharedLiquid,
-		"header": theme.Files.HeaderLiquid,
-		"footer": theme.Files.FooterLiquid,
+		"shared":  theme.Files.SharedLiquid,
+		"header":  theme.Files.HeaderLiquid,
+		"footer":  theme.Files.FooterLiquid,
+		"styles":  theme.Files.StylesCSS,
+		"scripts": theme.Files.ScriptsJS,
 	}
 
 	// Render the post template with partials
@@ -1374,9 +1378,11 @@ func (s *BlogService) RenderCategoryPage(ctx context.Context, workspaceID, categ
 
 	// Prepare partials map for the template engine
 	partials := map[string]string{
-		"shared": theme.Files.SharedLiquid,
-		"header": theme.Files.HeaderLiquid,
-		"footer": theme.Files.FooterLiquid,
+		"shared":  theme.Files.SharedLiquid,
+		"header":  theme.Files.HeaderLiquid,
+		"footer":  theme.Files.FooterLiquid,
+		"styles":  theme.Files.StylesCSS,
+		"scripts": theme.Files.ScriptsJS,
 	}
 
 	// Render the category template with partials
