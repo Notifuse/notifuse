@@ -1040,6 +1040,14 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 
 	// Add posts array (for listings)
 	if req.Posts != nil {
+		// Create a category lookup map (category_id -> category_slug)
+		categorySlugMap := make(map[string]string)
+		if req.Categories != nil {
+			for _, cat := range req.Categories {
+				categorySlugMap[cat.ID] = cat.Slug
+			}
+		}
+
 		postsData := make([]MapOfAny, 0)
 		for _, post := range req.Posts {
 			postData := MapOfAny{
@@ -1053,6 +1061,12 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 				"authors":              post.Settings.Authors,
 				"reading_time_minutes": post.Settings.ReadingTimeMinutes,
 			}
+
+			// Add category_slug for URL construction if available
+			if categorySlug, ok := categorySlugMap[post.CategoryID]; ok {
+				postData["category_slug"] = categorySlug
+			}
+
 			postsData = append(postsData, postData)
 		}
 		templateData["posts"] = postsData

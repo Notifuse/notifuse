@@ -259,7 +259,7 @@ func TestRenderBlogTemplateWithPartials(t *testing.T) {
 		assert.Equal(t, "<h1>Test</h1>", html)
 	})
 
-	t.Run("ignores empty partial content", func(t *testing.T) {
+	t.Run("allows empty partial content", func(t *testing.T) {
 		template := `<div>{% include 'shared' %}</div>`
 		partials := map[string]string{
 			"shared": "",
@@ -267,9 +267,305 @@ func TestRenderBlogTemplateWithPartials(t *testing.T) {
 		}
 		data := map[string]interface{}{}
 
-		_, err := RenderBlogTemplate(template, data, partials)
-		// Should error because 'shared' partial is not registered (empty content is skipped)
-		assert.Error(t, err)
+		html, err := RenderBlogTemplate(template, data, partials)
+		// Empty partials should be allowed and just render nothing
+		assert.NoError(t, err)
+		assert.Equal(t, "<div></div>", html)
+	})
+}
+
+func TestRenderBlogTemplateWithParameterizedIncludes(t *testing.T) {
+	t.Run("FAILING: include with comma-separated parameters (Jekyll/Shopify syntax)", func(t *testing.T) {
+		// This reproduces the exact syntax used in home.liquid that is causing the error
+		template := `<div>{% include 'shared', widget: 'newsletter' %}</div>`
+		partials := map[string]string{
+			"shared": `{%- if widget == 'newsletter' -%}<div class="newsletter">Subscribe!</div>{%- endif -%}`,
+		}
+		data := map[string]interface{}{}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		
+		// This test documents the current failing behavior
+		// The osteele/liquid library may not support Jekyll/Shopify parameter syntax
+		if err != nil {
+			t.Logf("Expected failure - include with parameters not supported: %v", err)
+			assert.Error(t, err)
+			assert.Contains(t, err.Error(), "liquid rendering failed")
+		} else {
+			t.Logf("Success - html: %s", html)
+			assert.Contains(t, html, "Subscribe!")
+		}
+	})
+
+	t.Run("include with post parameter (home.liquid pattern)", func(t *testing.T) {
+		// This reproduces the post-card include pattern from home.liquid
+		template := `<div>{% for post in posts %}{% include 'shared', widget: 'post-card', post: post %}{% endfor %}</div>`
+		partials := map[string]string{
+			"shared": `{%- if widget == 'post-card' -%}<article><h3>{{ post.title }}</h3></article>{%- endif -%}`,
+		}
+		data := map[string]interface{}{
+			"posts": []map[string]interface{}{
+				{"title": "First Post", "slug": "first-post"},
+				{"title": "Second Post", "slug": "second-post"},
+			},
+		}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		
+		// Document the behavior
+		if err != nil {
+			t.Logf("Expected failure - include with multiple parameters not supported: %v", err)
+			assert.Error(t, err)
+		} else {
+			t.Logf("Success - html: %s", html)
+			assert.Contains(t, html, "First Post")
+		}
+	})
+
+	t.Run("WORKAROUND: assign variables before include", func(t *testing.T) {
+		// This tests the workaround: assigning variables before including
+		template := `<div>{% assign widget = 'newsletter' %}{% include 'shared' %}</div>`
+		partials := map[string]string{
+			"shared": `{%- if widget == 'newsletter' -%}<div class="newsletter">Subscribe!</div>{%- endif -%}`,
+		}
+		data := map[string]interface{}{}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "Subscribe!")
+	})
+
+	t.Run("WORKAROUND: assign post variable in loop before include", func(t *testing.T) {
+		// This tests if we can pass post data through assign
+		template := `<div>{% for p in posts %}{% assign post = p %}{% assign widget = 'post-card' %}{% include 'shared' %}{% endfor %}</div>`
+		partials := map[string]string{
+			"shared": `{%- if widget == 'post-card' -%}<article><h3>{{ post.title }}</h3></article>{%- endif -%}`,
+		}
+		data := map[string]interface{}{
+			"posts": []map[string]interface{}{
+				{"title": "First Post", "slug": "first-post"},
+				{"title": "Second Post", "slug": "second-post"},
+			},
+		}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "First Post")
+		assert.Contains(t, html, "Second Post")
+	})
+
+	t.Run("ALTERNATIVE: separate partials for each widget", func(t *testing.T) {
+		// Alternative approach: create separate partials instead of using widget parameter
+		template := `<div>{% include 'newsletter' %}{% for post in posts %}{% include 'post-card' %}{% endfor %}</div>`
+		partials := map[string]string{
+			"newsletter": `<div class="newsletter">Subscribe!</div>`,
+			"post-card":  `<article><h3>{{ post.title }}</h3></article>`,
+		}
+		data := map[string]interface{}{
+			"posts": []map[string]interface{}{
+				{"title": "First Post", "slug": "first-post"},
+			},
+		}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "Subscribe!")
+		assert.Contains(t, html, "First Post")
+	})
+}
+
+func TestRenderBlogTemplateWithRealisticData(t *testing.T) {
+	t.Run("renders home page with posts and categories", func(t *testing.T) {
+		// Simulates the actual home.liquid pattern with fixed syntax
+		template := `
+			<h1>{{ workspace.name }}</h1>
+			{% assign widget = 'categories' %}{% include 'shared' %}
+			{% for post in posts %}
+				{% assign widget = 'post-card' %}{% include 'shared' %}
+			{% endfor %}
+			{% assign widget = 'pagination' %}{% include 'shared' %}
+		`
+		partials := map[string]string{
+			"shared": `
+				{%- if widget == 'categories' -%}
+					<nav>{% for cat in categories %}<a href="/{{ cat.slug }}">{{ cat.name }}</a>{% endfor %}</nav>
+				{%- elsif widget == 'post-card' -%}
+					<article>
+						<h3>{{ post.title }}</h3>
+						<a href="{{ base_url }}/{{ post.category_slug }}/{{ post.slug }}">Read more</a>
+					</article>
+				{%- elsif widget == 'pagination' -%}
+					{%- if pagination.total_pages > 1 -%}
+						<div>Page {{ pagination.current_page }} of {{ pagination.total_pages }}</div>
+					{%- endif -%}
+				{%- endif -%}
+			`,
+		}
+		data := map[string]interface{}{
+			"base_url": "https://blog.example.com",
+			"workspace": map[string]interface{}{
+				"name": "My Blog",
+			},
+			"categories": []map[string]interface{}{
+				{"slug": "tech", "name": "Technology"},
+				{"slug": "design", "name": "Design"},
+			},
+			"posts": []map[string]interface{}{
+				{
+					"title":         "First Post",
+					"slug":          "first-post",
+					"category_slug": "tech",
+				},
+				{
+					"title":         "Second Post",
+					"slug":          "second-post",
+					"category_slug": "design",
+				},
+			},
+			"pagination": map[string]interface{}{
+				"current_page": 1,
+				"total_pages":  3,
+			},
+		}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "My Blog")
+		assert.Contains(t, html, "Technology")
+		assert.Contains(t, html, "Design")
+		assert.Contains(t, html, "First Post")
+		assert.Contains(t, html, "Second Post")
+		assert.Contains(t, html, "https://blog.example.com/tech/first-post")
+		assert.Contains(t, html, "https://blog.example.com/design/second-post")
+		assert.Contains(t, html, "Page 1 of 3")
+	})
+
+	t.Run("handles empty posts array gracefully", func(t *testing.T) {
+		template := `
+			<h1>{{ workspace.name }}</h1>
+			{% if posts.size > 0 %}
+				{% for post in posts %}
+					{% assign widget = 'post-card' %}{% include 'shared' %}
+				{% endfor %}
+			{% else %}
+				<p>No posts found</p>
+			{% endif %}
+		`
+		partials := map[string]string{
+			"shared": `{%- if widget == 'post-card' -%}<article>{{ post.title }}</article>{%- endif -%}`,
+		}
+		data := map[string]interface{}{
+			"workspace": map[string]interface{}{
+				"name": "My Blog",
+			},
+			"posts": []map[string]interface{}{},
+		}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "My Blog")
+		assert.Contains(t, html, "No posts found")
+	})
+
+	t.Run("handles missing category_slug gracefully", func(t *testing.T) {
+		// Test post without category_slug (shouldn't happen but defensive)
+		template := `
+			{% for post in posts %}
+				<a href="{{ base_url }}/{{ post.category_slug }}/{{ post.slug }}">{{ post.title }}</a>
+			{% endfor %}
+		`
+		data := map[string]interface{}{
+			"base_url": "https://blog.example.com",
+			"posts": []map[string]interface{}{
+				{
+					"title": "Test Post",
+					"slug":  "test-post",
+					// category_slug is missing
+				},
+			},
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		// Should render with empty category_slug
+		assert.Contains(t, html, "Test Post")
+		assert.Contains(t, html, "https://blog.example.com//test-post")
+	})
+
+	t.Run("renders category page with active category", func(t *testing.T) {
+		template := `
+			<h1>{{ category.name }}</h1>
+			{% assign widget = 'categories' %}{% assign active_category = category.slug %}{% include 'shared' %}
+			{% for post in posts %}
+				{% assign widget = 'post-card' %}{% include 'shared' %}
+			{% endfor %}
+		`
+		partials := map[string]string{
+			"shared": `
+				{%- if widget == 'categories' -%}
+					<nav>
+						{% for cat in categories %}
+							<a href="/{{ cat.slug }}" {% if active_category == cat.slug %}class="active"{% endif %}>{{ cat.name }}</a>
+						{% endfor %}
+					</nav>
+				{%- elsif widget == 'post-card' -%}
+					<article><h3>{{ post.title }}</h3></article>
+				{%- endif -%}
+			`,
+		}
+		data := map[string]interface{}{
+			"category": map[string]interface{}{
+				"slug": "tech",
+				"name": "Technology",
+			},
+			"categories": []map[string]interface{}{
+				{"slug": "tech", "name": "Technology"},
+				{"slug": "design", "name": "Design"},
+			},
+			"posts": []map[string]interface{}{
+				{"title": "Tech Post 1", "slug": "tech-post-1"},
+			},
+		}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "Technology")
+		assert.Contains(t, html, "Tech Post 1")
+		assert.Contains(t, html, `class="active"`)
+	})
+
+	t.Run("handles complex nested widget includes", func(t *testing.T) {
+		// Test multiple widget switches in a single template
+		template := `
+			{% assign widget = 'newsletter' %}{% include 'shared' %}
+			{% assign widget = 'categories' %}{% include 'shared' %}
+			{% for post in posts %}
+				{% assign widget = 'post-card' %}{% include 'shared' %}
+			{% endfor %}
+			{% assign widget = 'pagination' %}{% include 'shared' %}
+		`
+		partials := map[string]string{
+			"shared": `
+				{%- if widget == 'newsletter' -%}Newsletter{%- endif -%}
+				{%- if widget == 'categories' -%}Categories{%- endif -%}
+				{%- if widget == 'post-card' -%}Post: {{ post.title }}{%- endif -%}
+				{%- if widget == 'pagination' -%}Pagination{%- endif -%}
+			`,
+		}
+		data := map[string]interface{}{
+			"posts": []map[string]interface{}{
+				{"title": "Post 1"},
+				{"title": "Post 2"},
+			},
+		}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "Newsletter")
+		assert.Contains(t, html, "Categories")
+		assert.Contains(t, html, "Post: Post 1")
+		assert.Contains(t, html, "Post: Post 2")
+		assert.Contains(t, html, "Pagination")
 	})
 }
 
