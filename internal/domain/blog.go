@@ -948,6 +948,11 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 			workspaceData["icon_url"] = *req.Workspace.Settings.BlogSettings.IconURL
 		}
 
+		// Add blog_title from blog settings
+		if req.Workspace.Settings.BlogSettings != nil && req.Workspace.Settings.BlogSettings.Title != "" {
+			workspaceData["blog_title"] = req.Workspace.Settings.BlogSettings.Title
+		}
+
 		templateData["workspace"] = workspaceData
 	}
 

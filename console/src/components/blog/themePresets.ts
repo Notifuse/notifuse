@@ -63,7 +63,13 @@ const defaultTheme: ThemePreset = {
     <div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-12 items-center">
         <div class="md:col-span-2">
-          <h1 class="hero-title">Thoughts, Stories & Ideas</h1>
+          <h1 class="hero-title">
+            {%- if workspace.blog_title -%}
+              {{ workspace.blog_title }}
+            {%- else -%}
+              Thoughts, Stories & Ideas
+            {%- endif -%}
+          </h1>
           <p class="hero-subtitle">
             A place to read, write, and deepen your understanding of the topics that matter most to you.
           </p>
@@ -278,9 +284,15 @@ const defaultTheme: ThemePreset = {
   {%- comment -%} Post Article {%- endcomment -%}
   <article class="post-article">
     <header class="post-header">
-      {%- if category -%}
+      {%- if post.category_slug -%}
         <div class="post-category-badge">
-          <a href="{{ base_url }}/category/{{ category.slug }}" class="category-pill">{{ category.name }}</a>
+          <a href="{{ base_url }}/{{ post.category_slug }}" class="category-pill">
+            {%- for cat in categories -%}
+              {%- if cat.slug == post.category_slug -%}
+                {{ cat.name }}
+              {%- endif -%}
+            {%- endfor -%}
+          </a>
         </div>
       {%- endif -%}
 
@@ -483,8 +495,14 @@ const defaultTheme: ThemePreset = {
     <div>
       <div class="footer-content">
         <div class="footer-left">
-          <a href="{{ base_url }}/" class="logo mb-2">{{ workspace.name }}</a>
-          <p class="text-gray-600 text-sm">&copy; {{ current_year }} {{ workspace.name }}. All rights reserved.</p>
+          <a href="{{ base_url }}/" class="logo mb-2">
+            {%- if workspace.blog_title -%}
+              {{ workspace.blog_title }}
+            {%- else -%}
+              {{ workspace.name }}
+            {%- endif -%}
+          </a>
+          <p class="text-gray-600 text-sm">&copy; {{ current_year }} All rights reserved.</p>
         </div>
 
         <div class="footer-links">

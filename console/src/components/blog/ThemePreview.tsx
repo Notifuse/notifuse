@@ -27,7 +27,13 @@ export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
         if (workspace?.settings?.blog_settings) {
           const blogSettings = workspace.settings.blog_settings
           if (blogSettings.title) {
-            mockData.blog.title = blogSettings.title
+            mockData.workspace.blog_title = blogSettings.title
+          }
+          if (blogSettings.logo_url) {
+            mockData.workspace.logo_url = blogSettings.logo_url
+          }
+          if (blogSettings.icon_url) {
+            mockData.workspace.icon_url = blogSettings.icon_url
           }
           if (blogSettings.seo) {
             mockData.seo = { ...mockData.seo, ...blogSettings.seo }
