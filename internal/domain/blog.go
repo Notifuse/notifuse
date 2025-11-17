@@ -725,14 +725,15 @@ const (
 	BlogThemeFileTypeShared   BlogThemeFileType = "shared"
 )
 
-// BlogThemeFiles contains Liquid template files for a blog theme
+// BlogThemeFiles contains Liquid template files and CSS for a blog theme
 type BlogThemeFiles struct {
-	Home     string `json:"home"`
-	Category string `json:"category"`
-	Post     string `json:"post"`
-	Header   string `json:"header"`
-	Footer   string `json:"footer"`
-	Shared   string `json:"shared"`
+	HomeLiquid     string `json:"home.liquid"`
+	CategoryLiquid string `json:"category.liquid"`
+	PostLiquid     string `json:"post.liquid"`
+	HeaderLiquid   string `json:"header.liquid"`
+	FooterLiquid   string `json:"footer.liquid"`
+	SharedLiquid   string `json:"shared.liquid"`
+	StylesCSS      string `json:"styles.css"`
 }
 
 // Value implements the driver.Valuer interface for database serialization
@@ -757,14 +758,13 @@ func (f *BlogThemeFiles) Scan(value interface{}) error {
 
 // BlogTheme represents a blog theme with versioned Liquid template files
 type BlogTheme struct {
-	Version           int             `json:"version"`
-	PublishedAt       *time.Time      `json:"published_at,omitempty"`         // non-null = published
-	PublishedByUserID *string         `json:"published_by_user_id,omitempty"` // user who published this theme
-	Files             BlogThemeFiles  `json:"files"`
-	Styling           json.RawMessage `json:"styling,omitempty"` // EditorStyleConfig JSON
-	Notes             *string         `json:"notes,omitempty"`   // optional notes/description for this version
-	CreatedAt         time.Time       `json:"created_at"`
-	UpdatedAt         time.Time       `json:"updated_at"`
+	Version           int            `json:"version"`
+	PublishedAt       *time.Time     `json:"published_at,omitempty"`         // non-null = published
+	PublishedByUserID *string        `json:"published_by_user_id,omitempty"` // user who published this theme
+	Files             BlogThemeFiles `json:"files"`
+	Notes             *string        `json:"notes,omitempty"` // optional notes/description for this version
+	CreatedAt         time.Time      `json:"created_at"`
+	UpdatedAt         time.Time      `json:"updated_at"`
 }
 
 // Validate validates the blog theme
@@ -773,7 +773,8 @@ func (t *BlogTheme) Validate() error {
 		return fmt.Errorf("version must be positive")
 	}
 
-	// Files don't need to be validated for emptiness as they can be empty strings
+	// Validate that all required files are present (can be empty strings but must exist)
+	// Note: The JSON unmarshaling will ensure they exist, but we check them anyway
 	return nil
 }
 
@@ -784,9 +785,8 @@ func (t *BlogTheme) IsPublished() bool {
 
 // CreateBlogThemeRequest defines the request to create a blog theme
 type CreateBlogThemeRequest struct {
-	Files   BlogThemeFiles  `json:"files"`
-	Styling json.RawMessage `json:"styling,omitempty"`
-	Notes   *string         `json:"notes,omitempty"`
+	Files BlogThemeFiles `json:"files"`
+	Notes *string        `json:"notes,omitempty"`
 }
 
 // Validate validates the create blog theme request
@@ -797,10 +797,9 @@ func (r *CreateBlogThemeRequest) Validate() error {
 
 // UpdateBlogThemeRequest defines the request to update a blog theme
 type UpdateBlogThemeRequest struct {
-	Version int             `json:"version"`
-	Files   BlogThemeFiles  `json:"files"`
-	Styling json.RawMessage `json:"styling,omitempty"`
-	Notes   *string         `json:"notes,omitempty"`
+	Version int            `json:"version"`
+	Files   BlogThemeFiles `json:"files"`
+	Notes   *string        `json:"notes,omitempty"`
 }
 
 // Validate validates the update blog theme request
@@ -919,7 +918,7 @@ type BlogTemplateDataRequest struct {
 	PublicLists    []*List               // Always included (empty array if none)
 	Posts          []*BlogPost           // For listings (home/category pages)
 	Categories     []*BlogCategory       // For navigation
-	ThemeStyling   json.RawMessage       // Theme styling configuration (newsletter settings, etc.)
+	ThemeVersion   int                   // Theme version number for cache-busting
 	CustomData     MapOfAny              // Optional additional data
 	PaginationData *BlogPostListResponse // Pagination metadata (optional, for paginated pages)
 }
@@ -1066,12 +1065,9 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 	// Add current year for copyright notices, etc.
 	templateData["current_year"] = time.Now().Year()
 
-	// Add theme styling if provided (contains newsletter settings, etc.)
-	if len(req.ThemeStyling) > 0 {
-		var styling map[string]interface{}
-		if err := json.Unmarshal(req.ThemeStyling, &styling); err == nil {
-			templateData["theme"] = styling
-		}
+	// Add theme version for cache-busting
+	templateData["theme"] = MapOfAny{
+		"version": req.ThemeVersion,
 	}
 
 	return templateData, nil

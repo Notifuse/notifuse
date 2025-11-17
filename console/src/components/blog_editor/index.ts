@@ -30,9 +30,6 @@ export { defaultEditorStyles } from './config/defaultEditorStyles'
 
 // Style presets
 export {
-  timesJournalPreset,
-  modernMagazinePreset,
-  minimalBlogPreset,
   academicPaperPreset
 } from './presets'
 

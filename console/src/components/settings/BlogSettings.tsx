@@ -11,10 +11,8 @@ import { workspaceService } from '../../services/api/workspace'
 import { SEOSettingsForm } from '../seo/SEOSettingsForm'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 import { RecentThemesTable } from '../blog/RecentThemesTable'
-import Subtitle from '../common/subtitle'
 import { blogThemesApi } from '../../services/api/blog'
-import { DEFAULT_BLOG_TEMPLATES } from '../../utils/defaultBlogTemplates'
-import { DEFAULT_BLOG_STYLES } from '../../utils/defaultBlogStyles'
+import { THEME_PRESETS } from '../blog/themePresets'
 import { ImageURLInput } from '../common/ImageURLInput'
 
 interface BlogSettingsProps {
@@ -85,9 +83,8 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
           console.log('Creating default theme...')
           // Create default theme
           const createdTheme = await blogThemesApi.create(workspace.id, {
-            files: DEFAULT_BLOG_TEMPLATES,
-            styling: DEFAULT_BLOG_STYLES,
-            notes: 'Default theme'
+            files: THEME_PRESETS[0].files,
+            notes: THEME_PRESETS[0].description
           })
 
           console.log('Theme created:', createdTheme.theme.version)
@@ -370,7 +367,6 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
             </Row>
 
             <Divider className="!my-8" />
-            <Subtitle>SEO Settings</Subtitle>
 
             <SEOSettingsForm
               namePrefix={['blog_settings', 'seo']}

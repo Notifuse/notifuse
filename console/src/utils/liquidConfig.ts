@@ -4,7 +4,7 @@ import { Liquid } from 'liquidjs'
  * Security configuration for Liquid template rendering
  *
  * SECURITY CONSIDERATIONS:
- * 1. No file system access (no includes, layouts, or renders)
+ * 1. Limited file system access (no layouts or renders, includes allowed)
  * 2. Limited loop iterations to prevent infinite loops
  * 3. Timeout protection to prevent CPU exhaustion
  * 4. Strict filters to catch typos/malicious filter attempts
@@ -19,7 +19,6 @@ export const MAX_EXECUTION_TIME = 5000
 
 // Tags that are DISABLED for security
 export const DISABLED_TAGS = [
-  'include', // Could include unauthorized templates
   'layout', // Could reference unauthorized layouts
   'render' // Could render unauthorized partials
   // 'raw' is a tag in some Liquid implementations - blocks processing
@@ -175,10 +174,9 @@ BACKEND LIQUID SECURITY (Go implementation):
 1. Use a sandboxed Liquid parser (e.g., github.com/osteele/liquid)
 
 2. Disable dangerous tags:
-   - include
    - layout  
    - render
-   - Any tags that access filesystem
+   - Any tags that access filesystem (except include)
 
 3. Set resource limits:
    - Max iterations: 10,000

@@ -18,15 +18,14 @@ export interface MockBlogData {
     icon_url?: string
   }
   seo?: {
-    meta_title: string
-    meta_description: string
-    og_title: string
-    og_description: string
-    og_image: string
-    canonical_url: string
-    keywords: string[]
+    meta_title?: string
+    meta_description?: string
+    og_title?: string
+    og_description?: string
+    og_image?: string
+    canonical_url?: string
+    keywords?: string[]
   }
-  styling?: any // EditorStyleConfig from workspace settings
   // Posts array (for home/category page listings)
   posts: Array<{
     id: string
@@ -95,76 +94,6 @@ export const MOCK_BLOG_DATA: MockBlogData = {
     og_image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1200',
     canonical_url: 'https://example.com',
     keywords: ['web development', 'technology', 'design', 'tutorials', 'blog']
-  },
-  styling: {
-    default: {
-      fontFamily: 'system-ui, -apple-system, sans-serif',
-      fontSize: { value: 16, unit: 'px' },
-      color: '#1a1a1a',
-      backgroundColor: '#ffffff',
-      lineHeight: 1.6
-    },
-    paragraph: {
-      marginTop: { value: 0, unit: 'px' },
-      marginBottom: { value: 16, unit: 'px' },
-      lineHeight: 1.6
-    },
-    headings: {
-      fontFamily: 'inherit'
-    },
-    h1: {
-      fontSize: { value: 2.5, unit: 'rem' },
-      color: '#000000',
-      marginTop: { value: 48, unit: 'px' },
-      marginBottom: { value: 24, unit: 'px' }
-    },
-    h2: {
-      fontSize: { value: 2, unit: 'rem' },
-      color: '#1a1a1a',
-      marginTop: { value: 40, unit: 'px' },
-      marginBottom: { value: 20, unit: 'px' }
-    },
-    h3: {
-      fontSize: { value: 1.5, unit: 'rem' },
-      color: '#1a1a1a',
-      marginTop: { value: 32, unit: 'px' },
-      marginBottom: { value: 16, unit: 'px' }
-    },
-    caption: {
-      fontSize: { value: 14, unit: 'px' },
-      color: '#6b7280'
-    },
-    separator: {
-      color: '#e5e7eb',
-      marginTop: { value: 32, unit: 'px' },
-      marginBottom: { value: 32, unit: 'px' }
-    },
-    codeBlock: {
-      marginTop: { value: 16, unit: 'px' },
-      marginBottom: { value: 16, unit: 'px' }
-    },
-    blockquote: {
-      fontSize: { value: 18, unit: 'px' },
-      color: '#4b5563',
-      marginTop: { value: 24, unit: 'px' },
-      marginBottom: { value: 24, unit: 'px' },
-      lineHeight: 1.6
-    },
-    inlineCode: {
-      fontFamily: 'monospace',
-      fontSize: { value: 14, unit: 'px' },
-      color: '#e11d48',
-      backgroundColor: '#f3f4f6'
-    },
-    list: {
-      marginTop: { value: 16, unit: 'px' },
-      marginBottom: { value: 16, unit: 'px' },
-      paddingLeft: { value: 24, unit: 'px' }
-    },
-    link: {
-      color: '#2563eb',
-      hoverColor: '#1d4ed8'
-    }
   },
   posts: [
     {

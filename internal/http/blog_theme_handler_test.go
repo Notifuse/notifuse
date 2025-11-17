@@ -64,12 +64,12 @@ func TestBlogThemeHandler_HandleCreate(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Home:     "home template",
-				Category: "category template",
-				Post:     "post template",
-				Header:   "header template",
-				Footer:   "footer template",
-				Shared:   "shared template",
+				HomeLiquid:     "home template",
+				CategoryLiquid: "category template",
+				PostLiquid:     "post template",
+				HeaderLiquid:   "header template",
+				FooterLiquid:   "footer template",
+				SharedLiquid:   "shared template",
 			},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -175,7 +175,7 @@ func TestBlogThemeHandler_HandleGet(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: version,
 			Files: domain.BlogThemeFiles{
-				Home: "home template",
+				HomeLiquid: "home template",
 			},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -264,7 +264,7 @@ func TestBlogThemeHandler_HandleGetPublished(t *testing.T) {
 			Version:     2,
 			PublishedAt: &publishedTime,
 			Files: domain.BlogThemeFiles{
-				Home: "published home",
+				HomeLiquid: "published home",
 			},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -342,7 +342,7 @@ func TestBlogThemeHandler_HandleUpdate(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Home: "updated home",
+				HomeLiquid: "updated home",
 			},
 			CreatedAt: time.Now(),
 			UpdatedAt: time.Now(),
@@ -462,14 +462,14 @@ func TestBlogThemeHandler_HandleList(t *testing.T) {
 			{
 				Version:     2,
 				PublishedAt: &publishedTime,
-				Files:       domain.BlogThemeFiles{Home: "v2"},
+				Files:       domain.BlogThemeFiles{HomeLiquid: "v2"},
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
 			},
 			{
 				Version:     1,
 				PublishedAt: nil,
-				Files:       domain.BlogThemeFiles{Home: "v1"},
+				Files:       domain.BlogThemeFiles{HomeLiquid: "v1"},
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
 			},

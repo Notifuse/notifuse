@@ -7,14 +7,13 @@ import { Workspace } from '../../services/api/types'
 
 interface ThemePreviewProps {
   files: BlogThemeFiles
-  styling?: any
   workspace?: Workspace | null
   view: ViewType
 }
 
 type ViewType = 'home' | 'category' | 'post'
 
-export function ThemePreview({ files, styling, workspace, view }: ThemePreviewProps) {
+export function ThemePreview({ files, workspace, view }: ThemePreviewProps) {
   const [renderResult, setRenderResult] = useState<RenderResult | null>(null)
   const [isRendering, setIsRendering] = useState(false)
 
@@ -35,11 +34,6 @@ export function ThemePreview({ files, styling, workspace, view }: ThemePreviewPr
           }
         }
 
-        // Use styling from prop (theme styling) if provided
-        if (styling) {
-          mockData.styling = styling
-        }
-
         const result = await renderBlogPage(files, view, mockData)
         setRenderResult(result)
       } catch (error) {
@@ -54,7 +48,7 @@ export function ThemePreview({ files, styling, workspace, view }: ThemePreviewPr
     }
 
     renderPreview()
-  }, [files, view, styling, workspace])
+  }, [files, view, workspace])
 
   return (
     <div
@@ -105,7 +99,7 @@ export function ThemePreview({ files, styling, workspace, view }: ThemePreviewPr
             background: '#ffffff'
           }}
           title="Blog Preview"
-          sandbox="allow-same-origin"
+          sandbox="allow-same-origin allow-scripts"
         />
       )}
     </div>

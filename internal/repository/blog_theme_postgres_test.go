@@ -33,12 +33,12 @@ func TestBlogThemeRepository(t *testing.T) {
 	testTheme := &domain.BlogTheme{
 		Version: 1,
 		Files: domain.BlogThemeFiles{
-			Home:     "home template",
-			Category: "category template",
-			Post:     "post template",
-			Header:   "header template",
-			Footer:   "footer template",
-			Shared:   "shared template",
+			HomeLiquid:     "home template",
+			CategoryLiquid: "category template",
+			PostLiquid:     "post template",
+			HeaderLiquid:   "header template",
+			FooterLiquid:   "footer template",
+			SharedLiquid:   "shared template",
 		},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),
@@ -49,7 +49,7 @@ func TestBlogThemeRepository(t *testing.T) {
 		Version:     2,
 		PublishedAt: &publishedTime,
 		Files: domain.BlogThemeFiles{
-			Home: "published home",
+			HomeLiquid: "published home",
 		},
 		CreatedAt: time.Now().UTC(),
 		UpdatedAt: time.Now().UTC(),

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Drawer, Button, Input, App, Modal, Space, Tabs, Form } from 'antd'
+import { Drawer, Button, Input, App, Modal, Space, Tabs } from 'antd'
 import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import Editor from '@monaco-editor/react'
@@ -7,12 +7,9 @@ import type { editor } from 'monaco-editor'
 import { BlogTheme, BlogThemeFiles, blogThemesApi } from '../../services/api/blog'
 import { useQueryClient, useMutation } from '@tanstack/react-query'
 import { ThemePreview } from './ThemePreview'
-import { DEFAULT_BLOG_TEMPLATES } from '../../utils/defaultBlogTemplates'
-import { DEFAULT_BLOG_STYLES } from '../../utils/defaultBlogStyles'
-import { BlogStyleSettings } from '../settings/BlogStyleSettings'
 import { useDebouncedCallback } from 'use-debounce'
 import { Workspace } from '../../services/api/types'
-import { ThemePreset } from './themePresets'
+import { ThemePreset, THEME_PRESETS } from './themePresets'
 
 const { TextArea } = Input
 
@@ -31,20 +28,19 @@ interface ThemeFileType {
 }
 
 const THEME_FILES: ThemeFileType[] = [
-  { key: 'home', label: 'home.liquid' },
-  { key: 'category', label: 'category.liquid' },
-  { key: 'post', label: 'post.liquid' },
-  { key: 'header', label: 'header.liquid' },
-  { key: 'footer', label: 'footer.liquid' },
-  { key: 'shared', label: 'shared.liquid' }
+  { key: 'home.liquid', label: 'home.liquid' },
+  { key: 'category.liquid', label: 'category.liquid' },
+  { key: 'post.liquid', label: 'post.liquid' },
+  { key: 'header.liquid', label: 'header.liquid' },
+  { key: 'footer.liquid', label: 'footer.liquid' },
+  { key: 'shared.liquid', label: 'shared.liquid' },
+  { key: 'styles.css', label: 'styles.css' }
 ]
 
 interface DraftState {
   files: BlogThemeFiles
-  styling: any
   notes: string
   selectedFile: keyof BlogThemeFiles
-  activeTab: 'templates' | 'styles'
   timestamp: number
 }
 
@@ -61,11 +57,8 @@ export function ThemeEditorDrawer({
 }: ThemeEditorDrawerProps) {
   const { message, modal } = App.useApp()
   const queryClient = useQueryClient()
-  const [form] = Form.useForm()
-  const [activeTab, setActiveTab] = useState<'templates' | 'styles'>('templates')
-  const [selectedFile, setSelectedFile] = useState<keyof BlogThemeFiles>('home')
-  const [files, setFiles] = useState<BlogThemeFiles>(DEFAULT_BLOG_TEMPLATES)
-  const [styling, setStyling] = useState<any>(DEFAULT_BLOG_STYLES)
+  const [selectedFile, setSelectedFile] = useState<keyof BlogThemeFiles>('home.liquid')
+  const [files, setFiles] = useState<BlogThemeFiles>(THEME_PRESETS[0].files)
   const [notes, setNotes] = useState('')
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [showRestorePrompt, setShowRestorePrompt] = useState(false)
@@ -74,14 +67,10 @@ export function ThemeEditorDrawer({
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
 
-  // Debounced preview files and styling for performance
+  // Debounced preview files for performance
   const [previewFiles, setPreviewFiles] = useState<BlogThemeFiles>(files)
-  const [previewStyling, setPreviewStyling] = useState<any>(styling)
   const debouncedSetPreviewFiles = useDebouncedCallback((newFiles: BlogThemeFiles) => {
     setPreviewFiles(newFiles)
-  }, 300)
-  const debouncedSetPreviewStyling = useDebouncedCallback((newStyling: any) => {
-    setPreviewStyling(newStyling)
   }, 300)
 
   const isPublished = theme?.published_at !== null && theme?.published_at !== undefined
@@ -116,18 +105,13 @@ export function ThemeEditorDrawer({
       }
     } else {
       // New theme - use preset data if provided, otherwise use defaults
-      const initialFiles = presetData?.files || DEFAULT_BLOG_TEMPLATES
-      const initialStyling = presetData?.styling || DEFAULT_BLOG_STYLES
+      const initialFiles = presetData?.files || THEME_PRESETS[0].files
       const initialNotes = presetData ? `Created from ${presetData.name}` : ''
 
       setFiles(initialFiles)
       setPreviewFiles(initialFiles)
-      setStyling(initialStyling)
-      setPreviewStyling(initialStyling)
-      form.setFieldsValue({ blog_settings: { styling: initialStyling } })
       setNotes(initialNotes)
-      setSelectedFile('home')
-      setActiveTab('templates')
+      setSelectedFile('home.liquid')
       setHasUnsavedChanges(false)
     }
   }, [theme, open, localStorageKey, presetData])
@@ -136,13 +120,8 @@ export function ThemeEditorDrawer({
     if (theme) {
       setFiles(theme.files)
       setPreviewFiles(theme.files)
-      const themeStyling = theme.styling || DEFAULT_BLOG_STYLES
-      setStyling(themeStyling)
-      setPreviewStyling(themeStyling)
-      form.setFieldsValue({ blog_settings: { styling: themeStyling } })
       setNotes(theme.notes || '')
-      setSelectedFile('home')
-      setActiveTab('templates')
+      setSelectedFile('home.liquid')
       setHasUnsavedChanges(false)
     }
   }
@@ -152,12 +131,8 @@ export function ThemeEditorDrawer({
     if (draft) {
       setFiles(draft.files)
       setPreviewFiles(draft.files)
-      setStyling(draft.styling)
-      setPreviewStyling(draft.styling)
-      form.setFieldsValue({ blog_settings: { styling: draft.styling } })
       setNotes(draft.notes)
       setSelectedFile(draft.selectedFile)
-      setActiveTab(draft.activeTab)
       setHasUnsavedChanges(true)
       message.info('Draft restored from local storage')
     }
@@ -183,10 +158,8 @@ export function ThemeEditorDrawer({
     saveTimeoutRef.current = setTimeout(() => {
       const draft: DraftState = {
         files,
-        styling,
         notes,
         selectedFile,
-        activeTab,
         timestamp: Date.now()
       }
       localStorage.setItem(localStorageKey, JSON.stringify(draft))
@@ -197,35 +170,27 @@ export function ThemeEditorDrawer({
         clearTimeout(saveTimeoutRef.current)
       }
     }
-  }, [files, styling, notes, selectedFile, activeTab, open, isPublished, localStorageKey])
+  }, [files, notes, selectedFile, open, isPublished, localStorageKey])
 
   // Track unsaved changes
   useEffect(() => {
     if (!theme) {
       // New theme
       const hasContent =
-        JSON.stringify(files) !== JSON.stringify(DEFAULT_BLOG_TEMPLATES) ||
-        JSON.stringify(styling) !== JSON.stringify(DEFAULT_BLOG_STYLES) ||
-        notes.trim() !== ''
+        JSON.stringify(files) !== JSON.stringify(THEME_PRESETS[0].files) || notes.trim() !== ''
       setHasUnsavedChanges(hasContent)
     } else {
       // Existing theme
       const filesChanged = JSON.stringify(files) !== JSON.stringify(theme.files)
-      const stylingChanged =
-        JSON.stringify(styling) !== JSON.stringify(theme.styling || DEFAULT_BLOG_STYLES)
       const notesChanged = notes !== (theme.notes || '')
-      setHasUnsavedChanges(filesChanged || stylingChanged || notesChanged)
+      setHasUnsavedChanges(filesChanged || notesChanged)
     }
-  }, [files, styling, notes, theme])
+  }, [files, notes, theme])
 
-  // Update preview files and styling with debounce
+  // Update preview files with debounce
   useEffect(() => {
     debouncedSetPreviewFiles(files)
   }, [files, debouncedSetPreviewFiles])
-
-  useEffect(() => {
-    debouncedSetPreviewStyling(styling)
-  }, [styling, debouncedSetPreviewStyling])
 
   const handleEditorDidMount = (editor: editor.IStandaloneCodeEditor) => {
     editorRef.current = editor
@@ -242,24 +207,17 @@ export function ThemeEditorDrawer({
     }))
   }
 
-  const handleFormValuesChange = (changedValues: any) => {
-    if (changedValues.blog_settings?.styling) {
-      setStyling(changedValues.blog_settings.styling)
-    }
-  }
-
   const saveMutation = useMutation({
     mutationFn: async () => {
       const isPublished = theme?.published_at !== null && theme?.published_at !== undefined
 
       if (!theme) {
         // Create new theme
-        return await blogThemesApi.create(workspaceId, { files, styling, notes })
+        return await blogThemesApi.create(workspaceId, { files, notes })
       } else if (isPublished) {
         // Published theme with changes: create new version
         return await blogThemesApi.create(workspaceId, {
           files,
-          styling,
           notes: notes ? `Edited from v${theme.version}: ${notes}` : `Edited from v${theme.version}`
         })
       } else {
@@ -267,7 +225,6 @@ export function ThemeEditorDrawer({
         return await blogThemesApi.update(workspaceId, {
           version: theme.version,
           files,
-          styling,
           notes
         })
       }
@@ -322,12 +279,8 @@ export function ThemeEditorDrawer({
     }
   }
 
-  const handleTabChange = (key: string) => {
-    setActiveTab(key as 'templates' | 'styles')
-  }
-
-  const leftPanelSize = activeTab === 'templates' ? 50 : 40
-  const rightPanelSize = activeTab === 'templates' ? 50 : 60
+  const leftPanelSize = 50
+  const rightPanelSize = 50
 
   return (
     <>
@@ -363,166 +316,139 @@ export function ThemeEditorDrawer({
         closable={false}
         styles={{ body: { padding: 0, height: 'calc(100vh - 55px)' } }}
       >
-        <PanelGroup key={`theme-editor-${activeTab}`} direction="horizontal">
-          {/* Left: Tabs Content */}
+        <PanelGroup direction="horizontal">
+          {/* Left: File Editor */}
           <Panel defaultSize={leftPanelSize} minSize={25} maxSize={80}>
             <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              {/* File Tabs */}
               <Tabs
-                activeKey={activeTab}
-                onChange={handleTabChange}
-                style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-                tabBarStyle={{ margin: 0, paddingLeft: 16, paddingRight: 16 }}
-                items={[
-                  {
-                    key: 'templates',
-                    label: 'Templates',
-                    children: (
-                      <Tabs
-                        activeKey={selectedFile}
-                        onChange={(key) => setSelectedFile(key as keyof BlogThemeFiles)}
-                        type="card"
-                        size="small"
-                        style={{
-                          height: 'calc(100vh - 110px)',
-                          display: 'flex',
-                          flexDirection: 'column'
-                        }}
-                        tabBarStyle={{ margin: 0 }}
-                        items={THEME_FILES.map((file) => ({
-                          key: file.key,
-                          label: file.label,
-                          children: (
-                            <div
+                activeKey={selectedFile}
+                onChange={(key) => setSelectedFile(key as keyof BlogThemeFiles)}
+                type="card"
+                size="small"
+                style={{
+                  height: 'calc(100vh - 110px)',
+                  display: 'flex',
+                  flexDirection: 'column'
+                }}
+                tabBarStyle={{ margin: 0 }}
+                items={THEME_FILES.map((file) => ({
+                  key: file.key,
+                  label: file.label,
+                  children: (
+                    <div
+                      style={{
+                        height: 'calc(100vh - 155px)',
+                        display: 'flex',
+                        flexDirection: 'column'
+                      }}
+                    >
+                      {file.key === 'shared.liquid' && (
+                        <div
+                          style={{
+                            padding: '12px 16px',
+                            background: '#f5f7fa',
+                            borderBottom: '1px solid #e0e0e0',
+                            fontSize: '13px',
+                            lineHeight: '1.6',
+                            maxHeight: '120px',
+                            overflowY: 'auto'
+                          }}
+                        >
+                          <div style={{ fontWeight: 600, marginBottom: 6, color: '#1a1a1a' }}>
+                            📬 Newsletter Subscription Form
+                          </div>
+                          <div style={{ color: '#666', marginBottom: 8 }}>
+                            This template includes a ready-to-use newsletter subscription form. Copy
+                            the form HTML to your <strong>footer.liquid</strong> or{' '}
+                            <strong>home.liquid</strong> for site-wide newsletter signups.
+                          </div>
+                          <div style={{ color: '#666' }}>
+                            <strong>Available variables:</strong>{' '}
+                            <code
                               style={{
-                                height: 'calc(100vh - 155px)',
-                                display: 'flex',
-                                flexDirection: 'column'
+                                background: '#fff',
+                                padding: '2px 4px',
+                                borderRadius: 2
                               }}
                             >
-                              {file.key === 'shared' && (
-                                <div
-                                  style={{
-                                    padding: '12px 16px',
-                                    background: '#f5f7fa',
-                                    borderBottom: '1px solid #e0e0e0',
-                                    fontSize: '13px',
-                                    lineHeight: '1.6',
-                                    maxHeight: '120px',
-                                    overflowY: 'auto'
-                                  }}
-                                >
-                                  <div
-                                    style={{ fontWeight: 600, marginBottom: 6, color: '#1a1a1a' }}
-                                  >
-                                    📬 Newsletter Subscription Form
-                                  </div>
-                                  <div style={{ color: '#666', marginBottom: 8 }}>
-                                    This template includes a ready-to-use newsletter subscription
-                                    form. Copy the form HTML to your <strong>footer.liquid</strong>{' '}
-                                    or <strong>home.liquid</strong> for site-wide newsletter
-                                    signups.
-                                  </div>
-                                  <div style={{ color: '#666' }}>
-                                    <strong>Available variables:</strong>{' '}
-                                    <code
-                                      style={{
-                                        background: '#fff',
-                                        padding: '2px 4px',
-                                        borderRadius: 2
-                                      }}
-                                    >
-                                      workspace
-                                    </code>
-                                    ,{' '}
-                                    <code
-                                      style={{
-                                        background: '#fff',
-                                        padding: '2px 4px',
-                                        borderRadius: 2
-                                      }}
-                                    >
-                                      public_lists
-                                    </code>
-                                    ,{' '}
-                                    <code
-                                      style={{
-                                        background: '#fff',
-                                        padding: '2px 4px',
-                                        borderRadius: 2
-                                      }}
-                                    >
-                                      post
-                                    </code>
-                                    ,{' '}
-                                    <code
-                                      style={{
-                                        background: '#fff',
-                                        padding: '2px 4px',
-                                        borderRadius: 2
-                                      }}
-                                    >
-                                      category
-                                    </code>
-                                    ,{' '}
-                                    <code
-                                      style={{
-                                        background: '#fff',
-                                        padding: '2px 4px',
-                                        borderRadius: 2
-                                      }}
-                                    >
-                                      posts
-                                    </code>
-                                    ,{' '}
-                                    <code
-                                      style={{
-                                        background: '#fff',
-                                        padding: '2px 4px',
-                                        borderRadius: 2
-                                      }}
-                                    >
-                                      categories
-                                    </code>
-                                  </div>
-                                </div>
-                              )}
-                              <div style={{ flex: 1, minHeight: 0 }}>
-                                <Editor
-                                  height="100%"
-                                  language="html"
-                                  value={files[file.key]}
-                                  onChange={handleEditorChange}
-                                  onMount={handleEditorDidMount}
-                                  theme="vs-light"
-                                  options={{
-                                    minimap: { enabled: false },
-                                    fontSize: 14,
-                                    lineNumbers: 'on',
-                                    scrollBeyondLastLine: false,
-                                    wordWrap: 'on',
-                                    automaticLayout: true,
-                                    tabSize: 2
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )
-                        }))}
-                      />
-                    )
-                  },
-                  {
-                    key: 'styles',
-                    label: 'Styles',
-                    children: (
-                      <div style={{ overflow: 'auto', height: '100%', padding: 16 }}>
-                        <Form form={form} layout="vertical" onValuesChange={handleFormValuesChange}>
-                          <BlogStyleSettings />
-                        </Form>
+                              workspace
+                            </code>
+                            ,{' '}
+                            <code
+                              style={{
+                                background: '#fff',
+                                padding: '2px 4px',
+                                borderRadius: 2
+                              }}
+                            >
+                              public_lists
+                            </code>
+                            ,{' '}
+                            <code
+                              style={{
+                                background: '#fff',
+                                padding: '2px 4px',
+                                borderRadius: 2
+                              }}
+                            >
+                              post
+                            </code>
+                            ,{' '}
+                            <code
+                              style={{
+                                background: '#fff',
+                                padding: '2px 4px',
+                                borderRadius: 2
+                              }}
+                            >
+                              category
+                            </code>
+                            ,{' '}
+                            <code
+                              style={{
+                                background: '#fff',
+                                padding: '2px 4px',
+                                borderRadius: 2
+                              }}
+                            >
+                              posts
+                            </code>
+                            ,{' '}
+                            <code
+                              style={{
+                                background: '#fff',
+                                padding: '2px 4px',
+                                borderRadius: 2
+                              }}
+                            >
+                              categories
+                            </code>
+                          </div>
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minHeight: 0 }}>
+                        <Editor
+                          height="100%"
+                          language={file.key === 'styles.css' ? 'css' : 'html'}
+                          value={files[file.key]}
+                          onChange={handleEditorChange}
+                          onMount={handleEditorDidMount}
+                          theme="vs-light"
+                          options={{
+                            minimap: { enabled: false },
+                            fontSize: 14,
+                            lineNumbers: 'on',
+                            scrollBeyondLastLine: false,
+                            wordWrap: 'on',
+                            automaticLayout: true,
+                            tabSize: 2
+                          }}
+                        />
                       </div>
-                    )
-                  }
-                ]}
+                    </div>
+                  )
+                }))}
               />
             </div>
           </Panel>
@@ -550,12 +476,7 @@ export function ThemeEditorDrawer({
                   label: 'Home',
                   children: (
                     <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
-                      <ThemePreview
-                        files={previewFiles}
-                        styling={previewStyling}
-                        workspace={workspace}
-                        view="home"
-                      />
+                      <ThemePreview files={previewFiles} workspace={workspace} view="home" />
                     </div>
                   )
                 },
@@ -564,12 +485,7 @@ export function ThemeEditorDrawer({
                   label: 'Category',
                   children: (
                     <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
-                      <ThemePreview
-                        files={previewFiles}
-                        styling={previewStyling}
-                        workspace={workspace}
-                        view="category"
-                      />
+                      <ThemePreview files={previewFiles} workspace={workspace} view="category" />
                     </div>
                   )
                 },
@@ -578,12 +494,7 @@ export function ThemeEditorDrawer({
                   label: 'Post',
                   children: (
                     <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
-                      <ThemePreview
-                        files={previewFiles}
-                        styling={previewStyling}
-                        workspace={workspace}
-                        view="post"
-                      />
+                      <ThemePreview files={previewFiles} workspace={workspace} view="post" />
                     </div>
                   )
                 }

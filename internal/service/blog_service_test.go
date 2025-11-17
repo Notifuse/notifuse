@@ -998,9 +998,9 @@ func TestBlogService_CreateTheme(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.CreateBlogThemeRequest{
 			Files: domain.BlogThemeFiles{
-				Home:     "home template",
-				Category: "category template",
-				Post:     "post template",
+				HomeLiquid:     "home template",
+				CategoryLiquid: "category template",
+				PostLiquid:     "post template",
 			},
 		}
 
@@ -1015,7 +1015,7 @@ func TestBlogService_CreateTheme(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, theme)
 		assert.Equal(t, 1, theme.Version)
-		assert.Equal(t, req.Files.Home, theme.Files.Home)
+		assert.Equal(t, req.Files.HomeLiquid, theme.Files.HomeLiquid)
 	})
 
 	t.Run("validation error", func(t *testing.T) {
@@ -1040,7 +1040,7 @@ func TestBlogService_CreateTheme(t *testing.T) {
 	t.Run("repository error", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.CreateBlogThemeRequest{
-			Files: domain.BlogThemeFiles{Home: "template"},
+			Files: domain.BlogThemeFiles{HomeLiquid: "template"},
 		}
 
 		mockThemeRepo.EXPECT().
@@ -1055,7 +1055,7 @@ func TestBlogService_CreateTheme(t *testing.T) {
 	t.Run("permission denied - no write permission", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		req := &domain.CreateBlogThemeRequest{
-			Files: domain.BlogThemeFiles{Home: "template"},
+			Files: domain.BlogThemeFiles{HomeLiquid: "template"},
 		}
 
 		theme, err := service.CreateTheme(ctx, req)
@@ -1072,7 +1072,7 @@ func TestBlogService_GetTheme(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
 		expectedTheme := &domain.BlogTheme{
 			Version: 1,
-			Files:   domain.BlogThemeFiles{Home: "home"},
+			Files:   domain.BlogThemeFiles{HomeLiquid: "home"},
 		}
 
 		mockThemeRepo.EXPECT().
@@ -1115,7 +1115,7 @@ func TestBlogService_GetPublishedTheme(t *testing.T) {
 		expectedTheme := &domain.BlogTheme{
 			Version:     2,
 			PublishedAt: &publishedTime,
-			Files:       domain.BlogThemeFiles{Home: "published"},
+			Files:       domain.BlogThemeFiles{HomeLiquid: "published"},
 		}
 
 		mockThemeRepo.EXPECT().
@@ -1149,7 +1149,7 @@ func TestBlogService_UpdateTheme(t *testing.T) {
 		req := &domain.UpdateBlogThemeRequest{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Home: "updated home",
+				HomeLiquid: "updated home",
 			},
 		}
 
@@ -1162,14 +1162,14 @@ func TestBlogService_UpdateTheme(t *testing.T) {
 			UpdateTheme(ctx, gomock.Any()).
 			DoAndReturn(func(ctx context.Context, theme *domain.BlogTheme) error {
 				assert.Equal(t, 1, theme.Version)
-				assert.Equal(t, "updated home", theme.Files.Home)
+				assert.Equal(t, "updated home", theme.Files.HomeLiquid)
 				return nil
 			})
 
 		theme, err := service.UpdateTheme(ctx, req)
 		require.NoError(t, err)
 		assert.NotNil(t, theme)
-		assert.Equal(t, "updated home", theme.Files.Home)
+		assert.Equal(t, "updated home", theme.Files.HomeLiquid)
 	})
 
 	t.Run("validation error - zero version", func(t *testing.T) {
@@ -1187,7 +1187,7 @@ func TestBlogService_UpdateTheme(t *testing.T) {
 		publishedTime := time.Now()
 		req := &domain.UpdateBlogThemeRequest{
 			Version: 1,
-			Files:   domain.BlogThemeFiles{Home: "updated"},
+			Files:   domain.BlogThemeFiles{HomeLiquid: "updated"},
 		}
 
 		mockThemeRepo.EXPECT().
@@ -1357,10 +1357,10 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Home:   "<h1>{{ workspace.name }}</h1>{% for list in public_lists %}<div>{{ list.name }}</div>{% endfor %}",
-				Header: "<header></header>",
-				Footer: "<footer></footer>",
-				Shared: "",
+				HomeLiquid:   "<h1>{{ workspace.name }}</h1>{% for list in public_lists %}<div>{{ list.name }}</div>{% endfor %}",
+				HeaderLiquid: "<header></header>",
+				FooterLiquid: "<footer></footer>",
+				SharedLiquid: "",
 			},
 		}
 
@@ -1435,10 +1435,10 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Home:   "<h1>Home</h1>",
-				Header: "",
-				Footer: "",
-				Shared: "",
+				HomeLiquid:   "<h1>Home</h1>",
+				HeaderLiquid: "",
+				FooterLiquid: "",
+				SharedLiquid: "",
 			},
 		}
 		publishedAt := time.Now()
@@ -1464,10 +1464,10 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Home:   "<h1>Home</h1>",
-				Header: "",
-				Footer: "",
-				Shared: "",
+				HomeLiquid:   "<h1>Home</h1>",
+				HeaderLiquid: "",
+				FooterLiquid: "",
+				SharedLiquid: "",
 			},
 		}
 		publishedAt := time.Now()
@@ -1476,7 +1476,7 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(ctx, "workspace123").Return(workspace, nil)
 		mockThemeRepo.EXPECT().GetPublishedTheme(ctx).Return(theme, nil)
 		mockListRepo.EXPECT().GetLists(ctx, "workspace123").Return([]*domain.List{}, nil)
-		
+
 		// Return pagination data showing only 2 pages, but request page 5
 		mockPostRepo.EXPECT().ListPosts(ctx, gomock.Any()).Return(&domain.BlogPostListResponse{
 			Posts:       []*domain.BlogPost{},
@@ -1526,10 +1526,10 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Post:   "<h1>{{ post.title }}</h1>",
-				Header: "",
-				Footer: "",
-				Shared: "",
+				PostLiquid:   "<h1>{{ post.title }}</h1>",
+				HeaderLiquid: "",
+				FooterLiquid: "",
+				SharedLiquid: "",
 			},
 		}
 		theme.PublishedAt = &publishedAt
@@ -1621,10 +1621,10 @@ func TestBlogService_RenderCategoryPage(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Category: "<h1>{{ category.name }}</h1>",
-				Header:   "",
-				Footer:   "",
-				Shared:   "",
+				CategoryLiquid: "<h1>{{ category.name }}</h1>",
+				HeaderLiquid:   "",
+				FooterLiquid:   "",
+				SharedLiquid:   "",
 			},
 		}
 		publishedAt := time.Now()
@@ -1685,10 +1685,10 @@ func TestBlogService_RenderCategoryPage(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Category: "<h1>{{ category.name }}</h1>",
-				Header:   "",
-				Footer:   "",
-				Shared:   "",
+				CategoryLiquid: "<h1>{{ category.name }}</h1>",
+				HeaderLiquid:   "",
+				FooterLiquid:   "",
+				SharedLiquid:   "",
 			},
 		}
 		publishedAt := time.Now()
@@ -1698,7 +1698,7 @@ func TestBlogService_RenderCategoryPage(t *testing.T) {
 		mockThemeRepo.EXPECT().GetPublishedTheme(ctx).Return(theme, nil)
 		mockCategoryRepo.EXPECT().GetCategoryBySlug(ctx, "tech").Return(category, nil)
 		mockListRepo.EXPECT().GetLists(ctx, "workspace123").Return([]*domain.List{}, nil)
-		
+
 		// Return pagination showing only 3 pages, but request page 10
 		mockPostRepo.EXPECT().ListPosts(ctx, gomock.Any()).Return(&domain.BlogPostListResponse{
 			Posts:       []*domain.BlogPost{},
@@ -1742,10 +1742,10 @@ func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Home:   "<h1>{{ workspace.name }}</h1>",
-				Header: "",
-				Footer: "",
-				Shared: "",
+				HomeLiquid:   "<h1>{{ workspace.name }}</h1>",
+				HeaderLiquid: "",
+				FooterLiquid: "",
+				SharedLiquid: "",
 			},
 		}
 		publishedAt := time.Now()
@@ -1786,10 +1786,10 @@ func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Home:   "<h1>{{ workspace.name }}</h1>",
-				Header: "",
-				Footer: "",
-				Shared: "",
+				HomeLiquid:   "<h1>{{ workspace.name }}</h1>",
+				HeaderLiquid: "",
+				FooterLiquid: "",
+				SharedLiquid: "",
 			},
 		}
 		publishedAt := time.Now()
@@ -1834,10 +1834,10 @@ func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Home:   "<h1>{{ workspace.name }}</h1>",
-				Header: "",
-				Footer: "",
-				Shared: "",
+				HomeLiquid:   "<h1>{{ workspace.name }}</h1>",
+				HeaderLiquid: "",
+				FooterLiquid: "",
+				SharedLiquid: "",
 			},
 		}
 		publishedAt := time.Now()
@@ -1896,10 +1896,10 @@ func TestBlogService_RenderCategoryPage_WithPaginationSettings(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Category: "<h1>{{ category.name }}</h1>",
-				Header:   "",
-				Footer:   "",
-				Shared:   "",
+				CategoryLiquid: "<h1>{{ category.name }}</h1>",
+				HeaderLiquid:   "",
+				FooterLiquid:   "",
+				SharedLiquid:   "",
 			},
 		}
 		publishedAt := time.Now()
@@ -1948,10 +1948,10 @@ func TestBlogService_RenderCategoryPage_WithPaginationSettings(t *testing.T) {
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				Category: "<h1>{{ category.name }}</h1>",
-				Header:   "",
-				Footer:   "",
-				Shared:   "",
+				CategoryLiquid: "<h1>{{ category.name }}</h1>",
+				HeaderLiquid:   "",
+				FooterLiquid:   "",
+				SharedLiquid:   "",
 			},
 		}
 		publishedAt := time.Now()

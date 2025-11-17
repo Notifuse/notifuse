@@ -1112,7 +1112,7 @@ func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, pa
 		PublicLists:    publicLists,
 		Posts:          postsResponse.Posts,
 		Categories:     categories,
-		ThemeStyling:   theme.Styling,
+		ThemeVersion:   theme.Version,
 		PaginationData: postsResponse,
 	})
 	if err != nil {
@@ -1128,8 +1128,15 @@ func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, pa
 		paginationMap["per_page"] = pageSize
 	}
 
-	// Render the home template
-	html, err := liquid.RenderBlogTemplate(theme.Files.Home, templateData)
+	// Prepare partials map for the template engine
+	partials := map[string]string{
+		"shared": theme.Files.SharedLiquid,
+		"header": theme.Files.HeaderLiquid,
+		"footer": theme.Files.FooterLiquid,
+	}
+
+	// Render the home template with partials
+	html, err := liquid.RenderBlogTemplate(theme.Files.HomeLiquid, templateData, partials)
 	if err != nil {
 		return "", &domain.BlogRenderError{
 			Code:    domain.ErrCodeInvalidLiquidSyntax,
@@ -1217,7 +1224,7 @@ func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categoryS
 		Category:     category,
 		PublicLists:  publicLists,
 		Categories:   categories,
-		ThemeStyling: theme.Styling,
+		ThemeVersion: theme.Version,
 	})
 	if err != nil {
 		return "", &domain.BlogRenderError{
@@ -1227,8 +1234,15 @@ func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categoryS
 		}
 	}
 
-	// Render the post template
-	html, err := liquid.RenderBlogTemplate(theme.Files.Post, templateData)
+	// Prepare partials map for the template engine
+	partials := map[string]string{
+		"shared": theme.Files.SharedLiquid,
+		"header": theme.Files.HeaderLiquid,
+		"footer": theme.Files.FooterLiquid,
+	}
+
+	// Render the post template with partials
+	html, err := liquid.RenderBlogTemplate(theme.Files.PostLiquid, templateData, partials)
 	if err != nil {
 		return "", &domain.BlogRenderError{
 			Code:    domain.ErrCodeInvalidLiquidSyntax,
@@ -1342,7 +1356,7 @@ func (s *BlogService) RenderCategoryPage(ctx context.Context, workspaceID, categ
 		PublicLists:    publicLists,
 		Posts:          postsResponse.Posts,
 		Categories:     categories,
-		ThemeStyling:   theme.Styling,
+		ThemeVersion:   theme.Version,
 		PaginationData: postsResponse,
 	})
 	if err != nil {
@@ -1358,8 +1372,15 @@ func (s *BlogService) RenderCategoryPage(ctx context.Context, workspaceID, categ
 		paginationMap["per_page"] = pageSize
 	}
 
-	// Render the category template
-	html, err := liquid.RenderBlogTemplate(theme.Files.Category, templateData)
+	// Prepare partials map for the template engine
+	partials := map[string]string{
+		"shared": theme.Files.SharedLiquid,
+		"header": theme.Files.HeaderLiquid,
+		"footer": theme.Files.FooterLiquid,
+	}
+
+	// Render the category template with partials
+	html, err := liquid.RenderBlogTemplate(theme.Files.CategoryLiquid, templateData, partials)
 	if err != nil {
 		return "", &domain.BlogRenderError{
 			Code:    domain.ErrCodeInvalidLiquidSyntax,

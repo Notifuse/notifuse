@@ -30,21 +30,22 @@ This document outlines the security measures implemented for Liquid template ren
 
 ### 5. **File System Access**
 - **Risk**: Reading sensitive files or including unauthorized templates
-- **Mitigation**: Disabled `include`, `layout`, and `render` tags
+- **Mitigation**: Disabled `layout` and `render` tags; `include` tag is allowed for template reusability
 
 ## 🚫 Disabled/Restricted Features
 
 ### Tags (Disabled)
 ```liquid
-{% include "other-file" %}   ❌ BLOCKED
+{% include "other-file" %}   ✅ ALLOWED (for template reusability)
 {% layout "base" %}           ❌ BLOCKED  
 {% render "partial" %}        ❌ BLOCKED
 {% raw %}...{% endraw %}      ❌ BLOCKED (in some implementations)
 ```
 
 ### Why These Are Blocked
-- **include/layout/render**: Could access files outside user's scope
+- **layout/render**: Could access files outside user's scope
 - **raw**: Could bypass security processing
+- **include**: Now ALLOWED for better template organization and reusability
 
 ## ✅ Allowed Features
 
@@ -57,6 +58,7 @@ All standard Liquid features are allowed EXCEPT the disabled tags above:
 {% assign var = value %}                 ✅ SAFE
 {% case variable %}...{% endcase %}      ✅ SAFE
 {% comment %}...{% endcomment %}         ✅ SAFE
+{% include "template-name" %}            ✅ SAFE (template reusability)
 ```
 
 ### Safe Filters
@@ -142,7 +144,7 @@ Log all template operations:
 Before saving a template, we validate:
 
 - [ ] Template size < 100KB
-- [ ] No disabled tags (include/layout/render)
+- [ ] No disabled tags (layout/render)
 - [ ] Nesting depth < 20 levels
 - [ ] Balanced opening/closing tags
 - [ ] Valid Liquid syntax
@@ -155,7 +157,7 @@ Before saving a template, we validate:
 **Option 1: github.com/osteele/liquid** (Recommended)
 ```go
 engine := liquid.NewEngine()
-engine.RegisterTag("include", nil)  // Disable
+// Include tag is ALLOWED for template reusability
 engine.RegisterTag("layout", nil)   // Disable  
 engine.RegisterTag("render", nil)   // Disable
 ```

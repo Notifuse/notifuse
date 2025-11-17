@@ -134,6 +134,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
             <Button
               type="primary"
               size="small"
+              ghost
               icon={<CloudUploadOutlined />}
               onClick={() => handlePublish(record)}
               loading={publishMutation.isPending}

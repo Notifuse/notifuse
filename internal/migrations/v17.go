@@ -259,16 +259,6 @@ func (m *V17Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		return fmt.Errorf("failed to create idx_blog_themes_version index: %w", err)
 	}
 
-	// Insert default theme (version 1, published)
-	_, err = db.ExecContext(ctx, `
-		INSERT INTO blog_themes (version, published_at, files) 
-		VALUES (1, NOW(), '{"home":"","category":"","post":"","header":"","footer":"","shared":""}')
-		ON CONFLICT (version) DO NOTHING
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to insert default blog theme: %w", err)
-	}
-
 	// ===== TEMPLATES TABLE =====
 
 	// Make email column nullable for web templates
