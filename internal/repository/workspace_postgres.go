@@ -67,15 +67,26 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
+	// STEP 1: Create the workspace database FIRST
+	// If this fails (e.g., due to permissions), no system record is created
+	if err := r.CreateDatabase(ctx, workspace.ID); err != nil {
+		return fmt.Errorf("failed to create workspace database: %w", err)
+	}
+
+	// STEP 2: Now insert the workspace record into system database
 	// Marshal settings to JSON
 	settings, err := json.Marshal(workspace.Settings)
 	if err != nil {
+		// Clean up: delete the database we just created
+		_ = r.DeleteDatabase(ctx, workspace.ID)
 		return err
 	}
 
 	// Marshal integrations to JSON
 	integrations, err := json.Marshal(workspace.Integrations)
 	if err != nil {
+		// Clean up: delete the database we just created
+		_ = r.DeleteDatabase(ctx, workspace.ID)
 		return err
 	}
 
@@ -92,6 +103,8 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 		workspace.UpdatedAt,
 	)
 	if err != nil {
+		// Clean up: delete the database we just created
+		_ = r.DeleteDatabase(ctx, workspace.ID)
 		return err
 	}
 
@@ -99,8 +112,7 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
-	// Create the workspace database
-	return r.CreateDatabase(ctx, workspace.ID)
+	return nil
 }
 
 func (r *workspaceRepository) GetByID(ctx context.Context, id string) (*domain.Workspace, error) {

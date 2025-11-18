@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/botdetection"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/ratelimiter"
@@ -153,6 +154,17 @@ func (h *NotificationCenterHandler) handleUnsubscribeOneClick(w http.ResponseWri
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to decode request body")
 		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Bot detection: check user agent before processing unsubscribe
+	userAgent := r.Header.Get("User-Agent")
+	if botdetection.IsBotUserAgent(userAgent) {
+		// Return success without actually unsubscribing to avoid revealing bot detection
+		h.logger.WithField("user_agent", userAgent).Debug("Bot detected by user agent - not processing unsubscribe")
+		writeJSON(w, http.StatusOK, map[string]interface{}{
+			"success": true,
+		})
 		return
 	}
 
