@@ -90,7 +90,7 @@ func TestRenderBlogTemplate(t *testing.T) {
 
 		_, err := RenderBlogTemplate(template, data, nil)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "liquidjs rendering failed")
+		assert.Contains(t, err.Error(), "liquid rendering failed")
 	})
 
 	t.Run("returns error for empty template", func(t *testing.T) {
@@ -234,7 +234,7 @@ func TestRenderBlogTemplateWithPartials(t *testing.T) {
 
 		_, err := RenderBlogTemplate(template, data, partials)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "liquidjs rendering failed")
+		assert.Contains(t, err.Error(), "liquid rendering failed")
 	})
 
 	t.Run("renders with nil partials", func(t *testing.T) {
@@ -594,7 +594,7 @@ func TestRenderBlogTemplateResourceLimits(t *testing.T) {
 
 		_, err := RenderBlogTemplate(largeTemplate, data, nil)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "liquidjs rendering failed")
+		assert.Contains(t, err.Error(), "exceeds maximum allowed size")
 	})
 
 	t.Run("enforces render timeout on infinite loop", func(t *testing.T) {

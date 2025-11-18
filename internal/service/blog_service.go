@@ -1140,9 +1140,18 @@ func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, pa
 	// Render the home template with partials
 	html, err := liquid.RenderBlogTemplate(theme.Files.HomeLiquid, templateData, partials)
 	if err != nil {
+		// Log detailed error for debugging
+		s.logger.WithFields(map[string]interface{}{
+			"error":                err.Error(),
+			"workspace_id":         workspaceID,
+			"theme_version":        theme.Version,
+			"home_template_length": len(theme.Files.HomeLiquid),
+			"partials":             []string{"shared", "header", "footer", "styles", "scripts"},
+		}).Error("Failed to render home template - check DEBUG logs for template details")
+
 		return "", &domain.BlogRenderError{
 			Code:    domain.ErrCodeInvalidLiquidSyntax,
-			Message: "Failed to render home template",
+			Message: fmt.Sprintf("Failed to render home template: %v", err),
 			Details: err,
 		}
 	}
@@ -1248,9 +1257,20 @@ func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categoryS
 	// Render the post template with partials
 	html, err := liquid.RenderBlogTemplate(theme.Files.PostLiquid, templateData, partials)
 	if err != nil {
+		// Log detailed error for debugging
+		s.logger.WithFields(map[string]interface{}{
+			"error":                err.Error(),
+			"workspace_id":         workspaceID,
+			"theme_version":        theme.Version,
+			"post_slug":            postSlug,
+			"category_slug":        categorySlug,
+			"post_template_length": len(theme.Files.PostLiquid),
+			"partials":             []string{"shared", "header", "footer", "styles", "scripts"},
+		}).Error("Failed to render post template - check DEBUG logs for template details")
+
 		return "", &domain.BlogRenderError{
 			Code:    domain.ErrCodeInvalidLiquidSyntax,
-			Message: "Failed to render post template",
+			Message: fmt.Sprintf("Failed to render post template: %v", err),
 			Details: err,
 		}
 	}
@@ -1388,9 +1408,19 @@ func (s *BlogService) RenderCategoryPage(ctx context.Context, workspaceID, categ
 	// Render the category template with partials
 	html, err := liquid.RenderBlogTemplate(theme.Files.CategoryLiquid, templateData, partials)
 	if err != nil {
+		// Log detailed error for debugging
+		s.logger.WithFields(map[string]interface{}{
+			"error":                    err.Error(),
+			"workspace_id":             workspaceID,
+			"theme_version":            theme.Version,
+			"category_slug":            categorySlug,
+			"category_template_length": len(theme.Files.CategoryLiquid),
+			"partials":                 []string{"shared", "header", "footer", "styles", "scripts"},
+		}).Error("Failed to render category template - check DEBUG logs for template details")
+
 		return "", &domain.BlogRenderError{
 			Code:    domain.ErrCodeInvalidLiquidSyntax,
-			Message: "Failed to render category template",
+			Message: fmt.Sprintf("Failed to render category template: %v", err),
 			Details: err,
 		}
 	}

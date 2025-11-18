@@ -88,4 +88,3 @@ func (s *SecureLiquidEngine) RenderWithTimeout(content string, data map[string]i
 func (s *SecureLiquidEngine) Render(content string, data map[string]interface{}) (string, error) {
 	return s.RenderWithTimeout(content, data)
 }
-

@@ -9,7 +9,7 @@ import (
 func TestSecureLiquidEngine_TimeoutEnforcement(t *testing.T) {
 	t.Run("infinite loop causes timeout", func(t *testing.T) {
 		engine := NewSecureLiquidEngine()
-		
+
 		// Template with massive nested loops that should timeout
 		template := `
 		{% assign limit = 1000000 %}
@@ -43,7 +43,7 @@ func TestSecureLiquidEngine_TimeoutEnforcement(t *testing.T) {
 
 	t.Run("fast template completes before timeout", func(t *testing.T) {
 		engine := NewSecureLiquidEngine()
-		
+
 		template := `<div>{{ message }}</div>`
 		data := map[string]interface{}{
 			"message": "Hello World",
@@ -63,7 +63,7 @@ func TestSecureLiquidEngine_TimeoutEnforcement(t *testing.T) {
 func TestSecureLiquidEngine_TemplateSizeLimit(t *testing.T) {
 	t.Run("rejects templates exceeding size limit", func(t *testing.T) {
 		engine := NewSecureLiquidEngine()
-		
+
 		// Create a template larger than 100KB
 		largeTemplate := strings.Repeat("<div>{{ item }}</div>\n", 10000) // ~200KB
 		data := map[string]interface{}{
@@ -82,7 +82,7 @@ func TestSecureLiquidEngine_TemplateSizeLimit(t *testing.T) {
 
 	t.Run("accepts templates within size limit", func(t *testing.T) {
 		engine := NewSecureLiquidEngine()
-		
+
 		// Template under 100KB (about 2KB)
 		template := strings.Repeat("<div>{{ item }}</div>\n", 100)
 		data := map[string]interface{}{
@@ -102,7 +102,7 @@ func TestSecureLiquidEngine_TemplateSizeLimit(t *testing.T) {
 	t.Run("custom size limit works", func(t *testing.T) {
 		// Create engine with 1KB limit
 		engine := NewSecureLiquidEngineWithOptions(5*time.Second, 1024)
-		
+
 		// Template larger than 1KB but smaller than 100KB
 		template := strings.Repeat("<div>test</div>", 100) // ~1.5KB
 		data := map[string]interface{}{}
@@ -177,19 +177,19 @@ func TestSecureLiquidEngine_NormalTemplatesWork(t *testing.T) {
 func TestSecureLiquidEngine_PanicRecovery(t *testing.T) {
 	t.Run("recovers from panics gracefully", func(t *testing.T) {
 		engine := NewSecureLiquidEngine()
-		
+
 		// This might cause issues depending on liquid implementation
 		// but we should recover from any panic
 		template := `{{ nil | upcase }}`
 		data := map[string]interface{}{}
 
 		result, err := engine.RenderWithTimeout(template, data)
-		
+
 		// Either returns error or empty result, but should not panic
 		if err != nil && !strings.Contains(err.Error(), "panic") && !strings.Contains(err.Error(), "rendering failed") {
 			// It's ok if it's a rendering error
 		}
-		
+
 		// The important thing is we didn't panic - test passes if we get here
 		_ = result
 	})
@@ -198,7 +198,7 @@ func TestSecureLiquidEngine_PanicRecovery(t *testing.T) {
 func TestSecureLiquidEngine_DeepNesting(t *testing.T) {
 	t.Run("handles deep nesting", func(t *testing.T) {
 		engine := NewSecureLiquidEngine()
-		
+
 		// Test deep nesting (5 levels)
 		template := `
 		{% if level1 %}
@@ -235,7 +235,7 @@ func TestSecureLiquidEngine_DeepNesting(t *testing.T) {
 func TestSecureLiquidEngine_MemoryExhaustion(t *testing.T) {
 	t.Run("large iteration with timeout", func(t *testing.T) {
 		engine := NewSecureLiquidEngine()
-		
+
 		// Template that tries to create large strings
 		template := `
 		{% assign huge = "" %}
@@ -248,7 +248,7 @@ func TestSecureLiquidEngine_MemoryExhaustion(t *testing.T) {
 
 		// This should either timeout or complete
 		_, err := engine.RenderWithTimeout(template, data)
-		
+
 		// If it times out, that's good (protection working)
 		// If it completes, that's also ok (Go Liquid handled it)
 		// The important thing is we don't crash
@@ -261,7 +261,7 @@ func TestSecureLiquidEngine_MemoryExhaustion(t *testing.T) {
 func TestSecureLiquidEngine_ErrorMessages(t *testing.T) {
 	t.Run("clear error for invalid syntax", func(t *testing.T) {
 		engine := NewSecureLiquidEngine()
-		
+
 		// Invalid liquid syntax
 		template := `{% for item in items %}<li>{{ item }}</li>` // Missing endfor
 		data := map[string]interface{}{"items": []string{"test"}}
@@ -279,7 +279,7 @@ func TestSecureLiquidEngine_ErrorMessages(t *testing.T) {
 	t.Run("clear error for timeout", func(t *testing.T) {
 		// Create engine with very short timeout
 		engine := NewSecureLiquidEngineWithOptions(10*time.Millisecond, 100*1024)
-		
+
 		// Template with loop that will take longer than 10ms
 		template := `{% for i in (1..100000) %}<div>{{ i }}</div>{% endfor %}`
 		data := map[string]interface{}{}
@@ -339,4 +339,3 @@ func TestSecureLiquidEngine_EdgeCases(t *testing.T) {
 		}
 	})
 }
-
