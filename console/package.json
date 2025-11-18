@@ -9,7 +9,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "bundle-liquid": "cp node_modules/liquidjs/dist/liquid.browser.umd.js ../pkg/liquid/liquid.bundle.js"
   },
   "dependencies": {
     "@ant-design/icons": "^5.3.0",

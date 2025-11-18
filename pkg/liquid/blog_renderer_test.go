@@ -1,6 +1,7 @@
 package liquid
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -89,7 +90,7 @@ func TestRenderBlogTemplate(t *testing.T) {
 
 		_, err := RenderBlogTemplate(template, data, nil)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "liquid rendering failed")
+		assert.Contains(t, err.Error(), "liquidjs rendering failed")
 	})
 
 	t.Run("returns error for empty template", func(t *testing.T) {
@@ -233,7 +234,7 @@ func TestRenderBlogTemplateWithPartials(t *testing.T) {
 
 		_, err := RenderBlogTemplate(template, data, partials)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "liquid rendering failed")
+		assert.Contains(t, err.Error(), "liquidjs rendering failed")
 	})
 
 	t.Run("renders with nil partials", func(t *testing.T) {
@@ -274,57 +275,10 @@ func TestRenderBlogTemplateWithPartials(t *testing.T) {
 	})
 }
 
-func TestRenderBlogTemplateWithParameterizedIncludes(t *testing.T) {
-	t.Run("FAILING: include with comma-separated parameters (Jekyll/Shopify syntax)", func(t *testing.T) {
-		// This reproduces the exact syntax used in home.liquid that is causing the error
-		template := `<div>{% include 'shared', widget: 'newsletter' %}</div>`
-		partials := map[string]string{
-			"shared": `{%- if widget == 'newsletter' -%}<div class="newsletter">Subscribe!</div>{%- endif -%}`,
-		}
-		data := map[string]interface{}{}
-
-		html, err := RenderBlogTemplate(template, data, partials)
-		
-		// This test documents the current failing behavior
-		// The osteele/liquid library may not support Jekyll/Shopify parameter syntax
-		if err != nil {
-			t.Logf("Expected failure - include with parameters not supported: %v", err)
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), "liquid rendering failed")
-		} else {
-			t.Logf("Success - html: %s", html)
-			assert.Contains(t, html, "Subscribe!")
-		}
-	})
-
-	t.Run("include with post parameter (home.liquid pattern)", func(t *testing.T) {
-		// This reproduces the post-card include pattern from home.liquid
-		template := `<div>{% for post in posts %}{% include 'shared', widget: 'post-card', post: post %}{% endfor %}</div>`
-		partials := map[string]string{
-			"shared": `{%- if widget == 'post-card' -%}<article><h3>{{ post.title }}</h3></article>{%- endif -%}`,
-		}
-		data := map[string]interface{}{
-			"posts": []map[string]interface{}{
-				{"title": "First Post", "slug": "first-post"},
-				{"title": "Second Post", "slug": "second-post"},
-			},
-		}
-
-		html, err := RenderBlogTemplate(template, data, partials)
-		
-		// Document the behavior
-		if err != nil {
-			t.Logf("Expected failure - include with multiple parameters not supported: %v", err)
-			assert.Error(t, err)
-		} else {
-			t.Logf("Success - html: %s", html)
-			assert.Contains(t, html, "First Post")
-		}
-	})
-
-	t.Run("WORKAROUND: assign variables before include", func(t *testing.T) {
-		// This tests the workaround: assigning variables before including
-		template := `<div>{% assign widget = 'newsletter' %}{% include 'shared' %}</div>`
+func TestRenderBlogTemplateWithParameterizedRenders(t *testing.T) {
+	t.Run("render with single parameter", func(t *testing.T) {
+		// Test the render tag with a single parameter (liquidjs/Jekyll/Shopify syntax)
+		template := `<div>{% render 'shared', widget: 'newsletter' %}</div>`
 		partials := map[string]string{
 			"shared": `{%- if widget == 'newsletter' -%}<div class="newsletter">Subscribe!</div>{%- endif -%}`,
 		}
@@ -335,9 +289,9 @@ func TestRenderBlogTemplateWithParameterizedIncludes(t *testing.T) {
 		assert.Contains(t, html, "Subscribe!")
 	})
 
-	t.Run("WORKAROUND: assign post variable in loop before include", func(t *testing.T) {
-		// This tests if we can pass post data through assign
-		template := `<div>{% for p in posts %}{% assign post = p %}{% assign widget = 'post-card' %}{% include 'shared' %}{% endfor %}</div>`
+	t.Run("render with multiple parameters", func(t *testing.T) {
+		// Test the render tag with multiple parameters
+		template := `<div>{% for post in posts %}{% render 'shared', widget: 'post-card', post: post %}{% endfor %}</div>`
 		partials := map[string]string{
 			"shared": `{%- if widget == 'post-card' -%}<article><h3>{{ post.title }}</h3></article>{%- endif -%}`,
 		}
@@ -354,23 +308,83 @@ func TestRenderBlogTemplateWithParameterizedIncludes(t *testing.T) {
 		assert.Contains(t, html, "Second Post")
 	})
 
-	t.Run("ALTERNATIVE: separate partials for each widget", func(t *testing.T) {
-		// Alternative approach: create separate partials instead of using widget parameter
-		template := `<div>{% include 'newsletter' %}{% for post in posts %}{% include 'post-card' %}{% endfor %}</div>`
+	t.Run("render with parameter and data", func(t *testing.T) {
+		// Test render with parameter that contains data
+		template := `<div>{% render 'shared', widget: 'categories', active_category: 'tech' %}</div>`
 		partials := map[string]string{
-			"newsletter": `<div class="newsletter">Subscribe!</div>`,
-			"post-card":  `<article><h3>{{ post.title }}</h3></article>`,
+			"shared": `{%- if widget == 'categories' -%}<div class="active">{{ active_category }}</div>{%- endif -%}`,
+		}
+		data := map[string]interface{}{}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "tech")
+	})
+
+	t.Run("render parameters are scoped to partial", func(t *testing.T) {
+		// Test that parameters passed to render are scoped to the partial only
+		template := `<div>{% assign widget = 'global' %}{% render 'shared', widget: 'newsletter' %}{{ widget }}</div>`
+		partials := map[string]string{
+			"shared": `{%- if widget == 'newsletter' -%}<span>Newsletter</span>{%- endif -%}`,
+		}
+		data := map[string]interface{}{}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "Newsletter")
+		assert.Contains(t, html, "global") // Original widget value should remain
+	})
+
+	t.Run("render parameter isolation between renders", func(t *testing.T) {
+		// Test that parameters from one render don't leak to another
+		template := `<div>{% render 'shared', widget: 'newsletter' %}{% render 'shared', widget: 'categories' %}</div>`
+		partials := map[string]string{
+			"shared": `{%- if widget == 'newsletter' -%}<span>Newsletter</span>{%- endif -%}{%- if widget == 'categories' -%}<span>Categories</span>{%- endif -%}`,
+		}
+		data := map[string]interface{}{}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "Newsletter")
+		assert.Contains(t, html, "Categories")
+	})
+
+	t.Run("nested renders with parameters", func(t *testing.T) {
+		// Test nested renders with their own parameters
+		template := `<div>{% render 'outer', title: 'Main' %}</div>`
+		partials := map[string]string{
+			"outer": `<section><h1>{{ title }}</h1>{% render 'inner', subtitle: 'Sub' %}</section>`,
+			"inner": `<p>{{ subtitle }}</p>`,
+		}
+		data := map[string]interface{}{}
+
+		html, err := RenderBlogTemplate(template, data, partials)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "Main")
+		assert.Contains(t, html, "Sub")
+	})
+
+	t.Run("render with complex object parameter", func(t *testing.T) {
+		// Test passing a complex object as a parameter
+		template := `<div>{% for post in posts %}{% render 'post-card', post: post %}{% endfor %}</div>`
+		partials := map[string]string{
+			"post-card": `<article><h3>{{ post.title }}</h3><p>{{ post.excerpt }}</p><span>{{ post.reading_time }} min</span></article>`,
 		}
 		data := map[string]interface{}{
 			"posts": []map[string]interface{}{
-				{"title": "First Post", "slug": "first-post"},
+				{"title": "Post One", "excerpt": "Excerpt one", "reading_time": 5},
+				{"title": "Post Two", "excerpt": "Excerpt two", "reading_time": 10},
 			},
 		}
 
 		html, err := RenderBlogTemplate(template, data, partials)
 		assert.NoError(t, err)
-		assert.Contains(t, html, "Subscribe!")
-		assert.Contains(t, html, "First Post")
+		assert.Contains(t, html, "Post One")
+		assert.Contains(t, html, "Excerpt one")
+		assert.Contains(t, html, "5 min")
+		assert.Contains(t, html, "Post Two")
+		assert.Contains(t, html, "Excerpt two")
+		assert.Contains(t, html, "10 min")
 	})
 }
 
@@ -531,7 +545,7 @@ func TestRenderBlogTemplateWithRealisticData(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Contains(t, html, "Technology")
 		assert.Contains(t, html, "Tech Post 1")
-		assert.Contains(t, html, `class="active"`)
+		assert.Contains(t, html, "active")
 	})
 
 	t.Run("handles complex nested widget includes", func(t *testing.T) {
@@ -569,3 +583,256 @@ func TestRenderBlogTemplateWithRealisticData(t *testing.T) {
 	})
 }
 
+// TestRenderBlogTemplateResourceLimits tests that resource limits are enforced
+func TestRenderBlogTemplateResourceLimits(t *testing.T) {
+	t.Run("enforces template size limit", func(t *testing.T) {
+		// Create a template larger than 100KB
+		largeTemplate := strings.Repeat("<div>{{ item }}</div>\n", 10000) // ~200KB
+		data := map[string]interface{}{
+			"item": "test",
+		}
+
+		_, err := RenderBlogTemplate(largeTemplate, data, nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "liquidjs rendering failed")
+	})
+
+	t.Run("enforces render timeout on infinite loop", func(t *testing.T) {
+		// Template with very large loop that should timeout
+		template := `
+		{% assign limit = 1000000 %}
+		{% for i in (1..limit) %}
+			{% for j in (1..limit) %}
+				<div>{{ i }} - {{ j }}</div>
+			{% endfor %}
+		{% endfor %}
+		`
+		data := map[string]interface{}{}
+
+		_, err := RenderBlogTemplate(template, data, nil)
+		// Should timeout or fail
+		assert.Error(t, err)
+	})
+
+	t.Run("allows normal sized templates", func(t *testing.T) {
+		// Template under 100KB should work fine
+		template := strings.Repeat("<div>{{ item }}</div>\n", 100) // ~2KB
+		data := map[string]interface{}{
+			"item": "test",
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "<div>test</div>")
+	})
+
+	t.Run("handles deep nesting gracefully", func(t *testing.T) {
+		// Test nesting depth (security doc mentions 20 levels)
+		template := `
+		{% if level1 %}
+			{% if level2 %}
+				{% if level3 %}
+					{% if level4 %}
+						{% if level5 %}
+							<div>Deep content</div>
+						{% endif %}
+					{% endif %}
+				{% endif %}
+			{% endif %}
+		{% endif %}
+		`
+		data := map[string]interface{}{
+			"level1": true,
+			"level2": true,
+			"level3": true,
+			"level4": true,
+			"level5": true,
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "Deep content")
+	})
+}
+
+// TestLiquidSecurityFeatures tests security features from LIQUID_SECURITY.md
+func TestLiquidSecurityFeatures(t *testing.T) {
+	t.Run("XSS protection with escape filter", func(t *testing.T) {
+		template := `<div>{{ user_input | escape }}</div>`
+		data := map[string]interface{}{
+			"user_input": `<script>alert("XSS")</script>`,
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "&lt;script&gt;")
+		assert.NotContains(t, html, "<script>")
+	})
+
+	t.Run("allows safe tags - assign", func(t *testing.T) {
+		template := `{% assign myvar = inputval %}<p>{{ myvar }}</p>`
+		data := map[string]interface{}{
+			"inputval": "value",
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "<p>value</p>", html)
+	})
+
+	t.Run("allows safe tags - case/when", func(t *testing.T) {
+		template := `{% case status %}{% when 'active' %}Active{% when 'inactive' %}Inactive{% else %}Unknown{% endcase %}`
+		data := map[string]interface{}{
+			"status": "active",
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "Active", html)
+	})
+
+	t.Run("allows safe tags - comment", func(t *testing.T) {
+		template := `<div>{% comment %}This is a comment{% endcomment %}Visible</div>`
+		data := map[string]interface{}{}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "<div>Visible</div>", html)
+		assert.NotContains(t, html, "comment")
+	})
+
+	t.Run("allows safe tags - raw", func(t *testing.T) {
+		template := `{% raw %}{{ not_evaluated }}{% endraw %}`
+		data := map[string]interface{}{
+			"not_evaluated": "value",
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "{{ not_evaluated }}", html)
+	})
+
+	t.Run("allows safe filters - upcase", func(t *testing.T) {
+		template := `{{ text | upcase }}`
+		data := map[string]interface{}{
+			"text": "hello",
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "HELLO", html)
+	})
+
+	t.Run("allows safe filters - downcase", func(t *testing.T) {
+		template := `{{ text | downcase }}`
+		data := map[string]interface{}{
+			"text": "HELLO",
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "hello", html)
+	})
+
+	t.Run("allows safe filters - join", func(t *testing.T) {
+		template := `{{ items | join: ', ' }}`
+		data := map[string]interface{}{
+			"items": []string{"one", "two", "three"},
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "one, two, three", html)
+	})
+
+	t.Run("allows safe filters - plus", func(t *testing.T) {
+		template := `{{ num | plus: 5 }}`
+		data := map[string]interface{}{
+			"num": 10,
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "15", html)
+	})
+
+	t.Run("allows safe filters - strip_html", func(t *testing.T) {
+		template := `{{ text | strip_html }}`
+		data := map[string]interface{}{
+			"text": "<p>Hello <b>World</b></p>",
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "Hello")
+		assert.Contains(t, html, "World")
+		assert.NotContains(t, html, "<p>")
+		assert.NotContains(t, html, "<b>")
+	})
+
+	t.Run("handles balanced tags correctly", func(t *testing.T) {
+		template := `{% if true %}<div>Content</div>{% endif %}`
+		data := map[string]interface{}{}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Equal(t, "<div>Content</div>", html)
+	})
+
+	t.Run("rejects unbalanced tags", func(t *testing.T) {
+		template := `{% if true %}<div>Content</div>` // Missing {% endif %}
+		data := map[string]interface{}{}
+
+		_, err := RenderBlogTemplate(template, data, nil)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "liquidjs rendering failed")
+	})
+
+	t.Run("no file system access - custom fs only", func(t *testing.T) {
+		// Template tries to render a partial that doesn't exist in our custom fs
+		template := `{% render 'does-not-exist' %}`
+		partials := map[string]string{
+			"exists": "content",
+		}
+		data := map[string]interface{}{}
+
+		_, err := RenderBlogTemplate(template, data, partials)
+		assert.Error(t, err)
+		// Should fail because partial doesn't exist in custom fs
+	})
+
+	t.Run("handles undefined variables gracefully", func(t *testing.T) {
+		// LIQUID_SECURITY.md mentions strictVariables: false
+		template := `<div>{{ undefined_var }}</div>`
+		data := map[string]interface{}{}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		// Should render empty string for undefined variables
+		assert.Equal(t, "<div></div>", html)
+	})
+
+	t.Run("allows multiple safe features together", func(t *testing.T) {
+		template := `
+		{% assign greeting = greet %}
+		{% if show %}
+			<ul>
+			{% for item in items %}
+				<li>{{ greeting | upcase }}: {{ item | escape }}</li>
+			{% endfor %}
+			</ul>
+		{% endif %}
+		`
+		data := map[string]interface{}{
+			"show":  true,
+			"greet": "hello",
+			"items": []string{"<b>one</b>", "two"},
+		}
+
+		html, err := RenderBlogTemplate(template, data, nil)
+		assert.NoError(t, err)
+		assert.Contains(t, html, "HELLO")
+		assert.Contains(t, html, "&lt;b&gt;one&lt;/b&gt;")
+		assert.Contains(t, html, "two")
+	})
+}

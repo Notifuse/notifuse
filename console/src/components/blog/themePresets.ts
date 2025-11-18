@@ -16,7 +16,7 @@ const defaultTheme: ThemePreset = {
   placeholderColor: '#7763f1',
   files: {
     'home.liquid': `{%- comment -%} Include Header {%- endcomment -%}
-{% include 'header' %}
+{% render 'header' %}
 
 <div class="main-container">
   {%- comment -%} Topbar Navigation {%- endcomment -%}
@@ -74,13 +74,13 @@ const defaultTheme: ThemePreset = {
             A place to read, write, and deepen your understanding of the topics that matter most to you.
           </p>
         </div>
-        {% include 'shared', widget: 'newsletter' %}
+        {% render 'shared', widget: 'newsletter' %}
       </div>
     </div>
   </section>
 
   {%- comment -%} Categories Bar {%- endcomment -%}
-  {% include 'shared', widget: 'categories' %}
+  {% render 'shared', widget: 'categories' %}
 
   {%- comment -%} Featured Post {%- endcomment -%}
   {%- if posts.size > 0 -%}
@@ -133,20 +133,20 @@ const defaultTheme: ThemePreset = {
     <div>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
         {%- for post in posts offset: 1 -%}
-          {% include 'shared', widget: 'post-card', post: post %}
+          {% render 'shared', widget: 'post-card', post: post %}
         {%- endfor -%}
       </div>
     </div>
   </section>
 
   {%- comment -%} Pagination {%- endcomment -%}
-  {% include 'shared', widget: 'pagination' %}
+  {% render 'shared', widget: 'pagination' %}
 
 {%- comment -%} Include Footer {%- endcomment -%}
-{% include 'footer' %}`,
+{% render 'footer' %}`,
 
     'category.liquid': `{%- comment -%} Include Header {%- endcomment -%}
-{% include 'header' %}
+{% render 'header' %}
 
 <div class="main-container">
   {%- comment -%} Topbar Navigation {%- endcomment -%}
@@ -206,13 +206,13 @@ const defaultTheme: ThemePreset = {
             </p>
           {%- endif -%}
         </div>
-        {% include 'shared', widget: 'newsletter' %}
+        {% render 'shared', widget: 'newsletter' %}
       </div>
     </div>
   </section>
 
   {%- comment -%} Categories Bar with Active State {%- endcomment -%}
-  {% include 'shared', widget: 'categories', active_category: category.slug %}
+  {% render 'shared', widget: 'categories', active_category: category.slug %}
 
   {%- comment -%} Posts Grid {%- endcomment -%}
   <section class="posts-grid-section">
@@ -220,7 +220,7 @@ const defaultTheme: ThemePreset = {
       {%- if posts.size > 0 -%}
         <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
           {%- for post in posts -%}
-            {% include 'shared', widget: 'post-card', post: post %}
+            {% render 'shared', widget: 'post-card', post: post %}
           {%- endfor -%}
         </div>
       {%- else -%}
@@ -233,13 +233,13 @@ const defaultTheme: ThemePreset = {
   </section>
 
   {%- comment -%} Pagination {%- endcomment -%}
-  {% include 'shared', widget: 'pagination' %}
+  {% render 'shared', widget: 'pagination' %}
 
 {%- comment -%} Include Footer {%- endcomment -%}
-{% include 'footer' %}`,
+{% render 'footer' %}`,
 
     'post.liquid': `{%- comment -%} Include Header {%- endcomment -%}
-{% include 'header' %}
+{% render 'header' %}
 
 <div class="main-container">
   {%- comment -%} Topbar Navigation {%- endcomment -%}
@@ -349,7 +349,7 @@ const defaultTheme: ThemePreset = {
             Subscribe to our newsletter for the latest articles on technology, design, and innovation.
           </p>
         </div>
-        {% include 'shared', widget: 'newsletter' %}
+        {% render 'shared', widget: 'newsletter' %}
       </div>
     </div>
   </section>
@@ -361,7 +361,7 @@ const defaultTheme: ThemePreset = {
         <h2 class="related-posts-title">Last articles</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
           {%- for related_post in posts limit: 3 -%}
-            {% include 'shared', widget: 'post-card', post: related_post %}
+            {% render 'shared', widget: 'post-card', post: related_post %}
           {%- endfor -%}
         </div>
       </div>
@@ -369,7 +369,7 @@ const defaultTheme: ThemePreset = {
   {%- endif -%}
 
 {%- comment -%} Include Footer {%- endcomment -%}
-{% include 'footer' %}`,
+{% render 'footer' %}`,
 
     'header.liquid': `<!DOCTYPE html>
 <html lang="en">
@@ -549,16 +549,16 @@ const defaultTheme: ThemePreset = {
   Usage Examples:
   
   1. Render newsletter widget:
-     {% include 'shared', widget: 'newsletter' %}
+     {% render 'shared', widget: 'newsletter' %}
   
   2. Render post-card widget with post data:
-     {% include 'shared', widget: 'post-card', post: post %}
+     {% render 'shared', widget: 'post-card', post: post %}
   
   3. Render categories widget with active category:
-     {% include 'shared', widget: 'categories', active_category: category.slug %}
+     {% render 'shared', widget: 'categories', active_category: category.slug %}
   
   4. Render pagination widget:
-     {% include 'shared', widget: 'pagination' %}
+     {% render 'shared', widget: 'pagination' %}
   
   Available Widgets:
   - newsletter: Email subscription form
@@ -644,7 +644,7 @@ const defaultTheme: ThemePreset = {
   <div class="categories-bar">
     <div>
       <div class="flex items-center gap-2">
-        <a href="{{ base_url }}/" class="category-pill {% if active_category == blank %}active{% endif %}">All Posts</a>
+        <a href="{{ base_url }}/" class="category-pill {% unless active_category %}active{% endunless %}">All Posts</a>
         {%- for cat in categories -%}
           <a href="{{ base_url }}/category/{{ cat.slug }}" class="category-pill {% if active_category == cat.slug %}active{% endif %}">{{ cat.name }}</a>
         {%- endfor -%}
@@ -692,7 +692,7 @@ const defaultTheme: ThemePreset = {
   {%- comment -%}
     Default behavior: Include helpful comment if widget parameter is missing
   {%- endcomment -%}
-  <!-- No widget specified. Use: {% include 'shared', widget: 'widget_name' %} -->
+  <!-- No widget specified. Use: {% render 'shared', widget: 'widget_name' %} -->
 {%- endif -%}`,
 
     'styles.css': `/* ==================== 

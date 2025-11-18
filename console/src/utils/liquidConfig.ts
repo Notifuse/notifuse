@@ -19,8 +19,8 @@ export const MAX_EXECUTION_TIME = 5000
 
 // Tags that are DISABLED for security
 export const DISABLED_TAGS = [
-  'layout', // Could reference unauthorized layouts
-  'render' // Could render unauthorized partials
+  'layout' // Could reference unauthorized layouts
+  // 'render' is ALLOWED because we control partials via custom fs implementation
   // 'raw' is a tag in some Liquid implementations - blocks processing
 ]
 
@@ -174,9 +174,9 @@ BACKEND LIQUID SECURITY (Go implementation):
 1. Use a sandboxed Liquid parser (e.g., github.com/osteele/liquid)
 
 2. Disable dangerous tags:
-   - layout  
-   - render
-   - Any tags that access filesystem (except include)
+   - layout (not needed, use include for partials)
+   - render is ALLOWED via controlled filesystem implementation
+   - Any tags that access filesystem without control
 
 3. Set resource limits:
    - Max iterations: 10,000

@@ -1,4 +1,4 @@
-# Stage 1: Build the React frontend
+# Stage 1: Build the React frontend and bundle LiquidJS
 FROM node:20-alpine AS console-frontend-builder
 
 # Set working directory for the frontend
@@ -15,6 +15,11 @@ COPY console/ ./
 
 # Build frontend in production mode
 RUN npm run build
+
+# Bundle LiquidJS for Go backend (V8 + LiquidJS)
+# Create the target directory and copy the bundle
+RUN mkdir -p ../pkg/liquid && \
+    cp node_modules/liquidjs/dist/liquid.browser.umd.js ../pkg/liquid/liquid.bundle.js
 
 # Stage 2: Build the notification center frontend
 FROM node:20-alpine AS notification-center-builder
@@ -34,14 +39,17 @@ COPY notification_center/ ./
 # Build notification center in production mode
 RUN npm run build
 
-# Stage 3: Build the Go binary
-FROM golang:1.25-alpine AS backend-builder
+# Stage 3: Build the Go binary (with CGO for V8)
+FROM golang:1.25-bookworm AS backend-builder
 
 # Set working directory
 WORKDIR /build
 
-# Install git
-RUN apk add --no-cache git
+# Install build dependencies for V8 (CGO)
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy go.mod and go.sum files
 COPY go.mod go.sum ./
@@ -55,15 +63,24 @@ COPY config/ config/
 COPY internal/ internal/
 COPY pkg/ pkg/
 
-# Build the application
-# CGO_ENABLED=0: Pure Go static binary for maximum portability
-RUN CGO_ENABLED=0 GOOS=linux go build -o /tmp/server ./cmd/api
+# Copy the bundled liquidjs from console build stage
+COPY --from=console-frontend-builder /build/pkg/liquid/liquid.bundle.js /build/pkg/liquid/liquid.bundle.js
 
-# Stage 4: Create the runtime container
-FROM alpine:latest
+# Build the application with CGO enabled (required for V8)
+ENV CGO_ENABLED=1
+ENV GOOS=linux
+RUN go build -o /tmp/server ./cmd/api
+
+# Stage 4: Create the runtime container (Debian for V8 runtime libs)
+FROM debian:bookworm-slim
 
 # Add necessary runtime packages
-RUN apk add --no-cache ca-certificates tzdata postgresql-client
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    tzdata \
+    postgresql-client \
+    libstdc++6 \
+    && rm -rf /var/lib/apt/lists/*
 
 # Create application directory structure
 WORKDIR /app
