@@ -14,6 +14,7 @@ export interface PostListItem {
   id: string
   slug: string
   category_id: string
+  category_slug?: string // Added for URL construction in templates
   published_at: string
   title: string
   excerpt: string
@@ -613,6 +614,7 @@ const POST_LIST_ITEMS: PostListItem[] = FULL_POSTS_DATA.map((post) => ({
   id: post.id,
   slug: post.slug,
   category_id: post.category_id,
+  category_slug: post.category_slug, // Include for URL construction
   published_at: post.published_at,
   title: post.title,
   excerpt: post.excerpt,

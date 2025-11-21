@@ -234,7 +234,7 @@ func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspac
 
 	// Try to parse URL parts
 	parts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
-	
+
 	// Handle /{category-slug} - category page
 	if len(parts) == 1 && parts[0] != "" {
 		categorySlug := parts[0]
@@ -245,7 +245,7 @@ func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspac
 			return
 		}
 	}
-	
+
 	// Handle /{category-slug}/{post-slug} - post page
 	if len(parts) == 2 {
 		categorySlug := parts[0]
@@ -286,9 +286,18 @@ func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, work
 		return
 	}
 
+	// Extract preview_theme_version
+	var themeVersion *int
+	if versionStr := r.URL.Query().Get("preview_theme_version"); versionStr != "" {
+		if v, err := strconv.Atoi(versionStr); err == nil {
+			themeVersion = &v
+		}
+	}
+
 	// Try cache first (include page in cache key)
+	// Skip cache if previewing
 	cacheKey := fmt.Sprintf("blog:%s:/?page=%d", r.Host, page)
-	if h.cache != nil {
+	if h.cache != nil && themeVersion == nil {
 		if cached, found := h.cache.Get(cacheKey); found {
 			if html, ok := cached.(string); ok {
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -301,7 +310,7 @@ func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, work
 	}
 
 	// Cache miss - render the page
-	html, err := h.blogService.RenderHomePage(ctx, workspace.ID, page)
+	html, err := h.blogService.RenderHomePage(ctx, workspace.ID, page, themeVersion)
 	if err != nil {
 		// Map error codes to HTTP status codes (includes 404 for invalid pages)
 		if blogErr, ok := err.(*domain.BlogRenderError); ok {
@@ -314,15 +323,20 @@ func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, work
 		return
 	}
 
-	// Store in cache
-	if h.cache != nil {
+	// Store in cache (skip if previewing)
+	if h.cache != nil && themeVersion == nil {
 		h.cache.Set(cacheKey, html, 60*time.Second)
 	}
 
 	// Serve the rendered HTML
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "public, max-age=60")
-	w.Header().Set("X-Cache", "MISS")
+	if themeVersion != nil {
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
+		w.Header().Set("X-Cache", "BYPASS")
+	} else {
+		w.Header().Set("Cache-Control", "public, max-age=60")
+		w.Header().Set("X-Cache", "MISS")
+	}
 	w.Write([]byte(html))
 }
 
@@ -349,9 +363,18 @@ func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
+	// Extract preview_theme_version
+	var themeVersion *int
+	if versionStr := r.URL.Query().Get("preview_theme_version"); versionStr != "" {
+		if v, err := strconv.Atoi(versionStr); err == nil {
+			themeVersion = &v
+		}
+	}
+
 	// Try cache first (include page in cache key)
+	// Skip cache if previewing
 	cacheKey := fmt.Sprintf("blog:%s:/%s?page=%d", r.Host, categorySlug, page)
-	if h.cache != nil {
+	if h.cache != nil && themeVersion == nil {
 		if cached, found := h.cache.Get(cacheKey); found {
 			if html, ok := cached.(string); ok {
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -364,7 +387,7 @@ func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, 
 	}
 
 	// Cache miss - render the page
-	html, err := h.blogService.RenderCategoryPage(ctx, workspace.ID, categorySlug, page)
+	html, err := h.blogService.RenderCategoryPage(ctx, workspace.ID, categorySlug, page, themeVersion)
 	if err != nil {
 		// Map error codes to HTTP status codes
 		if blogErr, ok := err.(*domain.BlogRenderError); ok {
@@ -377,15 +400,20 @@ func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	// Store in cache
-	if h.cache != nil {
+	// Store in cache (skip if previewing)
+	if h.cache != nil && themeVersion == nil {
 		h.cache.Set(cacheKey, html, 60*time.Second)
 	}
 
 	// Serve the rendered HTML
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "public, max-age=60")
-	w.Header().Set("X-Cache", "MISS")
+	if themeVersion != nil {
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
+		w.Header().Set("X-Cache", "BYPASS")
+	} else {
+		w.Header().Set("Cache-Control", "public, max-age=60")
+		w.Header().Set("X-Cache", "MISS")
+	}
 	w.Write([]byte(html))
 }
 
@@ -403,9 +431,18 @@ func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, work
 	categorySlug := parts[0]
 	postSlug := parts[1]
 
+	// Extract preview_theme_version
+	var themeVersion *int
+	if versionStr := r.URL.Query().Get("preview_theme_version"); versionStr != "" {
+		if v, err := strconv.Atoi(versionStr); err == nil {
+			themeVersion = &v
+		}
+	}
+
 	// Try cache first
+	// Skip cache if previewing
 	cacheKey := fmt.Sprintf("blog:%s:/%s/%s", r.Host, categorySlug, postSlug)
-	if h.cache != nil {
+	if h.cache != nil && themeVersion == nil {
 		if cached, found := h.cache.Get(cacheKey); found {
 			if html, ok := cached.(string); ok {
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -418,7 +455,7 @@ func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, work
 	}
 
 	// Cache miss - render the page
-	html, err := h.blogService.RenderPostPage(ctx, workspace.ID, categorySlug, postSlug)
+	html, err := h.blogService.RenderPostPage(ctx, workspace.ID, categorySlug, postSlug, themeVersion)
 	if err != nil {
 		// Map error codes to HTTP status codes
 		if blogErr, ok := err.(*domain.BlogRenderError); ok {
@@ -431,15 +468,20 @@ func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, work
 		return
 	}
 
-	// Store in cache
-	if h.cache != nil {
+	// Store in cache (skip if previewing)
+	if h.cache != nil && themeVersion == nil {
 		h.cache.Set(cacheKey, html, 60*time.Second)
 	}
 
 	// Serve the rendered HTML
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Header().Set("Cache-Control", "public, max-age=60")
-	w.Header().Set("X-Cache", "MISS")
+	if themeVersion != nil {
+		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
+		w.Header().Set("X-Cache", "BYPASS")
+	} else {
+		w.Header().Set("Cache-Control", "public, max-age=60")
+		w.Header().Set("X-Cache", "MISS")
+	}
 	w.Write([]byte(html))
 }
 

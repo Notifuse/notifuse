@@ -108,7 +108,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
       title: 'Version',
       dataIndex: 'version',
       key: 'version',
-      width: 23,
+      width: 60,
       render: (version: number) => {
         return <span>{version}</span>
       }

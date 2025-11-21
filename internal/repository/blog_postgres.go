@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -150,6 +151,66 @@ func (r *blogCategoryRepository) getCategoryByField(ctx context.Context, db *sql
 	}
 
 	return &category, nil
+}
+
+// GetCategoriesByIDs retrieves categories by their IDs, including deleted ones (for URL construction)
+func (r *blogCategoryRepository) GetCategoriesByIDs(ctx context.Context, ids []string) ([]*domain.BlogCategory, error) {
+	if len(ids) == 0 {
+		return []*domain.BlogCategory{}, nil
+	}
+
+	workspaceID, ok := ctx.Value("workspace_id").(string)
+	if !ok {
+		return nil, fmt.Errorf("workspace_id not found in context")
+	}
+
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// Build query with IN clause - include deleted categories for URL construction
+	placeholders := make([]string, len(ids))
+	args := make([]interface{}, len(ids))
+	for i, id := range ids {
+		placeholders[i] = fmt.Sprintf("$%d", i+1)
+		args[i] = id
+	}
+
+	query := fmt.Sprintf(`
+		SELECT id, slug, settings, created_at, updated_at, deleted_at
+		FROM blog_categories
+		WHERE id IN (%s)
+	`, strings.Join(placeholders, ", "))
+
+	rows, err := workspaceDB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get categories by IDs: %w", err)
+	}
+	defer rows.Close()
+
+	var categories []*domain.BlogCategory
+	for rows.Next() {
+		var category domain.BlogCategory
+		err := rows.Scan(
+			&category.ID,
+			&category.Slug,
+			&category.Settings,
+			&category.CreatedAt,
+			&category.UpdatedAt,
+			&category.DeletedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan blog category: %w", err)
+		}
+		categories = append(categories, &category)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating blog categories: %w", err)
+	}
+
+	return categories, nil
 }
 
 // getCategoryByFieldTx retrieves a category by a specific field within a transaction
@@ -681,6 +742,12 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 		whereClause += " AND " + whereConditions[i]
 	}
 
+	// Determine ORDER BY clause based on status
+	orderByClause := "ORDER BY created_at DESC"
+	if params.Status == domain.BlogPostStatusPublished {
+		orderByClause = "ORDER BY published_at DESC"
+	}
+
 	// Count total
 	countQuery := fmt.Sprintf(`
 		SELECT COUNT(*)
@@ -699,9 +766,9 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 		SELECT id, category_id, slug, settings, published_at, created_at, updated_at, deleted_at
 		FROM blog_posts
 		%s
-		ORDER BY created_at DESC
+		%s
 		LIMIT $%d OFFSET $%d
-	`, whereClause, argIndex, argIndex+1)
+	`, whereClause, orderByClause, argIndex, argIndex+1)
 
 	args = append(args, params.Limit, params.Offset)
 

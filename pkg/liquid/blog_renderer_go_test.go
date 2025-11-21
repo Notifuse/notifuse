@@ -61,13 +61,14 @@ func TestBlogRendererGo_Basic(t *testing.T) {
 		assert.Contains(t, html, "ws-123")
 	})
 
-	t.Run("returns error for invalid template", func(t *testing.T) {
+	t.Run("returns error for unclosed tags", func(t *testing.T) {
 		renderer := NewBlogTemplateRenderer()
 		template := `{% for item in items %}<li>{{ item }}</li>` // Missing endfor
 		data := map[string]interface{}{
 			"items": []string{"one"},
 		}
 
+		// Updated liquidgo properly detects unclosed tags
 		_, err := renderer.Render(template, data, nil)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "liquid rendering failed")
@@ -177,7 +178,7 @@ func TestBlogRendererGo_WithPartials(t *testing.T) {
 		assert.Contains(t, html, "Content")
 	})
 
-	t.Run("handles missing partial gracefully", func(t *testing.T) {
+	t.Run("handles missing partial with error message", func(t *testing.T) {
 		renderer := NewBlogTemplateRenderer()
 		template := `<div>{% render 'nonexistent' %}</div>`
 		partials := map[string]string{
@@ -185,8 +186,10 @@ func TestBlogRendererGo_WithPartials(t *testing.T) {
 		}
 		data := map[string]interface{}{}
 
-		_, err := renderer.Render(template, data, partials)
-		assert.Error(t, err)
+		// liquidgo shows inline error for missing partials (lax mode default)
+		html, err := renderer.Render(template, data, partials)
+		require.NoError(t, err)
+		assert.Contains(t, html, "Liquid error")
 	})
 }
 

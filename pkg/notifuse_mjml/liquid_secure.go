@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/osteele/liquid"
+	"github.com/Notifuse/liquidgo/liquid"
+	"github.com/Notifuse/liquidgo/liquid/tags"
 )
 
 // Security limits for Liquid template rendering
@@ -15,28 +16,34 @@ const (
 	DefaultMaxMemory       = 10 * 1024 * 1024 // 10MB (informational, not enforced by Go Liquid)
 )
 
-// SecureLiquidEngine wraps the Liquid engine with security protections
+// SecureLiquidEngine wraps the liquidgo engine with security protections
 type SecureLiquidEngine struct {
 	timeout time.Duration
 	maxSize int
-	engine  *liquid.Engine
+	env     *liquid.Environment
 }
 
-// NewSecureLiquidEngine creates a new secure Liquid engine with default settings
+// NewSecureLiquidEngine creates a new secure liquidgo engine with default settings
 func NewSecureLiquidEngine() *SecureLiquidEngine {
+	env := liquid.NewEnvironment()
+	tags.RegisterStandardTags(env)
+	
 	return &SecureLiquidEngine{
 		timeout: DefaultRenderTimeout,
 		maxSize: DefaultMaxTemplateSize,
-		engine:  liquid.NewEngine(),
+		env:     env,
 	}
 }
 
-// NewSecureLiquidEngineWithOptions creates a new secure Liquid engine with custom settings
+// NewSecureLiquidEngineWithOptions creates a new secure liquidgo engine with custom settings
 func NewSecureLiquidEngineWithOptions(timeout time.Duration, maxSize int) *SecureLiquidEngine {
+	env := liquid.NewEnvironment()
+	tags.RegisterStandardTags(env)
+	
 	return &SecureLiquidEngine{
 		timeout: timeout,
 		maxSize: maxSize,
-		engine:  liquid.NewEngine(),
+		env:     env,
 	}
 }
 
@@ -63,13 +70,17 @@ func (s *SecureLiquidEngine) RenderWithTimeout(content string, data map[string]i
 			}
 		}()
 
-		// Render the template
-		rendered, err := s.engine.ParseAndRenderString(content, data)
+		// Parse the template
+		tmpl, err := liquid.ParseTemplate(content, &liquid.TemplateOptions{
+			Environment: s.env,
+		})
 		if err != nil {
-			errorChan <- fmt.Errorf("liquid rendering failed: %w", err)
+			errorChan <- fmt.Errorf("liquid parsing failed: %w", err)
 			return
 		}
 
+		// Render the template (second parameter is 'assigns', pass nil)
+		rendered := tmpl.Render(data, nil)
 		resultChan <- rendered
 	}()
 

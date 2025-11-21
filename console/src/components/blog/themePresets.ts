@@ -15,8 +15,8 @@ const defaultTheme: ThemePreset = {
   description: 'A beautiful Medium-inspired blog theme with full Liquid support',
   placeholderColor: '#7763f1',
   files: {
-    'home.liquid': `{%- comment -%} Include Header {%- endcomment -%}
-{% render 'header' %}
+    'home.liquid': `{%- comment -%} Include Header (shares parent scope for workspace/base_url access) {%- endcomment -%}
+{% include 'header' %}
 
 <div class="main-container">
   {%- comment -%} Topbar Navigation {%- endcomment -%}
@@ -80,14 +80,19 @@ const defaultTheme: ThemePreset = {
   </section>
 
   {%- comment -%} Categories Bar {%- endcomment -%}
-  {% render 'shared', widget: 'categories' %}
+  {%- assign widget = 'categories' -%}
+  {% include 'shared' %}
 
   {%- comment -%} Featured Post {%- endcomment -%}
   {%- if posts.size > 0 -%}
-    {%- assign featured_post = posts[0] -%}
+    {%- assign featured_post = posts.first -%}
     <section class="featured-post-section">
       <div>
-        <div class="featured-post">
+        {%- if featured_post.category_slug -%}
+          <a href="{{ base_url }}/{{ featured_post.category_slug }}/{{ featured_post.slug }}" class="featured-post">
+        {%- else -%}
+          <a href="{{ base_url }}/{{ featured_post.slug }}" class="featured-post">
+        {%- endif -%}
           <div>
             {%- if featured_post.featured_image_url -%}
               <img src="{{ featured_post.featured_image_url }}" alt="{{ featured_post.title }}" class="featured-image" />
@@ -123,7 +128,7 @@ const defaultTheme: ThemePreset = {
               </div>
             </div>
           </div>
-        </div>
+        </a>
       </div>
     </section>
   {%- endif -%}
@@ -142,11 +147,11 @@ const defaultTheme: ThemePreset = {
   {%- comment -%} Pagination {%- endcomment -%}
   {% render 'shared', widget: 'pagination' %}
 
-{%- comment -%} Include Footer {%- endcomment -%}
-{% render 'footer' %}`,
+{%- comment -%} Include Footer (shares parent scope for workspace/base_url access) {%- endcomment -%}
+{% include 'footer' %}`,
 
-    'category.liquid': `{%- comment -%} Include Header {%- endcomment -%}
-{% render 'header' %}
+    'category.liquid': `{%- comment -%} Include Header (shares parent scope for workspace/base_url access) {%- endcomment -%}
+{% include 'header' %}
 
 <div class="main-container">
   {%- comment -%} Topbar Navigation {%- endcomment -%}
@@ -212,7 +217,9 @@ const defaultTheme: ThemePreset = {
   </section>
 
   {%- comment -%} Categories Bar with Active State {%- endcomment -%}
-  {% render 'shared', widget: 'categories', active_category: category.slug %}
+  {%- assign widget = 'categories' -%}
+  {%- assign active_category = category.slug -%}
+  {% include 'shared' %}
 
   {%- comment -%} Posts Grid {%- endcomment -%}
   <section class="posts-grid-section">
@@ -235,11 +242,11 @@ const defaultTheme: ThemePreset = {
   {%- comment -%} Pagination {%- endcomment -%}
   {% render 'shared', widget: 'pagination' %}
 
-{%- comment -%} Include Footer {%- endcomment -%}
-{% render 'footer' %}`,
+{%- comment -%} Include Footer (shares parent scope for workspace/base_url access) {%- endcomment -%}
+{% include 'footer' %}`,
 
-    'post.liquid': `{%- comment -%} Include Header {%- endcomment -%}
-{% render 'header' %}
+    'post.liquid': `{%- comment -%} Include Header (shares parent scope for workspace/base_url access) {%- endcomment -%}
+{% include 'header' %}
 
 <div class="main-container">
   {%- comment -%} Topbar Navigation {%- endcomment -%}
@@ -368,8 +375,8 @@ const defaultTheme: ThemePreset = {
     </section>
   {%- endif -%}
 
-{%- comment -%} Include Footer {%- endcomment -%}
-{% render 'footer' %}`,
+{%- comment -%} Include Footer (shares parent scope for workspace/base_url access) {%- endcomment -%}
+{% include 'footer' %}`,
 
     'header.liquid': `<!DOCTYPE html>
 <html lang="en">
@@ -421,9 +428,13 @@ const defaultTheme: ThemePreset = {
   {%- elsif category.seo.canonical_url -%}
     <link rel="canonical" href="{{ category.seo.canonical_url }}">
   {%- elsif post -%}
-    <link rel="canonical" href="{{ base_url }}/{{ post.category_id }}/{{ post.slug }}">
+    {%- if post.category_slug -%}
+      <link rel="canonical" href="{{ base_url }}/{{ post.category_slug }}/{{ post.slug }}">
+    {%- else -%}
+      <link rel="canonical" href="{{ base_url }}/{{ post.slug }}">
+    {%- endif -%}
   {%- elsif category -%}
-    <link rel="canonical" href="{{ base_url }}/category/{{ category.slug }}">
+    <link rel="canonical" href="{{ base_url }}/{{ category.slug }}">
   {%- else -%}
     <link rel="canonical" href="{{ base_url }}/">
   {%- endif -%}
@@ -452,9 +463,13 @@ const defaultTheme: ThemePreset = {
   <meta property="og:type" content="{% if post %}article{% else %}website{% endif %}">
   
   {%- if post -%}
-    <meta property="og:url" content="{{ base_url }}/{{ post.category_id }}/{{ post.slug }}">
+    {%- if post.category_slug -%}
+      <meta property="og:url" content="{{ base_url }}/{{ post.category_slug }}/{{ post.slug }}">
+    {%- else -%}
+      <meta property="og:url" content="{{ base_url }}/{{ post.slug }}">
+    {%- endif -%}
   {%- elsif category -%}
-    <meta property="og:url" content="{{ base_url }}/category/{{ category.slug }}">
+    <meta property="og:url" content="{{ base_url }}/{{ category.slug }}">
   {%- else -%}
     <meta property="og:url" content="{{ base_url }}/">
   {%- endif -%}
@@ -503,6 +518,9 @@ const defaultTheme: ThemePreset = {
             {%- endif -%}
           </a>
           <p class="text-gray-600 text-sm">&copy; {{ current_year }} All rights reserved.</p>
+          <p class="text-gray-500 text-xs mt-1">
+            Powered by <a href="https://www.notifuse.com" target="_blank" rel="noopener" style="color: var(--color-link); text-decoration: none;">Notifuse</a>
+          </p>
         </div>
 
         <div class="footer-links">
@@ -645,16 +663,22 @@ const defaultTheme: ThemePreset = {
     <div>
       <div class="flex items-center gap-2">
         <a href="{{ base_url }}/" class="category-pill {% unless active_category %}active{% endunless %}">All Posts</a>
-        {%- for cat in categories -%}
-          <a href="{{ base_url }}/category/{{ cat.slug }}" class="category-pill {% if active_category == cat.slug %}active{% endif %}">{{ cat.name }}</a>
-        {%- endfor -%}
+        {%- if categories -%}
+          {%- for cat in categories -%}
+            <a href="{{ base_url }}/{{ cat.slug }}" class="category-pill {% if active_category == cat.slug %}active{% endif %}">{{ cat.name }}</a>
+          {%- endfor -%}
+        {%- endif -%}
       </div>
     </div>
   </div>
 
 {%- elsif widget == 'post-card' -%}
   {%- comment -%} Reusable Post Card {%- endcomment -%}
-  <a href="{{ base_url }}/{{ post.category_id }}/{{ post.slug }}" class="post-card">
+  {%- if post.category_slug -%}
+    <a href="{{ base_url }}/{{ post.category_slug }}/{{ post.slug }}" class="post-card">
+  {%- else -%}
+    <a href="{{ base_url }}/{{ post.slug }}" class="post-card">
+  {%- endif -%}
     {%- if post.featured_image_url -%}
       <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" class="post-card-image" />
     {%- endif -%}
@@ -1156,6 +1180,13 @@ h3 {
   grid-template-columns: 1fr 1fr;
   gap: var(--content-gap);
   align-items: center;
+  text-decoration: none;
+  color: inherit;
+  transition: transform var(--transition-speed) var(--transition-timing);
+}
+
+.featured-post:hover {
+  transform: translateY(var(--hover-transform));
 }
 
 .featured-image {
@@ -1762,7 +1793,21 @@ h3 {
 const NOTIFUSE_CONFIG = {
   domain: '{{ base_url }}',
   workspaceId: '{{ workspace.id }}',
-  listIds: [] // Will be populated from public lists in the page
+  listIds: [
+    {%- for list in public_lists -%}
+      '{{ list.id }}'{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+  ],
+  categories: [
+    {%- for cat in categories -%}
+      {
+        id: "{{ cat.id }}",
+        slug: "{{ cat.slug }}",
+        name: "{{ cat.name | escape }}",
+        description: {% if cat.description %}"{{ cat.description | escape }}"{% else %}null{% endif %}
+      }{% unless forloop.last %},{% endunless %}
+    {%- endfor -%}
+  ]
 };
 // =======================================================
 

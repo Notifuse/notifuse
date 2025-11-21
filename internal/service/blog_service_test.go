@@ -1352,7 +1352,13 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 
 	t.Run("successful render with public lists", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
-		workspace := &domain.Workspace{ID: "workspace123", Name: "Test Workspace"}
+		workspace := &domain.Workspace{
+			ID:   "workspace123",
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone: "UTC",
+			},
+		}
 
 		theme := &domain.BlogTheme{
 			Version: 1,
@@ -1406,7 +1412,7 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 		service.categoryRepo = mockCategoryRepo
 		mockCategoryRepo.EXPECT().ListCategories(ctx).Return(categories, nil)
 
-		html, err := service.RenderHomePage(ctx, "workspace123", 1)
+		html, err := service.RenderHomePage(ctx, "workspace123", 1, nil)
 		require.NoError(t, err)
 		assert.Contains(t, html, "Test Workspace")
 		assert.Contains(t, html, "Newsletter")
@@ -1419,7 +1425,7 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(ctx, "workspace123").Return(workspace, nil)
 		mockThemeRepo.EXPECT().GetPublishedTheme(ctx).Return(nil, errors.New("no published theme found"))
 
-		html, err := service.RenderHomePage(ctx, "workspace123", 1)
+		html, err := service.RenderHomePage(ctx, "workspace123", 1, nil)
 		assert.Error(t, err)
 		assert.Empty(t, html)
 
@@ -1452,7 +1458,7 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 		service.categoryRepo = mockCategoryRepo
 		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{}, nil)
 
-		html, err := service.RenderHomePage(ctx, "workspace123", 1)
+		html, err := service.RenderHomePage(ctx, "workspace123", 1, nil)
 		require.NoError(t, err)
 		assert.Contains(t, html, "Home")
 	})
@@ -1485,7 +1491,7 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 			TotalPages:  2,
 		}, nil)
 
-		html, err := service.RenderHomePage(ctx, "workspace123", 5)
+		html, err := service.RenderHomePage(ctx, "workspace123", 5, nil)
 		assert.Error(t, err)
 		assert.Empty(t, html)
 
@@ -1545,7 +1551,7 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 		mockListRepo.EXPECT().GetLists(ctx, "workspace123").Return(publicLists, nil)
 		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{category}, nil)
 
-		html, err := service.RenderPostPage(ctx, "workspace123", "tech", "test-post")
+		html, err := service.RenderPostPage(ctx, "workspace123", "tech", "test-post", nil)
 		require.NoError(t, err)
 		assert.Contains(t, html, "Test Post")
 	})
@@ -1572,7 +1578,7 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 		mockThemeRepo.EXPECT().GetPublishedTheme(ctx).Return(theme, nil)
 		mockPostRepo.EXPECT().GetPostByCategoryAndSlug(ctx, "tech", "draft-post").Return(post, nil)
 
-		html, err := service.RenderPostPage(ctx, "workspace123", "tech", "draft-post")
+		html, err := service.RenderPostPage(ctx, "workspace123", "tech", "draft-post", nil)
 		assert.Error(t, err)
 		assert.Empty(t, html)
 
@@ -1592,7 +1598,7 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 		mockThemeRepo.EXPECT().GetPublishedTheme(ctx).Return(theme, nil)
 		mockPostRepo.EXPECT().GetPostByCategoryAndSlug(ctx, "tech", "nonexistent").Return(nil, errors.New("not found"))
 
-		html, err := service.RenderPostPage(ctx, "workspace123", "tech", "nonexistent")
+		html, err := service.RenderPostPage(ctx, "workspace123", "tech", "nonexistent", nil)
 		assert.Error(t, err)
 		assert.Empty(t, html)
 
@@ -1645,7 +1651,7 @@ func TestBlogService_RenderCategoryPage(t *testing.T) {
 		mockPostRepo.EXPECT().ListPosts(ctx, gomock.Any()).Return(&domain.BlogPostListResponse{Posts: posts, TotalCount: 1}, nil)
 		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{category}, nil)
 
-		html, err := service.RenderCategoryPage(ctx, "workspace123", "tech", 1)
+		html, err := service.RenderCategoryPage(ctx, "workspace123", "tech", 1, nil)
 		require.NoError(t, err)
 		assert.Contains(t, html, "Technology")
 	})
@@ -1661,7 +1667,7 @@ func TestBlogService_RenderCategoryPage(t *testing.T) {
 		mockThemeRepo.EXPECT().GetPublishedTheme(ctx).Return(theme, nil)
 		mockCategoryRepo.EXPECT().GetCategoryBySlug(ctx, "nonexistent").Return(nil, errors.New("not found"))
 
-		html, err := service.RenderCategoryPage(ctx, "workspace123", "nonexistent", 1)
+		html, err := service.RenderCategoryPage(ctx, "workspace123", "nonexistent", 1, nil)
 		assert.Error(t, err)
 		assert.Empty(t, html)
 
@@ -1707,7 +1713,7 @@ func TestBlogService_RenderCategoryPage(t *testing.T) {
 			TotalPages:  3,
 		}, nil)
 
-		html, err := service.RenderCategoryPage(ctx, "workspace123", "tech", 10)
+		html, err := service.RenderCategoryPage(ctx, "workspace123", "tech", 10, nil)
 		assert.Error(t, err)
 		assert.Empty(t, html)
 
@@ -1767,7 +1773,7 @@ func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
 		service.categoryRepo = mockCategoryRepo
 		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{}, nil)
 
-		html, err := service.RenderHomePage(ctx, "workspace123", 1)
+		html, err := service.RenderHomePage(ctx, "workspace123", 1, nil)
 		require.NoError(t, err)
 		assert.NotEmpty(t, html)
 	})
@@ -1811,7 +1817,7 @@ func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
 		service.categoryRepo = mockCategoryRepo
 		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{}, nil)
 
-		html, err := service.RenderHomePage(ctx, "workspace123", 1)
+		html, err := service.RenderHomePage(ctx, "workspace123", 1, nil)
 		require.NoError(t, err)
 		assert.NotEmpty(t, html)
 	})
@@ -1859,7 +1865,7 @@ func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
 		service.categoryRepo = mockCategoryRepo
 		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{}, nil)
 
-		html, err := service.RenderHomePage(ctx, "workspace123", 1)
+		html, err := service.RenderHomePage(ctx, "workspace123", 1, nil)
 		require.NoError(t, err)
 		assert.NotEmpty(t, html)
 	})
@@ -1921,7 +1927,7 @@ func TestBlogService_RenderCategoryPage_WithPaginationSettings(t *testing.T) {
 
 		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{category}, nil)
 
-		html, err := service.RenderCategoryPage(ctx, "workspace123", "tech", 1)
+		html, err := service.RenderCategoryPage(ctx, "workspace123", "tech", 1, nil)
 		require.NoError(t, err)
 		assert.NotEmpty(t, html)
 	})
@@ -1972,7 +1978,7 @@ func TestBlogService_RenderCategoryPage_WithPaginationSettings(t *testing.T) {
 
 		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{category}, nil)
 
-		html, err := service.RenderCategoryPage(ctx, "workspace123", "tech", 1)
+		html, err := service.RenderCategoryPage(ctx, "workspace123", "tech", 1, nil)
 		require.NoError(t, err)
 		assert.NotEmpty(t, html)
 	})

@@ -17,18 +17,18 @@ func TestBuildBlogTemplateData(t *testing.T) {
 		}
 
 		post := &BlogPost{
-			ID:         "post-1",
-			Slug:       "test-post",
-			CategoryID: "cat-1",
+			ID:          "post-1",
+			Slug:        "test-post",
+			CategoryID:  "cat-1",
 			PublishedAt: &now,
 			CreatedAt:   now,
 			UpdatedAt:   now,
 			Settings: BlogPostSettings{
-				Title:               "Test Post",
-				Excerpt:             "Test excerpt",
-				FeaturedImageURL:    "https://example.com/image.jpg",
-				Authors:             []BlogAuthor{{Name: "John Doe"}},
-				ReadingTimeMinutes:  5,
+				Title:              "Test Post",
+				Excerpt:            "Test excerpt",
+				FeaturedImageURL:   "https://example.com/image.jpg",
+				Authors:            []BlogAuthor{{Name: "John Doe"}},
+				ReadingTimeMinutes: 5,
 				SEO: &SEOSettings{
 					MetaTitle:       "SEO Title",
 					MetaDescription: "SEO Description",
@@ -115,7 +115,7 @@ func TestBuildBlogTemplateData(t *testing.T) {
 		assert.Equal(t, "Technology Category", categorySEO["meta_title"])
 
 		// Check public lists
-		publicListsData := data["public_lists"].([]MapOfAny)
+		publicListsData := data["public_lists"].([]map[string]interface{})
 		assert.Len(t, publicListsData, 2)
 		assert.Equal(t, "list-1", publicListsData[0]["id"])
 		assert.Equal(t, "Weekly Newsletter", publicListsData[0]["name"])
@@ -126,12 +126,12 @@ func TestBuildBlogTemplateData(t *testing.T) {
 		assert.False(t, hasDesc, "list 2 should not have description")
 
 		// Check posts array
-		postsData := data["posts"].([]MapOfAny)
+		postsData := data["posts"].([]map[string]interface{})
 		assert.Len(t, postsData, 1)
 		assert.Equal(t, "post-1", postsData[0]["id"])
 
 		// Check categories array
-		categoriesData := data["categories"].([]MapOfAny)
+		categoriesData := data["categories"].([]map[string]interface{})
 		assert.Len(t, categoriesData, 1)
 		assert.Equal(t, "cat-1", categoriesData[0]["id"])
 
@@ -152,7 +152,7 @@ func TestBuildBlogTemplateData(t *testing.T) {
 		data, err := BuildBlogTemplateData(req)
 		assert.NoError(t, err)
 
-		publicListsData := data["public_lists"].([]MapOfAny)
+		publicListsData := data["public_lists"].([]map[string]interface{})
 		assert.Len(t, publicListsData, 0)
 		assert.NotNil(t, publicListsData)
 	})
@@ -197,7 +197,7 @@ func TestBuildBlogTemplateData(t *testing.T) {
 		data, err := BuildBlogTemplateData(req)
 		assert.NoError(t, err)
 
-		publicListsData := data["public_lists"].([]MapOfAny)
+		publicListsData := data["public_lists"].([]map[string]interface{})
 		assert.Len(t, publicListsData, 1)
 		_, hasDesc := publicListsData[0]["description"]
 		assert.False(t, hasDesc)
@@ -232,7 +232,7 @@ func TestListBlogPostsRequest_Validate(t *testing.T) {
 	t.Run("sets defaults for empty request", func(t *testing.T) {
 		req := ListBlogPostsRequest{}
 		err := req.Validate()
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, BlogPostStatusAll, req.Status)
 		assert.Equal(t, 1, req.Page)
@@ -246,7 +246,7 @@ func TestListBlogPostsRequest_Validate(t *testing.T) {
 			Limit: 10,
 		}
 		err := req.Validate()
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, 20, req.Offset) // (3-1) * 10
 	})
@@ -256,7 +256,7 @@ func TestListBlogPostsRequest_Validate(t *testing.T) {
 			Page: 0,
 		}
 		err := req.Validate()
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, 1, req.Page)
 		assert.Equal(t, 0, req.Offset)
@@ -267,7 +267,7 @@ func TestListBlogPostsRequest_Validate(t *testing.T) {
 			Page: -5,
 		}
 		err := req.Validate()
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, 1, req.Page)
 	})
@@ -277,7 +277,7 @@ func TestListBlogPostsRequest_Validate(t *testing.T) {
 			Limit: 200,
 		}
 		err := req.Validate()
-		
+
 		assert.NoError(t, err)
 		assert.Equal(t, 100, req.Limit)
 	})
@@ -287,7 +287,7 @@ func TestListBlogPostsRequest_Validate(t *testing.T) {
 			Status: "invalid",
 		}
 		err := req.Validate()
-		
+
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid status")
 	})
@@ -295,7 +295,7 @@ func TestListBlogPostsRequest_Validate(t *testing.T) {
 
 func TestBuildBlogTemplateData_WithPagination(t *testing.T) {
 	workspace := &Workspace{ID: "ws-123", Name: "Test"}
-	
+
 	t.Run("includes pagination data when provided", func(t *testing.T) {
 		paginationData := &BlogPostListResponse{
 			Posts:           []*BlogPost{},
@@ -316,7 +316,7 @@ func TestBuildBlogTemplateData_WithPagination(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Check pagination data
-		pagination := data["pagination"].(MapOfAny)
+		pagination := data["pagination"].(map[string]interface{})
 		assert.Equal(t, 3, pagination["current_page"])
 		assert.Equal(t, 10, pagination["total_pages"])
 		assert.Equal(t, true, pagination["has_next"])
@@ -336,5 +336,84 @@ func TestBuildBlogTemplateData_WithPagination(t *testing.T) {
 
 		_, hasPagination := data["pagination"]
 		assert.False(t, hasPagination)
+	})
+}
+
+// TestBuildBlogTemplateData_WorkspaceId tests that workspace.id is always present in template data
+func TestBuildBlogTemplateData_WorkspaceId(t *testing.T) {
+	t.Run("workspace.id is always present when workspace is provided", func(t *testing.T) {
+		workspace := &Workspace{
+			ID:   "ws-test-123",
+			Name: "Test Workspace",
+		}
+
+		req := BlogTemplateDataRequest{
+			Workspace:   workspace,
+			PublicLists: []*List{},
+		}
+
+		data, err := BuildBlogTemplateData(req)
+		assert.NoError(t, err)
+
+		// Verify workspace data exists
+		workspaceData, hasWorkspace := data["workspace"]
+		assert.True(t, hasWorkspace, "workspace should be present in template data")
+
+		workspaceMap := workspaceData.(MapOfAny)
+		workspaceID, hasID := workspaceMap["id"]
+		assert.True(t, hasID, "workspace.id should be present")
+		assert.Equal(t, "ws-test-123", workspaceID)
+	})
+
+	t.Run("workspace.id is set correctly from workspace.ID", func(t *testing.T) {
+		workspace := &Workspace{
+			ID:   "ws-abc-xyz",
+			Name: "Another Workspace",
+		}
+
+		req := BlogTemplateDataRequest{
+			Workspace:   workspace,
+			PublicLists: []*List{},
+		}
+
+		data, err := BuildBlogTemplateData(req)
+		assert.NoError(t, err)
+
+		workspaceData := data["workspace"].(MapOfAny)
+		assert.Equal(t, "ws-abc-xyz", workspaceData["id"])
+		assert.Equal(t, "Another Workspace", workspaceData["name"])
+	})
+
+	t.Run("workspace.id is present even with minimal workspace data", func(t *testing.T) {
+		workspace := &Workspace{
+			ID:   "minimal-ws",
+			Name: "Minimal",
+		}
+
+		req := BlogTemplateDataRequest{
+			Workspace:   workspace,
+			PublicLists: []*List{},
+		}
+
+		data, err := BuildBlogTemplateData(req)
+		assert.NoError(t, err)
+
+		workspaceData := data["workspace"].(MapOfAny)
+		// Verify id is always present
+		assert.Equal(t, "minimal-ws", workspaceData["id"])
+		assert.Equal(t, "Minimal", workspaceData["name"])
+	})
+
+	t.Run("workspace is nil when not provided", func(t *testing.T) {
+		req := BlogTemplateDataRequest{
+			Workspace:   nil,
+			PublicLists: []*List{},
+		}
+
+		data, err := BuildBlogTemplateData(req)
+		assert.NoError(t, err)
+
+		_, hasWorkspace := data["workspace"]
+		assert.False(t, hasWorkspace, "workspace should not be present when nil")
 	})
 }

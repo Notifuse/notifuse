@@ -317,48 +317,48 @@ func (mr *MockBlogServiceMockRecorder) PublishTheme(arg0, arg1 interface{}) *gom
 }
 
 // RenderCategoryPage mocks base method.
-func (m *MockBlogService) RenderCategoryPage(arg0 context.Context, arg1, arg2 string, arg3 int) (string, error) {
+func (m *MockBlogService) RenderCategoryPage(arg0 context.Context, arg1, arg2 string, arg3 int, arg4 *int) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RenderCategoryPage", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "RenderCategoryPage", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RenderCategoryPage indicates an expected call of RenderCategoryPage.
-func (mr *MockBlogServiceMockRecorder) RenderCategoryPage(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockBlogServiceMockRecorder) RenderCategoryPage(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderCategoryPage", reflect.TypeOf((*MockBlogService)(nil).RenderCategoryPage), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderCategoryPage", reflect.TypeOf((*MockBlogService)(nil).RenderCategoryPage), arg0, arg1, arg2, arg3, arg4)
 }
 
 // RenderHomePage mocks base method.
-func (m *MockBlogService) RenderHomePage(arg0 context.Context, arg1 string, arg2 int) (string, error) {
+func (m *MockBlogService) RenderHomePage(arg0 context.Context, arg1 string, arg2 int, arg3 *int) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RenderHomePage", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "RenderHomePage", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RenderHomePage indicates an expected call of RenderHomePage.
-func (mr *MockBlogServiceMockRecorder) RenderHomePage(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockBlogServiceMockRecorder) RenderHomePage(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderHomePage", reflect.TypeOf((*MockBlogService)(nil).RenderHomePage), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderHomePage", reflect.TypeOf((*MockBlogService)(nil).RenderHomePage), arg0, arg1, arg2, arg3)
 }
 
 // RenderPostPage mocks base method.
-func (m *MockBlogService) RenderPostPage(arg0 context.Context, arg1, arg2, arg3 string) (string, error) {
+func (m *MockBlogService) RenderPostPage(arg0 context.Context, arg1, arg2, arg3 string, arg4 *int) (string, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RenderPostPage", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "RenderPostPage", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(string)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // RenderPostPage indicates an expected call of RenderPostPage.
-func (mr *MockBlogServiceMockRecorder) RenderPostPage(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockBlogServiceMockRecorder) RenderPostPage(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderPostPage", reflect.TypeOf((*MockBlogService)(nil).RenderPostPage), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RenderPostPage", reflect.TypeOf((*MockBlogService)(nil).RenderPostPage), arg0, arg1, arg2, arg3, arg4)
 }
 
 // UnpublishPost mocks base method.

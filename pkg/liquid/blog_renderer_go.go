@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/osteele/liquid"
+	"github.com/Notifuse/liquidgo/liquid"
+	"github.com/Notifuse/liquidgo/liquid/tags"
 )
 
 // Security limits for blog template rendering (matching V8/LiquidJS limits)
@@ -14,33 +15,52 @@ const (
 	BlogMaxTemplateSize = 100 * 1024 // 100KB
 )
 
-// mapTemplateStore is a simple in-memory TemplateStore for partials
-type mapTemplateStore struct {
+// mapFileSystem is a simple in-memory FileSystem for partials
+type mapFileSystem struct {
 	templates map[string]string
 }
 
-func (m *mapTemplateStore) ReadTemplate(templatename string) ([]byte, error) {
-	content, ok := m.templates[templatename]
-	if !ok {
-		return nil, fmt.Errorf("template not found: %s", templatename)
+func (m *mapFileSystem) ReadTemplateFile(path string) (string, error) {
+	// Try exact match first
+	if content, ok := m.templates[path]; ok {
+		return content, nil
 	}
-	return []byte(content), nil
+
+	// Try without .liquid extension (e.g., "header" for "header.liquid")
+	pathWithoutExt := path
+	if len(path) > 7 && path[len(path)-7:] == ".liquid" {
+		pathWithoutExt = path[:len(path)-7]
+		if content, ok := m.templates[pathWithoutExt]; ok {
+			return content, nil
+		}
+	}
+
+	// Try with .liquid extension (e.g., "header.liquid" for "header")
+	pathWithExt := path + ".liquid"
+	if content, ok := m.templates[pathWithExt]; ok {
+		return content, nil
+	}
+
+	return "", fmt.Errorf("template not found: %s (tried: %s, %s, %s)", path, path, pathWithoutExt, pathWithExt)
 }
 
-// BlogTemplateRenderer renders blog templates using Go Liquid (with render tag support)
+// BlogTemplateRenderer renders blog templates using liquidgo (with render tag support)
 type BlogTemplateRenderer struct {
-	engine *liquid.Engine
+	env *liquid.Environment
 }
 
-// NewBlogTemplateRenderer creates a new Go Liquid renderer for blog templates
+// NewBlogTemplateRenderer creates a new liquidgo renderer for blog templates
 func NewBlogTemplateRenderer() *BlogTemplateRenderer {
-	engine := liquid.NewEngine()
+	env := liquid.NewEnvironment()
+
+	// Register standard tags (CRITICAL - required for if, for, assign, etc.)
+	tags.RegisterStandardTags(env)
 
 	// Register any custom filters if needed in the future
-	// engine.RegisterFilter("custom_filter", customFilterFunc)
+	// env.RegisterFilter(&MyCustomFilters{})
 
 	return &BlogTemplateRenderer{
-		engine: engine,
+		env: env,
 	}
 }
 
@@ -59,21 +79,11 @@ func (r *BlogTemplateRenderer) Render(
 		return "", fmt.Errorf("template size (%d bytes) exceeds maximum allowed size (%d bytes)", len(template), BlogMaxTemplateSize)
 	}
 
-	// Validate partial sizes and register template store
+	// Validate partial sizes
 	for name, content := range partials {
 		if len(content) > BlogMaxTemplateSize {
 			return "", fmt.Errorf("partial '%s' size (%d bytes) exceeds maximum allowed size (%d bytes)", name, len(content), BlogMaxTemplateSize)
 		}
-	}
-
-	// Create a new engine instance for this render to avoid concurrent modification issues
-	// This is necessary because we register a custom TemplateStore per render
-	engine := liquid.NewEngine()
-
-	// Register the partials via a custom TemplateStore
-	if len(partials) > 0 {
-		store := &mapTemplateStore{templates: partials}
-		engine.RegisterTemplateStore(store)
 	}
 
 	// Create context with timeout for security
@@ -89,8 +99,25 @@ func (r *BlogTemplateRenderer) Render(
 
 	// Render in a goroutine to enforce timeout
 	go func() {
-		output, err := engine.ParseAndRenderString(template, data)
-		resultChan <- result{output: output, err: err}
+		// Parse the template with the environment
+		tmpl, err := liquid.ParseTemplate(template, &liquid.TemplateOptions{
+			Environment: r.env,
+		})
+		if err != nil {
+			resultChan <- result{output: "", err: fmt.Errorf("failed to parse template: %w", err)}
+			return
+		}
+
+		// Register the file system for partials if provided
+		// Must be done after parsing but before rendering
+		if len(partials) > 0 {
+			fs := &mapFileSystem{templates: partials}
+			tmpl.Registers()["file_system"] = fs
+		}
+
+		// Render the template (first parameter is 'assigns' - the template data)
+		output := tmpl.Render(data, nil)
+		resultChan <- result{output: output, err: nil}
 	}()
 
 	// Wait for result or timeout
@@ -105,7 +132,7 @@ func (r *BlogTemplateRenderer) Render(
 	}
 }
 
-// RenderBlogTemplateGo renders a Liquid template with the provided data using Go Liquid
+// RenderBlogTemplateGo renders a Liquid template with the provided data using liquidgo
 // This is the drop-in replacement for RenderBlogTemplate (V8 version)
 //
 // The partials parameter is optional - pass nil if no partials are needed.

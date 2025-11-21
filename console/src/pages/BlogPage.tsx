@@ -130,7 +130,7 @@ export function BlogPage() {
       </Sider>
       <Layout>
         <Content>
-          <div style={{ maxWidth: '700px', padding: '24px' }}>
+          <div style={{ padding: '24px' }}>
             {!hasCategories ? (
               <Empty description="No categories yet" style={{ marginTop: '100px' }}>
                 <Button type="primary" icon={<PlusOutlined />} onClick={handleNewCategory}>

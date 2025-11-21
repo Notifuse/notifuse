@@ -713,6 +713,7 @@ func (a *App) InitServices() error {
 		a.workspaceRepo,
 		a.listRepo,
 		a.authService,
+		a.cache,
 	)
 
 	// Initialize workspace service (after all its dependencies)

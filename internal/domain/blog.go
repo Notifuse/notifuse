@@ -620,6 +620,7 @@ type BlogCategoryRepository interface {
 	CreateCategory(ctx context.Context, category *BlogCategory) error
 	GetCategory(ctx context.Context, id string) (*BlogCategory, error)
 	GetCategoryBySlug(ctx context.Context, slug string) (*BlogCategory, error)
+	GetCategoriesByIDs(ctx context.Context, ids []string) ([]*BlogCategory, error)
 	UpdateCategory(ctx context.Context, category *BlogCategory) error
 	DeleteCategory(ctx context.Context, id string) error
 	ListCategories(ctx context.Context) ([]*BlogCategory, error)
@@ -690,10 +691,10 @@ type BlogService interface {
 	PublishTheme(ctx context.Context, request *PublishBlogThemeRequest) error
 	ListThemes(ctx context.Context, params *ListBlogThemesRequest) (*BlogThemeListResponse, error)
 
-	// Blog page rendering (public, no auth required)
-	RenderHomePage(ctx context.Context, workspaceID string, page int) (string, error)
-	RenderPostPage(ctx context.Context, workspaceID, categorySlug, postSlug string) (string, error)
-	RenderCategoryPage(ctx context.Context, workspaceID, categorySlug string, page int) (string, error)
+	// Blog page rendering (public, no auth	// Rendering
+	RenderHomePage(ctx context.Context, workspaceID string, page int, themeVersion *int) (string, error)
+	RenderPostPage(ctx context.Context, workspaceID, categorySlug, postSlug string, themeVersion *int) (string, error)
+	RenderCategoryPage(ctx context.Context, workspaceID, categorySlug string, page int, themeVersion *int) (string, error)
 }
 
 // NormalizeSlug normalizes a string to be a valid slug
@@ -937,7 +938,11 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 		}
 
 		// Add logo_url from blog settings or workspace settings
-		if req.Workspace.Settings.BlogSettings != nil && req.Workspace.Settings.BlogSettings.LogoURL != nil {
+		// If blog settings has a logo (and it's not empty), use it
+		// Otherwise fallback to workspace logo
+		if req.Workspace.Settings.BlogSettings != nil &&
+			req.Workspace.Settings.BlogSettings.LogoURL != nil &&
+			*req.Workspace.Settings.BlogSettings.LogoURL != "" {
 			workspaceData["logo_url"] = *req.Workspace.Settings.BlogSettings.LogoURL
 		} else if req.Workspace.Settings.LogoURL != "" {
 			workspaceData["logo_url"] = req.Workspace.Settings.LogoURL
@@ -1025,9 +1030,9 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 	}
 
 	// Add public lists (always included, even if empty)
-	publicListsData := make([]MapOfAny, 0)
+	publicListsData := make([]map[string]interface{}, 0)
 	for _, list := range req.PublicLists {
-		listData := MapOfAny{
+		listData := map[string]interface{}{
 			"id":   list.ID,
 			"name": list.Name,
 		}
@@ -1048,9 +1053,9 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 			}
 		}
 
-		postsData := make([]MapOfAny, 0)
+		postsData := make([]map[string]interface{}, 0)
 		for _, post := range req.Posts {
-			postData := MapOfAny{
+			postData := map[string]interface{}{
 				"id":                   post.ID,
 				"slug":                 post.Slug,
 				"category_id":          post.CategoryID,
@@ -1072,11 +1077,15 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 		templateData["posts"] = postsData
 	}
 
-	// Add categories array (for navigation)
+	// Add categories array (for navigation) - only non-deleted categories
 	if req.Categories != nil {
-		categoriesData := make([]MapOfAny, 0)
+		categoriesData := make([]map[string]interface{}, 0)
 		for _, category := range req.Categories {
-			categoryData := MapOfAny{
+			// Skip deleted categories for navigation
+			if category.DeletedAt != nil {
+				continue
+			}
+			categoryData := map[string]interface{}{
 				"id":          category.ID,
 				"slug":        category.Slug,
 				"name":        category.Settings.Name,
@@ -1096,7 +1105,7 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 
 	// Add pagination data if provided (for paginated pages)
 	if req.PaginationData != nil {
-		paginationData := MapOfAny{
+		paginationData := map[string]interface{}{
 			"current_page": req.PaginationData.CurrentPage,
 			"total_pages":  req.PaginationData.TotalPages,
 			"has_next":     req.PaginationData.HasNextPage,
@@ -1111,7 +1120,7 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 	templateData["current_year"] = time.Now().Year()
 
 	// Add theme version for cache-busting
-	templateData["theme"] = MapOfAny{
+	templateData["theme"] = map[string]interface{}{
 		"version": req.ThemeVersion,
 	}
 

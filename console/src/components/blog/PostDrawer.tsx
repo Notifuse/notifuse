@@ -60,7 +60,10 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   const [isSaving, setIsSaving] = useState(false)
 
   // Template ID for new posts (generated on mount)
-  const [newTemplateId] = useState<string>(() => crypto.randomUUID())
+  // Generate 32-character ID by removing hyphens from UUID (UUIDs are 36 chars with hyphens, 32 without)
+  const [newTemplateId] = useState<string>(() =>
+    crypto.randomUUID().replace(/-/g, '').substring(0, 32)
+  )
 
   // Editor ref for undo/redo
   const editorRef = useRef<NotifuseEditorRef>(null)
@@ -201,54 +204,59 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
 
   // Load form values and blog content
   useEffect(() => {
-    if (open && post) {
-      // Populate form with existing post data
-      form.setFieldsValue({
-        title: post.settings.title,
-        slug: post.slug,
-        category_id: post.category_id,
-        excerpt: post.settings.excerpt,
-        featured_image_url: post.settings.featured_image_url,
-        authors: post.settings.authors,
-        reading_time_minutes: post.settings.reading_time_minutes,
-        seo: post.settings.seo
-      })
+    if (open) {
+      // Reset loading state when drawer opens
+      setLoading(false)
 
-      // Set current slug
-      setCurrentSlug(post.slug)
+      if (post) {
+        // Populate form with existing post data
+        form.setFieldsValue({
+          title: post.settings.title,
+          slug: post.slug,
+          category_id: post.category_id,
+          excerpt: post.settings.excerpt,
+          featured_image_url: post.settings.featured_image_url,
+          authors: post.settings.authors,
+          reading_time_minutes: post.settings.reading_time_minutes,
+          seo: post.settings.seo
+        })
 
-      // Load template content
-      if (templateData?.template?.web?.content) {
-        setBlogContent(templateData.template.web.content)
-      }
-    } else if (open && !post) {
-      // New post - try to load from localStorage
-      const savedDraft = localStorage.getItem(draftKey)
-      if (savedDraft) {
-        try {
-          const { content, savedAt } = JSON.parse(savedDraft)
-          modal.confirm({
-            title: 'Restore Draft?',
-            content: `Found unsaved changes from ${new Date(savedAt).toLocaleString()}`,
-            okText: 'Yes',
-            cancelText: 'No',
-            onOk: () => setBlogContent(content),
-            onCancel: () => localStorage.removeItem(draftKey)
-          })
-        } catch (error) {
-          console.error('Error loading draft from localStorage:', error)
+        // Set current slug
+        setCurrentSlug(post.slug)
+
+        // Load template content
+        if (templateData?.template?.web?.content) {
+          setBlogContent(templateData.template.web.content)
         }
       } else {
-        setBlogContent(null) // Empty editor
-      }
+        // New post - try to load from localStorage
+        const savedDraft = localStorage.getItem(draftKey)
+        if (savedDraft) {
+          try {
+            const { content, savedAt } = JSON.parse(savedDraft)
+            modal.confirm({
+              title: 'Restore Draft?',
+              content: `Found unsaved changes from ${new Date(savedAt).toLocaleString()}`,
+              okText: 'Yes',
+              cancelText: 'No',
+              onOk: () => setBlogContent(content),
+              onCancel: () => localStorage.removeItem(draftKey)
+            })
+          } catch (error) {
+            console.error('Error loading draft from localStorage:', error)
+          }
+        } else {
+          setBlogContent(null) // Empty editor
+        }
 
-      form.resetFields()
-      form.setFieldsValue({
-        authors: [],
-        reading_time_minutes: 5,
-        category_id: initialCategoryId || undefined
-      })
-      setCurrentSlug('')
+        form.resetFields()
+        form.setFieldsValue({
+          authors: [],
+          reading_time_minutes: 5,
+          category_id: initialCategoryId || undefined
+        })
+        setCurrentSlug('')
+      }
     }
   }, [open, post, form, templateData, draftKey, initialCategoryId, message, modal])
 
@@ -423,6 +431,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     form.resetFields()
     setFormTouched(false)
     setBlogContent(null)
+    setLoading(false)
   }
 
   const onFinish = (values: any) => {

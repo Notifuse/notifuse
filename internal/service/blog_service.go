@@ -4,9 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/cache"
 	"github.com/Notifuse/notifuse/pkg/liquid"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/google/uuid"
@@ -21,6 +23,7 @@ type BlogService struct {
 	workspaceRepo domain.WorkspaceRepository
 	listRepo      domain.ListRepository
 	authService   domain.AuthService
+	cache         cache.Cache
 }
 
 // NewBlogService creates a new blog service
@@ -32,6 +35,7 @@ func NewBlogService(
 	workspaceRepository domain.WorkspaceRepository,
 	listRepository domain.ListRepository,
 	authService domain.AuthService,
+	cache cache.Cache,
 ) *BlogService {
 	return &BlogService{
 		logger:        logger,
@@ -41,6 +45,7 @@ func NewBlogService(
 		workspaceRepo: workspaceRepository,
 		listRepo:      listRepository,
 		authService:   authService,
+		cache:         cache,
 	}
 }
 
@@ -680,11 +685,21 @@ func (s *BlogService) PublishPost(ctx context.Context, request *domain.PublishBl
 		return err
 	}
 
+	// Get the post to find its category
+	post, err := s.postRepo.GetPost(ctx, request.ID)
+	if err != nil {
+		s.logger.Error("Failed to get post for publishing")
+		return fmt.Errorf("failed to get post: %w", err)
+	}
+
 	// Publish the post
 	if err := s.postRepo.PublishPost(ctx, request.ID); err != nil {
 		s.logger.Error("Failed to publish post")
 		return fmt.Errorf("failed to publish post: %w", err)
 	}
+
+	// Invalidate blog caches
+	s.invalidateBlogCaches(workspaceID, post.CategoryID)
 
 	return nil
 }
@@ -719,11 +734,21 @@ func (s *BlogService) UnpublishPost(ctx context.Context, request *domain.Unpubli
 		return err
 	}
 
+	// Get the post to find its category
+	post, err := s.postRepo.GetPost(ctx, request.ID)
+	if err != nil {
+		s.logger.Error("Failed to get post for unpublishing")
+		return fmt.Errorf("failed to get post: %w", err)
+	}
+
 	// Unpublish the post
 	if err := s.postRepo.UnpublishPost(ctx, request.ID); err != nil {
 		s.logger.Error("Failed to unpublish post")
 		return fmt.Errorf("failed to unpublish post: %w", err)
 	}
+
+	// Invalidate blog caches
+	s.invalidateBlogCaches(workspaceID, post.CategoryID)
 
 	return nil
 }
@@ -960,6 +985,9 @@ func (s *BlogService) PublishTheme(ctx context.Context, request *domain.PublishB
 		return fmt.Errorf("failed to publish theme: %w", err)
 	}
 
+	// Invalidate all blog caches since theme affects all pages
+	s.invalidateBlogCaches(workspaceID, "")
+
 	return nil
 }
 
@@ -1000,6 +1028,67 @@ func (s *BlogService) ListThemes(ctx context.Context, params *domain.ListBlogThe
 // Blog Page Rendering
 // ====================
 
+// invalidateBlogCaches clears all blog-related caches for a workspace
+// This should be called when blog content changes (publish/unpublish posts, publish themes)
+func (s *BlogService) invalidateBlogCaches(workspaceID, categoryID string) {
+	if s.cache == nil {
+		return
+	}
+
+	// Get workspace to find custom domain
+	workspace, err := s.workspaceRepo.GetByID(context.Background(), workspaceID)
+	if err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to get workspace for cache invalidation")
+		return
+	}
+
+	// Determine the host for cache keys
+	host := ""
+	if workspace.Settings.CustomEndpointURL != nil && *workspace.Settings.CustomEndpointURL != "" {
+		// Extract host from custom endpoint URL
+		// CustomEndpointURL format: "https://example.com"
+		customURL := *workspace.Settings.CustomEndpointURL
+		// Remove protocol
+		if idx := strings.Index(customURL, "://"); idx != -1 {
+			host = customURL[idx+3:]
+		} else {
+			host = customURL
+		}
+		// Remove trailing slash
+		host = strings.TrimSuffix(host, "/")
+	}
+
+	if host == "" {
+		s.logger.WithField("workspace_id", workspaceID).Debug("No custom domain found, cannot invalidate cache")
+		return
+	}
+
+	// Invalidate homepage cache (all pages)
+	// We can't know exactly how many pages exist, so we invalidate the first few
+	for page := 1; page <= 10; page++ {
+		cacheKey := fmt.Sprintf("blog:%s:/?page=%d", host, page)
+		s.cache.Delete(cacheKey)
+	}
+
+	// Invalidate category page cache if categoryID is provided
+	if categoryID != "" {
+		// Get category to find its slug
+		ctx := context.WithValue(context.Background(), "workspace_id", workspaceID)
+		category, err := s.categoryRepo.GetCategory(ctx, categoryID)
+		if err == nil && category != nil {
+			for page := 1; page <= 10; page++ {
+				cacheKey := fmt.Sprintf("blog:%s:/%s?page=%d", host, category.Slug, page)
+				s.cache.Delete(cacheKey)
+			}
+		}
+	}
+
+	s.logger.
+		WithField("workspace_id", workspaceID).
+		WithField("host", host).
+		Info("Blog caches invalidated")
+}
+
 // getPublicListsForWorkspace fetches all public lists for a workspace
 // This is a private helper method used by rendering methods
 func (s *BlogService) getPublicListsForWorkspace(ctx context.Context, workspaceID string) ([]*domain.List, error) {
@@ -1021,7 +1110,7 @@ func (s *BlogService) getPublicListsForWorkspace(ctx context.Context, workspaceI
 }
 
 // RenderHomePage renders the blog home page with published posts
-func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, page int) (string, error) {
+func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, page int, themeVersion *int) (string, error) {
 	// Validate page number
 	if page < 1 {
 		page = 1
@@ -1037,8 +1126,14 @@ func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, pa
 		}
 	}
 
-	// Get published theme
-	theme, err := s.themeRepo.GetPublishedTheme(ctx)
+	// Get theme (published or specific version)
+	var theme *domain.BlogTheme
+	if themeVersion != nil {
+		theme, err = s.themeRepo.GetTheme(ctx, *themeVersion)
+	} else {
+		theme, err = s.themeRepo.GetPublishedTheme(ctx)
+	}
+
 	if err != nil {
 		if err.Error() == "no published theme found" || err.Error() == "sql: no rows in result set" {
 			return "", &domain.BlogRenderError{
@@ -1099,11 +1194,53 @@ func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, pa
 		}
 	}
 
-	// Get all categories for navigation
+	// Get all categories for navigation (non-deleted)
 	categories, err := s.categoryRepo.ListCategories(ctx)
 	if err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to get categories for blog home page")
 		categories = []*domain.BlogCategory{}
+	}
+
+	// Also fetch categories for posts (including deleted ones) to ensure category_slug is set
+	// Collect unique category IDs from posts
+	categoryIDSet := make(map[string]bool)
+	for _, post := range postsResponse.Posts {
+		if post.CategoryID != "" {
+			categoryIDSet[post.CategoryID] = true
+		}
+	}
+
+	// Fetch categories for posts (including deleted) for URL construction
+	var postCategories []*domain.BlogCategory
+	if len(categoryIDSet) > 0 {
+		categoryIDs := make([]string, 0, len(categoryIDSet))
+		for id := range categoryIDSet {
+			categoryIDs = append(categoryIDs, id)
+		}
+		postCategories, err = s.categoryRepo.GetCategoriesByIDs(ctx, categoryIDs)
+		if err != nil {
+			s.logger.WithField("error", err.Error()).Warn("Failed to get categories for posts")
+			postCategories = []*domain.BlogCategory{}
+		}
+	}
+
+	// Merge categories: use postCategories for slug lookup (includes deleted), categories for navigation (non-deleted)
+	// Create a map of all categories for slug lookup
+	allCategoriesMap := make(map[string]*domain.BlogCategory)
+	for _, cat := range categories {
+		allCategoriesMap[cat.ID] = cat
+	}
+	for _, cat := range postCategories {
+		// Only add if not already in map (prefer non-deleted)
+		if _, exists := allCategoriesMap[cat.ID]; !exists {
+			allCategoriesMap[cat.ID] = cat
+		}
+	}
+
+	// Convert back to slice for BuildBlogTemplateData
+	allCategoriesForSlugs := make([]*domain.BlogCategory, 0, len(allCategoriesMap))
+	for _, cat := range allCategoriesMap {
+		allCategoriesForSlugs = append(allCategoriesForSlugs, cat)
 	}
 
 	// Build template data with pagination
@@ -1111,7 +1248,7 @@ func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, pa
 		Workspace:      workspace,
 		PublicLists:    publicLists,
 		Posts:          postsResponse.Posts,
-		Categories:     categories,
+		Categories:     allCategoriesForSlugs, // Use all categories (including deleted) for slug lookup
 		ThemeVersion:   theme.Version,
 		PaginationData: postsResponse,
 	})
@@ -1160,7 +1297,7 @@ func (s *BlogService) RenderHomePage(ctx context.Context, workspaceID string, pa
 }
 
 // RenderPostPage renders a single blog post page
-func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categorySlug, postSlug string) (string, error) {
+func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categorySlug, postSlug string, themeVersion *int) (string, error) {
 	// Get workspace
 	workspace, err := s.workspaceRepo.GetByID(ctx, workspaceID)
 	if err != nil {
@@ -1171,8 +1308,14 @@ func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categoryS
 		}
 	}
 
-	// Get published theme
-	theme, err := s.themeRepo.GetPublishedTheme(ctx)
+	// Get theme (published or specific version)
+	var theme *domain.BlogTheme
+	if themeVersion != nil {
+		theme, err = s.themeRepo.GetTheme(ctx, *themeVersion)
+	} else {
+		theme, err = s.themeRepo.GetPublishedTheme(ctx)
+	}
+
 	if err != nil {
 		if err.Error() == "no published theme found" || err.Error() == "sql: no rows in result set" {
 			return "", &domain.BlogRenderError{
@@ -1279,7 +1422,7 @@ func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categoryS
 }
 
 // RenderCategoryPage renders a category page with posts in that category
-func (s *BlogService) RenderCategoryPage(ctx context.Context, workspaceID, categorySlug string, page int) (string, error) {
+func (s *BlogService) RenderCategoryPage(ctx context.Context, workspaceID, categorySlug string, page int, themeVersion *int) (string, error) {
 	// Validate page number
 	if page < 1 {
 		page = 1
@@ -1295,8 +1438,14 @@ func (s *BlogService) RenderCategoryPage(ctx context.Context, workspaceID, categ
 		}
 	}
 
-	// Get published theme
-	theme, err := s.themeRepo.GetPublishedTheme(ctx)
+	// Get theme (published or specific version)
+	var theme *domain.BlogTheme
+	if themeVersion != nil {
+		theme, err = s.themeRepo.GetTheme(ctx, *themeVersion)
+	} else {
+		theme, err = s.themeRepo.GetPublishedTheme(ctx)
+	}
+
 	if err != nil {
 		if err.Error() == "no published theme found" || err.Error() == "sql: no rows in result set" {
 			return "", &domain.BlogRenderError{

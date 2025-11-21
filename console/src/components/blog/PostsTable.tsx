@@ -9,12 +9,14 @@ import {
   TableColumnType,
   Card,
   Empty,
-  Segmented
+  Segmented,
+  Popconfirm,
+  Tooltip
 } from 'antd'
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
 import { blogPostsApi, blogCategoriesApi, BlogPost, BlogPostStatus } from '../../services/api/blog'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
+import { faPenToSquare, faTrashCan, faEyeSlash } from '@fortawesome/free-regular-svg-icons'
 import { PlusOutlined } from '@ant-design/icons'
 import { useWorkspacePermissions, useAuth } from '../../contexts/AuthContext'
 import dayjs from '../../lib/dayjs'
@@ -173,32 +175,50 @@ export function PostsTable() {
       render: (title: string, record: BlogPost) => (
         <div>
           <div className="font-medium">{title}</div>
+          <div className="text-xs text-gray-500 mt-1">
+            <code>{record.slug}</code>
+          </div>
           {record.settings.excerpt && (
             <div className="text-xs text-gray-500 mt-1 line-clamp-2">{record.settings.excerpt}</div>
           )}
         </div>
       )
     },
-    {
-      title: 'Slug',
-      dataIndex: 'slug',
-      key: 'slug',
-      render: (slug: string) => (
-        <code className="text-xs bg-gray-100 px-2 py-1 rounded">{slug}</code>
-      )
-    },
-    {
-      title: 'Category',
-      dataIndex: 'category_id',
-      key: 'category_id',
-      render: (categoryId?: string | null) => (
-        <span className="text-sm">{getCategoryName(categoryId)}</span>
-      )
-    },
+    ...(categoryId
+      ? []
+      : [
+          {
+            title: 'Category',
+            dataIndex: 'category_id',
+            key: 'category_id',
+            render: (categoryId?: string | null) => (
+              <span className="text-sm">{getCategoryName(categoryId)}</span>
+            )
+          }
+        ]),
     {
       title: 'Status',
       key: 'status',
       render: (_: any, record: BlogPost) => <PostStatusTag post={record} />
+    },
+    {
+      title: 'Published',
+      dataIndex: 'published_at',
+      key: 'published_at',
+      render: (publishedAt: string | null) => {
+        if (!publishedAt) return <span className="text-gray-400">—</span>
+
+        const timezone = workspace?.settings?.timezone || 'UTC'
+        const dateInTz = dayjs(publishedAt).tz(timezone)
+        const formattedDate = dateInTz.format('MMM D, YYYY HH:mm')
+        const relativeTime = dayjs(publishedAt).fromNow()
+
+        return (
+          <Tooltip title={`${formattedDate} ${timezone}`}>
+            <span>{relativeTime}</span>
+          </Tooltip>
+        )
+      }
     },
     {
       title: 'Updated',
@@ -214,38 +234,54 @@ export function PostsTable() {
         <Space size="small">
           {permissions?.workspace?.write && (
             <>
-              <Button
-                type="text"
-                size="small"
-                icon={<FontAwesomeIcon icon={faPenToSquare} />}
-                onClick={() => handleEdit(record)}
-              />
               {record.published_at ? (
-                <Button
-                  type="text"
-                  size="small"
-                  onClick={() => unpublishMutation.mutate(record.id)}
-                  loading={unpublishMutation.isPending}
+                <Popconfirm
+                  title="Unpublish post"
+                  description="Are you sure you want to unpublish this post?"
+                  onConfirm={() => unpublishMutation.mutate(record.id)}
+                  okText="Yes"
+                  cancelText="No"
                 >
-                  Unpublish
-                </Button>
+                  <Tooltip title="Unpublish" placement="left">
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<FontAwesomeIcon icon={faEyeSlash} style={{ opacity: 0.7 }} />}
+                      loading={unpublishMutation.isPending}
+                    />
+                  </Tooltip>
+                </Popconfirm>
               ) : (
+                <Popconfirm
+                  title="Publish post"
+                  description="Are you sure you want to publish this post?"
+                  onConfirm={() => publishMutation.mutate(record.id)}
+                  okText="Yes"
+                  cancelText="No"
+                >
+                  <Tooltip title="Publish" placement="left">
+                    <Button type="primary" size="small" loading={publishMutation.isPending}>
+                      Publish
+                    </Button>
+                  </Tooltip>
+                </Popconfirm>
+              )}
+              <Tooltip title="Delete">
                 <Button
                   type="text"
                   size="small"
-                  onClick={() => publishMutation.mutate(record.id)}
-                  loading={publishMutation.isPending}
-                >
-                  Publish
-                </Button>
-              )}
-              <Button
-                type="text"
-                size="small"
-                danger
-                icon={<FontAwesomeIcon icon={faTrashCan} />}
-                onClick={() => handleDelete(record)}
-              />
+                  icon={<FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />}
+                  onClick={() => handleDelete(record)}
+                />
+              </Tooltip>
+              <Tooltip title="Edit">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
+                  onClick={() => handleEdit(record)}
+                />
+              </Tooltip>
             </>
           )}
         </Space>

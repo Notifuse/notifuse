@@ -116,7 +116,6 @@ export interface TOCAnchor {
  * Default initial content for the editor
  */
 const DEFAULT_INITIAL_CONTENT = `
-<h1>Welcome to the Notifuse Editor! 👋</h1>
 <p>This is a <strong>powerful</strong> and <em>flexible</em> rich text editor built with Tiptap. Try out these features:</p>
 
 <h2>Text Formatting</h2>
