@@ -13,6 +13,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
+	"github.com/Notifuse/notifuse/pkg/cache"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
@@ -34,6 +35,7 @@ func setupBlogServiceTest(t *testing.T) (
 	mockListRepo := mocks.NewMockListRepository(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := logger.NewLoggerWithLevel("disabled")
+	testCache := cache.NewInMemoryCache(30 * time.Second)
 
 	service := NewBlogService(
 		mockLogger,
@@ -43,6 +45,7 @@ func setupBlogServiceTest(t *testing.T) (
 		mockWorkspaceRepo,
 		mockListRepo,
 		mockAuthService,
+		testCache,
 	)
 
 	return service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, mockAuthService

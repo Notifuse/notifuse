@@ -176,9 +176,6 @@ func (p *ContactSegmentQueueProcessor) removeBatchFromQueueInTx(ctx context.Cont
 		return nil
 	}
 
-	// Import pq for array support
-	query := `DELETE FROM contact_segment_queue WHERE email = ANY($1)`
-
 	// Convert emails to a format compatible with pq.Array
 	emailsArray := make([]interface{}, len(emails))
 	for i, email := range emails {
@@ -196,7 +193,7 @@ func (p *ContactSegmentQueueProcessor) removeBatchFromQueueInTx(ctx context.Cont
 		args[i] = email
 	}
 
-	query = fmt.Sprintf("DELETE FROM contact_segment_queue WHERE email IN (%s)", placeholders)
+	query := fmt.Sprintf("DELETE FROM contact_segment_queue WHERE email IN (%s)", placeholders)
 
 	_, err := tx.ExecContext(ctx, query, args...)
 	if err != nil {

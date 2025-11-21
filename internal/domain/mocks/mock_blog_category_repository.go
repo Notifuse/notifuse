@@ -92,6 +92,21 @@ func (mr *MockBlogCategoryRepositoryMockRecorder) DeleteCategoryTx(arg0, arg1, a
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteCategoryTx", reflect.TypeOf((*MockBlogCategoryRepository)(nil).DeleteCategoryTx), arg0, arg1, arg2)
 }
 
+// GetCategoriesByIDs mocks base method.
+func (m *MockBlogCategoryRepository) GetCategoriesByIDs(arg0 context.Context, arg1 []string) ([]*domain.BlogCategory, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetCategoriesByIDs", arg0, arg1)
+	ret0, _ := ret[0].([]*domain.BlogCategory)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetCategoriesByIDs indicates an expected call of GetCategoriesByIDs.
+func (mr *MockBlogCategoryRepositoryMockRecorder) GetCategoriesByIDs(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetCategoriesByIDs", reflect.TypeOf((*MockBlogCategoryRepository)(nil).GetCategoriesByIDs), arg0, arg1)
+}
+
 // GetCategory mocks base method.
 func (m *MockBlogCategoryRepository) GetCategory(arg0 context.Context, arg1 string) (*domain.BlogCategory, error) {
 	m.ctrl.T.Helper()
