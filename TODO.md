@@ -4,6 +4,7 @@
 
 - cache on blog compilation
 - rate limit on /subscribe endpoint: Per IP: 10 requests per minute
+- disable delivered rate in UI if using smtp provider
 
 ## Content
 
