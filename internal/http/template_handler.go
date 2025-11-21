@@ -13,15 +13,15 @@ import (
 )
 
 type TemplateHandler struct {
-	service   domain.TemplateService
-	logger    logger.Logger
+	service      domain.TemplateService
+	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
 }
 
 func NewTemplateHandler(service domain.TemplateService, getJWTSecret func() ([]byte, error), logger logger.Logger) *TemplateHandler {
 	return &TemplateHandler{
-		service:   service,
-		logger:    logger,
+		service:      service,
+		logger:       logger,
 		getJWTSecret: getJWTSecret,
 	}
 }

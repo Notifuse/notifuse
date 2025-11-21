@@ -873,19 +873,19 @@ func TestTaskAuthentication(t *testing.T) {
 			require.NoError(t, err)
 			defer taskResp.Body.Close()
 
-	var taskResult map[string]interface{}
-	err = json.NewDecoder(taskResp.Body).Decode(&taskResult)
-	require.NoError(t, err)
+			var taskResult map[string]interface{}
+			err = json.NewDecoder(taskResp.Body).Decode(&taskResult)
+			require.NoError(t, err)
 
-	// Safe nil check - task might not be in response if execution failed
-	if task, ok := taskResult["task"].(map[string]interface{}); ok && task != nil {
-		if status, ok := task["status"].(string); ok {
-			t.Logf("Task status after unauthenticated cron endpoint: %s", status)
-			// Task should have been processed
-		}
-	} else {
-		t.Logf("No task data in response (may be expected if execution failed)")
-	}
+			// Safe nil check - task might not be in response if execution failed
+			if task, ok := taskResult["task"].(map[string]interface{}); ok && task != nil {
+				if status, ok := task["status"].(string); ok {
+					t.Logf("Task status after unauthenticated cron endpoint: %s", status)
+					// Task should have been processed
+				}
+			} else {
+				t.Logf("No task data in response (may be expected if execution failed)")
+			}
 		})
 	})
 }

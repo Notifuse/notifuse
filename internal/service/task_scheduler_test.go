@@ -81,7 +81,7 @@ func TestTaskScheduler_StartAndStop(t *testing.T) {
 	// Verify it stopped
 	time.Sleep(100 * time.Millisecond)
 	assert.False(t, scheduler.IsRunning())
-	
+
 	// Should have executed at least once
 	assert.GreaterOrEqual(t, mockExecutor.getCallCount(), int32(1))
 }

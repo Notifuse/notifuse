@@ -7,22 +7,15 @@ import (
 	"net/http/httptest"
 	"testing"
 
-
-
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
-
 
 	"github.com/Notifuse/notifuse/pkg/analytics"
 
-
 	"github.com/Notifuse/notifuse/pkg/logger"
-
 
 	"github.com/golang/mock/gomock"
 
-
 	"github.com/stretchr/testify/assert"
-
 
 	"github.com/stretchr/testify/require"
 )
@@ -177,7 +170,7 @@ func TestAnalyticsHandler_handleQuery(t *testing.T) {
 			mockLogger := logger.NewLogger()
 
 			jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
-	var err error
+			var err error
 
 			handler := NewAnalyticsHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 
@@ -311,7 +304,7 @@ func TestAnalyticsHandler_handleGetSchemas(t *testing.T) {
 			mockLogger := logger.NewLogger()
 
 			jwtSecret := []byte("test-jwt-secret-key-for-testing-32bytes")
-	var err error
+			var err error
 
 			handler := NewAnalyticsHandler(mockService, func() ([]byte, error) { return jwtSecret, nil }, mockLogger)
 

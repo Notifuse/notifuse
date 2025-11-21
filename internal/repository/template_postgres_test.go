@@ -187,15 +187,15 @@ func createValidTestTree() notifuse_mjml.EmailBlock {
 	columnBase := notifuse_mjml.NewBaseBlock("col1", notifuse_mjml.MJMLComponentMjColumn)
 	columnBase.Children = []notifuse_mjml.EmailBlock{textBlock}
 	columnBlock := &notifuse_mjml.MJColumnBlock{BaseBlock: columnBase}
-	
+
 	sectionBase := notifuse_mjml.NewBaseBlock("sec1", notifuse_mjml.MJMLComponentMjSection)
 	sectionBase.Children = []notifuse_mjml.EmailBlock{columnBlock}
 	sectionBlock := &notifuse_mjml.MJSectionBlock{BaseBlock: sectionBase}
-	
+
 	bodyBase := notifuse_mjml.NewBaseBlock("body1", notifuse_mjml.MJMLComponentMjBody)
 	bodyBase.Children = []notifuse_mjml.EmailBlock{sectionBlock}
 	bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
-	
+
 	rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
 	rootBase.Attributes["version"] = "4.0.0"
 	rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}

@@ -320,9 +320,9 @@ func TestBlogPostRepository(t *testing.T) {
 		Settings: domain.BlogPostSettings{
 			Title: "My First Post",
 			Template: domain.BlogPostTemplateReference{
-			TemplateID:      "tpl123",
-			TemplateVersion: 1,
-		},
+				TemplateID:      "tpl123",
+				TemplateVersion: 1,
+			},
 			Authors:            []domain.BlogAuthor{{Name: "John Doe"}},
 			ReadingTimeMinutes: 5,
 		},
@@ -547,7 +547,7 @@ func TestBlogPostRepository(t *testing.T) {
 			// Create new mocks for this test
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			
+
 			testMockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 			testRepo := NewBlogPostRepository(testMockWorkspaceRepo)
 			testDB, testSqlMock, err := sqlmock.New()
@@ -605,7 +605,7 @@ func TestBlogPostRepository(t *testing.T) {
 			// Create new mocks for this test
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			
+
 			testMockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 			testRepo := NewBlogPostRepository(testMockWorkspaceRepo)
 			testDB, testSqlMock, err := sqlmock.New()
@@ -654,7 +654,7 @@ func TestBlogPostRepository(t *testing.T) {
 			// Create new mocks for this test
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			
+
 			testMockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 			testRepo := NewBlogPostRepository(testMockWorkspaceRepo)
 			testDB, testSqlMock, err := sqlmock.New()
@@ -694,12 +694,12 @@ func TestBlogPostRepository(t *testing.T) {
 			}
 			result, err := testRepo.ListPosts(ctx, params)
 			require.NoError(t, err)
-			
+
 			// Check pagination metadata
 			assert.Equal(t, 25, result.TotalCount)
 			assert.Equal(t, 2, result.CurrentPage)
-			assert.Equal(t, 3, result.TotalPages) // ceiling(25/10) = 3
-			assert.Equal(t, true, result.HasNextPage) // page 2 of 3
+			assert.Equal(t, 3, result.TotalPages)         // ceiling(25/10) = 3
+			assert.Equal(t, true, result.HasNextPage)     // page 2 of 3
 			assert.Equal(t, true, result.HasPreviousPage) // page 2 > 1
 			assert.NoError(t, testSqlMock.ExpectationsWereMet())
 		})
@@ -708,7 +708,7 @@ func TestBlogPostRepository(t *testing.T) {
 			// Create new mocks for this test
 			ctrl := gomock.NewController(t)
 			defer ctrl.Finish()
-			
+
 			testMockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 			testRepo := NewBlogPostRepository(testMockWorkspaceRepo)
 			testDB, testSqlMock, err := sqlmock.New()
@@ -938,4 +938,3 @@ func TestBlogPostRepository_ContextErrors(t *testing.T) {
 		assert.Contains(t, err.Error(), "workspace_id not found in context")
 	})
 }
-

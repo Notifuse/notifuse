@@ -344,10 +344,10 @@ func TestCreateBroadcastRequest_Validate(t *testing.T) {
 			request: domain.CreateBroadcastRequest{
 				WorkspaceID: "workspace123",
 				Name:        "Test Newsletter",
-			Audience: domain.AudienceSettings{
-				List:                "list123",
-				ExcludeUnsubscribed: true,
-			},
+				Audience: domain.AudienceSettings{
+					List:                "list123",
+					ExcludeUnsubscribed: true,
+				},
 				Schedule: domain.ScheduleSettings{
 					IsScheduled: false,
 				},
@@ -361,9 +361,9 @@ func TestCreateBroadcastRequest_Validate(t *testing.T) {
 			name: "missing workspace ID",
 			request: domain.CreateBroadcastRequest{
 				Name: "Test Newsletter",
-			Audience: domain.AudienceSettings{
-				List: "list123",
-			},
+				Audience: domain.AudienceSettings{
+					List: "list123",
+				},
 			},
 			wantErr: true,
 			errMsg:  "workspace_id is required",
@@ -372,9 +372,9 @@ func TestCreateBroadcastRequest_Validate(t *testing.T) {
 			name: "missing name",
 			request: domain.CreateBroadcastRequest{
 				WorkspaceID: "workspace123",
-			Audience: domain.AudienceSettings{
-				List: "list123",
-			},
+				Audience: domain.AudienceSettings{
+					List: "list123",
+				},
 			},
 			wantErr: true,
 			errMsg:  "name is required",
@@ -1825,9 +1825,9 @@ func TestCreateBroadcastRequest_Validate_Additional(t *testing.T) {
 	scheduledRequest := domain.CreateBroadcastRequest{
 		WorkspaceID: "workspace123",
 		Name:        "Test Scheduled Newsletter",
-			Audience: domain.AudienceSettings{
-				List: "list123",
-			},
+		Audience: domain.AudienceSettings{
+			List: "list123",
+		},
 		Schedule: domain.ScheduleSettings{
 			IsScheduled:   true,
 			ScheduledDate: "2023-12-31",

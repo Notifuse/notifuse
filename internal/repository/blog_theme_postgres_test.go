@@ -68,7 +68,7 @@ func TestBlogThemeRepository(t *testing.T) {
 			// Expect insert
 			sqlMock.ExpectExec(regexp.QuoteMeta(`INSERT INTO blog_themes`)).
 				WithArgs(
-					1, // auto-generated version
+					1,                // auto-generated version
 					sqlmock.AnyArg(), // published_at
 					sqlmock.AnyArg(), // published_by_user_id
 					sqlmock.AnyArg(), // files
@@ -96,7 +96,7 @@ func TestBlogThemeRepository(t *testing.T) {
 			// Expect insert with version 6
 			sqlMock.ExpectExec(regexp.QuoteMeta(`INSERT INTO blog_themes`)).
 				WithArgs(
-					6, // auto-incremented
+					6,                // auto-incremented
 					sqlmock.AnyArg(), // published_at
 					sqlmock.AnyArg(), // published_by_user_id
 					sqlmock.AnyArg(), // files
@@ -465,4 +465,3 @@ func TestBlogThemeRepository_MissingWorkspaceID(t *testing.T) {
 		assert.Contains(t, err.Error(), "workspace_id not found in context")
 	})
 }
-

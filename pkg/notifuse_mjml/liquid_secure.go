@@ -27,7 +27,7 @@ type SecureLiquidEngine struct {
 func NewSecureLiquidEngine() *SecureLiquidEngine {
 	env := liquid.NewEnvironment()
 	tags.RegisterStandardTags(env)
-	
+
 	return &SecureLiquidEngine{
 		timeout: DefaultRenderTimeout,
 		maxSize: DefaultMaxTemplateSize,
@@ -39,7 +39,7 @@ func NewSecureLiquidEngine() *SecureLiquidEngine {
 func NewSecureLiquidEngineWithOptions(timeout time.Duration, maxSize int) *SecureLiquidEngine {
 	env := liquid.NewEnvironment()
 	tags.RegisterStandardTags(env)
-	
+
 	return &SecureLiquidEngine{
 		timeout: timeout,
 		maxSize: maxSize,

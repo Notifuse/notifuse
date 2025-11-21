@@ -56,7 +56,7 @@ func TestInMemoryCache_Delete(t *testing.T) {
 	defer cache.Stop()
 
 	cache.Set("key1", "value1", 1*time.Second)
-	
+
 	// Verify it exists
 	_, found := cache.Get("key1")
 	if !found {
@@ -406,4 +406,3 @@ func BenchmarkInMemoryCache_ConcurrentReads(b *testing.B) {
 		}
 	})
 }
-

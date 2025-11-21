@@ -332,7 +332,15 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*domain
 
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		s.logger.WithField("email", email).WithField("error", err.Error()).Error("Failed to get user by email")
+		// Check if it's an expected "not found" error vs unexpected error
+		if _, ok := err.(*domain.ErrUserNotFound); ok {
+			// User not found is expected in some contexts (e.g., invitation acceptance)
+			// Log at Info level instead of Error
+			s.logger.WithField("email", email).Info("User not found by email")
+		} else {
+			// Real errors (DB connection, etc.) should be logged as Error
+			s.logger.WithField("email", email).WithField("error", err.Error()).Error("Failed to get user by email")
+		}
 		span.SetStatus(trace.Status{
 			Code:    trace.StatusCodeNotFound,
 			Message: err.Error(),

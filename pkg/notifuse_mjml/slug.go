@@ -94,4 +94,3 @@ func GenerateNanoID(length int) string {
 
 	return string(result)
 }
-

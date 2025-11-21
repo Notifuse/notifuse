@@ -388,16 +388,16 @@ func TestSecureLiquidIntegration(t *testing.T) {
 		}()
 
 		templateData := `{}`
-		
+
 		// Should complete (even if it returns original content due to timeout)
 		result, err := ConvertJSONToMJMLWithData(block, templateData)
-		
+
 		// Should not hang or crash - either returns result or logs warning
 		if err != nil {
 			// Error is acceptable (conversion might fail if liquid fails)
 			t.Logf("Got error (acceptable): %v", err)
 		}
-		
+
 		// The important thing is we didn't hang - test passes if we get here
 		_ = result
 	})
@@ -405,7 +405,7 @@ func TestSecureLiquidIntegration(t *testing.T) {
 	t.Run("template size limit in MJML context", func(t *testing.T) {
 		// Create a text block with template exceeding size limit
 		largeContent := strings.Repeat("<div>{{ item }}</div>\n", 10000) // ~200KB
-		
+
 		block := func() EmailBlock {
 			b := NewBaseBlock("text2", MJMLComponentMjText)
 			b.Content = stringPtr(largeContent)
@@ -413,15 +413,15 @@ func TestSecureLiquidIntegration(t *testing.T) {
 		}()
 
 		templateData := `{"item": "test"}`
-		
+
 		// Should handle gracefully (returns original content on error)
 		result, err := ConvertJSONToMJMLWithData(block, templateData)
-		
+
 		// Either returns error or original content, but should not crash
 		if err != nil {
 			t.Logf("Got error for large template (expected): %v", err)
 		}
-		
+
 		// Test passes if we didn't crash
 		_ = result
 	})
@@ -447,13 +447,13 @@ func TestSecureLiquidIntegration(t *testing.T) {
 				"tracking_url": "https://example.com/track/12345"
 			}
 		}`
-		
+
 		result, err := ConvertJSONToMJMLWithData(block, templateData)
-		
+
 		if err != nil {
 			t.Fatalf("Expected no error for normal template, got: %v", err)
 		}
-		
+
 		// Verify content was rendered
 		if !strings.Contains(result, "John Doe") {
 			t.Error("Expected rendered username in result")
@@ -498,12 +498,12 @@ func TestSecureLiquidIntegration(t *testing.T) {
 			}()
 
 			result, err := ConvertJSONToMJMLWithData(block, tc.data)
-			
+
 			if err != nil {
 				t.Errorf("Backward compatibility failed for %q: %v", tc.content, err)
 				continue
 			}
-			
+
 			if !strings.Contains(result, tc.expected) {
 				t.Errorf("Expected %q in result for %q, got: %s", tc.expected, tc.content, result)
 			}
@@ -514,18 +514,18 @@ func TestSecureLiquidIntegration(t *testing.T) {
 		// Test a more complex email structure
 		section := func() EmailBlock {
 			s := NewBaseBlock("section1", MJMLComponentMjSection)
-			
+
 			// Add text block
 			text := NewBaseBlock("text1", MJMLComponentMjText)
 			text.Content = stringPtr("<p>Dear {{ customer.firstName }},</p>")
 			textBlock := &MJTextBlock{BaseBlock: text}
-			
+
 			// Add button block
 			button := NewBaseBlock("btn1", MJMLComponentMjButton)
 			button.Attributes["href"] = "{{ action_url }}"
 			button.Content = stringPtr("View Order")
 			buttonBlock := &MJButtonBlock{BaseBlock: button}
-			
+
 			s.Children = []EmailBlock{textBlock, buttonBlock}
 			return &MJSectionBlock{BaseBlock: s}
 		}()
@@ -534,13 +534,13 @@ func TestSecureLiquidIntegration(t *testing.T) {
 			"customer": {"firstName": "Jane"},
 			"action_url": "https://shop.example.com/orders/789"
 		}`
-		
+
 		result, err := ConvertJSONToMJMLWithData(section, templateData)
-		
+
 		if err != nil {
 			t.Fatalf("Expected no error for realistic email, got: %v", err)
 		}
-		
+
 		// Verify both blocks rendered correctly
 		if !strings.Contains(result, "Jane") {
 			t.Error("Expected customer name in result")

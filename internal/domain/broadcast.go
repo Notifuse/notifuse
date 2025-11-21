@@ -898,4 +898,3 @@ func (b *Broadcast) SetTemplateForVariation(variationIndex int, template *Templa
 
 	b.TestSettings.Variations[variationIndex].Template = template
 }
-

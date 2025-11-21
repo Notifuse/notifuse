@@ -553,4 +553,3 @@ func TestBlogThemeHandler_HandleList(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 }
-

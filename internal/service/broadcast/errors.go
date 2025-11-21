@@ -26,8 +26,8 @@ const (
 	ErrCodeCircuitOpen       ErrorCode = "CIRCUIT_OPEN"
 
 	// Task related errors
-	ErrCodeTaskStateInvalid ErrorCode = "TASK_STATE_INVALID"
-	ErrCodeTaskTimeout      ErrorCode = "TASK_TIMEOUT"
+	ErrCodeTaskStateInvalid   ErrorCode = "TASK_STATE_INVALID"
+	ErrCodeTaskTimeout        ErrorCode = "TASK_TIMEOUT"
 	ErrCodeBroadcastCancelled ErrorCode = "BROADCAST_CANCELLED"
 )
 

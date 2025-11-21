@@ -11,13 +11,9 @@ import (
 	"strings"
 	"testing"
 
-
-
 	"github.com/PuerkitoBio/goquery"
 
-
 	"github.com/stretchr/testify/assert"
-
 
 	"github.com/stretchr/testify/require"
 )

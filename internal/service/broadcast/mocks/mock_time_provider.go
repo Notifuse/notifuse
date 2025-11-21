@@ -60,4 +60,4 @@ func (m *MockTimeProvider) Since(arg0 time.Time) time.Duration {
 func (mr *MockTimeProviderMockRecorder) Since(arg0 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Since", reflect.TypeOf((*MockTimeProvider)(nil).Since), arg0)
-} 
+}

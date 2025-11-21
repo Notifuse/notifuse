@@ -433,6 +433,6 @@ func setupListRepositoryTest(t *testing.T) (*listRepository, *mocks.MockWorkspac
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 
 	repo := NewListRepository(mockWorkspaceRepo).(*listRepository)
-	
+
 	return repo, mockWorkspaceRepo
 }

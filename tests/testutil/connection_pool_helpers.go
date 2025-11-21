@@ -180,12 +180,12 @@ func GetTestDatabaseConfig() *config.DatabaseConfig {
 		Prefix:   "notifuse_test",
 		SSLMode:  "disable",
 	}
-	
+
 	// Debug logging to troubleshoot connection issues
 	if os.Getenv("DEBUG_TEST_CONFIG") == "true" {
 		fmt.Printf("[DEBUG] Test DB Config: host=%s port=%d user=%s\n", cfg.Host, cfg.Port, cfg.User)
 	}
-	
+
 	return cfg
 }
 

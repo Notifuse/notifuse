@@ -156,10 +156,10 @@ func (t *TelemetryService) setIntegrationFlagsFromWorkspace(workspace *domain.Wo
 				metrics.Mailjet = true
 			case domain.EmailProviderKindPostmark:
 				metrics.Postmark = true
-		case domain.EmailProviderKindSMTP:
-			metrics.SMTP = true
-		case domain.EmailProviderKindSparkPost:
-			metrics.SparkPost = true
+			case domain.EmailProviderKindSMTP:
+				metrics.SMTP = true
+			case domain.EmailProviderKindSparkPost:
+				metrics.SparkPost = true
 			}
 		}
 	}

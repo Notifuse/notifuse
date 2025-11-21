@@ -969,12 +969,12 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			mockListService,
 			mockContactListService,
 			mockTemplateService,
-		mockWebhookRegService,
-		"secret_key",
-		&SupabaseService{},
-		&DNSVerificationService{},
-		&BlogService{},
-	)
+			mockWebhookRegService,
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
 
 		// Set up mock expectations
 		mockAuthSvc.EXPECT().
@@ -1039,12 +1039,12 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			mockListService,
 			mockContactListService,
 			mockTemplateService,
-		mockWebhookRegService,
-		"secret_key",
-		&SupabaseService{},
-		&DNSVerificationService{},
-		&BlogService{},
-	)
+			mockWebhookRegService,
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
@@ -1078,12 +1078,12 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			mockListService,
 			mockContactListService,
 			mockTemplateService,
-		mockWebhookRegService,
-		"secret_key",
-		&SupabaseService{},
-		&DNSVerificationService{},
-		&BlogService{},
-	)
+			mockWebhookRegService,
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
@@ -1126,12 +1126,12 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			mockListService,
 			mockContactListService,
 			mockTemplateService,
-		mockWebhookRegService,
-		"secret_key",
-		&SupabaseService{},
-		&DNSVerificationService{},
-		&BlogService{},
-	)
+			mockWebhookRegService,
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).
@@ -1178,12 +1178,12 @@ func TestWorkspaceService_CreateAPIKey(t *testing.T) {
 			mockListService,
 			mockContactListService,
 			mockTemplateService,
-		mockWebhookRegService,
-		"secret_key",
-		&SupabaseService{},
-		&DNSVerificationService{},
-		&BlogService{},
-	)
+			mockWebhookRegService,
+			"secret_key",
+			&SupabaseService{},
+			&DNSVerificationService{},
+			&BlogService{},
+		)
 
 		mockAuthSvc.EXPECT().
 			AuthenticateUserForWorkspace(ctx, workspaceID).

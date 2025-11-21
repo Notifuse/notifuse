@@ -447,4 +447,3 @@ func TestSettingService_SetSetting(t *testing.T) {
 		assert.Equal(t, "new_value", repo.settings["test_key"])
 	})
 }
-

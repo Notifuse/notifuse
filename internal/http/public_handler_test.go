@@ -8,22 +8,15 @@ import (
 	"net/http/httptest"
 	"testing"
 
-
-
 	"github.com/Notifuse/notifuse/internal/domain"
-
 
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 
-
 	"github.com/Notifuse/notifuse/pkg/logger"
-
 
 	"github.com/golang/mock/gomock"
 
-
 	"github.com/stretchr/testify/assert"
-
 
 	"github.com/stretchr/testify/require"
 )
@@ -357,7 +350,7 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 			method:      http.MethodPost,
 			requestBody: validRequest,
 			userAgent:   "Mozilla/5.0 (compatible; SafeLinks/1.0; +http://www.microsoft.com/safelinks)",
-			setupMock:   func() {
+			setupMock: func() {
 				// No mock expectation - service should not be called for bots
 			},
 			expectedStatusCode: http.StatusOK,
@@ -368,7 +361,7 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 			method:      http.MethodPost,
 			requestBody: validRequest,
 			userAgent:   "Proofpoint Email Security Scanner",
-			setupMock:   func() {
+			setupMock: func() {
 				// No mock expectation - service should not be called for bots
 			},
 			expectedStatusCode: http.StatusOK,

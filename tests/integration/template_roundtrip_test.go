@@ -50,15 +50,15 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 	t.Run("Roundtrip with all component types", func(t *testing.T) {
 		// Create a template with every supported MJML component type
 		allComponentsTree := createAllComponentsTree(t)
-		
+
 		// Marshal the tree to JSON for the request
 		treeJSON, err := json.Marshal(allComponentsTree)
 		require.NoError(t, err, "Failed to marshal tree")
-		
+
 		var treeMap map[string]interface{}
 		err = json.Unmarshal(treeJSON, &treeMap)
 		require.NoError(t, err, "Failed to unmarshal to map")
-		
+
 		templateID := fmt.Sprintf("rt-all-%d", time.Now().Unix())
 		template := map[string]interface{}{
 			"workspace_id": workspace.ID,
@@ -103,15 +103,15 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 	t.Run("Roundtrip with nested structure", func(t *testing.T) {
 		// Create a deeply nested template (similar to Supabase templates)
 		nestedTree := createNestedStructure(t)
-		
+
 		// Marshal the tree to JSON for the request
 		treeJSON, err := json.Marshal(nestedTree)
 		require.NoError(t, err, "Failed to marshal tree")
-		
+
 		var treeMap map[string]interface{}
 		err = json.Unmarshal(treeJSON, &treeMap)
 		require.NoError(t, err, "Failed to unmarshal to map")
-		
+
 		templateID := fmt.Sprintf("rt-nest-%d", time.Now().Unix())
 		template := map[string]interface{}{
 			"workspace_id": workspace.ID,
@@ -169,31 +169,31 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 
 		// Should be able to unmarshal all templates without error
 		assert.GreaterOrEqual(t, len(result.Templates), 2, "Should have at least 2 templates")
-		
+
 		for _, tmpl := range result.Templates {
 			assert.NotNil(t, tmpl.Email, "Template %s should have email field", tmpl.ID)
 			assert.NotNil(t, tmpl.Email.VisualEditorTree, "Template %s should have visual_editor_tree", tmpl.ID)
 		}
 	})
-	
+
 	t.Run("Production Supabase templates can be round-tripped", func(t *testing.T) {
 		// Test all production Supabase templates
 		supabaseTemplates := templates.AllSupabaseTemplates()
-		
+
 		for name, createFunc := range supabaseTemplates {
 			t.Run(name, func(t *testing.T) {
 				// Create the template structure
 				visualTree, err := createFunc()
 				require.NoError(t, err, "Failed to create %s template structure", name)
-				
+
 				// Marshal to JSON for API request
 				treeJSON, err := json.Marshal(visualTree)
 				require.NoError(t, err, "Failed to marshal tree")
-				
+
 				var treeMap map[string]interface{}
 				err = json.Unmarshal(treeJSON, &treeMap)
 				require.NoError(t, err, "Failed to unmarshal to map")
-				
+
 				templateID := fmt.Sprintf("sb-%s", name)
 				template := map[string]interface{}{
 					"workspace_id": workspace.ID,
@@ -211,7 +211,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 				// Create template via API
 				createResp, err := client.CreateTemplate(template)
 				require.NoError(t, err, "Failed to create %s template", name)
-				require.Equal(t, http.StatusCreated, createResp.StatusCode, 
+				require.Equal(t, http.StatusCreated, createResp.StatusCode,
 					"Template creation should return 201 for %s", name)
 				createResp.Body.Close()
 
@@ -232,9 +232,9 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 
 				// Verify structure
 				assert.NotNil(t, result.Template.Email, "Template %s should have email field", name)
-				assert.NotNil(t, result.Template.Email.VisualEditorTree, 
+				assert.NotNil(t, result.Template.Email.VisualEditorTree,
 					"Template %s should have visual_editor_tree", name)
-				assert.Equal(t, notifuse_mjml.MJMLComponentMjml, 
+				assert.Equal(t, notifuse_mjml.MJMLComponentMjml,
 					result.Template.Email.VisualEditorTree.GetType(),
 					"Template %s root should be mjml type", name)
 			})
@@ -526,4 +526,3 @@ func createNestedStructure(t *testing.T) notifuse_mjml.EmailBlock {
 	require.NoError(t, err, "Failed to unmarshal nested structure")
 	return block
 }
-

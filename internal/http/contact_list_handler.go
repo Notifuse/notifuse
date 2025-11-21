@@ -2,23 +2,23 @@ package http
 
 import (
 	"encoding/json"
-	"net/http"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"net/http"
 )
 
 type ContactListHandler struct {
-	service   domain.ContactListService
-	logger    logger.Logger
+	service      domain.ContactListService
+	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
 }
 
 func NewContactListHandler(service domain.ContactListService, getJWTSecret func() ([]byte, error), logger logger.Logger) *ContactListHandler {
 	return &ContactListHandler{
-		service:   service,
+		service:      service,
 		getJWTSecret: getJWTSecret,
-		logger:    logger,
+		logger:       logger,
 	}
 }
 

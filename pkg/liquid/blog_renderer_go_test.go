@@ -553,4 +553,3 @@ func TestRenderBlogTemplateGo(t *testing.T) {
 		assert.Contains(t, html, "Site")
 	})
 }
-

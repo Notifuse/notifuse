@@ -416,11 +416,14 @@ func TestUserService_GetUserByEmail(t *testing.T) {
 	t.Run("user not found", func(t *testing.T) {
 		mockRepo.EXPECT().
 			GetUserByEmail(gomock.Any(), email).
-			Return(nil, errors.New("user not found"))
+			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
 
 		result, err := service.GetUserByEmail(context.Background(), email)
 
 		require.Error(t, err)
 		require.Nil(t, result)
+		// Verify it's the correct error type
+		_, ok := err.(*domain.ErrUserNotFound)
+		require.True(t, ok, "Expected ErrUserNotFound error type")
 	})
 }

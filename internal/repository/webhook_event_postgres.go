@@ -80,21 +80,21 @@ func (r *webhookEventRepository) StoreEvents(ctx context.Context, workspaceID st
 				paramOffset+6, paramOffset+7, paramOffset+8, paramOffset+9, paramOffset+10,
 				paramOffset+11, paramOffset+12, paramOffset+13)
 
-		args = append(args,
-			event.ID,
-			event.Type,
-			event.Source,
-			event.IntegrationID,
-			event.RecipientEmail,
-			event.MessageID,
-			event.Timestamp,
-			event.RawPayload,
-			event.BounceType,
-			event.BounceCategory,
-			event.BounceDiagnostic,
-			event.ComplaintFeedbackType,
-			now,
-		)
+			args = append(args,
+				event.ID,
+				event.Type,
+				event.Source,
+				event.IntegrationID,
+				event.RecipientEmail,
+				event.MessageID,
+				event.Timestamp,
+				event.RawPayload,
+				event.BounceType,
+				event.BounceCategory,
+				event.BounceDiagnostic,
+				event.ComplaintFeedbackType,
+				now,
+			)
 		}
 
 		// Build and execute the SQL for this batch

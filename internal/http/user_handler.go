@@ -31,7 +31,7 @@ type UserHandler struct {
 	userService      UserServiceInterface
 	workspaceService domain.WorkspaceServiceInterface
 	config           *config.Config
-	getJWTSecret func() ([]byte, error)
+	getJWTSecret     func() ([]byte, error)
 	logger           logger.Logger
 	tracer           tracing.Tracer
 }
@@ -51,7 +51,7 @@ func NewUserHandler(userService UserServiceInterface, workspaceService domain.Wo
 		userService:      userService,
 		workspaceService: workspaceService,
 		config:           cfg,
-		getJWTSecret: getJWTSecret,
+		getJWTSecret:     getJWTSecret,
 		logger:           logger,
 		tracer:           tracing.GetTracer(),
 	}

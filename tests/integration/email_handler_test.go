@@ -442,7 +442,7 @@ func testBotDetectionClickTracking(t *testing.T, suite *testutil.IntegrationTest
 
 		req, err := http.NewRequest(http.MethodGet, visitURL, nil)
 		require.NoError(t, err)
-		
+
 		// Set a known bot user-agent
 		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)")
 
@@ -477,7 +477,7 @@ func testBotDetectionClickTracking(t *testing.T, suite *testutil.IntegrationTest
 
 		req, err := http.NewRequest(http.MethodGet, visitURL, nil)
 		require.NoError(t, err)
-		
+
 		// Use a normal browser user-agent (not a bot)
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0")
 
@@ -508,7 +508,7 @@ func testBotDetectionClickTracking(t *testing.T, suite *testutil.IntegrationTest
 
 		req, err := http.NewRequest(http.MethodGet, visitURL, nil)
 		require.NoError(t, err)
-		
+
 		// Use a normal browser user-agent
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 Chrome/120.0.0.0")
 
@@ -538,7 +538,7 @@ func testBotDetectionClickTracking(t *testing.T, suite *testutil.IntegrationTest
 
 		req, err := http.NewRequest(http.MethodGet, visitURL, nil)
 		require.NoError(t, err)
-		
+
 		// Don't set User-Agent header (will be empty)
 
 		resp, err := client.Do(req)
@@ -635,7 +635,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 
 		req, err := http.NewRequest(http.MethodGet, openURL, nil)
 		require.NoError(t, err)
-		
+
 		// Set a known bot user-agent
 		req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Googlebot/2.1)")
 
@@ -651,7 +651,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 		body, err := io.ReadAll(resp.Body)
 		require.NoError(t, err)
 		assert.True(t, len(body) > 0)
-		
+
 		expectedSignature := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}
 		assert.Equal(t, expectedSignature, body[:8])
 	})
@@ -671,7 +671,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 
 		req, err := http.NewRequest(http.MethodGet, openURL, nil)
 		require.NoError(t, err)
-		
+
 		// Use a normal browser user-agent
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0.0.0")
 
@@ -699,7 +699,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 
 		req, err := http.NewRequest(http.MethodGet, openURL, nil)
 		require.NoError(t, err)
-		
+
 		// Use a normal browser user-agent
 		req.Header.Set("User-Agent", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) Safari/605.1.15")
 
@@ -726,7 +726,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 
 		req, err := http.NewRequest(http.MethodGet, openURL, nil)
 		require.NoError(t, err)
-		
+
 		// HeadlessChrome user-agent
 		req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 HeadlessChrome/120.0.0.0")
 

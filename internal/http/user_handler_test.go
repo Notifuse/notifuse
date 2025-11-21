@@ -10,15 +10,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/Notifuse/notifuse/config"
-	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/service"
-
 
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
@@ -460,7 +459,7 @@ func TestUserHandler_Logout(t *testing.T) {
 		handler.Logout(rec, req)
 
 		assert.Equal(t, http.StatusOK, rec.Code)
-		
+
 		var response map[string]string
 		err := json.NewDecoder(rec.Body).Decode(&response)
 		require.NoError(t, err)
@@ -475,7 +474,7 @@ func TestUserHandler_Logout(t *testing.T) {
 		handler.Logout(rec, req)
 
 		assert.Equal(t, http.StatusUnauthorized, rec.Code)
-		
+
 		var response map[string]string
 		err := json.NewDecoder(rec.Body).Decode(&response)
 		require.NoError(t, err)
@@ -497,7 +496,7 @@ func TestUserHandler_Logout(t *testing.T) {
 		handler.Logout(rec, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		
+
 		var response map[string]string
 		err := json.NewDecoder(rec.Body).Decode(&response)
 		require.NoError(t, err)
