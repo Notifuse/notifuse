@@ -982,6 +982,18 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 
 	// Add post data (for post pages)
 	if req.Post != nil {
+		// Convert authors to maps for liquidgo compatibility
+		authorsData := make([]map[string]interface{}, len(req.Post.Settings.Authors))
+		for i, author := range req.Post.Settings.Authors {
+			authorMap := map[string]interface{}{
+				"name": author.Name,
+			}
+			if author.AvatarURL != "" {
+				authorMap["avatar_url"] = author.AvatarURL
+			}
+			authorsData[i] = authorMap
+		}
+
 		postData := MapOfAny{
 			"id":                   req.Post.ID,
 			"slug":                 req.Post.Slug,
@@ -992,7 +1004,7 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 			"title":                req.Post.Settings.Title,
 			"excerpt":              req.Post.Settings.Excerpt,
 			"featured_image_url":   req.Post.Settings.FeaturedImageURL,
-			"authors":              req.Post.Settings.Authors,
+			"authors":              authorsData,
 			"reading_time_minutes": req.Post.Settings.ReadingTimeMinutes,
 		}
 
@@ -1063,6 +1075,18 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 
 		postsData := make([]map[string]interface{}, 0)
 		for _, post := range req.Posts {
+			// Convert authors to maps for liquidgo compatibility
+			authorsData := make([]map[string]interface{}, len(post.Settings.Authors))
+			for i, author := range post.Settings.Authors {
+				authorMap := map[string]interface{}{
+					"name": author.Name,
+				}
+				if author.AvatarURL != "" {
+					authorMap["avatar_url"] = author.AvatarURL
+				}
+				authorsData[i] = authorMap
+			}
+
 			postData := map[string]interface{}{
 				"id":                   post.ID,
 				"slug":                 post.Slug,
@@ -1071,7 +1095,7 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 				"title":                post.Settings.Title,
 				"excerpt":              post.Settings.Excerpt,
 				"featured_image_url":   post.Settings.FeaturedImageURL,
-				"authors":              post.Settings.Authors,
+				"authors":              authorsData,
 				"reading_time_minutes": post.Settings.ReadingTimeMinutes,
 			}
 

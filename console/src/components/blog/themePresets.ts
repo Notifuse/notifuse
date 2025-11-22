@@ -299,34 +299,57 @@ const defaultTheme: ThemePreset = {
         </div>
       {%- endif -%}
 
-      <h1 class="post-title">{{ post.title }}</h1>
-
-      <div class="post-meta">
-        <div class="author-info">
-          <div class="author-avatars">
-            {%- for author in post.authors -%}
-              {%- if author.avatar_url -%}
-                <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="author-avatar" />
-              {%- endif -%}
-            {%- endfor -%}
-          </div>
-          <div>
-            <div class="author-names">
-              {%- for author in post.authors -%}
-                {{ author.name }}{% unless forloop.last %}, {% endunless %}
-              {%- endfor -%}
+      <div class="post-header-layout">
+        {%- comment -%} Featured Image Column (Left) {%- endcomment -%}
+        {%- if post.featured_image_url -%}
+          <div class="post-featured-image-column">
+            <div class="post-featured-image">
+              <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" />
             </div>
-            <div class="post-date">
-              {%- if post.published_at -%}
-                {{ post.published_at | date: "%b %d, %Y" }}
-              {%- endif -%}
-              {%- if post.reading_time_minutes -%}
-                · {{ post.reading_time_minutes }} min read
-              {%- endif -%}
+          </div>
+        {%- endif -%}
+
+        {%- comment -%} Title and Meta Column (Right) {%- endcomment -%}
+        <div class="post-header-content">
+          <h1 class="post-title">{{ post.title }}</h1>
+
+          <div class="post-meta">
+            <div class="author-info">
+              <div class="author-avatars">
+                {%- for author in post.authors -%}
+                  {%- if author.avatar_url -%}
+                    <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="author-avatar" />
+                  {%- endif -%}
+                {%- endfor -%}
+              </div>
+              <div>
+                <div class="author-names">
+                  {%- for author in post.authors -%}
+                    {{ author.name }}{% unless forloop.last %}, {% endunless %}
+                  {%- endfor -%}
+                </div>
+                <div class="post-date">
+                  {%- if post.published_at -%}
+                    {{ post.published_at | date: "%b %d, %Y" }}
+                  {%- endif -%}
+                  {%- if post.reading_time_minutes -%}
+                    · {{ post.reading_time_minutes }} min read
+                  {%- endif -%}
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {%- comment -%} Featured Image for Mobile (below meta, before content) {%- endcomment -%}
+      {%- if post.featured_image_url -%}
+        <div class="post-featured-image-mobile">
+          <div class="post-featured-image">
+            <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" />
+          </div>
+        </div>
+      {%- endif -%}
     </header>
 
     {%- comment -%} Post Content with TOC Sidebar {%- endcomment -%}
@@ -344,12 +367,6 @@ const defaultTheme: ThemePreset = {
         </nav>
       {%- endif -%}
       <div class="post-content">
-        {%- comment -%} Featured Image {%- endcomment -%}
-        {%- if post.featured_image_url -%}
-          <div class="post-featured-image">
-            <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" />
-          </div>
-        {%- endif -%}
         {{ post.content }}
       </div>
     </div>
@@ -807,8 +824,8 @@ const defaultTheme: ThemePreset = {
   /* 20px - Hero subtitle */
   --featured-title-size: 1.75rem;
   /* 28px - Featured post title */
-  --featured-excerpt-size: 1.125rem;
-  /* 18px - Featured post excerpt */
+  --featured-excerpt-size: 0.9375rem;
+  /* 15px - Featured post excerpt */
   --post-card-title-size: 1.5rem;
   /* 24px - Post card title */
   --post-excerpt-size: 0.95rem;
@@ -1276,6 +1293,8 @@ h3 {
   border-radius: 50%;
   border: 2px solid var(--color-container);
   margin-left: calc(var(--spacing-xs) * -1);
+  display: block;
+  object-fit: cover;
 }
 
 .author-avatar:first-child {
@@ -1399,6 +1418,24 @@ h3 {
   margin-bottom: var(--spacing-md);
 }
 
+/* Post Header Layout - Two Column (Featured Image Left, Title+Meta Right) */
+.post-header-layout {
+  display: flex;
+  gap: var(--spacing-3xl);
+  align-items: flex-start;
+}
+
+.post-featured-image-column {
+  flex-shrink: 0;
+  width: 240px;
+  display: block;
+}
+
+.post-header-content {
+  flex: 1;
+  min-width: 0;
+}
+
 .post-title {
   font-size: 2.5rem;
   font-weight: var(--font-weight-bold);
@@ -1410,12 +1447,10 @@ h3 {
 
 .post-meta {
   padding-top: var(--spacing-lg);
-  border-top: var(--input-border-width) solid var(--color-border);
 }
 
 /* Post Featured Image */
 .post-featured-image {
-  margin-bottom: var(--spacing-3xl);
   border-radius: var(--border-radius-lg);
   overflow: hidden;
 }
@@ -1424,6 +1459,13 @@ h3 {
   width: 100%;
   height: auto;
   display: block;
+}
+
+/* Mobile Featured Image (shown below meta, before content) */
+.post-featured-image-mobile {
+  display: none;
+  margin-top: var(--spacing-xl);
+  margin-bottom: var(--spacing-3xl);
 }
 
 /* Post Content Wrapper - contains TOC sidebar and content */
@@ -1598,6 +1640,107 @@ h3 {
   padding: 0.125rem 0.375rem;
   border-radius: 3px;
   font-size: 0.875em;
+}
+
+/* Syntax Highlighting - VS Code Dark Theme Colors */
+.post-content .hljs-comment,
+.post-content .hljs-quote {
+  color: #6a9955;
+  font-style: italic;
+}
+
+.post-content .hljs-keyword,
+.post-content .hljs-selector-tag,
+.post-content .hljs-literal,
+.post-content .hljs-section,
+.post-content .hljs-link {
+  color: #569cd6;
+}
+
+.post-content .hljs-string,
+.post-content .hljs-regexp {
+  color: #ce9178;
+}
+
+.post-content .hljs-number {
+  color: #b5cea8;
+}
+
+.post-content .hljs-built_in,
+.post-content .hljs-builtin-name,
+.post-content .hljs-class .hljs-title {
+  color: #4ec9b0;
+}
+
+.post-content .hljs-function .hljs-title,
+.post-content .hljs-title.function_ {
+  color: #dcdcaa;
+}
+
+.post-content .hljs-attr,
+.post-content .hljs-attribute,
+.post-content .hljs-property {
+  color: #9cdcfe;
+}
+
+.post-content .hljs-variable,
+.post-content .hljs-template-variable {
+  color: #9cdcfe;
+}
+
+.post-content .hljs-type,
+.post-content .hljs-class {
+  color: #4ec9b0;
+}
+
+.post-content .hljs-tag,
+.post-content .hljs-name {
+  color: #569cd6;
+}
+
+.post-content .hljs-punctuation {
+  color: #d4d4d4;
+}
+
+.post-content .hljs-meta,
+.post-content .hljs-meta-keyword {
+  color: #569cd6;
+}
+
+.post-content .hljs-meta-string {
+  color: #ce9178;
+}
+
+.post-content .hljs-title,
+.post-content .hljs-symbol,
+.post-content .hljs-bullet,
+.post-content .hljs-emphasis {
+  color: #dcdcaa;
+}
+
+.post-content .hljs-selector-id,
+.post-content .hljs-selector-class,
+.post-content .hljs-selector-attr,
+.post-content .hljs-selector-pseudo {
+  color: #d7ba7d;
+}
+
+.post-content .hljs-addition {
+  background-color: #144212;
+  color: #b5cea8;
+}
+
+.post-content .hljs-deletion {
+  background-color: #660000;
+  color: #f48771;
+}
+
+.post-content .hljs-strong {
+  font-weight: bold;
+}
+
+.post-content .hljs-emphasis {
+  font-style: italic;
 }
 
 /* Post Tags */
@@ -1895,6 +2038,20 @@ h3 {
     display: none; /* Keep hidden on mobile */
   }
 
+  /* Post Header Mobile Layout */
+  .post-header-layout {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .post-featured-image-column {
+    display: none; /* Hide desktop featured image column on mobile */
+  }
+
+  .post-featured-image-mobile {
+    display: block; /* Show mobile featured image */
+  }
+
   .post-title {
     font-size: 1.875rem;
   }
@@ -1938,8 +2095,8 @@ h3 {
   }
 }
 
-/* Show TOC sidebar on wide screens (>= 1400px) */
-@media (min-width: 1400px) {
+/* Show TOC sidebar on wide screens (>= 1024px) */
+@media (min-width: 1024px) {
   .post-article {
     max-width: 1200px; /* Wider container to accommodate sidebar */
   }

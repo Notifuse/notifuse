@@ -55,10 +55,6 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   // Blog content state (Tiptap JSON)
   const [blogContent, setBlogContent] = useState<any>(null)
 
-  // Auto-save state
-  const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
-
   // Template ID for new posts (generated on mount)
   // Generate 32-character ID by removing hyphens from UUID (UUIDs are 36 chars with hyphens, 32 without)
   const [newTemplateId] = useState<string>(() =>
@@ -103,13 +99,10 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
         if (isContentEmpty(content)) {
           // Remove any existing draft if content becomes empty
           localStorage.removeItem(draftKey)
-          setLastSaved(null)
-          setIsSaving(false)
           return
         }
 
         try {
-          setIsSaving(true)
           localStorage.setItem(
             draftKey,
             JSON.stringify({
@@ -117,11 +110,8 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
               savedAt: new Date().toISOString()
             })
           )
-          setLastSaved(new Date())
-          setIsSaving(false)
         } catch (e) {
           console.error('Failed to save draft:', e)
-          setIsSaving(false)
         }
       }, 1000),
     [draftKey]
@@ -139,7 +129,6 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
 
     // Only save if content is not empty
     if (!isContentEmpty(json)) {
-      setIsSaving(true)
       debouncedLocalSave(json)
     }
 
@@ -192,23 +181,33 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
 
   // Fetch template for editing existing posts
   const { data: templateData, isLoading: templateLoading } = useQuery({
-    queryKey: ['template', workspace.id, post?.settings.template.template_id],
+    queryKey: [
+      'template',
+      workspace.id,
+      post?.settings.template.template_id,
+      post?.settings.template.template_version
+    ],
     queryFn: () =>
       templatesApi.get({
         workspace_id: workspace.id,
         id: post!.settings.template.template_id,
         version: post!.settings.template.template_version
       }),
-    enabled: isEditMode && !!post && open
+    enabled: isEditMode && !!post && open,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true // Refetch when drawer opens
   })
 
-  // Load form values and blog content
+  // Reset form and content when drawer opens or post changes
   useEffect(() => {
     if (open) {
       // Reset loading state when drawer opens
       setLoading(false)
 
       if (post) {
+        // Clear any localStorage draft for this post - we want to load from DB, not stale drafts
+        localStorage.removeItem(draftKey)
+
         // Populate form with existing post data
         form.setFieldsValue({
           title: post.settings.title,
@@ -224,10 +223,8 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
         // Set current slug
         setCurrentSlug(post.slug)
 
-        // Load template content
-        if (templateData?.template?.web?.content) {
-          setBlogContent(templateData.template.web.content)
-        }
+        // Reset blog content to avoid showing stale data from previous post
+        setBlogContent(null)
       } else {
         // New post - try to load from localStorage
         const savedDraft = localStorage.getItem(draftKey)
@@ -258,14 +255,39 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
         setCurrentSlug('')
       }
     }
-  }, [open, post, form, templateData, draftKey, initialCategoryId, message, modal])
+  }, [open, post?.id, form, draftKey, initialCategoryId, message, modal])
+
+  // Load template content when template data is ready
+  useEffect(() => {
+    if (!open || !post) {
+      return
+    }
+
+    // Only set content when template data matches the current post exactly
+    if (
+      !templateLoading &&
+      templateData?.template?.web?.content &&
+      templateData.template.id === post.settings.template.template_id &&
+      templateData.template.version === post.settings.template.template_version
+    ) {
+      setBlogContent(templateData.template.web.content)
+    } else if (!templateLoading && post && !templateData?.template?.web?.content) {
+      // Template failed to load or doesn't exist - ensure content is cleared
+      setBlogContent(null)
+    }
+  }, [
+    open,
+    post?.id,
+    templateLoading,
+    templateData,
+    post?.settings.template.template_id,
+    post?.settings.template.template_version
+  ])
 
   const createMutation = useMutation({
     mutationFn: async (values: any) => {
-      setIsSaving(true)
-
       // Get HTML and plain text from content
-      const html = jsonToHtml(blogContent)
+      const html = editorRef.current?.getHTML() || jsonToHtml(blogContent)
       const plainText = extractTextContent(blogContent)
 
       // First, create the template
@@ -301,24 +323,19 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     onSuccess: () => {
       message.success('Post created successfully')
       localStorage.removeItem(draftKey)
-      setLastSaved(new Date())
-      setIsSaving(false)
       queryClient.invalidateQueries({ queryKey: ['blog-posts', workspace.id] })
       handleClose()
     },
     onError: (error: any) => {
       message.error(`Failed to create post: ${error.message}`)
       setLoading(false)
-      setIsSaving(false)
     }
   })
 
   const updateMutation = useMutation({
     mutationFn: async (values: any) => {
-      setIsSaving(true)
-
       // Get HTML and plain text from content
-      const html = jsonToHtml(blogContent)
+      const html = editorRef.current?.getHTML() || jsonToHtml(blogContent)
       const plainText = extractTextContent(blogContent)
 
       // First, update the template (backend creates new version)
@@ -361,15 +378,12 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     onSuccess: () => {
       message.success('Post updated successfully')
       localStorage.removeItem(draftKey)
-      setLastSaved(new Date())
-      setIsSaving(false)
       queryClient.invalidateQueries({ queryKey: ['blog-posts', workspace.id] })
       handleClose()
     },
     onError: (error: any) => {
       message.error(`Failed to update post: ${error.message}`)
       setLoading(false)
-      setIsSaving(false)
     }
   })
 
@@ -435,8 +449,6 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   }
 
   const onFinish = (values: any) => {
-    console.log('values', values)
-
     setLoading(true)
 
     // Filter out empty authors
@@ -604,7 +616,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
                   <Input placeholder="Post title" onChange={handleTitleChange} size="large" />
                 </Form.Item>
 
-                {templateLoading ? (
+                {templateLoading || (post && !blogContent) ? (
                   <div className="flex items-center justify-center h-full">
                     <Space direction="vertical" align="center">
                       <div>Loading template...</div>
@@ -612,6 +624,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
                   </div>
                 ) : (
                   <NotifuseEditor
+                    key={`editor-${post?.id || 'new'}-${post?.settings.template.template_id}-${post?.settings.template.template_version || 0}-${blogContent ? 'loaded' : 'empty'}`}
                     ref={editorRef}
                     placeholder="Start writing your blog post..."
                     initialContent={blogContent ? jsonToHtml(blogContent) : undefined}

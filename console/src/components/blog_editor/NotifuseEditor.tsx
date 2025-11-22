@@ -85,6 +85,162 @@ lowlight.register('yaml', yaml)
 lowlight.register('markdown', markdown)
 
 /**
+ * Escape HTML special characters
+ */
+function escapeHtml(text: string): string {
+  const map: { [key: string]: string } = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  }
+  return String(text).replace(/[&<>"']/g, (m) => map[m])
+}
+
+/**
+ * Convert lowlight hast tree to HTML string
+ * Recursively processes the hast tree nodes and converts them to HTML
+ * Based on how @tiptap/extension-code-block-lowlight handles the hast tree
+ */
+function hastToHtml(node: any): string {
+  // Handle text nodes
+  if (node.type === 'text') {
+    return escapeHtml(node.value || '')
+  }
+
+  // Handle element nodes
+  if (node.type === 'element') {
+    const tag = node.tagName || 'span'
+    const attrs: string[] = []
+
+    // Build attributes string
+    if (node.properties) {
+      if (node.properties.className) {
+        const classes = Array.isArray(node.properties.className)
+          ? node.properties.className.join(' ')
+          : node.properties.className
+        attrs.push(`class="${escapeHtml(classes)}"`)
+      }
+      // Add other properties if needed
+      Object.keys(node.properties).forEach((key) => {
+        if (key !== 'className' && node.properties[key]) {
+          attrs.push(`${key}="${escapeHtml(String(node.properties[key]))}"`)
+        }
+      })
+    }
+
+    const attrsStr = attrs.length > 0 ? ' ' + attrs.join(' ') : ''
+
+    // Process children
+    const children = node.children || []
+    const childrenHtml = children.map((child: any) => hastToHtml(child)).join('')
+
+    return `<${tag}${attrsStr}>${childrenHtml}</${tag}>`
+  }
+
+  // Handle root nodes or unknown types - process children
+  if (node.children) {
+    return node.children.map((child: any) => hastToHtml(child)).join('')
+  }
+
+  return ''
+}
+
+/**
+ * Post-process HTML to add syntax highlighting to code blocks
+ */
+function addSyntaxHighlightingToHTML(html: string, lowlight: any): string {
+  console.log('[addSyntaxHighlightingToHTML] Starting post-processing')
+  console.log('[addSyntaxHighlightingToHTML] Input HTML length:', html.length)
+  console.log('[addSyntaxHighlightingToHTML] Lowlight instance:', lowlight)
+
+  // Create a temporary DOM element to parse the HTML
+  const tempDiv = document.createElement('div')
+  tempDiv.innerHTML = html
+
+  // Find all code blocks with language classes
+  const codeBlocks = tempDiv.querySelectorAll('pre code[class*="language-"]')
+  console.log('[addSyntaxHighlightingToHTML] Found code blocks:', codeBlocks.length)
+
+  codeBlocks.forEach((codeEl, index) => {
+    const className = codeEl.className || ''
+    console.log(`[addSyntaxHighlightingToHTML] Code block ${index} className:`, className)
+
+    const languageMatch = className.match(/language-(\w+)/)
+
+    if (languageMatch) {
+      const language = languageMatch[1]
+      const code = codeEl.textContent || ''
+      console.log(`[addSyntaxHighlightingToHTML] Code block ${index} language:`, language)
+      console.log(`[addSyntaxHighlightingToHTML] Code block ${index} text length:`, code.length)
+
+      // Skip if it's plaintext or already has highlighting
+      if (language === 'plaintext' || codeEl.querySelector('span')) {
+        console.log(
+          `[addSyntaxHighlightingToHTML] Code block ${index} skipped (plaintext or already highlighted)`
+        )
+        return
+      }
+
+      try {
+        // Highlight the code using lowlight
+        console.log(`[addSyntaxHighlightingToHTML] Attempting to highlight code block ${index}...`)
+        console.log(`[addSyntaxHighlightingToHTML] About to call lowlight.highlight with:`, {
+          language,
+          codeLength: code.length,
+          lowlightType: typeof lowlight,
+          hasHighlightMethod: typeof lowlight.highlight
+        })
+
+        const result = lowlight.highlight(language, code)
+
+        console.log(`[addSyntaxHighlightingToHTML] Highlight result for block ${index}:`, result)
+        console.log(`[addSyntaxHighlightingToHTML] Result type:`, typeof result)
+        console.log(`[addSyntaxHighlightingToHTML] Result has children:`, !!result?.children)
+        console.log(`[addSyntaxHighlightingToHTML] Children count:`, result?.children?.length)
+
+        if (result && (result.children || result.value)) {
+          // Convert hast tree to HTML
+          // lowlight v3 uses .children, v1 used .value
+          const highlightedHtml = result.children ? hastToHtml(result) : result.value
+          console.log(
+            `[addSyntaxHighlightingToHTML] Generated HTML length:`,
+            highlightedHtml.length
+          )
+
+          // Replace the plain text with highlighted HTML
+          console.log(`[addSyntaxHighlightingToHTML] Setting innerHTML for block ${index}`)
+          codeEl.innerHTML = highlightedHtml
+          console.log(`[addSyntaxHighlightingToHTML] Successfully highlighted code block ${index}`)
+        } else {
+          console.warn(
+            `[addSyntaxHighlightingToHTML] No result.children or result.value returned for block ${index}`
+          )
+        }
+      } catch (error) {
+        // If highlighting fails, leave the plain text
+        console.error(
+          `[addSyntaxHighlightingToHTML] ERROR - Failed to highlight code block ${index} with language ${language}:`,
+          error
+        )
+        console.error(
+          `[addSyntaxHighlightingToHTML] Error stack:`,
+          error instanceof Error ? error.stack : 'N/A'
+        )
+      }
+    } else {
+      console.log(`[addSyntaxHighlightingToHTML] Code block ${index} has no language match`)
+    }
+  })
+
+  console.log('[addSyntaxHighlightingToHTML] Post-processing complete')
+  console.log('[addSyntaxHighlightingToHTML] Output HTML length:', tempDiv.innerHTML.length)
+
+  return tempDiv.innerHTML
+}
+
+/**
  * Ref API for NotifuseEditor - allows parent components to retrieve content on-demand
  */
 export interface NotifuseEditorRef {
@@ -325,7 +481,12 @@ export const EditorProvider = forwardRef<NotifuseEditorRef, EditorProviderProps>
     ref,
     () => ({
       getJSON: () => editor?.getJSON() ?? null,
-      getHTML: () => editor?.getHTML() ?? '',
+      getHTML: () => {
+        if (!editor) return ''
+        const html = editor.getHTML()
+        // Post-process HTML to add syntax highlighting
+        return addSyntaxHighlightingToHTML(html, lowlight)
+      },
       getCSS: () => generateBlogPostCSS(styleConfig),
       undo: () => editor?.chain().focus().undo().run(),
       redo: () => editor?.chain().focus().redo().run(),
