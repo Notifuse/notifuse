@@ -712,6 +712,7 @@ func (a *App) InitServices() error {
 		a.blogThemeRepo,
 		a.workspaceRepo,
 		a.listRepo,
+		a.templateRepo,
 		a.authService,
 		a.cache,
 	)

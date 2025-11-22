@@ -183,6 +183,21 @@ func (mr *MockBlogServiceMockRecorder) GetPostBySlug(arg0, arg1 interface{}) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostBySlug", reflect.TypeOf((*MockBlogService)(nil).GetPostBySlug), arg0, arg1)
 }
 
+// GetPublicCategoryBySlug mocks base method.
+func (m *MockBlogService) GetPublicCategoryBySlug(arg0 context.Context, arg1 string) (*domain.BlogCategory, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetPublicCategoryBySlug", arg0, arg1)
+	ret0, _ := ret[0].(*domain.BlogCategory)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetPublicCategoryBySlug indicates an expected call of GetPublicCategoryBySlug.
+func (mr *MockBlogServiceMockRecorder) GetPublicCategoryBySlug(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPublicCategoryBySlug", reflect.TypeOf((*MockBlogService)(nil).GetPublicCategoryBySlug), arg0, arg1)
+}
+
 // GetPublicPostByCategoryAndSlug mocks base method.
 func (m *MockBlogService) GetPublicPostByCategoryAndSlug(arg0 context.Context, arg1, arg2 string) (*domain.BlogPost, error) {
 	m.ctrl.T.Helper()

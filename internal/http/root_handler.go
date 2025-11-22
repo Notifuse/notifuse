@@ -238,8 +238,8 @@ func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspac
 	// Handle /{category-slug} - category page
 	if len(parts) == 1 && parts[0] != "" {
 		categorySlug := parts[0]
-		// Try to get the category
-		category, err := h.blogService.GetCategoryBySlug(ctx, categorySlug)
+		// Try to get the category (public access, no authentication required)
+		category, err := h.blogService.GetPublicCategoryBySlug(ctx, categorySlug)
 		if err == nil && category != nil {
 			h.serveBlogCategory(w, r, workspace, categorySlug)
 			return
@@ -251,9 +251,9 @@ func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspac
 		categorySlug := parts[0]
 		postSlug := parts[1]
 
-		// Try to get the post
-		post, err := h.blogService.GetPostByCategoryAndSlug(ctx, categorySlug, postSlug)
-		if err == nil && post != nil && post.IsPublished() {
+		// Try to get the post (public access, no authentication required)
+		post, err := h.blogService.GetPublicPostByCategoryAndSlug(ctx, categorySlug, postSlug)
+		if err == nil && post != nil {
 			h.serveBlogPost(w, r, workspace, post)
 			return
 		}

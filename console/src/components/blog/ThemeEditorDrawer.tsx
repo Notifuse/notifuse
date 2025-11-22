@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Drawer, Button, Input, App, Modal, Space, Tabs } from 'antd'
+import { Drawer, Button, Input, App, Modal, Space, Tabs, Segmented } from 'antd'
 import { ExclamationCircleOutlined } from '@ant-design/icons'
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
 import Editor from '@monaco-editor/react'
@@ -65,6 +65,7 @@ export function ThemeEditorDrawer({
   const [showRestorePrompt, setShowRestorePrompt] = useState(false)
   const [showSaveModal, setShowSaveModal] = useState(false)
   const [previewPage, setPreviewPage] = useState<'home' | 'category' | 'post'>('home')
+  const [isFullscreen, setIsFullscreen] = useState(false)
   const saveTimeoutRef = useRef<NodeJS.Timeout>()
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
 
@@ -317,76 +318,93 @@ export function ThemeEditorDrawer({
         closable={false}
         styles={{ body: { padding: 0, height: 'calc(100vh - 55px)' } }}
       >
-        <PanelGroup direction="horizontal">
+        <PanelGroup direction="horizontal" key={isFullscreen ? 'fullscreen' : 'split'}>
           {/* Left: File Editor */}
-          <Panel defaultSize={leftPanelSize} minSize={25} maxSize={80}>
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-              {/* File Tabs */}
-              <Tabs
-                activeKey={selectedFile}
-                onChange={(key) => setSelectedFile(key as keyof BlogThemeFiles)}
-                type="card"
-                size="small"
-                style={{
-                  height: 'calc(100vh - 110px)',
-                  display: 'flex',
-                  flexDirection: 'column'
-                }}
-                tabBarStyle={{ margin: 0 }}
-                items={THEME_FILES.map((file) => ({
-                  key: file.key,
-                  label: file.label,
-                  children: (
-                    <div
-                      style={{
-                        height: 'calc(100vh - 155px)',
-                        display: 'flex',
-                        flexDirection: 'column'
-                      }}
-                    >
-                      <div style={{ flex: 1, minHeight: 0 }}>
-                        <Editor
-                          height="100%"
-                          language={file.key === 'styles.css' ? 'css' : 'html'}
-                          value={files[file.key]}
-                          onChange={handleEditorChange}
-                          onMount={handleEditorDidMount}
-                          theme="vs-light"
-                          options={{
-                            minimap: { enabled: false },
-                            fontSize: 14,
-                            lineNumbers: 'on',
-                            scrollBeyondLastLine: false,
-                            wordWrap: 'on',
-                            automaticLayout: true,
-                            tabSize: 2
+          {!isFullscreen && (
+            <>
+              <Panel defaultSize={leftPanelSize} minSize={25} maxSize={80}>
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  {/* File Tabs */}
+                  <Tabs
+                    activeKey={selectedFile}
+                    onChange={(key) => setSelectedFile(key as keyof BlogThemeFiles)}
+                    type="card"
+                    size="small"
+                    style={{
+                      height: 'calc(100vh - 110px)',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}
+                    tabBarStyle={{ margin: 0 }}
+                    items={THEME_FILES.map((file) => ({
+                      key: file.key,
+                      label: file.label,
+                      children: (
+                        <div
+                          style={{
+                            height: 'calc(100vh - 155px)',
+                            display: 'flex',
+                            flexDirection: 'column'
                           }}
-                        />
-                      </div>
-                    </div>
-                  )
-                }))}
-              />
-            </div>
-          </Panel>
+                        >
+                          <div style={{ flex: 1, minHeight: 0 }}>
+                            <Editor
+                              height="100%"
+                              language={file.key === 'styles.css' ? 'css' : 'html'}
+                              value={files[file.key]}
+                              onChange={handleEditorChange}
+                              onMount={handleEditorDidMount}
+                              theme="vs-light"
+                              options={{
+                                minimap: { enabled: false },
+                                fontSize: 14,
+                                lineNumbers: 'on',
+                                scrollBeyondLastLine: false,
+                                wordWrap: 'on',
+                                automaticLayout: true,
+                                tabSize: 2
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )
+                    }))}
+                  />
+                </div>
+              </Panel>
 
-          <PanelResizeHandle
-            style={{
-              width: 1,
-              background: '#e0e0e0',
-              cursor: 'col-resize',
-              position: 'relative'
-            }}
-          />
+              <PanelResizeHandle
+                style={{
+                  width: 1,
+                  background: '#e0e0e0',
+                  cursor: 'col-resize',
+                  position: 'relative'
+                }}
+              />
+            </>
+          )}
 
           {/* Right: Preview */}
-          <Panel defaultSize={rightPanelSize} minSize={20} maxSize={75}>
+          <Panel defaultSize={isFullscreen ? 100 : rightPanelSize} minSize={20} maxSize={100}>
             <Tabs
               activeKey={previewPage}
               onChange={(key) => setPreviewPage(key as 'home' | 'category' | 'post')}
               type="card"
               style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
               tabBarStyle={{ margin: 0, paddingLeft: 16, paddingRight: 16 }}
+              tabBarExtraContent={{
+                right: (
+                  <Segmented
+                    size="small"
+                    value={isFullscreen ? 'fullscreen' : 'split'}
+                    onChange={(value) => setIsFullscreen(value === 'fullscreen')}
+                    options={[
+                      { label: 'Split', value: 'split' },
+                      { label: 'Fullscreen', value: 'fullscreen' }
+                    ]}
+                  />
+                )
+              }}
               items={[
                 {
                   key: 'home',

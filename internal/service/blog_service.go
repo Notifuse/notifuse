@@ -22,6 +22,7 @@ type BlogService struct {
 	themeRepo     domain.BlogThemeRepository
 	workspaceRepo domain.WorkspaceRepository
 	listRepo      domain.ListRepository
+	templateRepo  domain.TemplateRepository
 	authService   domain.AuthService
 	cache         cache.Cache
 }
@@ -34,6 +35,7 @@ func NewBlogService(
 	themeRepository domain.BlogThemeRepository,
 	workspaceRepository domain.WorkspaceRepository,
 	listRepository domain.ListRepository,
+	templateRepository domain.TemplateRepository,
 	authService domain.AuthService,
 	cache cache.Cache,
 ) *BlogService {
@@ -44,6 +46,7 @@ func NewBlogService(
 		themeRepo:     themeRepository,
 		workspaceRepo: workspaceRepository,
 		listRepo:      listRepository,
+		templateRepo:  templateRepository,
 		authService:   authService,
 		cache:         cache,
 	}
@@ -171,6 +174,13 @@ func (s *BlogService) GetCategoryBySlug(ctx context.Context, slug string) (*doma
 		)
 	}
 
+	return s.categoryRepo.GetCategoryBySlug(ctx, slug)
+}
+
+// GetPublicCategoryBySlug retrieves a blog category by slug for public blog pages (no authentication required)
+func (s *BlogService) GetPublicCategoryBySlug(ctx context.Context, slug string) (*domain.BlogCategory, error) {
+	// For public blog pages, we don't require authentication
+	// Just get the category directly from the repository
 	return s.categoryRepo.GetCategoryBySlug(ctx, slug)
 }
 
@@ -1371,6 +1381,27 @@ func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categoryS
 		categories = []*domain.BlogCategory{}
 	}
 
+	// Fetch the web template for the post content
+	var postContentHTML string
+	template, err := s.templateRepo.GetTemplateByID(ctx, workspaceID, post.Settings.Template.TemplateID, int64(post.Settings.Template.TemplateVersion))
+	if err != nil {
+		s.logger.WithFields(map[string]interface{}{
+			"error":            err.Error(),
+			"template_id":      post.Settings.Template.TemplateID,
+			"template_version": post.Settings.Template.TemplateVersion,
+		}).Warn("Failed to get template for blog post - post content will be empty")
+		postContentHTML = ""
+	} else if template.Web != nil && template.Web.HTML != "" {
+		// Use the pre-rendered HTML from the web template
+		postContentHTML = template.Web.HTML
+	} else {
+		s.logger.WithFields(map[string]interface{}{
+			"template_id":      post.Settings.Template.TemplateID,
+			"template_version": post.Settings.Template.TemplateVersion,
+		}).Warn("Template has no web content - post content will be empty")
+		postContentHTML = ""
+	}
+
 	// Build template data
 	templateData, err := domain.BuildBlogTemplateData(domain.BlogTemplateDataRequest{
 		Workspace:    workspace,
@@ -1386,6 +1417,32 @@ func (s *BlogService) RenderPostPage(ctx context.Context, workspaceID, categoryS
 			Message: "Failed to build template data",
 			Details: err,
 		}
+	}
+
+	// Add compiled HTML content to post data
+	if postData, ok := templateData["post"].(domain.MapOfAny); ok {
+		// Extract table of contents from HTML and ensure headings have IDs
+		tocItems, modifiedHTML, err := ExtractTableOfContents(postContentHTML)
+		if err != nil {
+			s.logger.WithField("error", err.Error()).Warn("Failed to extract table of contents")
+			// Continue without TOC if extraction fails, use original HTML
+			tocItems = []domain.TOCItem{}
+			modifiedHTML = postContentHTML
+		}
+
+		// Use modified HTML (with IDs added to headings) for content
+		postData["content"] = modifiedHTML
+
+		// Convert TOC items to a format suitable for Liquid templates
+		tocData := make([]map[string]interface{}, len(tocItems))
+		for i, item := range tocItems {
+			tocData[i] = map[string]interface{}{
+				"id":    item.ID,
+				"level": item.Level,
+				"text":  item.Text,
+			}
+		}
+		postData["table_of_contents"] = tocData
 	}
 
 	// Prepare partials map for the template engine

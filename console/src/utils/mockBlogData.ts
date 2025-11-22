@@ -23,6 +23,13 @@ export interface PostListItem {
   reading_time_minutes: number
 }
 
+// TOC Item structure (matches backend TOCItem)
+export interface TOCItem {
+  id: string // Anchor ID for linking
+  level: number // Heading level (2-6)
+  text: string // Heading text content
+}
+
 // Full post object (for single post pages) - matches backend
 export interface Post extends PostListItem {
   created_at: string
@@ -30,6 +37,7 @@ export interface Post extends PostListItem {
   content: string // HTML content to render
   category_slug: string // Added for convenience in templates
   seo?: SEOSettings
+  table_of_contents?: TOCItem[] // Table of contents generated from headings
 }
 
 // Category structure - matches backend
@@ -115,19 +123,32 @@ const FULL_POSTS_DATA: Post[] = [
       }
     ],
     reading_time_minutes: 8,
+    table_of_contents: [
+      { id: 'section-heading-h2', level: 2, text: 'Section Heading (H2)' },
+      { id: 'subsection-heading-h3', level: 3, text: 'Subsection Heading (H3)' },
+      { id: 'blockquotes', level: 2, text: 'Blockquotes' },
+      { id: 'code-blocks', level: 2, text: 'Code Blocks' },
+      { id: 'lists', level: 2, text: 'Lists' },
+      { id: 'unordered-list', level: 3, text: 'Unordered List' },
+      { id: 'ordered-list', level: 3, text: 'Ordered List' },
+      { id: 'images', level: 2, text: 'Images' },
+      { id: 'mixed-content', level: 2, text: 'Mixed Content' },
+      { id: 'typography-details', level: 3, text: 'Typography Details' },
+      { id: 'conclusion', level: 2, text: 'Conclusion' }
+    ],
     content: `<p>This post demonstrates every content block type and styling option available in the theme editor. Use this as a reference to see how your theme handles different content types.</p>
 
-<h2>Section Heading (H2)</h2>
+<h2 id="section-heading-h2">Section Heading (H2)</h2>
 <p>Every blog post needs well-structured sections. This H2 heading marks a major section division. Notice the spacing above and below this heading, as well as the font size and weight.</p>
 
-<h3>Subsection Heading (H3)</h3>
+<h3 id="subsection-heading-h3">Subsection Heading (H3)</h3>
 <p>H3 headings are perfect for subsections within your content. They provide hierarchy without overwhelming the reader. The font size should be noticeably smaller than H2 but still prominent.</p>
 
 <p>Here's another paragraph with some <strong>bold text</strong>, <em>italic text</em>, and even <code>inline code</code> to show how inline formatting works. You can also include <a href="https://example.com">hyperlinks</a> that should have their own distinctive styling.</p>
 
 <hr>
 
-<h2>Blockquotes</h2>
+<h2 id="blockquotes">Blockquotes</h2>
 <p>Blockquotes are used for quotations or to highlight important passages:</p>
 
 <blockquote>
@@ -138,7 +159,7 @@ const FULL_POSTS_DATA: Post[] = [
 
 <hr>
 
-<h2>Code Blocks</h2>
+<h2 id="code-blocks">Code Blocks</h2>
 <p>For technical content, code blocks are essential. Here's an example with JavaScript:</p>
 
 <pre><code class="language-javascript">function greet(name) {
@@ -153,10 +174,10 @@ console.log(message); // Output: Hello, World!</code></pre>
 
 <hr>
 
-<h2>Lists</h2>
+<h2 id="lists">Lists</h2>
 <p>Both ordered and unordered lists are common in blog posts.</p>
 
-<h3>Unordered List</h3>
+<h3 id="unordered-list">Unordered List</h3>
 <ul>
 <li>First item in an unordered list</li>
 <li>Second item with more text to show how wrapping works</li>
@@ -171,7 +192,7 @@ console.log(message); // Output: Hello, World!</code></pre>
 <li>Fifth item back at the original level</li>
 </ul>
 
-<h3>Ordered List</h3>
+<h3 id="ordered-list">Ordered List</h3>
 <ol>
 <li>First step in a process</li>
 <li>Second step with detailed instructions</li>
@@ -187,7 +208,7 @@ console.log(message); // Output: Hello, World!</code></pre>
 
 <hr>
 
-<h2>Images</h2>
+<h2 id="images">Images</h2>
 <p>Images are crucial for visual storytelling. Here's an example:</p>
 
 <img src="https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=800" alt="Person typing on laptop" data-caption="A developer working on a laptop" data-show-caption="true" />
@@ -197,7 +218,7 @@ console.log(message); // Output: Hello, World!</code></pre>
 
 <hr>
 
-<h2>Mixed Content</h2>
+<h2 id="mixed-content">Mixed Content</h2>
 <p>Real-world blog posts combine multiple content types. Here's a paragraph followed by a list of key takeaways:</p>
 
 <ul>
@@ -210,7 +231,7 @@ console.log(message); // Output: Hello, World!</code></pre>
 
 <p>And here's more text after the list to show proper spacing. The gap between different elements should feel natural and not too cramped or too spacious.</p>
 
-<h3>Typography Details</h3>
+<h3 id="typography-details">Typography Details</h3>
 <p>Pay attention to these subtle but important details:</p>
 
 <ol>
@@ -224,7 +245,7 @@ console.log(message); // Output: Hello, World!</code></pre>
 <p>Good typography is invisible. Bad typography is everywhere.</p>
 </blockquote>
 
-<h2>Conclusion</h2>
+<h2 id="conclusion">Conclusion</h2>
 <p>This style guide demonstrates all the essential content blocks you'll use in your blog posts. Each element should have thoughtful styling that contributes to an excellent reading experience. Whether you're writing tutorials, articles, or documentation, these building blocks form the foundation of great content.</p>
 
 <p>Use this page as a reference when customizing your theme. Make sure every element looks polished and works well together to create a cohesive, professional appearance.</p>`
@@ -288,12 +309,22 @@ console.log(message); // Output: Hello, World!</code></pre>
       }
     ],
     reading_time_minutes: 10,
+    table_of_contents: [
+      { id: 'why-nodejs-for-apis', level: 2, text: 'Why Node.js for APIs?' },
+      { id: 'key-benefits', level: 3, text: 'Key Benefits' },
+      { id: 'setting-up-your-api', level: 2, text: 'Setting Up Your API' },
+      { id: 'essential-middleware', level: 3, text: 'Essential Middleware' },
+      { id: 'api-design-best-practices', level: 2, text: 'API Design Best Practices' },
+      { id: 'performance-optimization', level: 2, text: 'Performance Optimization' },
+      { id: 'error-handling', level: 2, text: 'Error Handling' },
+      { id: 'conclusion', level: 2, text: 'Conclusion' }
+    ],
     content: `<p>Building scalable REST APIs requires careful consideration of architecture, performance, and maintainability. In this comprehensive guide, we'll explore best practices for creating robust APIs with Node.js.</p>
 
-<h2>Why Node.js for APIs?</h2>
+<h2 id="why-nodejs-for-apis">Why Node.js for APIs?</h2>
 <p>Node.js has become the go-to choice for building REST APIs due to its non-blocking I/O model and vast ecosystem. Its event-driven architecture makes it perfect for handling concurrent requests efficiently.</p>
 
-<h3>Key Benefits</h3>
+<h3 id="key-benefits">Key Benefits</h3>
 <ul>
 <li>High performance with asynchronous operations</li>
 <li>Unified JavaScript across frontend and backend</li>
@@ -301,7 +332,7 @@ console.log(message); // Output: Hello, World!</code></pre>
 <li>Excellent for real-time applications</li>
 </ul>
 
-<h2>Setting Up Your API</h2>
+<h2 id="setting-up-your-api">Setting Up Your API</h2>
 <p>Start with a solid foundation using Express.js, the most popular Node.js web framework:</p>
 
 <pre><code class="language-javascript">const express = require('express');
@@ -315,7 +346,7 @@ app.listen(PORT, () => {
   console.log(\`Server running on port \${PORT}\`);
 });</code></pre>
 
-<h3>Essential Middleware</h3>
+<h3 id="essential-middleware">Essential Middleware</h3>
 <p>Middleware functions are crucial for handling cross-cutting concerns like authentication, logging, and error handling:</p>
 
 <ul>
@@ -325,7 +356,7 @@ app.listen(PORT, () => {
 <li><strong>Rate limiting:</strong> Prevent abuse</li>
 </ul>
 
-<h2>API Design Best Practices</h2>
+<h2 id="api-design-best-practices">API Design Best Practices</h2>
 <p>Following REST conventions makes your API intuitive and maintainable:</p>
 
 <ol>
@@ -340,7 +371,7 @@ app.listen(PORT, () => {
 <p>A well-designed API is one that developers can understand and use without extensive documentation.</p>
 </blockquote>
 
-<h2>Performance Optimization</h2>
+<h2 id="performance-optimization">Performance Optimization</h2>
 <p>To handle high traffic, implement these optimization strategies:</p>
 
 <ul>
@@ -351,7 +382,7 @@ app.listen(PORT, () => {
 <li>Consider clustering for multi-core systems</li>
 </ul>
 
-<h2>Error Handling</h2>
+<h2 id="error-handling">Error Handling</h2>
 <p>Proper error handling is critical for production APIs:</p>
 
 <pre><code class="language-javascript">app.use((err, req, res, next) => {
@@ -364,7 +395,7 @@ app.listen(PORT, () => {
   });
 });</code></pre>
 
-<h2>Conclusion</h2>
+<h2 id="conclusion">Conclusion</h2>
 <p>Building scalable REST APIs with Node.js is an iterative process. Start with solid fundamentals, follow best practices, and continuously monitor and optimize your API's performance. With the right architecture and tools, your API can handle millions of requests while remaining maintainable and developer-friendly.</p>`
   },
   {
@@ -386,12 +417,29 @@ app.listen(PORT, () => {
       }
     ],
     reading_time_minutes: 7,
+    table_of_contents: [
+      {
+        id: 'why-architecture-patterns-matter',
+        level: 2,
+        text: 'Why Architecture Patterns Matter'
+      },
+      { id: 'core-benefits', level: 3, text: 'Core Benefits' },
+      { id: 'microservices-architecture', level: 2, text: 'Microservices Architecture' },
+      { id: 'key-characteristics', level: 3, text: 'Key Characteristics' },
+      { id: 'event-driven-architecture', level: 2, text: 'Event-Driven Architecture' },
+      { id: 'cqrs-pattern', level: 2, text: 'CQRS Pattern' },
+      { id: 'when-to-use-cqrs', level: 3, text: 'When to Use CQRS' },
+      { id: 'serverless-architecture', level: 2, text: 'Serverless Architecture' },
+      { id: 'circuit-breaker-pattern', level: 2, text: 'Circuit Breaker Pattern' },
+      { id: 'best-practices', level: 2, text: 'Best Practices' },
+      { id: 'conclusion', level: 2, text: 'Conclusion' }
+    ],
     content: `<p>Cloud architecture patterns are proven solutions to common challenges in distributed systems. Understanding these patterns is crucial for building robust, scalable applications in the cloud.</p>
 
-<h2>Why Architecture Patterns Matter</h2>
+<h2 id="why-architecture-patterns-matter">Why Architecture Patterns Matter</h2>
 <p>Modern cloud applications face unique challenges: unpredictable traffic, global distribution, and the need for high availability. Architecture patterns provide battle-tested solutions to these challenges.</p>
 
-<h3>Core Benefits</h3>
+<h3 id="core-benefits">Core Benefits</h3>
 <ul>
 <li>Improved scalability and performance</li>
 <li>Enhanced reliability and fault tolerance</li>
@@ -399,14 +447,14 @@ app.listen(PORT, () => {
 <li>Faster development and deployment</li>
 </ul>
 
-<h2>Microservices Architecture</h2>
+<h2 id="microservices-architecture">Microservices Architecture</h2>
 <p>Break down monolithic applications into smaller, independent services that can be developed, deployed, and scaled independently.</p>
 
 <blockquote>
 <p>Microservices enable teams to work autonomously and deploy updates without affecting the entire system.</p>
 </blockquote>
 
-<h3>Key Characteristics</h3>
+<h3 id="key-characteristics">Key Characteristics</h3>
 <ol>
 <li>Each service has a single responsibility</li>
 <li>Services communicate via APIs (REST, gRPC)</li>
@@ -414,7 +462,7 @@ app.listen(PORT, () => {
 <li>Decentralized governance</li>
 </ol>
 
-<h2>Event-Driven Architecture</h2>
+<h2 id="event-driven-architecture">Event-Driven Architecture</h2>
 <p>Use events to trigger and communicate between decoupled services, enabling real-time processing and loose coupling.</p>
 
 <ul>
@@ -423,10 +471,10 @@ app.listen(PORT, () => {
 <li><strong>Event consumers:</strong> Services that react to events</li>
 </ul>
 
-<h2>CQRS Pattern</h2>
+<h2 id="cqrs-pattern">CQRS Pattern</h2>
 <p>Command Query Responsibility Segregation separates read and write operations, allowing for optimized data models for each use case.</p>
 
-<h3>When to Use CQRS</h3>
+<h3 id="when-to-use-cqrs">When to Use CQRS</h3>
 <ul>
 <li>Complex domain logic</li>
 <li>High read-to-write ratio</li>
@@ -434,7 +482,7 @@ app.listen(PORT, () => {
 <li>Performance optimization requirements</li>
 </ul>
 
-<h2>Serverless Architecture</h2>
+<h2 id="serverless-architecture">Serverless Architecture</h2>
 <p>Build applications without managing servers, using functions that execute in response to events:</p>
 
 <pre><code class="language-javascript">exports.handler = async (event) => {
@@ -447,7 +495,7 @@ app.listen(PORT, () => {
   };
 };</code></pre>
 
-<h2>Circuit Breaker Pattern</h2>
+<h2 id="circuit-breaker-pattern">Circuit Breaker Pattern</h2>
 <p>Prevent cascading failures by detecting failures and preventing requests to failing services:</p>
 
 <ol>
@@ -456,7 +504,7 @@ app.listen(PORT, () => {
 <li><strong>Half-open state:</strong> Testing if service recovered</li>
 </ol>
 
-<h2>Best Practices</h2>
+<h2 id="best-practices">Best Practices</h2>
 <p>When implementing cloud architecture patterns:</p>
 
 <ul>
@@ -467,7 +515,7 @@ app.listen(PORT, () => {
 <li>Implement security at every layer</li>
 </ul>
 
-<h2>Conclusion</h2>
+<h2 id="conclusion">Conclusion</h2>
 <p>Cloud architecture patterns provide a roadmap for building resilient, scalable applications. By understanding and applying these patterns appropriately, you can create systems that meet modern demands for performance, reliability, and cost-efficiency. Choose patterns based on your specific requirements and don't over-engineer—start with simpler patterns and evolve as needed.</p>`
   },
   {
@@ -489,12 +537,32 @@ app.listen(PORT, () => {
       }
     ],
     reading_time_minutes: 9,
+    table_of_contents: [
+      { id: 'understanding-ux-fundamentals', level: 2, text: 'Understanding UX Fundamentals' },
+      { id: 'the-five-elements-of-ux', level: 3, text: 'The Five Elements of UX' },
+      { id: 'user-research-the-foundation', level: 2, text: 'User Research: The Foundation' },
+      { id: 'research-methods', level: 3, text: 'Research Methods' },
+      { id: 'core-ux-principles', level: 2, text: 'Core UX Principles' },
+      { id: '1-clarity', level: 3, text: '1. Clarity' },
+      { id: '2-consistency', level: 3, text: '2. Consistency' },
+      { id: '3-feedback', level: 3, text: '3. Feedback' },
+      { id: '4-simplicity', level: 3, text: '4. Simplicity' },
+      { id: '5-accessibility', level: 3, text: '5. Accessibility' },
+      { id: 'information-architecture', level: 2, text: 'Information Architecture' },
+      { id: 'interaction-design', level: 2, text: 'Interaction Design' },
+      { id: 'micro-interactions', level: 3, text: 'Micro-interactions' },
+      { id: 'mobile-first-design', level: 2, text: 'Mobile-First Design' },
+      { id: 'mobile-best-practices', level: 3, text: 'Mobile Best Practices' },
+      { id: 'measuring-ux-success', level: 2, text: 'Measuring UX Success' },
+      { id: 'continuous-improvement', level: 2, text: 'Continuous Improvement' },
+      { id: 'conclusion', level: 2, text: 'Conclusion' }
+    ],
     content: `<p>User Experience (UX) design is the art and science of creating products that provide meaningful and relevant experiences to users. Great UX isn't just about making things look pretty—it's about solving real problems effectively.</p>
 
-<h2>Understanding UX Fundamentals</h2>
+<h2 id="understanding-ux-fundamentals">Understanding UX Fundamentals</h2>
 <p>UX encompasses every aspect of the user's interaction with a company, its services, and its products. The goal is to create easy, efficient, and enjoyable experiences.</p>
 
-<h3>The Five Elements of UX</h3>
+<h3 id="the-five-elements-of-ux">The Five Elements of UX</h3>
 <ol>
 <li><strong>Strategy:</strong> User needs and business goals</li>
 <li><strong>Scope:</strong> Functional requirements and content</li>
@@ -507,10 +575,10 @@ app.listen(PORT, () => {
 <p>Good design is actually harder to notice than poor design, in part because good designs fit our needs so well that the design is invisible.</p>
 </blockquote>
 
-<h2>User Research: The Foundation</h2>
+<h2 id="user-research-the-foundation">User Research: The Foundation</h2>
 <p>Never skip user research. Understanding your users is the foundation of good UX design.</p>
 
-<h3>Research Methods</h3>
+<h3 id="research-methods">Research Methods</h3>
 <ul>
 <li><strong>User interviews:</strong> Deep insights into user needs</li>
 <li><strong>Surveys:</strong> Quantitative data from many users</li>
@@ -519,25 +587,25 @@ app.listen(PORT, () => {
 <li><strong>Competitive analysis:</strong> Learn from others</li>
 </ul>
 
-<h2>Core UX Principles</h2>
+<h2 id="core-ux-principles">Core UX Principles</h2>
 <p>These principles should guide every design decision:</p>
 
-<h3>1. Clarity</h3>
+<h3 id="1-clarity">1. Clarity</h3>
 <p>Users should immediately understand what they can do and how to do it. Avoid jargon and ambiguity.</p>
 
-<h3>2. Consistency</h3>
+<h3 id="2-consistency">2. Consistency</h3>
 <p>Maintain consistent patterns throughout your interface. Similar elements should look and behave similarly.</p>
 
-<h3>3. Feedback</h3>
+<h3 id="3-feedback">3. Feedback</h3>
 <p>Always acknowledge user actions. Loading states, success messages, and error notifications keep users informed.</p>
 
-<h3>4. Simplicity</h3>
+<h3 id="4-simplicity">4. Simplicity</h3>
 <p>Remove unnecessary elements. Every piece of content and functionality should serve a purpose.</p>
 
-<h3>5. Accessibility</h3>
+<h3 id="5-accessibility">5. Accessibility</h3>
 <p>Design for everyone, including users with disabilities. This isn't optional—it's essential.</p>
 
-<h2>Information Architecture</h2>
+<h2 id="information-architecture">Information Architecture</h2>
 <p>Organize content in a way that makes sense to users:</p>
 
 <ul>
@@ -548,7 +616,7 @@ app.listen(PORT, () => {
 <li>Use breadcrumbs for wayfinding</li>
 </ul>
 
-<h2>Interaction Design</h2>
+<h2 id="interaction-design">Interaction Design</h2>
 <p>Design interactions that feel natural and responsive:</p>
 
 <pre><code class="language-css">/* Smooth transitions enhance perceived performance */
@@ -561,7 +629,7 @@ app.listen(PORT, () => {
   box-shadow: 0 4px 8px rgba(0,0,0,0.15);
 }</code></pre>
 
-<h3>Micro-interactions</h3>
+<h3 id="micro-interactions">Micro-interactions</h3>
 <p>Small details make a big difference:</p>
 <ul>
 <li>Button states (hover, active, disabled)</li>
@@ -570,10 +638,10 @@ app.listen(PORT, () => {
 <li>Success confirmations</li>
 </ul>
 
-<h2>Mobile-First Design</h2>
+<h2 id="mobile-first-design">Mobile-First Design</h2>
 <p>Start with mobile constraints, then progressively enhance for larger screens. This ensures a solid foundation for all devices.</p>
 
-<h3>Mobile Best Practices</h3>
+<h3 id="mobile-best-practices">Mobile Best Practices</h3>
 <ol>
 <li>Design for thumbs (44x44px minimum touch targets)</li>
 <li>Prioritize content ruthlessly</li>
@@ -582,7 +650,7 @@ app.listen(PORT, () => {
 <li>Test on real devices</li>
 </ol>
 
-<h2>Measuring UX Success</h2>
+<h2 id="measuring-ux-success">Measuring UX Success</h2>
 <p>Track these metrics to validate your design decisions:</p>
 
 <ul>
@@ -593,7 +661,7 @@ app.listen(PORT, () => {
 <li><strong>Net Promoter Score:</strong> Would they recommend it?</li>
 </ul>
 
-<h2>Continuous Improvement</h2>
+<h2 id="continuous-improvement">Continuous Improvement</h2>
 <p>UX design is never "done." Continuously gather feedback, analyze data, and iterate:</p>
 
 <ol>
@@ -604,7 +672,7 @@ app.listen(PORT, () => {
 <li>Foster a culture of user-centered design</li>
 </ol>
 
-<h2>Conclusion</h2>
+<h2 id="conclusion">Conclusion</h2>
 <p>Mastering UX is a journey, not a destination. By focusing on user needs, following established principles, and continuously learning and iterating, you can create experiences that truly delight users. Remember: good UX is invisible, but its impact on user satisfaction and business success is undeniable.</p>`
   }
 ]
@@ -731,6 +799,11 @@ export function getMockDataForView(view: 'home' | 'category' | 'post'): MockBlog
     // Match backend BlogTemplateDataRequest.Post field - use full post data
     const fullPost = FULL_POSTS_DATA[0]
     baseData.post = fullPost
+    // Match backend BlogTemplateDataRequest.Category field - set category for post page
+    const category = baseData.categories.find((cat) => cat.id === fullPost.category_id)
+    if (category) {
+      baseData.category = category
+    }
     baseData.previous_post = POST_LIST_ITEMS[2]
     baseData.next_post = POST_LIST_ITEMS[1]
     baseData.page_title = `${fullPost.title} - ${blogTitle}`

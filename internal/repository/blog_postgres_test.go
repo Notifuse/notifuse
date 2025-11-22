@@ -244,6 +244,101 @@ func TestBlogCategoryRepository(t *testing.T) {
 		})
 	})
 
+	t.Run("GetCategoriesByIDs", func(t *testing.T) {
+		t.Run("successful retrieval", func(t *testing.T) {
+			mockWorkspaceRepo.EXPECT().
+				GetConnection(gomock.Any(), "workspace123").
+				Return(db, nil)
+
+			categoryIDs := []string{"cat123", "cat456"}
+			testCategory2 := &domain.BlogCategory{
+				ID:   "cat456",
+				Slug: "another-blog",
+				Settings: domain.BlogCategorySettings{
+					Name: "Another Blog",
+				},
+				CreatedAt: time.Now().UTC(),
+				UpdatedAt: time.Now().UTC(),
+			}
+
+			rows := sqlmock.NewRows([]string{
+				"id", "slug", "settings", "created_at", "updated_at", "deleted_at",
+			}).AddRow(
+				testCategory.ID,
+				testCategory.Slug,
+				[]byte(`{"name":"Tech Blog"}`),
+				testCategory.CreatedAt,
+				testCategory.UpdatedAt,
+				nil,
+			).AddRow(
+				testCategory2.ID,
+				testCategory2.Slug,
+				[]byte(`{"name":"Another Blog"}`),
+				testCategory2.CreatedAt,
+				testCategory2.UpdatedAt,
+				nil,
+			)
+
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`WHERE id IN ($1, $2)`)).
+				WithArgs("cat123", "cat456").
+				WillReturnRows(rows)
+
+			categories, err := repo.GetCategoriesByIDs(ctx, categoryIDs)
+			require.NoError(t, err)
+			require.Len(t, categories, 2)
+			assert.Equal(t, testCategory.Slug, categories[0].Slug)
+			assert.Equal(t, testCategory2.Slug, categories[1].Slug)
+			assert.NoError(t, sqlMock.ExpectationsWereMet())
+		})
+
+		t.Run("empty IDs list", func(t *testing.T) {
+			categories, err := repo.GetCategoriesByIDs(ctx, []string{})
+			require.NoError(t, err)
+			assert.Empty(t, categories)
+		})
+
+		t.Run("includes deleted categories", func(t *testing.T) {
+			mockWorkspaceRepo.EXPECT().
+				GetConnection(gomock.Any(), "workspace123").
+				Return(db, nil)
+
+			deletedAt := time.Now().UTC()
+			categoryIDs := []string{"cat123"}
+
+			rows := sqlmock.NewRows([]string{
+				"id", "slug", "settings", "created_at", "updated_at", "deleted_at",
+			}).AddRow(
+				testCategory.ID,
+				testCategory.Slug,
+				[]byte(`{"name":"Tech Blog"}`),
+				testCategory.CreatedAt,
+				testCategory.UpdatedAt,
+				deletedAt, // deleted category
+			)
+
+			sqlMock.ExpectQuery(regexp.QuoteMeta(`WHERE id IN ($1)`)).
+				WithArgs("cat123").
+				WillReturnRows(rows)
+
+			categories, err := repo.GetCategoriesByIDs(ctx, categoryIDs)
+			require.NoError(t, err)
+			require.Len(t, categories, 1)
+			assert.Equal(t, testCategory.Slug, categories[0].Slug)
+			assert.NotNil(t, categories[0].DeletedAt)
+			assert.NoError(t, sqlMock.ExpectationsWereMet())
+		})
+
+		t.Run("workspace connection error", func(t *testing.T) {
+			mockWorkspaceRepo.EXPECT().
+				GetConnection(gomock.Any(), "workspace123").
+				Return(nil, errors.New("connection failed"))
+
+			categories, err := repo.GetCategoriesByIDs(ctx, []string{"cat123"})
+			assert.Error(t, err)
+			assert.Nil(t, categories)
+		})
+	})
+
 	t.Run("ListCategories", func(t *testing.T) {
 		t.Run("successful retrieval", func(t *testing.T) {
 			mockWorkspaceRepo.EXPECT().

@@ -281,6 +281,13 @@ func (p *BlogPost) GetEffectiveSEOSettings(category *BlogCategory) *SEOSettings 
 	return p.Settings.SEO.MergeWithDefaults(category.Settings.SEO)
 }
 
+// TOCItem represents a single item in the table of contents
+type TOCItem struct {
+	ID    string `json:"id"`    // Anchor ID for linking (e.g., "introduction")
+	Level int    `json:"level"` // Heading level (2-6)
+	Text  string `json:"text"`  // Heading text content
+}
+
 // CreateBlogCategoryRequest defines the request to create a blog category
 type CreateBlogCategoryRequest struct {
 	Name        string       `json:"name"`
@@ -680,6 +687,7 @@ type BlogService interface {
 	UnpublishPost(ctx context.Context, request *UnpublishBlogPostRequest) error
 
 	// Public operations (no auth required)
+	GetPublicCategoryBySlug(ctx context.Context, slug string) (*BlogCategory, error)
 	GetPublicPostByCategoryAndSlug(ctx context.Context, categorySlug, postSlug string) (*BlogPost, error)
 	ListPublicPosts(ctx context.Context, params *ListBlogPostsRequest) (*BlogPostListResponse, error)
 

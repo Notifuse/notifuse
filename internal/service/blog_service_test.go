@@ -24,6 +24,7 @@ func setupBlogServiceTest(t *testing.T) (
 	*mocks.MockBlogThemeRepository,
 	*mocks.MockWorkspaceRepository,
 	*mocks.MockListRepository,
+	*mocks.MockTemplateRepository,
 	*mocks.MockAuthService,
 ) {
 	ctrl := gomock.NewController(t)
@@ -33,6 +34,7 @@ func setupBlogServiceTest(t *testing.T) (
 	mockThemeRepo := mocks.NewMockBlogThemeRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockListRepo := mocks.NewMockListRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
 	mockAuthService := mocks.NewMockAuthService(ctrl)
 	mockLogger := logger.NewLoggerWithLevel("disabled")
 	testCache := cache.NewInMemoryCache(30 * time.Second)
@@ -44,11 +46,12 @@ func setupBlogServiceTest(t *testing.T) (
 		mockThemeRepo,
 		mockWorkspaceRepo,
 		mockListRepo,
+		mockTemplateRepo,
 		mockAuthService,
 		testCache,
 	)
 
-	return service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, mockAuthService
+	return service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, mockTemplateRepo, mockAuthService
 }
 
 // setupBlogContextWithAuth creates a context with workspace_id and mocks authentication with permissions
@@ -76,7 +79,7 @@ func setupBlogContextWithAuth(mockAuthService *mocks.MockAuthService, workspaceI
 }
 
 func TestBlogService_CreateCategory(t *testing.T) {
-	service, mockCategoryRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, _, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful creation", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -166,7 +169,7 @@ func TestBlogService_CreateCategory(t *testing.T) {
 }
 
 func TestBlogService_GetCategory(t *testing.T) {
-	service, mockCategoryRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, _, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -200,7 +203,7 @@ func TestBlogService_GetCategory(t *testing.T) {
 }
 
 func TestBlogService_GetCategoryBySlug(t *testing.T) {
-	service, mockCategoryRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, _, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -219,8 +222,57 @@ func TestBlogService_GetCategoryBySlug(t *testing.T) {
 	})
 }
 
+func TestBlogService_GetPublicCategoryBySlug(t *testing.T) {
+	service, mockCategoryRepo, _, _, _, _, _, _ := setupBlogServiceTest(t)
+
+	t.Run("successful retrieval without authentication", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
+		expectedCategory := &domain.BlogCategory{
+			ID:   "cat123",
+			Slug: "tech-blog",
+			Settings: domain.BlogCategorySettings{
+				Name: "Tech Blog",
+			},
+		}
+
+		mockCategoryRepo.EXPECT().
+			GetCategoryBySlug(ctx, "tech-blog").
+			Return(expectedCategory, nil)
+
+		category, err := service.GetPublicCategoryBySlug(ctx, "tech-blog")
+		require.NoError(t, err)
+		assert.Equal(t, expectedCategory, category)
+	})
+
+	t.Run("returns error when category not found", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
+
+		mockCategoryRepo.EXPECT().
+			GetCategoryBySlug(ctx, "nonexistent").
+			Return(nil, errors.New("category not found"))
+
+		category, err := service.GetPublicCategoryBySlug(ctx, "nonexistent")
+		assert.Error(t, err)
+		assert.Nil(t, category)
+	})
+
+	t.Run("returns error when workspace_id missing from context", func(t *testing.T) {
+		ctx := context.Background()
+
+		// GetPublicCategoryBySlug doesn't check for workspace_id, it just calls GetCategoryBySlug
+		// So we need to mock GetCategoryBySlug even without workspace_id
+		mockCategoryRepo.EXPECT().
+			GetCategoryBySlug(ctx, "tech-blog").
+			Return(nil, errors.New("category not found"))
+
+		category, err := service.GetPublicCategoryBySlug(ctx, "tech-blog")
+		assert.Error(t, err)
+		assert.Nil(t, category)
+	})
+}
+
 func TestBlogService_UpdateCategory(t *testing.T) {
-	service, mockCategoryRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, _, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful update", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -328,7 +380,7 @@ func TestBlogService_UpdateCategory(t *testing.T) {
 }
 
 func TestBlogService_DeleteCategory(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful deletion with cascade", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -458,7 +510,7 @@ func TestBlogService_DeleteCategory(t *testing.T) {
 }
 
 func TestBlogService_ListCategories(t *testing.T) {
-	service, mockCategoryRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, _, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful listing", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -490,7 +542,7 @@ func TestBlogService_ListCategories(t *testing.T) {
 }
 
 func TestBlogService_CreatePost(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	categoryID := "cat123"
 
@@ -596,7 +648,7 @@ func TestBlogService_CreatePost(t *testing.T) {
 }
 
 func TestBlogService_GetPost(t *testing.T) {
-	service, _, mockPostRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -616,7 +668,7 @@ func TestBlogService_GetPost(t *testing.T) {
 }
 
 func TestBlogService_UpdatePost(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	categoryID := "cat123"
 
@@ -715,7 +767,7 @@ func TestBlogService_UpdatePost(t *testing.T) {
 }
 
 func TestBlogService_DeletePost(t *testing.T) {
-	service, _, mockPostRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful deletion", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -742,7 +794,7 @@ func TestBlogService_DeletePost(t *testing.T) {
 }
 
 func TestBlogService_ListPosts(t *testing.T) {
-	service, _, mockPostRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful listing", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -788,7 +840,7 @@ func TestBlogService_ListPosts(t *testing.T) {
 }
 
 func TestBlogService_PublishPost(t *testing.T) {
-	service, _, mockPostRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful publish", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -796,9 +848,32 @@ func TestBlogService_PublishPost(t *testing.T) {
 			ID: "post123",
 		}
 
+		post := &domain.BlogPost{
+			ID:         "post123",
+			CategoryID: "cat-1",
+		}
+
+		workspace := &domain.Workspace{
+			ID:   "workspace123",
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone: "UTC",
+			},
+		}
+
+		// GetPost is called before PublishPost to get category ID for cache invalidation
+		mockPostRepo.EXPECT().
+			GetPost(ctx, req.ID).
+			Return(post, nil)
+
 		mockPostRepo.EXPECT().
 			PublishPost(ctx, req.ID).
 			Return(nil)
+
+		// GetByID is called by invalidateBlogCaches (uses context.Background())
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), "workspace123").
+			Return(workspace, nil)
 
 		err := service.PublishPost(ctx, req)
 		require.NoError(t, err)
@@ -819,6 +894,16 @@ func TestBlogService_PublishPost(t *testing.T) {
 			ID: "post123",
 		}
 
+		post := &domain.BlogPost{
+			ID:         "post123",
+			CategoryID: "cat-1",
+		}
+
+		// GetPost is called before PublishPost to get category ID for cache invalidation
+		mockPostRepo.EXPECT().
+			GetPost(ctx, req.ID).
+			Return(post, nil)
+
 		mockPostRepo.EXPECT().
 			PublishPost(ctx, req.ID).
 			Return(errors.New("already published"))
@@ -830,7 +915,7 @@ func TestBlogService_PublishPost(t *testing.T) {
 }
 
 func TestBlogService_UnpublishPost(t *testing.T) {
-	service, _, mockPostRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful unpublish", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -838,9 +923,32 @@ func TestBlogService_UnpublishPost(t *testing.T) {
 			ID: "post123",
 		}
 
+		post := &domain.BlogPost{
+			ID:         "post123",
+			CategoryID: "cat-1",
+		}
+
+		workspace := &domain.Workspace{
+			ID:   "workspace123",
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone: "UTC",
+			},
+		}
+
+		// GetPost is called before UnpublishPost to get category ID for cache invalidation
+		mockPostRepo.EXPECT().
+			GetPost(ctx, req.ID).
+			Return(post, nil)
+
 		mockPostRepo.EXPECT().
 			UnpublishPost(ctx, req.ID).
 			Return(nil)
+
+		// GetByID is called by invalidateBlogCaches (uses context.Background())
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), "workspace123").
+			Return(workspace, nil)
 
 		err := service.UnpublishPost(ctx, req)
 		require.NoError(t, err)
@@ -857,7 +965,7 @@ func TestBlogService_UnpublishPost(t *testing.T) {
 }
 
 func TestBlogService_GetPublicPostByCategoryAndSlug(t *testing.T) {
-	service, _, mockPostRepo, _, _, _, _ := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _, _, _ := setupBlogServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("published post", func(t *testing.T) {
@@ -906,7 +1014,7 @@ func TestBlogService_GetPublicPostByCategoryAndSlug(t *testing.T) {
 }
 
 func TestBlogService_ListPublicPosts(t *testing.T) {
-	service, _, mockPostRepo, _, _, _, _ := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _, _, _ := setupBlogServiceTest(t)
 	ctx := context.Background()
 
 	t.Run("successful listing - only published", func(t *testing.T) {
@@ -953,7 +1061,7 @@ func TestBlogService_ListPublicPosts(t *testing.T) {
 }
 
 func TestBlogService_GetPostBySlug(t *testing.T) {
-	service, _, mockPostRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -973,7 +1081,7 @@ func TestBlogService_GetPostBySlug(t *testing.T) {
 }
 
 func TestBlogService_GetPostByCategoryAndSlug(t *testing.T) {
-	service, _, mockPostRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -995,7 +1103,7 @@ func TestBlogService_GetPostByCategoryAndSlug(t *testing.T) {
 // Blog Theme Service Tests
 
 func TestBlogService_CreateTheme(t *testing.T) {
-	service, _, _, mockThemeRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, _, mockThemeRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful creation", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -1069,7 +1177,7 @@ func TestBlogService_CreateTheme(t *testing.T) {
 }
 
 func TestBlogService_GetTheme(t *testing.T) {
-	service, _, _, mockThemeRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, _, mockThemeRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -1110,7 +1218,7 @@ func TestBlogService_GetTheme(t *testing.T) {
 }
 
 func TestBlogService_GetPublishedTheme(t *testing.T) {
-	service, _, _, mockThemeRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, _, mockThemeRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -1145,7 +1253,7 @@ func TestBlogService_GetPublishedTheme(t *testing.T) {
 }
 
 func TestBlogService_UpdateTheme(t *testing.T) {
-	service, _, _, mockThemeRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, _, mockThemeRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful update", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -1234,11 +1342,24 @@ func TestBlogService_UpdateTheme(t *testing.T) {
 }
 
 func TestBlogService_PublishTheme(t *testing.T) {
-	service, _, _, mockThemeRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, _, mockThemeRepo, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful publish", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.PublishBlogThemeRequest{Version: 1}
+
+		workspace := &domain.Workspace{
+			ID:   "workspace123",
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone: "UTC",
+			},
+		}
+
+		// GetByID is called by invalidateBlogCaches (uses context.Background())
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), "workspace123").
+			Return(workspace, nil)
 
 		mockThemeRepo.EXPECT().
 			PublishTheme(ctx, 1, "user123").
@@ -1280,7 +1401,7 @@ func TestBlogService_PublishTheme(t *testing.T) {
 }
 
 func TestBlogService_ListThemes(t *testing.T) {
-	service, _, _, mockThemeRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, _, mockThemeRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful listing", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, false)
@@ -1351,7 +1472,7 @@ func timePtr(t time.Time) *time.Time {
 }
 
 func TestBlogService_RenderHomePage(t *testing.T) {
-	service, _, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _ := setupBlogServiceTest(t)
+	service, _, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _, _ := setupBlogServiceTest(t)
 
 	t.Run("successful render with public lists", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
@@ -1408,17 +1529,99 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(ctx, "workspace123").Return(workspace, nil)
 		mockThemeRepo.EXPECT().GetPublishedTheme(ctx).Return(theme, nil)
 		mockListRepo.EXPECT().GetLists(ctx, "workspace123").Return(publicLists, nil)
+		posts[0].CategoryID = "cat-1" // Add category ID to post
 		mockPostRepo.EXPECT().
 			ListPosts(ctx, gomock.Any()).
 			Return(&domain.BlogPostListResponse{Posts: posts, TotalCount: 1}, nil)
 		mockCategoryRepo := mocks.NewMockBlogCategoryRepository(gomock.NewController(t))
 		service.categoryRepo = mockCategoryRepo
 		mockCategoryRepo.EXPECT().ListCategories(ctx).Return(categories, nil)
+		// Mock GetCategoriesByIDs for posts (including deleted categories for slug lookup)
+		mockCategoryRepo.EXPECT().
+			GetCategoriesByIDs(ctx, []string{"cat-1"}).
+			Return(categories, nil)
 
 		html, err := service.RenderHomePage(ctx, "workspace123", 1, nil)
 		require.NoError(t, err)
 		assert.Contains(t, html, "Test Workspace")
 		assert.Contains(t, html, "Newsletter")
+	})
+
+	t.Run("filters deleted categories from navigation but uses them for slug lookup", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
+		workspace := &domain.Workspace{
+			ID:   "workspace123",
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone: "UTC",
+			},
+		}
+
+		theme := &domain.BlogTheme{
+			Version: 1,
+			Files: domain.BlogThemeFiles{
+				HomeLiquid:   "<h1>{{ workspace.name }}</h1>{% for cat in categories %}<div>{{ cat.name }}</div>{% endfor %}",
+				HeaderLiquid: "<header></header>",
+				FooterLiquid: "<footer></footer>",
+				SharedLiquid: "",
+			},
+		}
+
+		publishedAt := time.Now()
+		theme.PublishedAt = &publishedAt
+
+		deletedAt := time.Now()
+		posts := []*domain.BlogPost{
+			{
+				ID:         "post-1",
+				Slug:       "test-post",
+				CategoryID: "cat-deleted",
+				Settings: domain.BlogPostSettings{
+					Title: "Test Post",
+				},
+			},
+		}
+
+		// Non-deleted category for navigation
+		activeCategory := &domain.BlogCategory{
+			ID:   "cat-active",
+			Slug: "active",
+			Settings: domain.BlogCategorySettings{
+				Name: "Active Category",
+			},
+		}
+
+		// Deleted category (should be filtered from navigation but used for slug lookup)
+		deletedCategory := &domain.BlogCategory{
+			ID:        "cat-deleted",
+			Slug:      "deleted",
+			DeletedAt: &deletedAt,
+			Settings: domain.BlogCategorySettings{
+				Name: "Deleted Category",
+			},
+		}
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, "workspace123").Return(workspace, nil)
+		mockThemeRepo.EXPECT().GetPublishedTheme(ctx).Return(theme, nil)
+		mockListRepo.EXPECT().GetLists(ctx, "workspace123").Return([]*domain.List{}, nil)
+		mockPostRepo.EXPECT().
+			ListPosts(ctx, gomock.Any()).
+			Return(&domain.BlogPostListResponse{Posts: posts, TotalCount: 1}, nil)
+		mockCategoryRepo := mocks.NewMockBlogCategoryRepository(gomock.NewController(t))
+		service.categoryRepo = mockCategoryRepo
+		// ListCategories returns only non-deleted categories
+		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{activeCategory}, nil)
+		// GetCategoriesByIDs returns deleted category for slug lookup
+		mockCategoryRepo.EXPECT().
+			GetCategoriesByIDs(ctx, []string{"cat-deleted"}).
+			Return([]*domain.BlogCategory{deletedCategory}, nil)
+
+		html, err := service.RenderHomePage(ctx, "workspace123", 1, nil)
+		require.NoError(t, err)
+		// Should contain active category in navigation
+		assert.Contains(t, html, "Active Category")
+		// Should NOT contain deleted category in navigation
+		assert.NotContains(t, html, "Deleted Category")
 	})
 
 	t.Run("handles no published theme", func(t *testing.T) {
@@ -1506,7 +1709,7 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 }
 
 func TestBlogService_RenderPostPage(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _ := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, mockTemplateRepo, _ := setupBlogServiceTest(t)
 
 	t.Run("successful render", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
@@ -1521,6 +1724,10 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 			Settings: domain.BlogPostSettings{
 				Title:   "Test Post",
 				Excerpt: "Test excerpt",
+				Template: domain.BlogPostTemplateReference{
+					TemplateID:      "tpl-1",
+					TemplateVersion: 1,
+				},
 			},
 		}
 
@@ -1532,10 +1739,18 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 			},
 		}
 
+		template := &domain.Template{
+			ID:      "tpl-1",
+			Version: 1,
+			Web: &domain.WebTemplate{
+				HTML: "<div>Blog post content</div>",
+			},
+		}
+
 		theme := &domain.BlogTheme{
 			Version: 1,
 			Files: domain.BlogThemeFiles{
-				PostLiquid:   "<h1>{{ post.title }}</h1>",
+				PostLiquid:   "<h1>{{ post.title }}</h1><div>{{ post.content }}</div>",
 				HeaderLiquid: "",
 				FooterLiquid: "",
 				SharedLiquid: "",
@@ -1550,6 +1765,7 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().GetByID(ctx, "workspace123").Return(workspace, nil)
 		mockThemeRepo.EXPECT().GetPublishedTheme(ctx).Return(theme, nil)
 		mockPostRepo.EXPECT().GetPostByCategoryAndSlug(ctx, "tech", "test-post").Return(post, nil)
+		mockTemplateRepo.EXPECT().GetTemplateByID(ctx, "workspace123", "tpl-1", int64(1)).Return(template, nil)
 		mockCategoryRepo.EXPECT().GetCategory(ctx, "cat-1").Return(category, nil)
 		mockListRepo.EXPECT().GetLists(ctx, "workspace123").Return(publicLists, nil)
 		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{category}, nil)
@@ -1557,6 +1773,7 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 		html, err := service.RenderPostPage(ctx, "workspace123", "tech", "test-post", nil)
 		require.NoError(t, err)
 		assert.Contains(t, html, "Test Post")
+		assert.Contains(t, html, "Blog post content")
 	})
 
 	t.Run("handles unpublished post", func(t *testing.T) {
@@ -1570,6 +1787,10 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 			PublishedAt: nil, // Not published
 			Settings: domain.BlogPostSettings{
 				Title: "Draft Post",
+				Template: domain.BlogPostTemplateReference{
+					TemplateID:      "tpl-1",
+					TemplateVersion: 1,
+				},
 			},
 		}
 
@@ -1609,10 +1830,132 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 		assert.True(t, ok)
 		assert.Equal(t, domain.ErrCodePostNotFound, blogErr.Code)
 	})
+
+	t.Run("handles template not found", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
+		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
+
+		publishedAt := time.Now()
+		post := &domain.BlogPost{
+			ID:          "post-1",
+			Slug:        "test-post",
+			CategoryID:  "cat-1",
+			PublishedAt: &publishedAt,
+			Settings: domain.BlogPostSettings{
+				Title:   "Test Post",
+				Excerpt: "Test excerpt",
+				Template: domain.BlogPostTemplateReference{
+					TemplateID:      "tpl-1",
+					TemplateVersion: 1,
+				},
+			},
+		}
+
+		category := &domain.BlogCategory{
+			ID:   "cat-1",
+			Slug: "tech",
+			Settings: domain.BlogCategorySettings{
+				Name: "Technology",
+			},
+		}
+
+		theme := &domain.BlogTheme{
+			Version: 1,
+			Files: domain.BlogThemeFiles{
+				PostLiquid:   "<h1>{{ post.title }}</h1><div>{{ post.content }}</div>",
+				HeaderLiquid: "",
+				FooterLiquid: "",
+				SharedLiquid: "",
+			},
+		}
+		theme.PublishedAt = &publishedAt
+
+		publicLists := []*domain.List{
+			{ID: "list-1", Name: "Newsletter", IsPublic: true},
+		}
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, "workspace123").Return(workspace, nil)
+		mockThemeRepo.EXPECT().GetPublishedTheme(ctx).Return(theme, nil)
+		mockPostRepo.EXPECT().GetPostByCategoryAndSlug(ctx, "tech", "test-post").Return(post, nil)
+		mockTemplateRepo.EXPECT().GetTemplateByID(ctx, "workspace123", "tpl-1", int64(1)).Return(nil, errors.New("template not found"))
+		mockCategoryRepo.EXPECT().GetCategory(ctx, "cat-1").Return(category, nil)
+		mockListRepo.EXPECT().GetLists(ctx, "workspace123").Return(publicLists, nil)
+		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{category}, nil)
+
+		html, err := service.RenderPostPage(ctx, "workspace123", "tech", "test-post", nil)
+		require.NoError(t, err)
+		assert.Contains(t, html, "Test Post")
+		// Content should be empty when template is not found
+		assert.NotContains(t, html, "Blog post content")
+	})
+
+	t.Run("handles template with no web content", func(t *testing.T) {
+		ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
+		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
+
+		publishedAt := time.Now()
+		post := &domain.BlogPost{
+			ID:          "post-1",
+			Slug:        "test-post",
+			CategoryID:  "cat-1",
+			PublishedAt: &publishedAt,
+			Settings: domain.BlogPostSettings{
+				Title:   "Test Post",
+				Excerpt: "Test excerpt",
+				Template: domain.BlogPostTemplateReference{
+					TemplateID:      "tpl-1",
+					TemplateVersion: 1,
+				},
+			},
+		}
+
+		category := &domain.BlogCategory{
+			ID:   "cat-1",
+			Slug: "tech",
+			Settings: domain.BlogCategorySettings{
+				Name: "Technology",
+			},
+		}
+
+		// Template with no Web field or empty HTML
+		template := &domain.Template{
+			ID:      "tpl-1",
+			Version: 1,
+			Web:     nil, // No web template
+		}
+
+		theme := &domain.BlogTheme{
+			Version: 1,
+			Files: domain.BlogThemeFiles{
+				PostLiquid:   "<h1>{{ post.title }}</h1><div>{{ post.content }}</div>",
+				HeaderLiquid: "",
+				FooterLiquid: "",
+				SharedLiquid: "",
+			},
+		}
+		theme.PublishedAt = &publishedAt
+
+		publicLists := []*domain.List{
+			{ID: "list-1", Name: "Newsletter", IsPublic: true},
+		}
+
+		mockWorkspaceRepo.EXPECT().GetByID(ctx, "workspace123").Return(workspace, nil)
+		mockThemeRepo.EXPECT().GetPublishedTheme(ctx).Return(theme, nil)
+		mockPostRepo.EXPECT().GetPostByCategoryAndSlug(ctx, "tech", "test-post").Return(post, nil)
+		mockTemplateRepo.EXPECT().GetTemplateByID(ctx, "workspace123", "tpl-1", int64(1)).Return(template, nil)
+		mockCategoryRepo.EXPECT().GetCategory(ctx, "cat-1").Return(category, nil)
+		mockListRepo.EXPECT().GetLists(ctx, "workspace123").Return(publicLists, nil)
+		mockCategoryRepo.EXPECT().ListCategories(ctx).Return([]*domain.BlogCategory{category}, nil)
+
+		html, err := service.RenderPostPage(ctx, "workspace123", "tech", "test-post", nil)
+		require.NoError(t, err)
+		assert.Contains(t, html, "Test Post")
+		// Content should be empty when template has no web content
+	})
 }
 
 func TestBlogService_RenderCategoryPage(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _ := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _, _ := setupBlogServiceTest(t)
 
 	t.Run("successful render", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
@@ -1644,7 +1987,7 @@ func TestBlogService_RenderCategoryPage(t *testing.T) {
 		}
 
 		posts := []*domain.BlogPost{
-			{ID: "post-1", Slug: "post-1", Settings: domain.BlogPostSettings{Title: "Post 1"}},
+			{ID: "post-1", Slug: "post-1", CategoryID: "cat-1", Settings: domain.BlogPostSettings{Title: "Post 1"}},
 		}
 
 		mockWorkspaceRepo.EXPECT().GetByID(ctx, "workspace123").Return(workspace, nil)
@@ -1728,7 +2071,7 @@ func TestBlogService_RenderCategoryPage(t *testing.T) {
 }
 
 func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
-	service, _, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _ := setupBlogServiceTest(t)
+	service, _, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _, _ := setupBlogServiceTest(t)
 
 	t.Run("uses custom home page size from settings", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
@@ -1875,7 +2218,7 @@ func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
 }
 
 func TestBlogService_RenderCategoryPage_WithPaginationSettings(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _ := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _, _ := setupBlogServiceTest(t)
 
 	t.Run("uses custom category page size from settings", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")

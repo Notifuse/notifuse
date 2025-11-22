@@ -122,12 +122,16 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
         if (isPublished) {
           return <Badge status="success" text="Live" />
         }
+        // Find the most recent version (highest version number)
+        const mostRecentVersion =
+          themes.length > 0 ? Math.max(...themes.map((t) => t.version)) : record.version
+        const isMostRecent = record.version === mostRecentVersion
         return (
           <Tooltip title="Publish this theme">
             <Button
               type="primary"
               size="small"
-              ghost
+              ghost={!isMostRecent}
               icon={<CloudUploadOutlined />}
               onClick={() => handlePublish(record)}
               loading={publishMutation.isPending}

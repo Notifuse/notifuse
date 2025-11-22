@@ -93,11 +93,11 @@ const defaultTheme: ThemePreset = {
         {%- else -%}
           <a href="{{ base_url }}/{{ featured_post.slug }}" class="featured-post">
         {%- endif -%}
-          <div>
-            {%- if featured_post.featured_image_url -%}
+          {%- if featured_post.featured_image_url -%}
+            <div>
               <img src="{{ featured_post.featured_image_url }}" alt="{{ featured_post.title }}" class="featured-image" />
-            {%- endif -%}
-          </div>
+            </div>
+          {%- endif -%}
           <div class="featured-content">
             <h2>{{ featured_post.title }}</h2>
             {%- if featured_post.excerpt -%}
@@ -121,9 +121,9 @@ const defaultTheme: ThemePreset = {
                   {%- if featured_post.published_at -%}
                     {{ featured_post.published_at | date: "%b %d, %Y" }}
                   {%- endif -%}
-                  {%- if featured_post.reading_time_minutes -%}
+                  {% if featured_post.reading_time_minutes %}
                     · {{ featured_post.reading_time_minutes }} min read
-                  {%- endif -%}
+                  {% endif %}
                 </div>
               </div>
             </div>
@@ -291,14 +291,10 @@ const defaultTheme: ThemePreset = {
   {%- comment -%} Post Article {%- endcomment -%}
   <article class="post-article">
     <header class="post-header">
-      {%- if post.category_slug -%}
+      {%- if category -%}
         <div class="post-category-badge">
-          <a href="{{ base_url }}/{{ post.category_slug }}" class="category-pill">
-            {%- for cat in categories -%}
-              {%- if cat.slug == post.category_slug -%}
-                {{ cat.name }}
-              {%- endif -%}
-            {%- endfor -%}
+          <a href="{{ base_url }}/{{ category.slug }}" class="category-pill">
+            {{ category.name }}
           </a>
         </div>
       {%- endif -%}
@@ -333,16 +329,29 @@ const defaultTheme: ThemePreset = {
       </div>
     </header>
 
-    {%- comment -%} Featured Image {%- endcomment -%}
-    {%- if post.featured_image_url -%}
-      <div class="post-featured-image">
-        <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" />
+    {%- comment -%} Post Content with TOC Sidebar {%- endcomment -%}
+    <div class="post-content-wrapper">
+      {%- if post.table_of_contents.size > 0 -%}
+        <nav class="toc-sidebar">
+          <div class="toc-header">Table of Contents</div>
+          <ul class="toc-list">
+            {%- for item in post.table_of_contents -%}
+              <li class="toc-item toc-level-{{ item.level }}">
+                <a href="#{{ item.id }}" class="toc-link">{{ item.text }}</a>
+              </li>
+            {%- endfor -%}
+          </ul>
+        </nav>
+      {%- endif -%}
+      <div class="post-content">
+        {%- comment -%} Featured Image {%- endcomment -%}
+        {%- if post.featured_image_url -%}
+          <div class="post-featured-image">
+            <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" />
+          </div>
+        {%- endif -%}
+        {{ post.content }}
       </div>
-    {%- endif -%}
-
-    {%- comment -%} Post Content - HTML from compiled email template {%- endcomment -%}
-    <div class="post-content">
-      {{ post.content }}
     </div>
   </article>
 
@@ -428,8 +437,8 @@ const defaultTheme: ThemePreset = {
   {%- elsif category.seo.canonical_url -%}
     <link rel="canonical" href="{{ category.seo.canonical_url }}">
   {%- elsif post -%}
-    {%- if post.category_slug -%}
-      <link rel="canonical" href="{{ base_url }}/{{ post.category_slug }}/{{ post.slug }}">
+    {%- if category -%}
+      <link rel="canonical" href="{{ base_url }}/{{ category.slug }}/{{ post.slug }}">
     {%- else -%}
       <link rel="canonical" href="{{ base_url }}/{{ post.slug }}">
     {%- endif -%}
@@ -463,8 +472,8 @@ const defaultTheme: ThemePreset = {
   <meta property="og:type" content="{% if post %}article{% else %}website{% endif %}">
   
   {%- if post -%}
-    {%- if post.category_slug -%}
-      <meta property="og:url" content="{{ base_url }}/{{ post.category_slug }}/{{ post.slug }}">
+    {%- if category -%}
+      <meta property="og:url" content="{{ base_url }}/{{ category.slug }}/{{ post.slug }}">
     {%- else -%}
       <meta property="og:url" content="{{ base_url }}/{{ post.slug }}">
     {%- endif -%}
@@ -907,6 +916,10 @@ body {
   background: var(--color-background);
 }
 
+html {
+  scroll-behavior: smooth; /* Smooth scrolling for anchor links */
+}
+
 /* Main Container */
 .main-container {
   max-width: var(--container-max-width);
@@ -1294,6 +1307,89 @@ h3 {
   padding: var(--spacing-3xl) var(--section-padding-x);
 }
 
+/* Table of Contents Sidebar */
+.toc-sidebar {
+  display: none; /* Hidden by default on smaller screens */
+  position: sticky;
+  top: 80px; /* Below topbar */
+  width: 240px;
+  flex-shrink: 0;
+  padding: var(--spacing-lg);
+  background: var(--color-container);
+  border: var(--input-border-width) solid var(--color-border);
+  border-radius: var(--border-radius-lg);
+  max-height: calc(100vh - 100px);
+  overflow-y: auto;
+  font-size: var(--font-size-small);
+}
+
+.toc-header {
+  font-size: var(--font-size-small);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-heading);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: var(--input-border-width) solid var(--color-border);
+}
+
+.toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.toc-item {
+  margin-bottom: var(--spacing-xs);
+}
+
+.toc-link {
+  display: block;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-speed) var(--transition-timing);
+  line-height: 1.4;
+  padding: var(--spacing-xs) 0;
+}
+
+.toc-link:hover {
+  color: var(--color-link);
+}
+
+/* Indentation for nested heading levels */
+.toc-level-2 {
+  padding-left: 0;
+}
+
+.toc-level-3 {
+  padding-left: var(--spacing-md);
+}
+
+.toc-level-4 {
+  padding-left: calc(var(--spacing-md) * 2);
+}
+
+.toc-level-5 {
+  padding-left: calc(var(--spacing-md) * 3);
+}
+
+.toc-level-6 {
+  padding-left: calc(var(--spacing-md) * 4);
+}
+
+/* Font weight based on level */
+.toc-level-2 .toc-link {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-small);
+}
+
+.toc-level-3 .toc-link,
+.toc-level-4 .toc-link,
+.toc-level-5 .toc-link,
+.toc-level-6 .toc-link {
+  font-weight: var(--font-weight-normal);
+  font-size: var(--font-size-tiny);
+}
+
 /* Post Header */
 .post-header {
   margin-bottom: var(--spacing-3xl);
@@ -1330,15 +1426,53 @@ h3 {
   display: block;
 }
 
+/* Post Content Wrapper - contains TOC sidebar and content */
+.post-content-wrapper {
+  display: flex;
+  gap: var(--spacing-3xl);
+  align-items: flex-start;
+}
+
 /* Post Content */
 .post-content {
-  font-size: 1.125rem;
-  line-height: 1.8;
+  font-size: 1rem;
+  line-height: 1.5;
   color: var(--color-text-primary);
+  flex: 1;
+  min-width: 0; /* Allow content to shrink */
 }
 
 .post-content p {
-  margin-bottom: var(--spacing-xl);
+  margin-top: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.post-content ul,
+.post-content ol {
+  margin-top: 1.25rem;
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.post-content ul {
+  list-style-type: disc;
+}
+
+.post-content ol {
+  list-style-type: decimal;
+}
+
+.post-content li {
+  margin-bottom: 0.5rem;
+}
+
+.post-content li > p {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.post-content li > p:not(:last-child) {
+  margin-bottom: 0.5rem;
 }
 
 .post-content a {
@@ -1359,22 +1493,30 @@ h3 {
   font-weight: var(--font-weight-normal);
 }
 
+.post-content h2,
+.post-content h3,
+.post-content h4,
+.post-content h5,
+.post-content h6 {
+  scroll-margin-top: 80px; /* Offset for sticky topbar when scrolling to anchors */
+}
+
 .post-content h2 {
-  font-size: 1.875rem;
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-heading);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.333;
   letter-spacing: var(--letter-spacing-heading);
   margin-top: var(--spacing-3xl);
-  margin-bottom: var(--spacing-lg);
+  margin-bottom: 1.5rem;
   color: var(--color-text-heading);
 }
 
 .post-content h3 {
-  font-size: 1.5rem;
-  font-weight: var(--font-weight-semibold);
-  line-height: 1.3;
+  font-size: 1.25rem;
+  font-weight: 500;
+  line-height: 1.6;
   margin-top: var(--spacing-xl);
-  margin-bottom: var(--spacing-md);
+  margin-bottom: 0.75rem;
   color: var(--color-text-heading);
 }
 
@@ -1745,6 +1887,14 @@ h3 {
     padding: var(--spacing-xl) var(--section-padding-x);
   }
 
+  .post-content-wrapper {
+    flex-direction: column;
+  }
+
+  .toc-sidebar {
+    display: none; /* Keep hidden on mobile */
+  }
+
   .post-title {
     font-size: 1.875rem;
   }
@@ -1785,6 +1935,21 @@ h3 {
 
   .related-posts-title {
     font-size: 1.5rem;
+  }
+}
+
+/* Show TOC sidebar on wide screens (>= 1400px) */
+@media (min-width: 1400px) {
+  .post-article {
+    max-width: 1200px; /* Wider container to accommodate sidebar */
+  }
+
+  .toc-sidebar {
+    display: block; /* Show TOC on wide screens */
+  }
+
+  .post-content {
+    max-width: 720px; /* Keep content width readable */
   }
 }`,
 
