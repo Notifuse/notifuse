@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// createValidMJMLBlock creates a valid MJML EmailBlock for testing
+// createValidMJMLBlock creates a valid MJML EmailBlock for testing EmailTemplate
 func createValidMJMLBlock() notifuse_mjml.EmailBlock {
 	bodyBlock := &notifuse_mjml.MJBodyBlock{
 		BaseBlock: notifuse_mjml.NewBaseBlock("body-1", notifuse_mjml.MJMLComponentMjBody),
@@ -27,7 +27,7 @@ func createValidMJMLBlock() notifuse_mjml.EmailBlock {
 	return mjmlBlock
 }
 
-// createInvalidMJMLBlock creates an invalid MJML EmailBlock for testing
+// createInvalidMJMLBlock creates an invalid MJML EmailBlock for testing EmailTemplate
 func createInvalidMJMLBlock(blockType notifuse_mjml.MJMLComponentType) notifuse_mjml.EmailBlock {
 	return &notifuse_mjml.MJTextBlock{
 		BaseBlock: notifuse_mjml.NewBaseBlock("text-1", blockType),
@@ -157,6 +157,11 @@ func TestTemplateCategory_Validate(t *testing.T) {
 		{
 			name:     "valid other category",
 			category: TemplateCategoryOther,
+			wantErr:  false,
+		},
+		{
+			name:     "valid blog category",
+			category: TemplateCategoryBlog,
 			wantErr:  false,
 		},
 		{
@@ -297,6 +302,69 @@ func TestTemplate_Validate(t *testing.T) {
 				t.Email = nil
 				return t
 			}(),
+			wantErr: true,
+		},
+		{
+			name: "valid web template",
+			template: &Template{
+				ID:      "test-web",
+				Name:    "Test Web Template",
+				Version: 1,
+				Channel: "web",
+				Web: &WebTemplate{
+					Content:   MapOfAny{"type": "doc", "content": []interface{}{}},
+					HTML:      "<div>Test content</div>",
+					PlainText: "Test content",
+				},
+				Category:  string(TemplateCategoryBlog),
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid web template - missing web field",
+			template: &Template{
+				ID:        "test-web",
+				Name:      "Test Web Template",
+				Version:   1,
+				Channel:   "web",
+				Web:       nil,
+				Category:  string(TemplateCategoryBlog),
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid template - email channel with web field",
+			template: func() *Template {
+				t := createValidTemplate()
+				t.Web = &WebTemplate{
+					Content: MapOfAny{"type": "doc"},
+				}
+				return t
+			}(),
+			wantErr: true,
+		},
+		{
+			name: "invalid template - web channel with email field",
+			template: &Template{
+				ID:      "test-web",
+				Name:    "Test Web Template",
+				Version: 1,
+				Channel: "web",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Web:       nil,
+				Category:  string(TemplateCategoryBlog),
+				CreatedAt: now,
+				UpdatedAt: now,
+			},
 			wantErr: true,
 		},
 	}
@@ -544,6 +612,79 @@ func TestEmailTemplate_Scan_Value(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestWebTemplate_Validate(t *testing.T) {
+	tests := []struct {
+		name     string
+		template *WebTemplate
+		wantErr  bool
+	}{
+		{
+			name: "valid web template with Tiptap content",
+			template: &WebTemplate{
+				Content:   MapOfAny{"type": "doc", "content": []interface{}{}},
+				HTML:      "<div>Test content</div>",
+				PlainText: "Test content",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid web template - minimal content",
+			template: &WebTemplate{
+				Content: MapOfAny{"type": "doc"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid web template - missing content",
+			template: &WebTemplate{
+				HTML:      "<div>Test</div>",
+				PlainText: "Test",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid web template - empty content",
+			template: &WebTemplate{
+				Content: MapOfAny{},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.template.Validate(nil)
+			if tt.wantErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestWebTemplate_Scan_Value(t *testing.T) {
+	web := &WebTemplate{
+		Content:   MapOfAny{"type": "doc", "content": []interface{}{}},
+		HTML:      "<div>Test content</div>",
+		PlainText: "Test content",
+	}
+
+	// Test Value() method
+	value, err := web.Value()
+	assert.NoError(t, err)
+	assert.NotNil(t, value)
+
+	// Test basic validation
+	err = web.Validate(nil)
+	assert.NoError(t, err)
+
+	// Test Scan() method with nil
+	newWeb := &WebTemplate{}
+	err = newWeb.Scan(nil)
+	assert.NoError(t, err)
+}
+
 func TestCreateTemplateRequest_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -698,6 +839,72 @@ func TestCreateTemplateRequest_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "valid web template request",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "web-template",
+				Name:        "Test Web Template",
+				Channel:     "web",
+				Web: &WebTemplate{
+					Content:   MapOfAny{"type": "doc", "content": []interface{}{}},
+					HTML:      "<div>Test content</div>",
+					PlainText: "Test content",
+				},
+				Category: string(TemplateCategoryBlog),
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid web template - missing web field",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "web-template",
+				Name:        "Test Web Template",
+				Channel:     "web",
+				Web:         nil,
+				Category:    string(TemplateCategoryBlog),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid request - email channel with web field",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Web: &WebTemplate{
+					Content: MapOfAny{"type": "doc"},
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid request - web channel with email field",
+			request: &CreateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "web-template",
+				Name:        "Test Web Template",
+				Channel:     "web",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Web:      nil,
+				Category: string(TemplateCategoryBlog),
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -745,6 +952,23 @@ func TestGetTemplatesRequest_FromURLParams(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "valid request with channel filter",
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace123"},
+				"channel":      []string{"email"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid request with category and channel filters",
+			queryParams: url.Values{
+				"workspace_id": []string{"workspace123"},
+				"category":     []string{"marketing"},
+				"channel":      []string{"web"},
+			},
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -756,6 +980,12 @@ func TestGetTemplatesRequest_FromURLParams(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tt.queryParams.Get("workspace_id"), req.WorkspaceID)
+				if channel := tt.queryParams.Get("channel"); channel != "" {
+					assert.Equal(t, channel, req.Channel)
+				}
+				if category := tt.queryParams.Get("category"); category != "" {
+					assert.Equal(t, category, req.Category)
+				}
 			}
 		})
 	}
@@ -985,6 +1215,54 @@ func TestUpdateTemplateRequest_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "valid web template update request",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "web-template",
+				Name:        "Updated Web Template",
+				Channel:     "web",
+				Web: &WebTemplate{
+					Content:   MapOfAny{"type": "doc", "content": []interface{}{}},
+					HTML:      "<div>Updated content</div>",
+					PlainText: "Updated content",
+				},
+				Category: string(TemplateCategoryBlog),
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid web update - missing web field",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "web-template",
+				Name:        "Updated Web Template",
+				Channel:     "web",
+				Web:         nil,
+				Category:    string(TemplateCategoryBlog),
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid update - email channel with web field",
+			request: &UpdateTemplateRequest{
+				WorkspaceID: "workspace123",
+				ID:          "template123",
+				Name:        "Test Template",
+				Channel:     "email",
+				Email: &EmailTemplate{
+					SenderID:         "test123",
+					Subject:          "Test Subject",
+					CompiledPreview:  "<html>Test content</html>",
+					VisualEditorTree: createValidMJMLBlock(),
+				},
+				Web: &WebTemplate{
+					Content: MapOfAny{"type": "doc"},
+				},
+				Category: string(TemplateCategoryMarketing),
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -999,7 +1277,11 @@ func TestUpdateTemplateRequest_Validate(t *testing.T) {
 				assert.Equal(t, tt.request.ID, template.ID)
 				assert.Equal(t, tt.request.Name, template.Name)
 				assert.Equal(t, tt.request.Channel, template.Channel)
-				assert.Equal(t, tt.request.Email, template.Email)
+				if tt.request.Channel == "email" {
+					assert.Equal(t, tt.request.Email, template.Email)
+				} else if tt.request.Channel == "web" {
+					assert.Equal(t, tt.request.Web, template.Web)
+				}
 				assert.Equal(t, tt.request.Category, template.Category)
 			}
 		})

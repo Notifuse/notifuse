@@ -72,6 +72,12 @@
     "description": "Number of users in the workspace"
   },
   {
+    "name": "blog_posts_count",
+    "type": "INTEGER",
+    "mode": "NULLABLE",
+    "description": "Number of blog posts in the workspace"
+  },
+  {
     "name": "api_endpoint",
     "type": "STRING",
     "mode": "NULLABLE",

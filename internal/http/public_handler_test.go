@@ -8,22 +8,15 @@ import (
 	"net/http/httptest"
 	"testing"
 
-
-
 	"github.com/Notifuse/notifuse/internal/domain"
-
 
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 
-
 	"github.com/Notifuse/notifuse/pkg/logger"
-
 
 	"github.com/golang/mock/gomock"
 
-
 	"github.com/stretchr/testify/assert"
-
 
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +28,7 @@ func TestNotificationCenterHandler_RegisterRoutes(t *testing.T) {
 	mockService := mocks.NewMockNotificationCenterService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockLogger := &mockLogger{}
-	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger)
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
 
 	mux := http.NewServeMux()
 	handler.RegisterRoutes(mux)
@@ -69,7 +62,7 @@ func TestNotificationCenterHandler_handleNotificationCenter(t *testing.T) {
 	mockService := mocks.NewMockNotificationCenterService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockLogger := &mockLogger{}
-	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger)
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
 
 	tests := []struct {
 		name               string
@@ -189,7 +182,7 @@ func TestNotificationCenterHandler_handleSubscribe(t *testing.T) {
 	mockService := mocks.NewMockNotificationCenterService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockLogger := &mockLogger{}
-	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger)
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
 
 	validRequest := domain.SubscribeToListsRequest{
 		WorkspaceID: "ws123",
@@ -292,7 +285,7 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 	mockService := mocks.NewMockNotificationCenterService(ctrl)
 	mockListService := mocks.NewMockListService(ctrl)
 	mockLogger := &mockLogger{}
-	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger)
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
 
 	validRequest := domain.UnsubscribeFromListsRequest{
 		WorkspaceID: "ws123",
@@ -305,6 +298,7 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 		name               string
 		method             string
 		requestBody        interface{}
+		userAgent          string
 		setupMock          func()
 		expectedStatusCode int
 		expectedResponse   string
@@ -329,6 +323,7 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 			name:        "service returns error",
 			method:      http.MethodPost,
 			requestBody: validRequest,
+			userAgent:   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
 			setupMock: func() {
 				mockListService.EXPECT().
 					UnsubscribeFromLists(gomock.Any(), gomock.Any(), false).
@@ -341,10 +336,33 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 			name:        "successful request",
 			method:      http.MethodPost,
 			requestBody: validRequest,
+			userAgent:   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
 			setupMock: func() {
 				mockListService.EXPECT().
 					UnsubscribeFromLists(gomock.Any(), gomock.Any(), false).
 					Return(nil)
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedResponse:   `{"success":true}`,
+		},
+		{
+			name:        "bot user agent - returns success without unsubscribing",
+			method:      http.MethodPost,
+			requestBody: validRequest,
+			userAgent:   "Mozilla/5.0 (compatible; SafeLinks/1.0; +http://www.microsoft.com/safelinks)",
+			setupMock: func() {
+				// No mock expectation - service should not be called for bots
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedResponse:   `{"success":true}`,
+		},
+		{
+			name:        "email scanner bot - returns success without unsubscribing",
+			method:      http.MethodPost,
+			requestBody: validRequest,
+			userAgent:   "Proofpoint Email Security Scanner",
+			setupMock: func() {
+				// No mock expectation - service should not be called for bots
 			},
 			expectedStatusCode: http.StatusOK,
 			expectedResponse:   `{"success":true}`,
@@ -369,6 +387,9 @@ func TestNotificationCenterHandler_handleUnsubscribeOneClick(t *testing.T) {
 
 			req := httptest.NewRequest(tc.method, "/unsubscribe-oneclick", bytes.NewBuffer(body))
 			req.Header.Set("Content-Type", "application/json")
+			if tc.userAgent != "" {
+				req.Header.Set("User-Agent", tc.userAgent)
+			}
 			rec := httptest.NewRecorder()
 
 			handler.handleUnsubscribeOneClick(rec, req)
@@ -416,7 +437,7 @@ func TestNewNotificationCenterHandler(t *testing.T) {
 	mockListService := mocks.NewMockListService(ctrl)
 	mockLogger := &mockLogger{}
 
-	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger)
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
 
 	assert.NotNil(t, handler)
 	assert.Equal(t, mockService, handler.service)

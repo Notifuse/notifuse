@@ -9,7 +9,7 @@ import { MainLayout } from '../layouts/MainLayout'
 export function SignInPage() {
   const { signin } = useAuth()
   const navigate = useNavigate()
-  const search = useSearch({ from: '/signin' })
+  const search = useSearch({ from: '/console/signin' })
   const [email, setEmail] = useState('')
   const [showCodeInput, setShowCodeInput] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -36,7 +36,7 @@ export function SignInPage() {
 
         // Add a small delay to ensure auth state is updated before navigation
         setTimeout(() => {
-          navigate({ to: '/' })
+          navigate({ to: '/console/' })
         }, 100)
       } catch (error: any) {
         const errorMessage = error?.message || 'Failed to verify code'

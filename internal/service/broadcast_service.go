@@ -26,6 +26,7 @@ type BroadcastService struct {
 	authService        domain.AuthService
 	eventBus           domain.EventBus
 	messageHistoryRepo domain.MessageHistoryRepository
+	listService        domain.ListService
 	apiEndpoint        string
 }
 
@@ -42,6 +43,7 @@ func NewBroadcastService(
 	authService domain.AuthService,
 	eventBus domain.EventBus,
 	messageHistoryRepository domain.MessageHistoryRepository,
+	listService domain.ListService,
 	apiEndpoint string,
 ) *BroadcastService {
 	return &BroadcastService{
@@ -56,6 +58,7 @@ func NewBroadcastService(
 		authService:        authService,
 		eventBus:           eventBus,
 		messageHistoryRepo: messageHistoryRepository,
+		listService:        listService,
 		apiEndpoint:        apiEndpoint,
 	}
 }
@@ -934,11 +937,12 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 	}
 
 	now := time.Now().UTC()
+	listID := broadcast.Audience.List
 	message := &domain.MessageHistory{
 		ID:              messageID,
 		ContactEmail:    request.RecipientEmail,
 		BroadcastID:     &request.BroadcastID,
-		ListIDs:         domain.ListIDs(broadcast.Audience.Lists),
+		ListID:          &listID,
 		TemplateID:      template.ID,
 		TemplateVersion: template.Version,
 		Channel:         "email",
@@ -1122,4 +1126,24 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 
 		return nil
 	})
+}
+
+// ValidateSlug checks if slug is valid format (no nanoid - clean slugs)
+func ValidateSlug(slug string) error {
+	if slug == "" {
+		return fmt.Errorf("slug cannot be empty")
+	}
+
+	if len(slug) > 100 {
+		return fmt.Errorf("slug too long (max 100 characters)")
+	}
+
+	// Check format: lowercase letters, numbers, and hyphens only
+	for _, r := range slug {
+		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-') {
+			return fmt.Errorf("slug must contain only lowercase letters, numbers, and hyphens")
+		}
+	}
+
+	return nil
 }

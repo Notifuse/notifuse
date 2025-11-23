@@ -1,0 +1,164 @@
+/**
+ * Floating Selection Toolbar Styles
+ * floating toolbar that appears on text selection
+ */
+
+/* Main toolbar container */
+.notifuse-editor-floating-toolbar {
+  background: white;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  box-shadow: 
+    0px 16px 48px 0px rgba(17, 24, 39, 0.04),
+    0px 12px 24px 0px rgba(17, 24, 39, 0.04),
+    0px 6px 8px 0px rgba(17, 24, 39, 0.02),
+    0px 2px 3px 0px rgba(17, 24, 39, 0.02);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 90vw;
+  overflow-x: auto;
+}
+
+/* Toolbar content wrapper */
+.notifuse-editor-floating-toolbar-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Toolbar section */
+.notifuse-editor-toolbar-section {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Toolbar button */
+.notifuse-editor-toolbar-button {
+  min-width: 32px;
+  height: 32px;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.notifuse-editor-toolbar-button:hover:not(:disabled) {
+  background-color: #f0f0f0;
+}
+
+.notifuse-editor-toolbar-button:active:not(:disabled) {
+  background-color: #e0e0e0;
+}
+
+.notifuse-editor-toolbar-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Active state for toolbar buttons - blue icon color, no background */
+.notifuse-editor-toolbar-button-active .notifuse-editor-toolbar-icon,
+.notifuse-editor-toolbar-button-active svg {
+  color: #1890ff;
+  stroke: #1890ff;
+}
+
+.notifuse-editor-toolbar-button-active:hover:not(:disabled) {
+  background-color: #f0f0f0;
+}
+
+.notifuse-editor-toolbar-button-active:hover:not(:disabled) .notifuse-editor-toolbar-icon,
+.notifuse-editor-toolbar-button-active:hover:not(:disabled) svg {
+  color: #40a9ff;
+  stroke: #40a9ff;
+}
+
+/* Toolbar icon */
+.notifuse-editor-toolbar-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+
+/* Turn Into Dropdown */
+.notifuse-editor-toolbar-turn-into {
+  min-width: 100px;
+  height: 32px;
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+  white-space: nowrap;
+}
+
+.notifuse-editor-toolbar-turn-into:hover:not(:disabled) {
+  background-color: #f0f0f0;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .notifuse-editor-floating-toolbar {
+    max-width: 95vw;
+    padding: 2px;
+  }
+
+  .notifuse-editor-toolbar-button {
+    min-width: 28px;
+    height: 28px;
+  }
+
+  .notifuse-editor-toolbar-icon {
+    width: 14px;
+    height: 14px;
+    font-size: 14px;
+  }
+
+  .notifuse-editor-toolbar-turn-into {
+    min-width: 80px;
+    height: 28px;
+    font-size: 12px;
+  }
+}
+
+/* Scrollbar styling for toolbar overflow */
+.notifuse-editor-floating-toolbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.notifuse-editor-floating-toolbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notifuse-editor-floating-toolbar::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 2px;
+}
+
+.notifuse-editor-floating-toolbar::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+
+/* Ensure toolbar buttons don't wrap */
+.notifuse-editor-toolbar-section {
+  flex-shrink: 0;
+}
+
+/* Ant Design Popover customization for toolbar */
+.ant-popover-inner {
+  border-radius: 8px;
+}
+
+/* Ensure toolbar has proper z-index */
+.notifuse-editor-floating-toolbar {
+  z-index: 1000;
+}
+

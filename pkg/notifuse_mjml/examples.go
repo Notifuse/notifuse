@@ -53,7 +53,7 @@ func CreateSimpleEmail() *MJMLBlock {
 	columnBase.Attributes["paddingRight"] = "20px"
 	column := &MJColumnBlock{BaseBlock: columnBase}
 	column.Children = []EmailBlock{textBlock, button}
-	
+
 	// Create section
 	sectionBase := NewBaseBlock("section-1", MJMLComponentMjSection)
 	sectionBase.Attributes["backgroundColor"] = "#ffffff"
@@ -61,7 +61,7 @@ func CreateSimpleEmail() *MJMLBlock {
 	sectionBase.Attributes["paddingBottom"] = "20px"
 	section := &MJSectionBlock{BaseBlock: sectionBase}
 	section.Children = []EmailBlock{column}
-	
+
 	// Create body section
 	bodyBase := NewBaseBlock("body-1", MJMLComponentMjBody)
 	bodyBase.Attributes["backgroundColor"] = "#f4f4f4"
@@ -94,7 +94,7 @@ func CreateEmailWithImage() *MJMLBlock {
 			// Create image column
 			imageColumn := &MJColumnBlock{BaseBlock: NewBaseBlock("image-column-1", MJMLComponentMjColumn)}
 			imageColumn.Children = []EmailBlock{image}
-			
+
 			// Create new section with image
 			imageSectionBase := NewBaseBlock("image-section-1", MJMLComponentMjSection)
 			imageSectionBase.Attributes["backgroundColor"] = "#ffffff"
@@ -137,11 +137,11 @@ func CreateSocialEmail() *MJMLBlock {
 			socialBase.Attributes["innerPadding"] = "4px"
 			socialBlock := &MJSocialBlock{BaseBlock: socialBase}
 			socialBlock.Children = []EmailBlock{facebookElement, twitterElement}
-			
+
 			// Create social column
 			socialColumn := &MJColumnBlock{BaseBlock: NewBaseBlock("social-column-1", MJMLComponentMjColumn)}
 			socialColumn.Children = []EmailBlock{socialBlock}
-			
+
 			// Create social section
 			socialSectionBase := NewBaseBlock("social-section-1", MJMLComponentMjSection)
 			socialSectionBase.Attributes["backgroundColor"] = "#f8f9fa"

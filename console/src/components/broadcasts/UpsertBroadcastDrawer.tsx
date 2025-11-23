@@ -13,7 +13,9 @@ import {
   InputNumber,
   Popconfirm,
   Alert,
-  Tag
+  Tag,
+  Tabs,
+  Tooltip
 } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
@@ -24,12 +26,13 @@ import {
 } from '../../services/api/broadcast'
 import type { Workspace } from '../../services/api/types'
 import TemplateSelectorInput from '../templates/TemplateSelectorInput'
-import { DeleteOutlined } from '@ant-design/icons'
+import { DeleteOutlined, InfoCircleOutlined } from '@ant-design/icons'
 import React from 'react'
 import extractTLD from '../../lib/tld'
+import type { List } from '../../services/api/list'
 
 // Custom component to handle A/B testing configuration
-const ABTestingConfig = ({ form, trackingEnabled }: { form: any; trackingEnabled: boolean }) => {
+const ABTestingConfig = ({ form }: { form: any }) => {
   const autoSendWinner = Form.useWatch(['test_settings', 'auto_send_winner'], form)
 
   if (!autoSendWinner) return null
@@ -69,7 +72,7 @@ interface UpsertBroadcastDrawerProps {
   buttonProps?: any
   buttonContent?: React.ReactNode
   onClose?: () => void
-  lists?: { id: string; name: string }[]
+  lists?: List[]
   segments?: { id: string; name: string; color: string; users_count?: number }[]
 }
 
@@ -88,6 +91,7 @@ export function UpsertBroadcastDrawer({
   const [loading, setLoading] = useState(false)
   const { message, modal } = App.useApp()
   const [formTouched, setFormTouched] = useState(false)
+  const [tab, setTab] = useState<string>('audience')
 
   // Watch campaign name changes using Form.useWatch
   const campaignName = Form.useWatch('name', form)
@@ -154,7 +158,9 @@ export function UpsertBroadcastDrawer({
       form.setFieldsValue({
         id: broadcast.id,
         name: broadcast.name,
-        audience: broadcast.audience,
+        audience: {
+          ...broadcast.audience
+        },
         test_settings: broadcast.test_settings,
         utm_parameters: broadcast.utm_parameters || undefined,
         metadata: broadcast.metadata || undefined
@@ -167,10 +173,9 @@ export function UpsertBroadcastDrawer({
       form.setFieldsValue({
         name: '',
         audience: {
-          lists: [],
+          list: undefined,
           segments: [],
-          exclude_unsubscribed: true,
-          skip_duplicate_emails: true
+          exclude_unsubscribed: true
         },
         test_settings: {
           enabled: false,
@@ -191,6 +196,7 @@ export function UpsertBroadcastDrawer({
       })
     }
     setFormTouched(false)
+    setTab('audience')
     setIsOpen(true)
   }
 
@@ -205,6 +211,7 @@ export function UpsertBroadcastDrawer({
           setIsOpen(false)
           form.resetFields()
           setFormTouched(false)
+          setTab('audience')
           if (onClose) {
             onClose()
           }
@@ -214,10 +221,62 @@ export function UpsertBroadcastDrawer({
       setIsOpen(false)
       form.resetFields()
       setFormTouched(false)
+      setTab('audience')
       if (onClose) {
         onClose()
       }
     }
+  }
+
+  const validateCurrentTab = async (currentTab: string): Promise<boolean> => {
+    // Validate fields based on current tab before proceeding
+    const fieldsToValidate: string[][] = []
+
+    if (currentTab === 'audience') {
+      fieldsToValidate.push(['name'], ['audience', 'list'])
+    } else if (currentTab === 'email') {
+      // Add email tab validation if needed in the future
+    }
+
+    try {
+      // Validate the fields for the current tab
+      if (fieldsToValidate.length > 0) {
+        await form.validateFields(fieldsToValidate)
+      }
+      return true
+    } catch (errorInfo) {
+      // Validation failed - error messages will be shown automatically by form
+      console.log('Validation failed:', errorInfo)
+      return false
+    }
+  }
+
+  const goNext = async () => {
+    const isValid = await validateCurrentTab(tab)
+    if (!isValid) return
+
+    // If validation passes, proceed to next tab
+    const tabOrder = ['audience', 'email', 'content']
+    const currentIndex = tabOrder.indexOf(tab)
+    if (currentIndex < tabOrder.length - 1) {
+      setTab(tabOrder[currentIndex + 1])
+    }
+  }
+
+  const handleTabChange = async (newTab: string) => {
+    // Only validate if moving forward (not backward)
+    const tabOrder = ['audience', 'email', 'content']
+    const currentIndex = tabOrder.indexOf(tab)
+    const newIndex = tabOrder.indexOf(newTab)
+
+    if (newIndex > currentIndex) {
+      // Moving forward - validate current tab
+      const isValid = await validateCurrentTab(tab)
+      if (!isValid) return // Stay on current tab if validation fails
+    }
+
+    // Validation passed or moving backward - allow tab change
+    setTab(newTab)
   }
 
   const renderDrawerFooter = () => {
@@ -227,15 +286,40 @@ export function UpsertBroadcastDrawer({
           <Button type="link" loading={loading} onClick={handleClose}>
             Cancel
           </Button>
-          <Button
-            loading={loading || upsertBroadcastMutation.isPending}
-            onClick={() => {
-              form.submit()
-            }}
-            type="primary"
-          >
-            Save
-          </Button>
+
+          {tab === 'audience' && (
+            <Button type="primary" onClick={goNext}>
+              Next
+            </Button>
+          )}
+
+          {tab === 'email' && (
+            <>
+              <Button type="primary" ghost onClick={() => handleTabChange('audience')}>
+                Previous
+              </Button>
+              <Button type="primary" onClick={goNext}>
+                Next
+              </Button>
+            </>
+          )}
+
+          {tab === 'content' && (
+            <>
+              <Button type="primary" ghost onClick={() => handleTabChange('email')}>
+                Previous
+              </Button>
+              <Button
+                loading={loading || upsertBroadcastMutation.isPending}
+                onClick={() => {
+                  form.submit()
+                }}
+                type="primary"
+              >
+                Save
+              </Button>
+            </>
+          )}
         </Space>
       </div>
     )
@@ -252,7 +336,7 @@ export function UpsertBroadcastDrawer({
           closable={true}
           keyboard={false}
           maskClosable={false}
-          width={'95%'}
+          width="700px"
           open={isOpen}
           onClose={handleClose}
           className="drawer-no-transition drawer-body-no-padding"
@@ -280,10 +364,39 @@ export function UpsertBroadcastDrawer({
                 payload.id = broadcast.id
               }
 
+              // Normalize list to always be a string (single select)
+              if (payload.audience?.list && Array.isArray(payload.audience.list)) {
+                payload.audience.list = payload.audience.list[0]
+              }
+
               upsertBroadcastMutation.mutate(payload)
             }}
             onFinishFailed={(info) => {
-              if (info.errorFields) {
+              if (info.errorFields && info.errorFields.length > 0) {
+                // Get the first error field name
+                const firstErrorField = info.errorFields[0].name[0]
+
+                // Map fields to tabs and switch directly (no validation needed for error display)
+                if (
+                  firstErrorField === 'name' ||
+                  (Array.isArray(info.errorFields[0].name) &&
+                    info.errorFields[0].name[0] === 'audience')
+                ) {
+                  setTab('audience')
+                } else if (
+                  (Array.isArray(info.errorFields[0].name) &&
+                    info.errorFields[0].name[0] === 'channels' &&
+                    info.errorFields[0].name[1] === 'email') ||
+                  info.errorFields[0].name[0] === 'utm_parameters'
+                ) {
+                  setTab('email')
+                } else if (
+                  Array.isArray(info.errorFields[0].name) &&
+                  info.errorFields[0].name[0] === 'test_settings'
+                ) {
+                  setTab('content')
+                }
+
                 message.error(`Please check the form for errors.`)
               }
               setLoading(false)
@@ -292,324 +405,341 @@ export function UpsertBroadcastDrawer({
               setFormTouched(true)
             }}
           >
-            <div className="p-8">
-              <Row gutter={48}>
-                {/* Left Column */}
-                <Col span={12}>
-                  <Form.Item
-                    name="name"
-                    label="Broadcast name"
-                    rules={[{ required: true, message: 'Please enter a broadcast name' }]}
-                  >
-                    <Input placeholder="E.g. Weekly Newsletter - May 2023" />
-                  </Form.Item>
+            <div className="flex">
+              <Tabs
+                activeKey={tab}
+                onChange={handleTabChange}
+                tabPosition="left"
+                className="vertical-tabs"
+                style={{ minHeight: 'calc(100vh - 65px)' }}
+                items={[
+                  {
+                    key: 'audience',
+                    label: '1. Audience'
+                  },
+                  {
+                    key: 'email',
+                    label: '2. Web Analytics'
+                  },
+                  {
+                    key: 'content',
+                    label: '3. Content'
+                  }
+                ]}
+              />
+              <div className="flex-1 relative">
+                <div style={{ display: tab === 'audience' ? 'block' : 'none' }}>
+                  <div className="pt-8 pr-8">
+                    <Form.Item
+                      name="name"
+                      label="Broadcast name"
+                      rules={[{ required: true, message: 'Please enter a broadcast name' }]}
+                    >
+                      <Input placeholder="E.g. Weekly Newsletter - May 2023" />
+                    </Form.Item>
 
-                  <Form.Item
-                    name={['audience', 'lists']}
-                    label="Lists"
-                    extra="Select the contact lists to include in this broadcast"
-                    rules={[
-                      {
-                        required: true,
-                        type: 'array',
-                        min: 1,
-                        message: 'Please select at least one list'
-                      }
-                    ]}
-                  >
-                    <Select
-                      mode="multiple"
-                      placeholder="Select lists"
-                      options={lists.map((list) => ({
-                        value: list.id,
-                        label: list.name
-                      }))}
-                    />
-                  </Form.Item>
+                    <Form.Item
+                      name={['audience', 'list']}
+                      label="List"
+                      rules={[
+                        {
+                          required: true,
+                          type: 'string',
+                          message: 'Please select a list'
+                        }
+                      ]}
+                    >
+                      <Select
+                        placeholder="Select a list"
+                        options={lists.map((list) => ({
+                          value: list.id,
+                          label: list.name
+                        }))}
+                      />
+                    </Form.Item>
 
-                  <Row gutter={24}>
-                    <Col span={12}>
-                      <Form.Item
-                        name={['audience', 'exclude_unsubscribed']}
-                        label="Exclude unsubscribed recipients"
-                        valuePropName="checked"
-                        initialValue={true}
-                      >
-                        <Switch />
-                      </Form.Item>
-                    </Col>
-                    <Col span={12}>
-                      <Form.Item
-                        name={['audience', 'skip_duplicate_emails']}
-                        label="Skip duplicate emails"
-                        valuePropName="checked"
-                        initialValue={true}
-                      >
-                        <Switch />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-
-                  <Form.Item
-                    name={['audience', 'segments']}
-                    label="Belonging to at least one of the following segments"
-                    extra="Optionally filter contacts by segments within the selected lists"
-                  >
-                    <Select
-                      mode="multiple"
-                      placeholder="Select segments (optional)"
-                      options={segments.map((segment) => ({
-                        value: segment.id,
-                        label: segment.name
-                      }))}
-                      optionRender={(option) => {
-                        const segment = segments.find((s) => s.id === option.value)
-                        if (!segment) return option.label
-
-                        return (
-                          <Tag color={segment.color} bordered={false}>
-                            {segment.name}
-                            {segment.users_count !== undefined && (
-                              <span className="ml-1">({segment.users_count.toLocaleString()})</span>
-                            )}
-                          </Tag>
-                        )
-                      }}
-                      tagRender={(props) => {
-                        const segment = segments.find((s) => s.id === props.value)
-                        if (!segment) return <Tag {...props}>{props.label}</Tag>
-
-                        return (
-                          <Tag
-                            color={segment.color}
-                            bordered={false}
-                            closable={props.closable}
-                            onClose={props.onClose}
-                            style={{ marginRight: 3 }}
+                    <Form.Item
+                      name={['audience', 'segments']}
+                      label={
+                        <span>
+                          Belonging to at least one of the following segments{' '}
+                          <Tooltip
+                            title="Optionally filter contacts by segments within the selected lists"
+                            className="ml-1"
                           >
-                            {segment.name}
-                            {segment.users_count !== undefined && (
-                              <span className="ml-1">({segment.users_count.toLocaleString()})</span>
-                            )}
-                          </Tag>
-                        )
-                      }}
-                    />
-                  </Form.Item>
+                            <InfoCircleOutlined style={{ color: '#999' }} />
+                          </Tooltip>
+                        </span>
+                      }
+                    >
+                      <Select
+                        mode="multiple"
+                        placeholder="Select segments (optional)"
+                        options={segments.map((segment) => ({
+                          value: segment.id,
+                          label: segment.name
+                        }))}
+                        optionRender={(option) => {
+                          const segment = segments.find((s) => s.id === option.value)
+                          if (!segment) return option.label
 
-                  <div className="text-xs mt-12 mb-4 font-bold border-b border-solid border-gray-400 pb-2 text-gray-900">
-                    URL Tracking Parameters
+                          return (
+                            <Tag color={segment.color} bordered={false}>
+                              {segment.name}
+                              {segment.users_count !== undefined && (
+                                <span className="ml-1">
+                                  ({segment.users_count.toLocaleString()})
+                                </span>
+                              )}
+                            </Tag>
+                          )
+                        }}
+                        tagRender={(props) => {
+                          const segment = segments.find((s) => s.id === props.value)
+                          if (!segment) return <Tag {...props}>{props.label}</Tag>
+
+                          return (
+                            <Tag
+                              color={segment.color}
+                              bordered={false}
+                              closable={props.closable}
+                              onClose={props.onClose}
+                              style={{ marginRight: 3 }}
+                            >
+                              {segment.name}
+                              {segment.users_count !== undefined && (
+                                <span className="ml-1">
+                                  ({segment.users_count.toLocaleString()})
+                                </span>
+                              )}
+                            </Tag>
+                          )
+                        }}
+                      />
+                    </Form.Item>
+
+                    <Form.Item
+                      name={['audience', 'exclude_unsubscribed']}
+                      label="Exclude unsubscribed recipients"
+                      valuePropName="checked"
+                      initialValue={true}
+                    >
+                      <Switch />
+                    </Form.Item>
                   </div>
-                  <Alert
-                    description="These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to track the performance of your campaign."
-                    type="info"
-                    className="!mb-4"
-                  />
-                  <Row gutter={24}>
-                    <Col span={8}>
-                      <Form.Item name={['utm_parameters', 'source']} label="utm_source">
-                        <Input placeholder="Your website or company name" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                      <Form.Item
-                        name={['utm_parameters', 'medium']}
-                        label="utm_medium"
-                        initialValue="email"
-                      >
-                        <Input placeholder="email" />
-                      </Form.Item>
-                    </Col>
-                    <Col span={8}>
-                      <Form.Item name={['utm_parameters', 'campaign']} label="utm_campaign">
-                        <Input />
-                      </Form.Item>
-                    </Col>
-                  </Row>
-                </Col>
+                </div>
 
-                {/* Right Column */}
-                <Col span={12}>
-                  <div className="text-xs mb-6 font-bold border-b border-solid pb-2 border-gray-400 text-gray-900">
-                    Template
-                  </div>
-
-                  {!workspace.settings?.email_tracking_enabled && (
+                <div style={{ display: tab === 'email' ? 'block' : 'none' }}>
+                  <div className="pt-8 pr-8">
                     <Alert
-                      description="Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
+                      description="These parameters are automatically added to the URL of the broadcast. They are used by web analytics tools to analyze the performance of your campaign."
                       type="info"
-                      showIcon
                       className="!mb-4"
                     />
-                  )}
+                    <Form.Item name={['utm_parameters', 'source']} label="utm_source">
+                      <Input placeholder="Your website or company name" />
+                    </Form.Item>
+                    <Form.Item
+                      name={['utm_parameters', 'medium']}
+                      label="utm_medium"
+                      initialValue="email"
+                    >
+                      <Input placeholder="email" />
+                    </Form.Item>
+                    <Form.Item name={['utm_parameters', 'campaign']} label="utm_campaign">
+                      <Input />
+                    </Form.Item>
+                  </div>
+                </div>
 
-                  <Form.Item
-                    name={['test_settings', 'enabled']}
-                    label="Enable A/B Testing"
-                    valuePropName="checked"
-                  >
-                    <Switch disabled={!workspace.settings?.email_tracking_enabled} />
-                  </Form.Item>
+                <div style={{ display: tab === 'content' ? 'block' : 'none' }}>
+                  <div className="pt-8 pr-8">
+                    {!workspace.settings?.email_tracking_enabled && (
+                      <Alert
+                        description="Tracking (opens & clicks) must be enabled in workspace settings to use A/B testing features."
+                        type="info"
+                        showIcon
+                        className="!mb-4"
+                      />
+                    )}
 
-                  <Form.Item
-                    noStyle
-                    shouldUpdate={(prevValues, currentValues) => {
-                      return (
-                        prevValues.test_settings?.enabled !== currentValues.test_settings?.enabled
-                      )
-                    }}
-                  >
-                    {({ getFieldValue }) => {
-                      const testEnabled = getFieldValue(['test_settings', 'enabled'])
+                    <Form.Item
+                      name={['test_settings', 'enabled']}
+                      label="Enable A/B Testing"
+                      valuePropName="checked"
+                    >
+                      <Switch disabled={!workspace.settings?.email_tracking_enabled} />
+                    </Form.Item>
 
-                      if (testEnabled) {
+                    <Form.Item
+                      noStyle
+                      shouldUpdate={(prevValues, currentValues) => {
                         return (
-                          <>
-                            <Row gutter={24}>
-                              <Col span={12}>
-                                <Form.Item
-                                  name={['test_settings', 'sample_percentage']}
-                                  label="Test sample size (%)"
-                                  rules={[{ required: true }]}
-                                >
-                                  <InputNumber min={1} max={100} />
-                                </Form.Item>
-                              </Col>
-                              <Col span={12}>
-                                <Form.Item
-                                  name={['test_settings', 'auto_send_winner']}
-                                  label="Automatically send winner"
-                                  valuePropName="checked"
-                                  tooltip="Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
-                                >
-                                  <Switch disabled={!workspace.settings?.email_tracking_enabled} />
-                                </Form.Item>
-                              </Col>
-                            </Row>
+                          prevValues.test_settings?.enabled !== currentValues.test_settings?.enabled
+                        )
+                      }}
+                    >
+                      {({ getFieldValue }) => {
+                        const testEnabled = getFieldValue(['test_settings', 'enabled'])
 
-                            <ABTestingConfig
-                              form={form}
-                              trackingEnabled={workspace.settings?.email_tracking_enabled}
-                            />
+                        if (testEnabled) {
+                          return (
+                            <>
+                              <Row gutter={24}>
+                                <Col span={12}>
+                                  <Form.Item
+                                    name={['test_settings', 'sample_percentage']}
+                                    label="Test sample size (%)"
+                                    rules={[{ required: true }]}
+                                  >
+                                    <InputNumber min={1} max={100} />
+                                  </Form.Item>
+                                </Col>
+                                <Col span={12}>
+                                  <Form.Item
+                                    name={['test_settings', 'auto_send_winner']}
+                                    label="Automatically send winner"
+                                    valuePropName="checked"
+                                    tooltip={
+                                      <Tooltip
+                                        title="Tracking (opens & clicks) should be enabled in your workspace settings to use this feature"
+                                        className="ml-1"
+                                      >
+                                        <InfoCircleOutlined style={{ color: '#999' }} />
+                                      </Tooltip>
+                                    }
+                                  >
+                                    <Switch
+                                      disabled={!workspace.settings?.email_tracking_enabled}
+                                    />
+                                  </Form.Item>
+                                </Col>
+                              </Row>
 
-                            {/* Variations management will be added here */}
-                            <div className="text-xs mt-4 mb-4 font-bold border-b border-solid pb-2 border-gray-400 text-gray-900">
-                              Variations
-                            </div>
+                              <ABTestingConfig form={form} />
 
-                            <Form.List name={['test_settings', 'variations']}>
-                              {(fields, { add, remove }) => (
-                                <>
-                                  {fields.map((field) => (
-                                    <div key={field.key} className="">
-                                      <Row gutter={24}>
-                                        <Col span={22}>
-                                          <Form.Item
-                                            key={`template-${field.key}`}
-                                            name={[field.name, 'template_id']}
-                                            label={`Template ${field.key + 1}`}
-                                            rules={[
-                                              { required: true },
-                                              ({ getFieldsValue }) => ({
-                                                validator(_, value) {
-                                                  if (!value) return Promise.resolve()
+                              {/* Variations management will be added here */}
+                              <div className="text-xs mt-4 mb-4 font-bold border-b border-solid pb-2 border-gray-400 text-gray-900">
+                                Variations
+                              </div>
 
-                                                  // Get all variations
-                                                  const allVariations =
-                                                    getFieldsValue()?.test_settings?.variations ||
-                                                    []
+                              <Form.List name={['test_settings', 'variations']}>
+                                {(fields, { add, remove }) => (
+                                  <>
+                                    {fields.map((field) => (
+                                      <div key={field.key} className="">
+                                        <Row gutter={24}>
+                                          <Col span={22}>
+                                            <Form.Item
+                                              key={`template-${field.key}`}
+                                              name={[field.name, 'template_id']}
+                                              label={`Template ${field.key + 1}`}
+                                              rules={[
+                                                { required: true },
+                                                ({ getFieldsValue }) => ({
+                                                  validator(_, value) {
+                                                    if (!value) return Promise.resolve()
 
-                                                  // Check if this template is used in any other variation
-                                                  const duplicates = allVariations.filter(
-                                                    (v: any, i: number) =>
-                                                      v?.template_id === value && i !== field.name
-                                                  )
+                                                    // Get all variations
+                                                    const allVariations =
+                                                      getFieldsValue()?.test_settings?.variations ||
+                                                      []
 
-                                                  if (duplicates.length > 0) {
-                                                    return Promise.reject(
-                                                      new Error(
-                                                        'This template is already used in another variation'
-                                                      )
+                                                    // Check if this template is used in any other variation
+                                                    const duplicates = allVariations.filter(
+                                                      (v: any, i: number) =>
+                                                        v?.template_id === value && i !== field.name
                                                     )
-                                                  }
 
-                                                  return Promise.resolve()
-                                                }
-                                              })
-                                            ]}
-                                          >
-                                            <TemplateSelectorInput
-                                              workspaceId={workspace.id}
-                                              placeholder="Select template"
-                                              category="marketing"
-                                            />
-                                          </Form.Item>
-                                        </Col>
-                                        {fields.length > 1 && (
-                                          <Col span={2} className="flex items-end justify-end pb-2">
-                                            <Form.Item label=" ">
-                                              <Popconfirm
-                                                title="Remove variation"
-                                                description="Are you sure you want to remove this variation?"
-                                                onConfirm={() => remove(field.name)}
-                                                okText="Yes"
-                                                cancelText="No"
-                                              >
-                                                <Button
-                                                  type="text"
-                                                  danger
-                                                  icon={<DeleteOutlined />}
-                                                />
-                                              </Popconfirm>
+                                                    if (duplicates.length > 0) {
+                                                      return Promise.reject(
+                                                        new Error(
+                                                          'This template is already used in another variation'
+                                                        )
+                                                      )
+                                                    }
+
+                                                    return Promise.resolve()
+                                                  }
+                                                })
+                                              ]}
+                                            >
+                                              <TemplateSelectorInput
+                                                workspaceId={workspace.id}
+                                                placeholder="Select template"
+                                                category="marketing"
+                                              />
                                             </Form.Item>
                                           </Col>
-                                        )}
-                                      </Row>
-                                    </div>
-                                  ))}
+                                          {fields.length > 1 && (
+                                            <Col
+                                              span={2}
+                                              className="flex items-end justify-end pb-2"
+                                            >
+                                              <Form.Item label=" ">
+                                                <Popconfirm
+                                                  title="Remove variation"
+                                                  description="Are you sure you want to remove this variation?"
+                                                  onConfirm={() => remove(field.name)}
+                                                  okText="Yes"
+                                                  cancelText="No"
+                                                >
+                                                  <Button
+                                                    type="text"
+                                                    danger
+                                                    icon={<DeleteOutlined />}
+                                                  />
+                                                </Popconfirm>
+                                              </Form.Item>
+                                            </Col>
+                                          )}
+                                        </Row>
+                                      </div>
+                                    ))}
 
-                                  {fields.length < 5 && (
-                                    <Button
-                                      type="primary"
-                                      ghost
-                                      onClick={() =>
-                                        add({
-                                          id: `variation-${fields.length + 1}`,
-                                          template_id: ''
-                                        })
-                                      }
-                                      block
-                                    >
-                                      + Add variation
-                                    </Button>
-                                  )}
-                                </>
-                              )}
-                            </Form.List>
-                          </>
+                                    {fields.length < 5 && (
+                                      <Button
+                                        type="primary"
+                                        ghost
+                                        onClick={() =>
+                                          add({
+                                            id: `variation-${fields.length + 1}`,
+                                            template_id: ''
+                                          })
+                                        }
+                                        block
+                                      >
+                                        + Add variation
+                                      </Button>
+                                    )}
+                                  </>
+                                )}
+                              </Form.List>
+                            </>
+                          )
+                        }
+
+                        // If A/B testing is disabled, show single template config
+                        return (
+                          <div>
+                            <Form.Item
+                              name={['test_settings', 'variations', 0, 'template_id']}
+                              label="Template"
+                              rules={[{ required: true }]}
+                            >
+                              <TemplateSelectorInput
+                                workspaceId={workspace.id}
+                                placeholder="Select template"
+                                category="marketing"
+                              />
+                            </Form.Item>
+                          </div>
                         )
-                      }
-
-                      // If A/B testing is disabled, show single template config
-                      return (
-                        <div>
-                          <Form.Item
-                            name={['test_settings', 'variations', 0, 'template_id']}
-                            label="Template"
-                            rules={[{ required: true }]}
-                          >
-                            <TemplateSelectorInput
-                              workspaceId={workspace.id}
-                              placeholder="Select template"
-                              category="marketing"
-                            />
-                          </Form.Item>
-                        </div>
-                      )
-                    }}
-                  </Form.Item>
-                </Col>
-              </Row>
+                      }}
+                    </Form.Item>
+                  </div>
+                </div>
+              </div>
             </div>
           </Form>
         </Drawer>

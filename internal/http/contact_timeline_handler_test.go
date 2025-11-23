@@ -10,16 +10,12 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 
-
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 
-
 	"github.com/golang/mock/gomock"
 
-
 	"github.com/stretchr/testify/assert"
-
 
 	"github.com/stretchr/testify/require"
 	"go.opencensus.io/trace"

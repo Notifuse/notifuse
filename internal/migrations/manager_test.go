@@ -539,9 +539,9 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 			},
 		}
 
-		// Mock GetCurrentDBVersion to return current version (16 - up to date)
+		// Mock GetCurrentDBVersion to return current version (17 - up to date)
 		mock.ExpectQuery("SELECT value FROM settings WHERE key = 'db_version'").
-			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow("16"))
+			WillReturnRows(sqlmock.NewRows([]string{"value"}).AddRow("17"))
 
 		err = manager.RunMigrations(context.Background(), cfg, db)
 

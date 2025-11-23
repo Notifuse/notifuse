@@ -172,7 +172,6 @@ func (r *TransactionalNotificationRepository) List(ctx context.Context, workspac
 		whereClause += fmt.Sprintf(" AND (name ILIKE $%d OR id ILIKE $%d)", argIndex, argIndex)
 		searchPattern := "%" + search.(string) + "%"
 		args = append(args, searchPattern)
-		argIndex++
 	}
 
 	// Count total matching records

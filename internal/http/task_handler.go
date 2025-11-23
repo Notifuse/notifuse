@@ -13,10 +13,10 @@ import (
 
 // TaskHandler handles HTTP requests related to tasks
 type TaskHandler struct {
-	taskService domain.TaskService
+	taskService  domain.TaskService
 	getJWTSecret func() ([]byte, error)
-	logger      logger.Logger
-	secretKey   string
+	logger       logger.Logger
+	secretKey    string
 }
 
 // NewTaskHandler creates a new task handler
@@ -27,10 +27,10 @@ func NewTaskHandler(
 	secretKey string,
 ) *TaskHandler {
 	return &TaskHandler{
-		taskService: taskService,
+		taskService:  taskService,
 		getJWTSecret: getJWTSecret,
-		logger:      logger,
-		secretKey:   secretKey,
+		logger:       logger,
+		secretKey:    secretKey,
 	}
 }
 

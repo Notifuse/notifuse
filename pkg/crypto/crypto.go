@@ -161,7 +161,7 @@ func HashMagicCode(code string, secretKey string) string {
 func VerifyMagicCode(inputCode string, storedHash string, secretKey string) bool {
 	// Hash the input code
 	computedHash := HashMagicCode(inputCode, secretKey)
-	
+
 	// Constant-time comparison to prevent timing attacks
 	return hmac.Equal([]byte(computedHash), []byte(storedHash))
 }

@@ -13,6 +13,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -23,7 +24,7 @@ type SMTPRelayHandlerService struct {
 	workspaceRepo                    domain.WorkspaceRepository
 	logger                           logger.Logger
 	jwtSecret                        []byte
-	rateLimiter                      *RateLimiter
+	rateLimiter                      *ratelimiter.RateLimiter
 }
 
 // NewSMTPRelayHandlerService creates a new SMTP relay handler service
@@ -33,7 +34,7 @@ func NewSMTPRelayHandlerService(
 	workspaceRepo domain.WorkspaceRepository,
 	logger logger.Logger,
 	jwtSecret []byte,
-	rateLimiter *RateLimiter,
+	rateLimiter *ratelimiter.RateLimiter,
 ) *SMTPRelayHandlerService {
 	return &SMTPRelayHandlerService{
 		authService:                      authService,
@@ -53,7 +54,7 @@ func (s *SMTPRelayHandlerService) Authenticate(username, password string) (strin
 	apiKey := password
 
 	// Check rate limit
-	if !s.rateLimiter.Allow(apiEmail) {
+	if !s.rateLimiter.Allow("smtp", apiEmail) {
 		s.logger.WithField("api_email", apiEmail).Warn("SMTP relay: Rate limit exceeded")
 		return "", fmt.Errorf("rate limit exceeded")
 	}
@@ -106,7 +107,7 @@ func (s *SMTPRelayHandlerService) Authenticate(username, password string) (strin
 	}).Info("SMTP relay: Authentication successful")
 
 	// Reset rate limit on successful authentication
-	s.rateLimiter.Reset(apiEmail)
+	s.rateLimiter.Reset("smtp", apiEmail)
 
 	// Return the user_id which will be used to look up workspaces when processing the message
 	return claims.UserID, nil

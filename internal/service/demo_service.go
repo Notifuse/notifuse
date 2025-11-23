@@ -1081,10 +1081,9 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 			WorkspaceID: workspaceID,
 			Name:        bc.name,
 			Audience: domain.AudienceSettings{
-				Lists:               []string{"newsletter"},
+				List:                "newsletter",
 				Segments:            []string{},
 				ExcludeUnsubscribed: true,
-				SkipDuplicateEmails: true,
 			},
 			Schedule: domain.ScheduleSettings{
 				IsScheduled:   false,
@@ -1125,7 +1124,6 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 
 		broadcast.Status = domain.BroadcastStatusSent
 		broadcast.StartedAt = &sentTime
-		broadcast.SentAt = &sentTime
 		broadcast.CompletedAt = &completedTime
 		broadcast.UpdatedAt = completedTime
 

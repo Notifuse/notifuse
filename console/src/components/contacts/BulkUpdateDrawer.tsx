@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import {
   Button,
   Drawer,
@@ -23,7 +23,7 @@ import {
   PlayCircleOutlined,
   CloseCircleOutlined
 } from '@ant-design/icons'
-import type { UploadProps, UploadFile } from 'antd'
+import type { UploadProps, UploadFile, ButtonProps } from 'antd'
 import Papa from 'papaparse'
 import { contactsApi } from '../../services/api/contacts'
 import { contactListApi } from '../../services/api/contact_list'
@@ -49,12 +49,7 @@ const getProgressStorageKey = (
 interface BulkUpdateDrawerProps {
   workspaceId: string
   lists: List[]
-  buttonProps?: {
-    type?: 'primary' | 'default' | 'dashed' | 'link' | 'text'
-    buttonContent?: React.ReactNode
-    size?: 'large' | 'middle' | 'small'
-    disabled?: boolean
-  }
+  buttonProps?: ButtonProps
 }
 
 interface CSVData {
@@ -90,15 +85,7 @@ interface SavedProgress {
   timestamp: number
 }
 
-export function BulkUpdateDrawer({
-  workspaceId,
-  lists,
-  buttonProps = {
-    type: 'default',
-    buttonContent: 'Bulk Update',
-    size: 'middle'
-  }
-}: BulkUpdateDrawerProps) {
+export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdateDrawerProps) {
   const [open, setOpen] = useState(false)
   const [csvData, setCsvData] = useState<CSVData | null>(null)
   const [fileList, setFileList] = useState<UploadFile[]>([])
@@ -555,14 +542,7 @@ export function BulkUpdateDrawer({
 
   return (
     <>
-      <Button
-        type={buttonProps.type}
-        onClick={() => setOpen(true)}
-        size={buttonProps.size}
-        disabled={buttonProps.disabled}
-      >
-        {buttonProps.buttonContent}
-      </Button>
+      <Button {...buttonProps} onClick={() => setOpen(true)} />
 
       <Drawer
         title="Bulk Update Contacts"

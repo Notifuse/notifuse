@@ -11,16 +11,16 @@ import (
 
 // WebhookEventHandler handles HTTP requests for webhook events
 type WebhookEventHandler struct {
-	service   domain.WebhookEventServiceInterface
-	logger    logger.Logger
+	service      domain.WebhookEventServiceInterface
+	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
 }
 
 // NewWebhookEventHandler creates a new webhook event handler
 func NewWebhookEventHandler(service domain.WebhookEventServiceInterface, getJWTSecret func() ([]byte, error), logger logger.Logger) *WebhookEventHandler {
 	return &WebhookEventHandler{
-		service:   service,
-		logger:    logger,
+		service:      service,
+		logger:       logger,
 		getJWTSecret: getJWTSecret,
 	}
 }

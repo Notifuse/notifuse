@@ -69,4 +69,3 @@ func (m *V9Migration) UpdateWorkspace(ctx context.Context, config *config.Config
 func init() {
 	Register(&V9Migration{})
 }
-

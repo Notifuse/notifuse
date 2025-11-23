@@ -22,7 +22,7 @@ export interface MessageHistory {
   external_id?: string
   contact_email: string
   broadcast_id?: string
-  list_ids?: string[]
+  list_id?: string
   template_id: string
   template_version: number
   channel: string

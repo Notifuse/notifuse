@@ -17,7 +17,7 @@ type QueryBuilder struct {
 // fieldConfig defines metadata for a field
 type fieldConfig struct {
 	dbColumn  string
-	fieldType string // "string", "number", "time"
+	fieldType string // "string", "number", "time", "json"
 }
 
 // sqlOperator defines how to convert an operator to SQL
@@ -82,6 +82,17 @@ func (qb *QueryBuilder) initializeContactFields() {
 			fieldType: "time",
 		}
 	}
+
+	// JSON fields (stored as JSONB in PostgreSQL)
+	jsonFields := []string{
+		"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
+	}
+	for _, field := range jsonFields {
+		qb.allowedFields[field] = fieldConfig{
+			dbColumn:  field,
+			fieldType: "json",
+		}
+	}
 }
 
 // initializeOperators sets up the whitelist of allowed operators
@@ -103,12 +114,15 @@ func (qb *QueryBuilder) initializeOperators() {
 		"is_set":     {sql: "IS NOT NULL", requiresValue: false},
 		"is_not_set": {sql: "IS NULL", requiresValue: false},
 
-	// Date range operators (will be handled specially)
-	"in_date_range":     {sql: "BETWEEN", requiresValue: true},
-	"not_in_date_range": {sql: "NOT BETWEEN", requiresValue: true},
-	"before_date":       {sql: "<", requiresValue: true},
-	"after_date":        {sql: ">", requiresValue: true},
-	"in_the_last_days":  {sql: "", requiresValue: true}, // Special handling in buildCondition
+		// Date range operators (will be handled specially)
+		"in_date_range":     {sql: "BETWEEN", requiresValue: true},
+		"not_in_date_range": {sql: "NOT BETWEEN", requiresValue: true},
+		"before_date":       {sql: "<", requiresValue: true},
+		"after_date":        {sql: ">", requiresValue: true},
+		"in_the_last_days":  {sql: "", requiresValue: true}, // Special handling in buildCondition
+
+		// JSON array operators
+		"in_array": {sql: "?", requiresValue: true}, // JSONB array containment check
 	}
 }
 
@@ -268,6 +282,11 @@ func (qb *QueryBuilder) parseFilter(filter *domain.DimensionFilter, argIndex int
 	fieldCfg, ok := qb.allowedFields[filter.FieldName]
 	if !ok {
 		return "", nil, argIndex, fmt.Errorf("invalid field name: %s", filter.FieldName)
+	}
+
+	// Route JSON fields to specialized handler
+	if fieldCfg.fieldType == "json" {
+		return qb.buildJSONCondition(fieldCfg.dbColumn, filter, argIndex)
 	}
 
 	// Validate operator exists in whitelist
@@ -624,7 +643,7 @@ func (qb *QueryBuilder) buildCondition(dbColumn, operator string, sqlOp sqlOpera
 		if len(values) == 0 {
 			return "", nil, argIndex, fmt.Errorf("contains/not_contains requires at least one value")
 		}
-		
+
 		// Single value case - simpler SQL
 		if len(values) == 1 {
 			str, ok := values[0].(string)
@@ -635,7 +654,7 @@ func (qb *QueryBuilder) buildCondition(dbColumn, operator string, sqlOp sqlOpera
 			condition := fmt.Sprintf("%s %s $%d", dbColumn, sqlOp.sql, argIndex)
 			return condition, args, argIndex + 1, nil
 		}
-		
+
 		// Multiple values case - generate OR conditions
 		var orConditions []string
 		for _, val := range values {
@@ -693,4 +712,170 @@ func (qb *QueryBuilder) buildCondition(dbColumn, operator string, sqlOp sqlOpera
 		condition := fmt.Sprintf("%s %s $%d", dbColumn, sqlOp.sql, argIndex)
 		return condition, args, argIndex + 1, nil
 	}
+}
+
+// buildJSONCondition builds SQL conditions for JSON/JSONB fields
+// Uses PostgreSQL 17 subscript notation and proper type casting
+func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.DimensionFilter, argIndex int) (string, []interface{}, int, error) {
+	var args []interface{}
+
+	// Validate operator
+	sqlOp, ok := qb.allowedOperators[filter.Operator]
+	if !ok {
+		return "", nil, argIndex, fmt.Errorf("invalid operator for JSON field: %s", filter.Operator)
+	}
+
+	// Handle existence checks on the JSON field itself
+	if filter.Operator == "is_set" || filter.Operator == "is_not_set" {
+		if len(filter.JSONPath) == 0 {
+			// Check if the entire JSON field is set/not set
+			condition := fmt.Sprintf("%s %s", dbColumn, sqlOp.sql)
+			return condition, nil, argIndex, nil
+		}
+		// Check if a specific key exists in the JSON
+		// Use the ? operator for existence check
+		key := filter.JSONPath[0]
+		args = append(args, key)
+		if filter.Operator == "is_set" {
+			condition := fmt.Sprintf("%s ? $%d", dbColumn, argIndex)
+			return condition, args, argIndex + 1, nil
+		}
+		condition := fmt.Sprintf("NOT (%s ? $%d)", dbColumn, argIndex)
+		return condition, args, argIndex + 1, nil
+	}
+
+	// Build the JSON path using PostgreSQL subscript notation
+	jsonPath := qb.buildJSONPath(dbColumn, filter.JSONPath)
+
+	// Handle array-specific operators
+	if filter.Operator == "in_array" {
+		// Use JSONB ? operator for array containment
+		if len(filter.StringValues) == 0 {
+			return "", nil, argIndex, fmt.Errorf("in_array requires string_values")
+		}
+		args = append(args, filter.StringValues[0])
+		condition := fmt.Sprintf("%s ? $%d", jsonPath, argIndex)
+		return condition, args, argIndex + 1, nil
+	}
+
+	// For regular value comparisons, extract and cast the JSON value
+	// Extract as text first, then cast to target type
+	var fieldExpr string
+	switch filter.FieldType {
+	case "string", "json":
+		// Extract as text
+		fieldExpr = fmt.Sprintf("%s::text", jsonPath)
+	case "number":
+		// Extract as text, then cast to numeric
+		fieldExpr = fmt.Sprintf("(%s::text)::numeric", jsonPath)
+	case "time":
+		// Extract as text, then cast to timestamptz
+		fieldExpr = fmt.Sprintf("(%s::text)::timestamptz", jsonPath)
+	default:
+		return "", nil, argIndex, fmt.Errorf("invalid field_type for JSON field: %s", filter.FieldType)
+	}
+
+	// Get values based on the field type
+	var values []interface{}
+	var err error
+
+	switch filter.FieldType {
+	case "string", "json":
+		values, err = qb.getStringValues(filter)
+	case "number":
+		values, err = qb.getNumberValues(filter)
+	case "time":
+		values, err = qb.getTimeValues(filter)
+	default:
+		return "", nil, argIndex, fmt.Errorf("unsupported field type for JSON: %s", filter.FieldType)
+	}
+
+	if err != nil {
+		return "", nil, argIndex, err
+	}
+
+	if len(values) == 0 {
+		return "", nil, argIndex, fmt.Errorf("filter must have values for operator %s", filter.Operator)
+	}
+
+	// Build the condition using standard operators
+	switch filter.Operator {
+	case "contains", "not_contains":
+		// ILIKE for string containment
+		if len(values) == 1 {
+			str, ok := values[0].(string)
+			if !ok {
+				return "", nil, argIndex, fmt.Errorf("contains/not_contains requires string value")
+			}
+			args = append(args, "%"+str+"%")
+			operator := "ILIKE"
+			if filter.Operator == "not_contains" {
+				operator = "NOT ILIKE"
+			}
+			condition := fmt.Sprintf("%s %s $%d", fieldExpr, operator, argIndex)
+			return condition, args, argIndex + 1, nil
+		}
+		// Multiple values case
+		var orConditions []string
+		operator := "ILIKE"
+		if filter.Operator == "not_contains" {
+			operator = "NOT ILIKE"
+		}
+		for _, val := range values {
+			str, ok := val.(string)
+			if !ok {
+				return "", nil, argIndex, fmt.Errorf("contains/not_contains requires string values")
+			}
+			args = append(args, "%"+str+"%")
+			orConditions = append(orConditions, fmt.Sprintf("%s %s $%d", fieldExpr, operator, argIndex))
+			argIndex++
+		}
+		condition := "(" + strings.Join(orConditions, " OR ") + ")"
+		return condition, args, argIndex, nil
+
+	default:
+		// Standard comparison operators (equals, not_equals, gt, gte, lt, lte)
+		if len(values) != 1 {
+			return "", nil, argIndex, fmt.Errorf("%s requires exactly one value", filter.Operator)
+		}
+		args = append(args, values[0])
+		condition := fmt.Sprintf("%s %s $%d", fieldExpr, sqlOp.sql, argIndex)
+		return condition, args, argIndex + 1, nil
+	}
+}
+
+// buildJSONPath constructs a PostgreSQL JSONB path expression using subscript notation
+// Detects numeric strings and uses them as array indices
+func (qb *QueryBuilder) buildJSONPath(dbColumn string, path []string) string {
+	if len(path) == 0 {
+		return dbColumn
+	}
+
+	result := dbColumn
+	for _, segment := range path {
+		// Check if segment is numeric (array index)
+		if qb.isNumeric(segment) {
+			// Use array subscript notation
+			result = fmt.Sprintf("%s[%s]", result, segment)
+		} else {
+			// Use object key subscript notation
+			// Escape single quotes in keys
+			escapedSegment := strings.ReplaceAll(segment, "'", "''")
+			result = fmt.Sprintf("%s['%s']", result, escapedSegment)
+		}
+	}
+	return result
+}
+
+// isNumeric checks if a string represents a numeric value (for array indices)
+func (qb *QueryBuilder) isNumeric(s string) bool {
+	if len(s) == 0 {
+		return false
+	}
+	for _, c := range s {
+		if c < '0' || c > '9' {
+			return false
+		}
+	}
+	return true
 }

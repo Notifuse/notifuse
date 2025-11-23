@@ -11,7 +11,7 @@ const { Title, Text } = Typography
 export function AcceptInvitationPage() {
   const { signin, signout, user } = useAuth()
   const navigate = useNavigate()
-  const search = useSearch({ from: '/accept-invitation' })
+  const search = useSearch({ from: '/console/accept-invitation' })
   const [loading, setLoading] = useState(true)
   const [accepting, setAccepting] = useState(false)
   const [accepted, setAccepted] = useState(false)
@@ -75,7 +75,7 @@ export function AcceptInvitationPage() {
 
       // Navigate to the dashboard
       setTimeout(() => {
-        navigate({ to: '/' })
+        navigate({ to: '/console/' })
       }, 100)
     } catch (error: any) {
       const errorMessage = error?.message || 'Failed to accept invitation'
@@ -87,7 +87,7 @@ export function AcceptInvitationPage() {
   }
 
   const handleDecline = () => {
-    navigate({ to: '/signin' })
+    navigate({ to: '/console/signin' })
   }
 
   if (loading) {
@@ -118,7 +118,7 @@ export function AcceptInvitationPage() {
                 {error || 'This invitation link is invalid or has expired.'}
               </Text>
             </div>
-            <Button type="primary" block onClick={() => navigate({ to: '/signin' })}>
+            <Button type="primary" block onClick={() => navigate({ to: '/console/signin' })}>
               Go to Sign In
             </Button>
           </Card>

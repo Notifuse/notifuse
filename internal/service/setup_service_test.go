@@ -87,12 +87,12 @@ func TestSetupService_ValidateSetupConfig(t *testing.T) {
 // Mock logger for testing
 type mockLogger struct{}
 
-func (m *mockLogger) Debug(msg string)                           {}
-func (m *mockLogger) Info(msg string)                            {}
-func (m *mockLogger) Warn(msg string)                            {}
-func (m *mockLogger) Error(msg string)                           {}
-func (m *mockLogger) Fatal(msg string)                           {}
-func (m *mockLogger) Panic(msg string)                           {}
-func (m *mockLogger) WithField(key string, value interface{}) logger.Logger { return m }
+func (m *mockLogger) Debug(msg string)                                       {}
+func (m *mockLogger) Info(msg string)                                        {}
+func (m *mockLogger) Warn(msg string)                                        {}
+func (m *mockLogger) Error(msg string)                                       {}
+func (m *mockLogger) Fatal(msg string)                                       {}
+func (m *mockLogger) Panic(msg string)                                       {}
+func (m *mockLogger) WithField(key string, value interface{}) logger.Logger  { return m }
 func (m *mockLogger) WithFields(fields map[string]interface{}) logger.Logger { return m }
-func (m *mockLogger) WithError(err error) logger.Logger          { return m }
+func (m *mockLogger) WithError(err error) logger.Logger                      { return m }

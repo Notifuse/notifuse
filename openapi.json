@@ -3397,12 +3397,6 @@
             "type": "string",
             "nullable": true,
             "description": "Reason for pausing the broadcast"
-          },
-          "sent_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "description": "When the broadcast was sent"
           }
         }
       },
@@ -3509,16 +3503,12 @@
       },
       "AudienceSettings": {
         "type": "object",
-        "required": ["lists"],
+        "required": ["list"],
         "properties": {
-          "lists": {
-            "type": "array",
-            "description": "List IDs to send to (at least one required)",
-            "items": {
-              "type": "string"
-            },
-            "minItems": 1,
-            "example": ["newsletter", "customers"]
+          "list": {
+            "type": "string",
+            "description": "List ID to send to",
+            "example": "newsletter"
           },
           "segments": {
             "type": "array",
@@ -3531,11 +3521,6 @@
           "exclude_unsubscribed": {
             "type": "boolean",
             "description": "Whether to exclude unsubscribed contacts",
-            "example": true
-          },
-          "skip_duplicate_emails": {
-            "type": "boolean",
-            "description": "Whether to skip duplicate email addresses",
             "example": true
           }
         }

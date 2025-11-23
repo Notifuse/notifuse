@@ -21,8 +21,8 @@ import { faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { faRefresh, faUserCog } from '@fortawesome/free-solid-svg-icons'
 import { WorkspaceMember, UserPermissions } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
-import { Section } from './Section'
 import { EditPermissionsModal } from './EditPermissionsModal'
+import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 const { Text } = Typography
 
@@ -51,7 +51,8 @@ export function WorkspaceMembers({
     broadcasts: { read: true, write: true },
     transactional: { read: true, write: true },
     workspace: { read: true, write: true },
-    message_history: { read: true, write: true }
+    message_history: { read: true, write: true },
+    blog: { read: true, write: true }
   })
   const { message } = App.useApp()
 
@@ -365,7 +366,8 @@ export function WorkspaceMembers({
         broadcasts: { read: true, write: true },
         transactional: { read: true, write: true },
         workspace: { read: true, write: true },
-        message_history: { read: true, write: true }
+        message_history: { read: true, write: true },
+        blog: { read: true, write: true }
       }
 
       await workspaceService.inviteMember({
@@ -501,35 +503,35 @@ export function WorkspaceMembers({
 
   return (
     <>
-      <Section title="Members" description="Manage your workspace members">
-        {isOwner && (
-          <div className="flex justify-end mb-4">
-            <Space size="middle">
-              <Button type="primary" size="small" ghost onClick={() => setApiKeyModalVisible(true)}>
-                Create API Key
-              </Button>
-              <Button type="primary" size="small" ghost onClick={() => setInviteModalVisible(true)}>
-                Invite Member
-              </Button>
-            </Space>
-          </div>
-        )}
+      <SettingsSectionHeader title="Team" description="Manage your workspace members" />
 
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '20px' }}>
-            <Spin />
-          </div>
-        ) : (
-          <Table
-            dataSource={members}
-            columns={columns}
-            rowKey="user_id"
-            pagination={false}
-            locale={{ emptyText: 'No members found' }}
-            className="border border-gray-200 rounded-md"
-          />
-        )}
-      </Section>
+      {isOwner && (
+        <div className="flex justify-end mb-4">
+          <Space size="middle">
+            <Button type="primary" size="small" ghost onClick={() => setApiKeyModalVisible(true)}>
+              Create API Key
+            </Button>
+            <Button type="primary" size="small" ghost onClick={() => setInviteModalVisible(true)}>
+              Invite Member
+            </Button>
+          </Space>
+        </div>
+      )}
+
+      {loading ? (
+        <div style={{ textAlign: 'center', padding: '20px' }}>
+          <Spin />
+        </div>
+      ) : (
+        <Table
+          dataSource={members}
+          columns={columns}
+          rowKey="user_id"
+          pagination={false}
+          locale={{ emptyText: 'No members found' }}
+          className="border border-gray-200 rounded-md"
+        />
+      )}
 
       <Modal
         title="Invite Member"

@@ -84,7 +84,7 @@ const TemplatePreviewButton = ({
 }
 
 export function ListsPage() {
-  const { workspaceId } = useParams({ from: '/workspace/$workspaceId/lists' })
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/lists' })
   const [deleteModalVisible, setDeleteModalVisible] = useState(false)
   const [listToDelete, setListToDelete] = useState<List | null>(null)
   const [confirmationInput, setConfirmationInput] = useState('')
@@ -161,7 +161,11 @@ export function ListsPage() {
                 className="opacity-70 hover:opacity-100"
               />
             </Tooltip>
-            <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : undefined}>
+            <Tooltip
+              title={
+                !permissions?.lists?.write ? "You don't have write permission for lists" : undefined
+              }
+            >
               <div>
                 <CreateListDrawer
                   workspaceId={workspaceId}
@@ -194,7 +198,13 @@ export function ListsPage() {
               }
               extra={
                 <Space>
-                  <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : "Delete List"}>
+                  <Tooltip
+                    title={
+                      !permissions?.lists?.write
+                        ? "You don't have write permission for lists"
+                        : 'Delete List'
+                    }
+                  >
                     <Button
                       type="text"
                       size="small"
@@ -204,7 +214,13 @@ export function ListsPage() {
                       <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
                     </Button>
                   </Tooltip>
-                  <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : "Edit List"}>
+                  <Tooltip
+                    title={
+                      !permissions?.lists?.write
+                        ? "You don't have write permission for lists"
+                        : 'Edit List'
+                    }
+                  >
                     <div>
                       <CreateListDrawer
                         workspaceId={workspaceId}
@@ -220,7 +236,13 @@ export function ListsPage() {
                       />
                     </div>
                   </Tooltip>
-                  <Tooltip title={!permissions?.lists?.write ? "You don't have write permission for lists" : undefined}>
+                  <Tooltip
+                    title={
+                      !permissions?.lists?.write
+                        ? "You don't have write permission for lists"
+                        : undefined
+                    }
+                  >
                     <div>
                       <ImportContactsToListButton
                         list={list}

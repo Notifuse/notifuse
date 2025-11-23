@@ -11,15 +11,15 @@ import (
 )
 
 type SegmentHandler struct {
-	service   domain.SegmentService
-	logger    logger.Logger
+	service      domain.SegmentService
+	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
 }
 
 func NewSegmentHandler(service domain.SegmentService, getJWTSecret func() ([]byte, error), logger logger.Logger) *SegmentHandler {
 	return &SegmentHandler{
-		service:   service,
-		logger:    logger,
+		service:      service,
+		logger:       logger,
 		getJWTSecret: getJWTSecret,
 	}
 }

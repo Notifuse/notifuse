@@ -11,11 +11,11 @@ import (
 
 // MessageHistoryHandler handles HTTP requests for message history
 type MessageHistoryHandler struct {
-	service     domain.MessageHistoryService
-	authService domain.AuthService
-	logger      logger.Logger
+	service      domain.MessageHistoryService
+	authService  domain.AuthService
+	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
-	tracer      tracing.Tracer
+	tracer       tracing.Tracer
 }
 
 // NewMessageHistoryHandler creates a new message history handler
@@ -26,11 +26,11 @@ func NewMessageHistoryHandler(
 	logger logger.Logger,
 ) *MessageHistoryHandler {
 	return &MessageHistoryHandler{
-		service:     service,
-		authService: authService,
-		logger:      logger,
+		service:      service,
+		authService:  authService,
+		logger:       logger,
 		getJWTSecret: getJWTSecret,
-		tracer:      tracing.GetTracer(),
+		tracer:       tracing.GetTracer(),
 	}
 }
 
@@ -43,11 +43,11 @@ func NewMessageHistoryHandlerWithTracer(
 	tracer tracing.Tracer,
 ) *MessageHistoryHandler {
 	return &MessageHistoryHandler{
-		service:     service,
-		authService: authService,
-		logger:      logger,
+		service:      service,
+		authService:  authService,
+		logger:       logger,
 		getJWTSecret: getJWTSecret,
-		tracer:      tracer,
+		tracer:       tracer,
 	}
 }
 

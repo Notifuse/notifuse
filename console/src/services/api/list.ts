@@ -13,6 +13,7 @@ export interface List {
   is_double_optin: boolean
   is_public: boolean
   description?: string
+  slug?: string
   double_optin_template?: TemplateReference
   welcome_template?: TemplateReference
   unsubscribe_template?: TemplateReference

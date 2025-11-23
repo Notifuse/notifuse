@@ -27,7 +27,7 @@ func testBroadcast(workspaceID, id string) *domain.Broadcast {
 		ChannelType: "email",
 		Status:      domain.BroadcastStatusDraft,
 		Audience: domain.AudienceSettings{
-			Lists:    []string{"list1"},
+			List:     "list1",
 			Segments: []string{"seg1"},
 		},
 		Schedule: domain.ScheduleSettings{
@@ -61,6 +61,7 @@ type broadcastSvcDeps struct {
 	authService        *domainmocks.MockAuthService
 	eventBus           *domainmocks.MockEventBus
 	messageHistoryRepo *domainmocks.MockMessageHistoryRepository
+	listService        *domainmocks.MockListService
 	svc                *BroadcastService
 }
 
@@ -78,6 +79,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 	authService := domainmocks.NewMockAuthService(ctrl)
 	eventBus := domainmocks.NewMockEventBus(ctrl)
 	messageHistoryRepo := domainmocks.NewMockMessageHistoryRepository(ctrl)
+	listService := domainmocks.NewMockListService(ctrl)
 
 	// use real no-op logger
 	log := logger.NewLoggerWithLevel("disabled")
@@ -94,6 +96,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 		authService,
 		eventBus,
 		messageHistoryRepo,
+		listService,
 		"https://api.example.test",
 	)
 
@@ -109,6 +112,7 @@ func setupBroadcastSvc(t *testing.T) *broadcastSvcDeps {
 		authService:        authService,
 		eventBus:           eventBus,
 		messageHistoryRepo: messageHistoryRepo,
+		listService:        listService,
 		svc:                svc,
 	}
 }
@@ -133,7 +137,7 @@ func TestBroadcastService_CreateBroadcast_Success(t *testing.T) {
 	req := &domain.CreateBroadcastRequest{
 		WorkspaceID: "w1",
 		Name:        "My Campaign",
-		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{List: "list1", Segments: []string{"seg1"}},
 		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 	}
 
@@ -291,9 +295,9 @@ func TestBroadcastService_SendToIndividual_Success(t *testing.T) {
 
 	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
 		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
-			// Verify list_ids is populated from broadcast audience
-			assert.NotNil(t, msg.ListIDs)
-			assert.Equal(t, domain.ListIDs(b.Audience.Lists), msg.ListIDs)
+			// Verify list_id is populated from broadcast audience
+			assert.NotNil(t, msg.ListID)
+			assert.Equal(t, b.Audience.List, *msg.ListID)
 		},
 	).Return(nil)
 
@@ -410,7 +414,7 @@ func TestBroadcastService_UpdateBroadcast_Success(t *testing.T) {
 		WorkspaceID: "w1",
 		ID:          "b1",
 		Name:        "Updated Name",
-		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{List: "list1", Segments: []string{"seg1"}},
 		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 		TestSettings: domain.BroadcastTestSettings{
 			Enabled:    false,
@@ -562,7 +566,7 @@ func TestBroadcastService_CreateBroadcast_RepositoryFailure(t *testing.T) {
 	req := &domain.CreateBroadcastRequest{
 		WorkspaceID: "w1",
 		Name:        "Test",
-		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{List: "list1", Segments: []string{"seg1"}},
 		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 	}
 	authOK(d.authService, ctx, req.WorkspaceID)
@@ -669,7 +673,7 @@ func TestBroadcastService_UpdateBroadcast_RepositoryFailure(t *testing.T) {
 		WorkspaceID: "w1",
 		ID:          "b1",
 		Name:        "Updated Name",
-		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{List: "list1", Segments: []string{"seg1"}},
 		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 		TestSettings: domain.BroadcastTestSettings{
 			Enabled:    false,
@@ -1842,7 +1846,7 @@ func TestBroadcastService_CreateBroadcast_WithScheduledBroadcast(t *testing.T) {
 	req := &domain.CreateBroadcastRequest{
 		WorkspaceID: "w1",
 		Name:        "Scheduled Campaign",
-		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{List: "list1", Segments: []string{"seg1"}},
 		Schedule: domain.ScheduleSettings{
 			IsScheduled:   true,
 			ScheduledDate: "2024-12-25",
@@ -1926,9 +1930,9 @@ func TestBroadcastService_SendToIndividual_WithContact(t *testing.T) {
 
 	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
 		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
-			// Verify list_ids is populated from broadcast audience
-			assert.NotNil(t, msg.ListIDs)
-			assert.Equal(t, domain.ListIDs(b.Audience.Lists), msg.ListIDs)
+			// Verify list_id is populated from broadcast audience
+			assert.NotNil(t, msg.ListID)
+			assert.Equal(t, b.Audience.List, *msg.ListID)
 		},
 	).Return(nil)
 
@@ -2003,9 +2007,9 @@ func TestBroadcastService_SendToIndividual_WithCustomEndpoint(t *testing.T) {
 
 	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
 		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
-			// Verify list_ids is populated from broadcast audience
-			assert.NotNil(t, msg.ListIDs)
-			assert.Equal(t, domain.ListIDs(b.Audience.Lists), msg.ListIDs)
+			// Verify list_id is populated from broadcast audience
+			assert.NotNil(t, msg.ListID)
+			assert.Equal(t, b.Audience.List, *msg.ListID)
 		},
 	).Return(nil)
 
@@ -2177,7 +2181,7 @@ func TestBroadcastService_CreateBroadcast_IDGeneration(t *testing.T) {
 	req := &domain.CreateBroadcastRequest{
 		WorkspaceID: "w1",
 		Name:        "Test Campaign",
-		Audience:    domain.AudienceSettings{Lists: []string{"list1"}, Segments: []string{"seg1"}},
+		Audience:    domain.AudienceSettings{List: "list1", Segments: []string{"seg1"}},
 		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 	}
 
@@ -2327,9 +2331,9 @@ func TestBroadcastService_SendToIndividual_ContactToMapError(t *testing.T) {
 	d.emailSvc.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
 	d.messageHistoryRepo.EXPECT().Create(gomock.Any(), req.WorkspaceID, gomock.Any(), gomock.Any()).Do(
 		func(_ context.Context, _ string, _ string, msg *domain.MessageHistory) {
-			// Verify list_ids is populated from broadcast audience
-			assert.NotNil(t, msg.ListIDs)
-			assert.Equal(t, domain.ListIDs(b.Audience.Lists), msg.ListIDs)
+			// Verify list_id is populated from broadcast audience
+			assert.NotNil(t, msg.ListID)
+			assert.Equal(t, b.Audience.List, *msg.ListID)
 		},
 	).Return(nil)
 

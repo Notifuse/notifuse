@@ -23,6 +23,7 @@ import {
   Col,
   Table
 } from 'antd'
+
 import {
   EmailProvider,
   EmailProviderKind,
@@ -37,7 +38,6 @@ import {
 import { workspaceService } from '../../services/api/workspace'
 import { emailService } from '../../services/api/email'
 import { listsApi } from '../../services/api/list'
-import { Section } from './Section'
 import {
   faCheck,
   faChevronDown,
@@ -62,6 +62,7 @@ import {
 import { emailProviders } from '../integrations/EmailProviders'
 import { SupabaseIntegration } from '../integrations/SupabaseIntegration'
 import { v4 as uuidv4 } from 'uuid'
+import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 // Provider types that only support transactional emails, not marketing emails
 const transactionalEmailOnly: EmailProviderKind[] = ['postmark']
@@ -905,7 +906,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           className="flex justify-between items-center p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-all cursor-pointer mb-4 relative"
         >
           <div className="flex items-center">
-            <img src="/supabase.png" alt="Supabase" style={{ height: 13 }} />
+            <img src="/console/supabase.png" alt="Supabase" style={{ height: 13 }} />
             <span className="ml-3 font-medium">Supabase</span>
           </div>
           <Button
@@ -1010,7 +1011,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                         )}
                       </div>
                       <Tooltip title={integration.id}>
-                        <img src="/supabase.png" alt="Supabase" style={{ height: 24 }} />
+                        <img src="/console/supabase.png" alt="Supabase" style={{ height: 24 }} />
                       </Tooltip>
                     </>
                   }
@@ -1594,25 +1595,30 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
     {
       key: 'supabase',
       label: 'Supabase',
-      icon: <img src="/supabase.png" alt="Supabase" style={{ height: 10, marginRight: 8 }} />,
+      icon: (
+        <img src="/console/supabase.png" alt="Supabase" style={{ height: 10, marginRight: 8 }} />
+      ),
       onClick: () => handleSelectSupabase()
     }
   ]
 
   return (
-    <Section
-      title="Integrations"
-      description="Connect and manage external services"
-      extra={
-        isOwner && (workspace?.integrations?.length ?? 0) > 0 ? (
+    <>
+      <SettingsSectionHeader
+        title="Integrations"
+        description="Connect and manage external services"
+      />
+
+      {isOwner && (workspace?.integrations?.length ?? 0) > 0 && (
+        <div style={{ textAlign: 'right', marginBottom: 16 }}>
           <Dropdown menu={{ items: integrationMenuItems }} trigger={['click']}>
             <Button type="primary" size="small" ghost>
               Add Integration <FontAwesomeIcon icon={faChevronDown} />
             </Button>
           </Dropdown>
-        ) : null
-      }
-    >
+        </div>
+      )}
+
       {/* Check and display alert for missing email provider configuration */}
       {workspace && (
         <>
@@ -1764,6 +1770,6 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           formRef={supabaseFormRef}
         />
       </Drawer>
-    </Section>
+    </>
   )
 }

@@ -252,6 +252,42 @@ export const ContactsTableSchema: TableSchema = {
       description: 'Contact last update date',
       type: 'time',
       shown: false
+    },
+    // Custom JSON fields
+    custom_json_1: {
+      name: 'custom_json_1',
+      title: 'Custom JSON 1',
+      description: 'Custom JSON field 1',
+      type: 'json',
+      shown: true
+    },
+    custom_json_2: {
+      name: 'custom_json_2',
+      title: 'Custom JSON 2',
+      description: 'Custom JSON field 2',
+      type: 'json',
+      shown: true
+    },
+    custom_json_3: {
+      name: 'custom_json_3',
+      title: 'Custom JSON 3',
+      description: 'Custom JSON field 3',
+      type: 'json',
+      shown: true
+    },
+    custom_json_4: {
+      name: 'custom_json_4',
+      title: 'Custom JSON 4',
+      description: 'Custom JSON field 4',
+      type: 'json',
+      shown: true
+    },
+    custom_json_5: {
+      name: 'custom_json_5',
+      title: 'Custom JSON 5',
+      description: 'Custom JSON field 5',
+      type: 'json',
+      shown: true
     }
   }
 }

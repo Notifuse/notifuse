@@ -3844,3 +3844,129 @@ func TestIntegration_SupabaseIntegrationType_Constant(t *testing.T) {
 	assert.Equal(t, IntegrationType("supabase"), IntegrationTypeSupabase)
 	assert.Equal(t, IntegrationType("email"), IntegrationTypeEmail)
 }
+
+func TestBlogSettings_ValueAndScan(t *testing.T) {
+	t.Run("value and scan with full settings", func(t *testing.T) {
+		originalSettings := BlogSettings{
+			Title: "My Amazing Blog",
+			SEO: &SEOSettings{
+				MetaTitle:       "My Blog",
+				MetaDescription: "Welcome to my blog",
+				OGTitle:         "My Blog - Home",
+				OGDescription:   "Read the latest posts",
+				OGImage:         "https://example.com/og.png",
+				CanonicalURL:    "https://example.com",
+				Keywords:        []string{"blog", "tech", "news"},
+			},
+		}
+
+		// Test Value method
+		value, err := originalSettings.Value()
+		assert.NoError(t, err)
+		assert.NotNil(t, value)
+
+		// Check that the value is a valid JSON byte array
+		jsonBytes, ok := value.([]byte)
+		assert.True(t, ok)
+
+		// Test Scan method
+		var newSettings BlogSettings
+		err = newSettings.Scan(jsonBytes)
+		assert.NoError(t, err)
+
+		// Verify all fields match
+		assert.Equal(t, originalSettings.Title, newSettings.Title)
+		assert.NotNil(t, newSettings.SEO)
+		assert.Equal(t, originalSettings.SEO.MetaTitle, newSettings.SEO.MetaTitle)
+		assert.Equal(t, originalSettings.SEO.MetaDescription, newSettings.SEO.MetaDescription)
+		assert.Equal(t, originalSettings.SEO.OGTitle, newSettings.SEO.OGTitle)
+		assert.Equal(t, originalSettings.SEO.Keywords, newSettings.SEO.Keywords)
+	})
+
+	t.Run("scan with nil", func(t *testing.T) {
+		var settings BlogSettings
+		err := settings.Scan(nil)
+		assert.NoError(t, err)
+	})
+
+	t.Run("scan with invalid type", func(t *testing.T) {
+		var settings BlogSettings
+		err := settings.Scan("not-a-byte-array")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "type assertion to []byte failed")
+	})
+
+	t.Run("scan with invalid JSON", func(t *testing.T) {
+		var settings BlogSettings
+		err := settings.Scan([]byte("invalid JSON"))
+		assert.Error(t, err)
+	})
+
+	t.Run("value and scan with minimal settings", func(t *testing.T) {
+		originalSettings := BlogSettings{
+			Title: "Simple Blog",
+		}
+
+		value, err := originalSettings.Value()
+		assert.NoError(t, err)
+
+		var newSettings BlogSettings
+		jsonBytes := value.([]byte)
+		err = newSettings.Scan(jsonBytes)
+		assert.NoError(t, err)
+
+		assert.Equal(t, originalSettings.Title, newSettings.Title)
+		assert.Nil(t, newSettings.SEO)
+	})
+}
+
+func TestWorkspaceSettings_WithBlogSettings(t *testing.T) {
+	t.Run("workspace settings with blog enabled", func(t *testing.T) {
+		settings := WorkspaceSettings{
+			Timezone:    "UTC",
+			BlogEnabled: true,
+			BlogSettings: &BlogSettings{
+				Title: "My Amazing Blog",
+				SEO: &SEOSettings{
+					MetaTitle:       "My Blog",
+					MetaDescription: "Welcome to my blog",
+				},
+			},
+		}
+
+		// Test serialization
+		value, err := settings.Value()
+		assert.NoError(t, err)
+		assert.NotNil(t, value)
+
+		// Test deserialization
+		var newSettings WorkspaceSettings
+		jsonBytes := value.([]byte)
+		err = newSettings.Scan(jsonBytes)
+		assert.NoError(t, err)
+
+		assert.Equal(t, settings.BlogEnabled, newSettings.BlogEnabled)
+		assert.NotNil(t, newSettings.BlogSettings)
+		assert.Equal(t, settings.BlogSettings.Title, newSettings.BlogSettings.Title)
+		assert.Equal(t, settings.BlogSettings.SEO.MetaTitle, newSettings.BlogSettings.SEO.MetaTitle)
+	})
+
+	t.Run("workspace settings with blog disabled", func(t *testing.T) {
+		settings := WorkspaceSettings{
+			Timezone:     "UTC",
+			BlogEnabled:  false,
+			BlogSettings: nil,
+		}
+
+		value, err := settings.Value()
+		assert.NoError(t, err)
+
+		var newSettings WorkspaceSettings
+		jsonBytes := value.([]byte)
+		err = newSettings.Scan(jsonBytes)
+		assert.NoError(t, err)
+
+		assert.False(t, newSettings.BlogEnabled)
+		assert.Nil(t, newSettings.BlogSettings)
+	})
+}

@@ -29,6 +29,20 @@ func NewAPIClient(baseURL string) *APIClient {
 	}
 }
 
+// NewAPIClientNoRedirect creates an API client that does NOT follow redirects
+// This is useful for testing redirect behavior itself
+func NewAPIClientNoRedirect(baseURL string) *APIClient {
+	return &APIClient{
+		baseURL: strings.TrimSuffix(baseURL, "/"),
+		client: &http.Client{
+			Timeout: 120 * time.Second,
+			CheckRedirect: func(req *http.Request, via []*http.Request) error {
+				return http.ErrUseLastResponse // Don't follow redirects
+			},
+		},
+	}
+}
+
 // SetToken sets the authentication token
 func (c *APIClient) SetToken(token string) {
 	c.token = token
@@ -183,6 +197,60 @@ func (c *APIClient) request(method, endpoint string, body interface{}, params ..
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+
+	// Add authentication token if available
+	if c.token != "" {
+		req.Header.Set("Authorization", "Bearer "+c.token)
+	}
+
+	// Add workspace ID if available and not already in params
+	if c.workspaceID != "" && !strings.Contains(reqURL, "workspace_id=") {
+		q := req.URL.Query()
+		q.Add("workspace_id", c.workspaceID)
+		req.URL.RawQuery = q.Encode()
+	}
+
+	// Make request
+	return c.client.Do(req)
+}
+
+// MakeRequestWithHost makes an HTTP request with a custom Host header
+// This is useful for testing blog routing logic that depends on the Host header
+func (c *APIClient) MakeRequestWithHost(method, endpoint, host string, body interface{}, params ...map[string]string) (*http.Response, error) {
+	// Build URL with query parameters
+	reqURL := c.baseURL + endpoint
+	if len(params) > 0 && params[0] != nil {
+		urlParams := url.Values{}
+		for key, value := range params[0] {
+			urlParams.Add(key, value)
+		}
+		if len(urlParams) > 0 {
+			reqURL += "?" + urlParams.Encode()
+		}
+	}
+
+	// Prepare request body
+	var reqBody io.Reader
+	if body != nil {
+		bodyBytes, err := json.Marshal(body)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+		}
+		reqBody = bytes.NewReader(bodyBytes)
+	}
+
+	// Create request
+	req, err := http.NewRequest(method, reqURL, reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set custom Host header
+	req.Host = host
 
 	// Set headers
 	req.Header.Set("Content-Type", "application/json")
@@ -573,4 +641,100 @@ func (c *APIClient) TestTransactionalTemplate(request map[string]interface{}) (*
 		request["workspace_id"] = c.workspaceID
 	}
 	return c.Post("/api/transactional.testTemplate", request)
+}
+
+// Blog Category API methods
+
+// CreateBlogCategory creates a new blog category
+func (c *APIClient) CreateBlogCategory(category map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/blogCategories.create", category)
+}
+
+// GetBlogCategory retrieves a blog category by ID or slug
+func (c *APIClient) GetBlogCategory(params map[string]string) (*http.Response, error) {
+	return c.Get("/api/blogCategories.get", params)
+}
+
+// ListBlogCategories lists all blog categories
+func (c *APIClient) ListBlogCategories(params ...map[string]string) (*http.Response, error) {
+	return c.Get("/api/blogCategories.list", params...)
+}
+
+// UpdateBlogCategory updates a blog category
+func (c *APIClient) UpdateBlogCategory(category map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/blogCategories.update", category)
+}
+
+// DeleteBlogCategory deletes a blog category
+func (c *APIClient) DeleteBlogCategory(request map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/blogCategories.delete", request)
+}
+
+// Blog Post API methods
+
+// CreateBlogPost creates a new blog post
+func (c *APIClient) CreateBlogPost(post map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/blogPosts.create", post)
+}
+
+// GetBlogPost retrieves a blog post by ID, slug, or category+slug
+func (c *APIClient) GetBlogPost(params map[string]string) (*http.Response, error) {
+	return c.Get("/api/blogPosts.get", params)
+}
+
+// ListBlogPosts lists blog posts with optional filtering
+func (c *APIClient) ListBlogPosts(params map[string]string) (*http.Response, error) {
+	return c.Get("/api/blogPosts.list", params)
+}
+
+// UpdateBlogPost updates a blog post
+func (c *APIClient) UpdateBlogPost(post map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/blogPosts.update", post)
+}
+
+// DeleteBlogPost deletes a blog post
+func (c *APIClient) DeleteBlogPost(request map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/blogPosts.delete", request)
+}
+
+// PublishBlogPost publishes a blog post
+func (c *APIClient) PublishBlogPost(request map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/blogPosts.publish", request)
+}
+
+// UnpublishBlogPost unpublishes a blog post
+func (c *APIClient) UnpublishBlogPost(request map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/blogPosts.unpublish", request)
+}
+
+// Blog Theme API methods
+
+// CreateBlogTheme creates a new blog theme
+func (c *APIClient) CreateBlogTheme(theme map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/blogThemes.create", theme)
+}
+
+// GetBlogTheme retrieves a blog theme by version
+func (c *APIClient) GetBlogTheme(params map[string]string) (*http.Response, error) {
+	return c.Get("/api/blogThemes.get", params)
+}
+
+// GetPublishedBlogTheme retrieves the currently published blog theme
+func (c *APIClient) GetPublishedBlogTheme(params ...map[string]string) (*http.Response, error) {
+	return c.Get("/api/blogThemes.getPublished", params...)
+}
+
+// ListBlogThemes lists all blog themes
+func (c *APIClient) ListBlogThemes(params ...map[string]string) (*http.Response, error) {
+	return c.Get("/api/blogThemes.list", params...)
+}
+
+// UpdateBlogTheme updates a blog theme
+func (c *APIClient) UpdateBlogTheme(theme map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/blogThemes.update", theme)
+}
+
+// PublishBlogTheme publishes a blog theme
+func (c *APIClient) PublishBlogTheme(request map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/blogThemes.publish", request)
 }

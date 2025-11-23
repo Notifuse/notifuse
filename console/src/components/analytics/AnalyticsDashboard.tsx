@@ -111,8 +111,8 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
   const handleNavigateToSettings = () => {
     navigate({
-      to: '/workspace/$workspaceId/settings',
-      params: { workspaceId: workspace.id }
+      to: '/console/workspace/$workspaceId/settings/$section',
+      params: { workspaceId: workspace.id, section: 'integrations' }
     })
   }
 
@@ -122,7 +122,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
       <Row gutter={[16, 16]} className="mb-8">
         {/* Total Contacts */}
         <Col xs={24} sm={12} md={6}>
-          <div className="bg-gray-50 p-4 rounded-lg" style={{ height: '110px' }}>
+          <div className="p-4 rounded-lg bg-gray-100" style={{ height: '110px' }}>
             <Statistic
               title="Total Contacts"
               value={totalContacts}
@@ -134,7 +134,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
         {/* New Contacts */}
         <Col xs={24} sm={12} md={6}>
-          <div className="bg-gray-50 p-4 rounded-lg" style={{ height: '110px' }}>
+          <div className="bg-gray-100 p-4 rounded-lg" style={{ height: '110px' }}>
             <Statistic
               title="New Contacts"
               value={newContactsCount}
@@ -146,7 +146,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
         {/* Transactional Email Provider */}
         <Col xs={24} sm={12} md={6}>
-          <div className="bg-gray-50 p-4 rounded-lg" style={{ height: '110px' }}>
+          <div className="bg-gray-100 p-4 rounded-lg" style={{ height: '110px' }}>
             <div className="text-gray-500 text-sm mb-2">Transactional Provider</div>
             {transactionalProvider ? (
               <div>
@@ -170,7 +170,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
 
         {/* Marketing Email Provider */}
         <Col xs={24} sm={12} md={6}>
-          <div className="bg-gray-50 p-4 rounded-lg" style={{ height: '110px' }}>
+          <div className="bg-gray-100 p-4 rounded-lg" style={{ height: '110px' }}>
             <div className="text-gray-500 text-sm mb-2">Marketing Provider</div>
             {marketingProvider ? (
               <div>

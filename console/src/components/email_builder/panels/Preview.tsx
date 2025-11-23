@@ -418,31 +418,34 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
                   'url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAAXNSR0IArs4c6QAAAERlWElmTU0AKgAAAAgAAYdpAAQAAAABAAAAGgAAAAAAA6ABAAMAAAABAAEAAKACAAQAAAABAAAACqADAAQAAAABAAAACgAAAAA7eLj1AAAAK0lEQVQYGWP8DwQMaODZs2doIgwMTBgiOAQGUCELNodLSUlhuHQA3Ui01QDcPgnEE5wAOwAAAABJRU5ErkJggg==")'
               }}
             >
-              {/* Floating Mobile/Desktop Segmented Control */}
-              <div ref={mobileDesktopSwitcherRef} className="absolute top-4 right-4 z-10">
-                <Segmented
-                  value={mobileView ? 'mobile' : 'desktop'}
-                  onChange={(value) => setMobileView(value === 'mobile')}
-                  options={[
-                    {
-                      label: (
-                        <Tooltip title="Mobile view (400px)">
-                          <FontAwesomeIcon icon={faMobileAlt} />
-                        </Tooltip>
-                      ),
-                      value: 'mobile'
-                    },
-                    {
-                      label: (
-                        <Tooltip title="Desktop view (100%)">
-                          <FontAwesomeIcon icon={faDesktop} />
-                        </Tooltip>
-                      ),
-                      value: 'desktop'
-                    }
-                  ]}
-                  size="small"
-                />
+              {/* Floating Mobile/Desktop Switcher */}
+              <div className="absolute top-4 right-4 z-10">
+                {/* Mobile/Desktop Switcher */}
+                <div ref={mobileDesktopSwitcherRef}>
+                  <Segmented
+                    value={mobileView ? 'mobile' : 'desktop'}
+                    onChange={(value) => setMobileView(value === 'mobile')}
+                    options={[
+                      {
+                        label: (
+                          <Tooltip title="Mobile view (400px)">
+                            <FontAwesomeIcon icon={faMobileAlt} />
+                          </Tooltip>
+                        ),
+                        value: 'mobile'
+                      },
+                      {
+                        label: (
+                          <Tooltip title="Desktop view (100%)">
+                            <FontAwesomeIcon icon={faDesktop} />
+                          </Tooltip>
+                        ),
+                        value: 'desktop'
+                      }
+                    ]}
+                    size="small"
+                  />
+                </div>
               </div>
               <div
                 className="flex-1"

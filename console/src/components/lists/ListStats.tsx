@@ -12,7 +12,7 @@ interface ListStatsProps {
 }
 
 export function ListStats({ workspaceId, listId }: ListStatsProps) {
-  const { workspaceId: paramWorkspaceId } = useParams({ from: '/workspace/$workspaceId' })
+  const { workspaceId: paramWorkspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   // Use workspaceId from params if available, otherwise use the prop
   const currentWorkspaceId = paramWorkspaceId || workspaceId
 
@@ -50,7 +50,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
         <Statistic
           title={
             <Link
-              to="/workspace/$workspaceId/contacts"
+              to="/console/workspace/$workspaceId/contacts"
               params={{ workspaceId: currentWorkspaceId }}
               search={{ list_id: listId, contact_list_status: 'active' }}
               className="text-inherit hover:text-primary transition-colors"
@@ -74,7 +74,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
         <Statistic
           title={
             <Link
-              to="/workspace/$workspaceId/contacts"
+              to="/console/workspace/$workspaceId/contacts"
               params={{ workspaceId: currentWorkspaceId }}
               search={{ list_id: listId, contact_list_status: 'pending' }}
               className="text-inherit hover:text-primary transition-colors"
@@ -98,7 +98,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
         <Statistic
           title={
             <Link
-              to="/workspace/$workspaceId/contacts"
+              to="/console/workspace/$workspaceId/contacts"
               params={{ workspaceId: currentWorkspaceId }}
               search={{ list_id: listId, contact_list_status: 'unsubscribed' }}
               className="text-inherit hover:text-primary transition-colors"
@@ -118,7 +118,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
         <Statistic
           title={
             <Link
-              to="/workspace/$workspaceId/contacts"
+              to="/console/workspace/$workspaceId/contacts"
               params={{ workspaceId: currentWorkspaceId }}
               search={{ list_id: listId, contact_list_status: 'bounced' }}
               className="text-inherit hover:text-primary transition-colors"
@@ -142,7 +142,7 @@ export function ListStats({ workspaceId, listId }: ListStatsProps) {
         <Statistic
           title={
             <Link
-              to="/workspace/$workspaceId/contacts"
+              to="/console/workspace/$workspaceId/contacts"
               params={{ workspaceId: currentWorkspaceId }}
               search={{ list_id: listId, contact_list_status: 'complained' }}
               className="text-inherit hover:text-primary transition-colors"

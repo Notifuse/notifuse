@@ -26,6 +26,7 @@ const (
 	PermissionResourceTransactional  PermissionResource = "transactional"
 	PermissionResourceWorkspace      PermissionResource = "workspace"
 	PermissionResourceMessageHistory PermissionResource = "message_history"
+	PermissionResourceBlog           PermissionResource = "blog"
 )
 
 // PermissionType defines the types of permissions (read/write)
@@ -44,6 +45,7 @@ var FullPermissions = UserPermissions{
 	PermissionResourceTransactional:  ResourcePermissions{Read: true, Write: true},
 	PermissionResourceWorkspace:      ResourcePermissions{Read: true, Write: true},
 	PermissionResourceMessageHistory: ResourcePermissions{Read: true, Write: true},
+	PermissionResourceBlog:           ResourcePermissions{Read: true, Write: true},
 }
 
 // ResourcePermissions defines read/write permissions for a specific resource
@@ -289,6 +291,52 @@ const (
 	SaveOperationUpdate SaveOperation = "update"
 )
 
+// BlogSettings contains blog title and SEO configuration
+type BlogSettings struct {
+	Title            string       `json:"title,omitempty"`
+	LogoURL          *string      `json:"logo_url,omitempty"`
+	IconURL          *string      `json:"icon_url,omitempty"`
+	SEO              *SEOSettings `json:"seo,omitempty"`
+	HomePageSize     int          `json:"home_page_size,omitempty"`     // Posts per page on home (default: 20)
+	CategoryPageSize int          `json:"category_page_size,omitempty"` // Posts per page on category (default: 20)
+}
+
+// GetHomePageSize returns the home page size with validation and default
+func (bs *BlogSettings) GetHomePageSize() int {
+	if bs == nil || bs.HomePageSize < 1 || bs.HomePageSize > 100 {
+		return 20 // default
+	}
+	return bs.HomePageSize
+}
+
+// GetCategoryPageSize returns the category page size with validation and default
+func (bs *BlogSettings) GetCategoryPageSize() int {
+	if bs == nil || bs.CategoryPageSize < 1 || bs.CategoryPageSize > 100 {
+		return 20 // default
+	}
+	return bs.CategoryPageSize
+}
+
+// Value implements the driver.Valuer interface for database serialization
+func (b BlogSettings) Value() (driver.Value, error) {
+	return json.Marshal(b)
+}
+
+// Scan implements the sql.Scanner interface for database deserialization
+func (b *BlogSettings) Scan(value interface{}) error {
+	if value == nil {
+		return nil
+	}
+
+	v, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("type assertion to []byte failed")
+	}
+
+	cloned := bytes.Clone(v)
+	return json.Unmarshal(cloned, b)
+}
+
 // WorkspaceSettings contains configurable workspace settings
 type WorkspaceSettings struct {
 	WebsiteURL                   string              `json:"website_url,omitempty"`
@@ -303,6 +351,8 @@ type WorkspaceSettings struct {
 	TemplateBlocks               []TemplateBlock     `json:"template_blocks,omitempty"`
 	CustomEndpointURL            *string             `json:"custom_endpoint_url,omitempty"`
 	CustomFieldLabels            map[string]string   `json:"custom_field_labels,omitempty"`
+	BlogEnabled                  bool                `json:"blog_enabled"`            // Enable blog feature at workspace level
+	BlogSettings                 *BlogSettings       `json:"blog_settings,omitempty"` // Blog styling and SEO settings
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"-"`
@@ -825,6 +875,7 @@ type WorkspaceInvitation struct {
 type WorkspaceRepository interface {
 	Create(ctx context.Context, workspace *Workspace) error
 	GetByID(ctx context.Context, id string) (*Workspace, error)
+	GetWorkspaceByCustomDomain(ctx context.Context, hostname string) (*Workspace, error)
 	List(ctx context.Context) ([]*Workspace, error)
 	Update(ctx context.Context, workspace *Workspace) error
 	Delete(ctx context.Context, id string) error

@@ -1,4 +1,3 @@
-import { PlusOutlined } from '@ant-design/icons'
 import { Layout } from 'antd'
 import { ReactNode } from 'react'
 
@@ -13,7 +12,7 @@ export function MainLayout({ children }: MainLayoutProps) {
     <Layout
       style={{
         minHeight: '100vh',
-        backgroundImage: 'url(/splash.jpg)',
+        backgroundImage: 'url(/console/splash.jpg)',
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}

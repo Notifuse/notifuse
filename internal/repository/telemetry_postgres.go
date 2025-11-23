@@ -71,6 +71,11 @@ func (r *telemetryRepository) GetWorkspaceMetrics(ctx context.Context, workspace
 		metrics.UsersCount = usersCount
 	}
 
+	// Count blog posts
+	if blogPostsCount, err := r.CountBlogPosts(ctx, db); err == nil {
+		metrics.BlogPostsCount = blogPostsCount
+	}
+
 	// Get last message timestamp
 	if lastMessageAt, err := r.GetLastMessageAt(ctx, db); err == nil {
 		metrics.LastMessageAt = lastMessageAt
@@ -152,6 +157,17 @@ func (r *telemetryRepository) CountUsers(ctx context.Context, systemDB *sql.DB, 
 	err := systemDB.QueryRowContext(ctx, query, workspaceID).Scan(&count)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count users: %w", err)
+	}
+	return count, nil
+}
+
+// CountBlogPosts counts the total number of blog posts in a workspace
+func (r *telemetryRepository) CountBlogPosts(ctx context.Context, db *sql.DB) (int, error) {
+	query := `SELECT COUNT(*) FROM blog_posts`
+	var count int
+	err := db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count blog posts: %w", err)
 	}
 	return count, nil
 }

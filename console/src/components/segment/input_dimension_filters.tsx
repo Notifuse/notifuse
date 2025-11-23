@@ -11,6 +11,7 @@ import { faCalendar, faTrashAlt } from '@fortawesome/free-regular-svg-icons'
 import { FieldTypeString } from './type_string'
 import { FieldTypeTime } from './type_time'
 import { FieldTypeNumber } from './type_number'
+import { FieldTypeJSON } from './type_json'
 
 const typeIcon = {
   width: '25px',
@@ -18,8 +19,9 @@ const typeIcon = {
   display: 'inline-block',
   marginRight: '1rem',
   fontSize: '9px',
-  lineHeight: '23px',
+  lineHeight: '18px',
   borderRadius: '3px',
+  verticalAlign: 'text-top',
   backgroundColor: '#eee',
   color: '#666'
 }
@@ -27,7 +29,8 @@ const typeIcon = {
 const fieldTypeRendererDictionary: FieldTypeRendererDictionary = {
   string: new FieldTypeString(),
   time: new FieldTypeTime(),
-  number: new FieldTypeNumber()
+  number: new FieldTypeNumber(),
+  json: new FieldTypeJSON()
 }
 
 export const InputDimensionFilters = (props: {
@@ -36,6 +39,7 @@ export const InputDimensionFilters = (props: {
   schema: TableSchema
   btnType?: string
   btnGhost?: boolean
+  customFieldLabels?: Record<string, string>
 }) => {
   const hasFilter = props.value && props.value.length > 0 ? true : false
 
@@ -46,7 +50,10 @@ export const InputDimensionFilters = (props: {
           <tbody>
             {(props.value || []).map((filter, key) => {
               const field = props.schema.fields[filter.field_name]
-              const fieldTypeRenderer = fieldTypeRendererDictionary[filter.field_type]
+              // Use JSON renderer if filter has json_path, otherwise use the field_type renderer
+              const rendererType =
+                filter.json_path && filter.json_path.length > 0 ? 'json' : filter.field_type
+              const fieldTypeRenderer = fieldTypeRendererDictionary[rendererType]
 
               return (
                 <tr key={key}>
@@ -60,9 +67,9 @@ export const InputDimensionFilters = (props: {
                     {fieldTypeRenderer && (
                       <Space>
                         <Popover title={'field: ' + filter.field_name} content={field.description}>
-                          <b>{field.title}</b>
+                          <b>{props.customFieldLabels?.[filter.field_name] || field.title}</b>
                         </Popover>
-                        {fieldTypeRenderer.render(filter, field)}
+                        {fieldTypeRenderer.render(filter, field, props.customFieldLabels)}
                       </Space>
                     )}
                   </td>
@@ -95,6 +102,7 @@ export const InputDimensionFilters = (props: {
         existingFilters={props.value}
         btnType={props.btnType}
         btnGhost={props.btnGhost || hasFilter}
+        customFieldLabels={props.customFieldLabels}
         onComplete={(values: DimensionFilter) => {
           if (!props.onChange) return
           const clonedValue = props.value ? [...props.value] : []
@@ -112,6 +120,7 @@ const AddFilterButton = (props: {
   schema: TableSchema
   btnType?: any
   btnGhost?: boolean
+  customFieldLabels?: Record<string, string>
 }) => {
   const [form] = Form.useForm()
   const [modalVisible, setModalVisible] = useState(false)
@@ -163,77 +172,88 @@ const AddFilterButton = (props: {
               .catch(console.error)
           }}
         >
-          <Form form={form} name="form_add_filter" layout="vertical" className="my-6">
-            <Form.Item
-              name="field_name"
-              rules={[{ required: true, type: 'string', message: 'Please select a field' }]}
-            >
-              <Select
-                // style={{ width: 200 }}
-                listHeight={500}
-                showSearch
-                dropdownMatchSelectWidth={false}
-                placeholder="Select a field"
-                options={map(availableFields, (field, fieldName) => {
-                  // console.log('field', field)
+          <div className="my-6">
+            <Form form={form} name="form_add_filter" layout="vertical">
+              <Form.Item
+                name="field_name"
+                rules={[{ required: true, type: 'string', message: 'Please select a field' }]}
+              >
+                <Select
+                  // style={{ width: 200 }}
+                  listHeight={500}
+                  showSearch
+                  dropdownMatchSelectWidth={false}
+                  placeholder="Select a field"
+                  options={map(availableFields, (field, fieldName) => {
+                    // console.log('field', field)
 
-                  let icon = <span style={typeIcon}>123</span>
+                    let icon = <span style={typeIcon}>123</span>
 
-                  switch (field.type) {
-                    case 'string':
-                      icon = <span style={typeIcon}>Abc</span>
-                      break
-                    case 'number':
-                      if (fieldName.indexOf('is_') !== -1 || fieldName.indexOf('consent_') !== -1) {
-                        icon = <span style={typeIcon}>0/1</span>
-                      }
-                      break
-                    case 'time':
-                      icon = (
-                        <span style={typeIcon}>
-                          <FontAwesomeIcon icon={faCalendar} />
-                        </span>
-                      )
-                      break
-                    default:
-                  }
+                    switch (field.type) {
+                      case 'string':
+                        icon = <span style={typeIcon}>Abc</span>
+                        break
+                      case 'number':
+                        if (
+                          fieldName.indexOf('is_') !== -1 ||
+                          fieldName.indexOf('consent_') !== -1
+                        ) {
+                          icon = <span style={typeIcon}>0/1</span>
+                        }
+                        break
+                      case 'time':
+                        icon = (
+                          <span style={typeIcon}>
+                            <FontAwesomeIcon icon={faCalendar} />
+                          </span>
+                        )
+                        break
+                      case 'json':
+                        icon = <span style={typeIcon}>{'{ }'}</span>
+                        break
+                      default:
+                    }
 
-                  return {
-                    label: (
-                      <Tooltip title={field.description}>
-                        {icon} {field.title}
-                      </Tooltip>
-                    ),
-                    value: fieldName
-                  }
-                })}
-              />
-            </Form.Item>
+                    // Use custom field label if available
+                    const displayLabel = props.customFieldLabels?.[fieldName] || field.title
 
-            <Form.Item noStyle shouldUpdate>
-              {(funcs) => {
-                const field_name = funcs.getFieldValue('field_name')
-                if (!field_name) return null
+                    return {
+                      label: (
+                        <Tooltip title={field.description}>
+                          {icon} {displayLabel}
+                        </Tooltip>
+                      ),
+                      value: fieldName
+                    }
+                  })}
+                />
+              </Form.Item>
 
-                const selectedField = props.schema.fields[field_name]
-                const fieldTypeRenderer = fieldTypeRendererDictionary[selectedField.type]
+              <Form.Item noStyle shouldUpdate>
+                {(funcs) => {
+                  const field_name = funcs.getFieldValue('field_name')
+                  if (!field_name) return null
 
-                if (!fieldTypeRenderer)
-                  return (
-                    <Alert
-                      type="error"
-                      message={'type ' + selectedField.type + ' is not implemented'}
-                    />
+                  const selectedField = props.schema.fields[field_name]
+                  const fieldTypeRenderer = fieldTypeRendererDictionary[selectedField.type]
+
+                  if (!fieldTypeRenderer)
+                    return (
+                      <Alert
+                        type="error"
+                        message={'type ' + selectedField.type + ' is not implemented'}
+                      />
+                    )
+
+                  return fieldTypeRenderer.renderFormItems(
+                    selectedField.type as any,
+                    field_name,
+                    form
                   )
-
-                return fieldTypeRenderer.renderFormItems(
-                  selectedField.type as any,
-                  field_name,
-                  form
-                )
-              }}
-            </Form.Item>
-          </Form>
+                }}
+              </Form.Item>
+            </Form>
+          </div>
         </Modal>
       )}
     </>

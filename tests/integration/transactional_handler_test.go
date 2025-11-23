@@ -759,7 +759,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 				} `json:"Content"`
 			} `json:"items"`
 		}
-		
+
 		err = json.NewDecoder(mailhogResp.Body).Decode(&mailhogData)
 		require.NoError(t, err, "Failed to decode MailHog response")
 
@@ -768,13 +768,13 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		// Count emails that match our message (by checking for the Test Email Subject)
 		emailsForOurMessage := 0
 		recipientsFound := make(map[string]bool)
-		
+
 		for _, msg := range mailhogData.Items {
 			// Check if this is our email by looking at the subject
 			subjects := msg.Content.Headers["Subject"]
 			if len(subjects) > 0 && strings.Contains(subjects[0], "Test Email Subject") {
 				emailsForOurMessage++
-				
+
 				// Track which recipient received this
 				for _, to := range msg.To {
 					recipientEmail := to.Mailbox + "@" + to.Domain
@@ -785,7 +785,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		}
 
 		t.Logf("Found %d email(s) with our subject in MailHog", emailsForOurMessage)
-		
+
 		// Verify we have exactly 1 email (SMTP sends 1 message to multiple recipients, not separate messages)
 		assert.Equal(t, 1, emailsForOurMessage, "Expected 1 email in MailHog with 7 recipients")
 
@@ -800,7 +800,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 				allRecipientsFound = false
 			}
 		}
-		
+
 		// Verify we found exactly 7 recipients
 		assert.Equal(t, 7, len(recipientsFound), "Expected exactly 7 recipients in the email")
 		assert.True(t, allRecipientsFound, "All 7 recipients should be present in the email")
@@ -1037,7 +1037,7 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 
 				// The From header should contain the custom from_name
 				// Format is typically: "Custom Support Team <sender@example.com>"
-				assert.Contains(t, fromHeader, customFromName, 
+				assert.Contains(t, fromHeader, customFromName,
 					"From header should contain the custom from_name")
 
 				t.Logf("✅ Email sent with custom from_name: %s", customFromName)

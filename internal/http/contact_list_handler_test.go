@@ -9,17 +9,12 @@ import (
 	"net/url"
 	"testing"
 
-
-
 	"github.com/Notifuse/notifuse/internal/domain"
-
 
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 
-
 	"github.com/golang/mock/gomock"
-
 
 	"github.com/stretchr/testify/assert"
 )

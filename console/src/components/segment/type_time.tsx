@@ -26,7 +26,7 @@ export class FieldTypeTime implements FieldTypeRenderer {
     new OperatorInTheLastDays()
   ]
 
-  render(filter: DimensionFilter) {
+  render(filter: DimensionFilter, _schema?: any, _customFieldLabels?: Record<string, string>) {
     const operator = this.operators.find((x) => x.type === filter.operator)
     if (!operator)
       return <Alert type="error" message={'operator not found for: {filter.operator'} />

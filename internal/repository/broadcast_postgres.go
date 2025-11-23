@@ -84,9 +84,11 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			updated_at, 
 			started_at, 
 			completed_at, 
-			cancelled_at
+			cancelled_at,
+			paused_at,
+			pause_reason
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19
 		)
 	`
 
@@ -108,6 +110,8 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.StartedAt,
 		broadcast.CompletedAt,
 		broadcast.CancelledAt,
+		broadcast.PausedAt,
+		broadcast.PauseReason,
 	)
 
 	if err != nil {
@@ -143,7 +147,9 @@ func (r *broadcastRepository) GetBroadcast(ctx context.Context, workspaceID, id 
 			updated_at, 
 			started_at, 
 			completed_at, 
-			cancelled_at
+			cancelled_at,
+			paused_at,
+			pause_reason
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
 	`
@@ -181,7 +187,9 @@ func (r *broadcastRepository) GetBroadcastTx(ctx context.Context, tx *sql.Tx, wo
 			updated_at, 
 			started_at, 
 			completed_at, 
-			cancelled_at
+			cancelled_at,
+			paused_at,
+			pause_reason
 		FROM broadcasts
 		WHERE id = $1 AND workspace_id = $2
 	`
@@ -212,7 +220,7 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 	broadcast.UpdatedAt = time.Now().UTC()
 
 	query := `
-		UPDATE broadcasts SET
+		UPDATE broadcasts 		SET
 			name = $3,
 			status = $4,
 			audience = $5,
@@ -226,7 +234,9 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			updated_at = $13,
 			started_at = $14,
 			completed_at = $15,
-			cancelled_at = $16
+			cancelled_at = $16,
+			paused_at = $17,
+			pause_reason = $18
 		WHERE id = $1 AND workspace_id = $2
 			AND status != 'cancelled'
 			AND status != 'sent'
@@ -249,6 +259,8 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.StartedAt,
 		broadcast.CompletedAt,
 		broadcast.CancelledAt,
+		broadcast.PausedAt,
+		broadcast.PauseReason,
 	)
 
 	if err != nil {
@@ -318,11 +330,13 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				updated_at, 
 				started_at, 
 				completed_at, 
-				cancelled_at
-			FROM broadcasts
-			WHERE workspace_id = $1 AND status = $2
-			ORDER BY created_at DESC
-			LIMIT $3 OFFSET $4
+			cancelled_at,
+			paused_at,
+			pause_reason
+		FROM broadcasts
+		WHERE workspace_id = $1 AND status = $2
+		ORDER BY created_at DESC
+		LIMIT $3 OFFSET $4
 		`
 		dataArgs = []interface{}{params.WorkspaceID, params.Status, params.Limit, params.Offset}
 	} else {
@@ -344,11 +358,13 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				updated_at, 
 				started_at, 
 				completed_at, 
-				cancelled_at
-			FROM broadcasts
-			WHERE workspace_id = $1
-			ORDER BY created_at DESC
-			LIMIT $2 OFFSET $3
+			cancelled_at,
+			paused_at,
+			pause_reason
+		FROM broadcasts
+		WHERE workspace_id = $1
+		ORDER BY created_at DESC
+		LIMIT $2 OFFSET $3
 		`
 		dataArgs = []interface{}{params.WorkspaceID, params.Limit, params.Offset}
 	}
@@ -462,6 +478,8 @@ func scanBroadcast(scanner interface {
 		&broadcast.StartedAt,
 		&broadcast.CompletedAt,
 		&broadcast.CancelledAt,
+		&broadcast.PausedAt,
+		&broadcast.PauseReason,
 	)
 
 	if err != nil {

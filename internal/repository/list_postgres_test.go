@@ -18,7 +18,7 @@ import (
 )
 
 func TestListRepository(t *testing.T) {
-	repo, _, mockWorkspaceRepo := setupListRepositoryTest(t)
+	repo, mockWorkspaceRepo := setupListRepositoryTest(t)
 
 	// Create a test list
 	testList := &domain.List{
@@ -97,8 +97,7 @@ func TestListRepository(t *testing.T) {
 		t.Run("list found", func(t *testing.T) {
 			rows := sqlmock.NewRows([]string{
 				"id", "name", "is_double_optin", "is_public", "description", "double_optin_template",
-				"welcome_template", "unsubscribe_template", "created_at", "updated_at",
-				"deleted_at",
+				"welcome_template", "unsubscribe_template", "created_at", "updated_at", "deleted_at",
 			}).AddRow(
 				testList.ID,
 				testList.Name,
@@ -163,8 +162,7 @@ func TestListRepository(t *testing.T) {
 			rows := sqlmock.NewRows([]string{
 				"id", "name", "is_double_optin", "is_public", "description",
 				"double_optin_template",
-				"welcome_template", "unsubscribe_template", "created_at", "updated_at",
-				"deleted_at",
+				"welcome_template", "unsubscribe_template", "created_at", "updated_at", "deleted_at",
 			}).AddRow(
 				testList.ID,
 				testList.Name,
@@ -430,10 +428,11 @@ func TestListRepository(t *testing.T) {
 	})
 }
 
-func setupListRepositoryTest(t *testing.T) (*listRepository, sqlmock.Sqlmock, *mocks.MockWorkspaceRepository) {
+func setupListRepositoryTest(t *testing.T) (*listRepository, *mocks.MockWorkspaceRepository) {
 	ctrl := gomock.NewController(t)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 
 	repo := NewListRepository(mockWorkspaceRepo).(*listRepository)
-	return repo, nil, mockWorkspaceRepo
+
+	return repo, mockWorkspaceRepo
 }

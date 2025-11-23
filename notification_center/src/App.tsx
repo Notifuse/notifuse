@@ -111,6 +111,39 @@ function App() {
           }
         }
 
+        // Handle unsubscribe action
+        if (params.action === 'unsubscribe' && params.lid) {
+          try {
+            // Automatically unsubscribe from the list
+            const response = await unsubscribeOneClick({
+              wid: params.wid,
+              email: params.email,
+              email_hmac: params.email_hmac,
+              lids: [params.lid],
+              mid: params.mid
+            })
+
+            if (response.success) {
+              setConfirmationResult({
+                success: true,
+                message: 'You have been unsubscribed successfully.',
+                listId: params.lid
+              })
+            } else {
+              setConfirmationResult({
+                success: false,
+                message: 'Failed to unsubscribe'
+              })
+            }
+          } catch (err) {
+            console.error('Failed to unsubscribe:', err)
+            setConfirmationResult({
+              success: false,
+              message: 'Failed to unsubscribe'
+            })
+          }
+        }
+
         // Load notification center data
         const data = await getContactPreferences({
           workspace_id: params.wid,

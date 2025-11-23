@@ -3,6 +3,7 @@
 
 *.log
 node_modules
+pkg/liquid/liquid.bundle.js
 .DS_Store
 server/tmp/
 tmp/

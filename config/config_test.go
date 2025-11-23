@@ -75,7 +75,7 @@ func TestLoadWithOptions(t *testing.T) {
 	assert.Equal(t, "test_system", cfg.Database.DBName)
 	assert.Equal(t, "test@example.com", cfg.RootEmail)
 	assert.Equal(t, "development", cfg.Environment)
-	
+
 	// Verify JWT secret and SecretKey
 	assert.Equal(t, "test-secret-key-1234567890123456", cfg.Security.SecretKey)
 	assert.NotNil(t, cfg.Security.JWTSecret)
@@ -184,7 +184,7 @@ func TestDatabaseConnectionConfig_CustomValues(t *testing.T) {
 	os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "5")
 	os.Setenv("DB_CONNECTION_MAX_LIFETIME", "20m")
 	os.Setenv("DB_CONNECTION_MAX_IDLE_TIME", "10m")
-	
+
 	defer os.Unsetenv("SECRET_KEY")
 	defer os.Unsetenv("DB_PASSWORD")
 	defer os.Unsetenv("DB_MAX_CONNECTIONS")
@@ -207,7 +207,7 @@ func TestDatabaseConnectionConfig_ValidationMinimum(t *testing.T) {
 	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
 	os.Setenv("DB_PASSWORD", "testpass")
 	os.Setenv("DB_MAX_CONNECTIONS", "10") // Below minimum of 20
-	
+
 	defer os.Unsetenv("SECRET_KEY")
 	defer os.Unsetenv("DB_PASSWORD")
 	defer os.Unsetenv("DB_MAX_CONNECTIONS")
@@ -222,7 +222,7 @@ func TestDatabaseConnectionConfig_ValidationMaximum(t *testing.T) {
 	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
 	os.Setenv("DB_PASSWORD", "testpass")
 	os.Setenv("DB_MAX_CONNECTIONS", "15000") // Above maximum of 10000
-	
+
 	defer os.Unsetenv("SECRET_KEY")
 	defer os.Unsetenv("DB_PASSWORD")
 	defer os.Unsetenv("DB_MAX_CONNECTIONS")
@@ -237,7 +237,7 @@ func TestDatabaseConnectionConfig_ValidationPerDBMinimum(t *testing.T) {
 	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
 	os.Setenv("DB_PASSWORD", "testpass")
 	os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "0") // Below minimum of 1
-	
+
 	defer os.Unsetenv("SECRET_KEY")
 	defer os.Unsetenv("DB_PASSWORD")
 	defer os.Unsetenv("DB_MAX_CONNECTIONS_PER_DB")
@@ -252,7 +252,7 @@ func TestDatabaseConnectionConfig_ValidationPerDBMaximum(t *testing.T) {
 	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
 	os.Setenv("DB_PASSWORD", "testpass")
 	os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "60") // Above maximum of 50
-	
+
 	defer os.Unsetenv("SECRET_KEY")
 	defer os.Unsetenv("DB_PASSWORD")
 	defer os.Unsetenv("DB_MAX_CONNECTIONS_PER_DB")
@@ -261,4 +261,3 @@ func TestDatabaseConnectionConfig_ValidationPerDBMaximum(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "DB_MAX_CONNECTIONS_PER_DB cannot exceed 50")
 }
-

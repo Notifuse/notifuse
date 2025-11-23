@@ -1,0 +1,31 @@
+/* Code Block Node Wrapper */
+.code-block-node-wrapper {
+  margin: 1rem 0;
+  display: block;
+}
+
+/* Caption Wrapper and Input */
+.code-block-caption-wrapper {
+  margin-top: 8px;
+  width: 100%;
+}
+
+.code-block-caption-input {
+  text-align: center;
+  font-style: italic;
+  color: var(--editor-caption-color);
+  font-size: var(--editor-caption-font-size);
+  padding: 4px 8px;
+}
+
+.code-block-caption-input input {
+  text-align: center !important;
+  font-style: italic;
+  color: var(--editor-caption-color) !important;
+}
+
+.code-block-caption-input input::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+

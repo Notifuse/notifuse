@@ -430,6 +430,8 @@ func TestBroadcastRepository_CreateBroadcast_Success(t *testing.T) {
 			sqlmock.AnyArg(), // started_at
 			sqlmock.AnyArg(), // completed_at
 			sqlmock.AnyArg(), // cancelled_at
+			sqlmock.AnyArg(), // paused_at
+			sqlmock.AnyArg(), // pause_reason
 		).
 		WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -513,14 +515,14 @@ func TestBroadcastRepository_GetBroadcast_Success(t *testing.T) {
 		"test_settings", "utm_parameters", "metadata",
 		"winning_template",
 		"test_sent_at", "winner_sent_at", "created_at", "updated_at",
-		"started_at", "completed_at", "cancelled_at",
+		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
 	}).
 		AddRow(
 			broadcastID, workspaceID, "Test Broadcast", domain.BroadcastStatusDraft,
 			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
 			"", // Use empty string instead of nil for winning_template
 			nil, nil, time.Now(), time.Now(),
-			nil, nil, nil,
+			nil, nil, nil, nil, "",
 		)
 
 	mock.ExpectQuery("SELECT").
@@ -670,6 +672,8 @@ func TestBroadcastRepository_UpdateBroadcast_Success(t *testing.T) {
 			sqlmock.AnyArg(), // started_at
 			sqlmock.AnyArg(), // completed_at
 			sqlmock.AnyArg(), // cancelled_at
+			sqlmock.AnyArg(), // paused_at
+			sqlmock.AnyArg(), // pause_reason
 		).
 		WillReturnResult(sqlmock.NewResult(0, 1))
 
@@ -1058,15 +1062,15 @@ func TestBroadcastRepository_ListBroadcasts_WithStatus(t *testing.T) {
 		"test_settings", "utm_parameters", "metadata",
 		"winning_template",
 		"test_sent_at", "winner_sent_at", "created_at", "updated_at",
-		"started_at", "completed_at", "cancelled_at",
+		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
 	}).
 		AddRow(
 			"bc123", workspaceID, "Broadcast 1", status, []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
-			"", nil, nil, time.Now(), time.Now(), nil, nil, nil,
+			"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, "",
 		).
 		AddRow(
 			"bc456", workspaceID, "Broadcast 2", status, []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
-			"", nil, nil, time.Now(), time.Now(), nil, nil, nil,
+			"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, "",
 		)
 
 	// Expect query with limit/offset

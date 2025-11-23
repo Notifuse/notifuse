@@ -177,26 +177,26 @@ func testSimpleContactSegment(t *testing.T, client *testutil.APIClient, factory 
 			"workspace_id": workspaceID,
 			"segment_id":   segmentID,
 		})
-	require.NoError(t, err)
-	defer rebuildResp.Body.Close()
-	assert.Equal(t, http.StatusOK, rebuildResp.StatusCode)
+		require.NoError(t, err)
+		defer rebuildResp.Body.Close()
+		assert.Equal(t, http.StatusOK, rebuildResp.StatusCode)
 
-	// Step 5: Execute pending tasks to process segment build
-	execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{
-		"limit": 10,
-	})
-	require.NoError(t, err)
-	execResp.Body.Close()
+		// Step 5: Execute pending tasks to process segment build
+		execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{
+			"limit": 10,
+		})
+		require.NoError(t, err)
+		execResp.Body.Close()
 
-	// Wait for segment to be built
-	status, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segmentID, 10*time.Second)
-	if err != nil {
-		t.Fatalf("Segment build failed: %v", err)
-	}
-	assert.Contains(t, []string{"built", "active"}, status, "Segment should be built or active")
+		// Wait for segment to be built
+		status, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segmentID, 10*time.Second)
+		if err != nil {
+			t.Fatalf("Segment build failed: %v", err)
+		}
+		assert.Contains(t, []string{"built", "active"}, status, "Segment should be built or active")
 
-	// Step 6: Verify segment status and users count
-	getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
+		// Step 6: Verify segment status and users count
+		getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
 		require.NoError(t, err)
 		defer getResp.Body.Close()
 
@@ -204,10 +204,10 @@ func testSimpleContactSegment(t *testing.T, client *testutil.APIClient, factory 
 		err = json.NewDecoder(getResp.Body).Decode(&getResult)
 		require.NoError(t, err)
 
-	updatedSegment := getResult["segment"].(map[string]interface{})
+		updatedSegment := getResult["segment"].(map[string]interface{})
 
-	// Segment should be active after building
-	status = updatedSegment["status"].(string)
+		// Segment should be active after building
+		status = updatedSegment["status"].(string)
 		assert.Contains(t, []string{"active", "building"}, status)
 
 		// Should have counted 10 US contacts
@@ -619,25 +619,25 @@ func testSegmentRebuild(t *testing.T, client *testutil.APIClient, factory *testu
 		segmentData := createResult["segment"].(map[string]interface{})
 		segmentID := segmentData["id"].(string)
 
-	// Initial build
-	rebuildResp, err := client.Post("/api/segments.rebuild", map[string]interface{}{
-		"workspace_id": workspaceID,
-		"segment_id":   segmentID,
-	})
-	require.NoError(t, err)
-	defer rebuildResp.Body.Close()
+		// Initial build
+		rebuildResp, err := client.Post("/api/segments.rebuild", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"segment_id":   segmentID,
+		})
+		require.NoError(t, err)
+		defer rebuildResp.Body.Close()
 
-	// Execute tasks
-	execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
-	require.NoError(t, err)
-	execResp.Body.Close()
+		// Execute tasks
+		execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
+		require.NoError(t, err)
+		execResp.Body.Close()
 
-	// Wait for segment to be built
-	status, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segmentID, 10*time.Second)
-	if err != nil {
-		t.Fatalf("Segment build failed: %v", err)
-	}
-	assert.Contains(t, []string{"built", "active"}, status, "Segment should be built or active")
+		// Wait for segment to be built
+		status, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segmentID, 10*time.Second)
+		if err != nil {
+			t.Fatalf("Segment build failed: %v", err)
+		}
+		assert.Contains(t, []string{"built", "active"}, status, "Segment should be built or active")
 
 		// Add more French contacts
 		time.Sleep(500 * time.Millisecond)
@@ -648,25 +648,25 @@ func testSegmentRebuild(t *testing.T, client *testutil.APIClient, factory *testu
 			require.NoError(t, err)
 		}
 
-	// Rebuild segment
-	rebuildResp2, err := client.Post("/api/segments.rebuild", map[string]interface{}{
-		"workspace_id": workspaceID,
-		"segment_id":   segmentID,
-	})
-	require.NoError(t, err)
-	defer rebuildResp2.Body.Close()
+		// Rebuild segment
+		rebuildResp2, err := client.Post("/api/segments.rebuild", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"segment_id":   segmentID,
+		})
+		require.NoError(t, err)
+		defer rebuildResp2.Body.Close()
 
-	// Execute tasks again
-	execResp2, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
-	require.NoError(t, err)
-	execResp2.Body.Close()
+		// Execute tasks again
+		execResp2, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
+		require.NoError(t, err)
+		execResp2.Body.Close()
 
-	// Wait for segment to be built
-	status2, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segmentID, 10*time.Second)
-	if err != nil {
-		t.Fatalf("Segment rebuild failed: %v", err)
-	}
-	assert.Contains(t, []string{"built", "active"}, status2, "Segment should be built or active")
+		// Wait for segment to be built
+		status2, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segmentID, 10*time.Second)
+		if err != nil {
+			t.Fatalf("Segment rebuild failed: %v", err)
+		}
+		assert.Contains(t, []string{"built", "active"}, status2, "Segment should be built or active")
 
 		// Verify updated count
 		getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
@@ -909,27 +909,27 @@ func testSegmentWithRelativeDates(t *testing.T, client *testutil.APIClient, fact
 			assert.True(t, recomputeTime.After(time.Now()), "recompute_after should be in the future")
 		}
 
-	// Build the segment
-	rebuildResp, err := client.Post("/api/segments.rebuild", map[string]interface{}{
-		"workspace_id": workspaceID,
-		"segment_id":   segmentID,
-	})
-	require.NoError(t, err)
-	defer rebuildResp.Body.Close()
+		// Build the segment
+		rebuildResp, err := client.Post("/api/segments.rebuild", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"segment_id":   segmentID,
+		})
+		require.NoError(t, err)
+		defer rebuildResp.Body.Close()
 
-	// Execute tasks to start the build
-	execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
-	require.NoError(t, err)
-	execResp.Body.Close()
+		// Execute tasks to start the build
+		execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
+		require.NoError(t, err)
+		execResp.Body.Close()
 
-	// Wait for segment to be built
-	status, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segmentID, 10*time.Second)
-	if err != nil {
-		t.Fatalf("Segment build failed: %v", err)
-	}
-	assert.Contains(t, []string{"built", "active"}, status, "Segment should be built or active")
+		// Wait for segment to be built
+		status, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segmentID, 10*time.Second)
+		if err != nil {
+			t.Fatalf("Segment build failed: %v", err)
+		}
+		assert.Contains(t, []string{"built", "active"}, status, "Segment should be built or active")
 
-	// Verify segment is built and recompute_after is still set
+		// Verify segment is built and recompute_after is still set
 		getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
 		require.NoError(t, err)
 		defer getResp.Body.Close()
@@ -1102,35 +1102,35 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 		err = json.NewDecoder(createResp.Body).Decode(&createResult)
 		require.NoError(t, err)
 
-	segmentData := createResult["segment"].(map[string]interface{})
-	segment1ID := segmentData["id"].(string)
+		segmentData := createResult["segment"].(map[string]interface{})
+		segment1ID := segmentData["id"].(string)
 
-	// BUILD THE SEGMENT FIRST - segments must be 'active' to be eligible for recompute
-	// The GetSegmentsDueForRecompute query filters by status = 'active'
-	rebuildResp, err := client.Post("/api/segments.rebuild", map[string]interface{}{
-		"workspace_id": workspaceID,
-		"segment_id":   segment1ID,
-	})
-	require.NoError(t, err)
-	rebuildResp.Body.Close()
+		// BUILD THE SEGMENT FIRST - segments must be 'active' to be eligible for recompute
+		// The GetSegmentsDueForRecompute query filters by status = 'active'
+		rebuildResp, err := client.Post("/api/segments.rebuild", map[string]interface{}{
+			"workspace_id": workspaceID,
+			"segment_id":   segment1ID,
+		})
+		require.NoError(t, err)
+		rebuildResp.Body.Close()
 
-	// Execute tasks to build the segment
-	execBuildResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
-	require.NoError(t, err)
-	execBuildResp.Body.Close()
+		// Execute tasks to build the segment
+		execBuildResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
+		require.NoError(t, err)
+		execBuildResp.Body.Close()
 
-	// Wait for segment to become active
-	segmentStatus, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segment1ID, 10*time.Second)
-	require.NoError(t, err)
-	require.Contains(t, []string{"built", "active"}, segmentStatus, "Segment must be active before recompute check")
+		// Wait for segment to become active
+		segmentStatus, err := testutil.WaitForSegmentBuilt(t, client, workspaceID, segment1ID, 10*time.Second)
+		require.NoError(t, err)
+		require.Contains(t, []string{"built", "active"}, segmentStatus, "Segment must be active before recompute check")
 
-	// NOW set recompute_after to the past - segment is active and eligible
-	pastTime := time.Now().Add(-1 * time.Hour)
-	err = factory.SetSegmentRecomputeAfter(workspaceID, segment1ID, pastTime)
-	require.NoError(t, err)
+		// NOW set recompute_after to the past - segment is active and eligible
+		pastTime := time.Now().Add(-1 * time.Hour)
+		err = factory.SetSegmentRecomputeAfter(workspaceID, segment1ID, pastTime)
+		require.NoError(t, err)
 
-	// Wait to ensure the update is persisted and to create a clear time gap
-	time.Sleep(1 * time.Second)
+		// Wait to ensure the update is persisted and to create a clear time gap
+		time.Sleep(1 * time.Second)
 
 		// Find the check_segment_recompute task for this workspace
 		listResp, err := client.ListTasks(map[string]string{
@@ -1158,44 +1158,44 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 		recomputeTask := tasks[0].(map[string]interface{})
 		recomputeTaskID := recomputeTask["id"].(string)
 
-	// Get the current time to track tasks created after the recompute task runs
-	timeBeforeExecution := time.Now()
+		// Get the current time to track tasks created after the recompute task runs
+		timeBeforeExecution := time.Now()
 
-	// Execute the check_segment_recompute task
-	executeResp, err := client.ExecuteTask(map[string]interface{}{
-		"workspace_id": workspaceID,
-		"id":           recomputeTaskID,
-	})
-	require.NoError(t, err)
-	defer executeResp.Body.Close()
-	assert.Equal(t, http.StatusOK, executeResp.StatusCode)
+		// Execute the check_segment_recompute task
+		executeResp, err := client.ExecuteTask(map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           recomputeTaskID,
+		})
+		require.NoError(t, err)
+		defer executeResp.Body.Close()
+		assert.Equal(t, http.StatusOK, executeResp.StatusCode)
 
-	// Note: check_segment_recompute is a recurring task that stays "pending" by design
-	// Wait a bit for it to execute and create build tasks
-	time.Sleep(1 * time.Second)
+		// Note: check_segment_recompute is a recurring task that stays "pending" by design
+		// Wait a bit for it to execute and create build tasks
+		time.Sleep(1 * time.Second)
 
-	// Wait for build task to be created for segment1 (should be quick now that segment is active)
-	buildTaskID, err := testutil.WaitForBuildTaskCreated(t, client, workspaceID, segment1ID, timeBeforeExecution, 10*time.Second)
-	if err != nil {
-		t.Fatalf("Build task not created for segment due for recompute: %v", err)
-	}
-	t.Logf("Build task %s created for segment %s", buildTaskID, segment1ID)
+		// Wait for build task to be created for segment1 (should be quick now that segment is active)
+		buildTaskID, err := testutil.WaitForBuildTaskCreated(t, client, workspaceID, segment1ID, timeBeforeExecution, 10*time.Second)
+		if err != nil {
+			t.Fatalf("Build task not created for segment due for recompute: %v", err)
+		}
+		t.Logf("Build task %s created for segment %s", buildTaskID, segment1ID)
 
 		// Verify the check_segment_recompute task is still pending (continues recurring)
 		getTaskResp, err := client.GetTask(workspaceID, recomputeTaskID)
 		require.NoError(t, err)
 		defer getTaskResp.Body.Close()
 
-	var getTaskResult map[string]interface{}
-	err = json.NewDecoder(getTaskResp.Body).Decode(&getTaskResult)
-	require.NoError(t, err)
+		var getTaskResult map[string]interface{}
+		err = json.NewDecoder(getTaskResp.Body).Decode(&getTaskResult)
+		require.NoError(t, err)
 
-	// Verify the task is still pending (recurring tasks stay pending)
-	if task, ok := getTaskResult["task"].(map[string]interface{}); ok {
-		if status, ok := task["status"].(string); ok {
-			assert.Equal(t, "pending", status, "check_segment_recompute task should remain pending for recurring execution")
+		// Verify the task is still pending (recurring tasks stay pending)
+		if task, ok := getTaskResult["task"].(map[string]interface{}); ok {
+			if status, ok := task["status"].(string); ok {
+				assert.Equal(t, "pending", status, "check_segment_recompute task should remain pending for recurring execution")
+			}
 		}
-	}
 	})
 
 	t.Run("should NOT create build tasks for segments not yet due", func(t *testing.T) {
@@ -1282,19 +1282,19 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 			buildTasksBeforeCount = len(tasks)
 		}
 
-	// Execute the check_segment_recompute task
-	executeResp, err := client.ExecuteTask(map[string]interface{}{
-		"workspace_id": workspaceID,
-		"id":           recomputeTaskID,
-	})
-	require.NoError(t, err)
-	defer executeResp.Body.Close()
+		// Execute the check_segment_recompute task
+		executeResp, err := client.ExecuteTask(map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           recomputeTaskID,
+		})
+		require.NoError(t, err)
+		defer executeResp.Body.Close()
 
-	// Note: check_segment_recompute is a recurring task that stays "pending" by design
-	// Wait a bit for it to execute
-	time.Sleep(1 * time.Second)
+		// Note: check_segment_recompute is a recurring task that stays "pending" by design
+		// Wait a bit for it to execute
+		time.Sleep(1 * time.Second)
 
-	// Count build tasks after - should NOT have created any for the future segment
+		// Count build tasks after - should NOT have created any for the future segment
 		buildTasksAfterResp, err := client.ListTasks(map[string]string{
 			"workspace_id": workspaceID,
 			"type":         "build_segment",
@@ -1392,22 +1392,22 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 		recomputeTaskID := recomputeTask["id"].(string)
 
 		// Count build tasks created by recompute task before execution
-	// Get current timestamp to track new tasks
-	timeBeforeExecution := time.Now()
+		// Get current timestamp to track new tasks
+		timeBeforeExecution := time.Now()
 
-	// Execute the check_segment_recompute task
-	executeResp, err := client.ExecuteTask(map[string]interface{}{
-		"workspace_id": workspaceID,
-		"id":           recomputeTaskID,
-	})
-	require.NoError(t, err)
-	defer executeResp.Body.Close()
+		// Execute the check_segment_recompute task
+		executeResp, err := client.ExecuteTask(map[string]interface{}{
+			"workspace_id": workspaceID,
+			"id":           recomputeTaskID,
+		})
+		require.NoError(t, err)
+		defer executeResp.Body.Close()
 
-	// Note: check_segment_recompute is a recurring task that stays "pending" by design
-	// Wait a bit for it to execute
-	time.Sleep(1 * time.Second)
+		// Note: check_segment_recompute is a recurring task that stays "pending" by design
+		// Wait a bit for it to execute
+		time.Sleep(1 * time.Second)
 
-	// Verify no NEW build task was created for the deleted segment after recompute ran
+		// Verify no NEW build task was created for the deleted segment after recompute ran
 		buildTasksAfterResp, err := client.ListTasks(map[string]string{
 			"workspace_id": workspaceID,
 			"type":         "build_segment",

@@ -9,22 +9,22 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/Notifuse/notifuse/pkg/tracing"
 	"github.com/google/uuid"
 	"go.opencensus.io/trace"
 )
 
 type UserService struct {
-	repo              domain.UserRepository
-	authService       domain.AuthService
-	emailSender       EmailSender
-	sessionExpiry     time.Duration
-	logger            logger.Logger
-	isProduction      bool
-	tracer            tracing.Tracer
-	signInLimiter     *RateLimiter
-	verifyCodeLimiter *RateLimiter
-	secretKey         string
+	repo          domain.UserRepository
+	authService   domain.AuthService
+	emailSender   EmailSender
+	sessionExpiry time.Duration
+	logger        logger.Logger
+	isProduction  bool
+	tracer        tracing.Tracer
+	rateLimiter   *ratelimiter.RateLimiter // Global rate limiter with namespace support
+	secretKey     string
 }
 
 type EmailSender interface {
@@ -32,16 +32,15 @@ type EmailSender interface {
 }
 
 type UserServiceConfig struct {
-	Repository        domain.UserRepository
-	AuthService       domain.AuthService
-	EmailSender       EmailSender
-	SessionExpiry     time.Duration
-	Logger            logger.Logger
-	IsProduction      bool
-	Tracer            tracing.Tracer
-	SignInLimiter     *RateLimiter
-	VerifyCodeLimiter *RateLimiter
-	SecretKey         string
+	Repository    domain.UserRepository
+	AuthService   domain.AuthService
+	EmailSender   EmailSender
+	SessionExpiry time.Duration
+	Logger        logger.Logger
+	IsProduction  bool
+	Tracer        tracing.Tracer
+	RateLimiter   *ratelimiter.RateLimiter // Global rate limiter
+	SecretKey     string
 }
 
 func NewUserService(cfg UserServiceConfig) (*UserService, error) {
@@ -52,16 +51,15 @@ func NewUserService(cfg UserServiceConfig) (*UserService, error) {
 	}
 
 	return &UserService{
-		repo:              cfg.Repository,
-		authService:       cfg.AuthService,
-		emailSender:       cfg.EmailSender,
-		sessionExpiry:     cfg.SessionExpiry,
-		logger:            cfg.Logger,
-		isProduction:      cfg.IsProduction,
-		tracer:            tracer,
-		signInLimiter:     cfg.SignInLimiter,
-		verifyCodeLimiter: cfg.VerifyCodeLimiter,
-		secretKey:         cfg.SecretKey,
+		repo:          cfg.Repository,
+		authService:   cfg.AuthService,
+		emailSender:   cfg.EmailSender,
+		sessionExpiry: cfg.SessionExpiry,
+		logger:        cfg.Logger,
+		isProduction:  cfg.IsProduction,
+		tracer:        tracer,
+		rateLimiter:   cfg.RateLimiter, // Global rate limiter
+		secretKey:     cfg.SecretKey,
 	}, nil
 }
 
@@ -75,7 +73,7 @@ func (s *UserService) SignIn(ctx context.Context, input domain.SignInInput) (str
 	s.tracer.AddAttribute(ctx, "user.email", input.Email)
 
 	// Check rate limit to prevent email bombing and session creation spam
-	if s.signInLimiter != nil && !s.signInLimiter.Allow(input.Email) {
+	if s.rateLimiter != nil && !s.rateLimiter.Allow("signin", input.Email) {
 		s.logger.WithField("email", input.Email).Warn("Sign-in rate limit exceeded")
 		s.tracer.AddAttribute(ctx, "error", "rate_limit_exceeded")
 		s.tracer.MarkSpanError(ctx, fmt.Errorf("rate limit exceeded"))
@@ -152,7 +150,7 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 	s.tracer.AddAttribute(ctx, "user.email", input.Email)
 
 	// Check rate limit to prevent brute force attacks on magic codes
-	if s.verifyCodeLimiter != nil && !s.verifyCodeLimiter.Allow(input.Email) {
+	if s.rateLimiter != nil && !s.rateLimiter.Allow("verify", input.Email) {
 		s.logger.WithField("email", input.Email).Warn("Verify code rate limit exceeded")
 		s.tracer.AddAttribute(ctx, "error", "rate_limit_exceeded")
 		s.tracer.MarkSpanError(ctx, fmt.Errorf("rate limit exceeded"))
@@ -226,8 +224,8 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 	s.tracer.AddAttribute(ctx, "token.expires_at", matchingSession.ExpiresAt.String())
 
 	// Reset rate limiter on successful verification
-	if s.verifyCodeLimiter != nil {
-		s.verifyCodeLimiter.Reset(input.Email)
+	if s.rateLimiter != nil {
+		s.rateLimiter.Reset("verify", input.Email)
 	}
 
 	return &domain.AuthResponse{
@@ -334,7 +332,15 @@ func (s *UserService) GetUserByEmail(ctx context.Context, email string) (*domain
 
 	user, err := s.repo.GetUserByEmail(ctx, email)
 	if err != nil {
-		s.logger.WithField("email", email).WithField("error", err.Error()).Error("Failed to get user by email")
+		// Check if it's an expected "not found" error vs unexpected error
+		if _, ok := err.(*domain.ErrUserNotFound); ok {
+			// User not found is expected in some contexts (e.g., invitation acceptance)
+			// Log at Info level instead of Error
+			s.logger.WithField("email", email).Info("User not found by email")
+		} else {
+			// Real errors (DB connection, etc.) should be logged as Error
+			s.logger.WithField("email", email).WithField("error", err.Error()).Error("Failed to get user by email")
+		}
 		span.SetStatus(trace.Status{
 			Code:    trace.StatusCodeNotFound,
 			Message: err.Error(),

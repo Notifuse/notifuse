@@ -34,13 +34,13 @@ COPY notification_center/ ./
 # Build notification center in production mode
 RUN npm run build
 
-# Stage 3: Build the Go binary
+# Stage 3: Build the Go binary (pure Go, no CGO needed)
 FROM golang:1.25-alpine AS backend-builder
 
 # Set working directory
 WORKDIR /build
 
-# Install git
+# Install build dependencies
 RUN apk add --no-cache git
 
 # Copy go.mod and go.sum files
@@ -55,15 +55,19 @@ COPY config/ config/
 COPY internal/ internal/
 COPY pkg/ pkg/
 
-# Build the application
-# CGO_ENABLED=0: Pure Go static binary for maximum portability
-RUN CGO_ENABLED=0 GOOS=linux go build -o /tmp/server ./cmd/api
+# Build the application with CGO disabled (pure Go)
+ENV CGO_ENABLED=0
+ENV GOOS=linux
+RUN go build -ldflags="-s -w" -o /tmp/server ./cmd/api
 
-# Stage 4: Create the runtime container
-FROM alpine:latest
+# Stage 4: Create the runtime container (Alpine for smaller image)
+FROM alpine:3.19
 
 # Add necessary runtime packages
-RUN apk add --no-cache ca-certificates tzdata postgresql-client
+RUN apk add --no-cache \
+    ca-certificates \
+    tzdata \
+    postgresql-client
 
 # Create application directory structure
 WORKDIR /app

@@ -62,29 +62,29 @@ func TestProcessWebhook_Success(t *testing.T) {
 			},
 		}
 
-	// Setup mocks to handle expectations
-	messageID := "message1"
-	mockEvent := &domain.WebhookEvent{
-		Type:           domain.EmailEventBounce,
-		Source:         domain.WebhookSourceSES,
-		IntegrationID:  integrationID,
-		RecipientEmail: "test@example.com",
-		MessageID:      &messageID,
-	}
+		// Setup mocks to handle expectations
+		messageID := "message1"
+		mockEvent := &domain.WebhookEvent{
+			Type:           domain.EmailEventBounce,
+			Source:         domain.WebhookSourceSES,
+			IntegrationID:  integrationID,
+			RecipientEmail: "test@example.com",
+			MessageID:      &messageID,
+		}
 
-	// Setup expectations to match what the service will actually store
-	workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
-	repo.EXPECT().StoreEvents(gomock.Any(), workspace.ID, gomock.Any()).DoAndReturn(
-		func(_ context.Context, workspaceID string, events []*domain.WebhookEvent) error {
-			assert.Equal(t, workspace.ID, workspaceID)
-			assert.Equal(t, mockEvent.Type, events[0].Type)
-			assert.Equal(t, mockEvent.Source, events[0].Source)
-			assert.Equal(t, mockEvent.IntegrationID, events[0].IntegrationID)
-			assert.Equal(t, mockEvent.RecipientEmail, events[0].RecipientEmail)
-			assert.NotNil(t, events[0].MessageID)
-			assert.Equal(t, *mockEvent.MessageID, *events[0].MessageID)
-			return nil
-		})
+		// Setup expectations to match what the service will actually store
+		workspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
+		repo.EXPECT().StoreEvents(gomock.Any(), workspace.ID, gomock.Any()).DoAndReturn(
+			func(_ context.Context, workspaceID string, events []*domain.WebhookEvent) error {
+				assert.Equal(t, workspace.ID, workspaceID)
+				assert.Equal(t, mockEvent.Type, events[0].Type)
+				assert.Equal(t, mockEvent.Source, events[0].Source)
+				assert.Equal(t, mockEvent.IntegrationID, events[0].IntegrationID)
+				assert.Equal(t, mockEvent.RecipientEmail, events[0].RecipientEmail)
+				assert.NotNil(t, events[0].MessageID)
+				assert.Equal(t, *mockEvent.MessageID, *events[0].MessageID)
+				return nil
+			})
 
 		// Expect message history to be updated with the bounce status - using batch method
 		messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
@@ -367,18 +367,18 @@ func TestProcessSESWebhook(t *testing.T) {
 		// Call method
 		events, err := service.processSESWebhook(integrationID, rawPayload)
 
-	// Assert
-	assert.NoError(t, err)
-	assert.NotNil(t, events)
-	assert.Equal(t, domain.EmailEventBounce, events[0].Type)
-	assert.Equal(t, domain.WebhookSourceSES, events[0].Source)
-	assert.Equal(t, integrationID, events[0].IntegrationID)
-	assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-	assert.NotNil(t, events[0].MessageID)
-	assert.Equal(t, "message1", *events[0].MessageID)
-	assert.Equal(t, "Permanent", events[0].BounceType)
-	assert.Equal(t, "General", events[0].BounceCategory)
-	assert.Equal(t, "554", events[0].BounceDiagnostic)
+		// Assert
+		assert.NoError(t, err)
+		assert.NotNil(t, events)
+		assert.Equal(t, domain.EmailEventBounce, events[0].Type)
+		assert.Equal(t, domain.WebhookSourceSES, events[0].Source)
+		assert.Equal(t, integrationID, events[0].IntegrationID)
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "message1", *events[0].MessageID)
+		assert.Equal(t, "Permanent", events[0].BounceType)
+		assert.Equal(t, "General", events[0].BounceCategory)
+		assert.Equal(t, "554", events[0].BounceDiagnostic)
 	})
 
 	t.Run("Complaint Event", func(t *testing.T) {
@@ -423,10 +423,10 @@ func TestProcessSESWebhook(t *testing.T) {
 		assert.Equal(t, domain.EmailEventDelivered, events[0].Type)
 		assert.Equal(t, domain.WebhookSourceSES, events[0].Source)
 		assert.Equal(t, integrationID, events[0].IntegrationID)
-	assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-	assert.NotNil(t, events[0].MessageID)
-	assert.Equal(t, "message1", *events[0].MessageID)
-})
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "message1", *events[0].MessageID)
+	})
 
 	t.Run("Subscription Confirmation", func(t *testing.T) {
 		// Create test subscription confirmation payload
@@ -646,10 +646,10 @@ func TestProcessPostmarkWebhook(t *testing.T) {
 		assert.Equal(t, domain.EmailEventDelivered, events[0].Type)
 		assert.Equal(t, domain.WebhookSourcePostmark, events[0].Source)
 		assert.Equal(t, integrationID, events[0].IntegrationID)
-	assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-	assert.NotNil(t, events[0].MessageID)
-	assert.Equal(t, "message1", *events[0].MessageID)
-})
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "message1", *events[0].MessageID)
+	})
 
 	t.Run("Bounce Event", func(t *testing.T) {
 		// Create test bounce payload using a map to ensure correct JSON structure
@@ -673,10 +673,10 @@ func TestProcessPostmarkWebhook(t *testing.T) {
 		assert.Equal(t, domain.EmailEventBounce, events[0].Type)
 		assert.Equal(t, domain.WebhookSourcePostmark, events[0].Source)
 		assert.Equal(t, integrationID, events[0].IntegrationID)
-	assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-	assert.NotNil(t, events[0].MessageID)
-	assert.Equal(t, "message1", *events[0].MessageID)
-	assert.Equal(t, "HardBounce", events[0].BounceType)
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "message1", *events[0].MessageID)
+		assert.Equal(t, "HardBounce", events[0].BounceType)
 		assert.Equal(t, "HardBounce", events[0].BounceCategory)
 		assert.Equal(t, "550 Address rejected", events[0].BounceDiagnostic)
 	})
@@ -701,10 +701,10 @@ func TestProcessPostmarkWebhook(t *testing.T) {
 		assert.Equal(t, domain.EmailEventComplaint, events[0].Type)
 		assert.Equal(t, domain.WebhookSourcePostmark, events[0].Source)
 		assert.Equal(t, integrationID, events[0].IntegrationID)
-	assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-	assert.NotNil(t, events[0].MessageID)
-	assert.Equal(t, "message1", *events[0].MessageID)
-	assert.Equal(t, "SpamComplaint", events[0].ComplaintFeedbackType)
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "message1", *events[0].MessageID)
+		assert.Equal(t, "SpamComplaint", events[0].ComplaintFeedbackType)
 	})
 
 	t.Run("Invalid JSON", func(t *testing.T) {
@@ -894,10 +894,10 @@ func TestProcessSparkPostWebhook(t *testing.T) {
 		assert.Equal(t, domain.EmailEventDelivered, events[0].Type)
 		assert.Equal(t, domain.WebhookSourceSparkPost, events[0].Source)
 		assert.Equal(t, integrationID, events[0].IntegrationID)
-	assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-	assert.NotNil(t, events[0].MessageID)
-	assert.Equal(t, "message1", *events[0].MessageID)
-})
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "message1", *events[0].MessageID)
+	})
 
 	t.Run("Bounce Event", func(t *testing.T) {
 		// Create test bounce payload
@@ -927,10 +927,10 @@ func TestProcessSparkPostWebhook(t *testing.T) {
 		assert.Equal(t, domain.EmailEventBounce, events[0].Type)
 		assert.Equal(t, domain.WebhookSourceSparkPost, events[0].Source)
 		assert.Equal(t, integrationID, events[0].IntegrationID)
-	assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-	assert.NotNil(t, events[0].MessageID)
-	assert.Equal(t, "message1", *events[0].MessageID)
-	assert.Equal(t, "Bounce", events[0].BounceType)
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "message1", *events[0].MessageID)
+		assert.Equal(t, "Bounce", events[0].BounceType)
 		assert.Equal(t, "21", events[0].BounceCategory)
 		assert.Equal(t, "550 5.1.1 The email account does not exist", events[0].BounceDiagnostic)
 	})
@@ -1192,10 +1192,10 @@ func TestProcessMailgunWebhook(t *testing.T) {
 		assert.Equal(t, domain.EmailEventDelivered, events[0].Type)
 		assert.Equal(t, domain.WebhookSourceMailgun, events[0].Source)
 		assert.Equal(t, integrationID, events[0].IntegrationID)
-	assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-	assert.NotNil(t, events[0].MessageID)
-	assert.Equal(t, "message1", *events[0].MessageID)
-})
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "message1", *events[0].MessageID)
+	})
 
 	t.Run("Bounce Event", func(t *testing.T) {
 		// Create test bounce payload
@@ -1225,10 +1225,10 @@ func TestProcessMailgunWebhook(t *testing.T) {
 		assert.Equal(t, domain.EmailEventBounce, events[0].Type)
 		assert.Equal(t, domain.WebhookSourceMailgun, events[0].Source)
 		assert.Equal(t, integrationID, events[0].IntegrationID)
-	assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-	assert.NotNil(t, events[0].MessageID)
-	assert.Equal(t, "message1", *events[0].MessageID)
-	assert.Equal(t, "Failed", events[0].BounceType)
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "message1", *events[0].MessageID)
+		assert.Equal(t, "Failed", events[0].BounceType)
 		assert.Equal(t, "HardBounce", events[0].BounceCategory)
 		assert.Equal(t, "550 5.1.1 The email account does not exist", events[0].BounceDiagnostic)
 	})
@@ -1751,10 +1751,10 @@ func TestProcessSMTPWebhook(t *testing.T) {
 		assert.Equal(t, domain.EmailEventDelivered, events[0].Type)
 		assert.Equal(t, domain.WebhookSourceSMTP, events[0].Source)
 		assert.Equal(t, integrationID, events[0].IntegrationID)
-	assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-	assert.NotNil(t, events[0].MessageID)
-	assert.Equal(t, "message1", *events[0].MessageID)
-})
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "message1", *events[0].MessageID)
+	})
 
 	t.Run("Bounce Event", func(t *testing.T) {
 		// Create test bounce payload
@@ -1778,10 +1778,10 @@ func TestProcessSMTPWebhook(t *testing.T) {
 		assert.Equal(t, domain.EmailEventBounce, events[0].Type)
 		assert.Equal(t, domain.WebhookSourceSMTP, events[0].Source)
 		assert.Equal(t, integrationID, events[0].IntegrationID)
-	assert.Equal(t, "test@example.com", events[0].RecipientEmail)
-	assert.NotNil(t, events[0].MessageID)
-	assert.Equal(t, "message1", *events[0].MessageID)
-	assert.Equal(t, "Bounce", events[0].BounceType)
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "message1", *events[0].MessageID)
+		assert.Equal(t, "Bounce", events[0].BounceType)
 		assert.Equal(t, "Permanent", events[0].BounceCategory)
 		assert.Equal(t, "550 5.1.1 User unknown", events[0].BounceDiagnostic)
 	})
@@ -2445,30 +2445,30 @@ func TestListEvents(t *testing.T) {
 		msg2 := "message2"
 		expectedEvents := []*domain.WebhookEvent{
 			{
-				ID:                "event1",
-				Type:              domain.EmailEventBounce,
-				Source:         domain.WebhookSourceSES,
-				IntegrationID:     "integration1",
-				RecipientEmail:    "test@example.com",
-				MessageID:         &msg1,
-				Timestamp:         now,
-				BounceType:        "Permanent",
-				BounceCategory:    "General",
-				BounceDiagnostic:  "550 User unknown",
-				CreatedAt:         now,
+				ID:               "event1",
+				Type:             domain.EmailEventBounce,
+				Source:           domain.WebhookSourceSES,
+				IntegrationID:    "integration1",
+				RecipientEmail:   "test@example.com",
+				MessageID:        &msg1,
+				Timestamp:        now,
+				BounceType:       "Permanent",
+				BounceCategory:   "General",
+				BounceDiagnostic: "550 User unknown",
+				CreatedAt:        now,
 			},
 			{
-				ID:                "event2",
-				Type:              domain.EmailEventBounce,
-				Source:         domain.WebhookSourceMailjet,
-				IntegrationID:     "integration2",
-				RecipientEmail:    "test@example.com",
-				MessageID:         &msg2,
-				Timestamp:         now,
-				BounceType:        "HardBounce",
-				BounceCategory:    "Permanent",
-				BounceDiagnostic:  "550 User unknown",
-				CreatedAt:         now,
+				ID:               "event2",
+				Type:             domain.EmailEventBounce,
+				Source:           domain.WebhookSourceMailjet,
+				IntegrationID:    "integration2",
+				RecipientEmail:   "test@example.com",
+				MessageID:        &msg2,
+				Timestamp:        now,
+				BounceType:       "HardBounce",
+				BounceCategory:   "Permanent",
+				BounceDiagnostic: "550 User unknown",
+				CreatedAt:        now,
 			},
 		}
 

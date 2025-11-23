@@ -197,7 +197,7 @@ func TestGetWorkspaceMetrics_PartialFailures(t *testing.T) {
 	assert.Equal(t, 0, metrics.MessagesCount) // Failed query, should be 0
 	assert.Equal(t, 10, metrics.ListsCount)
 	assert.Equal(t, 0, metrics.SegmentsCount) // Failed query, should be 0
-	assert.Equal(t, 0, metrics.UsersCount) // Failed query, should be 0
+	assert.Equal(t, 0, metrics.UsersCount)    // Failed query, should be 0
 }
 
 func TestCountContacts_Success(t *testing.T) {

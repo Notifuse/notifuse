@@ -156,7 +156,7 @@ func (s *SystemNotificationService) notifyWorkspaceOwners(ctx context.Context, w
 	for _, user := range workspaceUsers {
 		if user.Role == "owner" && user.Email != "" {
 			ownerCount++
-			
+
 			// Send notification using the provided function
 			if s.mailer != nil {
 				emailErr := notificationFunc(user.Email)
@@ -194,12 +194,12 @@ func (s *SystemNotificationService) notifyWorkspaceOwners(ctx context.Context, w
 func (s *SystemNotificationService) RegisterWithEventBus(eventBus domain.EventBus) {
 	// Register for circuit breaker events
 	eventBus.Subscribe(domain.EventBroadcastCircuitBreaker, s.HandleCircuitBreakerEvent)
-	
+
 	// Register for broadcast failure events (for future use)
 	eventBus.Subscribe(domain.EventBroadcastFailed, s.HandleBroadcastFailedEvent)
-	
+
 	// Future: Add more event subscriptions as needed
 	// eventBus.Subscribe(domain.EventSystemAlert, s.HandleSystemAlert)
-	
+
 	s.logger.Info("System notification service registered with event bus")
 }

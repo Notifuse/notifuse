@@ -10,16 +10,16 @@ func TestConvertJSONToMJMLWithData_Success(t *testing.T) {
 	textBase := NewBaseBlock("text1", MJMLComponentMjText)
 	textBase.Content = stringPtr("Hello {{name}}")
 	text := &MJTextBlock{BaseBlock: textBase}
-	
+
 	column := &MJColumnBlock{BaseBlock: NewBaseBlock("col1", MJMLComponentMjColumn)}
 	column.Children = []EmailBlock{text}
-	
+
 	section := &MJSectionBlock{BaseBlock: NewBaseBlock("sec1", MJMLComponentMjSection)}
 	section.Children = []EmailBlock{column}
-	
+
 	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body1", MJMLComponentMjBody)}
 	body.Children = []EmailBlock{section}
-	
+
 	root := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
 	root.Children = []EmailBlock{body}
 
@@ -36,10 +36,10 @@ func TestConvertJSONToMJMLWithData_InvalidTemplateJSON(t *testing.T) {
 	textBase := NewBaseBlock("t1", MJMLComponentMjText)
 	textBase.Content = stringPtr("Hi {{name}}")
 	text := &MJTextBlock{BaseBlock: textBase}
-	
+
 	body := &MJBodyBlock{BaseBlock: NewBaseBlock("b1", MJMLComponentMjBody)}
 	body.Children = []EmailBlock{text}
-	
+
 	root := &MJMLBlock{BaseBlock: NewBaseBlock("r1", MJMLComponentMjml)}
 	root.Children = []EmailBlock{body}
 
@@ -54,10 +54,10 @@ func TestConvertBlockToMJMLWithError_LiquidFailure(t *testing.T) {
 	textBase := NewBaseBlock("bad", MJMLComponentMjText)
 	textBase.Content = stringPtr("{% if user %}Hello")
 	text := &MJTextBlock{BaseBlock: textBase}
-	
+
 	body := &MJBodyBlock{BaseBlock: NewBaseBlock("b", MJMLComponentMjBody)}
 	body.Children = []EmailBlock{text}
-	
+
 	root := &MJMLBlock{BaseBlock: NewBaseBlock("r", MJMLComponentMjml)}
 	root.Children = []EmailBlock{body}
 
@@ -94,7 +94,7 @@ func TestConvertToMJMLString_ValidAndErrors(t *testing.T) {
 	// minimal valid tree
 	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
 	body.Children = []EmailBlock{}
-	
+
 	root := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
 	root.Children = []EmailBlock{body}
 	out, err := ConvertToMJMLString(root)
@@ -116,7 +116,7 @@ func TestConvertToMJMLWithOptions(t *testing.T) {
 	// success with XML header
 	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body", MJMLComponentMjBody)}
 	body.Children = []EmailBlock{}
-	
+
 	root := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
 	root.Children = []EmailBlock{body}
 	out, err := ConvertToMJMLWithOptions(root, MJMLConvertOptions{Validate: true, IncludeXMLTag: true})
@@ -179,28 +179,28 @@ func TestCamelToKebab(t *testing.T) {
 
 func TestGetBlockContent_AllTypes(t *testing.T) {
 	s := "content"
-	
+
 	textBase := NewBaseBlock("t", MJMLComponentMjText)
 	textBase.Content = &s
-	
+
 	buttonBase := NewBaseBlock("b", MJMLComponentMjButton)
 	buttonBase.Content = &s
-	
+
 	rawBase := NewBaseBlock("r", MJMLComponentMjRaw)
 	rawBase.Content = &s
-	
+
 	previewBase := NewBaseBlock("p", MJMLComponentMjPreview)
 	previewBase.Content = &s
-	
+
 	styleBase := NewBaseBlock("st", MJMLComponentMjStyle)
 	styleBase.Content = &s
-	
+
 	titleBase := NewBaseBlock("ti", MJMLComponentMjTitle)
 	titleBase.Content = &s
-	
+
 	socialElemBase := NewBaseBlock("se", MJMLComponentMjSocialElement)
 	socialElemBase.Content = &s
-	
+
 	cases := []EmailBlock{
 		&MJTextBlock{BaseBlock: textBase},
 		&MJButtonBlock{BaseBlock: buttonBase},
@@ -317,10 +317,10 @@ func TestTemplateDataParsingErrorHandling(t *testing.T) {
 	textBase := NewBaseBlock("text1", MJMLComponentMjText)
 	textBase.Content = stringPtr("Hello {{ name }}")
 	text := &MJTextBlock{BaseBlock: textBase}
-	
+
 	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body1", MJMLComponentMjBody)}
 	body.Children = []EmailBlock{text}
-	
+
 	root := &MJMLBlock{BaseBlock: NewBaseBlock("root", MJMLComponentMjml)}
 	root.Children = []EmailBlock{body}
 

@@ -10,7 +10,28 @@ export interface TemplateBlock {
   updated: string
 }
 
-// Workspace types
+// SEO Settings type (matches blog.go's SEOSettings)
+export interface SEOSettings {
+  meta_title?: string
+  meta_description?: string
+  og_title?: string
+  og_description?: string
+  og_image?: string
+  canonical_url?: string
+  keywords?: string[]
+}
+
+// Blog Settings type (styling + SEO for blog)
+export interface BlogSettings {
+  title?: string
+  logo_url?: string
+  icon_url?: string
+  styling?: any // EditorStyleConfig - stored as JSON
+  seo?: SEOSettings
+  home_page_size?: number
+  category_page_size?: number
+}
+
 export interface WorkspaceSettings {
   website_url?: string
   logo_url?: string | null
@@ -23,6 +44,8 @@ export interface WorkspaceSettings {
   template_blocks?: TemplateBlock[]
   custom_endpoint_url?: string
   custom_field_labels?: Record<string, string>
+  blog_enabled?: boolean
+  blog_settings?: BlogSettings
 }
 
 export interface FileManagerSettings {
@@ -273,6 +296,7 @@ export interface UserPermissions {
   transactional: ResourcePermissions
   workspace: ResourcePermissions
   message_history: ResourcePermissions
+  blog: ResourcePermissions
 }
 
 // Set User Permissions types

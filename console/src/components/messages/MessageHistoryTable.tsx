@@ -124,7 +124,7 @@ export function MessageHistoryTable({
     { key: 'contact_email', title: 'Contact Email' },
     { key: 'template_id', title: 'Template' },
     { key: 'broadcast_id', title: 'Broadcast' },
-    { key: 'list_ids', title: 'List IDs' },
+    { key: 'list_id', title: 'List' },
     { key: 'events', title: 'Events' },
     { key: 'error', title: 'Error' },
     { key: 'created_at', title: 'Created At' }
@@ -195,20 +195,19 @@ export function MessageHistoryTable({
           )
         }
 
-        // Get list names from the broadcast audience
-        const listNames =
-          broadcast.audience.lists
-            ?.map((listId) => listMap.get(listId)?.name || listId)
-            .join(', ') || ''
+        // Get list name from the broadcast audience
+        const listName = broadcast.audience.list
+          ? listMap.get(broadcast.audience.list)?.name || broadcast.audience.list
+          : ''
 
         const tooltipContent = (
           <div>
             <div>
               <strong>ID:</strong> {broadcastId}
             </div>
-            {listNames && (
+            {listName && (
               <div>
-                <strong>Lists:</strong> {listNames}
+                <strong>List:</strong> {listName}
               </div>
             )}
           </div>
@@ -222,27 +221,23 @@ export function MessageHistoryTable({
       }
     },
     {
-      title: 'List IDs',
-      key: 'list_ids',
-      hidden: visibleColumns.list_ids === false,
+      title: 'List',
+      key: 'list_id',
+      hidden: visibleColumns.list_id === false,
       render: (record: MessageHistory) => {
-        if (!record.list_ids || record.list_ids.length === 0) {
+        if (!record.list_id) {
           return <span className="text-xs text-gray-400">-</span>
         }
 
-        // Get list names from listMap
-        const listTags = record.list_ids.map((listId) => {
-          const list = listMap.get(listId)
-          const listName = list?.name || listId
+        // Get list name from listMap
+        const list = listMap.get(record.list_id)
+        const listName = list?.name || record.list_id
 
-          return (
-            <Tag key={listId} bordered={false} color="blue" className="text-xs">
-              {listName}
-            </Tag>
-          )
-        })
-
-        return <div className="flex flex-wrap gap-1">{listTags}</div>
+        return (
+          <Tag bordered={false} color="blue" className="text-xs">
+            {listName}
+          </Tag>
+        )
       }
     },
     {

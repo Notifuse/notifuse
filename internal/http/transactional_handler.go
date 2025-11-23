@@ -12,10 +12,10 @@ import (
 
 // TransactionalNotificationHandler handles HTTP requests for transactional notifications
 type TransactionalNotificationHandler struct {
-	service   domain.TransactionalNotificationService
-	logger    logger.Logger
+	service      domain.TransactionalNotificationService
+	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
-	isDemo    bool
+	isDemo       bool
 }
 
 // NewTransactionalNotificationHandler creates a new instance of TransactionalNotificationHandler
@@ -26,10 +26,10 @@ func NewTransactionalNotificationHandler(
 	isDemo bool,
 ) *TransactionalNotificationHandler {
 	return &TransactionalNotificationHandler{
-		service:   service,
-		logger:    logger,
+		service:      service,
+		logger:       logger,
 		getJWTSecret: getJWTSecret,
-		isDemo:    isDemo,
+		isDemo:       isDemo,
 	}
 }
 

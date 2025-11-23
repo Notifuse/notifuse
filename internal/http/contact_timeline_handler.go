@@ -11,11 +11,11 @@ import (
 
 // ContactTimelineHandler handles HTTP requests for contact timeline
 type ContactTimelineHandler struct {
-	service     domain.ContactTimelineService
-	authService domain.AuthService
-	logger      logger.Logger
+	service      domain.ContactTimelineService
+	authService  domain.AuthService
+	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
-	tracer      tracing.Tracer
+	tracer       tracing.Tracer
 }
 
 // NewContactTimelineHandler creates a new contact timeline handler
@@ -26,11 +26,11 @@ func NewContactTimelineHandler(
 	logger logger.Logger,
 ) *ContactTimelineHandler {
 	return &ContactTimelineHandler{
-		service:     service,
-		authService: authService,
-		logger:      logger,
+		service:      service,
+		authService:  authService,
+		logger:       logger,
 		getJWTSecret: getJWTSecret,
-		tracer:      tracing.GetTracer(),
+		tracer:       tracing.GetTracer(),
 	}
 }
 
@@ -43,11 +43,11 @@ func NewContactTimelineHandlerWithTracer(
 	tracer tracing.Tracer,
 ) *ContactTimelineHandler {
 	return &ContactTimelineHandler{
-		service:     service,
-		authService: authService,
-		logger:      logger,
+		service:      service,
+		authService:  authService,
+		logger:       logger,
 		getJWTSecret: getJWTSecret,
-		tracer:      tracer,
+		tracer:       tracer,
 	}
 }
 

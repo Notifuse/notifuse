@@ -13,15 +13,15 @@ import (
 )
 
 type TemplateHandler struct {
-	service   domain.TemplateService
-	logger    logger.Logger
+	service      domain.TemplateService
+	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
 }
 
 func NewTemplateHandler(service domain.TemplateService, getJWTSecret func() ([]byte, error), logger logger.Logger) *TemplateHandler {
 	return &TemplateHandler{
-		service:   service,
-		logger:    logger,
+		service:      service,
+		logger:       logger,
 		getJWTSecret: getJWTSecret,
 	}
 }
@@ -52,7 +52,7 @@ func (h *TemplateHandler) handleList(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	templates, err := h.service.GetTemplates(r.Context(), req.WorkspaceID, req.Category)
+	templates, err := h.service.GetTemplates(r.Context(), req.WorkspaceID, req.Category, req.Channel)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get templates")
 		WriteJSONError(w, "Failed to get templates", http.StatusInternalServerError)

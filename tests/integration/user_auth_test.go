@@ -247,11 +247,11 @@ func TestUserVerifyCodeFlow(t *testing.T) {
 
 		// Create session with expired magic code using repository
 		expiredTime := time.Now().UTC().Add(-1 * time.Hour) // 1 hour ago
-		
+
 		// Get secret key from app config to hash the magic code
 		secretKey := app.GetConfig().Security.SecretKey
 		hashedCode := crypto.HashMagicCode("123456", secretKey)
-		
+
 		session := &domain.Session{
 			ID:               "550e8400-e29b-41d4-a716-446655440002",
 			UserID:           user.ID,

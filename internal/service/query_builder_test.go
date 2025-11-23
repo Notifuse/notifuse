@@ -1297,3 +1297,348 @@ func TestQueryBuilder_ContactTimeline(t *testing.T) {
 		assert.Equal(t, []interface{}{"US", "list123", "purchase", 1}, args)
 	})
 }
+
+func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
+	qb := NewQueryBuilder()
+
+	t.Run("simple JSON path - string equals", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "custom_json_1",
+							FieldType:    "json",
+							Operator:     "equals",
+							JSONPath:     []string{"name"},
+							StringValues: []string{"John"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "custom_json_1['name']::text = $1")
+		assert.Equal(t, []interface{}{"John"}, args)
+	})
+
+	t.Run("nested JSON path - multiple levels", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "custom_json_1",
+							FieldType:    "json",
+							Operator:     "equals",
+							JSONPath:     []string{"user", "profile", "country"},
+							StringValues: []string{"US"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "custom_json_1['user']['profile']['country']::text = $1")
+		assert.Equal(t, []interface{}{"US"}, args)
+	})
+
+	t.Run("array element access by index", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "custom_json_2",
+							FieldType:    "json",
+							Operator:     "equals",
+							JSONPath:     []string{"items", "0", "name"},
+							StringValues: []string{"Product A"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "custom_json_2['items'][0]['name']::text = $1")
+		assert.Equal(t, []interface{}{"Product A"}, args)
+	})
+
+	t.Run("JSON number field - greater than", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "custom_json_1",
+							FieldType:    "number",
+							Operator:     "gt",
+							JSONPath:     []string{"user", "age"},
+							NumberValues: []float64{25},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "(custom_json_1['user']['age']::text)::numeric > $1")
+		assert.Equal(t, []interface{}{25.0}, args)
+	})
+
+	t.Run("JSON time field - before date", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "custom_json_3",
+							FieldType:    "time",
+							Operator:     "lt",
+							JSONPath:     []string{"last_login"},
+							StringValues: []string{"2024-01-01T00:00:00Z"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "(custom_json_3['last_login']::text)::timestamptz < $1")
+		assert.Len(t, args, 1)
+	})
+
+	t.Run("JSON contains operator", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "custom_json_1",
+							FieldType:    "json",
+							Operator:     "contains",
+							JSONPath:     []string{"description"},
+							StringValues: []string{"premium"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "custom_json_1['description']::text ILIKE $1")
+		assert.Equal(t, []interface{}{"%premium%"}, args)
+	})
+
+	t.Run("JSON field existence check - is_set", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName: "custom_json_1",
+							FieldType: "json",
+							Operator:  "is_set",
+							JSONPath:  []string{"user"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "custom_json_1 ? $1")
+		assert.Equal(t, []interface{}{"user"}, args)
+	})
+
+	t.Run("JSON field existence check - is_not_set", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName: "custom_json_2",
+							FieldType: "json",
+							Operator:  "is_not_set",
+							JSONPath:  []string{"premium"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "NOT (custom_json_2 ? $1)")
+		assert.Equal(t, []interface{}{"premium"}, args)
+	})
+
+	t.Run("JSON key with special characters", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "custom_json_1",
+							FieldType:    "json",
+							Operator:     "equals",
+							JSONPath:     []string{"user's name"},
+							StringValues: []string{"John"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		// Should escape single quotes
+		assert.Contains(t, sql, "custom_json_1['user''s name']::text = $1")
+		assert.Equal(t, []interface{}{"John"}, args)
+	})
+
+	t.Run("JSON in_array operator", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "custom_json_1",
+							FieldType:    "json",
+							Operator:     "in_array",
+							JSONPath:     []string{"tags"},
+							StringValues: []string{"premium"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "custom_json_1['tags'] ? $1")
+		assert.Equal(t, []interface{}{"premium"}, args)
+	})
+
+	t.Run("multiple JSON filters combined with AND", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "custom_json_1",
+							FieldType:    "json",
+							Operator:     "equals",
+							JSONPath:     []string{"type"},
+							StringValues: []string{"premium"},
+						},
+						{
+							FieldName:    "custom_json_1",
+							FieldType:    "number",
+							Operator:     "gte",
+							JSONPath:     []string{"score"},
+							NumberValues: []float64{100},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "custom_json_1['type']::text = $1")
+		assert.Contains(t, sql, "(custom_json_1['score']::text)::numeric >= $2")
+		assert.Contains(t, sql, " AND ")
+		assert.Equal(t, []interface{}{"premium", 100.0}, args)
+	})
+
+	t.Run("JSON filter combined with regular field", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "country",
+							FieldType:    "string",
+							Operator:     "equals",
+							StringValues: []string{"US"},
+						},
+						{
+							FieldName:    "custom_json_1",
+							FieldType:    "json",
+							Operator:     "equals",
+							JSONPath:     []string{"subscription", "tier"},
+							StringValues: []string{"gold"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "country = $1")
+		assert.Contains(t, sql, "custom_json_1['subscription']['tier']::text = $2")
+		assert.Contains(t, sql, " AND ")
+		assert.Equal(t, []interface{}{"US", "gold"}, args)
+	})
+
+	t.Run("mixed path with objects and arrays", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Table: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "custom_json_5",
+							FieldType:    "json",
+							Operator:     "equals",
+							JSONPath:     []string{"users", "0", "profile", "tags", "1"},
+							StringValues: []string{"verified"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildSQL(tree)
+		require.NoError(t, err)
+		assert.Contains(t, sql, "custom_json_5['users'][0]['profile']['tags'][1]::text = $1")
+		assert.Equal(t, []interface{}{"verified"}, args)
+	})
+}

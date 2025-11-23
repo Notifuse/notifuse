@@ -13,13 +13,13 @@ export function DashboardPage() {
 
   const handleWorkspaceClick = (workspaceId: string) => {
     navigate({
-      to: '/workspace/$workspaceId',
+      to: '/console/workspace/$workspaceId',
       params: { workspaceId }
     })
   }
 
   const handleCreateWorkspace = () => {
-    navigate({ to: '/workspace/create' })
+    navigate({ to: '/console/workspace/create' })
   }
 
   return (
