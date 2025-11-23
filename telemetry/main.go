@@ -26,6 +26,7 @@ type TelemetryMetrics struct {
 	ListsCount         int    `json:"lists_count"`
 	SegmentsCount      int    `json:"segments_count"`
 	UsersCount         int    `json:"users_count"`
+	BlogPostsCount     int    `json:"blog_posts_count"`
 	APIEndpoint        string `json:"api_endpoint"`
 
 	// Integration flags - boolean for each email provider
@@ -52,6 +53,7 @@ type LogEntry struct {
 	ListsCount         int       `json:"lists_count"`
 	SegmentsCount      int       `json:"segments_count"`
 	UsersCount         int       `json:"users_count"`
+	BlogPostsCount     int       `json:"blog_posts_count"`
 	APIEndpoint        string    `json:"api_endpoint"`
 	Source             string    `json:"source"`
 	EventType          string    `json:"event_type"`
@@ -143,6 +145,8 @@ func receiveTelemetry(w http.ResponseWriter, r *http.Request) {
 		MessagesCount:      metrics.MessagesCount,
 		ListsCount:         metrics.ListsCount,
 		SegmentsCount:      metrics.SegmentsCount,
+		UsersCount:         metrics.UsersCount,
+		BlogPostsCount:     metrics.BlogPostsCount,
 		APIEndpoint:        metrics.APIEndpoint,
 		Source:             "notifuse-platform",
 		EventType:          "telemetry_metrics",

@@ -43,7 +43,8 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 			name, 
 			version, 
 			channel, 
-			email, 
+			email,
+			web, 
 			category, 
 			template_macro_id, 
 			integration_id,
@@ -52,7 +53,7 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 			created_at, 
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		template.ID,
@@ -60,6 +61,7 @@ func (r *templateRepository) CreateTemplate(ctx context.Context, workspaceID str
 		template.Version,
 		template.Channel,
 		template.Email,
+		template.Web,
 		template.Category,
 		template.TemplateMacroID,
 		template.IntegrationID,
@@ -93,7 +95,8 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 				name, 
 				version, 
 				channel, 
-				email, 
+				email,
+				web, 
 				category, 
 				template_macro_id, 
 				integration_id,
@@ -113,7 +116,8 @@ func (r *templateRepository) GetTemplateByID(ctx context.Context, workspaceID st
 				name, 
 				version, 
 				channel, 
-				email, 
+				email,
+				web, 
 				category, 
 				template_macro_id, 
 				integration_id,
@@ -167,7 +171,7 @@ func (r *templateRepository) GetTemplateLatestVersion(ctx context.Context, works
 	return version, nil
 }
 
-func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID string, category string) ([]*domain.Template, error) {
+func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID string, category string, channel string) ([]*domain.Template, error) {
 	// Get the workspace database connection
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -191,6 +195,7 @@ func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID strin
 		"t.version",
 		"t.channel",
 		"t.email",
+		"t.web",
 		"t.category",
 		"t.template_macro_id",
 		"t.integration_id",
@@ -206,6 +211,10 @@ func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID strin
 
 	if category != "" {
 		selectBuilder = selectBuilder.Where(sq.Eq{"t.category": category})
+	}
+
+	if channel != "" {
+		selectBuilder = selectBuilder.Where(sq.Eq{"t.channel": channel})
 	}
 
 	query, args, err := selectBuilder.ToSql()
@@ -259,7 +268,8 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 			name, 
 			version, 
 			channel, 
-			email, 
+			email,
+			web, 
 			category, 
 			template_macro_id, 
 			integration_id,
@@ -268,7 +278,7 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 			created_at, 
 			updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		template.ID,
@@ -276,6 +286,7 @@ func (r *templateRepository) UpdateTemplate(ctx context.Context, workspaceID str
 		template.Version,
 		template.Channel,
 		template.Email,
+		template.Web,
 		template.Category,
 		template.TemplateMacroID,
 		template.IntegrationID,
@@ -334,6 +345,7 @@ func scanTemplate(scanner interface {
 		&template.Version,
 		&template.Channel,
 		&template.Email,
+		&template.Web,
 		&template.Category,
 		&templateMacroID,
 		&integrationID,

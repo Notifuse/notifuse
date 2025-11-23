@@ -563,11 +563,12 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 		}
 
 		now := time.Now().UTC()
+		listID := broadcast.Audience.List
 		message := &domain.MessageHistory{
 			ID:              messageID,
 			ContactEmail:    contact.Email,
 			BroadcastID:     &broadcastID,
-			ListIDs:         domain.ListIDs(broadcast.Audience.Lists),
+			ListID:          &listID,
 			TemplateID:      templateID,
 			TemplateVersion: templates[templateID].Version,
 			Channel:         "email",

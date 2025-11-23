@@ -74,7 +74,7 @@ export function CreateWorkspacePage() {
       // wait for the refreshWorkspaces to propagate the new workspaces list to the root layout
       window.setTimeout(() => {
         navigate({
-          to: '/workspace/$workspaceId',
+          to: '/console/workspace/$workspaceId',
           params: { workspaceId: values.id }
         })
       }, 100)
@@ -86,7 +86,7 @@ export function CreateWorkspacePage() {
   }
 
   const handleBackToDashboard = () => {
-    navigate({ to: '/' })
+    navigate({ to: '/console/' })
   }
 
   return (

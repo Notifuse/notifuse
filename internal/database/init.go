@@ -143,7 +143,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			name VARCHAR(255) NOT NULL,
 			version INTEGER NOT NULL,
 			channel VARCHAR(20) NOT NULL,
-			email JSONB NOT NULL,
+			email JSONB,
+			web JSONB,
 			category VARCHAR(20) NOT NULL,
 			template_macro_id VARCHAR(32),
 			integration_id VARCHAR(255),
@@ -175,6 +176,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			completed_at TIMESTAMP WITH TIME ZONE,
 			cancelled_at TIMESTAMP WITH TIME ZONE,
 			paused_at TIMESTAMP WITH TIME ZONE,
+			pause_reason TEXT,
 			PRIMARY KEY (id)
 		)`,
 		`CREATE TABLE IF NOT EXISTS message_history (
@@ -182,7 +184,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			contact_email VARCHAR(255) NOT NULL,
 			external_id VARCHAR(255),
 			broadcast_id VARCHAR(255),
-			list_ids TEXT[],
+			list_id VARCHAR(32),
 			template_id VARCHAR(32) NOT NULL,
 			template_version INTEGER NOT NULL,
 			channel VARCHAR(20) NOT NULL,
@@ -288,6 +290,39 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			size_bytes BIGINT NOT NULL,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
+		`CREATE TABLE IF NOT EXISTS blog_categories (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			slug VARCHAR(100) NOT NULL UNIQUE,
+			settings JSONB NOT NULL DEFAULT '{}',
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_categories_slug ON blog_categories(slug) WHERE deleted_at IS NULL`,
+		`CREATE TABLE IF NOT EXISTS blog_posts (
+			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+			category_id UUID,
+			slug VARCHAR(100) NOT NULL UNIQUE,
+			settings JSONB NOT NULL DEFAULT '{}',
+			published_at TIMESTAMP,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			deleted_at TIMESTAMP
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published_at DESC) WHERE deleted_at IS NULL AND published_at IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_blog_posts_category ON blog_posts(category_id) WHERE deleted_at IS NULL`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_posts_slug ON blog_posts(slug) WHERE deleted_at IS NULL`,
+		`CREATE TABLE IF NOT EXISTS blog_themes (
+			version INTEGER NOT NULL PRIMARY KEY,
+			published_at TIMESTAMP,
+			published_by_user_id TEXT,
+			files JSONB NOT NULL DEFAULT '{}',
+			notes TEXT,
+			created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+		)`,
+		`CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_themes_published ON blog_themes(version) WHERE published_at IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_blog_themes_version ON blog_themes(version DESC)`,
 	}
 
 	// Run all table creation queries
@@ -495,12 +530,12 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		BEGIN
 			-- Handle complaint events (worst status - can upgrade from any status)
 			IF NEW.complained_at IS NOT NULL AND OLD.complained_at IS NULL THEN
-				IF NEW.list_ids IS NOT NULL AND array_length(NEW.list_ids, 1) > 0 THEN
+				IF NEW.list_id IS NOT NULL THEN
 					UPDATE contact_lists
 					SET status = 'complained',
 						updated_at = NEW.complained_at
 					WHERE email = NEW.contact_email
-					AND list_id = ANY(NEW.list_ids)
+					AND list_id = NEW.list_id
 					AND status != 'complained';
 				END IF;
 			END IF;
@@ -508,12 +543,12 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			-- Handle bounce events (ONLY HARD BOUNCES - can only update if not already complained or bounced)
 			-- Note: Application layer should only set bounced_at for hard/permanent bounces
 			IF NEW.bounced_at IS NOT NULL AND OLD.bounced_at IS NULL THEN
-				IF NEW.list_ids IS NOT NULL AND array_length(NEW.list_ids, 1) > 0 THEN
+				IF NEW.list_id IS NOT NULL THEN
 					UPDATE contact_lists
 					SET status = 'bounced',
 						updated_at = NEW.bounced_at
 					WHERE email = NEW.contact_email
-					AND list_id = ANY(NEW.list_ids)
+					AND list_id = NEW.list_id
 					AND status NOT IN ('complained', 'bounced');
 				END IF;
 			END IF;

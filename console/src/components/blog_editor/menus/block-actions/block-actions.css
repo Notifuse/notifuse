@@ -1,0 +1,82 @@
+/**
+ * Block Actions Menu Styles
+ * Distinct class names from original drag-context-menu
+ * Updated for Antd components
+ */
+
+.block-actions__grip-container {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.block-actions__insert-button {
+  transition: background-color 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+.block-actions__insert-button:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.block-actions__grip-button {
+  cursor: grab !important;
+}
+
+.block-actions__grip-button:active {
+  cursor: grabbing !important;
+}
+
+.block-actions__menu-list {
+  min-width: 15rem;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+/* Action button styles for non-antd menu items */
+.action-button {
+  transition: background-color 0.2s ease-in-out;
+  border-radius: 6px;
+}
+
+.action-button:hover:not(.disabled) {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.action-button.active {
+  background-color: rgba(24, 144, 255, 0.1);
+}
+
+.action-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed !important;
+}
+
+/* Antd component overrides */
+.ant-dropdown .ant-menu-item {
+  border-radius: 6px;
+  margin: 2px 4px;
+}
+
+.ant-dropdown .ant-divider-horizontal {
+  margin: 4px 0;
+}
+
+/* Remove extra margin from menu item groups to align with regular items */
+.ant-dropdown .ant-dropdown-menu-item-group-list {
+  margin: 0 !important;
+}
+
+/* Icon styles */
+.tiptap-button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
+.tiptap-button-text {
+  flex: 1;
+}
+

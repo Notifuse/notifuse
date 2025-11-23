@@ -67,15 +67,26 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
+	// STEP 1: Create the workspace database FIRST
+	// If this fails (e.g., due to permissions), no system record is created
+	if err := r.CreateDatabase(ctx, workspace.ID); err != nil {
+		return fmt.Errorf("failed to create workspace database: %w", err)
+	}
+
+	// STEP 2: Now insert the workspace record into system database
 	// Marshal settings to JSON
 	settings, err := json.Marshal(workspace.Settings)
 	if err != nil {
+		// Clean up: delete the database we just created
+		_ = r.DeleteDatabase(ctx, workspace.ID)
 		return err
 	}
 
 	// Marshal integrations to JSON
 	integrations, err := json.Marshal(workspace.Integrations)
 	if err != nil {
+		// Clean up: delete the database we just created
+		_ = r.DeleteDatabase(ctx, workspace.ID)
 		return err
 	}
 
@@ -92,6 +103,8 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 		workspace.UpdatedAt,
 	)
 	if err != nil {
+		// Clean up: delete the database we just created
+		_ = r.DeleteDatabase(ctx, workspace.ID)
 		return err
 	}
 
@@ -99,8 +112,7 @@ func (r *workspaceRepository) Create(ctx context.Context, workspace *domain.Work
 		return err
 	}
 
-	// Create the workspace database
-	return r.CreateDatabase(ctx, workspace.ID)
+	return nil
 }
 
 func (r *workspaceRepository) GetByID(ctx context.Context, id string) (*domain.Workspace, error) {
@@ -119,6 +131,42 @@ func (r *workspaceRepository) GetByID(ctx context.Context, id string) (*domain.W
 
 	if err := workspace.AfterLoad(r.secretKey); err != nil {
 		return nil, err
+	}
+
+	return workspace, nil
+}
+
+// GetWorkspaceByCustomDomain retrieves a workspace by custom domain hostname
+func (r *workspaceRepository) GetWorkspaceByCustomDomain(ctx context.Context, hostname string) (*domain.Workspace, error) {
+	// Query to find workspace where custom_endpoint_url contains the hostname
+	// We need to extract the hostname from the URL and compare (case-insensitive)
+	query := `
+		SELECT id, name, settings, integrations, created_at, updated_at
+		FROM workspaces
+		WHERE settings->>'custom_endpoint_url' IS NOT NULL
+		  AND settings->>'custom_endpoint_url' != ''
+		  AND LOWER(
+		      CASE 
+		        WHEN settings->>'custom_endpoint_url' LIKE 'http://%' 
+		          THEN SPLIT_PART(SPLIT_PART(settings->>'custom_endpoint_url', '://', 2), '/', 1)
+		        WHEN settings->>'custom_endpoint_url' LIKE 'https://%'
+		          THEN SPLIT_PART(SPLIT_PART(settings->>'custom_endpoint_url', '://', 2), '/', 1)
+		        ELSE SPLIT_PART(settings->>'custom_endpoint_url', '/', 1)
+		      END
+		  ) = LOWER($1)
+		LIMIT 1
+	`
+
+	workspace, err := domain.ScanWorkspace(r.systemDB.QueryRowContext(ctx, query, hostname))
+	if err == sql.ErrNoRows {
+		return nil, nil // Return nil without error when no workspace is found (not an error condition)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to query workspace by custom domain: %w", err)
+	}
+
+	if err := workspace.AfterLoad(r.secretKey); err != nil {
+		return nil, fmt.Errorf("failed to decrypt workspace secrets: %w", err)
 	}
 
 	return workspace, nil

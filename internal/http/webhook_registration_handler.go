@@ -11,8 +11,8 @@ import (
 
 // WebhookRegistrationHandler handles webhook registration HTTP requests
 type WebhookRegistrationHandler struct {
-	service   domain.WebhookRegistrationService
-	logger    logger.Logger
+	service      domain.WebhookRegistrationService
+	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
 }
 
@@ -23,8 +23,8 @@ func NewWebhookRegistrationHandler(
 	logger logger.Logger,
 ) *WebhookRegistrationHandler {
 	return &WebhookRegistrationHandler{
-		service:   service,
-		logger:    logger,
+		service:      service,
+		logger:       logger,
 		getJWTSecret: getJWTSecret,
 	}
 }

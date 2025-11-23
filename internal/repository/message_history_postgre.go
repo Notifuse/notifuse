@@ -102,7 +102,7 @@ func scanMessage(scanner interface {
 		&message.ExternalID,
 		&message.ContactEmail,
 		&message.BroadcastID,
-		&message.ListIDs,
+		&message.ListID,
 		&message.TemplateID,
 		&message.TemplateVersion,
 		&message.Channel,
@@ -138,7 +138,7 @@ func scanMessage(scanner interface {
 
 // messageHistorySelectFields returns the common SELECT fields for message history queries
 func messageHistorySelectFields() string {
-	return `id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, 
+	return `id, external_id, contact_email, broadcast_id, list_id, template_id, template_version, 
 			channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, 
 			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
 			unsubscribed_at, created_at, updated_at`
@@ -166,7 +166,7 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 
 	query := `
 		INSERT INTO message_history (
-			id, external_id, contact_email, broadcast_id, list_ids, template_id, template_version, 
+			id, external_id, contact_email, broadcast_id, list_id, template_id, template_version, 
 			channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at, 
 			failed_at, opened_at, clicked_at, bounced_at, complained_at, 
 			unsubscribed_at, created_at, updated_at
@@ -185,7 +185,7 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 		message.ExternalID,
 		message.ContactEmail,
 		message.BroadcastID,
-		message.ListIDs,
+		message.ListID,
 		message.TemplateID,
 		message.TemplateVersion,
 		message.Channel,
@@ -231,7 +231,7 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 			external_id = $2,
 			contact_email = $3,
 			broadcast_id = $4,
-			list_ids = $5,
+			list_id = $5,
 			template_id = $6,
 			template_version = $7,
 			channel = $8,
@@ -258,7 +258,7 @@ func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID strin
 		message.ExternalID,
 		message.ContactEmail,
 		message.BroadcastID,
-		message.ListIDs,
+		message.ListID,
 		message.TemplateID,
 		message.TemplateVersion,
 		message.Channel,
@@ -388,14 +388,14 @@ func (r *MessageHistoryRepository) GetByContact(ctx context.Context, workspaceID
 		if err := scanMessage(rows, &message); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan message history: %w", err)
 		}
-		
+
 		// Decrypt message data after reading from database
 		decryptedMessageData, err := decryptMessageData(message.MessageData, secretKey)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to decrypt message data: %w", err)
 		}
 		message.MessageData = decryptedMessageData
-		
+
 		messages = append(messages, &message)
 	}
 
@@ -450,14 +450,14 @@ func (r *MessageHistoryRepository) GetByBroadcast(ctx context.Context, workspace
 		if err := scanMessage(rows, &message); err != nil {
 			return nil, 0, fmt.Errorf("failed to scan message history: %w", err)
 		}
-		
+
 		// Decrypt message data after reading from database
 		decryptedMessageData, err := decryptMessageData(message.MessageData, secretKey)
 		if err != nil {
 			return nil, 0, fmt.Errorf("failed to decrypt message data: %w", err)
 		}
 		message.MessageData = decryptedMessageData
-		
+
 		messages = append(messages, &message)
 	}
 
@@ -644,7 +644,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 	// Use squirrel to build the query with placeholders
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 	queryBuilder := psql.Select(
-		"id", "external_id", "contact_email", "broadcast_id", "list_ids", "template_id", "template_version",
+		"id", "external_id", "contact_email", "broadcast_id", "list_id", "template_id", "template_version",
 		"channel", "status_info", "message_data", "channel_options", "attachments", "sent_at", "delivered_at",
 		"failed_at", "opened_at", "clicked_at", "bounced_at", "complained_at",
 		"unsubscribed_at", "created_at", "updated_at",
@@ -660,8 +660,8 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 	}
 
 	if params.ListID != "" {
-		// Check if the list_ids array contains the specified list ID
-		queryBuilder = queryBuilder.Where(sq.Expr("? = ANY(list_ids)", params.ListID))
+		// Check if the list_id matches the specified list ID
+		queryBuilder = queryBuilder.Where(sq.Eq{"list_id": params.ListID})
 	}
 
 	if params.Channel != "" {
@@ -841,7 +841,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 		var deliveredAt, failedAt, openedAt, clickedAt, bouncedAt, complainedAt, unsubscribedAt sql.NullTime
 
 		err := rows.Scan(
-			&message.ID, &externalID, &message.ContactEmail, &broadcastID, &message.ListIDs, &message.TemplateID, &message.TemplateVersion,
+			&message.ID, &externalID, &message.ContactEmail, &broadcastID, &message.ListID, &message.TemplateID, &message.TemplateVersion,
 			&message.Channel, &statusInfo, &message.MessageData, &message.ChannelOptions, &attachmentsJSON,
 			&message.SentAt, &deliveredAt, &failedAt, &openedAt,
 			&clickedAt, &bouncedAt, &complainedAt, &unsubscribedAt,

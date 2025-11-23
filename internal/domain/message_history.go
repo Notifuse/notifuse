@@ -11,14 +11,10 @@ import (
 	"time"
 
 	"github.com/asaskevich/govalidator"
-	"github.com/lib/pq"
 )
 
 //go:generate mockgen -destination mocks/mock_message_history_service.go -package mocks github.com/Notifuse/notifuse/internal/domain MessageHistoryService
 //go:generate mockgen -destination mocks/mock_message_history_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain MessageHistoryRepository
-
-// ListIDs is a type alias for a list of list IDs stored as a PostgreSQL TEXT[] array
-type ListIDs = pq.StringArray
 
 // MessageStatus represents the current status of a message
 type MessageEvent string
@@ -110,7 +106,7 @@ type MessageHistory struct {
 	ExternalID      *string              `json:"external_id,omitempty"` // For idempotency checks
 	ContactEmail    string               `json:"contact_email"`
 	BroadcastID     *string              `json:"broadcast_id,omitempty"`
-	ListIDs         ListIDs              `json:"list_ids,omitempty" db:"list_ids"` // Lists this message was sent to
+	ListID          *string              `json:"list_id,omitempty"` // List this message was sent to (nullable for transactional emails)
 	TemplateID      string               `json:"template_id"`
 	TemplateVersion int64                `json:"template_version"`
 	Channel         string               `json:"channel"` // email, sms, push, etc.

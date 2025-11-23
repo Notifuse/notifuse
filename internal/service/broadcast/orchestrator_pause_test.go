@@ -114,7 +114,7 @@ func TestBroadcastOrchestrator_Process_PausedBroadcast(t *testing.T) {
 		ID:     broadcastID,
 		Status: domain.BroadcastStatusPaused,
 		Audience: domain.AudienceSettings{
-			Lists: []string{"list-1"},
+			List: "list-1",
 		},
 		TestSettings: domain.BroadcastTestSettings{
 			Enabled: false,
@@ -273,7 +273,7 @@ func TestBroadcastOrchestrator_Process_PausedDuringProcessing(t *testing.T) {
 		ID:     broadcastID,
 		Status: domain.BroadcastStatusSending,
 		Audience: domain.AudienceSettings{
-			Lists: []string{"list-1"},
+			List: "list-1",
 		},
 		TestSettings: domain.BroadcastTestSettings{
 			Enabled: false,
@@ -288,7 +288,7 @@ func TestBroadcastOrchestrator_Process_PausedDuringProcessing(t *testing.T) {
 		ID:     broadcastID,
 		Status: domain.BroadcastStatusPaused,
 		Audience: domain.AudienceSettings{
-			Lists: []string{"list-1"},
+			List: "list-1",
 		},
 		TestSettings: domain.BroadcastTestSettings{
 			Enabled: false,
@@ -483,7 +483,7 @@ func TestBroadcastOrchestrator_Process_PausedVsCancelled(t *testing.T) {
 				ID:     broadcastID,
 				Status: tc.broadcastStatus,
 				Audience: domain.AudienceSettings{
-					Lists: []string{"list-1"},
+					List: "list-1",
 				},
 				TestSettings: domain.BroadcastTestSettings{
 					Enabled: false,

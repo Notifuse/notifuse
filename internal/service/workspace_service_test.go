@@ -50,6 +50,9 @@ func TestWorkspaceService_ListWorkspaces(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	ctx := context.Background()
@@ -147,6 +150,9 @@ func TestWorkspaceService_GetWorkspace(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -268,6 +274,9 @@ func TestWorkspaceService_CreateWorkspace(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -544,6 +553,9 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -781,6 +793,9 @@ func TestWorkspaceService_DeleteWorkspace(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -1007,6 +1022,9 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -1191,6 +1209,9 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -1373,6 +1394,9 @@ func TestWorkspaceService_DeleteIntegration(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Set up mockLogger to allow any calls
@@ -1612,6 +1636,9 @@ func TestWorkspaceService_RemoveMember(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	ctx := context.Background()
@@ -1863,6 +1890,9 @@ func TestWorkspaceService_GetInvitationByID(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	invitationID := "invitation-123"
@@ -1935,6 +1965,9 @@ func TestWorkspaceService_AcceptInvitation(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	invitationID := "invitation-123"
@@ -2375,6 +2408,9 @@ func TestWorkspaceService_DeleteInvitation(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	ctx := context.Background()
@@ -2544,6 +2580,9 @@ func TestWorkspaceService_SetUserPermissions(t *testing.T) {
 		mockTemplateService,
 		mockWebhookRegService,
 		"secret_key",
+		&SupabaseService{},
+		&DNSVerificationService{},
+		&BlogService{},
 	)
 
 	// Setup common logger expectations
@@ -2677,52 +2716,4 @@ func TestWorkspaceService_SetUserPermissions(t *testing.T) {
 		err := service.SetUserPermissions(ctx, workspaceID, targetUserID, permissions)
 		require.NoError(t, err) // Should still succeed despite session error
 	})
-}
-
-func TestWorkspaceService_SetSupabaseService(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	mockUserRepo := mocks.NewMockUserRepository(ctrl)
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
-	mockAuthService := mocks.NewMockAuthService(ctrl)
-	mockMailer := pkgmocks.NewMockMailer(ctrl)
-	mockConfig := &config.Config{RootEmail: "test@example.com"}
-	mockContactService := mocks.NewMockContactService(ctrl)
-	mockListService := mocks.NewMockListService(ctrl)
-	mockContactListService := mocks.NewMockContactListService(ctrl)
-	mockTemplateService := mocks.NewMockTemplateService(ctrl)
-	mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
-
-	service := NewWorkspaceService(
-		mockRepo,
-		mockUserRepo,
-		mocks.NewMockTaskRepository(ctrl),
-		mockLogger,
-		mockUserService,
-		mockAuthService,
-		mockMailer,
-		mockConfig,
-		mockContactService,
-		mockListService,
-		mockContactListService,
-		mockTemplateService,
-		mockWebhookRegService,
-		"secret_key",
-	)
-
-	// Initially supabaseService should be nil
-	assert.Nil(t, service.supabaseService)
-
-	// Create a mock Supabase service
-	mockSupabaseService := &SupabaseService{}
-
-	// Set the Supabase service
-	service.SetSupabaseService(mockSupabaseService)
-
-	// Verify it's set
-	assert.NotNil(t, service.supabaseService)
-	assert.Equal(t, mockSupabaseService, service.supabaseService)
 }

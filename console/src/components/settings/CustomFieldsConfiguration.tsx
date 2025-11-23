@@ -16,7 +16,7 @@ import {
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons'
 import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
-import { Section } from './Section'
+import { SettingsSectionHeader } from './SettingsSectionHeader'
 
 interface CustomFieldsConfigurationProps {
   workspace: Workspace | null
@@ -154,10 +154,12 @@ export function CustomFieldsConfiguration({
   }
 
   return (
-    <Section
-      title="Custom Fields"
-      description="Set friendly display names for contact custom fields."
-    >
+    <>
+      <SettingsSectionHeader
+        title="Custom Fields"
+        description="Set friendly display names for contact custom fields."
+      />
+
       {isOwner && (
         <div style={{ textAlign: 'right', marginBottom: 16 }}>
           <Button type="primary" ghost size="small" onClick={() => handleOpenModal()}>
@@ -275,6 +277,6 @@ export function CustomFieldsConfiguration({
           </Form>
         </div>
       </Modal>
-    </Section>
+    </>
   )
 }

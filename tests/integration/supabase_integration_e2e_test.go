@@ -173,7 +173,7 @@ func testSupabaseInstallation(t *testing.T, suite *testutil.IntegrationTestSuite
 	t.Run("Verify Templates Created", func(t *testing.T) {
 		// Get all templates for the workspace
 		systemCtx := context.WithValue(context.Background(), domain.SystemCallKey, true)
-		templates, err := suite.ServerManager.GetApp().GetTemplateRepository().GetTemplates(systemCtx, workspaceID, "")
+		templates, err := suite.ServerManager.GetApp().GetTemplateRepository().GetTemplates(systemCtx, workspaceID, "", "")
 		require.NoError(t, err)
 
 		// Filter templates by integration_id
@@ -276,7 +276,7 @@ func testSupabaseInstallation(t *testing.T, suite *testutil.IntegrationTestSuite
 
 		// Verify notification templates link to the created templates
 		systemCtx = context.WithValue(context.Background(), domain.SystemCallKey, true)
-		templates, err := suite.ServerManager.GetApp().GetTemplateRepository().GetTemplates(systemCtx, workspaceID, "")
+		templates, err := suite.ServerManager.GetApp().GetTemplateRepository().GetTemplates(systemCtx, workspaceID, "", "")
 		require.NoError(t, err)
 
 		// Build a map of template IDs

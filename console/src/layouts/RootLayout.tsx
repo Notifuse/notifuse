@@ -7,11 +7,14 @@ export function RootLayout() {
   const { isAuthenticated, loading, workspaces } = useAuth()
   const navigate = useNavigate()
 
-  const isSigninRoute = useMatch({ from: '/signin', shouldThrow: false })
-  const isAcceptInvitationRoute = useMatch({ from: '/accept-invitation', shouldThrow: false })
-  const isLogoutRoute = useMatch({ from: '/logout', shouldThrow: false })
-  const isWorkspaceCreateRoute = useMatch({ from: '/workspace/create', shouldThrow: false })
-  const isSetupRoute = useMatch({ from: '/setup', shouldThrow: false })
+  const isSigninRoute = useMatch({ from: '/console/signin', shouldThrow: false })
+  const isAcceptInvitationRoute = useMatch({
+    from: '/console/accept-invitation',
+    shouldThrow: false
+  })
+  const isLogoutRoute = useMatch({ from: '/console/logout', shouldThrow: false })
+  const isWorkspaceCreateRoute = useMatch({ from: '/console/workspace/create', shouldThrow: false })
+  const isSetupRoute = useMatch({ from: '/console/setup', shouldThrow: false })
 
   // Check if system is installed (explicitly check for true to handle undefined case)
   const isInstalled = window.IS_INSTALLED === true
@@ -35,17 +38,17 @@ export function RootLayout() {
     if (loading) return
 
     if (shouldRedirectToSetup) {
-      navigate({ to: '/setup' })
+      navigate({ to: '/console/setup' })
       return
     }
 
     if (shouldRedirectToSignin) {
-      navigate({ to: '/signin' })
+      navigate({ to: '/console/signin' })
       return
     }
 
     if (shouldRedirectToCreateWorkspace) {
-      navigate({ to: '/workspace/create' })
+      navigate({ to: '/console/workspace/create' })
       return
     }
   }, [loading, shouldRedirectToSetup, shouldRedirectToSignin, shouldRedirectToCreateWorkspace])

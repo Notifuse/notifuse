@@ -222,6 +222,12 @@ func (m *listMockScanner) Scan(dest ...interface{}) error {
 			if tr, ok := m.data[i].(*TemplateReference); ok {
 				*v = tr
 			}
+		case **string:
+			if m.data[i] == nil {
+				*v = nil
+			} else if s, ok := m.data[i].(string); ok {
+				*v = &s
+			}
 		case *time.Time:
 			if t, ok := m.data[i].(time.Time); ok {
 				*v = t
@@ -474,7 +480,6 @@ func TestCreateListRequest_Validate(t *testing.T) {
 			wantErr: true,
 		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			list, workspaceID, err := tt.request.Validate()

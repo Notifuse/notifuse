@@ -210,7 +210,7 @@ func (o *BroadcastOrchestrator) GetTotalRecipientCount(ctx context.Context, work
 		"broadcast_id":      broadcastID,
 		"workspace_id":      workspaceID,
 		"recipient_count":   count,
-		"audience_lists":    len(broadcast.Audience.Lists),
+		"audience_list":     broadcast.Audience.List,
 		"audience_segments": len(broadcast.Audience.Segments),
 	}).Info("Got recipient count for broadcast")
 	// codecov:ignore:end
@@ -507,8 +507,8 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// Track progress
 	sentCount := broadcastState.SentCount
 	failedCount := broadcastState.FailedCount
-	// Use sent + failed as the number of recipients processed/attempted
-	processedCount := sentCount + failedCount
+	// processedCount will be calculated later when needed
+	var processedCount int
 	startTime := o.timeProvider.Now()
 	lastSaveTime := o.timeProvider.Now()
 	lastLogTime := o.timeProvider.Now()
@@ -922,7 +922,6 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					"broadcast_id": broadcastState.BroadcastID,
 				}).Info("Broadcast cancelled - stopping task execution")
 				// Return true (task complete) with nil error to avoid marking as failed
-				broadcastCancelledDuringProcessing = true
 				allDone = true
 				err = nil
 				return allDone, err
@@ -1073,9 +1072,6 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 						}).Error("Failed to update broadcast status to paused")
 					}
 				}
-
-				// Mark that circuit breaker was triggered
-				circuitBreakerTriggered = true
 
 				// Return the circuit breaker error to stop processing
 				err = sendErr

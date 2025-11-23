@@ -10,15 +10,15 @@ import (
 )
 
 type ListHandler struct {
-	service   domain.ListService
-	logger    logger.Logger
+	service      domain.ListService
+	logger       logger.Logger
 	getJWTSecret func() ([]byte, error)
 }
 
 func NewListHandler(service domain.ListService, getJWTSecret func() ([]byte, error), logger logger.Logger) *ListHandler {
 	return &ListHandler{
-		service:   service,
-		logger:    logger,
+		service:      service,
+		logger:       logger,
 		getJWTSecret: getJWTSecret,
 	}
 }

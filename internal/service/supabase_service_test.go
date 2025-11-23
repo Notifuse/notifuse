@@ -291,7 +291,7 @@ func TestDeleteIntegrationResources_Success(t *testing.T) {
 		},
 	}
 
-	mockTemplateRepo.EXPECT().GetTemplates(gomock.Any(), "workspace-123", "").
+	mockTemplateRepo.EXPECT().GetTemplates(gomock.Any(), "workspace-123", "", "").
 		Return(templates, nil)
 
 	mockTemplateRepo.EXPECT().DeleteTemplate(gomock.Any(), "workspace-123", "template-1").

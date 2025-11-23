@@ -485,4 +485,3 @@ func TestRateLimiter_ErrorMessages(t *testing.T) {
 		assert.Contains(t, errorMsg, "try again in a few minutes")
 	})
 }
-

@@ -1,0 +1,248 @@
+/* Image Node Wrapper */
+.image-node-wrapper {
+  margin: 1rem 0;
+  display: block;
+}
+
+/* Alignment Classes */
+.image-align-left {
+  display: block;
+}
+
+.image-align-left .image-container {
+  margin-right: auto;
+  margin-left: 0;
+}
+
+.image-align-center {
+  display: block;
+  text-align: center;
+}
+
+.image-align-center .image-container {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.image-align-right {
+  display: block;
+  text-align: right;
+}
+
+.image-align-right .image-container {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+/* Empty State - Input Overlay */
+.image-node-empty {
+  background-color: #f8f9fa;
+  border: 2px dashed #cbd5e0;
+  border-radius: 8px;
+  padding: 3rem 2rem;
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image-input-overlay {
+  width: 100%;
+  max-width: 600px;
+  text-align: center;
+}
+
+.image-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #cbd5e0;
+  border-radius: 6px;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+}
+
+.image-input:focus {
+  border-color: #3b82f6;
+  background-color: #ffffff;
+}
+
+.image-input::placeholder {
+  color: #9ca3af;
+}
+
+.image-error {
+  margin-top: 0.5rem;
+  color: #ef4444;
+  font-size: 0.875rem;
+}
+
+.image-hint {
+  margin-top: 0.5rem;
+  color: #6b7280;
+  font-size: 0.75rem;
+}
+
+/* Filled State - Image Container */
+.image-container {
+  position: relative;
+  display: inline-block;
+  border-radius: 8px;
+  overflow: visible;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  background-color: #f9fafb;
+  transition: box-shadow 0.2s ease;
+}
+
+.image-container img {
+  display: block;
+  border-radius: 8px;
+  user-select: none;
+}
+
+/* Resizing State */
+.image-container.resizing {
+  transition: none;
+}
+
+.image-container.resizing img {
+  pointer-events: none;
+}
+
+/* Selected State */
+.image-node-wrapper.ProseMirror-selectednode {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.image-node-wrapper.ProseMirror-selectednode .image-container {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+/* Resize Handles */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 12px;
+  cursor: ew-resize;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 40px;
+  background-color: #3b82f6;
+  border-radius: 2px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.resize-handle-left {
+  left: -6px;
+}
+
+.resize-handle-left::before {
+  left: 4px;
+}
+
+.resize-handle-right {
+  right: -6px;
+}
+
+.resize-handle-right::before {
+  right: 4px;
+}
+
+/* Show handles when container is selected */
+.image-container.selected .resize-handle {
+  opacity: 1;
+}
+
+/* Hover state for handles */
+.resize-handle:hover::before,
+.image-container.resizing .resize-handle::before {
+  background-color: #2563eb;
+  height: 50px;
+}
+
+/* Image Toolbar Popover */
+.image-toolbar-popover .ant-popover-inner {
+  padding: 0;
+}
+
+/* Active state for toolbar buttons - blue icon instead of blue background */
+.image-toolbar-popover .notifuse-editor-toolbar-button.ant-btn-primary {
+  background-color: transparent;
+  color: #1890ff;
+}
+
+.image-toolbar-popover .notifuse-editor-toolbar-button.ant-btn-primary:hover:not(:disabled) {
+  background-color: #f0f0f0;
+  color: #1890ff;
+}
+
+.image-toolbar-popover .notifuse-editor-toolbar-button.ant-btn-primary .notifuse-editor-toolbar-icon {
+  color: #1890ff;
+}
+
+/* Caption Wrapper and Input */
+.image-caption-wrapper {
+  margin-top: 8px;
+  display: block;
+}
+
+.image-caption-input {
+  font-style: italic;
+  color: var(--editor-caption-color);
+  font-size: var(--editor-caption-font-size);
+  padding: 4px 8px;
+  width: 100%;
+}
+
+.image-caption-input input {
+  font-style: italic;
+  color: var(--editor-caption-color) !important;
+}
+
+.image-caption-input input::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+/* Caption alignment based on image alignment */
+.image-align-left .image-caption-wrapper {
+  text-align: left;
+}
+
+.image-align-left .image-caption-input input {
+  text-align: left !important;
+}
+
+.image-align-center .image-caption-wrapper {
+  display: block;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.image-align-center .image-caption-input input {
+  text-align: center !important;
+}
+
+.image-align-right .image-caption-wrapper {
+  text-align: right;
+  margin-left: auto;
+}
+
+.image-align-right .image-caption-input input {
+  text-align: right !important;
+}
+

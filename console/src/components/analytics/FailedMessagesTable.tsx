@@ -42,7 +42,7 @@ export const FailedMessagesTable: React.FC<FailedMessagesTableProps> = ({ worksp
 
   const handleViewMore = () => {
     navigate({
-      to: '/workspace/$workspaceId/logs',
+      to: '/console/workspace/$workspaceId/logs',
       params: { workspaceId: workspace.id },
       search: { is_failed: 'true' }
     })

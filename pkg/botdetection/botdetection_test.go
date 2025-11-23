@@ -86,4 +86,3 @@ func TestIsBotUserAgent(t *testing.T) {
 		})
 	}
 }
-

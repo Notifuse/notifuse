@@ -30,4 +30,3 @@ type ContactSegmentQueueRepository interface {
 	// ClearQueue removes all items from the queue
 	ClearQueue(ctx context.Context, workspaceID string) error
 }
-

@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{.WorkspaceName}} - Blog</title>
+    <meta name="description" content="Latest posts from {{.WorkspaceName}}">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+        header {
+            background: white;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+        .posts {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        .post {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .post:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+        .post h2 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .post h2 a {
+            color: #1a1a1a;
+            text-decoration: none;
+        }
+        .post h2 a:hover {
+            color: #0066cc;
+        }
+        .post-meta {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        .post-excerpt {
+            color: #555;
+            line-height: 1.6;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin-top: 3rem;
+            padding: 2rem 0;
+        }
+        .pagination a, .pagination span {
+            padding: 0.5rem 1rem;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #333;
+        }
+        .pagination a:hover {
+            background: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+        .pagination .current {
+            background: #0066cc;
+            color: white;
+            border-color: #0066cc;
+        }
+        .pagination .disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        footer {
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+            border-top: 1px solid #e0e0e0;
+            color: #666;
+        }
+        footer a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>{{.WorkspaceName}}</h1>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="posts">
+            {{range .Posts}}
+            <article class="post">
+                <h2><a href="/{{.Slug}}">{{.Name}}</a></h2>
+                <div class="post-meta">
+                    {{.PublishedAt.Format "January 2, 2006"}}
+                </div>
+                {{if .MetaDescription}}
+                <p class="post-excerpt">{{.MetaDescription}}</p>
+                {{end}}
+            </article>
+            {{else}}
+            <p style="text-align: center; color: #666; padding: 3rem 0;">No posts published yet.</p>
+            {{end}}
+        </div>
+        
+        {{if gt .TotalPages 1}}
+        <div class="pagination">
+            {{if .HasPrevious}}
+                <a href="/?page={{.PrevPage}}">← Previous</a>
+            {{else}}
+                <span class="disabled">← Previous</span>
+            {{end}}
+            
+            <span class="current">Page {{.Page}} of {{.TotalPages}}</span>
+            
+            {{if .HasNext}}
+                <a href="/?page={{.NextPage}}">Next →</a>
+            {{else}}
+                <span class="disabled">Next →</span>
+            {{end}}
+        </div>
+        {{end}}
+    </div>
+    
+    <footer>
+        <div class="container">
+            <p><a href="/console">Admin Console</a></p>
+        </div>
+    </footer>
+</body>
+</html>

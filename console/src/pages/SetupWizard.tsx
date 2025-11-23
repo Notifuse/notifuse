@@ -39,7 +39,7 @@ export default function SetupWizard() {
         const status = await setupApi.getStatus()
         // console.log('status', status)
         if (status.is_installed) {
-          navigate({ to: '/signin' })
+          navigate({ to: '/console/signin' })
           return
         }
         setConfigStatus({
@@ -258,7 +258,7 @@ export default function SetupWizard() {
   const handleDone = () => {
     // Force a full page reload to fetch fresh config from /config.js
     // This ensures window.IS_INSTALLED is properly set from the backend
-    window.location.href = '/signin'
+    window.location.href = '/console/signin'
   }
 
   if (statusLoading) {
@@ -280,7 +280,7 @@ export default function SetupWizard() {
         <div className="sm:mx-auto sm:w-full sm:max-w-3xl">
           {/* Logo */}
           <div className="text-center mb-8">
-            <img src="/logo.png" alt="Notifuse" className="mx-auto" width={120} />
+            <img src="/console/logo.png" alt="Notifuse" className="mx-auto" width={120} />
           </div>
 
           <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">

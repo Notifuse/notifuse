@@ -26,7 +26,7 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		pool := testutil.NewTestConnectionPool(config)
 		defer pool.Cleanup()
 
-		numGoroutines := 25  // Reduced from 50 to avoid connection exhaustion
+		numGoroutines := 25 // Reduced from 50 to avoid connection exhaustion
 		var wg sync.WaitGroup
 		errors := make(chan error, numGoroutines)
 		workspaceIDs := make([]string, numGoroutines)
@@ -79,7 +79,7 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 
 		assert.Equal(t, 0, errorCount, "All concurrent creations should succeed")
 		assert.Equal(t, numGoroutines, pool.GetConnectionCount(), "Should have all workspace connections")
-		
+
 		// Explicit cleanup to release connections faster
 		err := pool.Cleanup()
 		require.NoError(t, err)
@@ -96,7 +96,7 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		err := pool.EnsureWorkspaceDatabase(workspaceID)
 		require.NoError(t, err)
 
-		numGoroutines := 50  // Reduced from 100 to be less aggressive
+		numGoroutines := 50 // Reduced from 100 to be less aggressive
 		var wg sync.WaitGroup
 		errors := make(chan error, numGoroutines)
 		connections := make(chan interface{}, numGoroutines)
@@ -309,8 +309,8 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		require.NoError(t, err)
 
 		// Stress test: many goroutines doing various operations
-		numGoroutines := 30  // Reduced from 50
-		duration := 1 * time.Second  // Reduced from 2s
+		numGoroutines := 30         // Reduced from 50
+		duration := 1 * time.Second // Reduced from 2s
 		stopChan := make(chan struct{})
 		var wg sync.WaitGroup
 

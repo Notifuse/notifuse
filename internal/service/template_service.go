@@ -141,7 +141,7 @@ func (s *TemplateService) GetTemplateByID(ctx context.Context, workspaceID strin
 	return template, nil
 }
 
-func (s *TemplateService) GetTemplates(ctx context.Context, workspaceID string, category string) ([]*domain.Template, error) {
+func (s *TemplateService) GetTemplates(ctx context.Context, workspaceID string, category string, channel string) ([]*domain.Template, error) {
 	// Authenticate user for workspace
 	var err error
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
@@ -159,7 +159,7 @@ func (s *TemplateService) GetTemplates(ctx context.Context, workspaceID string, 
 	}
 
 	// Get templates
-	templates, err := s.repo.GetTemplates(ctx, workspaceID, category)
+	templates, err := s.repo.GetTemplates(ctx, workspaceID, category, channel)
 	if err != nil {
 		s.logger.Error(fmt.Sprintf("Failed to get templates: %v", err))
 		return nil, fmt.Errorf("failed to get templates: %w", err)

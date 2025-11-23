@@ -10,13 +10,14 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/http/middleware"
-	"github.com/Notifuse/notifuse/pkg/logger")
+	"github.com/Notifuse/notifuse/pkg/logger"
+)
 
 // WorkspaceHandler handles HTTP requests for workspace operations
 type WorkspaceHandler struct {
 	workspaceService domain.WorkspaceServiceInterface
 	authService      domain.AuthService
-	getJWTSecret func() ([]byte, error)
+	getJWTSecret     func() ([]byte, error)
 	logger           logger.Logger
 	secretKey        string
 }
@@ -32,7 +33,7 @@ func NewWorkspaceHandler(
 	return &WorkspaceHandler{
 		workspaceService: workspaceService,
 		authService:      authService,
-		getJWTSecret: getJWTSecret,
+		getJWTSecret:     getJWTSecret,
 		logger:           logger,
 		secretKey:        secretKey,
 	}
@@ -191,6 +192,12 @@ func (h *WorkspaceHandler) handleUpdate(w http.ResponseWriter, r *http.Request) 
 		var workspaceNotFoundErr *domain.ErrWorkspaceNotFound
 		if errors.As(err, &workspaceNotFoundErr) {
 			WriteJSONError(w, "Workspace not found", http.StatusNotFound)
+			return
+		}
+		// Check if it's a validation error (e.g., DNS verification failed)
+		var validationErr domain.ValidationError
+		if errors.As(err, &validationErr) {
+			WriteJSONError(w, validationErr.Message, http.StatusBadRequest)
 			return
 		}
 		WriteJSONError(w, "Failed to update workspace", http.StatusInternalServerError)

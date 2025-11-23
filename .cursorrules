@@ -4,6 +4,7 @@
 
 - Never commit to github without asking
 - Never test tracing and logging - these are implementation details
+- When you return a work summary, make sure it is very very short and concise
 
 ## Go Backend Structure
 

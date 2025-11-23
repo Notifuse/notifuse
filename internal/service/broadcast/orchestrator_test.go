@@ -309,7 +309,7 @@ func TestBroadcastOrchestrator_GetTotalRecipientCount(t *testing.T) {
 	// Mock broadcast
 	testBroadcast := &domain.Broadcast{
 		Audience: domain.AudienceSettings{
-			Lists: []string{"list-1", "list-2"},
+			List: "list-1",
 		},
 	}
 
@@ -378,7 +378,7 @@ func TestBroadcastOrchestrator_FetchBatch(t *testing.T) {
 	testBroadcast := &domain.Broadcast{
 		Status: domain.BroadcastStatusSending,
 		Audience: domain.AudienceSettings{
-			Lists: []string{"list-1"},
+			List: "list-1",
 		},
 	}
 
@@ -453,7 +453,7 @@ func TestBroadcastOrchestrator_FetchBatch_CancelledBroadcast(t *testing.T) {
 	cancelledBroadcast := &domain.Broadcast{
 		Status: domain.BroadcastStatusCancelled,
 		Audience: domain.AudienceSettings{
-			Lists: []string{"list-1"},
+			List: "list-1",
 		},
 	}
 
@@ -702,7 +702,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 						},
 					},
 					Audience: domain.AudienceSettings{
-						Lists: []string{"list-1"},
+						List: "list-1",
 					},
 					Status: domain.BroadcastStatusSending,
 				}
@@ -839,7 +839,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 						},
 					},
 					Audience: domain.AudienceSettings{
-						Lists: []string{"list-1"},
+						List: "list-1",
 					},
 					Status: domain.BroadcastStatusSending,
 				}
@@ -1079,7 +1079,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 						},
 					},
 					Audience: domain.AudienceSettings{
-						Lists: []string{"list-1"},
+						List: "list-1",
 					},
 				}
 				mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(broadcast, nil)
@@ -1170,7 +1170,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 						},
 					},
 					Audience: domain.AudienceSettings{
-						Lists: []string{"list-1"},
+						List: "list-1",
 					},
 				}
 				mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(broadcast, nil).AnyTimes()
@@ -1275,7 +1275,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 						},
 					},
 					Audience: domain.AudienceSettings{
-						Lists: []string{"list-1"},
+						List: "list-1",
 					},
 					Status: domain.BroadcastStatusSending,
 				}
@@ -1447,7 +1447,7 @@ func TestBroadcastOrchestrator_Process_ABTestStartSetsTestingAndCompletesTestPha
 	bcast := &domain.Broadcast{
 		ID:          "broadcast-123",
 		WorkspaceID: "workspace-123",
-		Audience:    domain.AudienceSettings{Lists: []string{"list-1"}},
+		Audience:    domain.AudienceSettings{List: "list-1"},
 		Status:      domain.BroadcastStatusSending,
 		TestSettings: domain.BroadcastTestSettings{
 			Enabled:    true,
@@ -1680,7 +1680,7 @@ func TestBroadcastOrchestrator_Process_EmptyRecipientsTriggersTestCompletion(t *
 	workspace := &domain.Workspace{ID: "w", Settings: domain.WorkspaceSettings{SecretKey: "k", MarketingEmailProviderID: "pid"}, Integrations: []domain.Integration{{ID: "pid", Type: domain.IntegrationTypeEmail, EmailProvider: domain.EmailProvider{Kind: domain.EmailProviderKindSES, SES: &domain.AmazonSESSettings{AccessKey: "a", SecretKey: "b", Region: "us-east-1"}}}}}
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "w").Return(workspace, nil)
 
-	bcast := &domain.Broadcast{ID: "b", WorkspaceID: "w", Audience: domain.AudienceSettings{Lists: []string{"l"}}, Status: domain.BroadcastStatusSending, TestSettings: domain.BroadcastTestSettings{Enabled: true, Variations: []domain.BroadcastVariation{{TemplateID: "tpl"}}, SamplePercentage: 100}}
+	bcast := &domain.Broadcast{ID: "b", WorkspaceID: "w", Audience: domain.AudienceSettings{List: "l"}, Status: domain.BroadcastStatusSending, TestSettings: domain.BroadcastTestSettings{Enabled: true, Variations: []domain.BroadcastVariation{{TemplateID: "tpl"}}, SamplePercentage: 100}}
 	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "w", "b").Return(bcast, nil).AnyTimes()
 
 	// Update to testing then to test_completed
@@ -1738,7 +1738,7 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 	bcast := &domain.Broadcast{
 		ID:          "b",
 		WorkspaceID: "w",
-		Audience:    domain.AudienceSettings{Lists: []string{"l"}},
+		Audience:    domain.AudienceSettings{List: "l"},
 		Status:      domain.BroadcastStatusTestCompleted,
 		TestSentAt:  &time.Time{},
 		TestSettings: domain.BroadcastTestSettings{
@@ -1860,7 +1860,7 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 	bcast := &domain.Broadcast{
 		ID:              "broadcast-123",
 		WorkspaceID:     "workspace-123",
-		Audience:        domain.AudienceSettings{Lists: []string{"list-1"}},
+		Audience:        domain.AudienceSettings{List: "list-1"},
 		Status:          domain.BroadcastStatusWinnerSelected, // Winner already selected
 		WinningTemplate: "template-B",                         // Winner is template B
 		TestSettings: domain.BroadcastTestSettings{
@@ -2037,7 +2037,7 @@ func TestBroadcastOrchestrator_Process_NoRecipientsUpdatesBroadcastStatus(t *tes
 		WorkspaceID: "workspace-123",
 		Status:      domain.BroadcastStatusSending,
 		Audience: domain.AudienceSettings{
-			Lists: []string{"empty-list"},
+			List: "empty-list",
 		},
 		TestSettings: domain.BroadcastTestSettings{
 			Variations: []domain.BroadcastVariation{

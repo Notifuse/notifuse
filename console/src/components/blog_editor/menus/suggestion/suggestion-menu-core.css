@@ -1,0 +1,31 @@
+/* Suggestion Menu Core Styles - Ant Design Menu Overrides */
+
+.suggestion-menu-core {
+  max-width: 400px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Allow text wrapping in menu items */
+.suggestion-menu-core .ant-menu-item {
+  white-space: normal;
+  height: auto;
+  line-height: normal;
+  padding: 8px 12px;
+}
+
+/* Group title styling */
+.suggestion-menu-core .ant-menu-item-group-title {
+  padding: 8px 12px 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8c8c8c;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Remove default Ant Design menu borders */
+.suggestion-menu-core.ant-menu {
+  border: none;
+  }

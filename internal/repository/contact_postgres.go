@@ -1374,25 +1374,18 @@ func (r *contactRepository) GetContactsForBroadcast(
 	var query sq.SelectBuilder
 	var includeListID bool
 
-	// If we're filtering by lists, include list_id in the result
-	if len(audience.Lists) > 0 {
+	// If we're filtering by list, include list_id in the result
+	if audience.List != "" {
 		includeListID = true
 		query = psql.Select("c.*", "cl.list_id", "l.name as list_name").
 			From("contacts c").
 			Join("contact_lists cl ON c.email = cl.email").
 			Join("lists l ON cl.list_id = l.id"). // Join with lists table to get the name
-			Where(sq.Eq{"cl.list_id": audience.Lists}).
+			Where(sq.Eq{"cl.list_id": audience.List}).
 			Where(sq.Eq{"l.deleted_at": nil}). // Filter out deleted lists
 			Limit(uint64(limit)).
-			Offset(uint64(offset))
-
-		// Set order by clause based on whether we need deduplication
-		if audience.SkipDuplicateEmails {
-			// For DISTINCT ON (c.email), we must order by c.email first
-			query = query.OrderBy("c.email ASC", "c.created_at ASC")
-		} else {
-			query = query.OrderBy("c.created_at ASC")
-		}
+			Offset(uint64(offset)).
+			OrderBy("c.created_at ASC")
 
 		// Exclude unsubscribed contacts if required
 		if audience.ExcludeUnsubscribed {
@@ -1406,22 +1399,15 @@ func (r *contactRepository) GetContactsForBroadcast(
 		query = psql.Select("c.*").
 			From("contacts c").
 			Limit(uint64(limit)).
-			Offset(uint64(offset))
-
-		// Set order by clause based on whether we need deduplication
-		if audience.SkipDuplicateEmails {
-			// For DISTINCT ON (c.email), we must order by c.email first
-			query = query.OrderBy("c.email ASC", "c.created_at ASC")
-		} else {
-			query = query.OrderBy("c.created_at ASC")
-		}
+			Offset(uint64(offset)).
+			OrderBy("c.created_at ASC")
 	}
 
 	// Handle segments filtering
 	if len(audience.Segments) > 0 {
 		// If we already have list filtering, we need to add segments as an additional filter
-		// This means contacts must be in BOTH the specified lists AND segments
-		if len(audience.Lists) > 0 {
+		// This means contacts must be in BOTH the specified list AND segments
+		if audience.List != "" {
 			// Join with contact_segments table in addition to the existing list joins
 			query = query.Join("contact_segments cs ON c.email = cs.email")
 			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
@@ -1434,15 +1420,8 @@ func (r *contactRepository) GetContactsForBroadcast(
 				Join("contact_segments cs ON c.email = cs.email").
 				Where(sq.Eq{"cs.segment_id": audience.Segments}).
 				Limit(uint64(limit)).
-				Offset(uint64(offset))
-
-			// Set order by clause based on whether we need deduplication
-			if audience.SkipDuplicateEmails {
-				// For DISTINCT ON (c.email), we must order by c.email first
-				query = query.OrderBy("c.email ASC", "c.created_at ASC")
-			} else {
-				query = query.OrderBy("c.created_at ASC")
-			}
+				Offset(uint64(offset)).
+				OrderBy("c.created_at ASC")
 		}
 	}
 
@@ -1450,12 +1429,6 @@ func (r *contactRepository) GetContactsForBroadcast(
 	sqlQuery, args, err := query.ToSql()
 	if err != nil {
 		return nil, fmt.Errorf("failed to build query: %w", err)
-	}
-
-	// Handle deduplication if required by modifying the SQL string
-	if audience.SkipDuplicateEmails {
-		// Replace "SELECT" with "SELECT DISTINCT ON (c.email)" at the beginning
-		sqlQuery = strings.Replace(sqlQuery, "SELECT", "SELECT DISTINCT ON (c.email)", 1)
 	}
 
 	// Execute the query
@@ -1675,23 +1648,16 @@ func (r *contactRepository) CountContactsForBroadcast(
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	// Start building the count query
-	// Use DISTINCT only if audience settings require deduplication, otherwise count all rows
-	var countExpression string
-	if audience.SkipDuplicateEmails {
-		countExpression = "COUNT(DISTINCT c.email)"
-	} else {
-		countExpression = "COUNT(*)"
-	}
-	query := psql.Select(countExpression).
+	query := psql.Select("COUNT(*)").
 		From("contacts c")
 
-	// Handle lists filtering
-	if len(audience.Lists) > 0 {
+	// Handle list filtering
+	if audience.List != "" {
 		// Join with contact_lists table to filter by list membership and status
 		query = query.Join("contact_lists cl ON c.email = cl.email")
 
-		// Filter by the specified lists
-		query = query.Where(sq.Eq{"cl.list_id": audience.Lists})
+		// Filter by the specified list
+		query = query.Where(sq.Eq{"cl.list_id": audience.List})
 
 		// Exclude unsubscribed contacts if required
 		if audience.ExcludeUnsubscribed {
@@ -1704,22 +1670,14 @@ func (r *contactRepository) CountContactsForBroadcast(
 	// Handle segments filtering
 	if len(audience.Segments) > 0 {
 		// If we already have list filtering, we need to add segments as an additional filter
-		// This means contacts must be in BOTH the specified lists AND segments
-		if len(audience.Lists) > 0 {
+		// This means contacts must be in BOTH the specified list AND segments
+		if audience.List != "" {
 			// Join with contact_segments table in addition to the existing list joins
 			query = query.Join("contact_segments cs ON c.email = cs.email")
 			query = query.Where(sq.Eq{"cs.segment_id": audience.Segments})
 		} else {
 			// No list filtering, so we're filtering by segments only
-			// Use DISTINCT counting if needed
-			var countExpression string
-			if audience.SkipDuplicateEmails {
-				countExpression = "COUNT(DISTINCT c.email)"
-			} else {
-				countExpression = "COUNT(*)"
-			}
-
-			query = psql.Select(countExpression).
+			query = psql.Select("COUNT(*)").
 				From("contacts c").
 				Join("contact_segments cs ON c.email = cs.email").
 				Where(sq.Eq{"cs.segment_id": audience.Segments})

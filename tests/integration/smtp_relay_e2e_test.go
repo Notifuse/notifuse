@@ -14,6 +14,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	"github.com/Notifuse/notifuse/pkg/ratelimiter"
 	"github.com/Notifuse/notifuse/pkg/smtp_relay"
 	"github.com/Notifuse/notifuse/tests/testutil"
 	"github.com/stretchr/testify/assert"
@@ -87,8 +88,9 @@ func TestSMTPRelayE2E_FullFlow(t *testing.T) {
 
 	// Setup SMTP relay server with REAL services
 	log := logger.NewLogger()
-	rateLimiter := service.NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
 
 	handlerService := service.NewSMTPRelayHandlerService(
 		authService, // REAL auth service
@@ -96,7 +98,7 @@ func TestSMTPRelayE2E_FullFlow(t *testing.T) {
 		appInstance.GetWorkspaceRepository(),              // REAL workspace repo
 		log,
 		jwtSecret,
-		rateLimiter,
+		rl,
 	)
 
 	backend := smtp_relay.NewBackend(
@@ -262,8 +264,9 @@ func TestSMTPRelayE2E_WithEmailHeaders(t *testing.T) {
 	jwtSecret := suite.Config.Security.JWTSecret
 
 	log := logger.NewLogger()
-	rateLimiter := service.NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
 
 	handlerService := service.NewSMTPRelayHandlerService(
 		authService,
@@ -271,7 +274,7 @@ func TestSMTPRelayE2E_WithEmailHeaders(t *testing.T) {
 		appInstance.GetWorkspaceRepository(),
 		log,
 		jwtSecret,
-		rateLimiter,
+		rl,
 	)
 
 	backend := smtp_relay.NewBackend(handlerService.Authenticate, handlerService.HandleMessage, log)
@@ -398,8 +401,9 @@ func TestSMTPRelayE2E_InvalidAuthentication(t *testing.T) {
 	jwtSecret := suite.Config.Security.JWTSecret
 
 	log := logger.NewLogger()
-	rateLimiter := service.NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
 
 	handlerService := service.NewSMTPRelayHandlerService(
 		authService,
@@ -407,7 +411,7 @@ func TestSMTPRelayE2E_InvalidAuthentication(t *testing.T) {
 		appInstance.GetWorkspaceRepository(),
 		log,
 		jwtSecret,
-		rateLimiter,
+		rl,
 	)
 
 	backend := smtp_relay.NewBackend(handlerService.Authenticate, handlerService.HandleMessage, log)
@@ -490,8 +494,9 @@ func TestSMTPRelayE2E_InvalidJSON(t *testing.T) {
 	jwtSecret := suite.Config.Security.JWTSecret
 
 	log := logger.NewLogger()
-	rateLimiter := service.NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
 
 	handlerService := service.NewSMTPRelayHandlerService(
 		authService,
@@ -499,7 +504,7 @@ func TestSMTPRelayE2E_InvalidJSON(t *testing.T) {
 		appInstance.GetWorkspaceRepository(),
 		log,
 		jwtSecret,
-		rateLimiter,
+		rl,
 	)
 
 	backend := smtp_relay.NewBackend(handlerService.Authenticate, handlerService.HandleMessage, log)
@@ -618,8 +623,9 @@ func TestSMTPRelayE2E_MultipleMessages(t *testing.T) {
 	jwtSecret := suite.Config.Security.JWTSecret
 
 	log := logger.NewLogger()
-	rateLimiter := service.NewRateLimiter(5, 1*time.Minute)
-	defer rateLimiter.Stop()
+	rl := ratelimiter.NewRateLimiter()
+	rl.SetPolicy("smtp", 5, 1*time.Minute)
+	defer rl.Stop()
 
 	handlerService := service.NewSMTPRelayHandlerService(
 		authService,
@@ -627,7 +633,7 @@ func TestSMTPRelayE2E_MultipleMessages(t *testing.T) {
 		appInstance.GetWorkspaceRepository(),
 		log,
 		jwtSecret,
-		rateLimiter,
+		rl,
 	)
 
 	backend := smtp_relay.NewBackend(handlerService.Authenticate, handlerService.HandleMessage, log)

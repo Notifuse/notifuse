@@ -70,7 +70,7 @@ func TestWebhookSubscriptionStatusE2E(t *testing.T) {
 	})
 
 	t.Run("Webhook Without List IDs Does Not Update Status", func(t *testing.T) {
-		testWebhookWithoutListIDsDoesNotUpdate(t, suite, client, factory, workspace.ID)
+		testWebhookWithoutListIDDoesNotUpdate(t, suite, client, factory, workspace.ID)
 	})
 }
 
@@ -100,7 +100,7 @@ func testHardBounceUpdatesContactListStatus(t *testing.T, suite *testutil.Integr
 	require.NoError(t, err)
 
 	// Update broadcast audience to include the list
-	broadcast.Audience.Lists = []string{list.ID}
+	broadcast.Audience.List = list.ID
 	app := suite.ServerManager.GetApp()
 	broadcastRepo := app.GetBroadcastRepository()
 	err = broadcastRepo.UpdateBroadcast(context.Background(), broadcast)
@@ -117,11 +117,12 @@ func testHardBounceUpdatesContactListStatus(t *testing.T, suite *testutil.Integr
 		testutil.WithMessageBroadcast(broadcast.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListIDs = []string{list.ID}
+			listID := list.ID
+			m.ListID = &listID
 		})
 	require.NoError(t, err)
-	require.Len(t, message.ListIDs, 1)
-	require.Equal(t, list.ID, message.ListIDs[0])
+	require.NotNil(t, message.ListID)
+	require.Equal(t, list.ID, *message.ListID)
 
 	// Verify contact list status is initially active
 	contactListRepo := app.GetContactListRepository()
@@ -183,7 +184,7 @@ func testComplaintUpdatesContactListStatus(t *testing.T, suite *testutil.Integra
 	require.NoError(t, err)
 
 	// Update broadcast audience to include the list
-	broadcast.Audience.Lists = []string{list.ID}
+	broadcast.Audience.List = list.ID
 	app := suite.ServerManager.GetApp()
 	broadcastRepo := app.GetBroadcastRepository()
 	err = broadcastRepo.UpdateBroadcast(context.Background(), broadcast)
@@ -200,7 +201,8 @@ func testComplaintUpdatesContactListStatus(t *testing.T, suite *testutil.Integra
 		testutil.WithMessageBroadcast(broadcast.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListIDs = []string{list.ID}
+			listID := list.ID
+			m.ListID = &listID
 		})
 	require.NoError(t, err)
 
@@ -259,7 +261,7 @@ func testSoftBounceDoesNotUpdateContactListStatus(t *testing.T, suite *testutil.
 	require.NoError(t, err)
 
 	// Update broadcast audience to include the list
-	broadcast.Audience.Lists = []string{list.ID}
+	broadcast.Audience.List = list.ID
 	app := suite.ServerManager.GetApp()
 	broadcastRepo := app.GetBroadcastRepository()
 	err = broadcastRepo.UpdateBroadcast(context.Background(), broadcast)
@@ -276,7 +278,8 @@ func testSoftBounceDoesNotUpdateContactListStatus(t *testing.T, suite *testutil.
 		testutil.WithMessageBroadcast(broadcast.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListIDs = []string{list.ID}
+			listID := list.ID
+			m.ListID = &listID
 		})
 	require.NoError(t, err)
 
@@ -351,14 +354,15 @@ func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTe
 	broadcast, err := factory.CreateBroadcast(workspaceID)
 	require.NoError(t, err)
 
-	// Update broadcast audience to include list1 and list2 only
-	broadcast.Audience.Lists = []string{list1.ID, list2.ID}
+	// Update broadcast audience to include list1 only
+	broadcast.Audience.List = list1.ID
 	app := suite.ServerManager.GetApp()
 	broadcastRepo := app.GetBroadcastRepository()
 	err = broadcastRepo.UpdateBroadcast(context.Background(), broadcast)
 	require.NoError(t, err)
 
-	// Create message history with list_ids for list1 and list2
+	// Create message history with list_id for list1
+	// Note: Since v17, messages are associated with a single list, not multiple lists
 	messageID := fmt.Sprintf("msg-%d", time.Now().UnixNano())
 	template, err := factory.CreateTemplate(workspaceID)
 	require.NoError(t, err)
@@ -369,7 +373,8 @@ func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTe
 		testutil.WithMessageBroadcast(broadcast.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListIDs = []string{list1.ID, list2.ID}
+			listID := list1.ID
+			m.ListID = &listID
 		})
 	require.NoError(t, err)
 
@@ -386,18 +391,18 @@ func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTe
 	// Give the database trigger time to process
 	time.Sleep(100 * time.Millisecond)
 
-	// Verify both list1 and list2 statuses were updated
+	// Verify only list1 status was updated (the list associated with the message)
 	contactListRepo := app.GetContactListRepository()
 
 	list1ContactList, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, domain.ContactListStatusBounced, list1ContactList.Status, "List1 status should be bounced")
 
+	// Verify list2 and list3 statuses remain active (not included in the message)
 	list2ContactList, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list2.ID)
 	require.NoError(t, err)
-	assert.Equal(t, domain.ContactListStatusBounced, list2ContactList.Status, "List2 status should be bounced")
+	assert.Equal(t, domain.ContactListStatusActive, list2ContactList.Status, "List2 status should remain active (not associated with the bounced message)")
 
-	// Verify list3 status remains active (not included in the message)
 	list3ContactList, err := contactListRepo.GetContactListByIDs(context.Background(), workspaceID, contact.Email, list3.ID)
 	require.NoError(t, err)
 	assert.Equal(t, domain.ContactListStatusActive, list3ContactList.Status, "List3 status should remain active")
@@ -429,7 +434,7 @@ func testComplaintTakesPriorityOverBounce(t *testing.T, suite *testutil.Integrat
 	require.NoError(t, err)
 
 	// Update broadcast audience to include the list
-	broadcast.Audience.Lists = []string{list.ID}
+	broadcast.Audience.List = list.ID
 	app := suite.ServerManager.GetApp()
 	broadcastRepo := app.GetBroadcastRepository()
 	err = broadcastRepo.UpdateBroadcast(context.Background(), broadcast)
@@ -446,7 +451,8 @@ func testComplaintTakesPriorityOverBounce(t *testing.T, suite *testutil.Integrat
 		testutil.WithMessageBroadcast(broadcast.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListIDs = []string{list.ID}
+			listID := list.ID
+			m.ListID = &listID
 		})
 	require.NoError(t, err)
 
@@ -470,7 +476,7 @@ func testComplaintTakesPriorityOverBounce(t *testing.T, suite *testutil.Integrat
 	assert.Equal(t, domain.ContactListStatusComplained, updatedContactList.Status, "Contact list status should be upgraded to complained")
 }
 
-func testWebhookWithoutListIDsDoesNotUpdate(t *testing.T, suite *testutil.IntegrationTestSuite, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
+func testWebhookWithoutListIDDoesNotUpdate(t *testing.T, suite *testutil.IntegrationTestSuite, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
 	// Create SES integration for webhook testing
 	integration, err := factory.CreateSESIntegration(workspaceID)
 	require.NoError(t, err)
@@ -501,7 +507,7 @@ func testWebhookWithoutListIDsDoesNotUpdate(t *testing.T, suite *testutil.Integr
 		testutil.WithMessageTemplate(template.ID),
 		func(m *domain.MessageHistory) {
 			m.ID = messageID
-			m.ListIDs = nil // No list IDs
+			m.ListID = nil // No list ID
 		})
 	require.NoError(t, err)
 

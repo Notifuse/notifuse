@@ -55,7 +55,7 @@ describe('RootLayout', () => {
     useMatch.mockImplementation(() => false)
 
     render(<RootLayout />)
-    expect(mockNavigate).toHaveBeenCalledWith({ to: '/signin' })
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/console/signin' })
   })
 
   it('redirects to workspace create when authenticated but has no workspaces', () => {
@@ -71,7 +71,7 @@ describe('RootLayout', () => {
     useMatch.mockImplementation(() => false)
 
     render(<RootLayout />)
-    expect(mockNavigate).toHaveBeenCalledWith({ to: '/workspace/create' })
+    expect(mockNavigate).toHaveBeenCalledWith({ to: '/console/workspace/create' })
   })
 
   it('renders outlet when authenticated and has workspaces', () => {

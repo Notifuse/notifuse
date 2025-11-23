@@ -112,7 +112,7 @@ func TestBroadcastOrchestrator_Process_CancelledBroadcast(t *testing.T) {
 		ID:     broadcastID,
 		Status: domain.BroadcastStatusCancelled,
 		Audience: domain.AudienceSettings{
-			Lists: []string{"list-1"},
+			List: "list-1",
 		},
 		TestSettings: domain.BroadcastTestSettings{
 			Enabled: false,

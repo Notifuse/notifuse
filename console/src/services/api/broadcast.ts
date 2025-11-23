@@ -68,10 +68,9 @@ export interface BroadcastTestSettings {
 }
 
 export interface AudienceSettings {
-  lists?: string[]
+  list?: string
   segments?: string[]
   exclude_unsubscribed: boolean
-  skip_duplicate_emails: boolean
 }
 
 export interface ScheduleSettings {
@@ -94,27 +93,27 @@ export type BroadcastStatus =
   | 'test_completed'
   | 'winner_selected'
 
+export interface BroadcastChannels {
+  email: boolean
+}
+
 export interface Broadcast {
   id: string
   workspace_id: string
   name: string
+  channel_type: string
   status: BroadcastStatus
   audience: AudienceSettings
   schedule: ScheduleSettings
   test_settings: BroadcastTestSettings
   utm_parameters?: UTMParameters
   metadata?: Record<string, any>
-  sent_count: number
-  delivered_count: number
-  failed_count: number
-  total_opens?: number
-  total_clicks?: number
-  total_bounced?: number
-  total_complained?: number
-  total_unsubscribed?: number
+  channels?: BroadcastChannels // Legacy/frontend-only field
   winning_template?: string
   test_sent_at?: string
   winner_sent_at?: string
+  test_phase_recipient_count: number
+  winner_phase_recipient_count: number
   created_at: string
   updated_at: string
   started_at?: string
@@ -130,6 +129,7 @@ export interface CreateBroadcastRequest {
   audience: AudienceSettings
   schedule: ScheduleSettings
   test_settings: BroadcastTestSettings
+  tracking_enabled?: boolean
   utm_parameters?: UTMParameters
   metadata?: Record<string, any>
 }
@@ -141,6 +141,7 @@ export interface UpdateBroadcastRequest {
   audience: AudienceSettings
   schedule: ScheduleSettings
   test_settings: BroadcastTestSettings
+  tracking_enabled?: boolean
   utm_parameters?: UTMParameters
   metadata?: Record<string, any>
 }

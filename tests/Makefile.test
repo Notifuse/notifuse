@@ -1,19 +1,22 @@
 # Test Infrastructure Makefile
 # This file contains commands for managing test infrastructure
 
-.PHONY: help start stop restart clean status logs test health
+.PHONY: help start stop restart clean status logs test test-blog test-quick test-full health
 
 # Default target
 help:
 	@echo "Test Infrastructure Management Commands:"
-	@echo "  start     - Start test infrastructure"
-	@echo "  stop      - Stop test infrastructure"
-	@echo "  restart   - Restart test infrastructure"
-	@echo "  clean     - Stop and remove all test volumes"
-	@echo "  status    - Show status of test services"
-	@echo "  logs      - Show logs from test services"
-	@echo "  health    - Check health of test services"
-	@echo "  test      - Run integration tests"
+	@echo "  start       - Start test infrastructure"
+	@echo "  stop        - Stop test infrastructure"
+	@echo "  restart     - Restart test infrastructure"
+	@echo "  clean       - Stop and remove all test volumes"
+	@echo "  status      - Show status of test services"
+	@echo "  logs        - Show logs from test services"
+	@echo "  health      - Check health of test services"
+	@echo "  test        - Run integration tests"
+	@echo "  test-blog   - Run blog integration tests"
+	@echo "  test-quick  - Run quick integration tests"
+	@echo "  test-full   - Run full test cycle (clean, start, test, stop)"
 
 
 # Start test infrastructure
@@ -86,6 +89,18 @@ test-quick:
 	TEST_DB_PASSWORD=test_password \
 	ENVIRONMENT=test \
 	go test -v -timeout 5m -short ../tests/integration/...
+
+# Blog integration tests
+test-blog:
+	@echo "📝 Running blog integration tests..."
+	@echo "Make sure test infrastructure is running (run 'make start' first)"
+	INTEGRATION_TESTS=true \
+	TEST_DB_HOST=localhost \
+	TEST_DB_PORT=5433 \
+	TEST_DB_USER=notifuse_test \
+	TEST_DB_PASSWORD=test_password \
+	ENVIRONMENT=test \
+	go test -v -timeout 10m -run TestBlog ../tests/integration/...
 
 # Full test cycle
 test-full: clean start test stop

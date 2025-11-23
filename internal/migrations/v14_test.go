@@ -20,4 +20,3 @@ func TestV14Migration_HasWorkspaceUpdate(t *testing.T) {
 	migration := &V14Migration{}
 	assert.True(t, migration.HasWorkspaceUpdate())
 }
-

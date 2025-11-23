@@ -73,7 +73,7 @@ const DEFAULT_VISIBLE_COLUMNS = {
 }
 
 export function ContactsPage() {
-  const { workspaceId } = useParams({ from: '/workspace/$workspaceId/contacts' })
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/contacts' })
   const search = useSearch({ from: workspaceContactsRoute.id })
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -402,7 +402,7 @@ export function ContactsPage() {
       key: 'email',
       fixed: 'left' as const,
       onHeaderCell: () => ({
-        className: '!bg-white'
+        style: { backgroundColor: '#F9F9F9' }
       })
     },
     {
@@ -803,7 +803,7 @@ export function ContactsPage() {
       fixed: 'right' as const,
       align: 'right' as const,
       onHeaderCell: () => ({
-        className: '!bg-white'
+        style: { backgroundColor: '#F9F9F9' }
       }),
       render: (_: unknown, record: Contact) => {
         const menuItems: MenuProps['items'] = [
@@ -892,8 +892,9 @@ export function ContactsPage() {
                 workspaceId={workspaceId}
                 lists={listsData?.lists || []}
                 buttonProps={{
-                  type: 'default',
-                  buttonContent: 'Bulk Update',
+                  type: 'primary',
+                  ghost: true,
+                  children: 'Bulk Update',
                   disabled: !permissions?.contacts?.write
                 }}
               />

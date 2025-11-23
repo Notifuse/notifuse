@@ -131,10 +131,9 @@ func (m *VariationMetrics) Scan(value interface{}) error {
 
 // AudienceSettings defines how recipients are determined for a broadcast
 type AudienceSettings struct {
-	Lists               []string `json:"lists,omitempty"`
+	List                string   `json:"list,omitempty"`
 	Segments            []string `json:"segments,omitempty"`
 	ExcludeUnsubscribed bool     `json:"exclude_unsubscribed"`
-	SkipDuplicateEmails bool     `json:"skip_duplicate_emails"`
 }
 
 // Value implements the driver.Valuer interface for database serialization
@@ -264,7 +263,6 @@ type Broadcast struct {
 	CancelledAt               *time.Time            `json:"cancelled_at,omitempty"`
 	PausedAt                  *time.Time            `json:"paused_at,omitempty"`
 	PauseReason               string                `json:"pause_reason,omitempty"`
-	SentAt                    *time.Time            `json:"sent_at,omitempty"`
 }
 
 // UTMParameters contains UTM tracking parameters for the broadcast
@@ -366,9 +364,9 @@ func (b *Broadcast) Validate() error {
 	}
 
 	// Validate audience settings
-	// Lists are mandatory, segments are optional and act as filters on lists
-	if len(b.Audience.Lists) == 0 {
-		return fmt.Errorf("at least one list must be specified")
+	// CHANGED: List is required (for all broadcasts, not just web)
+	if b.Audience.List == "" {
+		return fmt.Errorf("list is required")
 	}
 
 	// Validate schedule settings

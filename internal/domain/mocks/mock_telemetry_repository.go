@@ -36,6 +36,21 @@ func (m *MockTelemetryRepository) EXPECT() *MockTelemetryRepositoryMockRecorder 
 	return m.recorder
 }
 
+// CountBlogPosts mocks base method.
+func (m *MockTelemetryRepository) CountBlogPosts(arg0 context.Context, arg1 *sql.DB) (int, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CountBlogPosts", arg0, arg1)
+	ret0, _ := ret[0].(int)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CountBlogPosts indicates an expected call of CountBlogPosts.
+func (mr *MockTelemetryRepositoryMockRecorder) CountBlogPosts(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountBlogPosts", reflect.TypeOf((*MockTelemetryRepository)(nil).CountBlogPosts), arg0, arg1)
+}
+
 // CountBroadcasts mocks base method.
 func (m *MockTelemetryRepository) CountBroadcasts(arg0 context.Context, arg1 *sql.DB) (int, error) {
 	m.ctrl.T.Helper()

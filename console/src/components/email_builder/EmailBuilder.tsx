@@ -836,7 +836,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                   }
                 }}
               >
-                <div className="pt-4 px-6 text-gray-900 text-sm font-bold">Email structure</div>
+                <div className="pt-4 px-6 text-gray-900 text-sm font-bold">Content structure</div>
                 <TreePanel
                   emailTree={tree}
                   selectedBlockId={effectiveSelectedBlockId}

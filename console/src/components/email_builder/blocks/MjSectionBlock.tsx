@@ -1,5 +1,5 @@
 import React from 'react'
-import { Switch, Radio, Tooltip } from 'antd'
+import { Switch, Radio, Tooltip, Select, Alert } from 'antd'
 import type { MJMLComponentType, EmailBlock, MJSectionAttributes } from '../types'
 import {
   BaseEmailBlock,
@@ -16,6 +16,37 @@ import PaddingInput from '../ui/PaddingInput'
 import AlignSelector from '../ui/AlignSelector'
 import StringPopoverInput from '../ui/StringPopoverInput'
 import BorderRadiusInput from '../ui/BorderRadiusInput'
+
+/**
+ * Helper function to detect Liquid template tags in a block or its children
+ */
+const hasLiquidTagsInSection = (block: EmailBlock): boolean => {
+  const liquidRegex = /\{\{.*?\}\}|\{%.*?%\}/
+
+  const checkBlock = (b: EmailBlock): boolean => {
+    // Check content field if present
+    if (b.content && liquidRegex.test(b.content)) {
+      return true
+    }
+
+    // Check text in attributes (for mj-text content attribute)
+    if (b.attributes) {
+      const attrs = b.attributes as any
+      if (attrs.content && typeof attrs.content === 'string' && liquidRegex.test(attrs.content)) {
+        return true
+      }
+    }
+
+    // Recursively check children
+    if (b.children && b.children.length > 0) {
+      return b.children.some((child) => checkBlock(child))
+    }
+
+    return false
+  }
+
+  return checkBlock(block)
+}
 
 /**
  * Implementation for mj-section blocks
@@ -199,6 +230,36 @@ export class MjSectionBlock extends BaseEmailBlock {
               }
             />
           </InputLayout>
+
+          {/* Visibility / Channel Selector */}
+          <InputLayout 
+            label="Visibility" 
+            help="Control which channels can see this section"
+          >
+            <Select
+              size="small"
+              value={(currentAttributes as any).visibility || 'all'}
+              onChange={(value) => handleAttributeChange('visibility', value)}
+              style={{ width: '100%' }}
+              options={[
+                { value: 'all', label: 'All Channels' },
+                { value: 'email_only', label: 'Email Only' },
+                { value: 'web_only', label: 'Web Only' }
+              ]}
+            />
+          </InputLayout>
+
+          {/* Warning for Liquid tags in web-visible sections */}
+          {hasLiquidTagsInSection(this.block) && 
+           (currentAttributes as any).visibility !== 'email_only' && (
+            <Alert
+              type="warning"
+              message="Personalization Not Available for Web"
+              description="This section contains Liquid template tags (e.g., {{ contact.name }}). Web publications don't have access to contact data, so these tags will not render properly. Consider marking this section as 'Email Only' or remove personalization tags."
+              showIcon
+              closable
+            />
+          )}
 
           {/* Advanced Settings */}
           <InputLayout label="CSS Class" help="Custom CSS class for styling">

@@ -1,10 +1,15 @@
 .PHONY: build test-unit run clean keygen test-service test-repo test-http test-migrations test-database test-pkg dev coverage docker-build docker-run docker-stop docker-clean docker-logs docker-buildx-setup docker-publish docker-compose-up docker-compose-down docker-compose-build
 
 build:
-	go build -o bin/server ./cmd/api
+	@echo "Building with CGO enabled (required for V8)..."
+	CGO_ENABLED=1 go build -o bin/server ./cmd/api
+
+build-static:
+	@echo "Note: Static builds (CGO_ENABLED=0) are not compatible with V8"
+	@echo "Use 'make build' for local development or Docker for deployment"
 
 test-unit:
-	go test -race -v ./internal/domain  ./internal/http ./internal/service ./internal/service/broadcast ./internal/repository ./internal/migrations ./internal/database
+	go test -race -v ./internal/... ./pkg/...
 
 # End-to-end test command for Cursor Agent: runs all integration tests (non-verbose)
 e2e-test-within-cursor-agent:

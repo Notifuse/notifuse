@@ -36,9 +36,8 @@ func createValidBroadcast() domain.Broadcast {
 		Name:        "Test Newsletter",
 		Status:      domain.BroadcastStatusDraft,
 		Audience: domain.AudienceSettings{
-			Lists:               []string{"list123"},
+			List:                "list123",
 			ExcludeUnsubscribed: true,
-			SkipDuplicateEmails: true,
 		},
 		Schedule: domain.ScheduleSettings{
 			IsScheduled: false,
@@ -160,18 +159,18 @@ func TestBroadcast_Validate(t *testing.T) {
 			name: "missing audience selection",
 			broadcast: func() domain.Broadcast {
 				b := createValidBroadcast()
-				b.Audience.Lists = []string{}
+				b.Audience.List = ""
 				b.Audience.Segments = []string{}
 				return b
 			}(),
 			wantErr: true,
-			errMsg:  "at least one list must be specified",
+			errMsg:  "list is required",
 		},
 		{
-			name: "both lists and segments specified (valid - segments filter lists)",
+			name: "list and segments specified (valid - segments filter list)",
 			broadcast: func() domain.Broadcast {
 				b := createValidBroadcast()
-				b.Audience.Lists = []string{"list1"}
+				b.Audience.List = "list1"
 				b.Audience.Segments = []string{"segment1"}
 				return b
 			}(),
@@ -346,7 +345,7 @@ func TestCreateBroadcastRequest_Validate(t *testing.T) {
 				WorkspaceID: "workspace123",
 				Name:        "Test Newsletter",
 				Audience: domain.AudienceSettings{
-					Lists:               []string{"list123"},
+					List:                "list123",
 					ExcludeUnsubscribed: true,
 				},
 				Schedule: domain.ScheduleSettings{
@@ -363,7 +362,7 @@ func TestCreateBroadcastRequest_Validate(t *testing.T) {
 			request: domain.CreateBroadcastRequest{
 				Name: "Test Newsletter",
 				Audience: domain.AudienceSettings{
-					Lists: []string{"list123"},
+					List: "list123",
 				},
 			},
 			wantErr: true,
@@ -374,7 +373,7 @@ func TestCreateBroadcastRequest_Validate(t *testing.T) {
 			request: domain.CreateBroadcastRequest{
 				WorkspaceID: "workspace123",
 				Audience: domain.AudienceSettings{
-					Lists: []string{"list123"},
+					List: "list123",
 				},
 			},
 			wantErr: true,
@@ -1207,10 +1206,9 @@ func TestVariationMetrics_ValueScan(t *testing.T) {
 func TestAudienceSettings_ValueScan(t *testing.T) {
 	// Test serialization
 	original := domain.AudienceSettings{
-		Lists:               []string{"list1", "list2"},
+		List:                "list1",
 		Segments:            []string{}, // Empty slice
 		ExcludeUnsubscribed: true,
-		SkipDuplicateEmails: true,
 	}
 
 	// Test Value method
@@ -1224,13 +1222,12 @@ func TestAudienceSettings_ValueScan(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify the scanned value matches the original
-	assert.Equal(t, original.Lists, scanned.Lists)
+	assert.Equal(t, original.List, scanned.List)
 	// When an empty slice is serialized to JSON and back, it may become nil
 	// so we should compare lengths instead of direct equality
 	assert.Len(t, original.Segments, 0)
 	assert.Len(t, scanned.Segments, 0)
 	assert.Equal(t, original.ExcludeUnsubscribed, scanned.ExcludeUnsubscribed)
-	assert.Equal(t, original.SkipDuplicateEmails, scanned.SkipDuplicateEmails)
 
 	// Test scanning nil value
 	var nilTarget domain.AudienceSettings
@@ -1829,7 +1826,7 @@ func TestCreateBroadcastRequest_Validate_Additional(t *testing.T) {
 		WorkspaceID: "workspace123",
 		Name:        "Test Scheduled Newsletter",
 		Audience: domain.AudienceSettings{
-			Lists: []string{"list123"},
+			List: "list123",
 		},
 		Schedule: domain.ScheduleSettings{
 			IsScheduled:   true,
@@ -1861,22 +1858,10 @@ func TestUpdateBroadcastRequest_Validate_Additional(t *testing.T) {
 
 	_, err := invalidAudienceRequest.Validate(&existingBroadcast)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "at least one list must be specified")
+	assert.Contains(t, err.Error(), "list is required")
 }
 
-// Additional test for ParseBoolParam
-func TestParseBoolParam_AdditionalCases(t *testing.T) {
-	// Test empty string
-	val, err := domain.ParseBoolParam("")
-	if err == nil {
-		t.Log("Empty string parsed without error, checking result is default false value")
-		assert.False(t, val)
-	} else {
-		// If implementation changes to consider empty string an error, this would still pass
-		t.Log("Empty string considered invalid boolean")
-	}
-}
-
+// Test that Channels are properly persisted on update
 // Add more FromURLParams test cases
 func TestGetBroadcastsRequest_FromURLParams_Additional(t *testing.T) {
 	params := url.Values{

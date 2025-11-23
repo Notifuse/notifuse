@@ -771,7 +771,12 @@ export function ContactDetailsDrawer({
           {/* Left column - Contact Details (400px fixed width) */}
           <div
             className="bg-gray-50 overflow-y-auto h-full"
-            style={{ width: '400px', minWidth: '400px', maxWidth: '400px' }}
+            style={{
+              width: '400px',
+              minWidth: '400px',
+              maxWidth: '400px',
+              borderRight: '1px solid #f0f0f0'
+            }}
           >
             {/* Contact info at the top */}
             <div className="p-6 pb-4 border-b border-gray-200 flex items-center gap-3">

@@ -19,6 +19,7 @@ import { FieldTypeString } from './type_string'
 import { FieldTypeTime } from './type_time'
 import { LeafActionForm, LeafContactForm, LeafContactListForm } from './form_leaf'
 import { FieldTypeNumber } from './type_number'
+import { FieldTypeJSON } from './type_json'
 import styles from './input.module.css'
 
 export const HasLeaf = (node: TreeNode): boolean => {
@@ -39,12 +40,14 @@ export type TreeNodeInputProps = {
   onChange?: (updatedValue: TreeNode) => void
   schemas: SegmentSchemas
   lists?: List[]
+  customFieldLabels?: Record<string, string>
 }
 
 const fieldTypeRendererDictionary: FieldTypeRendererDictionary = {
   string: new FieldTypeString(),
   time: new FieldTypeTime(),
-  number: new FieldTypeNumber()
+  number: new FieldTypeNumber(),
+  json: new FieldTypeJSON()
 }
 
 // Helper function to get color class name
@@ -429,6 +432,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
               setEditingNodeLeaf={setEditingNodeLeaf}
               cancelOrDeleteNode={cancelOrDeleteNode.bind(null, path, pathKey)}
+              customFieldLabels={props.customFieldLabels}
             />
           )}
           {isContactListTable && (
@@ -443,6 +447,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               setEditingNodeLeaf={setEditingNodeLeaf}
               cancelOrDeleteNode={cancelOrDeleteNode.bind(null, path, pathKey)}
               lists={props.lists || []}
+              customFieldLabels={props.customFieldLabels}
             />
           )}
           {!isContactTable && !isContactListTable && (
@@ -456,6 +461,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
               setEditingNodeLeaf={setEditingNodeLeaf}
               cancelOrDeleteNode={cancelOrDeleteNode.bind(null, path, pathKey)}
+              customFieldLabels={props.customFieldLabels}
             />
           )}
         </div>
@@ -624,7 +630,12 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                     <tbody>
                       {filtersToShow.map((filter, key) => {
                         const field = schema.fields[filter.field_name]
-                        const fieldTypeRenderer = fieldTypeRendererDictionary[filter.field_type]
+                        // Use JSON renderer if filter has json_path, otherwise use the field_type renderer
+                        const rendererType =
+                          filter.json_path && filter.json_path.length > 0
+                            ? 'json'
+                            : filter.field_type
+                        const fieldTypeRenderer = fieldTypeRendererDictionary[rendererType]
 
                         return (
                           <tr key={key}>
@@ -632,7 +643,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                               {!fieldTypeRenderer && (
                                 <Alert
                                   type="error"
-                                  message={'type ' + filter.field_type + ' is not implemented'}
+                                  message={'type ' + rendererType + ' is not implemented'}
                                 />
                               )}
                               {fieldTypeRenderer && (
@@ -641,9 +652,11 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                                     title={'field: ' + filter.field_name}
                                     content={field.description}
                                   >
-                                    <b>{field.title}</b>
+                                    <b>
+                                      {props.customFieldLabels?.[filter.field_name] || field.title}
+                                    </b>
                                   </Popover>
-                                  {fieldTypeRenderer.render(filter, field)}
+                                  {fieldTypeRenderer.render(filter, field, props.customFieldLabels)}
                                 </Space>
                               )}
                             </td>

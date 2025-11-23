@@ -10,7 +10,7 @@ import { getBrowserTimezone } from '../lib/timezoneNormalizer'
 type TimePeriod = '7D' | '14D' | '30D' | '90D'
 
 export function AnalyticsPage() {
-  const { workspaceId } = useParams({ from: '/workspace/$workspaceId' })
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { workspaces } = useAuth()
 
   const [selectedPeriod, setSelectedPeriod] = useState<TimePeriod>('14D')

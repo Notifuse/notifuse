@@ -55,6 +55,12 @@ func (m *MockWorkspaceRepository) List(ctx context.Context) ([]*domain.Workspace
 	return wss, args.Error(1)
 }
 
+func (m *MockWorkspaceRepository) GetWorkspaceByCustomDomain(ctx context.Context, hostname string) (*domain.Workspace, error) {
+	args := m.Called(ctx, hostname)
+	ws, _ := args.Get(0).(*domain.Workspace)
+	return ws, args.Error(1)
+}
+
 func (m *MockWorkspaceRepository) Update(ctx context.Context, workspace *domain.Workspace) error {
 	args := m.Called(ctx, workspace)
 	return args.Error(0)
@@ -181,15 +187,15 @@ func createValidTestTree() notifuse_mjml.EmailBlock {
 	columnBase := notifuse_mjml.NewBaseBlock("col1", notifuse_mjml.MJMLComponentMjColumn)
 	columnBase.Children = []notifuse_mjml.EmailBlock{textBlock}
 	columnBlock := &notifuse_mjml.MJColumnBlock{BaseBlock: columnBase}
-	
+
 	sectionBase := notifuse_mjml.NewBaseBlock("sec1", notifuse_mjml.MJMLComponentMjSection)
 	sectionBase.Children = []notifuse_mjml.EmailBlock{columnBlock}
 	sectionBlock := &notifuse_mjml.MJSectionBlock{BaseBlock: sectionBase}
-	
+
 	bodyBase := notifuse_mjml.NewBaseBlock("body1", notifuse_mjml.MJMLComponentMjBody)
 	bodyBase.Children = []notifuse_mjml.EmailBlock{sectionBlock}
 	bodyBlock := &notifuse_mjml.MJBodyBlock{BaseBlock: bodyBase}
-	
+
 	rootBase := notifuse_mjml.NewBaseBlock("root", notifuse_mjml.MJMLComponentMjml)
 	rootBase.Attributes["version"] = "4.0.0"
 	rootBase.Children = []notifuse_mjml.EmailBlock{bodyBlock}
@@ -245,13 +251,13 @@ func TestTemplateRepository_CreateTemplate(t *testing.T) {
 	// Expect Insert Query
 	mockSQL.ExpectExec(regexp.QuoteMeta(`
 		INSERT INTO templates (
-			id, name, version, channel, email, category, template_macro_id, integration_id,
+			id, name, version, channel, email, web, category, template_macro_id, integration_id,
 			test_data, settings, 
 			created_at, updated_at
 		)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 	`)).WithArgs(
-		template.ID, template.Name, 1, template.Channel, template.Email, template.Category,
+		template.ID, template.Name, 1, template.Channel, template.Email, template.Web, template.Category,
 		nil, template.IntegrationID, template.TestData, template.Settings, sqlmock.AnyArg(), sqlmock.AnyArg(), // created_at, updated_at
 	).WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -280,7 +286,7 @@ func TestTemplateRepository_CreateTemplate(t *testing.T) {
 	mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil)
 	mockSQL.ExpectExec(regexp.QuoteMeta(`INSERT INTO templates`)).
 		WithArgs(
-			template.ID, template.Name, 1, template.Channel, template.Email, template.Category,
+			template.ID, template.Name, 1, template.Channel, template.Email, template.Web, template.Category,
 			nil, template.IntegrationID, template.TestData, template.Settings, sqlmock.AnyArg(), sqlmock.AnyArg(),
 		).WillReturnError(fmt.Errorf("db insert error"))
 
@@ -316,15 +322,15 @@ func TestTemplateRepository_GetTemplateByID(t *testing.T) {
 	templateID := template.ID
 	version := template.Version
 
-	columns := []string{"id", "name", "version", "channel", "email", "category", "template_macro_id", "integration_id", "test_data", "settings", "created_at", "updated_at"}
+	columns := []string{"id", "name", "version", "channel", "email", "web", "category", "template_macro_id", "integration_id", "test_data", "settings", "created_at", "updated_at"}
 
 	// === Test Case 1: Get Latest Version (version = 0) ===
 	mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
 	rowsLatest := sqlmock.NewRows(columns).
-		AddRow(templateID, template.Name, version, template.Channel, template.Email, template.Category, nil, template.IntegrationID, template.TestData, template.Settings, template.CreatedAt, template.UpdatedAt)
+		AddRow(templateID, template.Name, version, template.Channel, template.Email, template.Web, template.Category, nil, template.IntegrationID, template.TestData, template.Settings, template.CreatedAt, template.UpdatedAt)
 	mockSQL.ExpectQuery(regexp.QuoteMeta(`
 			SELECT 
-				id, name, version, channel, email, category, template_macro_id, integration_id,
+				id, name, version, channel, email, web, category, template_macro_id, integration_id,
 				test_data, settings, 
 				created_at, updated_at
 			FROM templates
@@ -352,10 +358,10 @@ func TestTemplateRepository_GetTemplateByID(t *testing.T) {
 	// === Test Case 2: Get Specific Version ===
 	mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
 	rowsSpecific := sqlmock.NewRows(columns).
-		AddRow(templateID, template.Name, version, template.Channel, template.Email, template.Category, nil, template.IntegrationID, template.TestData, template.Settings, template.CreatedAt, template.UpdatedAt)
+		AddRow(templateID, template.Name, version, template.Channel, template.Email, template.Web, template.Category, nil, template.IntegrationID, template.TestData, template.Settings, template.CreatedAt, template.UpdatedAt)
 	mockSQL.ExpectQuery(regexp.QuoteMeta(`
 			SELECT 
-				id, name, version, channel, email, category, template_macro_id, integration_id,
+				id, name, version, channel, email, web, category, template_macro_id, integration_id,
 				test_data, settings, 
 				created_at, updated_at
 			FROM templates
@@ -410,9 +416,9 @@ func TestTemplateRepository_GetTemplateByID(t *testing.T) {
 	// === Test Case 6: JSON Unmarshal Error (Simulated by invalid JSON) ===
 	mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
 	rowsInvalidJSON := sqlmock.NewRows(columns).
-		AddRow(templateID, template.Name, version, template.Channel, nil, template.Category, nil, nil, template.TestData, template.Settings, template.CreatedAt, template.UpdatedAt).
+		AddRow(templateID, template.Name, version, template.Channel, nil, nil, template.Category, nil, nil, template.TestData, template.Settings, template.CreatedAt, template.UpdatedAt).
 		RowError(0, fmt.Errorf("scan error"))
-	mockSQL.ExpectQuery(regexp.QuoteMeta(`SELECT id, name, version, channel, email, category`)).WithArgs(templateID, version).WillReturnRows(rowsInvalidJSON)
+	mockSQL.ExpectQuery(regexp.QuoteMeta(`SELECT id, name, version, channel, email, web, category`)).WithArgs(templateID, version).WillReturnRows(rowsInvalidJSON)
 
 	result, err = repo.GetTemplateByID(ctx, workspaceID, templateID, version)
 	require.Error(t, err)
@@ -505,14 +511,14 @@ func TestTemplateRepository_GetTemplates(t *testing.T) {
 	tmpl2.Version = 1 // Latest version for tmpl-2
 	tmpl2.UpdatedAt = time.Now().UTC()
 
-	columns := []string{"id", "name", "version", "channel", "email", "category", "template_macro_id", "integration_id", "test_data", "settings", "created_at", "updated_at"}
+	columns := []string{"id", "name", "version", "channel", "email", "web", "category", "template_macro_id", "integration_id", "test_data", "settings", "created_at", "updated_at"}
 
 	// === Test Case 1: Success - No Category Filter ===
 	t.Run("Success - No Category Filter", func(t *testing.T) {
 		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
 		rows := sqlmock.NewRows(columns).
-			AddRow(tmpl2.ID, tmpl2.Name, tmpl2.Version, tmpl2.Channel, tmpl2.Email, tmpl2.Category, nil, tmpl2.IntegrationID, tmpl2.TestData, tmpl2.Settings, tmpl2.CreatedAt, tmpl2.UpdatedAt). // tmpl2 is newer
-			AddRow(tmpl1.ID, tmpl1.Name, tmpl1.Version, tmpl1.Channel, tmpl1.Email, tmpl1.Category, nil, tmpl1.IntegrationID, tmpl1.TestData, tmpl1.Settings, tmpl1.CreatedAt, tmpl1.UpdatedAt)
+			AddRow(tmpl2.ID, tmpl2.Name, tmpl2.Version, tmpl2.Channel, tmpl2.Email, tmpl2.Web, tmpl2.Category, nil, tmpl2.IntegrationID, tmpl2.TestData, tmpl2.Settings, tmpl2.CreatedAt, tmpl2.UpdatedAt). // tmpl2 is newer
+			AddRow(tmpl1.ID, tmpl1.Name, tmpl1.Version, tmpl1.Channel, tmpl1.Email, tmpl1.Web, tmpl1.Category, nil, tmpl1.IntegrationID, tmpl1.TestData, tmpl1.Settings, tmpl1.CreatedAt, tmpl1.UpdatedAt)
 
 		// Expect squirrel generated query
 		expectedQuery := `
@@ -521,14 +527,14 @@ func TestTemplateRepository_GetTemplates(t *testing.T) {
 				FROM templates
 				GROUP BY id
 			)
-			SELECT t.id, t.name, t.version, t.channel, t.email, t.category, t.template_macro_id, t.integration_id, t.test_data, t.settings, t.created_at, t.updated_at
+			SELECT t.id, t.name, t.version, t.channel, t.email, t.web, t.category, t.template_macro_id, t.integration_id, t.test_data, t.settings, t.created_at, t.updated_at
 			FROM templates t JOIN latest_versions lv ON t.id = lv.id AND t.version = lv.max_version
 			WHERE t.deleted_at IS NULL
 			ORDER BY t.updated_at DESC
 		`
 		mockSQL.ExpectQuery(regexp.QuoteMeta(expectedQuery)).WillReturnRows(rows)
 
-		templates, err := repo.GetTemplates(ctx, workspaceID, "") // Pass empty category
+		templates, err := repo.GetTemplates(ctx, workspaceID, "", "") // Pass empty category and channel
 		require.NoError(t, err)
 		require.Len(t, templates, 2)
 
@@ -547,7 +553,7 @@ func TestTemplateRepository_GetTemplates(t *testing.T) {
 		// Only tmpl2 should match if we assume tmpl1 has a different category or filter matches tmpl2's category
 		// Let's assume both have the same category for this test, but only return one for simplicity of setup
 		rowsFiltered := sqlmock.NewRows(columns).
-			AddRow(tmpl2.ID, tmpl2.Name, tmpl2.Version, tmpl2.Channel, tmpl2.Email, filterCategory, nil, tmpl2.IntegrationID, tmpl2.TestData, tmpl2.Settings, tmpl2.CreatedAt, tmpl2.UpdatedAt)
+			AddRow(tmpl2.ID, tmpl2.Name, tmpl2.Version, tmpl2.Channel, tmpl2.Email, tmpl2.Web, filterCategory, nil, tmpl2.IntegrationID, tmpl2.TestData, tmpl2.Settings, tmpl2.CreatedAt, tmpl2.UpdatedAt)
 
 		// Expect squirrel generated query with category filter
 		expectedFilteredQuery := `
@@ -556,18 +562,81 @@ func TestTemplateRepository_GetTemplates(t *testing.T) {
 				FROM templates
 				GROUP BY id
 			)
-			SELECT t.id, t.name, t.version, t.channel, t.email, t.category, t.template_macro_id, t.integration_id, t.test_data, t.settings, t.created_at, t.updated_at
+			SELECT t.id, t.name, t.version, t.channel, t.email, t.web, t.category, t.template_macro_id, t.integration_id, t.test_data, t.settings, t.created_at, t.updated_at
 			FROM templates t JOIN latest_versions lv ON t.id = lv.id AND t.version = lv.max_version
 			WHERE t.deleted_at IS NULL AND t.category = $1
 			ORDER BY t.updated_at DESC
 		`
 		mockSQL.ExpectQuery(regexp.QuoteMeta(expectedFilteredQuery)).WithArgs(filterCategory).WillReturnRows(rowsFiltered)
 
-		templates, err := repo.GetTemplates(ctx, workspaceID, filterCategory) // Pass the specific category
+		templates, err := repo.GetTemplates(ctx, workspaceID, filterCategory, "") // Pass the specific category, empty channel
 		require.NoError(t, err)
 		require.Len(t, templates, 1)
 		assert.Equal(t, tmpl2.ID, templates[0].ID)
 		assert.Equal(t, filterCategory, templates[0].Category)
+
+		mockWorkspaceRepo.AssertExpectations(t)
+		require.NoError(t, mockSQL.ExpectationsWereMet())
+	})
+
+	// === Test Case 2b: Success - With Channel Filter ===
+	t.Run("Success - With Channel Filter", func(t *testing.T) {
+		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
+		// Only return email templates
+		rowsFiltered := sqlmock.NewRows(columns).
+			AddRow(tmpl2.ID, tmpl2.Name, tmpl2.Version, tmpl2.Channel, tmpl2.Email, tmpl2.Web, tmpl2.Category, nil, tmpl2.IntegrationID, tmpl2.TestData, tmpl2.Settings, tmpl2.CreatedAt, tmpl2.UpdatedAt)
+
+		// Expect squirrel generated query with channel filter
+		expectedChannelQuery := `
+			WITH latest_versions AS (
+				SELECT id, MAX(version) as max_version
+				FROM templates
+				GROUP BY id
+			)
+			SELECT t.id, t.name, t.version, t.channel, t.email, t.web, t.category, t.template_macro_id, t.integration_id, t.test_data, t.settings, t.created_at, t.updated_at
+			FROM templates t JOIN latest_versions lv ON t.id = lv.id AND t.version = lv.max_version
+			WHERE t.deleted_at IS NULL AND t.channel = $1
+			ORDER BY t.updated_at DESC
+		`
+		mockSQL.ExpectQuery(regexp.QuoteMeta(expectedChannelQuery)).WithArgs("email").WillReturnRows(rowsFiltered)
+
+		templates, err := repo.GetTemplates(ctx, workspaceID, "", "email") // Pass empty category, specific channel
+		require.NoError(t, err)
+		require.Len(t, templates, 1)
+		assert.Equal(t, tmpl2.ID, templates[0].ID)
+		assert.Equal(t, "email", templates[0].Channel)
+
+		mockWorkspaceRepo.AssertExpectations(t)
+		require.NoError(t, mockSQL.ExpectationsWereMet())
+	})
+
+	// === Test Case 2c: Success - With Category and Channel Filter ===
+	t.Run("Success - With Category and Channel Filter", func(t *testing.T) {
+		filterCategory := "Test Category"
+		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
+		rowsFiltered := sqlmock.NewRows(columns).
+			AddRow(tmpl2.ID, tmpl2.Name, tmpl2.Version, tmpl2.Channel, tmpl2.Email, tmpl2.Web, filterCategory, nil, tmpl2.IntegrationID, tmpl2.TestData, tmpl2.Settings, tmpl2.CreatedAt, tmpl2.UpdatedAt)
+
+		// Expect squirrel generated query with both filters
+		expectedBothQuery := `
+			WITH latest_versions AS (
+				SELECT id, MAX(version) as max_version
+				FROM templates
+				GROUP BY id
+			)
+			SELECT t.id, t.name, t.version, t.channel, t.email, t.web, t.category, t.template_macro_id, t.integration_id, t.test_data, t.settings, t.created_at, t.updated_at
+			FROM templates t JOIN latest_versions lv ON t.id = lv.id AND t.version = lv.max_version
+			WHERE t.deleted_at IS NULL AND t.category = $1 AND t.channel = $2
+			ORDER BY t.updated_at DESC
+		`
+		mockSQL.ExpectQuery(regexp.QuoteMeta(expectedBothQuery)).WithArgs(filterCategory, "email").WillReturnRows(rowsFiltered)
+
+		templates, err := repo.GetTemplates(ctx, workspaceID, filterCategory, "email") // Pass both filters
+		require.NoError(t, err)
+		require.Len(t, templates, 1)
+		assert.Equal(t, tmpl2.ID, templates[0].ID)
+		assert.Equal(t, filterCategory, templates[0].Category)
+		assert.Equal(t, "email", templates[0].Channel)
 
 		mockWorkspaceRepo.AssertExpectations(t)
 		require.NoError(t, mockSQL.ExpectationsWereMet())
@@ -586,7 +655,7 @@ func TestTemplateRepository_GetTemplates(t *testing.T) {
 		`
 		mockSQL.ExpectQuery(expectedQuery).WillReturnRows(emptyRows) // Match simplified query structure
 
-		templates, err := repo.GetTemplates(ctx, workspaceID, "") // Pass empty category
+		templates, err := repo.GetTemplates(ctx, workspaceID, "", "") // Pass empty category and channel
 		require.NoError(t, err)
 		require.Empty(t, templates)
 		mockWorkspaceRepo.AssertExpectations(t)
@@ -604,7 +673,7 @@ func TestTemplateRepository_GetTemplates(t *testing.T) {
 		`
 		mockSQL.ExpectQuery(expectedQuery).WillReturnError(fmt.Errorf("db query error")) // Match simplified query structure
 
-		templates, err := repo.GetTemplates(ctx, workspaceID, "") // Pass empty category
+		templates, err := repo.GetTemplates(ctx, workspaceID, "", "") // Pass empty category and channel
 		require.Error(t, err)
 		assert.Nil(t, templates)
 		assert.Contains(t, err.Error(), "failed to get templates") // Error should now come from QueryContext
@@ -617,7 +686,7 @@ func TestTemplateRepository_GetTemplates(t *testing.T) {
 	t.Run("Row Scan Error", func(t *testing.T) {
 		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil).Once()
 		invalidJSONRows := sqlmock.NewRows(columns).
-			AddRow(tmpl1.ID, tmpl1.Name, tmpl1.Version, tmpl1.Channel, nil, tmpl1.Category, nil, nil, tmpl1.TestData, tmpl1.Settings, tmpl1.CreatedAt, tmpl1.UpdatedAt).
+			AddRow(tmpl1.ID, tmpl1.Name, tmpl1.Version, tmpl1.Channel, nil, nil, tmpl1.Category, nil, nil, tmpl1.TestData, tmpl1.Settings, tmpl1.CreatedAt, tmpl1.UpdatedAt).
 			RowError(0, fmt.Errorf("scan error")) // Simulate scan error on the first row
 		expectedQuery := `
 			WITH latest_versions AS \(.*\)
@@ -627,7 +696,7 @@ func TestTemplateRepository_GetTemplates(t *testing.T) {
 		`
 		mockSQL.ExpectQuery(expectedQuery).WillReturnRows(invalidJSONRows) // Match simplified query structure
 
-		templates, err := repo.GetTemplates(ctx, workspaceID, "") // Pass empty category
+		templates, err := repo.GetTemplates(ctx, workspaceID, "", "") // Pass empty category and channel
 		require.Error(t, err)
 		assert.Nil(t, templates)
 		// The error is caught *after* the loop by rows.Err()
@@ -640,7 +709,7 @@ func TestTemplateRepository_GetTemplates(t *testing.T) {
 	// === Test Case 6: GetConnection Error ===
 	t.Run("GetConnection Error", func(t *testing.T) {
 		mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(nil, fmt.Errorf("connection error")).Once()
-		templates, err := repo.GetTemplates(ctx, workspaceID, "") // Pass empty category
+		templates, err := repo.GetTemplates(ctx, workspaceID, "", "") // Pass empty category and channel
 		require.Error(t, err)
 		assert.Nil(t, templates)
 		assert.Contains(t, err.Error(), "failed to get workspace connection")
@@ -683,7 +752,7 @@ func TestTemplateRepository_UpdateTemplate(t *testing.T) {
 			WithArgs(updatedTemplate.ID).
 			WillReturnRows(latestVersionRows)
 		mockSQL.ExpectExec(regexp.QuoteMeta(`INSERT INTO templates`)).WithArgs(
-			updatedTemplate.ID, updatedTemplate.Name, expectedNewVersion, updatedTemplate.Channel, emailJSON,
+			updatedTemplate.ID, updatedTemplate.Name, expectedNewVersion, updatedTemplate.Channel, emailJSON, nil,
 			updatedTemplate.Category, nil, updatedTemplate.IntegrationID, testDataJSON, settingsJSON,
 			updatedTemplate.CreatedAt, sqlmock.AnyArg(),
 		).WillReturnResult(sqlmock.NewResult(1, 1))
@@ -777,7 +846,7 @@ func TestTemplateRepository_UpdateTemplate(t *testing.T) {
 		// Expect the INSERT to fail
 		mockSQL.ExpectExec(regexp.QuoteMeta(`INSERT INTO templates`)).
 			WithArgs(
-				updatedTemplate.ID, updatedTemplate.Name, expectedNewVersion, updatedTemplate.Channel, emailJSON,
+				updatedTemplate.ID, updatedTemplate.Name, expectedNewVersion, updatedTemplate.Channel, emailJSON, nil,
 				updatedTemplate.Category, nil, updatedTemplate.IntegrationID, testDataJSON, settingsJSON,
 				updatedTemplate.CreatedAt, sqlmock.AnyArg(),
 			).WillReturnError(fmt.Errorf("db insert error"))

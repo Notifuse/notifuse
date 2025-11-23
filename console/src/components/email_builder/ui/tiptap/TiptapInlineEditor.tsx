@@ -47,12 +47,6 @@ export const TiptapInlineEditor: React.FC<TiptapInlineEditorProps> = ({
       onUpdate: ({ editor }) => {
         const htmlContent = editor.getHTML()
         handleContentChange(htmlContent)
-      },
-      // Enable content checking for better HTML parsing
-      enableContentCheck: true,
-      onContentError: ({ editor, error, disableCollaboration }) => {
-        console.error('Tiptap inline editor content error detected:', error?.message || error)
-        // Continue despite content errors
       }
     },
     [handleContentChange, readOnly, placeholder]

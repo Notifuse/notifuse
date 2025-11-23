@@ -37,7 +37,7 @@ func newTestBroadcast(workspaceID, broadcastID string) *domain.Broadcast {
 		Name:        "Test",
 		ChannelType: "email",
 		Status:      domain.BroadcastStatusTestCompleted,
-		Audience:    domain.AudienceSettings{Lists: []string{"list1"}},
+		Audience:    domain.AudienceSettings{List: "list1"},
 		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 		TestSettings: domain.BroadcastTestSettings{
 			Enabled:              true,

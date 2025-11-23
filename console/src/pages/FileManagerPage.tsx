@@ -10,7 +10,7 @@ import { Workspace, FileManagerSettings } from '../services/api/types'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
 
 export function FileManagerPage() {
-  const { workspaceId } = useParams({ from: '/workspace/$workspaceId' })
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { workspaces, refreshWorkspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId)
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null)

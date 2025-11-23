@@ -84,9 +84,8 @@ func testBroadcastCRUD(t *testing.T, client *testutil.APIClient, factory *testut
 				"workspace_id": workspaceID,
 				"name":         "Test Broadcast",
 				"audience": map[string]interface{}{
-					"lists":                 []string{list.ID},
-					"exclude_unsubscribed":  true,
-					"skip_duplicate_emails": true,
+					"list":                 list.ID,
+					"exclude_unsubscribed": true,
 				},
 				"schedule": map[string]interface{}{
 					"is_scheduled": false,
@@ -162,9 +161,8 @@ func testBroadcastCRUD(t *testing.T, client *testutil.APIClient, factory *testut
 				"workspace_id": workspaceID,
 				"name":         "A/B Test Broadcast",
 				"audience": map[string]interface{}{
-					"lists":                 []string{list.ID},
-					"exclude_unsubscribed":  true,
-					"skip_duplicate_emails": true,
+					"list":                 list.ID,
+					"exclude_unsubscribed": true,
 				},
 				"schedule": map[string]interface{}{
 					"is_scheduled": false,
@@ -335,9 +333,8 @@ func testBroadcastCRUD(t *testing.T, client *testutil.APIClient, factory *testut
 				"id":           broadcast.ID,
 				"name":         "Updated Broadcast Name",
 				"audience": map[string]interface{}{
-					"lists":                 []string{list.ID},
-					"exclude_unsubscribed":  true,
-					"skip_duplicate_emails": true,
+					"list":                 list.ID,
+					"exclude_unsubscribed": true,
 				},
 				"schedule":      broadcast.Schedule,
 				"test_settings": broadcast.TestSettings,
@@ -380,9 +377,8 @@ func testBroadcastCRUD(t *testing.T, client *testutil.APIClient, factory *testut
 				"id":           broadcast.ID,
 				"name":         "Should Not Update",
 				"audience": map[string]interface{}{
-					"lists":                 []string{list.ID},
-					"exclude_unsubscribed":  true,
-					"skip_duplicate_emails": true,
+					"list":                 list.ID,
+					"exclude_unsubscribed": true,
 				},
 				"schedule":      broadcast.Schedule,
 				"test_settings": broadcast.TestSettings,
@@ -515,9 +511,8 @@ func testBroadcastLifecycle(t *testing.T, client *testutil.APIClient, factory *t
 			// Create broadcast targeting the list with a template
 			broadcast, err := factory.CreateBroadcast(workspaceID,
 				testutil.WithBroadcastAudience(domain.AudienceSettings{
-					Lists:               []string{list.ID},
+					List:                list.ID,
 					ExcludeUnsubscribed: true,
-					SkipDuplicateEmails: true,
 				}))
 			require.NoError(t, err)
 
