@@ -53,6 +53,9 @@ type BlogTemplateRenderer struct {
 func NewBlogTemplateRenderer() *BlogTemplateRenderer {
 	env := liquid.NewEnvironment()
 
+	// Set error mode to lax (render errors inline, don't fail)
+	env.SetErrorMode("lax")
+
 	// Register standard tags (CRITICAL - required for if, for, assign, etc.)
 	tags.RegisterStandardTags(env)
 
@@ -99,6 +102,13 @@ func (r *BlogTemplateRenderer) Render(
 
 	// Render in a goroutine to enforce timeout
 	go func() {
+		// Add panic recovery to capture actual errors before liquidgo converts them
+		defer func() {
+			if r := recover(); r != nil {
+				resultChan <- result{output: "", err: fmt.Errorf("panic during rendering: %v", r)}
+			}
+		}()
+
 		// Parse the template with the environment
 		tmpl, err := liquid.ParseTemplate(template, &liquid.TemplateOptions{
 			Environment: r.env,
@@ -117,6 +127,16 @@ func (r *BlogTemplateRenderer) Render(
 
 		// Render the template (first parameter is 'assigns' - the template data)
 		output := tmpl.Render(data, nil)
+
+		// In lax mode (default), errors are rendered inline in the output, not as errors.
+		// Only return an error if rendering completely failed (empty output with errors).
+		// If there's output, it means rendering succeeded (errors are shown inline).
+		if len(tmpl.Errors()) > 0 && len(output) == 0 {
+			// Complete rendering failure
+			resultChan <- result{output: output, err: fmt.Errorf("template rendering error: %w", tmpl.Errors()[0])}
+			return
+		}
+
 		resultChan <- result{output: output, err: nil}
 	}()
 

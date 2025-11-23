@@ -271,8 +271,9 @@ func TestSecureLiquidEngine_ErrorMessages(t *testing.T) {
 			t.Fatal("Expected error for invalid syntax")
 		}
 
-		if !strings.Contains(err.Error(), "rendering failed") {
-			t.Errorf("Expected rendering error, got: %v", err)
+		// Error occurs during parsing, not rendering, so check for parsing error message
+		if !strings.Contains(err.Error(), "parsing failed") && !strings.Contains(err.Error(), "rendering failed") {
+			t.Errorf("Expected parsing or rendering error, got: %v", err)
 		}
 	})
 
