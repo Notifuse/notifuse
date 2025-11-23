@@ -41,6 +41,9 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
   const themes = data?.themes || []
   const totalCount = data?.total_count || 0
   const hasMore = totalCount > limit
+  const hasPublishedTheme = themes.some(
+    (theme) => theme.published_at !== null && theme.published_at !== undefined
+  )
 
   const publishMutation = useMutation({
     mutationFn: (version: number) => blogThemesApi.publish(workspaceId, { version }),
@@ -235,7 +238,12 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
         }}
       >
         <h3 style={{ margin: 0 }}>Theme Versions</h3>
-        <Button type="primary" icon={<PlusOutlined />} onClick={handleCreate}>
+        <Button
+          type="primary"
+          ghost={hasPublishedTheme}
+          icon={<PlusOutlined />}
+          onClick={handleCreate}
+        >
           New Theme
         </Button>
       </div>

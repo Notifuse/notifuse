@@ -151,72 +151,37 @@ function hastToHtml(node: any): string {
  * Post-process HTML to add syntax highlighting to code blocks
  */
 function addSyntaxHighlightingToHTML(html: string, lowlight: any): string {
-  console.log('[addSyntaxHighlightingToHTML] Starting post-processing')
-  console.log('[addSyntaxHighlightingToHTML] Input HTML length:', html.length)
-  console.log('[addSyntaxHighlightingToHTML] Lowlight instance:', lowlight)
-
   // Create a temporary DOM element to parse the HTML
   const tempDiv = document.createElement('div')
   tempDiv.innerHTML = html
 
   // Find all code blocks with language classes
   const codeBlocks = tempDiv.querySelectorAll('pre code[class*="language-"]')
-  console.log('[addSyntaxHighlightingToHTML] Found code blocks:', codeBlocks.length)
 
   codeBlocks.forEach((codeEl, index) => {
     const className = codeEl.className || ''
-    console.log(`[addSyntaxHighlightingToHTML] Code block ${index} className:`, className)
 
     const languageMatch = className.match(/language-(\w+)/)
 
     if (languageMatch) {
       const language = languageMatch[1]
       const code = codeEl.textContent || ''
-      console.log(`[addSyntaxHighlightingToHTML] Code block ${index} language:`, language)
-      console.log(`[addSyntaxHighlightingToHTML] Code block ${index} text length:`, code.length)
 
       // Skip if it's plaintext or already has highlighting
       if (language === 'plaintext' || codeEl.querySelector('span')) {
-        console.log(
-          `[addSyntaxHighlightingToHTML] Code block ${index} skipped (plaintext or already highlighted)`
-        )
         return
       }
 
       try {
         // Highlight the code using lowlight
-        console.log(`[addSyntaxHighlightingToHTML] Attempting to highlight code block ${index}...`)
-        console.log(`[addSyntaxHighlightingToHTML] About to call lowlight.highlight with:`, {
-          language,
-          codeLength: code.length,
-          lowlightType: typeof lowlight,
-          hasHighlightMethod: typeof lowlight.highlight
-        })
-
         const result = lowlight.highlight(language, code)
-
-        console.log(`[addSyntaxHighlightingToHTML] Highlight result for block ${index}:`, result)
-        console.log(`[addSyntaxHighlightingToHTML] Result type:`, typeof result)
-        console.log(`[addSyntaxHighlightingToHTML] Result has children:`, !!result?.children)
-        console.log(`[addSyntaxHighlightingToHTML] Children count:`, result?.children?.length)
 
         if (result && (result.children || result.value)) {
           // Convert hast tree to HTML
           // lowlight v3 uses .children, v1 used .value
           const highlightedHtml = result.children ? hastToHtml(result) : result.value
-          console.log(
-            `[addSyntaxHighlightingToHTML] Generated HTML length:`,
-            highlightedHtml.length
-          )
-
           // Replace the plain text with highlighted HTML
-          console.log(`[addSyntaxHighlightingToHTML] Setting innerHTML for block ${index}`)
           codeEl.innerHTML = highlightedHtml
-          console.log(`[addSyntaxHighlightingToHTML] Successfully highlighted code block ${index}`)
-        } else {
-          console.warn(
-            `[addSyntaxHighlightingToHTML] No result.children or result.value returned for block ${index}`
-          )
         }
       } catch (error) {
         // If highlighting fails, leave the plain text
@@ -224,18 +189,9 @@ function addSyntaxHighlightingToHTML(html: string, lowlight: any): string {
           `[addSyntaxHighlightingToHTML] ERROR - Failed to highlight code block ${index} with language ${language}:`,
           error
         )
-        console.error(
-          `[addSyntaxHighlightingToHTML] Error stack:`,
-          error instanceof Error ? error.stack : 'N/A'
-        )
       }
-    } else {
-      console.log(`[addSyntaxHighlightingToHTML] Code block ${index} has no language match`)
     }
   })
-
-  console.log('[addSyntaxHighlightingToHTML] Post-processing complete')
-  console.log('[addSyntaxHighlightingToHTML] Output HTML length:', tempDiv.innerHTML.length)
 
   return tempDiv.innerHTML
 }

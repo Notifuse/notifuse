@@ -17,6 +17,7 @@ import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
 import { blogPostsApi, blogCategoriesApi, BlogPost, BlogPostStatus } from '../../services/api/blog'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPenToSquare, faTrashCan, faEyeSlash } from '@fortawesome/free-regular-svg-icons'
+import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons'
 import { PlusOutlined } from '@ant-design/icons'
 import { useWorkspacePermissions, useAuth } from '../../contexts/AuthContext'
 import dayjs from '../../lib/dayjs'
@@ -25,6 +26,7 @@ import { DeletePostModal } from './DeletePostModal'
 import { PostStatusTag } from './PostStatusTag'
 import { CategoryDrawer } from './CategoryDrawer'
 import { DeleteCategoryModal } from './DeleteCategoryModal'
+import { MissingMetaTagsWarning } from '../seo/MissingMetaTagsWarning'
 
 const { Title, Paragraph } = Typography
 
@@ -167,6 +169,24 @@ export function PostsTable() {
     return category?.settings.name || 'Unknown'
   }
 
+  const getCategorySlug = (categoryId?: string | null) => {
+    if (!categoryId) return null
+    const category = (categoriesData?.categories ?? []).find((c) => c.id === categoryId)
+    return category?.slug || null
+  }
+
+  const getBlogPostUrl = (post: BlogPost) => {
+    const baseUrl =
+      workspace?.settings?.custom_endpoint_url || window.API_ENDPOINT || 'https://example.com'
+    const categorySlug = getCategorySlug(post.category_id) || 'uncategorized'
+    return `${baseUrl}/${categorySlug}/${post.slug}`
+  }
+
+  const handleOpenPost = (post: BlogPost) => {
+    const url = getBlogPostUrl(post)
+    window.open(url, '_blank')
+  }
+
   const columns: TableColumnType<BlogPost>[] = [
     {
       title: 'Title',
@@ -178,9 +198,6 @@ export function PostsTable() {
           <div className="text-xs text-gray-500 mt-1">
             <code>{record.slug}</code>
           </div>
-          {record.settings.excerpt && (
-            <div className="text-xs text-gray-500 mt-1 line-clamp-2">{record.settings.excerpt}</div>
-          )}
         </div>
       )
     },
@@ -199,7 +216,12 @@ export function PostsTable() {
     {
       title: 'Status',
       key: 'status',
-      render: (_: any, record: BlogPost) => <PostStatusTag post={record} />
+      render: (_: any, record: BlogPost) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <PostStatusTag post={record} />
+          <MissingMetaTagsWarning seo={record.settings.seo} />
+        </div>
+      )
     },
     {
       title: 'Published',
@@ -232,6 +254,14 @@ export function PostsTable() {
       width: 150,
       render: (_: any, record: BlogPost) => (
         <Space size="small">
+          <Tooltip title="Open on web" placement="left">
+            <Button
+              type="text"
+              size="small"
+              icon={<FontAwesomeIcon icon={faExternalLinkAlt} style={{ opacity: 0.7 }} />}
+              onClick={() => handleOpenPost(record)}
+            />
+          </Tooltip>
           {permissions?.workspace?.write && (
             <>
               {record.published_at ? (

@@ -522,7 +522,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
       className="!mb-6"
     >
       <div className="p-6">
-        <BroadcastStats workspaceId={workspaceId} broadcastId={broadcast.id} />
+        <BroadcastStats workspaceId={workspaceId} broadcastId={broadcast.id} workspace={currentWorkspace} />
       </div>
 
       <div className={`bg-gradient-to-br from-gray-50 to-violet-50 border-t border-gray-200`}>

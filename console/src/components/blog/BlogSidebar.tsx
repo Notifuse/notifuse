@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { blogCategoriesApi, BlogCategory } from '../../services/api/blog'
 import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { MissingMetaTagsWarning } from '../seo/MissingMetaTagsWarning'
 
 interface BlogSidebarProps {
   workspaceId: string
@@ -55,7 +56,10 @@ export function BlogSidebar({
             width: '100%'
           }}
         >
-          <span>{category.settings.name}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span>{category.settings.name}</span>
+            <MissingMetaTagsWarning seo={category.settings.seo} />
+          </div>
           {(onEditCategory || onDeleteCategory) && (
             <Space size={4} onClick={(e) => e.stopPropagation()}>
               {onEditCategory && (

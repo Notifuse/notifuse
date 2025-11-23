@@ -11,13 +11,15 @@ import {
 import { faArrowPointer, faTriangleExclamation, faBan } from '@fortawesome/free-solid-svg-icons'
 import { getBroadcastStats } from '../../services/api/messages_history'
 import { useNavigate } from '@tanstack/react-router'
+import type { Workspace } from '../../services/api/types'
 
 interface BroadcastStatsProps {
   workspaceId: string
   broadcastId: string
+  workspace?: Workspace
 }
 
-export function BroadcastStats({ workspaceId, broadcastId }: BroadcastStatsProps) {
+export function BroadcastStats({ workspaceId, broadcastId, workspace }: BroadcastStatsProps) {
   const navigate = useNavigate()
 
   const { data, isLoading } = useQuery({
@@ -39,6 +41,14 @@ export function BroadcastStats({ workspaceId, broadcastId }: BroadcastStatsProps
     total_complained: 0,
     total_unsubscribed: 0
   }
+
+  // Check if marketing provider is SMTP
+  const isSmtpProvider = (() => {
+    if (!workspace?.settings?.marketing_email_provider_id) return false
+    const marketingProviderId = workspace.settings.marketing_email_provider_id
+    const integration = workspace.integrations?.find((i) => i.id === marketingProviderId)
+    return integration?.email_provider?.kind === 'smtp'
+  })()
 
   const getRate = (numerator: number, denominator: number) => {
     if (denominator === 0) return '-'
@@ -98,11 +108,19 @@ export function BroadcastStats({ workspaceId, broadcastId }: BroadcastStatsProps
       </Col>
       <Col span={3}>
         <Tooltip
-          title={`${stats.total_delivered} emails successfully delivered - Click to view details`}
+          title={
+            isSmtpProvider
+              ? "SMTP provider doesn't support delivery webhooks, so delivery status cannot be tracked"
+              : `${stats.total_delivered} emails successfully delivered - Click to view details`
+          }
         >
           <div
-            className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
-            onClick={() => navigateToLogs('is_delivered')}
+            className={`p-2 rounded transition-colors ${
+              isSmtpProvider
+                ? 'cursor-not-allowed opacity-50'
+                : 'cursor-pointer hover:bg-gray-50'
+            }`}
+            onClick={isSmtpProvider ? undefined : () => navigateToLogs('is_delivered')}
           >
             <Statistic
               title={
@@ -115,7 +133,7 @@ export function BroadcastStats({ workspaceId, broadcastId }: BroadcastStatsProps
                   Delivered
                 </Space>
               }
-              value={getRate(stats.total_delivered, stats.total_sent)}
+              value={isSmtpProvider ? '-' : getRate(stats.total_delivered, stats.total_sent)}
               valueStyle={{ fontSize: '16px' }}
               formatter={formatStat}
             />
@@ -195,10 +213,20 @@ export function BroadcastStats({ workspaceId, broadcastId }: BroadcastStatsProps
         </Tooltip>
       </Col>
       <Col span={3}>
-        <Tooltip title={`${stats.total_bounced} emails bounced back - Click to view details`}>
+        <Tooltip
+          title={
+            isSmtpProvider
+              ? "SMTP provider doesn't support bounce webhooks, so bounce status cannot be tracked"
+              : `${stats.total_bounced} emails bounced back - Click to view details`
+          }
+        >
           <div
-            className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
-            onClick={() => navigateToLogs('is_bounced')}
+            className={`p-2 rounded transition-colors ${
+              isSmtpProvider
+                ? 'cursor-not-allowed opacity-50'
+                : 'cursor-pointer hover:bg-gray-50'
+            }`}
+            onClick={isSmtpProvider ? undefined : () => navigateToLogs('is_bounced')}
           >
             <Statistic
               title={
@@ -211,7 +239,7 @@ export function BroadcastStats({ workspaceId, broadcastId }: BroadcastStatsProps
                   Bounced
                 </Space>
               }
-              value={getRate(stats.total_bounced, stats.total_sent)}
+              value={isSmtpProvider ? '-' : getRate(stats.total_bounced, stats.total_sent)}
               valueStyle={{ fontSize: '16px' }}
               formatter={formatStat}
             />
@@ -219,10 +247,20 @@ export function BroadcastStats({ workspaceId, broadcastId }: BroadcastStatsProps
         </Tooltip>
       </Col>
       <Col span={3}>
-        <Tooltip title={`${stats.total_complained} total complaints - Click to view details`}>
+        <Tooltip
+          title={
+            isSmtpProvider
+              ? "SMTP provider doesn't support complaint webhooks, so spam complaints cannot be tracked"
+              : `${stats.total_complained} total complaints - Click to view details`
+          }
+        >
           <div
-            className="cursor-pointer hover:bg-gray-50 p-2 rounded transition-colors"
-            onClick={() => navigateToLogs('is_complained')}
+            className={`p-2 rounded transition-colors ${
+              isSmtpProvider
+                ? 'cursor-not-allowed opacity-50'
+                : 'cursor-pointer hover:bg-gray-50'
+            }`}
+            onClick={isSmtpProvider ? undefined : () => navigateToLogs('is_complained')}
           >
             <Statistic
               title={
@@ -235,7 +273,7 @@ export function BroadcastStats({ workspaceId, broadcastId }: BroadcastStatsProps
                   Complaints
                 </Space>
               }
-              value={getRate(stats.total_complained, stats.total_sent)}
+              value={isSmtpProvider ? '-' : getRate(stats.total_complained, stats.total_sent)}
               valueStyle={{ fontSize: '16px' }}
               formatter={formatStat}
             />

@@ -1,18 +1,11 @@
 # TODO
 
-## Web Publications
-
-- cache on blog compilation
-- rate limit on /subscribe endpoint: Per IP: 10 requests per minute
-- disable delivered rate in UI if using smtp provider
-
 ## Content
 
 - send newsletter to all contacts+previous customers
 - post supabase on twitter and facebook
 - page vs phplist
 - page vs sendy
-- page vs listmonk
 - page vs mailerlite
 - page vs mautic
 

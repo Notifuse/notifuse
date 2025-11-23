@@ -511,6 +511,18 @@ func WithWorkspaceSettings(settings domain.WorkspaceSettings) WorkspaceOption {
 	}
 }
 
+func WithCustomDomain(customDomain string) WorkspaceOption {
+	return func(w *domain.Workspace) {
+		w.Settings.CustomEndpointURL = &customDomain
+	}
+}
+
+func WithBlogEnabled(enabled bool) WorkspaceOption {
+	return func(w *domain.Workspace) {
+		w.Settings.BlogEnabled = enabled
+	}
+}
+
 // Contact options
 func WithContactEmail(email string) ContactOption {
 	return func(c *domain.Contact) {
@@ -1289,4 +1301,217 @@ func (tdf *TestDataFactory) EnsureSegmentRecomputeTask(workspaceID string) error
 	}
 
 	return nil
+}
+
+// Blog Factory Methods
+
+// CreateBlogCategory creates a test blog category using the blog repository
+func (tdf *TestDataFactory) CreateBlogCategory(workspaceID string, opts ...BlogCategoryOption) (*domain.BlogCategory, error) {
+	category := &domain.BlogCategory{
+		ID:   uuid.New().String(),
+		Slug: fmt.Sprintf("category-%s", uuid.New().String()[:8]),
+		Settings: domain.BlogCategorySettings{
+			Name:        fmt.Sprintf("Test Category %s", uuid.New().String()[:8]),
+			Description: "Test category description",
+		},
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(category)
+	}
+
+	// Create blog category repository
+	categoryRepo := repository.NewBlogCategoryRepository(tdf.workspaceRepo)
+
+	// Create context with workspace ID
+	ctx := context.WithValue(context.Background(), "workspace_id", workspaceID)
+
+	// Create category
+	err := categoryRepo.CreateCategory(ctx, category)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create blog category: %w", err)
+	}
+
+	return category, nil
+}
+
+// CreateBlogPost creates a test blog post using the blog repository
+func (tdf *TestDataFactory) CreateBlogPost(workspaceID, categoryID string, opts ...BlogPostOption) (*domain.BlogPost, error) {
+	// Create a default template for the post if needed
+	template, err := tdf.CreateTemplate(workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create template for blog post: %w", err)
+	}
+
+	post := &domain.BlogPost{
+		ID:         uuid.New().String(),
+		CategoryID: categoryID,
+		Slug:       fmt.Sprintf("post-%s", uuid.New().String()[:8]),
+		Settings: domain.BlogPostSettings{
+			Title: fmt.Sprintf("Test Post %s", uuid.New().String()[:8]),
+			Template: domain.BlogPostTemplateReference{
+				TemplateID:      template.ID,
+				TemplateVersion: 1,
+			},
+			Excerpt:            "This is a test post excerpt",
+			FeaturedImageURL:   "",
+			Authors:            []domain.BlogAuthor{{Name: "Test Author"}},
+			ReadingTimeMinutes: 5,
+		},
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(post)
+	}
+
+	// Create blog post repository
+	postRepo := repository.NewBlogPostRepository(tdf.workspaceRepo)
+
+	// Create context with workspace ID
+	ctx := context.WithValue(context.Background(), "workspace_id", workspaceID)
+
+	// Create post
+	err = postRepo.CreatePost(ctx, post)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create blog post: %w", err)
+	}
+
+	return post, nil
+}
+
+// CreateBlogTheme creates a test blog theme using the blog repository
+func (tdf *TestDataFactory) CreateBlogTheme(workspaceID string, opts ...BlogThemeOption) (*domain.BlogTheme, error) {
+	theme := &domain.BlogTheme{
+		Version: 1,
+		Files: domain.BlogThemeFiles{
+			HomeLiquid:     "<html><body>Home</body></html>",
+			CategoryLiquid: "<html><body>Category</body></html>",
+			PostLiquid:     "<html><body>Post</body></html>",
+			HeaderLiquid:   "<header>Header</header>",
+			FooterLiquid:   "<footer>Footer</footer>",
+			SharedLiquid:   "{% comment %}Shared{% endcomment %}",
+			StylesCSS:      "body { margin: 0; }",
+			ScriptsJS:      "console.log('test');",
+		},
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(theme)
+	}
+
+	// Create blog theme repository
+	themeRepo := repository.NewBlogThemeRepository(tdf.workspaceRepo)
+
+	// Create context with workspace ID
+	ctx := context.WithValue(context.Background(), "workspace_id", workspaceID)
+
+	// Create theme
+	err := themeRepo.CreateTheme(ctx, theme)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create blog theme: %w", err)
+	}
+
+	return theme, nil
+}
+
+// Blog option types
+type BlogCategoryOption func(*domain.BlogCategory)
+type BlogPostOption func(*domain.BlogPost)
+type BlogThemeOption func(*domain.BlogTheme)
+
+// Blog category options
+func WithCategoryName(name string) BlogCategoryOption {
+	return func(c *domain.BlogCategory) {
+		c.Settings.Name = name
+	}
+}
+
+func WithCategorySlug(slug string) BlogCategoryOption {
+	return func(c *domain.BlogCategory) {
+		c.Slug = slug
+	}
+}
+
+func WithCategoryDescription(description string) BlogCategoryOption {
+	return func(c *domain.BlogCategory) {
+		c.Settings.Description = description
+	}
+}
+
+// Blog post options
+func WithPostTitle(title string) BlogPostOption {
+	return func(p *domain.BlogPost) {
+		p.Settings.Title = title
+	}
+}
+
+func WithPostSlug(slug string) BlogPostOption {
+	return func(p *domain.BlogPost) {
+		p.Slug = slug
+	}
+}
+
+func WithPostExcerpt(excerpt string) BlogPostOption {
+	return func(p *domain.BlogPost) {
+		p.Settings.Excerpt = excerpt
+	}
+}
+
+func WithPostPublished(published bool) BlogPostOption {
+	return func(p *domain.BlogPost) {
+		if published {
+			now := time.Now().UTC()
+			p.PublishedAt = &now
+		} else {
+			p.PublishedAt = nil
+		}
+	}
+}
+
+func WithPostAuthors(authors []domain.BlogAuthor) BlogPostOption {
+	return func(p *domain.BlogPost) {
+		p.Settings.Authors = authors
+	}
+}
+
+func WithPostTemplate(templateID string, version int) BlogPostOption {
+	return func(p *domain.BlogPost) {
+		p.Settings.Template = domain.BlogPostTemplateReference{
+			TemplateID:      templateID,
+			TemplateVersion: version,
+		}
+	}
+}
+
+// Blog theme options
+func WithThemeVersion(version int) BlogThemeOption {
+	return func(t *domain.BlogTheme) {
+		t.Version = version
+	}
+}
+
+func WithThemeFiles(files domain.BlogThemeFiles) BlogThemeOption {
+	return func(t *domain.BlogTheme) {
+		t.Files = files
+	}
+}
+
+func WithThemePublished(published bool) BlogThemeOption {
+	return func(t *domain.BlogTheme) {
+		if published {
+			now := time.Now().UTC()
+			t.PublishedAt = &now
+		} else {
+			t.PublishedAt = nil
+		}
+	}
 }
