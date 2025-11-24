@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"fmt"
 	"net"
+	"strings"
+	"sync"
 	"time"
 
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -13,10 +15,12 @@ import (
 
 // Server represents an SMTP relay server for receiving emails
 type Server struct {
-	server  *smtp.Server
-	backend *Backend
-	logger  logger.Logger
-	addr    string
+	server   *smtp.Server
+	backend  *Backend
+	logger   logger.Logger
+	addr     string
+	listener net.Listener
+	mu       sync.Mutex
 }
 
 // ServerConfig holds the configuration for the SMTP server
@@ -86,10 +90,22 @@ func (s *Server) Start() error {
 		return fmt.Errorf("failed to listen on %s: %w", s.addr, err)
 	}
 
+	s.mu.Lock()
+	s.listener = listener
+	s.mu.Unlock()
+
 	s.logger.WithField("addr", s.addr).Info("SMTP relay server listening")
 
-	// Start serving
-	if err := s.server.Serve(listener); err != nil {
+	// Start serving - Serve will return when listener is closed
+	err = s.server.Serve(listener)
+
+	s.mu.Lock()
+	s.listener = nil
+	s.mu.Unlock()
+
+	// If the listener was closed (e.g., during shutdown), Serve returns nil
+	// This is expected behavior, so we return nil in that case
+	if err != nil {
 		return fmt.Errorf("SMTP server error: %w", err)
 	}
 
@@ -100,9 +116,21 @@ func (s *Server) Start() error {
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info("Shutting down SMTP relay server")
 
-	// Create a channel to signal completion
-	done := make(chan error, 1)
+	// Close the listener first, which will cause Serve() to return
+	s.mu.Lock()
+	listener := s.listener
+	s.mu.Unlock()
 
+	if listener != nil {
+		// Close the listener to cause Serve() to return
+		// Ignore errors from closing an already-closed listener
+		_ = listener.Close()
+	}
+
+	// Close the server (closes any remaining connections)
+	// Note: server.Close() may return an error if the listener was already closed,
+	// which is expected and can be ignored since we've already closed the listener
+	done := make(chan error, 1)
 	go func() {
 		done <- s.server.Close()
 	}()
@@ -110,7 +138,16 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	// Wait for shutdown to complete or context to be canceled
 	select {
 	case err := <-done:
-		if err != nil {
+		// If we closed the listener ourselves, ignore "use of closed network connection" errors
+		// from server.Close() since the listener is already closed
+		if err != nil && listener != nil {
+			errStr := err.Error()
+			// Check if it's a "closed network connection" error, which is expected
+			if strings.Contains(errStr, "use of closed network connection") {
+				// Expected error when listener was already closed, ignore it
+				s.logger.Info("SMTP relay server shut down successfully")
+				return nil
+			}
 			s.logger.WithField("error", err.Error()).Error("Error during SMTP server shutdown")
 			return err
 		}

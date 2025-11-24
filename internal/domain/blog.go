@@ -719,7 +719,17 @@ func NormalizeSlug(s string) string {
 			result.WriteRune(r)
 		}
 	}
-	return result.String()
+	s = result.String()
+	
+	// Collapse consecutive hyphens into a single hyphen
+	for strings.Contains(s, "--") {
+		s = strings.ReplaceAll(s, "--", "-")
+	}
+	
+	// Remove leading and trailing hyphens
+	s = strings.Trim(s, "-")
+	
+	return s
 }
 
 // BlogThemeFileType represents the type of blog theme file

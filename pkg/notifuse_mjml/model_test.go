@@ -994,3 +994,420 @@ func TestUnmarshalEmailBlockWithEmptyAttributes(t *testing.T) {
 		t.Error("Block should be of type *MJButtonBlock")
 	}
 }
+
+func TestBaseBlock_SetID(t *testing.T) {
+	t.Run("set ID on valid block", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:   "old-id",
+			Type: MJMLComponentMjText,
+		}
+
+		block.SetID("new-id")
+		assert.Equal(t, "new-id", block.ID)
+		assert.Equal(t, "new-id", block.GetID())
+	})
+
+	t.Run("set ID on block with empty ID", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:   "",
+			Type: MJMLComponentMjText,
+		}
+
+		block.SetID("test-id")
+		assert.Equal(t, "test-id", block.ID)
+	})
+
+	t.Run("set ID multiple times", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:   "id-1",
+			Type: MJMLComponentMjText,
+		}
+
+		block.SetID("id-2")
+		assert.Equal(t, "id-2", block.ID)
+
+		block.SetID("id-3")
+		assert.Equal(t, "id-3", block.ID)
+	})
+
+	t.Run("set ID on nil block - should not panic", func(t *testing.T) {
+		var block *BaseBlock = nil
+		// This should not panic - the method checks for nil
+		block.SetID("should-not-set")
+		assert.Nil(t, block)
+	})
+
+	t.Run("set empty ID", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:   "existing-id",
+			Type: MJMLComponentMjText,
+		}
+
+		block.SetID("")
+		assert.Equal(t, "", block.ID)
+	})
+}
+
+func TestBaseBlock_SetAttributes(t *testing.T) {
+	t.Run("set attributes on valid block", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:   "test-id",
+			Type: MJMLComponentMjText,
+			Attributes: map[string]interface{}{
+				"old": "value",
+			},
+		}
+
+		newAttrs := map[string]interface{}{
+			"fontSize": "16px",
+			"color":    "#333333",
+		}
+
+		block.SetAttributes(newAttrs)
+		assert.Equal(t, newAttrs, block.Attributes)
+		assert.Equal(t, newAttrs, block.GetAttributes())
+	})
+
+	t.Run("set attributes on block with nil attributes", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:         "test-id",
+			Type:       MJMLComponentMjText,
+			Attributes: nil,
+		}
+
+		newAttrs := map[string]interface{}{
+			"fontSize": "18px",
+		}
+
+		block.SetAttributes(newAttrs)
+		assert.Equal(t, newAttrs, block.Attributes)
+	})
+
+	t.Run("set nil attributes", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:   "test-id",
+			Type: MJMLComponentMjText,
+			Attributes: map[string]interface{}{
+				"existing": "value",
+			},
+		}
+
+		block.SetAttributes(nil)
+		assert.Nil(t, block.Attributes)
+	})
+
+	t.Run("set empty attributes map", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:   "test-id",
+			Type: MJMLComponentMjText,
+			Attributes: map[string]interface{}{
+				"old": "value",
+			},
+		}
+
+		block.SetAttributes(map[string]interface{}{})
+		assert.NotNil(t, block.Attributes)
+		assert.Empty(t, block.Attributes)
+	})
+
+	t.Run("set attributes on nil block - should not panic", func(t *testing.T) {
+		var block *BaseBlock = nil
+		attrs := map[string]interface{}{"test": "value"}
+		// This should not panic - the method checks for nil
+		block.SetAttributes(attrs)
+		assert.Nil(t, block)
+	})
+
+	t.Run("set attributes with complex values", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:   "test-id",
+			Type: MJMLComponentMjText,
+		}
+
+		complexAttrs := map[string]interface{}{
+			"string":  "value",
+			"number":  42,
+			"boolean": true,
+			"array":   []interface{}{1, 2, 3},
+			"nested": map[string]interface{}{
+				"key": "value",
+			},
+		}
+
+		block.SetAttributes(complexAttrs)
+		assert.Equal(t, complexAttrs, block.Attributes)
+		assert.Equal(t, 42, block.Attributes["number"])
+		assert.Equal(t, true, block.Attributes["boolean"])
+	})
+}
+
+func TestBaseBlock_SetContent(t *testing.T) {
+	t.Run("set content on valid block", func(t *testing.T) {
+		oldContent := stringPtr("old content")
+		block := &BaseBlock{
+			ID:      "test-id",
+			Type:    MJMLComponentMjText,
+			Content: oldContent,
+		}
+
+		newContent := stringPtr("new content")
+		block.SetContent(newContent)
+		assert.Equal(t, newContent, block.Content)
+		assert.Equal(t, newContent, block.GetContent())
+		assert.Equal(t, "new content", *block.Content)
+	})
+
+	t.Run("set content on block with nil content", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:      "test-id",
+			Type:    MJMLComponentMjText,
+			Content: nil,
+		}
+
+		newContent := stringPtr("new content")
+		block.SetContent(newContent)
+		assert.Equal(t, newContent, block.Content)
+		assert.Equal(t, "new content", *block.Content)
+	})
+
+	t.Run("set nil content", func(t *testing.T) {
+		existingContent := stringPtr("existing content")
+		block := &BaseBlock{
+			ID:      "test-id",
+			Type:    MJMLComponentMjText,
+			Content: existingContent,
+		}
+
+		block.SetContent(nil)
+		assert.Nil(t, block.Content)
+		assert.Nil(t, block.GetContent())
+	})
+
+	t.Run("set empty string content", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:      "test-id",
+			Type:    MJMLComponentMjText,
+			Content: nil,
+		}
+
+		emptyContent := stringPtr("")
+		block.SetContent(emptyContent)
+		assert.NotNil(t, block.Content)
+		assert.Equal(t, "", *block.Content)
+	})
+
+	t.Run("set content on nil block - should not panic", func(t *testing.T) {
+		var block *BaseBlock = nil
+		content := stringPtr("should-not-set")
+		// This should not panic - the method checks for nil
+		block.SetContent(content)
+		assert.Nil(t, block)
+	})
+
+	t.Run("set content multiple times", func(t *testing.T) {
+		block := &BaseBlock{
+			ID:      "test-id",
+			Type:    MJMLComponentMjText,
+			Content: nil,
+		}
+
+		content1 := stringPtr("content 1")
+		block.SetContent(content1)
+		assert.Equal(t, "content 1", *block.Content)
+
+		content2 := stringPtr("content 2")
+		block.SetContent(content2)
+		assert.Equal(t, "content 2", *block.Content)
+	})
+}
+
+func TestStructToMap(t *testing.T) {
+	t.Run("convert simple struct to map", func(t *testing.T) {
+		type SimpleStruct struct {
+			Name  string `json:"name"`
+			Value int    `json:"value"`
+		}
+
+		s := SimpleStruct{
+			Name:  "test",
+			Value: 42,
+		}
+
+		result, err := structToMap(s)
+		require.NoError(t, err)
+		assert.Equal(t, "test", result["name"])
+		assert.Equal(t, float64(42), result["value"]) // JSON numbers become float64
+	})
+
+	t.Run("convert struct with pointers to map", func(t *testing.T) {
+		type StructWithPointers struct {
+			Name  *string `json:"name,omitempty"`
+			Value *int    `json:"value,omitempty"`
+		}
+
+		name := "test"
+		value := 100
+		s := StructWithPointers{
+			Name:  &name,
+			Value: &value,
+		}
+
+		result, err := structToMap(s)
+		require.NoError(t, err)
+		assert.Equal(t, "test", result["name"])
+		assert.Equal(t, float64(100), result["value"])
+	})
+
+	t.Run("convert struct with nil pointers to map", func(t *testing.T) {
+		type StructWithNilPointers struct {
+			Name  *string `json:"name,omitempty"`
+			Value *int    `json:"value,omitempty"`
+		}
+
+		s := StructWithNilPointers{
+			Name:  nil,
+			Value: nil,
+		}
+
+		result, err := structToMap(s)
+		require.NoError(t, err)
+		// omitempty should exclude nil fields
+		_, hasName := result["name"]
+		_, hasValue := result["value"]
+		assert.False(t, hasName || hasValue, "nil fields with omitempty should be excluded")
+	})
+
+	t.Run("convert struct with nested struct to map", func(t *testing.T) {
+		type NestedStruct struct {
+			Inner struct {
+				Key   string `json:"key"`
+				Value int    `json:"value"`
+			} `json:"inner"`
+		}
+
+		s := NestedStruct{}
+		s.Inner.Key = "nested-key"
+		s.Inner.Value = 99
+
+		result, err := structToMap(s)
+		require.NoError(t, err)
+		inner, ok := result["inner"].(map[string]interface{})
+		require.True(t, ok, "inner should be a map")
+		assert.Equal(t, "nested-key", inner["key"])
+		assert.Equal(t, float64(99), inner["value"])
+	})
+
+	t.Run("convert struct with slice to map", func(t *testing.T) {
+		type StructWithSlice struct {
+			Items []string `json:"items"`
+		}
+
+		s := StructWithSlice{
+			Items: []string{"item1", "item2", "item3"},
+		}
+
+		result, err := structToMap(s)
+		require.NoError(t, err)
+		items, ok := result["items"].([]interface{})
+		require.True(t, ok, "items should be a slice")
+		assert.Equal(t, 3, len(items))
+		assert.Equal(t, "item1", items[0])
+	})
+
+	t.Run("convert nil to map - should return empty map", func(t *testing.T) {
+		result, err := structToMap(nil)
+		require.NoError(t, err)
+		assert.NotNil(t, result)
+		assert.Empty(t, result)
+	})
+
+	t.Run("convert map to map - should work", func(t *testing.T) {
+		input := map[string]interface{}{
+			"key1": "value1",
+			"key2": 42,
+		}
+
+		result, err := structToMap(input)
+		require.NoError(t, err)
+		assert.Equal(t, "value1", result["key1"])
+		assert.Equal(t, float64(42), result["key2"])
+	})
+
+	t.Run("convert struct with json tags to map", func(t *testing.T) {
+		type StructWithTags struct {
+			FieldName    string `json:"field_name"`
+			AnotherField int    `json:"another_field"`
+			Omitted      string `json:"-"`
+		}
+
+		s := StructWithTags{
+			FieldName:    "test",
+			AnotherField: 123,
+			Omitted:      "should not appear",
+		}
+
+		result, err := structToMap(s)
+		require.NoError(t, err)
+		assert.Equal(t, "test", result["field_name"])
+		assert.Equal(t, float64(123), result["another_field"])
+		_, hasOmitted := result["Omitted"]
+		assert.False(t, hasOmitted, "field with json:\"-\" should be omitted")
+	})
+
+	t.Run("convert struct that cannot be marshaled - should return error", func(t *testing.T) {
+		// Channel cannot be marshaled to JSON
+		type InvalidStruct struct {
+			Channel chan int `json:"channel"`
+		}
+
+		s := InvalidStruct{
+			Channel: make(chan int),
+		}
+
+		result, err := structToMap(s)
+		assert.Error(t, err)
+		assert.Nil(t, result)
+		assert.Contains(t, err.Error(), "failed to marshal struct")
+	})
+
+	t.Run("convert struct with unexported fields", func(t *testing.T) {
+		type StructWithUnexported struct {
+			Exported   string `json:"exported"`
+			unexported string // no json tag, should be omitted
+		}
+
+		s := StructWithUnexported{
+			Exported:   "visible",
+			unexported: "hidden",
+		}
+
+		result, err := structToMap(s)
+		require.NoError(t, err)
+		assert.Equal(t, "visible", result["exported"])
+		_, hasUnexported := result["unexported"]
+		assert.False(t, hasUnexported, "unexported fields should be omitted")
+	})
+
+	t.Run("convert MJBodyAttributes struct", func(t *testing.T) {
+		// Test with actual attribute struct used in the codebase
+		// Note: MJBodyAttributes has both embedded BackgroundAttributes and a direct BackgroundColor field
+		// The direct field takes precedence when marshaling
+		attrs := MJBodyAttributes{
+			BackgroundAttributes: BackgroundAttributes{
+				BackgroundURL: stringPtr("https://example.com/bg.jpg"),
+			},
+			CommonAttributes: CommonAttributes{
+				CSSClass: stringPtr("body-class"),
+			},
+			Width:           stringPtr("600px"),
+			BackgroundColor: stringPtr("#ffffff"), // Direct field, not from embedded struct
+		}
+
+		result, err := structToMap(attrs)
+		require.NoError(t, err)
+		assert.Equal(t, "#ffffff", result["backgroundColor"])
+		assert.Equal(t, "body-class", result["cssClass"])
+		assert.Equal(t, "600px", result["width"])
+		assert.Equal(t, "https://example.com/bg.jpg", result["backgroundUrl"])
+	})
+}

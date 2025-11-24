@@ -3970,3 +3970,728 @@ func TestWorkspaceSettings_WithBlogSettings(t *testing.T) {
 		assert.Nil(t, newSettings.BlogSettings)
 	})
 }
+
+func TestUserPermissions_Value(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   UserPermissions
+		wantNil bool
+		wantErr bool
+	}{
+		{
+			name: "valid permissions",
+			input: UserPermissions{
+				PermissionResourceContacts:  ResourcePermissions{Read: true, Write: false},
+				PermissionResourceTemplates: ResourcePermissions{Read: true, Write: true},
+			},
+			wantNil: false,
+			wantErr: false,
+		},
+		{
+			name:    "empty permissions",
+			input:   UserPermissions{},
+			wantNil: true,
+			wantErr: false,
+		},
+		{
+			name:    "nil permissions",
+			input:   nil,
+			wantNil: true,
+			wantErr: false,
+		},
+		{
+			name: "full permissions",
+			input: UserPermissions{
+				PermissionResourceContacts:       ResourcePermissions{Read: true, Write: true},
+				PermissionResourceLists:          ResourcePermissions{Read: true, Write: true},
+				PermissionResourceTemplates:      ResourcePermissions{Read: true, Write: true},
+				PermissionResourceBroadcasts:     ResourcePermissions{Read: true, Write: true},
+				PermissionResourceTransactional:  ResourcePermissions{Read: true, Write: true},
+				PermissionResourceWorkspace:      ResourcePermissions{Read: true, Write: true},
+				PermissionResourceMessageHistory: ResourcePermissions{Read: true, Write: true},
+				PermissionResourceBlog:           ResourcePermissions{Read: true, Write: true},
+			},
+			wantNil: false,
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := tt.input.Value()
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			if tt.wantNil {
+				assert.Nil(t, got)
+			} else {
+				// Verify the value is a valid JSON byte array
+				jsonBytes, ok := got.([]byte)
+				assert.True(t, ok)
+
+				// Verify we can unmarshal it back
+				var unmarshaled UserPermissions
+				err := json.Unmarshal(jsonBytes, &unmarshaled)
+				assert.NoError(t, err)
+				assert.Equal(t, len(tt.input), len(unmarshaled))
+			}
+		})
+	}
+}
+
+func TestUserPermissions_Scan(t *testing.T) {
+	tests := []struct {
+		name    string
+		input   interface{}
+		want    UserPermissions
+		wantErr bool
+	}{
+		{
+			name:  "valid JSON bytes",
+			input: []byte(`{"contacts":{"read":true,"write":false},"templates":{"read":true,"write":true}}`),
+			want: UserPermissions{
+				PermissionResourceContacts:  ResourcePermissions{Read: true, Write: false},
+				PermissionResourceTemplates: ResourcePermissions{Read: true, Write: true},
+			},
+			wantErr: false,
+		},
+		{
+			name:    "nil input",
+			input:   nil,
+			want:    UserPermissions{},
+			wantErr: false,
+		},
+		{
+			name:    "invalid type",
+			input:   "not-a-byte-array",
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:    "invalid JSON",
+			input:   []byte(`{invalid json`),
+			want:    nil,
+			wantErr: true,
+		},
+		{
+			name:  "empty JSON object",
+			input: []byte(`{}`),
+			want:  UserPermissions{},
+			wantErr: false,
+		},
+		{
+			name:  "full permissions JSON",
+			input: []byte(`{"contacts":{"read":true,"write":true},"lists":{"read":true,"write":true},"templates":{"read":true,"write":true},"broadcasts":{"read":true,"write":true},"transactional":{"read":true,"write":true},"workspace":{"read":true,"write":true},"message_history":{"read":true,"write":true},"blog":{"read":true,"write":true}}`),
+			want: UserPermissions{
+				PermissionResourceContacts:       ResourcePermissions{Read: true, Write: true},
+				PermissionResourceLists:          ResourcePermissions{Read: true, Write: true},
+				PermissionResourceTemplates:      ResourcePermissions{Read: true, Write: true},
+				PermissionResourceBroadcasts:     ResourcePermissions{Read: true, Write: true},
+				PermissionResourceTransactional:  ResourcePermissions{Read: true, Write: true},
+				PermissionResourceWorkspace:      ResourcePermissions{Read: true, Write: true},
+				PermissionResourceMessageHistory: ResourcePermissions{Read: true, Write: true},
+				PermissionResourceBlog:           ResourcePermissions{Read: true, Write: true},
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			var up UserPermissions
+			err := up.Scan(tt.input)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.input != nil {
+					if _, ok := tt.input.(string); ok {
+						assert.Contains(t, err.Error(), "type assertion to []byte failed")
+					}
+				}
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, len(tt.want), len(up))
+			for k, v := range tt.want {
+				assert.Equal(t, v, up[k])
+			}
+		})
+	}
+}
+
+func TestBlogSettings_GetHomePageSize(t *testing.T) {
+	tests := []struct {
+		name     string
+		settings *BlogSettings
+		want     int
+	}{
+		{
+			name:     "nil settings",
+			settings: nil,
+			want:     20, // default
+		},
+		{
+			name: "valid size",
+			settings: &BlogSettings{
+				HomePageSize: 15,
+			},
+			want: 15,
+		},
+		{
+			name: "size less than 1",
+			settings: &BlogSettings{
+				HomePageSize: 0,
+			},
+			want: 20, // default
+		},
+		{
+			name: "size less than 1 negative",
+			settings: &BlogSettings{
+				HomePageSize: -5,
+			},
+			want: 20, // default
+		},
+		{
+			name: "size greater than 100",
+			settings: &BlogSettings{
+				HomePageSize: 150,
+			},
+			want: 20, // default
+		},
+		{
+			name: "size exactly 1",
+			settings: &BlogSettings{
+				HomePageSize: 1,
+			},
+			want: 1,
+		},
+		{
+			name: "size exactly 100",
+			settings: &BlogSettings{
+				HomePageSize: 100,
+			},
+			want: 100,
+		},
+		{
+			name: "size 50",
+			settings: &BlogSettings{
+				HomePageSize: 50,
+			},
+			want: 50,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.settings.GetHomePageSize()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestBlogSettings_GetCategoryPageSize(t *testing.T) {
+	tests := []struct {
+		name     string
+		settings *BlogSettings
+		want     int
+	}{
+		{
+			name:     "nil settings",
+			settings: nil,
+			want:     20, // default
+		},
+		{
+			name: "valid size",
+			settings: &BlogSettings{
+				CategoryPageSize: 25,
+			},
+			want: 25,
+		},
+		{
+			name: "size less than 1",
+			settings: &BlogSettings{
+				CategoryPageSize: 0,
+			},
+			want: 20, // default
+		},
+		{
+			name: "size less than 1 negative",
+			settings: &BlogSettings{
+				CategoryPageSize: -10,
+			},
+			want: 20, // default
+		},
+		{
+			name: "size greater than 100",
+			settings: &BlogSettings{
+				CategoryPageSize: 200,
+			},
+			want: 20, // default
+		},
+		{
+			name: "size exactly 1",
+			settings: &BlogSettings{
+				CategoryPageSize: 1,
+			},
+			want: 1,
+		},
+		{
+			name: "size exactly 100",
+			settings: &BlogSettings{
+				CategoryPageSize: 100,
+			},
+			want: 100,
+		},
+		{
+			name: "size 30",
+			settings: &BlogSettings{
+				CategoryPageSize: 30,
+			},
+			want: 30,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.settings.GetCategoryPageSize()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestWorkspace_GetEmailProviderWithIntegrationID(t *testing.T) {
+	tests := []struct {
+		name          string
+		workspace     Workspace
+		isMarketing   bool
+		wantProvider  bool
+		wantID        string
+		wantErr       bool
+		errorContains string
+	}{
+		{
+			name: "marketing provider found",
+			workspace: Workspace{
+				Settings: WorkspaceSettings{
+					MarketingEmailProviderID: "integration-1",
+				},
+				Integrations: Integrations{
+					{
+						ID:   "integration-1",
+						Type: IntegrationTypeEmail,
+						EmailProvider: EmailProvider{
+							Kind:               EmailProviderKindSMTP,
+							RateLimitPerMinute: 25,
+							Senders:            []EmailSender{{ID: "sender-1", Email: "test@example.com", Name: "Test", IsDefault: true}},
+							SMTP:               &SMTPSettings{Host: "smtp.example.com", Port: 587, Username: "user", Password: "pass"},
+						},
+					},
+				},
+			},
+			isMarketing:  true,
+			wantProvider: true,
+			wantID:       "integration-1",
+			wantErr:      false,
+		},
+		{
+			name: "transactional provider found",
+			workspace: Workspace{
+				Settings: WorkspaceSettings{
+					TransactionalEmailProviderID: "integration-2",
+				},
+				Integrations: Integrations{
+					{
+						ID:   "integration-2",
+						Type: IntegrationTypeEmail,
+						EmailProvider: EmailProvider{
+							Kind:               EmailProviderKindSMTP,
+							RateLimitPerMinute: 30,
+							Senders:            []EmailSender{{ID: "sender-2", Email: "test2@example.com", Name: "Test2", IsDefault: true}},
+							SMTP:               &SMTPSettings{Host: "smtp2.example.com", Port: 587, Username: "user2", Password: "pass2"},
+						},
+					},
+				},
+			},
+			isMarketing:  false,
+			wantProvider: true,
+			wantID:       "integration-2",
+			wantErr:      false,
+		},
+		{
+			name: "no marketing provider configured",
+			workspace: Workspace{
+				Settings: WorkspaceSettings{
+					MarketingEmailProviderID: "",
+				},
+				Integrations: Integrations{},
+			},
+			isMarketing:  true,
+			wantProvider: false,
+			wantID:       "",
+			wantErr:      false,
+		},
+		{
+			name: "no transactional provider configured",
+			workspace: Workspace{
+				Settings: WorkspaceSettings{
+					TransactionalEmailProviderID: "",
+				},
+				Integrations: Integrations{},
+			},
+			isMarketing:  false,
+			wantProvider: false,
+			wantID:       "",
+			wantErr:      false,
+		},
+		{
+			name: "integration not found",
+			workspace: Workspace{
+				Settings: WorkspaceSettings{
+					MarketingEmailProviderID: "non-existent",
+				},
+				Integrations: Integrations{
+					{
+						ID:   "integration-1",
+						Type: IntegrationTypeEmail,
+						EmailProvider: EmailProvider{
+							Kind:               EmailProviderKindSMTP,
+							RateLimitPerMinute: 25,
+							Senders:            []EmailSender{{ID: "sender-1", Email: "test@example.com", Name: "Test", IsDefault: true}},
+						},
+					},
+				},
+			},
+			isMarketing:  true,
+			wantProvider: false,
+			wantID:       "",
+			wantErr:      true,
+			errorContains: "integration with ID non-existent not found",
+		},
+		{
+			name: "multiple integrations, correct one selected",
+			workspace: Workspace{
+				Settings: WorkspaceSettings{
+					MarketingEmailProviderID:     "integration-marketing",
+					TransactionalEmailProviderID: "integration-transactional",
+				},
+				Integrations: Integrations{
+					{
+						ID:   "integration-marketing",
+						Type: IntegrationTypeEmail,
+						EmailProvider: EmailProvider{
+							Kind:               EmailProviderKindSMTP,
+							RateLimitPerMinute: 25,
+							Senders:            []EmailSender{{ID: "sender-1", Email: "marketing@example.com", Name: "Marketing", IsDefault: true}},
+						},
+					},
+					{
+						ID:   "integration-transactional",
+						Type: IntegrationTypeEmail,
+						EmailProvider: EmailProvider{
+							Kind:               EmailProviderKindSMTP,
+							RateLimitPerMinute: 30,
+							Senders:            []EmailSender{{ID: "sender-2", Email: "transactional@example.com", Name: "Transactional", IsDefault: true}},
+						},
+					},
+				},
+			},
+			isMarketing:  true,
+			wantProvider: true,
+			wantID:       "integration-marketing",
+			wantErr:      false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider, id, err := tt.workspace.GetEmailProviderWithIntegrationID(tt.isMarketing)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errorContains != "" {
+					assert.Contains(t, err.Error(), tt.errorContains)
+				}
+				assert.Nil(t, provider)
+				assert.Equal(t, "", id)
+				return
+			}
+
+			assert.NoError(t, err)
+
+			if tt.wantProvider {
+				assert.NotNil(t, provider)
+				assert.Equal(t, tt.wantID, id)
+				// Verify the provider matches the expected integration
+				integration := tt.workspace.GetIntegrationByID(tt.wantID)
+				assert.NotNil(t, integration)
+				assert.Equal(t, integration.EmailProvider.Kind, provider.Kind)
+			} else {
+				assert.Nil(t, provider)
+				assert.Equal(t, "", id)
+			}
+		})
+	}
+}
+
+func TestUserWorkspace_HasPermission(t *testing.T) {
+	tests := []struct {
+		name           string
+		userWorkspace  UserWorkspace
+		resource       PermissionResource
+		permissionType PermissionType
+		want           bool
+	}{
+		{
+			name: "owner has all permissions",
+			userWorkspace: UserWorkspace{
+				Role: "owner",
+			},
+			resource:       PermissionResourceContacts,
+			permissionType: PermissionTypeRead,
+			want:           true,
+		},
+		{
+			name: "owner has write permission",
+			userWorkspace: UserWorkspace{
+				Role: "owner",
+			},
+			resource:       PermissionResourceTemplates,
+			permissionType: PermissionTypeWrite,
+			want:           true,
+		},
+		{
+			name: "member with read permission",
+			userWorkspace: UserWorkspace{
+				Role: "member",
+				Permissions: UserPermissions{
+					PermissionResourceContacts: ResourcePermissions{Read: true, Write: false},
+				},
+			},
+			resource:       PermissionResourceContacts,
+			permissionType: PermissionTypeRead,
+			want:           true,
+		},
+		{
+			name: "member without read permission",
+			userWorkspace: UserWorkspace{
+				Role: "member",
+				Permissions: UserPermissions{
+					PermissionResourceContacts: ResourcePermissions{Read: false, Write: false},
+				},
+			},
+			resource:       PermissionResourceContacts,
+			permissionType: PermissionTypeRead,
+			want:           false,
+		},
+		{
+			name: "member with write permission",
+			userWorkspace: UserWorkspace{
+				Role: "member",
+				Permissions: UserPermissions{
+					PermissionResourceTemplates: ResourcePermissions{Read: true, Write: true},
+				},
+			},
+			resource:       PermissionResourceTemplates,
+			permissionType: PermissionTypeWrite,
+			want:           true,
+		},
+		{
+			name: "member without write permission",
+			userWorkspace: UserWorkspace{
+				Role: "member",
+				Permissions: UserPermissions{
+					PermissionResourceTemplates: ResourcePermissions{Read: true, Write: false},
+				},
+			},
+			resource:       PermissionResourceTemplates,
+			permissionType: PermissionTypeWrite,
+			want:           false,
+		},
+		{
+			name: "member with nil permissions",
+			userWorkspace: UserWorkspace{
+				Role:        "member",
+				Permissions: nil,
+			},
+			resource:       PermissionResourceContacts,
+			permissionType: PermissionTypeRead,
+			want:           false,
+		},
+		{
+			name: "member with empty permissions",
+			userWorkspace: UserWorkspace{
+				Role:        "member",
+				Permissions: UserPermissions{},
+			},
+			resource:       PermissionResourceContacts,
+			permissionType: PermissionTypeRead,
+			want:           false,
+		},
+		{
+			name: "member with resource not in permissions",
+			userWorkspace: UserWorkspace{
+				Role: "member",
+				Permissions: UserPermissions{
+					PermissionResourceTemplates: ResourcePermissions{Read: true, Write: true},
+				},
+			},
+			resource:       PermissionResourceContacts,
+			permissionType: PermissionTypeRead,
+			want:           false,
+		},
+		{
+			name: "member with invalid permission type",
+			userWorkspace: UserWorkspace{
+				Role: "member",
+				Permissions: UserPermissions{
+					PermissionResourceContacts: ResourcePermissions{Read: true, Write: true},
+				},
+			},
+			resource:       PermissionResourceContacts,
+			permissionType: PermissionType("invalid"),
+			want:           false,
+		},
+		{
+			name: "member with multiple resources",
+			userWorkspace: UserWorkspace{
+				Role: "member",
+				Permissions: UserPermissions{
+					PermissionResourceContacts:  ResourcePermissions{Read: true, Write: false},
+					PermissionResourceTemplates: ResourcePermissions{Read: true, Write: true},
+					PermissionResourceBlog:      ResourcePermissions{Read: false, Write: false},
+				},
+			},
+			resource:       PermissionResourceTemplates,
+			permissionType: PermissionTypeWrite,
+			want:           true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.userWorkspace.HasPermission(tt.resource, tt.permissionType)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestUserWorkspace_SetPermissions(t *testing.T) {
+	tests := []struct {
+		name          string
+		userWorkspace UserWorkspace
+		permissions   UserPermissions
+		want          UserPermissions
+	}{
+		{
+			name: "set permissions on empty workspace",
+			userWorkspace: UserWorkspace{
+				Role:        "member",
+				Permissions: nil,
+			},
+			permissions: UserPermissions{
+				PermissionResourceContacts:  ResourcePermissions{Read: true, Write: false},
+				PermissionResourceTemplates: ResourcePermissions{Read: true, Write: true},
+			},
+			want: UserPermissions{
+				PermissionResourceContacts:  ResourcePermissions{Read: true, Write: false},
+				PermissionResourceTemplates: ResourcePermissions{Read: true, Write: true},
+			},
+		},
+		{
+			name: "replace existing permissions",
+			userWorkspace: UserWorkspace{
+				Role: "member",
+				Permissions: UserPermissions{
+					PermissionResourceContacts: ResourcePermissions{Read: false, Write: false},
+					PermissionResourceBlog:     ResourcePermissions{Read: true, Write: true},
+				},
+			},
+			permissions: UserPermissions{
+				PermissionResourceTemplates: ResourcePermissions{Read: true, Write: true},
+			},
+			want: UserPermissions{
+				PermissionResourceTemplates: ResourcePermissions{Read: true, Write: true},
+			},
+		},
+		{
+			name: "set empty permissions",
+			userWorkspace: UserWorkspace{
+				Role: "member",
+				Permissions: UserPermissions{
+					PermissionResourceContacts: ResourcePermissions{Read: true, Write: true},
+				},
+			},
+			permissions: UserPermissions{},
+			want:        UserPermissions{},
+		},
+		{
+			name: "set nil permissions",
+			userWorkspace: UserWorkspace{
+				Role: "member",
+				Permissions: UserPermissions{
+					PermissionResourceContacts: ResourcePermissions{Read: true, Write: true},
+				},
+			},
+			permissions: nil,
+			want:        nil,
+		},
+		{
+			name: "set full permissions",
+			userWorkspace: UserWorkspace{
+				Role:        "member",
+				Permissions: nil,
+			},
+			permissions: FullPermissions,
+			want:        FullPermissions,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.userWorkspace.SetPermissions(tt.permissions)
+			assert.Equal(t, tt.want, tt.userWorkspace.Permissions)
+		})
+	}
+}
+
+func TestErrWorkspaceNotFound_Error(t *testing.T) {
+	tests := []struct {
+		name    string
+		err     ErrWorkspaceNotFound
+		wantMsg string
+	}{
+		{
+			name:    "workspace ID in error message",
+			err:     ErrWorkspaceNotFound{WorkspaceID: "workspace-123"},
+			wantMsg: "workspace not found: workspace-123",
+		},
+		{
+			name:    "empty workspace ID",
+			err:     ErrWorkspaceNotFound{WorkspaceID: ""},
+			wantMsg: "workspace not found: ",
+		},
+		{
+			name:    "long workspace ID",
+			err:     ErrWorkspaceNotFound{WorkspaceID: "very-long-workspace-id-that-exceeds-normal-length"},
+			wantMsg: "workspace not found: very-long-workspace-id-that-exceeds-normal-length",
+		},
+		{
+			name:    "workspace ID with special characters",
+			err:     ErrWorkspaceNotFound{WorkspaceID: "workspace-123-abc"},
+			wantMsg: "workspace not found: workspace-123-abc",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := tt.err.Error()
+			assert.Equal(t, tt.wantMsg, got)
+		})
+	}
+}
