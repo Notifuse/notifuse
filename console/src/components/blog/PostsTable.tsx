@@ -254,14 +254,16 @@ export function PostsTable() {
       width: 150,
       render: (_: any, record: BlogPost) => (
         <Space size="small">
-          <Tooltip title="Open on web" placement="left">
-            <Button
-              type="text"
-              size="small"
-              icon={<FontAwesomeIcon icon={faExternalLinkAlt} style={{ opacity: 0.7 }} />}
-              onClick={() => handleOpenPost(record)}
-            />
-          </Tooltip>
+          {record.published_at && (
+            <Tooltip title="Open on web" placement="left">
+              <Button
+                type="text"
+                size="small"
+                icon={<FontAwesomeIcon icon={faExternalLinkAlt} style={{ opacity: 0.7 }} />}
+                onClick={() => handleOpenPost(record)}
+              />
+            </Tooltip>
+          )}
           {permissions?.workspace?.write && (
             <>
               {record.published_at ? (
