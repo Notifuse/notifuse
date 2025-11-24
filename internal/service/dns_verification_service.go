@@ -25,6 +25,21 @@ func NewDNSVerificationService(logger logger.Logger, expectedTarget string) *DNS
 	}
 }
 
+// extractHostname extracts the hostname from a URL string, or returns the string as-is if it's already a hostname
+func extractHostname(target string) (string, error) {
+	// Try to parse as URL first
+	parsed, err := url.Parse(target)
+	if err == nil && parsed.Hostname() != "" {
+		return parsed.Hostname(), nil
+	}
+	// If parsing fails or no hostname found, assume it's already a hostname
+	// Remove any trailing slashes or paths that might have been included
+	hostname := strings.TrimSuffix(strings.TrimSpace(target), "/")
+	hostname = strings.Split(hostname, "/")[0]
+	hostname = strings.Split(hostname, "?")[0]
+	return hostname, nil
+}
+
 // VerifyDomainOwnership checks if the domain has correct CNAME or A record pointing to our service
 func (s *DNSVerificationService) VerifyDomainOwnership(ctx context.Context, domainURL string) error {
 	// Extract hostname from custom_endpoint_url
@@ -54,25 +69,32 @@ func (s *DNSVerificationService) VerifyDomainOwnership(ctx context.Context, doma
 
 	// Verify CNAME points to expected target
 	cname = strings.TrimSuffix(cname, ".")
-	expectedTarget := strings.TrimSuffix(s.expectedTarget, ".")
+	
+	// Extract hostname from expectedTarget (it might be a URL)
+	expectedTargetHostname, err := extractHostname(s.expectedTarget)
+	if err != nil {
+		return domain.ValidationError{Message: fmt.Sprintf("invalid expected target: %v", err)}
+	}
+	expectedTargetHostname = strings.TrimSuffix(expectedTargetHostname, ".")
 
 	s.logger.WithFields(map[string]interface{}{
-		"hostname":        hostname,
-		"cname":           cname,
-		"expected_target": expectedTarget,
+		"hostname":              hostname,
+		"cname":                 cname,
+		"expected_target":       s.expectedTarget,
+		"expected_target_host": expectedTargetHostname,
 	}).Debug("CNAME lookup result")
 
 	// If CNAME points to itself, it means no CNAME record exists (A record instead)
 	if cname == hostname+"." || cname == hostname {
 		// Fall back to A record validation
-		return s.verifyARecord(ctx, hostname, expectedTarget)
+		return s.verifyARecord(ctx, hostname, s.expectedTarget)
 	}
 
 	// Check if CNAME ends with expected target (allows subdomains)
-	if !strings.HasSuffix(cname, expectedTarget) && cname != hostname {
+	if !strings.HasSuffix(cname, expectedTargetHostname) && cname != hostname {
 		return domain.ValidationError{
 			Message: fmt.Sprintf("CNAME verification failed: %s points to %s, but expected it to point to %s. Alternatively, you can use an A record pointing to the same IP address(es) as %s",
-				hostname, cname, expectedTarget, expectedTarget),
+				hostname, cname, expectedTargetHostname, s.expectedTarget),
 		}
 	}
 
@@ -86,8 +108,17 @@ func (s *DNSVerificationService) VerifyDomainOwnership(ctx context.Context, doma
 
 // verifyARecord verifies domain ownership via A record by comparing IP addresses
 func (s *DNSVerificationService) verifyARecord(ctx context.Context, hostname, expectedTarget string) error {
+	// Extract hostname from expectedTarget (it might be a URL like https://preview.notifuse.com)
+	expectedTargetHostname, err := extractHostname(expectedTarget)
+	if err != nil {
+		return domain.ValidationError{
+			Message: fmt.Sprintf("Failed to parse expected target %s: %v. Please ensure DNS is configured with a CNAME record pointing to %s or an A record pointing to the same IP address(es)",
+				expectedTarget, err, expectedTarget),
+		}
+	}
+
 	// Resolve expected target (API endpoint) to IP addresses
-	expectedIPs, err := net.LookupIP(expectedTarget)
+	expectedIPs, err := net.LookupIP(expectedTargetHostname)
 	if err != nil {
 		return domain.ValidationError{
 			Message: fmt.Sprintf("Failed to resolve expected target %s: %v. Please ensure DNS is configured with a CNAME record pointing to %s or an A record pointing to the same IP address(es)",

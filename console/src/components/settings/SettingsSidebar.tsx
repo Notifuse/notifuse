@@ -51,21 +51,6 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
       label: 'Integrations'
     },
     {
-      key: 'custom-fields',
-      icon: <TagsOutlined />,
-      label: 'Custom Fields'
-    },
-    {
-      key: 'smtp-relay',
-      icon: <MailOutlined />,
-      label: 'SMTP Relay'
-    },
-    {
-      key: 'general',
-      icon: <SettingOutlined />,
-      label: 'General'
-    },
-    {
       key: 'blog',
       icon: (
         <svg
@@ -85,6 +70,21 @@ export function SettingsSidebar({ activeSection, onSectionChange, isOwner }: Set
         </svg>
       ),
       label: 'Blog'
+    },
+    {
+      key: 'custom-fields',
+      icon: <TagsOutlined />,
+      label: 'Custom Fields'
+    },
+    {
+      key: 'smtp-relay',
+      icon: <MailOutlined />,
+      label: 'SMTP Relay'
+    },
+    {
+      key: 'general',
+      icon: <SettingOutlined />,
+      label: 'General'
     }
   ]
 
