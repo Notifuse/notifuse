@@ -56,7 +56,7 @@ func (h *BlogThemeHandler) HandleCreate(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	var req domain.CreateBlogThemeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -95,7 +95,7 @@ func (h *BlogThemeHandler) HandleGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	versionStr := r.URL.Query().Get("version")
 	if versionStr == "" {
@@ -139,7 +139,7 @@ func (h *BlogThemeHandler) HandleGetPublished(w http.ResponseWriter, r *http.Req
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	theme, err := h.service.GetPublishedTheme(ctx)
 	if err != nil {
@@ -171,7 +171,7 @@ func (h *BlogThemeHandler) HandleUpdate(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	var req domain.UpdateBlogThemeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -210,7 +210,7 @@ func (h *BlogThemeHandler) HandlePublish(w http.ResponseWriter, r *http.Request)
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	var req domain.PublishBlogThemeRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -249,7 +249,7 @@ func (h *BlogThemeHandler) HandleList(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	var req domain.ListBlogThemesRequest
 

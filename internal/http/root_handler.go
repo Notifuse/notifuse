@@ -217,7 +217,7 @@ func (h *RootHandler) serveNotificationCenter(w http.ResponseWriter, r *http.Req
 
 // serveBlog handles blog content requests
 func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace) {
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace.ID)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace.ID)
 
 	// Handle special paths
 	switch r.URL.Path {
@@ -265,7 +265,7 @@ func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspac
 
 // serveBlogHome serves the blog home page with a list of posts
 func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace) {
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace.ID)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace.ID)
 
 	// Extract page parameter from query string
 	pageStr := r.URL.Query().Get("page")
@@ -342,7 +342,7 @@ func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, work
 
 // serveBlogCategory serves a blog category page with posts in that category
 func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace, categorySlug string) {
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace.ID)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace.ID)
 
 	// Extract page parameter from query string
 	pageStr := r.URL.Query().Get("page")
@@ -419,7 +419,7 @@ func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, 
 
 // serveBlogPost serves a single blog post
 func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace, post *domain.BlogPost) {
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace.ID)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace.ID)
 
 	// Get category from post to build proper URL
 	// Extract category slug and post slug from URL
@@ -498,7 +498,7 @@ Sitemap: /sitemap.xml
 
 // serveBlogSitemap serves sitemap.xml for the blog
 func (h *RootHandler) serveBlogSitemap(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace) {
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace.ID)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace.ID)
 
 	// Get all published posts
 	params := &domain.ListBlogPostsRequest{

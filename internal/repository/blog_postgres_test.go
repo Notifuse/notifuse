@@ -28,7 +28,7 @@ func TestBlogCategoryRepository(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = db.Close() }()
 
-	ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 
 	testCategory := &domain.BlogCategory{
 		ID:   "cat123",
@@ -406,7 +406,7 @@ func TestBlogPostRepository(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = db.Close() }()
 
-	ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 
 	testPost := &domain.BlogPost{
 		ID:         "post123",

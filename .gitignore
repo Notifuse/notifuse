@@ -19,3 +19,7 @@ console/public/config.js
 
 notification_center/tsconfig.tsbuildinfo
 dev-certs/
+
+coverage-internal-pkg.out
+
+coverage-report.txt

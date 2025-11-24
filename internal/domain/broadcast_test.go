@@ -1980,3 +1980,137 @@ func TestGetBroadcastRequest_FromURLParams_Comprehensive(t *testing.T) {
 		t.Log("The implementation accepted a non-standard boolean value")
 	}
 }
+
+func TestSelectWinnerRequest_Validate(t *testing.T) {
+	t.Run("valid request", func(t *testing.T) {
+		req := domain.SelectWinnerRequest{
+			WorkspaceID: "workspace123",
+			ID:          "broadcast123",
+			TemplateID:  "template123",
+		}
+
+		err := req.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("missing workspace_id", func(t *testing.T) {
+		req := domain.SelectWinnerRequest{
+			ID:         "broadcast123",
+			TemplateID: "template123",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "workspace_id is required")
+	})
+
+	t.Run("missing ID", func(t *testing.T) {
+		req := domain.SelectWinnerRequest{
+			WorkspaceID: "workspace123",
+			TemplateID:  "template123",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "broadcast id is required")
+	})
+
+	t.Run("missing template_id", func(t *testing.T) {
+		req := domain.SelectWinnerRequest{
+			WorkspaceID: "workspace123",
+			ID:          "broadcast123",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "template_id is required")
+	})
+}
+
+func TestGetTestResultsRequest_Validate(t *testing.T) {
+	t.Run("valid request", func(t *testing.T) {
+		req := domain.GetTestResultsRequest{
+			WorkspaceID: "workspace123",
+			ID:          "broadcast123",
+		}
+
+		err := req.Validate()
+		assert.NoError(t, err)
+	})
+
+	t.Run("missing workspace_id", func(t *testing.T) {
+		req := domain.GetTestResultsRequest{
+			ID: "broadcast123",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "workspace_id is required")
+	})
+
+	t.Run("missing ID", func(t *testing.T) {
+		req := domain.GetTestResultsRequest{
+			WorkspaceID: "workspace123",
+		}
+
+		err := req.Validate()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "broadcast id is required")
+	})
+}
+
+func TestGetTestResultsRequest_FromURLParams(t *testing.T) {
+	t.Run("valid URL params", func(t *testing.T) {
+		params := url.Values{
+			"workspace_id": {"workspace123"},
+			"id":           {"broadcast123"},
+		}
+
+		req := domain.GetTestResultsRequest{}
+		err := req.FromURLParams(params)
+
+		require.NoError(t, err)
+		assert.Equal(t, "workspace123", req.WorkspaceID)
+		assert.Equal(t, "broadcast123", req.ID)
+	})
+
+	t.Run("missing workspace_id", func(t *testing.T) {
+		params := url.Values{
+			"id": {"broadcast123"},
+		}
+
+		req := domain.GetTestResultsRequest{}
+		err := req.FromURLParams(params)
+
+		require.NoError(t, err) // FromURLParams doesn't validate, just sets values
+		assert.Empty(t, req.WorkspaceID)
+		assert.Equal(t, "broadcast123", req.ID)
+	})
+
+	t.Run("missing ID", func(t *testing.T) {
+		params := url.Values{
+			"workspace_id": {"workspace123"},
+		}
+
+		req := domain.GetTestResultsRequest{}
+		err := req.FromURLParams(params)
+
+		require.NoError(t, err) // FromURLParams doesn't validate, just sets values
+		assert.Equal(t, "workspace123", req.WorkspaceID)
+		assert.Empty(t, req.ID)
+	})
+
+	t.Run("both present", func(t *testing.T) {
+		params := url.Values{
+			"workspace_id": {"workspace123"},
+			"id":           {"broadcast123"},
+		}
+
+		req := domain.GetTestResultsRequest{}
+		err := req.FromURLParams(params)
+
+		require.NoError(t, err)
+		assert.Equal(t, "workspace123", req.WorkspaceID)
+		assert.Equal(t, "broadcast123", req.ID)
+	})
+}

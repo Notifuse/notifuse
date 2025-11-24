@@ -12,10 +12,6 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
-type contextKey string
-
-const workspaceIDKey contextKey = "workspace_id"
-
 type BlogHandler struct {
 	service      domain.BlogService
 	logger       logger.Logger
@@ -74,7 +70,7 @@ func (h *BlogHandler) HandleListCategories(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	response, err := h.service.ListCategories(ctx)
 	if err != nil {
@@ -111,7 +107,7 @@ func (h *BlogHandler) HandleGetCategory(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	var category *domain.BlogCategory
 	var err error
@@ -153,7 +149,7 @@ func (h *BlogHandler) HandleCreateCategory(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	category, err := h.service.CreateCategory(ctx, &req)
 	if err != nil {
@@ -187,7 +183,7 @@ func (h *BlogHandler) HandleUpdateCategory(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	category, err := h.service.UpdateCategory(ctx, &req)
 	if err != nil {
@@ -221,7 +217,7 @@ func (h *BlogHandler) HandleDeleteCategory(w http.ResponseWriter, r *http.Reques
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	if err := h.service.DeleteCategory(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to delete category")
@@ -258,7 +254,7 @@ func (h *BlogHandler) HandleListPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	response, err := h.service.ListPosts(ctx, &params)
 	if err != nil {
@@ -296,7 +292,7 @@ func (h *BlogHandler) HandleGetPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	var post *domain.BlogPost
 	var err error
@@ -340,7 +336,7 @@ func (h *BlogHandler) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	post, err := h.service.CreatePost(ctx, &req)
 	if err != nil {
@@ -374,7 +370,7 @@ func (h *BlogHandler) HandleUpdatePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	post, err := h.service.UpdatePost(ctx, &req)
 	if err != nil {
@@ -408,7 +404,7 @@ func (h *BlogHandler) HandleDeletePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	if err := h.service.DeletePost(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to delete post")
@@ -441,7 +437,7 @@ func (h *BlogHandler) HandlePublishPost(w http.ResponseWriter, r *http.Request) 
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	if err := h.service.PublishPost(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to publish post")
@@ -474,7 +470,7 @@ func (h *BlogHandler) HandleUnpublishPost(w http.ResponseWriter, r *http.Request
 	}
 
 	// Add workspace_id to context
-	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace_id)
+	ctx := context.WithValue(r.Context(), domain.WorkspaceIDKey, workspace_id)
 
 	if err := h.service.UnpublishPost(ctx, &req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to unpublish post")

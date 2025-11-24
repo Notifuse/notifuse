@@ -1327,7 +1327,7 @@ func (tdf *TestDataFactory) CreateBlogCategory(workspaceID string, opts ...BlogC
 	categoryRepo := repository.NewBlogCategoryRepository(tdf.workspaceRepo)
 
 	// Create context with workspace ID
-	ctx := context.WithValue(context.Background(), "workspace_id", workspaceID)
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, workspaceID)
 
 	// Create category
 	err := categoryRepo.CreateCategory(ctx, category)
@@ -1374,7 +1374,7 @@ func (tdf *TestDataFactory) CreateBlogPost(workspaceID, categoryID string, opts 
 	postRepo := repository.NewBlogPostRepository(tdf.workspaceRepo)
 
 	// Create context with workspace ID
-	ctx := context.WithValue(context.Background(), "workspace_id", workspaceID)
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, workspaceID)
 
 	// Create post
 	err = postRepo.CreatePost(ctx, post)
@@ -1412,7 +1412,7 @@ func (tdf *TestDataFactory) CreateBlogTheme(workspaceID string, opts ...BlogThem
 	themeRepo := repository.NewBlogThemeRepository(tdf.workspaceRepo)
 
 	// Create context with workspace ID
-	ctx := context.WithValue(context.Background(), "workspace_id", workspaceID)
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, workspaceID)
 
 	// Create theme
 	err := themeRepo.CreateTheme(ctx, theme)

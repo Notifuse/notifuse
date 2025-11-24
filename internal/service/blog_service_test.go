@@ -56,7 +56,7 @@ func setupBlogServiceTest(t *testing.T) (
 
 // setupBlogContextWithAuth creates a context with workspace_id and mocks authentication with permissions
 func setupBlogContextWithAuth(mockAuthService *mocks.MockAuthService, workspaceID string, readPerm, writePerm bool) context.Context {
-	ctx := context.WithValue(context.Background(), workspaceIDKey, workspaceID)
+	ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, workspaceID)
 
 	userWorkspace := &domain.UserWorkspace{
 		UserID:      "user123",
@@ -226,7 +226,7 @@ func TestBlogService_GetPublicCategoryBySlug(t *testing.T) {
 	service, mockCategoryRepo, _, _, _, _, _, _ := setupBlogServiceTest(t)
 
 	t.Run("successful retrieval without authentication", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		expectedCategory := &domain.BlogCategory{
 			ID:   "cat123",
 			Slug: "tech-blog",
@@ -245,7 +245,7 @@ func TestBlogService_GetPublicCategoryBySlug(t *testing.T) {
 	})
 
 	t.Run("returns error when category not found", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 
 		mockCategoryRepo.EXPECT().
 			GetCategoryBySlug(ctx, "nonexistent").
@@ -1475,7 +1475,7 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 	service, _, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _, _ := setupBlogServiceTest(t)
 
 	t.Run("successful render with public lists", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
 			Name: "Test Workspace",
@@ -1548,7 +1548,7 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 	})
 
 	t.Run("filters deleted categories from navigation but uses them for slug lookup", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
 			Name: "Test Workspace",
@@ -1625,7 +1625,7 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 	})
 
 	t.Run("handles no published theme", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
 
 		mockWorkspaceRepo.EXPECT().GetByID(ctx, "workspace123").Return(workspace, nil)
@@ -1641,7 +1641,7 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 	})
 
 	t.Run("handles empty public lists gracefully", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
 
 		theme := &domain.BlogTheme{
@@ -1670,7 +1670,7 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 	})
 
 	t.Run("returns 404 when page > total_pages", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
 
 		theme := &domain.BlogTheme{
@@ -1712,7 +1712,7 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 	service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, mockTemplateRepo, _ := setupBlogServiceTest(t)
 
 	t.Run("successful render", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
 
 		publishedAt := time.Now()
@@ -1777,7 +1777,7 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 	})
 
 	t.Run("handles unpublished post", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
 
 		post := &domain.BlogPost{
@@ -1812,7 +1812,7 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 	})
 
 	t.Run("handles post not found", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
 		theme := &domain.BlogTheme{Version: 1}
 		publishedAt := time.Now()
@@ -1832,7 +1832,7 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 	})
 
 	t.Run("handles template not found", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
 
 		publishedAt := time.Now()
@@ -1890,7 +1890,7 @@ func TestBlogService_RenderPostPage(t *testing.T) {
 	})
 
 	t.Run("handles template with no web content", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
 
 		publishedAt := time.Now()
@@ -1958,7 +1958,7 @@ func TestBlogService_RenderCategoryPage(t *testing.T) {
 	service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _, _ := setupBlogServiceTest(t)
 
 	t.Run("successful render", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
 
 		category := &domain.BlogCategory{
@@ -2003,7 +2003,7 @@ func TestBlogService_RenderCategoryPage(t *testing.T) {
 	})
 
 	t.Run("handles category not found", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
 		theme := &domain.BlogTheme{Version: 1}
 		publishedAt := time.Now()
@@ -2023,7 +2023,7 @@ func TestBlogService_RenderCategoryPage(t *testing.T) {
 	})
 
 	t.Run("returns 404 when page > total_pages for category", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 		workspace := &domain.Workspace{ID: "workspace123", Name: "Test"}
 
 		category := &domain.BlogCategory{
@@ -2074,7 +2074,7 @@ func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
 	service, _, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _, _ := setupBlogServiceTest(t)
 
 	t.Run("uses custom home page size from settings", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 
 		// Workspace with custom pagination settings
 		customPageSize := 50
@@ -2125,7 +2125,7 @@ func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
 	})
 
 	t.Run("uses default page size when not configured", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
@@ -2169,7 +2169,7 @@ func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
 	})
 
 	t.Run("uses default when page size is invalid", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
@@ -2221,7 +2221,7 @@ func TestBlogService_RenderCategoryPage_WithPaginationSettings(t *testing.T) {
 	service, mockCategoryRepo, mockPostRepo, mockThemeRepo, mockWorkspaceRepo, mockListRepo, _, _ := setupBlogServiceTest(t)
 
 	t.Run("uses custom category page size from settings", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 
 		customPageSize := 30
 		workspace := &domain.Workspace{
@@ -2279,7 +2279,7 @@ func TestBlogService_RenderCategoryPage_WithPaginationSettings(t *testing.T) {
 	})
 
 	t.Run("uses default category page size when not configured", func(t *testing.T) {
-		ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 
 		workspace := &domain.Workspace{
 			ID:   "workspace123",

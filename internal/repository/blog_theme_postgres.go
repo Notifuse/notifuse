@@ -48,7 +48,7 @@ func (r *blogThemeRepository) WithTransaction(ctx context.Context, workspaceID s
 
 // CreateTheme persists a new blog theme
 func (r *blogThemeRepository) CreateTheme(ctx context.Context, theme *domain.BlogTheme) error {
-	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -101,7 +101,7 @@ func (r *blogThemeRepository) CreateThemeTx(ctx context.Context, tx *sql.Tx, the
 
 // GetTheme retrieves a blog theme by version
 func (r *blogThemeRepository) GetTheme(ctx context.Context, version int) (*domain.BlogTheme, error) {
-	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -187,7 +187,7 @@ func (r *blogThemeRepository) GetThemeTx(ctx context.Context, tx *sql.Tx, versio
 
 // GetPublishedTheme retrieves the currently published blog theme
 func (r *blogThemeRepository) GetPublishedTheme(ctx context.Context) (*domain.BlogTheme, error) {
-	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -273,7 +273,7 @@ func (r *blogThemeRepository) GetPublishedThemeTx(ctx context.Context, tx *sql.T
 
 // UpdateTheme updates an existing blog theme
 func (r *blogThemeRepository) UpdateTheme(ctx context.Context, theme *domain.BlogTheme) error {
-	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -317,7 +317,7 @@ func (r *blogThemeRepository) UpdateThemeTx(ctx context.Context, tx *sql.Tx, the
 
 // PublishTheme publishes a blog theme by version
 func (r *blogThemeRepository) PublishTheme(ctx context.Context, version int, publishedByUserID string) error {
-	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -370,7 +370,7 @@ func (r *blogThemeRepository) PublishThemeTx(ctx context.Context, tx *sql.Tx, ve
 
 // ListThemes retrieves blog themes with pagination
 func (r *blogThemeRepository) ListThemes(ctx context.Context, params domain.ListBlogThemesRequest) (*domain.BlogThemeListResponse, error) {
-	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
+	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}

@@ -12,6 +12,9 @@ type ContextKey string
 
 const SystemCallKey ContextKey = "system_call"
 
+// WorkspaceIDKey is the context key for workspace ID
+const WorkspaceIDKey ContextKey = "workspace_id"
+
 // AuthRepository defines the interface for auth-related database operations
 type AuthRepository interface {
 	GetSessionByID(ctx context.Context, sessionID string, userID string) (*time.Time, error)
