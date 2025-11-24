@@ -55,7 +55,8 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
           og_title: workspace?.settings.blog_settings?.seo?.og_title || '',
           og_description: workspace?.settings.blog_settings?.seo?.og_description || '',
           og_image: workspace?.settings.blog_settings?.seo?.og_image || '',
-          keywords: workspace?.settings.blog_settings?.seo?.keywords || []
+          keywords: workspace?.settings.blog_settings?.seo?.keywords || [],
+          meta_robots: workspace?.settings.blog_settings?.seo?.meta_robots ?? 'index,follow'
         }
       }
     })

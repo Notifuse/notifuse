@@ -19,6 +19,7 @@ export interface SEOSettings {
   og_image?: string
   canonical_url?: string
   keywords?: string[]
+  meta_robots?: string
 }
 
 // Blog Settings type (styling + SEO for blog)

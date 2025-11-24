@@ -30,6 +30,7 @@ type SEOSettings struct {
 	OGImage         string   `json:"og_image,omitempty"`         // Open Graph image URL
 	CanonicalURL    string   `json:"canonical_url,omitempty"`    // Canonical URL
 	Keywords        []string `json:"keywords,omitempty"`         // SEO keywords
+	MetaRobots      string   `json:"meta_robots,omitempty"`      // Robots meta tag content (e.g., "index,follow", "noindex,nofollow")
 }
 
 // Value implements the driver.Valuer interface for database serialization
@@ -72,6 +73,7 @@ func (s *SEOSettings) MergeWithDefaults(defaults *SEOSettings) *SEOSettings {
 		OGImage:         s.OGImage,
 		CanonicalURL:    s.CanonicalURL,
 		Keywords:        s.Keywords,
+		MetaRobots:      s.MetaRobots,
 	}
 
 	// Use defaults if current values are empty
@@ -92,6 +94,9 @@ func (s *SEOSettings) MergeWithDefaults(defaults *SEOSettings) *SEOSettings {
 	}
 	if result.CanonicalURL == "" {
 		result.CanonicalURL = defaults.CanonicalURL
+	}
+	if result.MetaRobots == "" {
+		result.MetaRobots = defaults.MetaRobots
 	}
 	if len(result.Keywords) == 0 {
 		result.Keywords = defaults.Keywords
@@ -974,6 +979,17 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 		// Add blog_title from blog settings
 		if req.Workspace.Settings.BlogSettings != nil && req.Workspace.Settings.BlogSettings.Title != "" {
 			workspaceData["blog_title"] = req.Workspace.Settings.BlogSettings.Title
+		}
+
+		// Add SEO settings from blog settings
+		if req.Workspace.Settings.BlogSettings != nil && req.Workspace.Settings.BlogSettings.SEO != nil {
+			seoData := MapOfAny{}
+			if req.Workspace.Settings.BlogSettings.SEO.MetaRobots != "" {
+				seoData["meta_robots"] = req.Workspace.Settings.BlogSettings.SEO.MetaRobots
+			}
+			if len(seoData) > 0 {
+				workspaceData["seo"] = seoData
+			}
 		}
 
 		templateData["workspace"] = workspaceData

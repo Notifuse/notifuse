@@ -410,6 +410,17 @@ const defaultTheme: ThemePreset = {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
+  {%- comment -%} Robots Meta Tag {%- endcomment -%}
+  {%- if workspace.seo -%}
+    {%- if workspace.seo.meta_robots -%}
+      <meta name="robots" content="{{ workspace.seo.meta_robots }}">
+    {%- else -%}
+      <meta name="robots" content="index,follow">
+    {%- endif -%}
+  {%- else -%}
+    <meta name="robots" content="index,follow">
+  {%- endif -%}
+  
   {%- comment -%} Dynamic Page Title {%- endcomment -%}
   <title>
     {%- if post.seo.meta_title -%}
