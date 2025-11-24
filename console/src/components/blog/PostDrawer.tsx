@@ -389,7 +389,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
 
   // Get the selected category
   const categoryId = Form.useWatch('category_id', form)
-  const selectedCategory = categoriesData?.categories.find((cat) => cat.id === categoryId)
+  const selectedCategory = (categoriesData?.categories ?? []).find((cat) => cat.id === categoryId)
 
   // Build full URL for preview
   const getFullPostUrl = () => {
