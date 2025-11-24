@@ -103,7 +103,7 @@ func (r *listRepository) GetLists(ctx context.Context, workspaceID string) ([]*d
 	if err != nil {
 		return nil, fmt.Errorf("failed to get lists: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var lists []*domain.List
 	for rows.Next() {
@@ -180,7 +180,7 @@ func (r *listRepository) DeleteList(ctx context.Context, workspaceID string, id 
 	}
 
 	// Defer rollback - it will be a no-op if Commit() is called
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	now := time.Now().UTC()
 

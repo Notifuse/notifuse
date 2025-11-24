@@ -48,7 +48,7 @@ func (s *MailjetService) ListWebhooks(ctx context.Context, config domain.Mailjet
 		s.logger.Error(fmt.Sprintf("Failed to execute request for listing Mailjet webhooks: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -92,7 +92,7 @@ func (s *MailjetService) CreateWebhook(ctx context.Context, config domain.Mailje
 		s.logger.Error(fmt.Sprintf("Failed to execute request for creating Mailjet webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusCreated && resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -128,7 +128,7 @@ func (s *MailjetService) GetWebhook(ctx context.Context, config domain.MailjetSe
 		s.logger.Error(fmt.Sprintf("Failed to execute request for getting Mailjet webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -181,7 +181,7 @@ func (s *MailjetService) UpdateWebhook(ctx context.Context, config domain.Mailje
 		s.logger.Error(fmt.Sprintf("Failed to execute request for updating Mailjet webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -221,7 +221,7 @@ func (s *MailjetService) DeleteWebhook(ctx context.Context, config domain.Mailje
 		s.logger.Error(fmt.Sprintf("Failed to execute request for deleting Mailjet webhook: %v", err))
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusNoContent && resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -244,7 +244,7 @@ func (s *MailjetService) RegisterWebhooks(
 	// Validate the provider configuration
 	if providerConfig == nil || providerConfig.Mailjet == nil ||
 		providerConfig.Mailjet.APIKey == "" || providerConfig.Mailjet.SecretKey == "" {
-		return nil, fmt.Errorf("Mailjet configuration is missing or invalid")
+		return nil, fmt.Errorf("mailjet configuration is missing or invalid")
 	}
 
 	// Create webhook URL that includes workspace_id and integration_id
@@ -355,7 +355,7 @@ func (s *MailjetService) GetWebhookStatus(
 	// Validate the provider configuration
 	if providerConfig == nil || providerConfig.Mailjet == nil ||
 		providerConfig.Mailjet.APIKey == "" || providerConfig.Mailjet.SecretKey == "" {
-		return nil, fmt.Errorf("Mailjet configuration is missing or invalid")
+		return nil, fmt.Errorf("mailjet configuration is missing or invalid")
 	}
 
 	// Create webhook status response
@@ -423,7 +423,7 @@ func (s *MailjetService) UnregisterWebhooks(
 	// Validate the provider configuration
 	if providerConfig == nil || providerConfig.Mailjet == nil ||
 		providerConfig.Mailjet.APIKey == "" || providerConfig.Mailjet.SecretKey == "" {
-		return fmt.Errorf("Mailjet configuration is missing or invalid")
+		return fmt.Errorf("mailjet configuration is missing or invalid")
 	}
 
 	// Get existing webhooks
@@ -472,7 +472,7 @@ func (s *MailjetService) SendEmail(ctx context.Context, request domain.SendEmail
 	}
 
 	if request.Provider.Mailjet == nil {
-		return fmt.Errorf("Mailjet provider is not configured")
+		return fmt.Errorf("mailjet provider is not configured")
 	}
 
 	// Prepare the request payload
@@ -635,7 +635,7 @@ func (s *MailjetService) SendEmail(ctx context.Context, request domain.SendEmail
 		s.logger.Error(fmt.Sprintf("Failed to execute request for sending Mailjet email: %v", err))
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Check response
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {

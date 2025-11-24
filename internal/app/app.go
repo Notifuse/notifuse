@@ -290,13 +290,13 @@ func (a *App) InitDB() error {
 
 	// Test database connection
 	if err := db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return fmt.Errorf("failed to ping system database: %w", err)
 	}
 
 	// Initialize database schema if needed
 	if err := database.InitializeDatabase(db, a.config.RootEmail); err != nil {
-		db.Close()
+		_ = db.Close()
 		return fmt.Errorf("failed to initialize database schema: %w", err)
 	}
 
@@ -321,7 +321,7 @@ func (a *App) InitDB() error {
 			a.logger.Info("Exiting now - process manager should restart the server")
 			os.Exit(0)
 		}
-		db.Close()
+		_ = db.Close()
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
@@ -330,7 +330,7 @@ func (a *App) InitDB() error {
 	// Initialize connection manager singleton
 	// This will configure the system DB pool settings appropriately
 	if err := pkgDatabase.InitializeConnectionManager(a.config, db); err != nil {
-		db.Close()
+		_ = db.Close()
 		return fmt.Errorf("failed to initialize connection manager: %w", err)
 	}
 

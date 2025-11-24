@@ -21,7 +21,7 @@ func setupTelemetryMockDB(t *testing.T) (*sql.DB, sqlmock.Sqlmock, func()) {
 	require.NoError(t, err, "Failed to create mock database")
 
 	cleanup := func() {
-		db.Close()
+		_ = db.Close()
 	}
 
 	return db, mock, cleanup

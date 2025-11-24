@@ -663,9 +663,10 @@ func TestContactService_BatchImportContacts(t *testing.T) {
 		// Find the operations by email
 		var newOp, existingOp *domain.UpsertContactOperation
 		for _, op := range response.Operations {
-			if op.Email == "new@example.com" {
+			switch op.Email {
+			case "new@example.com":
 				newOp = op
-			} else if op.Email == "existing@example.com" {
+			case "existing@example.com":
 				existingOp = op
 			}
 		}

@@ -13,6 +13,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type testContextKey string
+
+const testKey testContextKey = "test-key"
+const authKey testContextKey = "auth-key"
+
 func TestNewAnalyticsService(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -316,8 +321,8 @@ func TestAnalyticsService_ContextPropagation(t *testing.T) {
 	userWorkspace := &domain.UserWorkspace{WorkspaceID: "test-workspace"}
 
 	// Create a context with a value to verify it's propagated
-	originalCtx := context.WithValue(context.Background(), "test-key", "test-value")
-	modifiedCtx := context.WithValue(originalCtx, "auth-key", "auth-value")
+	originalCtx := context.WithValue(context.Background(), testKey, "test-value")
+	modifiedCtx := context.WithValue(originalCtx, authKey, "auth-value")
 
 	mockAuth.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), "test-workspace").
 		Return(modifiedCtx, user, userWorkspace, nil)

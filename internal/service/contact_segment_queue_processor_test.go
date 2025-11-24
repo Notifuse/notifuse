@@ -95,7 +95,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_BeginTxError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	var count int
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin().WillReturnError(errors.New("begin tx failed"))
 
@@ -137,7 +137,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_NoPendingContacts(t *testing.
 	db, mock, err := sqlmock.New()
 	var count int
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin()
 	rows := sqlmock.NewRows([]string{"email"})
@@ -182,7 +182,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_GetSegmentsError(t *testing.T
 	db, mock, err := sqlmock.New()
 	var count int
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin()
 	rows := sqlmock.NewRows([]string{"email"}).AddRow("test@test.com")
@@ -233,7 +233,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_NoActiveSegments(t *testing.T
 	db, mock, err := sqlmock.New()
 	var count int
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin()
 	rows := sqlmock.NewRows([]string{"email"}).AddRow("test@test.com")
@@ -285,7 +285,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	var count int
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Setup segment
 	sql := "SELECT email FROM contacts WHERE email LIKE $1"
@@ -358,7 +358,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_RemoveFromSegment(t *testing.
 	db, mock, err := sqlmock.New()
 	var count int
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Setup segment
 	sql := "SELECT email FROM contacts WHERE email LIKE $1"
@@ -432,7 +432,7 @@ func TestContactSegmentQueueProcessor_ProcessQueue_RemoveBatchError(t *testing.T
 	db, mock, err := sqlmock.New()
 	var count int
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Setup segment
 	sql := "SELECT email FROM contacts WHERE email LIKE $1"
@@ -493,7 +493,7 @@ func TestContactSegmentQueueProcessor_ProcessContact_NoSegments(t *testing.T) {
 
 	ctx := context.Background()
 	db, _, _ := sqlmock.New()
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	err := processor.processContact(ctx, "workspace1", db, "test@test.com", []*domain.Segment{})
 	assert.NoError(t, err)
@@ -522,7 +522,7 @@ func TestContactSegmentQueueProcessor_ProcessContact_NoGeneratedSQL(t *testing.T
 
 	ctx := context.Background()
 	db, _, _ := sqlmock.New()
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	segment := &domain.Segment{
 		ID:           "segment1",
@@ -657,7 +657,7 @@ func TestContactSegmentQueueProcessor_GetPendingEmailsInTx_Error(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin()
 	mock.ExpectQuery("SELECT email").WillReturnError(errors.New("query error"))
@@ -671,7 +671,7 @@ func TestContactSegmentQueueProcessor_GetPendingEmailsInTx_Error(t *testing.T) {
 	assert.Nil(t, emails)
 	assert.Contains(t, err.Error(), "failed to query pending emails")
 
-	tx.Rollback()
+	_ = tx.Rollback()
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -697,7 +697,7 @@ func TestContactSegmentQueueProcessor_RemoveBatchFromQueueInTx_EmptyList(t *test
 
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectBegin()
 	mock.ExpectRollback()
@@ -708,6 +708,6 @@ func TestContactSegmentQueueProcessor_RemoveBatchFromQueueInTx_EmptyList(t *test
 	err = processor.removeBatchFromQueueInTx(ctx, tx, []string{})
 	assert.NoError(t, err)
 
-	tx.Rollback()
+	_ = tx.Rollback()
 	assert.NoError(t, mock.ExpectationsWereMet())
 }

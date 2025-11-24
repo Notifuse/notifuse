@@ -92,7 +92,7 @@ func (h *RootHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		// Default API root response
 		if r.URL.Path == "/api" || r.URL.Path == "/api/" {
 			w.Header().Set("Content-Type", "application/json")
-			json.NewEncoder(w).Encode(map[string]string{
+			_ = json.NewEncoder(w).Encode(map[string]string{
 				"status": "api running",
 			})
 		}
@@ -158,7 +158,7 @@ func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 		h.smtpRelayPort,
 		smtpRelayTLSEnabledStr,
 	)
-	w.Write([]byte(configJS))
+	_, _ = w.Write([]byte(configJS))
 }
 
 // serveConsole handles serving static files, with a fallback for SPA routing
@@ -217,7 +217,7 @@ func (h *RootHandler) serveNotificationCenter(w http.ResponseWriter, r *http.Req
 
 // serveBlog handles blog content requests
 func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace) {
-	ctx := context.WithValue(r.Context(), "workspace_id", workspace.ID)
+	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace.ID)
 
 	// Handle special paths
 	switch r.URL.Path {
@@ -265,7 +265,7 @@ func (h *RootHandler) serveBlog(w http.ResponseWriter, r *http.Request, workspac
 
 // serveBlogHome serves the blog home page with a list of posts
 func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace) {
-	ctx := context.WithValue(r.Context(), "workspace_id", workspace.ID)
+	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace.ID)
 
 	// Extract page parameter from query string
 	pageStr := r.URL.Query().Get("page")
@@ -303,7 +303,7 @@ func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, work
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
 				w.Header().Set("Cache-Control", "public, max-age=60")
 				w.Header().Set("X-Cache", "HIT")
-				w.Write([]byte(html))
+				_, _ = w.Write([]byte(html))
 				return
 			}
 		}
@@ -337,12 +337,12 @@ func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, work
 		w.Header().Set("Cache-Control", "public, max-age=60")
 		w.Header().Set("X-Cache", "MISS")
 	}
-	w.Write([]byte(html))
+	_, _ = w.Write([]byte(html))
 }
 
 // serveBlogCategory serves a blog category page with posts in that category
 func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace, categorySlug string) {
-	ctx := context.WithValue(r.Context(), "workspace_id", workspace.ID)
+	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace.ID)
 
 	// Extract page parameter from query string
 	pageStr := r.URL.Query().Get("page")
@@ -380,7 +380,7 @@ func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, 
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
 				w.Header().Set("Cache-Control", "public, max-age=60")
 				w.Header().Set("X-Cache", "HIT")
-				w.Write([]byte(html))
+				_, _ = w.Write([]byte(html))
 				return
 			}
 		}
@@ -414,12 +414,12 @@ func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, 
 		w.Header().Set("Cache-Control", "public, max-age=60")
 		w.Header().Set("X-Cache", "MISS")
 	}
-	w.Write([]byte(html))
+	_, _ = w.Write([]byte(html))
 }
 
 // serveBlogPost serves a single blog post
 func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace, post *domain.BlogPost) {
-	ctx := context.WithValue(r.Context(), "workspace_id", workspace.ID)
+	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace.ID)
 
 	// Get category from post to build proper URL
 	// Extract category slug and post slug from URL
@@ -448,7 +448,7 @@ func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, work
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
 				w.Header().Set("Cache-Control", "public, max-age=60")
 				w.Header().Set("X-Cache", "HIT")
-				w.Write([]byte(html))
+				_, _ = w.Write([]byte(html))
 				return
 			}
 		}
@@ -482,7 +482,7 @@ func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, work
 		w.Header().Set("Cache-Control", "public, max-age=60")
 		w.Header().Set("X-Cache", "MISS")
 	}
-	w.Write([]byte(html))
+	_, _ = w.Write([]byte(html))
 }
 
 // serveBlogRobots serves robots.txt for the blog
@@ -493,12 +493,12 @@ Allow: /
 Sitemap: /sitemap.xml
 `
 	w.Header().Set("Content-Type", "text/plain")
-	w.Write([]byte(robotsTxt))
+	_, _ = w.Write([]byte(robotsTxt))
 }
 
 // serveBlogSitemap serves sitemap.xml for the blog
 func (h *RootHandler) serveBlogSitemap(w http.ResponseWriter, r *http.Request, workspace *domain.Workspace) {
-	ctx := context.WithValue(r.Context(), "workspace_id", workspace.ID)
+	ctx := context.WithValue(r.Context(), workspaceIDKey, workspace.ID)
 
 	// Get all published posts
 	params := &domain.ListBlogPostsRequest{
@@ -549,14 +549,14 @@ func (h *RootHandler) serveBlogSitemap(w http.ResponseWriter, r *http.Request, w
 	sitemap.WriteString("</urlset>")
 
 	w.Header().Set("Content-Type", "application/xml")
-	w.Write([]byte(sitemap.String()))
+	_, _ = w.Write([]byte(sitemap.String()))
 }
 
 // serveBlog404 serves a 404 page for blog
 func (h *RootHandler) serveBlog404(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotFound)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(`<!DOCTYPE html>
+	_, _ = w.Write([]byte(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -613,7 +613,7 @@ func (h *RootHandler) handleBlogRenderError(w http.ResponseWriter, blogErr *doma
 		// Service unavailable - blog not properly configured
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusServiceUnavailable)
-		w.Write([]byte(`<!DOCTYPE html>
+		_, _ = w.Write([]byte(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -630,7 +630,7 @@ func (h *RootHandler) handleBlogRenderError(w http.ResponseWriter, blogErr *doma
 		// Not found
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte(`<!DOCTYPE html>
+		_, _ = w.Write([]byte(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -648,7 +648,7 @@ func (h *RootHandler) handleBlogRenderError(w http.ResponseWriter, blogErr *doma
 		// Internal server error
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`<!DOCTYPE html>
+		_, _ = w.Write([]byte(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">

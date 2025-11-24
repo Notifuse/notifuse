@@ -114,7 +114,7 @@ func (h *SetupHandler) Status(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // Initialize completes the setup wizard
@@ -142,7 +142,7 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 		return
 	}
 
@@ -197,7 +197,7 @@ func (h *SetupHandler) Initialize(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 
 	// Flush the response to ensure client receives it before shutdown
 	if flusher, ok := w.(http.Flusher); ok {
@@ -264,7 +264,7 @@ func (h *SetupHandler) TestSMTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
+	_ = json.NewEncoder(w).Encode(response)
 }
 
 // RegisterRoutes registers the setup handler routes

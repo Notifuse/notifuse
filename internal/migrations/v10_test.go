@@ -35,7 +35,7 @@ func TestV10Migration_UpdateSystem(t *testing.T) {
 	t.Run("Success - No system updates", func(t *testing.T) {
 		db, _, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		err = migration.UpdateSystem(ctx, cfg, db)
 		assert.NoError(t, err, "UpdateSystem should succeed with no operations")
@@ -54,7 +54,7 @@ func TestV10Migration_UpdateWorkspace(t *testing.T) {
 	t.Run("Success - All operations complete", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock ALTER TABLE to add list_ids column
 		mock.ExpectExec("ALTER TABLE message_history").
@@ -88,7 +88,7 @@ func TestV10Migration_UpdateWorkspace(t *testing.T) {
 	t.Run("Error - ALTER TABLE fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mock.ExpectExec("ALTER TABLE message_history").
 			WillReturnError(sql.ErrConnDone)
@@ -101,7 +101,7 @@ func TestV10Migration_UpdateWorkspace(t *testing.T) {
 	t.Run("Error - Backfill fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mock.ExpectExec("ALTER TABLE message_history").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -116,7 +116,7 @@ func TestV10Migration_UpdateWorkspace(t *testing.T) {
 	t.Run("Error - Update historical complaints fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mock.ExpectExec("ALTER TABLE message_history").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -133,7 +133,7 @@ func TestV10Migration_UpdateWorkspace(t *testing.T) {
 	t.Run("Error - Update historical bounces fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mock.ExpectExec("ALTER TABLE message_history").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -152,7 +152,7 @@ func TestV10Migration_UpdateWorkspace(t *testing.T) {
 	t.Run("Error - CREATE FUNCTION fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mock.ExpectExec("ALTER TABLE message_history").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -173,7 +173,7 @@ func TestV10Migration_UpdateWorkspace(t *testing.T) {
 	t.Run("Error - CREATE TRIGGER fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mock.ExpectExec("ALTER TABLE message_history").
 			WillReturnResult(sqlmock.NewResult(0, 0))

@@ -48,7 +48,7 @@ func (s *PostmarkService) ListWebhooks(ctx context.Context, config domain.Postma
 		s.logger.Error(fmt.Sprintf("Failed to execute request for listing Postmark webhooks: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -91,7 +91,7 @@ func (s *PostmarkService) RegisterWebhook(ctx context.Context, config domain.Pos
 		s.logger.Error(fmt.Sprintf("Failed to execute request for registering Postmark webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
@@ -129,7 +129,7 @@ func (s *PostmarkService) UnregisterWebhook(ctx context.Context, config domain.P
 		s.logger.Error(fmt.Sprintf("Failed to execute request for deleting Postmark webhook: %v", err))
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -160,7 +160,7 @@ func (s *PostmarkService) GetWebhook(ctx context.Context, config domain.Postmark
 		s.logger.Error(fmt.Sprintf("Failed to execute request for getting Postmark webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -204,7 +204,7 @@ func (s *PostmarkService) UpdateWebhook(ctx context.Context, config domain.Postm
 		s.logger.Error(fmt.Sprintf("Failed to execute request for updating Postmark webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -262,7 +262,7 @@ func (s *PostmarkService) TestWebhook(ctx context.Context, config domain.Postmar
 		s.logger.Error(fmt.Sprintf("Failed to execute request for testing Postmark webhook: %v", err))
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -284,7 +284,7 @@ func (s *PostmarkService) RegisterWebhooks(
 ) (*domain.WebhookRegistrationStatus, error) {
 	// Validate the provider configuration
 	if providerConfig == nil || providerConfig.Postmark == nil || providerConfig.Postmark.ServerToken == "" {
-		return nil, fmt.Errorf("Postmark configuration is missing or invalid")
+		return nil, fmt.Errorf("postmark configuration is missing or invalid")
 	}
 
 	// Create webhook URL that includes workspace_id and integration_id
@@ -398,7 +398,7 @@ func (s *PostmarkService) GetWebhookStatus(
 ) (*domain.WebhookRegistrationStatus, error) {
 	// Validate the provider configuration
 	if providerConfig == nil || providerConfig.Postmark == nil || providerConfig.Postmark.ServerToken == "" {
-		return nil, fmt.Errorf("Postmark configuration is missing or invalid")
+		return nil, fmt.Errorf("postmark configuration is missing or invalid")
 	}
 
 	// Get existing webhooks
@@ -472,7 +472,7 @@ func (s *PostmarkService) UnregisterWebhooks(
 ) error {
 	// Validate the provider configuration
 	if providerConfig == nil || providerConfig.Postmark == nil || providerConfig.Postmark.ServerToken == "" {
-		return fmt.Errorf("Postmark configuration is missing or invalid")
+		return fmt.Errorf("postmark configuration is missing or invalid")
 	}
 
 	// Get existing webhooks
@@ -532,13 +532,13 @@ func (s *PostmarkService) SendEmail(ctx context.Context, request domain.SendEmai
 	}
 
 	if request.Provider.Postmark == nil {
-		return fmt.Errorf("Postmark provider is not configured")
+		return fmt.Errorf("postmark provider is not configured")
 	}
 
 	// Make sure we have a server token
 	if request.Provider.Postmark.ServerToken == "" {
 		s.logger.Error("Postmark server token is empty")
-		return fmt.Errorf("Postmark server token is required")
+		return fmt.Errorf("postmark server token is required")
 	}
 
 	// Prepare the API endpoint
@@ -654,7 +654,7 @@ func (s *PostmarkService) SendEmail(ctx context.Context, request domain.SendEmai
 	if err != nil {
 		return fmt.Errorf("failed to send request to Postmark API: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read the response body
 	body, err := io.ReadAll(resp.Body)
@@ -664,7 +664,7 @@ func (s *PostmarkService) SendEmail(ctx context.Context, request domain.SendEmai
 
 	// Check response status
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("Postmark API error (%d): %s", resp.StatusCode, string(body))
+		return fmt.Errorf("postmark API error (%d): %s", resp.StatusCode, string(body))
 	}
 
 	return nil

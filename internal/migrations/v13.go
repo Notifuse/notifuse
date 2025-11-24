@@ -40,7 +40,7 @@ func (m *V13Migration) UpdateSystem(ctx context.Context, config *config.Config, 
 	if err != nil {
 		return fmt.Errorf("failed to query workspaces: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Collect all workspace IDs first to avoid query conflicts
 	var workspaceIDs []string

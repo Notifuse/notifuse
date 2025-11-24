@@ -7,7 +7,6 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
-	"github.com/Notifuse/notifuse/pkg/logger"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
@@ -16,22 +15,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// mockEmailService is a simplified mock for testing
-type mockEmailService struct {
-	logger logger.Logger
-}
-
-func (m *mockEmailService) SendEmail(ctx context.Context, request domain.SendEmailProviderRequest, isMarketing bool) error {
-	return nil
-}
-
-func (m *mockEmailService) TestEmailProvider(ctx context.Context, workspaceID string, provider domain.EmailProvider, to string) error {
-	return nil
-}
-
-func (m *mockEmailService) TestTemplate(ctx context.Context, workspaceID string, templateID string, integrationID string, recipientEmail string, cc []string, bcc []string, replyTo string) error {
-	return nil
-}
 
 func TestTransactionalNotificationService_CreateNotification(t *testing.T) {
 	ctrl := gomock.NewController(t)

@@ -688,7 +688,7 @@ func TestEmailService_VisitLink(t *testing.T) {
 			SetClicked(ctx, workspaceID, messageID, gomock.Any()).
 			DoAndReturn(func(_ context.Context, _, _ string, timestamp time.Time) error {
 				// Verify the timestamp is close to now
-				assert.True(t, time.Now().Sub(timestamp) < time.Second)
+				assert.True(t, time.Since(timestamp) < time.Second)
 				return nil
 			})
 
@@ -754,7 +754,7 @@ func TestEmailService_OpenEmail(t *testing.T) {
 			SetOpened(ctx, workspaceID, messageID, gomock.Any()).
 			DoAndReturn(func(_ context.Context, _, _ string, timestamp time.Time) error {
 				// Verify the timestamp is close to now
-				assert.True(t, time.Now().Sub(timestamp) < time.Second)
+				assert.True(t, time.Since(timestamp) < time.Second)
 				return nil
 			})
 

@@ -26,9 +26,9 @@ func TestBlogCategoryRepository(t *testing.T) {
 
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
-	ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
+	ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
 
 	testCategory := &domain.BlogCategory{
 		ID:   "cat123",
@@ -404,9 +404,9 @@ func TestBlogPostRepository(t *testing.T) {
 
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
-	ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
+	ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
 
 	testPost := &domain.BlogPost{
 		ID:         "post123",
@@ -647,7 +647,7 @@ func TestBlogPostRepository(t *testing.T) {
 			testRepo := NewBlogPostRepository(testMockWorkspaceRepo)
 			testDB, testSqlMock, err := sqlmock.New()
 			require.NoError(t, err)
-			defer testDB.Close()
+			defer func() { _ = testDB.Close() }()
 
 			testMockWorkspaceRepo.EXPECT().
 				GetConnection(gomock.Any(), "workspace123").
@@ -705,7 +705,7 @@ func TestBlogPostRepository(t *testing.T) {
 			testRepo := NewBlogPostRepository(testMockWorkspaceRepo)
 			testDB, testSqlMock, err := sqlmock.New()
 			require.NoError(t, err)
-			defer testDB.Close()
+			defer func() { _ = testDB.Close() }()
 
 			testMockWorkspaceRepo.EXPECT().
 				GetConnection(gomock.Any(), "workspace123").
@@ -754,7 +754,7 @@ func TestBlogPostRepository(t *testing.T) {
 			testRepo := NewBlogPostRepository(testMockWorkspaceRepo)
 			testDB, testSqlMock, err := sqlmock.New()
 			require.NoError(t, err)
-			defer testDB.Close()
+			defer func() { _ = testDB.Close() }()
 
 			testMockWorkspaceRepo.EXPECT().
 				GetConnection(gomock.Any(), "workspace123").
@@ -808,7 +808,7 @@ func TestBlogPostRepository(t *testing.T) {
 			testRepo := NewBlogPostRepository(testMockWorkspaceRepo)
 			testDB, testSqlMock, err := sqlmock.New()
 			require.NoError(t, err)
-			defer testDB.Close()
+			defer func() { _ = testDB.Close() }()
 
 			testMockWorkspaceRepo.EXPECT().
 				GetConnection(gomock.Any(), "workspace123").

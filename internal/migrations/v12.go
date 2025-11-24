@@ -49,7 +49,9 @@ func (m *V12Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 	if err != nil {
 		return fmt.Errorf("failed to query workspaces: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	// Read all workspaces into memory first to avoid "unexpected Parse response" error
 	// (PostgreSQL doesn't allow executing queries while reading from another query on the same connection)
@@ -123,7 +125,7 @@ func (m *V12Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 	}
 
 	// Close rows before executing updates
-	rows.Close()
+	_ = rows.Close()
 
 	// Now execute all updates
 	for _, workspace := range workspacesToUpdate {

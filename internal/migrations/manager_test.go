@@ -46,7 +46,7 @@ func TestNewManager(t *testing.T) {
 func TestManager_GetCurrentDBVersion_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -66,7 +66,7 @@ func TestManager_GetCurrentDBVersion_Success(t *testing.T) {
 func TestManager_GetCurrentDBVersion_NoRows(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -85,7 +85,7 @@ func TestManager_GetCurrentDBVersion_NoRows(t *testing.T) {
 func TestManager_GetCurrentDBVersion_QueryError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -105,7 +105,7 @@ func TestManager_GetCurrentDBVersion_QueryError(t *testing.T) {
 func TestManager_GetCurrentDBVersion_InvalidFormat(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -126,7 +126,7 @@ func TestManager_GetCurrentDBVersion_InvalidFormat(t *testing.T) {
 func TestManager_SetCurrentDBVersion_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -145,7 +145,7 @@ func TestManager_SetCurrentDBVersion_Success(t *testing.T) {
 func TestManager_SetCurrentDBVersion_Error(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -165,7 +165,7 @@ func TestManager_SetCurrentDBVersion_Error(t *testing.T) {
 func TestManager_getAllWorkspaces_Success(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -193,7 +193,7 @@ func TestManager_getAllWorkspaces_Success(t *testing.T) {
 func TestManager_getAllWorkspaces_QueryError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -212,7 +212,7 @@ func TestManager_getAllWorkspaces_QueryError(t *testing.T) {
 func TestManager_executeMigration_SystemOnly(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -238,12 +238,12 @@ func TestManager_executeMigration_SystemOnly(t *testing.T) {
 func TestManager_executeMigration_WorkspaceOnly(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Create workspace mock db
 	workspaceDB, workspaceMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer workspaceDB.Close()
+	defer func() { _ = workspaceDB.Close() }()
 
 	// Create mock connector
 	mockConnector := &mockWorkspaceConnector{
@@ -289,7 +289,7 @@ func TestManager_executeMigration_WorkspaceOnly(t *testing.T) {
 func TestManager_executeMigration_TransactionError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -310,7 +310,7 @@ func TestManager_executeMigration_TransactionError(t *testing.T) {
 func TestManager_executeMigration_CommitError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -348,7 +348,7 @@ func (m *mockMigrationWithError) UpdateWorkspace(ctx context.Context, config *co
 func TestManager_executeMigration_SystemUpdateError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -377,7 +377,7 @@ func TestManager_executeMigration_SystemUpdateError(t *testing.T) {
 func TestManager_RunMigrations_FirstRun(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -400,7 +400,7 @@ func TestManager_RunMigrations_FirstRun(t *testing.T) {
 func TestManager_RunMigrations_GetVersionError(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	manager := NewManager(&mockLogger{})
 	ctx := context.Background()
@@ -497,7 +497,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 	t.Run("First run - no version exists", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		logger := &mockLogger{}
 		manager := NewManager(logger)
@@ -527,7 +527,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 	t.Run("Database up to date - no migrations needed", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		logger := &mockLogger{}
 		manager := NewManager(logger)
@@ -553,7 +553,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 	t.Run("Error - Failed to initialize database version", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		logger := &mockLogger{}
 		manager := NewManager(logger)
@@ -584,7 +584,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 	t.Run("No migrations to run", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		logger := &mockLogger{}
 		manager := NewManager(logger)
@@ -609,7 +609,7 @@ func TestManager_RunMigrations_AdditionalCoverage(t *testing.T) {
 	t.Run("Error - Invalid version format in database", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		logger := &mockLogger{}
 		manager := NewManager(logger)
@@ -638,7 +638,7 @@ func TestManager_ExecuteMigration_AdditionalCoverage(t *testing.T) {
 	t.Run("Error - Failed to start transaction", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		logger := &mockLogger{}
 		manager := NewManager(logger)
@@ -664,7 +664,7 @@ func TestManager_ExecuteMigration_AdditionalCoverage(t *testing.T) {
 	t.Run("Success - System migration only", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		logger := &mockLogger{}
 		manager := NewManager(logger)

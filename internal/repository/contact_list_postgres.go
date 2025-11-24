@@ -152,7 +152,7 @@ func (r *contactListRepository) GetContactsByListID(ctx context.Context, workspa
 	if err != nil {
 		return nil, fmt.Errorf("failed to get contacts for list: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	contactLists := make([]*domain.ContactList, 0)
 	for rows.Next() {
@@ -189,7 +189,7 @@ func (r *contactListRepository) GetListsByEmail(ctx context.Context, workspaceID
 	if err != nil {
 		return nil, fmt.Errorf("failed to get lists for contact: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	contactLists := make([]*domain.ContactList, 0)
 	for rows.Next() {

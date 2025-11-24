@@ -380,7 +380,7 @@ func (r *MessageHistoryRepository) GetByContact(ctx context.Context, workspaceID
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query message history: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var messages []*domain.MessageHistory
 	for rows.Next() {
@@ -442,7 +442,7 @@ func (r *MessageHistoryRepository) GetByBroadcast(ctx context.Context, workspace
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query message history: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var messages []*domain.MessageHistory
 	for rows.Next() {
@@ -829,7 +829,7 @@ func (r *MessageHistoryRepository) ListMessages(ctx context.Context, workspaceID
 		// codecov:ignore:end
 		return nil, "", fmt.Errorf("failed to query message history: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	messages := []*domain.MessageHistory{}
 	for rows.Next() {

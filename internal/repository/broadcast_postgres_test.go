@@ -139,7 +139,7 @@ func TestBroadcastRepository_GetBroadcast_NotFound(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -171,7 +171,7 @@ func TestBroadcastRepository_ListBroadcasts_CountQueryError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -236,7 +236,7 @@ func TestBroadcastRepository_DeleteBroadcast_Success(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -273,7 +273,7 @@ func TestBroadcastRepository_DeleteBroadcast_NotFound(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -313,7 +313,7 @@ func TestBroadcastRepository_DeleteBroadcast_ExecError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -352,7 +352,7 @@ func TestBroadcastRepository_DeleteBroadcast_RowsAffectedError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -390,7 +390,7 @@ func TestBroadcastRepository_CreateBroadcast_Success(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -458,7 +458,7 @@ func TestBroadcastRepository_CreateBroadcast_ExecError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -499,7 +499,7 @@ func TestBroadcastRepository_GetBroadcast_Success(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -550,7 +550,7 @@ func TestBroadcastRepository_GetBroadcast_ScanError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -599,7 +599,7 @@ func TestBroadcastRepository_GetBroadcast_QueryError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -631,7 +631,7 @@ func TestBroadcastRepository_UpdateBroadcast_Success(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -699,7 +699,7 @@ func TestBroadcastRepository_UpdateBroadcast_NotFound(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -743,7 +743,7 @@ func TestBroadcastRepository_UpdateBroadcast_ExecError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -785,7 +785,7 @@ func TestBroadcastRepository_UpdateBroadcast_RowsAffectedError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -827,7 +827,7 @@ func TestBroadcastRepository_UpdateBroadcast_CancelledBroadcast(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -875,7 +875,7 @@ func TestBroadcastRepository_ListBroadcasts_DataError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -923,7 +923,7 @@ func TestBroadcastRepository_ListBroadcasts_RowsIterationError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -985,7 +985,7 @@ func TestBroadcastRepository_ListBroadcasts_ScanError(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -1037,7 +1037,7 @@ func TestBroadcastRepository_ListBroadcasts_WithStatus(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws123"
@@ -1097,50 +1097,4 @@ func TestBroadcastRepository_ListBroadcasts_WithStatus(t *testing.T) {
 	assert.Equal(t, "bc123", result.Broadcasts[0].ID)
 	assert.Equal(t, "bc456", result.Broadcasts[1].ID)
 	assert.NoError(t, mock.ExpectationsWereMet())
-}
-
-// mockScanner is a mock implementation of the scanner interface used by scanBroadcast
-type mockScanner struct {
-	values []interface{}
-	err    error
-}
-
-// Scan implements the scanner interface
-func (m *mockScanner) Scan(dest ...interface{}) error {
-	if m.err != nil {
-		return m.err
-	}
-
-	for i, dest := range dest {
-		if i < len(m.values) {
-			switch v := dest.(type) {
-			case *string:
-				if str, ok := m.values[i].(string); ok {
-					*v = str
-				}
-			case *bool:
-				if b, ok := m.values[i].(bool); ok {
-					*v = b
-				}
-			case *int:
-				if num, ok := m.values[i].(int); ok {
-					*v = num
-				}
-			case *time.Time:
-				if t, ok := m.values[i].(time.Time); ok {
-					*v = t
-				}
-			case **time.Time:
-				if m.values[i] == nil {
-					*v = nil
-				} else if t, ok := m.values[i].(time.Time); ok {
-					*v = &t
-				}
-			default:
-				// For other types (like JSON fields), just continue
-				// This is simplified for the test
-			}
-		}
-	}
-	return nil
 }

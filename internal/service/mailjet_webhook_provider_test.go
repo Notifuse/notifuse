@@ -131,7 +131,7 @@ func TestMailjetService_RegisterWebhooksProvider(t *testing.T) {
 					req.Body = io.NopCloser(bytes.NewReader(body)) // Reset body for potential re-reading
 
 					var webhookReq domain.MailjetWebhook
-					json.Unmarshal(body, &webhookReq)
+					_ = json.Unmarshal(body, &webhookReq)
 
 					// Return a webhook with the same event type as requested
 					responseWebhook := domain.MailjetWebhook{
@@ -196,7 +196,7 @@ func TestMailjetService_RegisterWebhooksProvider(t *testing.T) {
 
 		// Assertions
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Mailjet configuration is missing or invalid")
+		assert.Contains(t, err.Error(), "mailjet configuration is missing or invalid")
 		assert.Nil(t, status)
 
 		// Call with empty Mailjet config
@@ -209,7 +209,7 @@ func TestMailjetService_RegisterWebhooksProvider(t *testing.T) {
 
 		// Assertions
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Mailjet configuration is missing or invalid")
+		assert.Contains(t, err.Error(), "mailjet configuration is missing or invalid")
 		assert.Nil(t, status)
 	})
 
@@ -476,7 +476,7 @@ func TestMailjetService_GetWebhookStatusProvider(t *testing.T) {
 
 		// Assertions
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Mailjet configuration is missing or invalid")
+		assert.Contains(t, err.Error(), "mailjet configuration is missing or invalid")
 		assert.Nil(t, status)
 
 		// Call with empty Mailjet config
@@ -489,7 +489,7 @@ func TestMailjetService_GetWebhookStatusProvider(t *testing.T) {
 
 		// Assertions
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Mailjet configuration is missing or invalid")
+		assert.Contains(t, err.Error(), "mailjet configuration is missing or invalid")
 		assert.Nil(t, status)
 	})
 
@@ -684,7 +684,7 @@ func TestMailjetService_UnregisterWebhooksProvider(t *testing.T) {
 
 		// Assertions
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Mailjet configuration is missing or invalid")
+		assert.Contains(t, err.Error(), "mailjet configuration is missing or invalid")
 
 		// Call with empty Mailjet config
 		emptyConfig := &domain.EmailProvider{
@@ -696,7 +696,7 @@ func TestMailjetService_UnregisterWebhooksProvider(t *testing.T) {
 
 		// Assertions
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Mailjet configuration is missing or invalid")
+		assert.Contains(t, err.Error(), "mailjet configuration is missing or invalid")
 	})
 
 	t.Run("list webhooks error", func(t *testing.T) {

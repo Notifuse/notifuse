@@ -78,9 +78,9 @@ BREAKING CHANGES:
 
 	// Count items that will be deleted for reporting
 	var apiKeyCount, invitationCount, sessionCount int
-	db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users WHERE type = 'api_key'").Scan(&apiKeyCount)
-	db.QueryRowContext(ctx, "SELECT COUNT(*) FROM workspace_invitations WHERE expires_at > NOW()").Scan(&invitationCount)
-	db.QueryRowContext(ctx, "SELECT COUNT(*) FROM user_sessions").Scan(&sessionCount)
+	_ = db.QueryRowContext(ctx, "SELECT COUNT(*) FROM users WHERE type = 'api_key'").Scan(&apiKeyCount)
+	_ = db.QueryRowContext(ctx, "SELECT COUNT(*) FROM workspace_invitations WHERE expires_at > NOW()").Scan(&invitationCount)
+	_ = db.QueryRowContext(ctx, "SELECT COUNT(*) FROM user_sessions").Scan(&sessionCount)
 
 	// Perform database schema migration
 	queries := []string{

@@ -308,6 +308,6 @@ func TestEmailProvider_WithMailjetSettings(t *testing.T) {
 		// Should fail validation
 		err = invalidProvider.Validate(passphrase)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Mailjet settings required")
+		assert.Contains(t, err.Error(), "mailjet settings required")
 	})
 }

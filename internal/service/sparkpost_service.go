@@ -50,7 +50,7 @@ func (s *SparkPostService) ListWebhooks(ctx context.Context, config domain.Spark
 		s.logger.Error(fmt.Sprintf("Failed to execute request for listing SparkPost webhooks: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -99,7 +99,7 @@ func (s *SparkPostService) CreateWebhook(ctx context.Context, config domain.Spar
 		s.logger.Error(fmt.Sprintf("Failed to execute request for creating SparkPost webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
@@ -138,7 +138,7 @@ func (s *SparkPostService) GetWebhook(ctx context.Context, config domain.SparkPo
 		s.logger.Error(fmt.Sprintf("Failed to execute request for getting SparkPost webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -185,7 +185,7 @@ func (s *SparkPostService) UpdateWebhook(ctx context.Context, config domain.Spar
 		s.logger.Error(fmt.Sprintf("Failed to execute request for updating SparkPost webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -227,7 +227,7 @@ func (s *SparkPostService) DeleteWebhook(ctx context.Context, config domain.Spar
 		s.logger.Error(fmt.Sprintf("Failed to execute request for deleting SparkPost webhook: %v", err))
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		body, _ := io.ReadAll(resp.Body)
@@ -261,7 +261,7 @@ func (s *SparkPostService) TestWebhook(ctx context.Context, config domain.SparkP
 		s.logger.Error(fmt.Sprintf("Failed to execute request for testing SparkPost webhook: %v", err))
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -304,7 +304,7 @@ func (s *SparkPostService) ValidateWebhook(ctx context.Context, config domain.Sp
 		s.logger.Error(fmt.Sprintf("Failed to execute request for validating SparkPost webhook: %v", err))
 		return false, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Parse the response to check if the webhook is valid
 	var response struct {
@@ -471,7 +471,7 @@ func (s *SparkPostService) directListWebhooks(ctx context.Context, settings *dom
 		s.logger.Error(fmt.Sprintf("Failed to execute request for listing SparkPost webhooks: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -519,7 +519,7 @@ func (s *SparkPostService) directUpdateWebhook(ctx context.Context, settings *do
 		s.logger.Error(fmt.Sprintf("Failed to execute request for updating SparkPost webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -566,7 +566,7 @@ func (s *SparkPostService) directCreateWebhook(ctx context.Context, settings *do
 		s.logger.Error(fmt.Sprintf("Failed to execute request for creating SparkPost webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
@@ -749,7 +749,7 @@ func (s *SparkPostService) directDeleteWebhook(ctx context.Context, settings *do
 		s.logger.Error(fmt.Sprintf("Failed to execute request for deleting SparkPost webhook: %v", err))
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		body, _ := io.ReadAll(resp.Body)
@@ -949,7 +949,7 @@ func (s *SparkPostService) SendEmail(ctx context.Context, request domain.SendEma
 		s.logger.Error(fmt.Sprintf("Failed to execute request for sending SparkPost email: %v", err))
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Check response
 	if resp.StatusCode != http.StatusOK {

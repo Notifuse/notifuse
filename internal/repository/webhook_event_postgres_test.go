@@ -23,7 +23,7 @@ func TestWebhookEventRepository_ListEvents(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -87,7 +87,7 @@ func TestWebhookEventRepository_ListEvents_WithCursor(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -216,7 +216,7 @@ func TestWebhookEventRepository_ListEvents_Error(t *testing.T) {
 	// Test case 2: SQL execution error
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), workspaceID).
@@ -256,7 +256,7 @@ func TestWebhookEventRepository_StoreEvents(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -326,7 +326,7 @@ func TestWebhookEventRepository_StoreEvents(t *testing.T) {
 		// Create a new mock setup
 		db, mock, err = sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Set up the workspace connection expectation
 		mockWorkspaceRepo.EXPECT().
@@ -371,7 +371,7 @@ func TestWebhookEventRepository_StoreEvents(t *testing.T) {
 		// Create a new mock setup
 		db, mock, err = sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Set up the workspace connection expectation
 		mockWorkspaceRepo.EXPECT().
@@ -428,7 +428,7 @@ func TestWebhookEventRepository_StoreEvent(t *testing.T) {
 	t.Run("successful store", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Set up the workspace connection expectation
 		mockWorkspaceRepo.EXPECT().
@@ -467,7 +467,7 @@ func TestWebhookEventRepository_StoreEvent(t *testing.T) {
 		// Create a new mock setup
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Set up the workspace connection expectation
 		mockWorkspaceRepo.EXPECT().
@@ -498,7 +498,7 @@ func TestWebhookEventRepository_DeleteForEmail(t *testing.T) {
 
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspaceID := "ws-123"
@@ -526,7 +526,7 @@ func TestWebhookEventRepository_DeleteForEmail(t *testing.T) {
 		// Create a new mock setup
 		db2, mock2, err2 := sqlmock.New()
 		require.NoError(t, err2)
-		defer db2.Close()
+		defer func() { _ = db2.Close() }()
 
 		// Set up the workspace connection expectation
 		mockWorkspaceRepo.EXPECT().
@@ -559,7 +559,7 @@ func TestWebhookEventRepository_DeleteForEmail(t *testing.T) {
 		// Create a new mock setup
 		db3, mock3, err3 := sqlmock.New()
 		require.NoError(t, err3)
-		defer db3.Close()
+		defer func() { _ = db3.Close() }()
 
 		// Set up the workspace connection expectation
 		mockWorkspaceRepo.EXPECT().
@@ -579,7 +579,7 @@ func TestWebhookEventRepository_DeleteForEmail(t *testing.T) {
 		// Create a new mock setup
 		db4, mock4, err4 := sqlmock.New()
 		require.NoError(t, err4)
-		defer db4.Close()
+		defer func() { _ = db4.Close() }()
 
 		// Set up the workspace connection expectation
 		mockWorkspaceRepo.EXPECT().

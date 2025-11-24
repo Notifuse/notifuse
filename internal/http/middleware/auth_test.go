@@ -350,7 +350,7 @@ func TestRestrictedInDemo(t *testing.T) {
 		// Create a test handler
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("success"))
+			_, _ = w.Write([]byte("success"))
 		})
 
 		// Apply the middleware
@@ -375,7 +375,7 @@ func TestRestrictedInDemo(t *testing.T) {
 		// Create a test handler
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("success"))
+			_, _ = w.Write([]byte("success"))
 		})
 
 		// Apply the middleware
@@ -400,7 +400,7 @@ func TestRestrictedInDemo(t *testing.T) {
 		// Create a test handler
 		next := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
-			w.Write([]byte("success"))
+			_, _ = w.Write([]byte("success"))
 		})
 
 		// Apply the middleware

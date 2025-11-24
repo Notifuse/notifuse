@@ -36,7 +36,7 @@ func (r *broadcastRepository) WithTransaction(ctx context.Context, workspaceID s
 	}
 
 	// Defer rollback - this will be a no-op if we successfully commit
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Execute the provided function with the transaction
 	if err := fn(tx); err != nil {
@@ -373,7 +373,7 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 	if err != nil {
 		return nil, fmt.Errorf("failed to list broadcasts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var broadcasts []*domain.Broadcast
 	for rows.Next() {
@@ -407,7 +407,7 @@ func (r *broadcastRepository) ListBroadcasts(ctx context.Context, params domain.
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Use the transaction-aware method
 	result, err := r.ListBroadcastsTx(ctx, tx, params)

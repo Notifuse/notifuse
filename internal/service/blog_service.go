@@ -14,6 +14,10 @@ import (
 	"github.com/google/uuid"
 )
 
+type contextKey string
+
+const workspaceIDKey contextKey = "workspace_id"
+
 // BlogService handles all blog-related operations
 type BlogService struct {
 	logger        logger.Logger
@@ -59,7 +63,7 @@ func NewBlogService(
 // CreateCategory creates a new blog category
 func (s *BlogService) CreateCategory(ctx context.Context, request *domain.CreateBlogCategoryRequest) (*domain.BlogCategory, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -126,7 +130,7 @@ func (s *BlogService) CreateCategory(ctx context.Context, request *domain.Create
 // GetCategory retrieves a blog category by ID
 func (s *BlogService) GetCategory(ctx context.Context, id string) (*domain.BlogCategory, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -153,7 +157,7 @@ func (s *BlogService) GetCategory(ctx context.Context, id string) (*domain.BlogC
 // GetCategoryBySlug retrieves a blog category by slug
 func (s *BlogService) GetCategoryBySlug(ctx context.Context, slug string) (*domain.BlogCategory, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -187,7 +191,7 @@ func (s *BlogService) GetPublicCategoryBySlug(ctx context.Context, slug string) 
 // UpdateCategory updates an existing blog category
 func (s *BlogService) UpdateCategory(ctx context.Context, request *domain.UpdateBlogCategoryRequest) (*domain.BlogCategory, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -254,7 +258,7 @@ func (s *BlogService) UpdateCategory(ctx context.Context, request *domain.Update
 // DeleteCategory deletes a blog category and cascade deletes all posts in that category
 func (s *BlogService) DeleteCategory(ctx context.Context, request *domain.DeleteBlogCategoryRequest) error {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -314,7 +318,7 @@ func (s *BlogService) DeleteCategory(ctx context.Context, request *domain.Delete
 // ListCategories retrieves all blog categories for a workspace
 func (s *BlogService) ListCategories(ctx context.Context) (*domain.BlogCategoryListResponse, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -354,7 +358,7 @@ func (s *BlogService) ListCategories(ctx context.Context) (*domain.BlogCategoryL
 // CreatePost creates a new blog post
 func (s *BlogService) CreatePost(ctx context.Context, request *domain.CreateBlogPostRequest) (*domain.BlogPost, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -436,7 +440,7 @@ func (s *BlogService) CreatePost(ctx context.Context, request *domain.CreateBlog
 // GetPost retrieves a blog post by ID
 func (s *BlogService) GetPost(ctx context.Context, id string) (*domain.BlogPost, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -463,7 +467,7 @@ func (s *BlogService) GetPost(ctx context.Context, id string) (*domain.BlogPost,
 // GetPostBySlug retrieves a blog post by slug
 func (s *BlogService) GetPostBySlug(ctx context.Context, slug string) (*domain.BlogPost, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -490,7 +494,7 @@ func (s *BlogService) GetPostBySlug(ctx context.Context, slug string) (*domain.B
 // GetPostByCategoryAndSlug retrieves a blog post by category slug and post slug
 func (s *BlogService) GetPostByCategoryAndSlug(ctx context.Context, categorySlug, postSlug string) (*domain.BlogPost, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -517,7 +521,7 @@ func (s *BlogService) GetPostByCategoryAndSlug(ctx context.Context, categorySlug
 // UpdatePost updates an existing blog post
 func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlogPostRequest) (*domain.BlogPost, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -596,7 +600,7 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 // DeletePost deletes a blog post
 func (s *BlogService) DeletePost(ctx context.Context, request *domain.DeleteBlogPostRequest) error {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -635,7 +639,7 @@ func (s *BlogService) DeletePost(ctx context.Context, request *domain.DeleteBlog
 // ListPosts retrieves blog posts with filtering and pagination
 func (s *BlogService) ListPosts(ctx context.Context, params *domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -668,7 +672,7 @@ func (s *BlogService) ListPosts(ctx context.Context, params *domain.ListBlogPost
 // PublishPost publishes a draft blog post
 func (s *BlogService) PublishPost(ctx context.Context, request *domain.PublishBlogPostRequest) error {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -717,7 +721,7 @@ func (s *BlogService) PublishPost(ctx context.Context, request *domain.PublishBl
 // UnpublishPost unpublishes a published blog post
 func (s *BlogService) UnpublishPost(ctx context.Context, request *domain.UnpublishBlogPostRequest) error {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -798,7 +802,7 @@ func (s *BlogService) ListPublicPosts(ctx context.Context, params *domain.ListBl
 // CreateTheme creates a new blog theme
 func (s *BlogService) CreateTheme(ctx context.Context, request *domain.CreateBlogThemeRequest) (*domain.BlogTheme, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -846,7 +850,7 @@ func (s *BlogService) CreateTheme(ctx context.Context, request *domain.CreateBlo
 // GetTheme retrieves a blog theme by version
 func (s *BlogService) GetTheme(ctx context.Context, version int) (*domain.BlogTheme, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -873,7 +877,7 @@ func (s *BlogService) GetTheme(ctx context.Context, version int) (*domain.BlogTh
 // GetPublishedTheme retrieves the currently published blog theme
 func (s *BlogService) GetPublishedTheme(ctx context.Context) (*domain.BlogTheme, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -900,7 +904,7 @@ func (s *BlogService) GetPublishedTheme(ctx context.Context) (*domain.BlogTheme,
 // UpdateTheme updates an existing blog theme
 func (s *BlogService) UpdateTheme(ctx context.Context, request *domain.UpdateBlogThemeRequest) (*domain.BlogTheme, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -962,7 +966,7 @@ func (s *BlogService) UpdateTheme(ctx context.Context, request *domain.UpdateBlo
 // PublishTheme publishes a blog theme
 func (s *BlogService) PublishTheme(ctx context.Context, request *domain.PublishBlogThemeRequest) error {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -1004,7 +1008,7 @@ func (s *BlogService) PublishTheme(ctx context.Context, request *domain.PublishB
 // ListThemes retrieves blog themes with pagination
 func (s *BlogService) ListThemes(ctx context.Context, params *domain.ListBlogThemesRequest) (*domain.BlogThemeListResponse, error) {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -1083,7 +1087,7 @@ func (s *BlogService) invalidateBlogCaches(workspaceID, categoryID string) {
 	// Invalidate category page cache if categoryID is provided
 	if categoryID != "" {
 		// Get category to find its slug
-		ctx := context.WithValue(context.Background(), "workspace_id", workspaceID)
+		ctx := context.WithValue(context.Background(), workspaceIDKey, workspaceID)
 		category, err := s.categoryRepo.GetCategory(ctx, categoryID)
 		if err == nil && category != nil {
 			for page := 1; page <= 10; page++ {

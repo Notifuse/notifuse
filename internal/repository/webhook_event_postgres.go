@@ -236,7 +236,7 @@ func (r *webhookEventRepository) ListEvents(ctx context.Context, workspaceID str
 		// codecov:ignore:end
 		return nil, fmt.Errorf("failed to query webhook events: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	events := []*domain.WebhookEvent{}
 	for rows.Next() {

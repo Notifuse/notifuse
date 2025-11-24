@@ -88,7 +88,7 @@ func (r *SQLSettingRepository) List(ctx context.Context) ([]*domain.Setting, err
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var settings []*domain.Setting
 	for rows.Next() {

@@ -141,7 +141,7 @@ func (r *ContactTimelineRepository) List(ctx context.Context, workspaceID string
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to query timeline: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Parse results
 	var entries []*domain.ContactTimelineEntry

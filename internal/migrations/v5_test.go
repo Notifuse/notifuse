@@ -46,7 +46,7 @@ func TestV5Migration_UpdateWorkspace_Success(t *testing.T) {
 	// Create mock database
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Mock the ALTER TABLE query
 	mock.ExpectExec("ALTER TABLE broadcasts ADD COLUMN IF NOT EXISTS pause_reason TEXT").
@@ -69,7 +69,7 @@ func TestV5Migration_UpdateWorkspace_AlterTableFails(t *testing.T) {
 	// Create mock database
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Mock the ALTER TABLE query to fail
 	mock.ExpectExec("ALTER TABLE broadcasts ADD COLUMN IF NOT EXISTS pause_reason TEXT").

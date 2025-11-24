@@ -332,7 +332,7 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 					Error("HTTP request for task execution failed")
 				return
 			}
-			defer resp.Body.Close()
+						defer func() { _ = resp.Body.Close() }()
 
 			// Check response
 			if resp.StatusCode != http.StatusOK {
@@ -432,10 +432,9 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 	// Get the task
 	var task *domain.Task
 	var processor domain.TaskProcessor
-	var err error
 
 	// Wrap the initial setup operations in a transaction
-	err = s.WithTransaction(ctx, func(tx *sql.Tx) error {
+	err := s.WithTransaction(ctx, func(tx *sql.Tx) error {
 		txCtx, txSpan := tracing.StartServiceSpan(ctx, "TaskService", "ExecuteTaskTransaction")
 		defer tracing.EndSpan(txSpan, nil)
 

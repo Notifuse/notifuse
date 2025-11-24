@@ -60,7 +60,7 @@ func (s *TestNotificationCenterService) GetContactPreferences(ctx context.Contex
 	}
 
 	// Get public lists for this workspace
-	var publicLists []*domain.List = make([]*domain.List, 0)
+	publicLists := make([]*domain.List, 0)
 
 	// Get lists using the list service
 	lists, err := s.listRepo.GetLists(ctx, workspaceID)

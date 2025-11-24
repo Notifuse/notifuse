@@ -257,7 +257,7 @@ func (s *WebhookEventService) processSESWebhook(integrationID string, rawPayload
 				Error("Failed to confirm subscription")
 			return nil, fmt.Errorf("failed to confirm subscription: %w", err)
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 
 		s.logger.WithField("integration_id", integrationID).
 			WithField("topic_arn", snsPayload.TopicARN).
@@ -398,11 +398,12 @@ func (s *WebhookEventService) processSESWebhook(integrationID string, rawPayload
 	)
 
 	// Set event-specific information
-	if eventType == domain.EmailEventBounce {
+	switch eventType {
+	case domain.EmailEventBounce:
 		event.BounceType = bounceType
 		event.BounceCategory = bounceCategory
 		event.BounceDiagnostic = bounceDiagnostic
-	} else if eventType == domain.EmailEventComplaint {
+	case domain.EmailEventComplaint:
 		event.ComplaintFeedbackType = complaintFeedbackType
 	}
 
@@ -530,11 +531,12 @@ func (s *WebhookEventService) processPostmarkWebhook(integrationID string, rawPa
 	)
 
 	// Set event-specific information
-	if eventType == domain.EmailEventBounce {
+	switch eventType {
+	case domain.EmailEventBounce:
 		event.BounceType = bounceType
 		event.BounceCategory = bounceCategory
 		event.BounceDiagnostic = bounceDiagnostic
-	} else if eventType == domain.EmailEventComplaint {
+	case domain.EmailEventComplaint:
 		event.ComplaintFeedbackType = complaintFeedbackType
 	}
 
@@ -621,11 +623,12 @@ func (s *WebhookEventService) processMailgunWebhook(integrationID string, rawPay
 	)
 
 	// Set event-specific information
-	if eventType == domain.EmailEventBounce {
+	switch eventType {
+	case domain.EmailEventBounce:
 		event.BounceType = bounceType
 		event.BounceCategory = bounceCategory
 		event.BounceDiagnostic = bounceDiagnostic
-	} else if eventType == domain.EmailEventComplaint {
+	case domain.EmailEventComplaint:
 		event.ComplaintFeedbackType = complaintFeedbackType
 	}
 
@@ -721,11 +724,12 @@ func (s *WebhookEventService) processSparkPostWebhook(integrationID string, rawP
 		)
 
 		// Set event-specific information
-		if eventType == domain.EmailEventBounce {
+		switch eventType {
+		case domain.EmailEventBounce:
 			event.BounceType = bounceType
 			event.BounceCategory = bounceCategory
 			event.BounceDiagnostic = bounceDiagnostic
-		} else if eventType == domain.EmailEventComplaint {
+		case domain.EmailEventComplaint:
 			event.ComplaintFeedbackType = complaintFeedbackType
 		}
 
@@ -855,11 +859,12 @@ func (s *WebhookEventService) processSingleMailjetEvent(integrationID string, pa
 	)
 
 	// Set event-specific information
-	if eventType == domain.EmailEventBounce {
+	switch eventType {
+	case domain.EmailEventBounce:
 		event.BounceType = bounceType
 		event.BounceCategory = bounceCategory
 		event.BounceDiagnostic = bounceDiagnostic
-	} else if eventType == domain.EmailEventComplaint {
+	case domain.EmailEventComplaint:
 		event.ComplaintFeedbackType = complaintFeedbackType
 	}
 
@@ -909,11 +914,12 @@ func (s *WebhookEventService) processSMTPWebhook(integrationID string, rawPayloa
 	)
 
 	// Set event-specific information
-	if eventType == domain.EmailEventBounce {
+	switch eventType {
+	case domain.EmailEventBounce:
 		event.BounceType = "Bounce"
 		event.BounceCategory = payload.BounceCategory
 		event.BounceDiagnostic = payload.DiagnosticCode
-	} else if eventType == domain.EmailEventComplaint {
+	case domain.EmailEventComplaint:
 		event.ComplaintFeedbackType = payload.ComplaintType
 	}
 

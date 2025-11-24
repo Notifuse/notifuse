@@ -160,7 +160,7 @@ func TestMailjetService_GetWebhookStatus(t *testing.T) {
 		status, err := service.GetWebhookStatus(ctx, workspaceID, integrationID, nil)
 
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Mailjet configuration is missing or invalid")
+		assert.Contains(t, err.Error(), "mailjet configuration is missing or invalid")
 		assert.Nil(t, status)
 
 		// Call with empty Mailjet config
@@ -172,7 +172,7 @@ func TestMailjetService_GetWebhookStatus(t *testing.T) {
 		status, err = service.GetWebhookStatus(ctx, workspaceID, integrationID, emptyConfig)
 
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Mailjet configuration is missing or invalid")
+		assert.Contains(t, err.Error(), "mailjet configuration is missing or invalid")
 		assert.Nil(t, status)
 	})
 

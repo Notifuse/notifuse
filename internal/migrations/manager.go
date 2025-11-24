@@ -51,7 +51,7 @@ func (c *defaultConnector) connectToWorkspace(cfg *config.DatabaseConfig, worksp
 
 	// Test the connection
 	if err := db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to ping workspace database: %w", err)
 	}
 
@@ -202,7 +202,9 @@ func (m *Manager) executeMigration(ctx context.Context, cfg *config.Config, db *
 	if err != nil {
 		return fmt.Errorf("failed to start transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	// Execute system migrations if needed
 	if migration.HasSystemUpdate() {
@@ -235,7 +237,7 @@ func (m *Manager) executeMigration(ctx context.Context, cfg *config.Config, db *
 			// Start transaction for the workspace database
 			workspaceTx, err := workspaceDB.BeginTx(ctx, nil)
 			if err != nil {
-				workspaceDB.Close()
+				_ = workspaceDB.Close()
 				return fmt.Errorf("failed to start workspace transaction for %s: %w", workspace.ID, err)
 			}
 
@@ -244,19 +246,19 @@ func (m *Manager) executeMigration(ctx context.Context, cfg *config.Config, db *
 
 			if migrationErr != nil {
 				// Rollback workspace transaction and close connection
-				workspaceTx.Rollback()
-				workspaceDB.Close()
+				_ = workspaceTx.Rollback()
+				_ = workspaceDB.Close()
 				return fmt.Errorf("workspace migration failed for workspace %s: %w", workspace.ID, migrationErr)
 			}
 
 			// Commit workspace transaction
 			if err := workspaceTx.Commit(); err != nil {
-				workspaceDB.Close()
+				_ = workspaceDB.Close()
 				return fmt.Errorf("failed to commit workspace migration for %s: %w", workspace.ID, err)
 			}
 
 			// Close workspace database connection
-			workspaceDB.Close()
+			_ = workspaceDB.Close()
 
 			m.logger.WithField("workspace", workspace.ID).
 				WithField("version", fmt.Sprintf("%.0f", version)).
@@ -279,7 +281,9 @@ func (m *Manager) getAllWorkspaces(ctx context.Context, db *sql.DB) ([]domain.Wo
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		_ = rows.Close()
+	}()
 
 	var workspaces []domain.Workspace
 	for rows.Next() {

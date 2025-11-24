@@ -182,7 +182,7 @@ func (r *workspaceRepository) List(ctx context.Context) ([]*domain.Workspace, er
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var workspaces []*domain.Workspace
 	for rows.Next() {
@@ -306,7 +306,7 @@ func (r *workspaceRepository) WithWorkspaceTransaction(ctx context.Context, work
 	}
 
 	// Defer rollback - this will be a no-op if we successfully commit
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Execute the provided function with the transaction
 	if err := fn(tx); err != nil {
@@ -422,7 +422,7 @@ func (r *workspaceRepository) GetUserWorkspaces(ctx context.Context, userID stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user workspaces: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var userWorkspaces []*domain.UserWorkspace
 	for rows.Next() {
@@ -572,7 +572,7 @@ func (r *workspaceRepository) GetWorkspaceInvitations(ctx context.Context, works
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workspace invitations: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var invitations []*domain.WorkspaceInvitation
 	for rows.Next() {
@@ -647,7 +647,7 @@ func (r *workspaceRepository) GetWorkspaceUsersWithEmail(ctx context.Context, wo
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workspace users with email: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var userWorkspaces []*domain.UserWorkspaceWithEmail
 	for rows.Next() {

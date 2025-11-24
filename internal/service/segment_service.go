@@ -481,7 +481,7 @@ func (s *SegmentService) GetSegmentContacts(ctx context.Context, workspaceID, se
 	if err != nil {
 		return nil, fmt.Errorf("failed to query segment contacts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var emails []string
 	for rows.Next() {

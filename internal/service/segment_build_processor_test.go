@@ -627,7 +627,7 @@ func TestSegmentBuildProcessor_Process_RemoveMembershipsError(t *testing.T) {
 	// Create mock DB connection
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Setup mock to return one matching contact
 	rows := sqlmock.NewRows([]string{"email"}).AddRow("test@test.com")
@@ -718,7 +718,7 @@ func TestSegmentBuildProcessor_Process_FinalStatusUpdateError(t *testing.T) {
 	// Create mock DB connection
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Setup mock to return one matching contact
 	rows := sqlmock.NewRows([]string{"email"}).AddRow("test@test.com")
@@ -1087,7 +1087,7 @@ func TestSegmentBuildProcessor_Process_SuccessfulCompletion(t *testing.T) {
 	// Create mock DB connection
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Setup mock to return one matching contact
 	rows := sqlmock.NewRows([]string{"email"}).AddRow("test@test.com")
@@ -1163,7 +1163,7 @@ func TestSegmentBuildProcessor_ProcessBatch_QueryError(t *testing.T) {
 	// Create mock DB that will fail on query
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectQuery("SELECT email FROM contacts").WillReturnError(errors.New("query failed"))
 

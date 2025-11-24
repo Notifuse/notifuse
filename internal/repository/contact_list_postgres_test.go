@@ -26,7 +26,7 @@ func setupContactListTest(t *testing.T) (*mocks.MockWorkspaceRepository, *contac
 
 	// Set up cleanup function
 	cleanup := func() {
-		db.Close()
+		_ = db.Close()
 		ctrl.Finish()
 	}
 

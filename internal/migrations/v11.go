@@ -59,12 +59,7 @@ func (m *V11Migration) UpdateSystem(ctx context.Context, cfg *config.Config, db 
 
 	// This is an existing installation with users
 	// Check if required settings are configured via environment variables
-	hasRequiredSettings := true
-
-	// Check API endpoint
-	if cfg.APIEndpoint == "" {
-		hasRequiredSettings = false
-	}
+	hasRequiredSettings := cfg.APIEndpoint != ""
 
 	// Check JWT secret (required for token signing)
 	if len(cfg.Security.JWTSecret) == 0 || cfg.Security.SecretKey == "" {

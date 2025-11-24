@@ -36,7 +36,7 @@ func (r *segmentRepository) WithTransaction(ctx context.Context, workspaceID str
 	}
 
 	// Defer rollback - this will be a no-op if we successfully commit
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Execute the provided function with the transaction
 	if err := fn(tx); err != nil {
@@ -174,7 +174,7 @@ func (r *segmentRepository) GetSegments(ctx context.Context, workspaceID string,
 	if err != nil {
 		return nil, fmt.Errorf("failed to query segments: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	segments := make([]*domain.Segment, 0)
 	for rows.Next() {
@@ -376,7 +376,7 @@ func (r *segmentRepository) GetContactSegments(ctx context.Context, workspaceID 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query contact segments: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	segments := make([]*domain.Segment, 0)
 	for rows.Next() {
@@ -457,7 +457,7 @@ func (r *segmentRepository) GetSegmentsDueForRecompute(ctx context.Context, work
 	if err != nil {
 		return nil, fmt.Errorf("failed to query segments due for recompute: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	segments := make([]*domain.Segment, 0)
 	for rows.Next() {

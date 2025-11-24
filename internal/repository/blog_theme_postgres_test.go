@@ -26,9 +26,9 @@ func TestBlogThemeRepository(t *testing.T) {
 
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
-	ctx := context.WithValue(context.Background(), "workspace_id", "workspace123")
+	ctx := context.WithValue(context.Background(), workspaceIDKey, "workspace123")
 
 	testTheme := &domain.BlogTheme{
 		Version: 1,
@@ -259,7 +259,7 @@ func TestBlogThemeRepository(t *testing.T) {
 			// Create new mock for this specific test to avoid expectation conflicts
 			db2, sqlMock2, err := sqlmock.New()
 			require.NoError(t, err)
-			defer db2.Close()
+			defer func() { _ = db2.Close() }()
 
 			mockWorkspaceRepo.EXPECT().
 				GetConnection(gomock.Any(), "workspace123").
@@ -292,7 +292,7 @@ func TestBlogThemeRepository(t *testing.T) {
 			// Create new mock for this specific test to avoid expectation conflicts
 			db3, sqlMock3, err := sqlmock.New()
 			require.NoError(t, err)
-			defer db3.Close()
+			defer func() { _ = db3.Close() }()
 
 			mockWorkspaceRepo.EXPECT().
 				GetConnection(gomock.Any(), "workspace123").
@@ -317,7 +317,7 @@ func TestBlogThemeRepository(t *testing.T) {
 			// Create new mock for this specific test to avoid expectation conflicts
 			db4, sqlMock4, err := sqlmock.New()
 			require.NoError(t, err)
-			defer db4.Close()
+			defer func() { _ = db4.Close() }()
 
 			mockWorkspaceRepo.EXPECT().
 				GetConnection(gomock.Any(), "workspace123").
@@ -351,7 +351,7 @@ func TestBlogThemeRepository(t *testing.T) {
 			// Create new mock for this specific test
 			db5, sqlMock5, err := sqlmock.New()
 			require.NoError(t, err)
-			defer db5.Close()
+			defer func() { _ = db5.Close() }()
 
 			mockWorkspaceRepo.EXPECT().
 				GetConnection(gomock.Any(), "workspace123").
@@ -381,7 +381,7 @@ func TestBlogThemeRepository(t *testing.T) {
 			// Create new mock for this specific test
 			db6, sqlMock6, err := sqlmock.New()
 			require.NoError(t, err)
-			defer db6.Close()
+			defer func() { _ = db6.Close() }()
 
 			mockWorkspaceRepo.EXPECT().
 				GetConnection(gomock.Any(), "workspace123").

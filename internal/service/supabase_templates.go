@@ -2,13 +2,11 @@ package service
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"math/rand"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/Notifuse/notifuse/pkg/templates"
 )
 
@@ -121,28 +119,6 @@ func createSupabaseTestData(emailActionType string) domain.MapOfAny {
 	}
 }
 
-// parseEmailTreeJSON parses an email tree JSON string into an EmailBlock
-func parseEmailTreeJSON(jsonStr string) (notifuse_mjml.EmailBlock, error) {
-	var rawData map[string]json.RawMessage
-	if err := json.Unmarshal([]byte(jsonStr), &rawData); err != nil {
-		return nil, fmt.Errorf("failed to parse JSON: %w", err)
-	}
-
-	// Extract the emailTree field
-	emailTreeData, exists := rawData["emailTree"]
-	if !exists {
-		// If no emailTree wrapper, assume the entire JSON is the tree
-		emailTreeData = []byte(jsonStr)
-	}
-
-	// Use the UnmarshalEmailBlock function from the notifuse_mjml package
-	emailBlock, err := notifuse_mjml.UnmarshalEmailBlock(emailTreeData)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal email block: %w", err)
-	}
-
-	return emailBlock, nil
-}
 
 // createSignupTemplate creates the signup confirmation template
 func (s *SupabaseService) createSignupTemplate(ctx context.Context, workspaceID, integrationID string) (string, error) {

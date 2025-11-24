@@ -225,7 +225,7 @@ func TestAppInitRepositories(t *testing.T) {
 	// Create mock DB
 	mockDB, _, err := setupTestDBMock()
 	require.NoError(t, err)
-	defer mockDB.Close()
+	defer func() { _ = mockDB.Close() }()
 
 	// Create test config
 	cfg := createTestConfig()
@@ -287,7 +287,7 @@ func TestAppStart(t *testing.T) {
 	// Create a simple mock DB for this test
 	mockDB, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer mockDB.Close()
+	defer func() { _ = mockDB.Close() }()
 
 	// Only expect Close to be called during shutdown
 	mock.ExpectClose()
@@ -475,7 +475,7 @@ func TestAppInitServices(t *testing.T) {
 	// Set up mock DB
 	mockDB, _, err := setupTestDBMock()
 	require.NoError(t, err)
-	defer mockDB.Close()
+	defer func() { _ = mockDB.Close() }()
 
 	// Create app with test config and mocks
 	cfg := createTestConfig()
@@ -533,7 +533,7 @@ func TestAppInitSupabaseService(t *testing.T) {
 	// Set up mock DB
 	mockDB, _, err := setupTestDBMock()
 	require.NoError(t, err)
-	defer mockDB.Close()
+	defer func() { _ = mockDB.Close() }()
 
 	// Create app with test config and mocks
 	cfg := createTestConfig()
@@ -584,7 +584,7 @@ func TestAppInitHandlers(t *testing.T) {
 	// Set up mock DB
 	mockDB, _, err := setupTestDBMock()
 	require.NoError(t, err)
-	defer mockDB.Close()
+	defer func() { _ = mockDB.Close() }()
 
 	// Create app with test config and mocks
 	cfg := createTestConfig()
@@ -670,7 +670,7 @@ func generateSelfSignedCert(t *testing.T) (certFile string, keyFile string) {
 	if err := pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes}); err != nil {
 		t.Fatalf("failed to write cert file: %v", err)
 	}
-	certOut.Close()
+	_ = certOut.Close()
 
 	// Write key to temp file
 	keyOut, err := os.CreateTemp("", "notifuse_test_key_*.pem")
@@ -680,7 +680,7 @@ func generateSelfSignedCert(t *testing.T) (certFile string, keyFile string) {
 	if err := pem.Encode(keyOut, &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(priv)}); err != nil {
 		t.Fatalf("failed to write key file: %v", err)
 	}
-	keyOut.Close()
+	_ = keyOut.Close()
 
 	return certOut.Name(), keyOut.Name()
 }
@@ -699,8 +699,8 @@ func TestAppStartTLS(t *testing.T) {
 
 	// Generate self-signed certs
 	certPath, keyPath := generateSelfSignedCert(t)
-	defer os.Remove(certPath)
-	defer os.Remove(keyPath)
+	defer func() { _ = os.Remove(certPath) }()
+	defer func() { _ = os.Remove(keyPath) }()
 	cfg.Server.SSL.CertFile = certPath
 	cfg.Server.SSL.KeyFile = keyPath
 
@@ -876,7 +876,7 @@ func TestGracefulShutdownMiddleware(t *testing.T) {
 		// Simulate some work
 		time.Sleep(10 * time.Millisecond)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		_, _ = w.Write([]byte("OK"))
 	})
 
 	// Wrap with graceful shutdown middleware
@@ -984,7 +984,7 @@ func TestApp_RepositoryGetters(t *testing.T) {
 	// Create mock DB
 	mockDB, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer mockDB.Close()
+	defer func() { _ = mockDB.Close() }()
 
 	appInterface := NewApp(cfg, WithMockDB(mockDB))
 	app, ok := appInterface.(*App)
@@ -1137,7 +1137,7 @@ func TestApp_InitializeComponents(t *testing.T) {
 		// Create mock DB and mailer
 		mockDB, _, err := sqlmock.New()
 		require.NoError(t, err)
-		defer mockDB.Close()
+		defer func() { _ = mockDB.Close() }()
 
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
@@ -1173,7 +1173,7 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 		// Set up mock DB with minimal expectations
 		mockDB, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer mockDB.Close()
+		defer func() { _ = mockDB.Close() }()
 
 		// Create app with test config and mocks
 		cfg := createTestConfig()
@@ -1260,7 +1260,7 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 		// Set up mock DB with minimal expectations
 		mockDB, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer mockDB.Close()
+		defer func() { _ = mockDB.Close() }()
 
 		// Create app with test config and mocks
 		cfg := createTestConfig()
@@ -1347,7 +1347,7 @@ func TestTaskSchedulerDelayedStart(t *testing.T) {
 
 		mockDB, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer mockDB.Close()
+		defer func() { _ = mockDB.Close() }()
 
 		mock.ExpectClose()
 

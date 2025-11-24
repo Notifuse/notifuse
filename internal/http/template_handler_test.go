@@ -187,7 +187,7 @@ func TestTemplateHandler_HandleList(t *testing.T) {
 			}
 
 			resp := sendRequest(t, http.MethodGet, listURL, token, nil)
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
 
@@ -201,7 +201,7 @@ func TestTemplateHandler_HandleList(t *testing.T) {
 			} else if resp.StatusCode != http.StatusOK {
 				// Optionally check error message structure for non-OK responses
 				var errResp map[string]interface{}
-				json.NewDecoder(resp.Body).Decode(&errResp) // Ignore decode error if body is empty/not JSON
+				_ = json.NewDecoder(resp.Body).Decode(&errResp) // Ignore decode error if body is empty/not JSON
 				// You could assert structure of errResp here if needed
 				// fmt.Printf("DEBUG: Error response body for %s (%d): %+v\n", tc.name, resp.StatusCode, errResp) // Debugging
 			}
@@ -297,7 +297,7 @@ func TestTemplateHandler_HandleGet(t *testing.T) {
 			}
 
 			resp := sendRequest(t, http.MethodGet, getURL, token, nil)
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
 
@@ -408,7 +408,7 @@ func TestTemplateHandler_HandleCreate(t *testing.T) {
 			}
 
 			resp := sendRequest(t, method, createURL, token, tc.requestBody)
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
 
@@ -528,7 +528,7 @@ func TestTemplateHandler_HandleUpdate(t *testing.T) {
 			}
 
 			resp := sendRequest(t, method, updateURL, token, tc.requestBody)
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
 
@@ -644,7 +644,7 @@ func TestTemplateHandler_HandleDelete(t *testing.T) {
 			}
 
 			resp := sendRequest(t, method, deleteURL, token, tc.requestBody)
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, tc.expectedStatus, resp.StatusCode)
 
@@ -692,7 +692,7 @@ func TestHandleCompile_ServiceError(t *testing.T) {
 	url := fmt.Sprintf("%s/api/templates.compile", serverURL)
 	token := createTestToken(secretKey)
 	resp := sendRequest(t, http.MethodPost, url, token, payload)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 }
@@ -704,7 +704,7 @@ func TestHandleCompile_MethodNotAllowed(t *testing.T) {
 	url := fmt.Sprintf("%s/api/templates.compile", serverURL)
 	token := createTestToken(secretKey)
 	resp := sendRequest(t, http.MethodGet, url, token, nil)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 }
 

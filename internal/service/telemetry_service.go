@@ -99,9 +99,8 @@ func (t *TelemetryService) SendMetricsForAllWorkspaces(ctx context.Context) erro
 
 	// Collect and send metrics for each workspace
 	for _, workspace := range workspaces {
-		if err := t.sendMetricsForWorkspace(ctx, workspace); err != nil {
-			// Continue with other workspaces on error
-		}
+		_ = t.sendMetricsForWorkspace(ctx, workspace)
+		// Continue with other workspaces on error
 	}
 
 	return nil
@@ -197,7 +196,7 @@ func (t *TelemetryService) sendMetrics(ctx context.Context, metrics TelemetryMet
 	if err != nil {
 		return nil // Fail silently as requested
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Check response status
 	if resp.StatusCode >= 400 {
@@ -222,7 +221,7 @@ func (t *TelemetryService) StartDailyScheduler(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				t.SendMetricsForAllWorkspaces(ctx)
+				_ = t.SendMetricsForAllWorkspaces(ctx)
 			}
 		}
 	}()

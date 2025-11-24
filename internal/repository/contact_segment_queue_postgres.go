@@ -49,7 +49,7 @@ func (r *contactSegmentQueueRepository) GetPendingEmails(ctx context.Context, wo
 	if err != nil {
 		return nil, fmt.Errorf("failed to query pending emails: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var emails []string
 	for rows.Next() {

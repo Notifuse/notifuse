@@ -53,7 +53,7 @@ func setupMessageHistoryTest(t *testing.T) (*mocks.MockWorkspaceRepository, doma
 
 	// Set up cleanup function
 	cleanup := func() {
-		db.Close()
+		_ = db.Close()
 		ctrl.Finish()
 	}
 

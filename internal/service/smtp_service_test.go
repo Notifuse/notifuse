@@ -1076,7 +1076,7 @@ func TestDefaultGoMailFactory_CreateClient(t *testing.T) {
 			// If somehow it succeeds (unlikely), verify we got a client
 			assert.NotNil(t, client)
 			if client != nil {
-				client.Close()
+				_ = client.Close()
 			}
 		}
 	})
@@ -1090,7 +1090,7 @@ func TestDefaultGoMailFactory_CreateClient(t *testing.T) {
 		} else {
 			assert.NotNil(t, client)
 			if client != nil {
-				client.Close()
+				_ = client.Close()
 			}
 		}
 	})
@@ -1134,7 +1134,7 @@ func TestDefaultGoMailFactory_CreateClient(t *testing.T) {
 		} else {
 			assert.NotNil(t, client)
 			if client != nil {
-				client.Close()
+				_ = client.Close()
 			}
 		}
 	})
@@ -1151,7 +1151,7 @@ func TestDefaultGoMailFactory_CreateClient(t *testing.T) {
 		} else {
 			assert.NotNil(t, client)
 			if client != nil {
-				client.Close()
+				_ = client.Close()
 			}
 		}
 	})
@@ -1169,7 +1169,7 @@ func TestDefaultGoMailFactory_CreateClient(t *testing.T) {
 		} else {
 			assert.NotNil(t, client)
 			if client != nil {
-				client.Close()
+				_ = client.Close()
 			}
 		}
 	})

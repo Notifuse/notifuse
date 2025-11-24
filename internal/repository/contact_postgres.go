@@ -77,7 +77,7 @@ func (r *contactRepository) fetchContact(ctx context.Context, workspaceID string
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch contact lists: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	contact.ContactLists = []*domain.ContactList{}
 	for rows.Next() {
@@ -119,7 +119,9 @@ func (r *contactRepository) fetchContact(ctx context.Context, workspaceID string
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch contact segments: %w", err)
 	}
-	defer segmentRows.Close()
+	defer func() {
+		_ = segmentRows.Close()
+	}()
 
 	contact.ContactSegments = []*domain.ContactSegment{}
 	for segmentRows.Next() {
@@ -274,7 +276,7 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Process results
 	var contacts []*domain.Contact
@@ -333,7 +335,9 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 		if err != nil {
 			return nil, fmt.Errorf("failed to query contact lists: %w", err)
 		}
-		defer listRows.Close()
+		defer func() {
+			_ = listRows.Close()
+		}()
 
 		// Create a map of contacts by email for quick lookup
 		contactMap := make(map[string]*domain.Contact)
@@ -386,7 +390,9 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 		if err != nil {
 			return nil, fmt.Errorf("failed to query contact segments: %w", err)
 		}
-		defer segmentRows.Close()
+		defer func() {
+			_ = segmentRows.Close()
+		}()
 
 		// Create/use the map of contacts by email for quick lookup
 		contactMap := make(map[string]*domain.Contact)
@@ -469,7 +475,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 	if err != nil {
 		return false, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback() // Rollback if there's a panic or error
+	defer func() { _ = tx.Rollback() }() // Rollback if there's a panic or error
 
 	// Check if contact exists with FOR UPDATE lock using squirrel
 	selectQuery, selectArgs, err := psql.Select("c.*").
@@ -1155,7 +1161,7 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback() // Rollback if there's a panic or error
+	defer func() { _ = tx.Rollback() }() // Rollback if there's a panic or error
 
 	now := time.Now().UTC()
 
@@ -1330,7 +1336,7 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute bulk upsert: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Collect results
 	results := make([]domain.BulkUpsertResult, 0, len(contacts))
@@ -1436,7 +1442,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Process the results
 	var contactsWithList []*domain.ContactWithList
@@ -1743,7 +1749,7 @@ func (r *contactRepository) GetBatchForSegment(ctx context.Context, workspaceID 
 	if err != nil {
 		return nil, fmt.Errorf("failed to query emails: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	emails := make([]string, 0, limit)
 	for rows.Next() {

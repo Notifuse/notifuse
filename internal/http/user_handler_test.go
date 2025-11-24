@@ -601,7 +601,7 @@ func TestUserHandler_RegisterRoutes(t *testing.T) {
 			// and it didn't return 404 Not Found
 			if tc.route == "/api/user.me" {
 				require.NoError(t, err)
-				defer resp.Body.Close()
+				defer func() { _ = resp.Body.Close() }()
 				assert.NotEqual(t, http.StatusNotFound, resp.StatusCode)
 			}
 		})

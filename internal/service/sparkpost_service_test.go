@@ -2192,7 +2192,7 @@ func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
 				// Verify CC and BCC recipients are included
 				body, _ := io.ReadAll(req.Body)
 				var emailReq map[string]interface{}
-				json.Unmarshal(body, &emailReq)
+				_ = json.Unmarshal(body, &emailReq)
 
 				recipients := emailReq["recipients"].([]interface{})
 				assert.Len(t, recipients, 3) // to + cc + bcc
@@ -2293,7 +2293,7 @@ func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
 				// Verify empty CC/BCC are handled correctly
 				body, _ := io.ReadAll(req.Body)
 				var emailReq map[string]interface{}
-				json.Unmarshal(body, &emailReq)
+				_ = json.Unmarshal(body, &emailReq)
 
 				recipients := emailReq["recipients"].([]interface{})
 				assert.Len(t, recipients, 1) // Only the main recipient
@@ -2340,7 +2340,7 @@ func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
 				// Verify attachment is included
 				body, _ := io.ReadAll(req.Body)
 				var emailReq map[string]interface{}
-				json.Unmarshal(body, &emailReq)
+				_ = json.Unmarshal(body, &emailReq)
 
 				content := emailReq["content"].(map[string]interface{})
 				attachments := content["attachments"].([]interface{})
@@ -2396,7 +2396,7 @@ func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
 				// Verify multiple attachments are included
 				body, _ := io.ReadAll(req.Body)
 				var emailReq map[string]interface{}
-				json.Unmarshal(body, &emailReq)
+				_ = json.Unmarshal(body, &emailReq)
 
 				content := emailReq["content"].(map[string]interface{})
 				attachments := content["attachments"].([]interface{})
@@ -2473,7 +2473,7 @@ func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
 				// Verify inline image is in inline_images array
 				body, _ := io.ReadAll(req.Body)
 				var emailReq map[string]interface{}
-				json.Unmarshal(body, &emailReq)
+				_ = json.Unmarshal(body, &emailReq)
 
 				content := emailReq["content"].(map[string]interface{})
 
@@ -2537,7 +2537,7 @@ func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
 				// Verify both attachments and inline images
 				body, _ := io.ReadAll(req.Body)
 				var emailReq map[string]interface{}
-				json.Unmarshal(body, &emailReq)
+				_ = json.Unmarshal(body, &emailReq)
 
 				content := emailReq["content"].(map[string]interface{})
 
@@ -2606,7 +2606,7 @@ func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
 				// Verify default content type is applied
 				body, _ := io.ReadAll(req.Body)
 				var emailReq map[string]interface{}
-				json.Unmarshal(body, &emailReq)
+				_ = json.Unmarshal(body, &emailReq)
 
 				content := emailReq["content"].(map[string]interface{})
 				attachments := content["attachments"].([]interface{})
@@ -2697,7 +2697,7 @@ func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
 				// Verify no attachments or inline images in request
 				body, _ := io.ReadAll(req.Body)
 				var emailReq map[string]interface{}
-				json.Unmarshal(body, &emailReq)
+				_ = json.Unmarshal(body, &emailReq)
 
 				content := emailReq["content"].(map[string]interface{})
 
@@ -2785,7 +2785,7 @@ func TestSparkPostService_EdgeCases(t *testing.T) {
 					// Verify spam_complaint event is mapped correctly
 					body, _ := io.ReadAll(req.Body)
 					var webhook domain.SparkPostWebhook
-					json.Unmarshal(body, &webhook)
+					_ = json.Unmarshal(body, &webhook)
 					assert.Contains(t, webhook.Events, "spam_complaint")
 					return mockHTTPResponse(http.StatusOK, string(createResponseJSON)), nil
 				}),
@@ -2833,7 +2833,7 @@ func TestSparkPostService_EdgeCases(t *testing.T) {
 					// Verify webhook name uses full integration ID (no truncation)
 					body, _ := io.ReadAll(req.Body)
 					var webhook domain.SparkPostWebhook
-					json.Unmarshal(body, &webhook)
+					_ = json.Unmarshal(body, &webhook)
 					assert.Equal(t, "Notifuse-very-long-integration-id-that-exceeds-limit", webhook.Name)
 					return mockHTTPResponse(http.StatusOK, string(createResponseJSON)), nil
 				}),
@@ -2882,7 +2882,7 @@ func TestSparkPostService_EdgeCases(t *testing.T) {
 					// Verify webhook name uses full short integration ID
 					body, _ := io.ReadAll(req.Body)
 					var webhook domain.SparkPostWebhook
-					json.Unmarshal(body, &webhook)
+					_ = json.Unmarshal(body, &webhook)
 					assert.Equal(t, "Notifuse-integration", webhook.Name)
 					return mockHTTPResponse(http.StatusOK, string(createResponseJSON)), nil
 				}),

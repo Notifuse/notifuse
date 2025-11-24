@@ -160,7 +160,7 @@ func (h *WorkspaceHandler) handleCreate(w http.ResponseWriter, r *http.Request) 
 // Helper function to get bytes from request body
 func getBytesFromBody(body io.ReadCloser) []byte {
 	buf := new(bytes.Buffer)
-	buf.ReadFrom(body)
+	_, _ = buf.ReadFrom(body)
 	return buf.Bytes()
 }
 

@@ -30,14 +30,6 @@ func (m *mockTaskExecutor) getCallCount() int32 {
 	return atomic.LoadInt32(&m.callCount)
 }
 
-// taskExecutorWrapper wraps a TaskService to match the interface needed
-type taskExecutorWrapper struct {
-	service *TaskService
-}
-
-func (w *taskExecutorWrapper) ExecutePendingTasks(ctx context.Context, maxTasks int) error {
-	return w.service.ExecutePendingTasks(ctx, maxTasks)
-}
 
 func TestNewTaskScheduler(t *testing.T) {
 	ctrl := gomock.NewController(t)

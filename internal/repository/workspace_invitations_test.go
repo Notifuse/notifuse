@@ -18,7 +18,7 @@ import (
 func TestWorkspaceRepository_CreateInvitation(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := &workspaceRepository{
 		systemDB: db,
@@ -115,7 +115,7 @@ func TestWorkspaceRepository_CreateInvitation(t *testing.T) {
 func TestWorkspaceRepository_GetInvitationByID(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := &workspaceRepository{
 		systemDB: db,
@@ -185,7 +185,7 @@ func TestWorkspaceRepository_GetInvitationByID(t *testing.T) {
 func TestWorkspaceRepository_GetInvitationByEmail(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := &workspaceRepository{
 		systemDB: db,
@@ -255,7 +255,7 @@ func TestWorkspaceRepository_GetInvitationByEmail(t *testing.T) {
 func TestWorkspaceRepository_DeleteInvitation(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	repo := &workspaceRepository{
 		systemDB: db,

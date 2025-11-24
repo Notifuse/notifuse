@@ -234,7 +234,10 @@ func (h *ContactHandler) handleImport(w http.ResponseWriter, r *http.Request) {
 	// Write success response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(result)
+	if err := json.NewEncoder(w).Encode(result); err != nil {
+		WriteJSONError(w, "Failed to encode response", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (h *ContactHandler) handleUpsert(w http.ResponseWriter, r *http.Request) {

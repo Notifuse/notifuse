@@ -37,7 +37,7 @@ func TestListRepository(t *testing.T) {
 	// Setup workspace connection mock
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace123").

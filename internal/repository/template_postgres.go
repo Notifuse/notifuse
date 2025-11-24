@@ -226,7 +226,7 @@ func (r *templateRepository) GetTemplates(ctx context.Context, workspaceID strin
 	if err != nil {
 		return nil, fmt.Errorf("failed to get templates: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var templates []*domain.Template
 	for rows.Next() {

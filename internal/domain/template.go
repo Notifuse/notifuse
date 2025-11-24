@@ -123,7 +123,8 @@ func (t *Template) Validate() error {
 	}
 
 	// Channel-specific validation
-	if t.Channel == ChannelEmail {
+	switch t.Channel {
+	case ChannelEmail:
 		// Email channel requires email field, web must be nil
 		if t.Email == nil {
 			return fmt.Errorf("invalid template: email is required for channel '%s'", ChannelEmail)
@@ -134,7 +135,7 @@ func (t *Template) Validate() error {
 		if err := t.Email.Validate(t.TestData); err != nil {
 			return fmt.Errorf("invalid template: %w", err)
 		}
-	} else if t.Channel == ChannelWeb {
+	case ChannelWeb:
 		// Web channel requires web field, email must be nil
 		if t.Web == nil {
 			return fmt.Errorf("invalid template: web is required for channel '%s'", ChannelWeb)
@@ -419,7 +420,8 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 	}
 
 	// Channel-specific validation
-	if r.Channel == ChannelEmail {
+	switch r.Channel {
+	case ChannelEmail:
 		if r.Email == nil {
 			return nil, "", fmt.Errorf("invalid create template request: email is required for channel '%s'", ChannelEmail)
 		}
@@ -429,7 +431,7 @@ func (r *CreateTemplateRequest) Validate() (template *Template, workspaceID stri
 		if err := r.Email.Validate(r.TestData); err != nil {
 			return nil, "", fmt.Errorf("invalid create template request: %w", err)
 		}
-	} else if r.Channel == ChannelWeb {
+	case ChannelWeb:
 		if r.Web == nil {
 			return nil, "", fmt.Errorf("invalid create template request: web is required for channel '%s'", ChannelWeb)
 		}
@@ -566,7 +568,8 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 	}
 
 	// Channel-specific validation
-	if r.Channel == ChannelEmail {
+	switch r.Channel {
+	case ChannelEmail:
 		if r.Email == nil {
 			return nil, "", fmt.Errorf("invalid update template request: email is required for channel '%s'", ChannelEmail)
 		}
@@ -576,7 +579,7 @@ func (r *UpdateTemplateRequest) Validate() (template *Template, workspaceID stri
 		if err := r.Email.Validate(r.TestData); err != nil {
 			return nil, "", fmt.Errorf("invalid update template request: %w", err)
 		}
-	} else if r.Channel == ChannelWeb {
+	case ChannelWeb:
 		if r.Web == nil {
 			return nil, "", fmt.Errorf("invalid update template request: web is required for channel '%s'", ChannelWeb)
 		}

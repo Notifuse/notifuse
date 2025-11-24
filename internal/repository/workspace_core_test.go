@@ -905,7 +905,7 @@ func TestWorkspaceRepository_WithWorkspaceTransaction(t *testing.T) {
 	// Create a mock workspace DB and put it in the connection manager
 	wsDB, wsMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer wsDB.Close()
+	defer func() { _ = wsDB.Close() }()
 	connMgr.AddWorkspaceDB(workspaceID, wsDB)
 
 	ctx := context.Background()
@@ -952,7 +952,7 @@ func TestWorkspaceRepository_WithWorkspaceTransaction(t *testing.T) {
 func TestWorkspaceRepository_GetWorkspaceByCustomDomain(t *testing.T) {
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	connManager := newMockConnectionManager(db)
 	dbConfig := &config.DatabaseConfig{}

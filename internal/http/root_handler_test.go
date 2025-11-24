@@ -115,7 +115,7 @@ func TestRootHandler_RegisterRoutes(t *testing.T) {
 	// Send a request
 	resp, err := http.Get(server.URL + "/api")
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -279,7 +279,7 @@ func TestRootHandler_ServeNotificationCenter(t *testing.T) {
 	// Create a temporary directory for test notification center files
 	tempDir, err := os.MkdirTemp("", "notification_center_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create a test index.html file
 	indexContent := "<html><body>Notification Center Test</body></html>"
@@ -351,7 +351,7 @@ func TestRootHandler_ServeConsole(t *testing.T) {
 	// Create a temporary directory for test console files
 	tempDir, err := os.MkdirTemp("", "console_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(tempDir)
+	defer func() { _ = os.RemoveAll(tempDir) }()
 
 	// Create a test index.html file
 	indexContent := "<html><body>Console Test</body></html>"
@@ -441,11 +441,11 @@ func TestRootHandler_Handle_Comprehensive(t *testing.T) {
 	// Create temporary directories
 	consoleDir, err := os.MkdirTemp("", "console_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(consoleDir)
+	defer func() { _ = os.RemoveAll(consoleDir) }()
 
 	notificationCenterDir, err := os.MkdirTemp("", "nc_test")
 	require.NoError(t, err)
-	defer os.RemoveAll(notificationCenterDir)
+	defer func() { _ = os.RemoveAll(notificationCenterDir) }()
 
 	// Create test index files
 	consoleIndexContent := "<html><body>Console Test</body></html>"

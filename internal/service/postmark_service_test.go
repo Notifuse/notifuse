@@ -1572,7 +1572,7 @@ func TestPostmarkService_SendEmail(t *testing.T) {
 
 		// Verify results
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Postmark provider is not configured")
+		assert.Contains(t, err.Error(), "postmark provider is not configured")
 	})
 
 	t.Run("Empty server token", func(t *testing.T) {
@@ -1605,7 +1605,7 @@ func TestPostmarkService_SendEmail(t *testing.T) {
 
 		// Verify results
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Postmark server token is required")
+		assert.Contains(t, err.Error(), "postmark server token is required")
 	})
 
 	t.Run("HTTP client error", func(t *testing.T) {
@@ -1681,7 +1681,7 @@ func TestPostmarkService_SendEmail(t *testing.T) {
 
 		// Verify results
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Postmark API error")
+		assert.Contains(t, err.Error(), "postmark API error")
 	})
 
 	t.Run("Error reading response body", func(t *testing.T) {
@@ -2129,7 +2129,7 @@ func TestPostmarkService_SendEmail(t *testing.T) {
 
 		// Verify error handling
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Postmark API error")
+		assert.Contains(t, err.Error(), "postmark API error")
 	})
 
 	t.Run("Email with attachment without ContentType", func(t *testing.T) {

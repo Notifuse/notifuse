@@ -12,18 +12,6 @@ import (
 //go:generate mockgen -destination mocks/mock_list_service.go -package mocks github.com/Notifuse/notifuse/internal/domain ListService
 //go:generate mockgen -destination mocks/mock_list_repository.go -package mocks github.com/Notifuse/notifuse/internal/domain ListRepository
 
-// Reserved paths that cannot be used as list slugs
-var reservedListSlugs = map[string]bool{
-	"console":              true,
-	"notification-center":  true,
-	"api":                  true,
-	"preferences":          true,
-	"subscribe":            true,
-	"unsubscribe-oneclick": true,
-	"health":               true,
-	"config.js":            true,
-}
-
 // List represents a subscription list
 type List struct {
 	ID                  string             `json:"id"`

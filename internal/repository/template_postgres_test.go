@@ -281,7 +281,7 @@ func TestTemplateRepository_CreateTemplate(t *testing.T) {
 	mockWorkspaceRepo.AssertExpectations(t)
 
 	// Test DB error
-	mockSQL.ExpectationsWereMet() // Clear previous expectations
+	_ = mockSQL.ExpectationsWereMet() // Clear previous expectations
 	mockWorkspaceRepo.ExpectedCalls = nil
 	mockWorkspaceRepo.On("GetConnection", ctx, workspaceID).Return(db, nil)
 	mockSQL.ExpectExec(regexp.QuoteMeta(`INSERT INTO templates`)).

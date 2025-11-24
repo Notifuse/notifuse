@@ -30,7 +30,7 @@ func TestV4Migration_UpdateSystem(t *testing.T) {
 	t.Run("Success - All operations complete", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock the verification query
 		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM users").
@@ -56,7 +56,7 @@ func TestV4Migration_UpdateSystem(t *testing.T) {
 	t.Run("Error - Database verification fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock the verification query to fail
 		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM users").
@@ -70,7 +70,7 @@ func TestV4Migration_UpdateSystem(t *testing.T) {
 	t.Run("Error - ALTER TABLE fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock successful verification
 		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM users").
@@ -88,7 +88,7 @@ func TestV4Migration_UpdateSystem(t *testing.T) {
 	t.Run("Error - Owner permissions update fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock successful verification and ALTER TABLE
 		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM users").
@@ -108,7 +108,7 @@ func TestV4Migration_UpdateSystem(t *testing.T) {
 	t.Run("Error - Member permissions update fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock successful verification, ALTER TABLE, and owner update
 		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM users").
@@ -140,7 +140,7 @@ func TestV4Migration_UpdateWorkspace(t *testing.T) {
 	t.Run("Success - Workspace verification passes", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock the verification query
 		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM contacts").
@@ -154,7 +154,7 @@ func TestV4Migration_UpdateWorkspace(t *testing.T) {
 	t.Run("Error - Workspace verification fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock the verification query to fail
 		mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM contacts").

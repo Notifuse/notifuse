@@ -291,7 +291,7 @@ func (h *NotificationCenterHandler) HandleDetectFavicon(w http.ResponseWriter, r
 		http.Error(w, "Error fetching URL", http.StatusInternalServerError)
 		return
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Parse HTML
 	doc, err := goquery.NewDocumentFromReader(resp.Body)
@@ -325,7 +325,7 @@ func (h *NotificationCenterHandler) HandleDetectFavicon(w http.ResponseWriter, r
 
 	// Return the combined results
 	if response.IconURL != "" || response.CoverURL != "" {
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 		return
 	}
 
@@ -360,7 +360,7 @@ func findManifestIcon(doc *goquery.Document, baseURL *url.URL) string {
 			if err != nil {
 				return
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			var manifest struct {
 				Icons []struct {

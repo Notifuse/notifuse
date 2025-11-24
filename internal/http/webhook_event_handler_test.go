@@ -13,9 +13,7 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
-	"github.com/Notifuse/notifuse/internal/service"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 
@@ -45,22 +43,6 @@ func setupWebhookEventHandlerTest(t *testing.T) (*WebhookEventHandler, *mocks.Mo
 	return handler, mockService, jwtSecret
 }
 
-func createWebhookTestToken(t *testing.T, jwtSecret []byte, userID string) string {
-	claims := &service.UserClaims{
-		UserID:    userID,
-		Type:      string(domain.UserTypeUser),
-		SessionID: "test-session",
-		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Hour)),
-			IssuedAt:  jwt.NewNumericDate(time.Now()),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString(jwtSecret)
-	require.NoError(t, err)
-	require.NotEmpty(t, signedToken)
-	return signedToken
-}
 
 // Tests for handleIncomingWebhook
 

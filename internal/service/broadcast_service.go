@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
+	"crypto/rand"
 	"database/sql"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -1140,7 +1140,7 @@ func ValidateSlug(slug string) error {
 
 	// Check format: lowercase letters, numbers, and hyphens only
 	for _, r := range slug {
-		if !((r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-') {
+		if (r < 'a' || r > 'z') && (r < '0' || r > '9') && r != '-' {
 			return fmt.Errorf("slug must contain only lowercase letters, numbers, and hyphens")
 		}
 	}

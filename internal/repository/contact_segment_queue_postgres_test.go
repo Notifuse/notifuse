@@ -34,7 +34,7 @@ func TestContactSegmentQueueRepository_GetPendingEmails_Success(t *testing.T) {
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Setup expectations
 	rows := sqlmock.NewRows([]string{"email"}).
@@ -94,7 +94,7 @@ func TestContactSegmentQueueRepository_GetPendingEmails_QueryError(t *testing.T)
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectQuery("SELECT email").
 		WithArgs(10).
@@ -124,7 +124,7 @@ func TestContactSegmentQueueRepository_GetPendingEmails_RowsError(t *testing.T) 
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Return rows that will error on iteration
 	rows := sqlmock.NewRows([]string{"email"}).
@@ -159,7 +159,7 @@ func TestContactSegmentQueueRepository_GetPendingEmails_EmptyResults(t *testing.
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	rows := sqlmock.NewRows([]string{"email"})
 
@@ -190,7 +190,7 @@ func TestContactSegmentQueueRepository_RemoveFromQueue_Success(t *testing.T) {
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectExec("DELETE FROM contact_segment_queue").
 		WithArgs("user@example.com").
@@ -237,7 +237,7 @@ func TestContactSegmentQueueRepository_RemoveFromQueue_ExecError(t *testing.T) {
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectExec("DELETE FROM contact_segment_queue").
 		WithArgs("user@example.com").
@@ -266,7 +266,7 @@ func TestContactSegmentQueueRepository_RemoveBatchFromQueue_Success(t *testing.T
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	emails := []string{"user1@example.com", "user2@example.com", "user3@example.com"}
 
@@ -329,7 +329,7 @@ func TestContactSegmentQueueRepository_RemoveBatchFromQueue_ExecError(t *testing
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectExec("DELETE FROM contact_segment_queue").
 		WillReturnError(errors.New("delete failed"))
@@ -357,7 +357,7 @@ func TestContactSegmentQueueRepository_GetQueueSize_Success(t *testing.T) {
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	rows := sqlmock.NewRows([]string{"count"}).AddRow(42)
 
@@ -407,7 +407,7 @@ func TestContactSegmentQueueRepository_GetQueueSize_QueryError(t *testing.T) {
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectQuery("SELECT COUNT").
 		WillReturnError(errors.New("query failed"))
@@ -436,7 +436,7 @@ func TestContactSegmentQueueRepository_ClearQueue_Success(t *testing.T) {
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectExec("DELETE FROM contact_segment_queue").
 		WillReturnResult(sqlmock.NewResult(0, 100))
@@ -482,7 +482,7 @@ func TestContactSegmentQueueRepository_ClearQueue_ExecError(t *testing.T) {
 	// Create mock DB
 	db, mock, err := sqlmock.New()
 	assert.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mock.ExpectExec("DELETE FROM contact_segment_queue").
 		WillReturnError(errors.New("delete failed"))

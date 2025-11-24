@@ -9,22 +9,20 @@ import (
 )
 
 type ContactListService struct {
-	repo            domain.ContactListRepository
-	workspaceRepo   domain.WorkspaceRepository
-	authService     domain.AuthService
-	contactRepo     domain.ContactRepository
-	listRepo        domain.ListRepository
-	contactListRepo domain.ContactListRepository
-	logger          logger.Logger
+	repo        domain.ContactListRepository
+	authService domain.AuthService
+	contactRepo domain.ContactRepository
+	listRepo    domain.ListRepository
+	logger      logger.Logger
 }
 
 func NewContactListService(
 	repo domain.ContactListRepository,
-	workspaceRepo domain.WorkspaceRepository,
+	_ domain.WorkspaceRepository,
 	authService domain.AuthService,
 	contactRepo domain.ContactRepository,
 	listRepo domain.ListRepository,
-	contactListRepo domain.ContactListRepository,
+	_ domain.ContactListRepository,
 	logger logger.Logger,
 ) *ContactListService {
 	return &ContactListService{

@@ -60,7 +60,7 @@ func (s *MailgunService) ListWebhooks(ctx context.Context, config domain.Mailgun
 		s.logger.Error(fmt.Sprintf("Failed to execute request for listing Mailgun webhooks: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -161,7 +161,7 @@ func (s *MailgunService) CreateWebhook(ctx context.Context, config domain.Mailgu
 		s.logger.Error(fmt.Sprintf("Failed to execute request for creating Mailgun webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
@@ -217,7 +217,7 @@ func (s *MailgunService) GetWebhook(ctx context.Context, config domain.MailgunSe
 		s.logger.Error(fmt.Sprintf("Failed to execute request for getting Mailgun webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -284,7 +284,7 @@ func (s *MailgunService) UpdateWebhook(ctx context.Context, config domain.Mailgu
 		s.logger.Error(fmt.Sprintf("Failed to execute request for updating Mailgun webhook: %v", err))
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -340,7 +340,7 @@ func (s *MailgunService) DeleteWebhook(ctx context.Context, config domain.Mailgu
 		s.logger.Error(fmt.Sprintf("Failed to execute request for deleting Mailgun webhook: %v", err))
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusNoContent {
 		body, _ := io.ReadAll(resp.Body)
@@ -371,28 +371,24 @@ func (s *MailgunService) RegisterWebhooks(
 	// Validate the provider configuration
 	if providerConfig == nil || providerConfig.Mailgun == nil ||
 		providerConfig.Mailgun.APIKey == "" || providerConfig.Mailgun.Domain == "" {
-		return nil, fmt.Errorf("Mailgun configuration is missing or invalid")
+		return nil, fmt.Errorf("mailgun configuration is missing or invalid")
 	}
 
 	// Generate webhook URL that includes workspace_id and integration_id
 	webhookURL := domain.GenerateWebhookCallbackURL(baseURL, domain.EmailProviderKindMailgun, workspaceID, integrationID)
 
 	// Map our event types to Mailgun event types
-	var registeredEvents []domain.EmailEventType
 	mailgunEvents := make(map[string]bool)
 
 	for _, eventType := range eventTypes {
 		switch eventType {
 		case domain.EmailEventDelivered:
 			mailgunEvents["delivered"] = true
-			registeredEvents = append(registeredEvents, domain.EmailEventDelivered)
 		case domain.EmailEventBounce:
 			mailgunEvents["permanent_fail"] = true
 			mailgunEvents["temporary_fail"] = true
-			registeredEvents = append(registeredEvents, domain.EmailEventBounce)
 		case domain.EmailEventComplaint:
 			mailgunEvents["complained"] = true
-			registeredEvents = append(registeredEvents, domain.EmailEventComplaint)
 		}
 	}
 
@@ -473,7 +469,7 @@ func (s *MailgunService) GetWebhookStatus(
 	// Validate the provider configuration
 	if providerConfig == nil || providerConfig.Mailgun == nil ||
 		providerConfig.Mailgun.APIKey == "" || providerConfig.Mailgun.Domain == "" {
-		return nil, fmt.Errorf("Mailgun configuration is missing or invalid")
+		return nil, fmt.Errorf("mailgun configuration is missing or invalid")
 	}
 
 	// Create webhook status response
@@ -526,12 +522,6 @@ func (s *MailgunService) GetWebhookStatus(
 		}
 	}
 
-	// Convert registered event map to slice
-	var registeredEvents []domain.EmailEventType
-	for eventType := range registeredEventMap {
-		registeredEvents = append(registeredEvents, eventType)
-	}
-
 	return status, nil
 }
 
@@ -545,7 +535,7 @@ func (s *MailgunService) UnregisterWebhooks(
 	// Validate the provider configuration
 	if providerConfig == nil || providerConfig.Mailgun == nil ||
 		providerConfig.Mailgun.APIKey == "" || providerConfig.Mailgun.Domain == "" {
-		return fmt.Errorf("Mailgun configuration is missing or invalid")
+		return fmt.Errorf("mailgun configuration is missing or invalid")
 	}
 
 	// Get existing webhooks
@@ -611,7 +601,7 @@ func (s *MailgunService) SendEmail(ctx context.Context, request domain.SendEmail
 	}
 
 	if request.Provider.Mailgun == nil {
-		return fmt.Errorf("Mailgun provider is not configured")
+		return fmt.Errorf("mailgun provider is not configured")
 	}
 
 	// Determine endpoint based on region
@@ -684,7 +674,7 @@ func (s *MailgunService) sendEmailSimple(ctx context.Context, apiURL string, req
 		s.logger.Error(fmt.Sprintf("Failed to execute request for sending Mailgun email: %v", err))
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Check response
 	if resp.StatusCode != http.StatusOK {
@@ -798,7 +788,7 @@ func (s *MailgunService) sendEmailWithAttachments(ctx context.Context, apiURL st
 		s.logger.Error(fmt.Sprintf("Failed to execute request for sending Mailgun email: %v", err))
 		return fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Check response
 	if resp.StatusCode != http.StatusOK {

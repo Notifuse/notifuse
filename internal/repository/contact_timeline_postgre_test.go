@@ -30,7 +30,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Success - List timeline entries", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -70,7 +70,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Success - List with cursor pagination", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -103,7 +103,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Success - List with next cursor", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -133,7 +133,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Success - List with entity_id", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -166,7 +166,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Success - Empty result", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -189,7 +189,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Success - Applies default limit", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -213,7 +213,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Success - Caps limit at 100", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -250,7 +250,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Error - Invalid cursor", func(t *testing.T) {
 		db, _, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -269,7 +269,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Error - Invalid cursor format", func(t *testing.T) {
 		db, _, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -289,7 +289,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Error - Query execution failed", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -311,7 +311,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Error - Row scan failed", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -337,7 +337,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Error - Invalid JSON in changes field", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -364,7 +364,7 @@ func TestContactTimelineRepository_List(t *testing.T) {
 	t.Run("Error - Invalid JSON in entity_data field", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -481,7 +481,7 @@ func TestContactTimelineRepository_DeleteForEmail(t *testing.T) {
 	t.Run("Success - Delete timeline entries", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -500,7 +500,7 @@ func TestContactTimelineRepository_DeleteForEmail(t *testing.T) {
 	t.Run("Success - No entries to delete", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
@@ -530,7 +530,7 @@ func TestContactTimelineRepository_DeleteForEmail(t *testing.T) {
 	t.Run("Error - Delete query failed", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).

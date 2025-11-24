@@ -90,7 +90,7 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 	if client == nil {
 		return fmt.Errorf("SMTP client factory returned nil client")
 	}
-	defer client.Close()
+	defer func() { _ = client.Close() }()
 
 	// Create and configure the message
 	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())
@@ -170,9 +170,9 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 			// Generate a simple Content-ID from filename (e.g., <logo.png>)
 			contentID := att.Filename
 			fileOpts = append(fileOpts, mail.WithFileContentID(contentID))
-			msg.EmbedReader(att.Filename, bytes.NewReader(content), fileOpts...)
+			_ = msg.EmbedReader(att.Filename, bytes.NewReader(content), fileOpts...)
 		} else {
-			msg.AttachReader(att.Filename, bytes.NewReader(content), fileOpts...)
+			_ = msg.AttachReader(att.Filename, bytes.NewReader(content), fileOpts...)
 		}
 	}
 

@@ -77,7 +77,7 @@ func ConnectToWorkspace(cfg *config.DatabaseConfig, workspaceID string) (*sql.DB
 
 	// Test the connection
 	if err := db.Ping(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to ping workspace database: %w", err)
 	}
 
@@ -103,7 +103,7 @@ func EnsureWorkspaceDatabaseExists(cfg *config.DatabaseConfig, workspaceID strin
 	if err != nil {
 		return fmt.Errorf("failed to connect to PostgreSQL server: %w", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Test the connection
 	if err := db.Ping(); err != nil {
@@ -135,7 +135,9 @@ func EnsureWorkspaceDatabaseExists(cfg *config.DatabaseConfig, workspaceID strin
 		if err != nil {
 			return fmt.Errorf("failed to connect to new workspace database: %w", err)
 		}
-		defer wsDB.Close()
+		defer func() {
+			_ = wsDB.Close()
+		}()
 
 		// Test the connection
 		if err := wsDB.Ping(); err != nil {
@@ -158,7 +160,7 @@ func EnsureSystemDatabaseExists(dsn string, dbName string) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect to PostgreSQL server: %w", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Test the connection
 	if err := db.Ping(); err != nil {

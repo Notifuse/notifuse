@@ -40,7 +40,7 @@ func (r *TaskRepository) WithTransaction(ctx context.Context, fn func(*sql.Tx) e
 	}
 
 	// Defer rollback - this will be a no-op if we successfully commit
-	defer tx.Rollback()
+	defer func() { _ = tx.Rollback() }()
 
 	// Execute the provided function with the transaction
 	if err := fn(tx); err != nil {
@@ -437,7 +437,7 @@ func (r *TaskRepository) List(ctx context.Context, workspace string, filter doma
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to list tasks: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tasks []*domain.Task
 	for rows.Next() {
@@ -563,7 +563,7 @@ func (r *TaskRepository) GetNextBatch(ctx context.Context, limit int) ([]*domain
 	if err != nil {
 		return nil, fmt.Errorf("failed to get next batch of tasks: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var tasks []*domain.Task
 	for rows.Next() {

@@ -21,10 +21,10 @@ func TestCORSMiddleware(t *testing.T) {
 	t.Run("with default origin", func(t *testing.T) {
 		// Save current environment variable and restore it after the test
 		originalOrigin := os.Getenv("CORS_ALLOW_ORIGIN")
-		defer os.Setenv("CORS_ALLOW_ORIGIN", originalOrigin)
+		defer func() { _ = os.Setenv("CORS_ALLOW_ORIGIN", originalOrigin) }()
 
 		// Clear environment variable to test default behavior
-		os.Unsetenv("CORS_ALLOW_ORIGIN")
+		_ = os.Unsetenv("CORS_ALLOW_ORIGIN")
 
 		// Create a test request
 		req := httptest.NewRequest("GET", "/api/test", nil)
@@ -46,10 +46,10 @@ func TestCORSMiddleware(t *testing.T) {
 	t.Run("with custom origin", func(t *testing.T) {
 		// Save current environment variable and restore it after the test
 		originalOrigin := os.Getenv("CORS_ALLOW_ORIGIN")
-		defer os.Setenv("CORS_ALLOW_ORIGIN", originalOrigin)
+		defer func() { _ = os.Setenv("CORS_ALLOW_ORIGIN", originalOrigin) }()
 
 		// Set custom origin
-		os.Setenv("CORS_ALLOW_ORIGIN", "https://example.com")
+		_ = os.Setenv("CORS_ALLOW_ORIGIN", "https://example.com")
 
 		// Create a test request
 		req := httptest.NewRequest("GET", "/api/test", nil)

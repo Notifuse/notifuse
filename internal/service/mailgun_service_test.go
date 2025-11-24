@@ -777,7 +777,7 @@ func TestMailgunService_SendEmail(t *testing.T) {
 
 		// Verify error
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "Mailgun provider is not configured")
+		assert.Contains(t, err.Error(), "mailgun provider is not configured")
 	})
 
 	t.Run("HTTP request error", func(t *testing.T) {

@@ -246,7 +246,7 @@ func (r *userRepository) GetSessionsByUserID(ctx context.Context, userID string)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get sessions: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var sessions []*domain.Session
 	for rows.Next() {

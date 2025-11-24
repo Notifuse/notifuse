@@ -717,7 +717,7 @@ func TestEmailProvider_ValidateWithMailjet(t *testing.T) {
 	// Should fail validation
 	err = invalidProvider.Validate("test-passphrase")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Mailjet settings required")
+		assert.Contains(t, err.Error(), "mailjet settings required")
 }
 
 func TestPostmarkSettings_Validate(t *testing.T) {
@@ -890,7 +890,7 @@ func TestEmailProvider_ValidateWithPostmark(t *testing.T) {
 	// Should fail validation
 	err = invalidProvider.Validate("test-passphrase")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "Postmark settings required")
+		assert.Contains(t, err.Error(), "postmark settings required")
 }
 
 // Add decryption error tests that don't rely on mocking

@@ -29,7 +29,7 @@ func setupTransactionalTest(t *testing.T) (*mocks.MockWorkspaceRepository, domai
 
 	// Set up cleanup function
 	cleanup := func() {
-		db.Close()
+		_ = db.Close()
 		ctrl.Finish()
 	}
 

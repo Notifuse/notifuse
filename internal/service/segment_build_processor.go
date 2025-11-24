@@ -269,7 +269,7 @@ func (p *SegmentBuildProcessor) processBatch(
 	if err != nil {
 		return fmt.Errorf("failed to execute segment query: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Track matched emails
 	matchedEmails := make(map[string]bool)

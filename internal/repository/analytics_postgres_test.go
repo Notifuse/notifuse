@@ -44,7 +44,7 @@ func TestAnalyticsRepository_Query_Success(t *testing.T) {
 	// Create mock database
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Set up mocks
 	ctrl := gomock.NewController(t)

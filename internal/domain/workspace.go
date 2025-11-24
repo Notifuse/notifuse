@@ -274,11 +274,17 @@ func (tb *TemplateBlock) UnmarshalJSON(data []byte) error {
 
 	// Unmarshal the Block using the existing EmailBlock unmarshaling logic
 	if len(temp.Block) > 0 {
-		block, err := notifuse_mjml.UnmarshalEmailBlock(temp.Block)
-		if err != nil {
-			return fmt.Errorf("failed to unmarshal template block: %w", err)
+		// Skip if it's just an empty string or null - these are not valid EmailBlock JSON
+		blockStr := string(temp.Block)
+		if blockStr == `""` || blockStr == `null` {
+			tb.Block = nil
+		} else {
+			block, err := notifuse_mjml.UnmarshalEmailBlock(temp.Block)
+			if err != nil {
+				return fmt.Errorf("failed to unmarshal template block: %w", err)
+			}
+			tb.Block = block
 		}
-		tb.Block = block
 	}
 
 	return nil

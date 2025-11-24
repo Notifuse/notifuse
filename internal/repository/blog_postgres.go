@@ -10,6 +10,10 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 )
 
+type contextKey string
+
+const workspaceIDKey contextKey = "workspace_id"
+
 // blogCategoryRepository implements domain.BlogCategoryRepository for PostgreSQL
 type blogCategoryRepository struct {
 	workspaceRepo domain.WorkspaceRepository
@@ -34,7 +38,9 @@ func (r *blogCategoryRepository) WithTransaction(ctx context.Context, workspaceI
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	if err := fn(tx); err != nil {
 		return err
@@ -50,7 +56,7 @@ func (r *blogCategoryRepository) WithTransaction(ctx context.Context, workspaceI
 // CreateCategory persists a new blog category
 func (r *blogCategoryRepository) CreateCategory(ctx context.Context, category *domain.BlogCategory) error {
 	// Get workspace ID from context
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -88,7 +94,7 @@ func (r *blogCategoryRepository) CreateCategoryTx(ctx context.Context, tx *sql.T
 
 // GetCategory retrieves a blog category by ID
 func (r *blogCategoryRepository) GetCategory(ctx context.Context, id string) (*domain.BlogCategory, error) {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -108,7 +114,7 @@ func (r *blogCategoryRepository) GetCategoryTx(ctx context.Context, tx *sql.Tx, 
 
 // GetCategoryBySlug retrieves a blog category by slug
 func (r *blogCategoryRepository) GetCategoryBySlug(ctx context.Context, slug string) (*domain.BlogCategory, error) {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -159,7 +165,7 @@ func (r *blogCategoryRepository) GetCategoriesByIDs(ctx context.Context, ids []s
 		return []*domain.BlogCategory{}, nil
 	}
 
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -187,7 +193,7 @@ func (r *blogCategoryRepository) GetCategoriesByIDs(ctx context.Context, ids []s
 	if err != nil {
 		return nil, fmt.Errorf("failed to get categories by IDs: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var categories []*domain.BlogCategory
 	for rows.Next() {
@@ -242,7 +248,7 @@ func (r *blogCategoryRepository) getCategoryByFieldTx(ctx context.Context, tx *s
 
 // UpdateCategory updates an existing blog category
 func (r *blogCategoryRepository) UpdateCategory(ctx context.Context, category *domain.BlogCategory) error {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -286,7 +292,7 @@ func (r *blogCategoryRepository) UpdateCategoryTx(ctx context.Context, tx *sql.T
 
 // DeleteCategory soft deletes a blog category
 func (r *blogCategoryRepository) DeleteCategory(ctx context.Context, id string) error {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -323,7 +329,7 @@ func (r *blogCategoryRepository) DeleteCategoryTx(ctx context.Context, tx *sql.T
 
 // ListCategories retrieves all blog categories for a workspace
 func (r *blogCategoryRepository) ListCategories(ctx context.Context) ([]*domain.BlogCategory, error) {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -344,7 +350,7 @@ func (r *blogCategoryRepository) ListCategories(ctx context.Context) ([]*domain.
 	if err != nil {
 		return nil, fmt.Errorf("failed to list blog categories: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var categories []*domain.BlogCategory
 	for rows.Next() {
@@ -394,7 +400,9 @@ func (r *blogPostRepository) WithTransaction(ctx context.Context, workspaceID st
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 
-	defer tx.Rollback()
+	defer func() {
+		_ = tx.Rollback()
+	}()
 
 	if err := fn(tx); err != nil {
 		return err
@@ -409,7 +417,7 @@ func (r *blogPostRepository) WithTransaction(ctx context.Context, workspaceID st
 
 // CreatePost persists a new blog post
 func (r *blogPostRepository) CreatePost(ctx context.Context, post *domain.BlogPost) error {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -449,7 +457,7 @@ func (r *blogPostRepository) CreatePostTx(ctx context.Context, tx *sql.Tx, post 
 
 // GetPost retrieves a blog post by ID
 func (r *blogPostRepository) GetPost(ctx context.Context, id string) (*domain.BlogPost, error) {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -517,7 +525,7 @@ func (r *blogPostRepository) GetPostTx(ctx context.Context, tx *sql.Tx, id strin
 
 // GetPostBySlug retrieves a blog post by slug
 func (r *blogPostRepository) GetPostBySlug(ctx context.Context, slug string) (*domain.BlogPost, error) {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -585,7 +593,7 @@ func (r *blogPostRepository) GetPostBySlugTx(ctx context.Context, tx *sql.Tx, sl
 
 // GetPostByCategoryAndSlug retrieves a blog post by category slug and post slug
 func (r *blogPostRepository) GetPostByCategoryAndSlug(ctx context.Context, categorySlug, postSlug string) (*domain.BlogPost, error) {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -625,7 +633,7 @@ func (r *blogPostRepository) GetPostByCategoryAndSlug(ctx context.Context, categ
 
 // UpdatePost updates an existing blog post
 func (r *blogPostRepository) UpdatePost(ctx context.Context, post *domain.BlogPost) error {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -671,7 +679,7 @@ func (r *blogPostRepository) UpdatePostTx(ctx context.Context, tx *sql.Tx, post 
 
 // DeletePost soft deletes a blog post
 func (r *blogPostRepository) DeletePost(ctx context.Context, id string) error {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -708,7 +716,7 @@ func (r *blogPostRepository) DeletePostTx(ctx context.Context, tx *sql.Tx, id st
 
 // ListPosts retrieves blog posts with filtering and pagination
 func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBlogPostsRequest) (*domain.BlogPostListResponse, error) {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
@@ -776,7 +784,7 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 	if err != nil {
 		return nil, fmt.Errorf("failed to list blog posts: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var posts []*domain.BlogPost
 	for rows.Next() {
@@ -823,7 +831,7 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 
 // PublishPost sets the published_at timestamp to now
 func (r *blogPostRepository) PublishPost(ctx context.Context, id string) error {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
@@ -861,7 +869,7 @@ func (r *blogPostRepository) PublishPostTx(ctx context.Context, tx *sql.Tx, id s
 
 // UnpublishPost sets the published_at timestamp to null
 func (r *blogPostRepository) UnpublishPost(ctx context.Context, id string) error {
-	workspaceID, ok := ctx.Value("workspace_id").(string)
+	workspaceID, ok := ctx.Value(workspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}

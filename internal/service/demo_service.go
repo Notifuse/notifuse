@@ -1580,13 +1580,14 @@ func (s *DemoService) generateMessageHistoryForContact(contact *domain.Contact, 
 
 	// Determine campaign type based on broadcastID
 	var campaignType string
-	var utmMedium string = "email"
+	utmMedium := "email"
 
 	if strings.Contains(broadcastID, "transactional") {
 		campaignType = "transactional"
-		if templateID == "password-reset" {
+		switch templateID {
+		case "password-reset":
 			campaignType = "password_reset"
-		} else if templateID == "welcome-email" {
+		case "welcome-email":
 			campaignType = "welcome"
 		}
 	} else {

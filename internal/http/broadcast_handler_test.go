@@ -1434,7 +1434,7 @@ func TestHandleResume(t *testing.T) {
 		// Verify response
 		assert.Equal(t, http.StatusOK, w.Code)
 		var response map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &response)
+		_ = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.True(t, response["success"].(bool))
 	})
 
@@ -1564,7 +1564,7 @@ func TestHandleSendToIndividual(t *testing.T) {
 		// Verify response
 		assert.Equal(t, http.StatusOK, w.Code)
 		var response map[string]interface{}
-		json.Unmarshal(w.Body.Bytes(), &response)
+		_ = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.True(t, response["success"].(bool))
 	})
 

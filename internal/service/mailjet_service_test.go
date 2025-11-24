@@ -539,7 +539,7 @@ func TestMailjetService_SendEmail(t *testing.T) {
 
 		// Assertions
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "Mailjet provider is not configured")
+		assert.Contains(t, err.Error(), "mailjet provider is not configured")
 	})
 
 	t.Run("HTTP client error", func(t *testing.T) {

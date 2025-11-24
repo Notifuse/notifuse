@@ -835,11 +835,12 @@ func FromJSON(data interface{}) (*Contact, error) {
 // Helper functions for parsing nullable fields from JSON
 func parseNullableString(result gjson.Result, field string, target **NullableString) error {
 	if value := result.Get(field); value.Exists() {
-		if value.Type == gjson.Null {
+		switch value.Type {
+		case gjson.Null:
 			*target = &NullableString{IsNull: true}
-		} else if value.Type == gjson.String {
+		case gjson.String:
 			*target = &NullableString{String: value.String(), IsNull: false}
-		} else {
+		default:
 			return fmt.Errorf("invalid type for %s: expected string, got %s", field, value.Type)
 		}
 	}
@@ -848,11 +849,12 @@ func parseNullableString(result gjson.Result, field string, target **NullableStr
 
 func parseNullableFloat(result gjson.Result, field string, target **NullableFloat64) error {
 	if value := result.Get(field); value.Exists() {
-		if value.Type == gjson.Null {
+		switch value.Type {
+		case gjson.Null:
 			*target = &NullableFloat64{IsNull: true}
-		} else if value.Type == gjson.Number {
+		case gjson.Number:
 			*target = &NullableFloat64{Float64: value.Float(), IsNull: false}
-		} else {
+		default:
 			return fmt.Errorf("invalid type for %s: expected number, got %s", field, value.Type)
 		}
 	}
@@ -861,15 +863,16 @@ func parseNullableFloat(result gjson.Result, field string, target **NullableFloa
 
 func parseNullableTime(result gjson.Result, field string, target **NullableTime) error {
 	if value := result.Get(field); value.Exists() {
-		if value.Type == gjson.Null {
+		switch value.Type {
+		case gjson.Null:
 			*target = &NullableTime{IsNull: true}
-		} else if value.Type == gjson.String {
+		case gjson.String:
 			t, err := time.Parse(time.RFC3339, value.String())
 			if err != nil {
 				return fmt.Errorf("invalid time format for %s: %v", field, err)
 			}
 			*target = &NullableTime{Time: t, IsNull: false}
-		} else {
+		default:
 			return fmt.Errorf("invalid type for %s: expected string, got %s", field, value.Type)
 		}
 	}

@@ -71,7 +71,7 @@ func TestSegmentRepository_CreateSegment(t *testing.T) {
 
 		db, sqlMock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(gomock.Any(), "workspace123").
@@ -111,7 +111,7 @@ func TestSegmentRepository_CreateSegment(t *testing.T) {
 
 		db, sqlMock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(gomock.Any(), "workspace123").
@@ -153,7 +153,7 @@ func TestSegmentRepository_GetSegmentByID(t *testing.T) {
 	// Setup workspace connection mock
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace123").
@@ -243,7 +243,7 @@ func TestSegmentRepository_GetSegments(t *testing.T) {
 	// Setup workspace connection mock
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace123").
@@ -378,7 +378,7 @@ func TestSegmentRepository_UpdateSegment(t *testing.T) {
 	// Setup workspace connection mock
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace123").
@@ -447,7 +447,7 @@ func TestSegmentRepository_DeleteSegment(t *testing.T) {
 	// Setup workspace connection mock
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace123").
@@ -516,7 +516,7 @@ func TestSegmentRepository_AddContactToSegment(t *testing.T) {
 	// Setup workspace connection mock
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace123").
@@ -558,7 +558,7 @@ func TestSegmentRepository_RemoveContactFromSegment(t *testing.T) {
 	// Setup workspace connection mock
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace123").
@@ -590,7 +590,7 @@ func TestSegmentRepository_RemoveOldMemberships(t *testing.T) {
 	// Setup workspace connection mock
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace123").
@@ -624,7 +624,7 @@ func TestSegmentRepository_GetContactSegments(t *testing.T) {
 	// Setup workspace connection mock
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace123").
@@ -713,7 +713,7 @@ func TestSegmentRepository_GetSegmentContactCount(t *testing.T) {
 	// Setup workspace connection mock
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace123").
@@ -761,7 +761,7 @@ func TestSegmentRepository_PreviewSegment(t *testing.T) {
 	// Setup workspace connection mock
 	db, sqlMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	mockWorkspaceRepo.EXPECT().
 		GetConnection(gomock.Any(), "workspace123").

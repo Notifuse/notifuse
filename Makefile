@@ -1,4 +1,4 @@
-.PHONY: build test-unit run clean keygen test-service test-repo test-http test-migrations test-database test-pkg dev coverage docker-build docker-run docker-stop docker-clean docker-logs docker-buildx-setup docker-publish docker-compose-up docker-compose-down docker-compose-build
+.PHONY: build test-unit run clean keygen test-service test-repo test-http test-migrations test-database test-pkg dev coverage coverage-report docker-build docker-run docker-stop docker-clean docker-logs docker-buildx-setup docker-publish docker-compose-up docker-compose-down docker-compose-build
 
 build:
 	@echo "Building with CGO enabled (required for V8)..."
@@ -50,6 +50,10 @@ coverage:
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Detailed HTML coverage report generated: coverage.html"
 
+# Per-file coverage report for /internal and /pkg directories
+coverage-report:
+	@./scripts/coverage-report.sh $(THRESHOLD)
+
 run:
 	go run ./cmd/api
 
@@ -57,7 +61,7 @@ dev:
 	air
 
 clean:
-	rm -rf bin/ tmp/ coverage.out coverage.html
+	rm -rf bin/ tmp/ coverage.out coverage.html coverage-internal-pkg.out coverage-report.txt
 
 keygen:
 	go run cmd/keygen/main.go

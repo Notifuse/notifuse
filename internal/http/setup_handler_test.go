@@ -168,7 +168,7 @@ func TestSetupHandler_Status(t *testing.T) {
 			// Setup
 			settingRepo := newMockSettingRepository()
 			if tt.isInstalled {
-				settingRepo.Set(context.Background(), "is_installed", "true")
+				_ = settingRepo.Set(context.Background(), "is_installed", "true")
 			}
 
 			settingService := service.NewSettingService(settingRepo)
@@ -251,7 +251,7 @@ func TestSetupHandler_TestSMTP(t *testing.T) {
 			// Setup
 			settingRepo := newMockSettingRepository()
 			if tt.isInstalled {
-				settingRepo.Set(context.Background(), "is_installed", "true")
+				_ = settingRepo.Set(context.Background(), "is_installed", "true")
 			}
 
 			settingService := service.NewSettingService(settingRepo)
@@ -351,7 +351,7 @@ func TestSetupHandler_Initialize(t *testing.T) {
 			// Setup
 			settingRepo := newMockSettingRepository()
 			if tt.isInstalled {
-				settingRepo.Set(context.Background(), "is_installed", "true")
+				_ = settingRepo.Set(context.Background(), "is_installed", "true")
 			}
 
 			settingService := service.NewSettingService(settingRepo)

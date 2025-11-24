@@ -110,8 +110,7 @@ func TestFactory_CreateMessageSender(t *testing.T) {
 
 	// Assert messageSender is not nil and is of MessageSender type
 	assert.NotNil(t, messageSender)
-	_, ok := messageSender.(MessageSender)
-	assert.True(t, ok, "Sender should implement MessageSender interface")
+	// messageSender already has type MessageSender, no need for type assertion
 }
 
 func TestFactory_CreateOrchestrator(t *testing.T) {
@@ -150,8 +149,7 @@ func TestFactory_CreateOrchestrator(t *testing.T) {
 
 	// Assert orchestrator is not nil
 	assert.NotNil(t, orchestrator)
-	_, ok := orchestrator.(BroadcastOrchestratorInterface)
-	assert.True(t, ok, "Orchestrator should implement BroadcastOrchestratorInterface")
+	// orchestrator already has type BroadcastOrchestratorInterface, no need for type assertion
 }
 
 func TestFactory_RegisterWithTaskService(t *testing.T) {

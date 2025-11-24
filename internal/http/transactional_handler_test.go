@@ -109,7 +109,7 @@ func TestTransactionalNotificationHandler_RegisterRoutes(t *testing.T) {
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			// We expect 401 Unauthorized since we didn't authenticate
 			// The important part is that the route exists and returns a response

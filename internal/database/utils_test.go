@@ -15,14 +15,14 @@ func TestGetConnectionPoolSettings(t *testing.T) {
 	originalEnv := os.Getenv("ENVIRONMENT")
 	originalIntegrationTests := os.Getenv("INTEGRATION_TESTS")
 	defer func() {
-		os.Setenv("ENVIRONMENT", originalEnv)
-		os.Setenv("INTEGRATION_TESTS", originalIntegrationTests)
+		_ = os.Setenv("ENVIRONMENT", originalEnv)
+		_ = os.Setenv("INTEGRATION_TESTS", originalIntegrationTests)
 	}()
 
 	t.Run("Production settings", func(t *testing.T) {
 		// Clear environment variables
-		os.Unsetenv("ENVIRONMENT")
-		os.Unsetenv("INTEGRATION_TESTS")
+		_ = os.Unsetenv("ENVIRONMENT")
+		_ = os.Unsetenv("INTEGRATION_TESTS")
 
 		maxOpen, maxIdle, maxLifetime := GetConnectionPoolSettings()
 
@@ -32,8 +32,8 @@ func TestGetConnectionPoolSettings(t *testing.T) {
 	})
 
 	t.Run("Test environment settings", func(t *testing.T) {
-		os.Setenv("ENVIRONMENT", "test")
-		os.Unsetenv("INTEGRATION_TESTS")
+		_ = os.Setenv("ENVIRONMENT", "test")
+		_ = os.Unsetenv("INTEGRATION_TESTS")
 
 		maxOpen, maxIdle, maxLifetime := GetConnectionPoolSettings()
 
@@ -43,8 +43,8 @@ func TestGetConnectionPoolSettings(t *testing.T) {
 	})
 
 	t.Run("Integration tests settings", func(t *testing.T) {
-		os.Unsetenv("ENVIRONMENT")
-		os.Setenv("INTEGRATION_TESTS", "true")
+		_ = os.Unsetenv("ENVIRONMENT")
+		_ = os.Setenv("INTEGRATION_TESTS", "true")
 
 		maxOpen, maxIdle, maxLifetime := GetConnectionPoolSettings()
 
@@ -54,8 +54,8 @@ func TestGetConnectionPoolSettings(t *testing.T) {
 	})
 
 	t.Run("Both test environment and integration tests", func(t *testing.T) {
-		os.Setenv("ENVIRONMENT", "test")
-		os.Setenv("INTEGRATION_TESTS", "true")
+		_ = os.Setenv("ENVIRONMENT", "test")
+		_ = os.Setenv("INTEGRATION_TESTS", "true")
 
 		maxOpen, maxIdle, maxLifetime := GetConnectionPoolSettings()
 
@@ -357,8 +357,8 @@ func TestConnectionPoolSettings_Coverage(t *testing.T) {
 		originalEnv := os.Getenv("ENVIRONMENT")
 		originalIntegrationTests := os.Getenv("INTEGRATION_TESTS")
 		defer func() {
-			os.Setenv("ENVIRONMENT", originalEnv)
-			os.Setenv("INTEGRATION_TESTS", originalIntegrationTests)
+			_ = os.Setenv("ENVIRONMENT", originalEnv)
+			_ = os.Setenv("INTEGRATION_TESTS", originalIntegrationTests)
 		}()
 
 		// Test with different environment values
@@ -380,15 +380,15 @@ func TestConnectionPoolSettings_Coverage(t *testing.T) {
 		for _, tc := range testCases {
 			t.Run(fmt.Sprintf("env=%s,integration=%s", tc.env, tc.integration), func(t *testing.T) {
 				if tc.env == "" {
-					os.Unsetenv("ENVIRONMENT")
+					_ = os.Unsetenv("ENVIRONMENT")
 				} else {
-					os.Setenv("ENVIRONMENT", tc.env)
+					_ = os.Setenv("ENVIRONMENT", tc.env)
 				}
 
 				if tc.integration == "" {
-					os.Unsetenv("INTEGRATION_TESTS")
+					_ = os.Unsetenv("INTEGRATION_TESTS")
 				} else {
-					os.Setenv("INTEGRATION_TESTS", tc.integration)
+					_ = os.Setenv("INTEGRATION_TESTS", tc.integration)
 				}
 
 				maxOpen, maxIdle, maxLifetime := GetConnectionPoolSettings()

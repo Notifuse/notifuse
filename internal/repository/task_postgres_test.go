@@ -83,7 +83,7 @@ func taskToMockRows(t *testing.T, task *domain.Task) *sqlmock.Rows {
 
 func TestTaskRepository_WithTransaction(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Setup mock expectations
 	mock.ExpectBegin()
@@ -114,7 +114,7 @@ func TestTaskRepository_WithTransaction(t *testing.T) {
 
 func TestTaskRepository_CreateWithTransaction(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -164,7 +164,7 @@ func TestTaskRepository_CreateWithTransaction(t *testing.T) {
 
 func TestTaskRepository_GetWithTransaction(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -203,7 +203,7 @@ func TestTaskRepository_GetWithTransaction(t *testing.T) {
 
 func TestTaskRepository_UpdateWithTransaction(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -253,7 +253,7 @@ func TestTaskRepository_UpdateWithTransaction(t *testing.T) {
 
 func TestTaskRepository_Delete(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -291,7 +291,7 @@ func TestTaskRepository_Delete(t *testing.T) {
 
 func TestTaskRepository_DeleteAll(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -327,7 +327,7 @@ func TestTaskRepository_DeleteAll(t *testing.T) {
 
 func TestTaskRepository_List(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -433,7 +433,7 @@ func TestTaskRepository_List(t *testing.T) {
 
 func TestTaskRepository_GetNextBatch(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	now := time.Now().UTC()
@@ -513,7 +513,7 @@ func TestTaskRepository_GetNextBatch(t *testing.T) {
 
 func TestTaskRepository_MarkAsRunning(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -579,7 +579,7 @@ func TestTaskRepository_MarkAsRunning(t *testing.T) {
 
 func TestTaskRepository_MarkAsCompleted(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -651,7 +651,7 @@ func TestTaskRepository_MarkAsCompleted(t *testing.T) {
 
 func TestTaskRepository_MarkAsFailed(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -734,7 +734,7 @@ func TestTaskRepository_MarkAsFailed(t *testing.T) {
 
 func TestTaskRepository_MarkAsPaused(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -813,7 +813,7 @@ func TestTaskRepository_MarkAsPaused(t *testing.T) {
 
 func TestTaskRepository_SaveState(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -884,7 +884,7 @@ func TestTaskRepository_SaveState(t *testing.T) {
 
 func TestTaskRepository_GetTaskByBroadcastID(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -973,7 +973,7 @@ func TestTaskRepository_GetTaskByBroadcastID(t *testing.T) {
 // TestTaskRepository_CreateTx_ErrorPaths tests error paths in CreateTx
 func TestTaskRepository_CreateTx_ErrorPaths(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -1022,7 +1022,7 @@ func TestTaskRepository_CreateTx_ErrorPaths(t *testing.T) {
 // TestTaskRepository_GetTx_ErrorPaths tests error paths in GetTx
 func TestTaskRepository_GetTx_ErrorPaths(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -1060,7 +1060,7 @@ func TestTaskRepository_GetTx_ErrorPaths(t *testing.T) {
 // TestTaskRepository_UpdateTx_ErrorPaths tests error paths in UpdateTx
 func TestTaskRepository_UpdateTx_ErrorPaths(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -1102,7 +1102,7 @@ func TestTaskRepository_UpdateTx_ErrorPaths(t *testing.T) {
 // TestTaskRepository_List_ErrorPaths tests error paths in List
 func TestTaskRepository_List_ErrorPaths(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -1201,7 +1201,7 @@ func TestTaskRepository_List_ErrorPaths(t *testing.T) {
 // TestTaskRepository_GetNextBatch_ErrorPaths tests error paths in GetNextBatch
 func TestTaskRepository_GetNextBatch_ErrorPaths(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	limit := 2
@@ -1270,7 +1270,7 @@ func TestTaskRepository_GetNextBatch_ErrorPaths(t *testing.T) {
 // TestTaskRepository_WithTransaction_BeginError tests begin transaction error
 func TestTaskRepository_WithTransaction_BeginError(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Test begin transaction error
 	mock.ExpectBegin().WillReturnError(fmt.Errorf("begin transaction error"))
@@ -1287,7 +1287,7 @@ func TestTaskRepository_WithTransaction_BeginError(t *testing.T) {
 // TestTaskRepository_WithTransaction_CommitError tests commit transaction error
 func TestTaskRepository_WithTransaction_CommitError(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	// Test commit transaction error
 	mock.ExpectBegin()
@@ -1305,7 +1305,7 @@ func TestTaskRepository_WithTransaction_CommitError(t *testing.T) {
 // TestTaskRepository_CreateTx_MarshalError tests JSON marshal error in CreateTx
 func TestTaskRepository_CreateTx_MarshalError(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -1350,7 +1350,7 @@ func TestTaskRepository_CreateTx_MarshalError(t *testing.T) {
 // TestTaskRepository_UpdateTx_MarshalError tests JSON marshal error in UpdateTx
 func TestTaskRepository_UpdateTx_MarshalError(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -1391,7 +1391,7 @@ func TestTaskRepository_UpdateTx_MarshalError(t *testing.T) {
 // TestTaskRepository_SaveStateTx_MarshalError tests JSON marshal error in SaveStateTx
 func TestTaskRepository_SaveStateTx_MarshalError(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -1421,7 +1421,7 @@ func TestTaskRepository_SaveStateTx_MarshalError(t *testing.T) {
 // TestTaskRepository_MarkAsPausedTx_MarshalError tests JSON marshal error in MarkAsPausedTx
 func TestTaskRepository_MarkAsPausedTx_MarshalError(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -1454,7 +1454,7 @@ func TestTaskRepository_MarkAsPausedTx_MarshalError(t *testing.T) {
 // TestTaskRepository_DeleteAll_QueryBuildError tests query build error in DeleteAll
 func TestTaskRepository_DeleteAll_QueryBuildError(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	workspace := "test-workspace"
@@ -1472,7 +1472,7 @@ func TestTaskRepository_DeleteAll_QueryBuildError(t *testing.T) {
 // TestTaskRepository_GetNextBatch_QueryBuildError tests query build error in GetNextBatch
 func TestTaskRepository_GetNextBatch_QueryBuildError(t *testing.T) {
 	db, mock, repo := setupTaskMock(t)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx := context.Background()
 	limit := 5

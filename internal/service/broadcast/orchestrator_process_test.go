@@ -90,40 +90,6 @@ func createMockBroadcast(broadcastID string, variations []string) *domain.Broadc
 	}
 }
 
-// createTask creates a task with the specified state
-func createTask(
-	taskID, workspaceID, broadcastID string,
-	totalRecipients, sentCount, failedCount int,
-	offset int64,
-	retryCount, maxRetries int,
-) *domain.Task {
-	task := &domain.Task{
-		ID:          taskID,
-		WorkspaceID: workspaceID,
-		Type:        "send_broadcast",
-		Status:      domain.TaskStatusRunning,
-		RetryCount:  retryCount,
-		MaxRetries:  maxRetries,
-	}
-
-	// If broadcastID is provided, create a state
-	if broadcastID != "" {
-		task.BroadcastID = &broadcastID
-		task.State = &domain.TaskState{
-			SendBroadcast: &domain.SendBroadcastState{
-				BroadcastID:     broadcastID,
-				TotalRecipients: totalRecipients,
-				SentCount:       sentCount,
-				FailedCount:     failedCount,
-				RecipientOffset: offset,
-				ChannelType:     "email",
-			},
-		}
-	}
-
-	return task
-}
-
 // TestProcess_HappyPath tests the successful processing of a broadcast
 func TestProcess_HappyPath(t *testing.T) {
 	// Setup

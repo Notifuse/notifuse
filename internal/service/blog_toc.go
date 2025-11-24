@@ -115,4 +115,3 @@ func generateAnchorID(text string, index int) string {
 
 	return id
 }
-

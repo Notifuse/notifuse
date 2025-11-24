@@ -14,7 +14,7 @@ func TestCleanDatabase(t *testing.T) {
 		// Create mock database
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock expectations for dropping tables - we'll expect a reasonable number of DROP statements
 		// Since we can't easily mock the exact number, we'll expect several
@@ -36,7 +36,7 @@ func TestCleanDatabase(t *testing.T) {
 		// Create mock database
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock first DROP TABLE to fail
 		mock.ExpectExec("DROP TABLE IF EXISTS .+ CASCADE").WillReturnError(sql.ErrConnDone)
@@ -55,7 +55,7 @@ func TestCleanDatabase(t *testing.T) {
 		require.NoError(t, err)
 
 		// Close the database to simulate connection error
-		db.Close()
+		_ = db.Close()
 
 		// Execute the function
 		err = CleanDatabase(db)
@@ -72,7 +72,7 @@ func TestInitializeDatabase(t *testing.T) {
 	t.Run("Nil database connection panics", func(t *testing.T) {
 		// The function doesn't check for nil, so it will panic
 		assert.Panics(t, func() {
-			InitializeDatabase(nil, "test@example.com")
+			_ = InitializeDatabase(nil, "test@example.com")
 		})
 	})
 
@@ -80,7 +80,7 @@ func TestInitializeDatabase(t *testing.T) {
 		// Create mock database
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock the first table creation to fail
 		mock.ExpectExec(".+").WillReturnError(sql.ErrConnDone)
@@ -97,7 +97,7 @@ func TestInitializeWorkspaceDatabase(t *testing.T) {
 	t.Run("Nil database connection panics", func(t *testing.T) {
 		// The function doesn't check for nil, so it will panic
 		assert.Panics(t, func() {
-			InitializeWorkspaceDatabase(nil)
+			_ = InitializeWorkspaceDatabase(nil)
 		})
 	})
 
@@ -107,7 +107,7 @@ func TestInitializeWorkspaceDatabase(t *testing.T) {
 		require.NoError(t, err)
 
 		// Close the database to simulate connection error
-		db.Close()
+		_ = db.Close()
 
 		// Execute the function
 		err = InitializeWorkspaceDatabase(db)
@@ -120,7 +120,7 @@ func TestInitializeWorkspaceDatabase(t *testing.T) {
 		// Create mock database
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock the first CREATE TABLE to fail
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS .+").WillReturnError(sql.ErrConnDone)
@@ -160,7 +160,7 @@ func TestDatabaseSchema_Coverage(t *testing.T) {
 		require.NoError(t, err)
 
 		// Close the database to simulate an error condition
-		db.Close()
+		_ = db.Close()
 
 		err = CleanDatabase(db)
 
@@ -176,7 +176,7 @@ func TestDatabaseSchema_Coverage(t *testing.T) {
 
 		// Test with nil database - should panic (which we expect)
 		assert.Panics(t, func() {
-			CleanDatabase(nil)
+			_ = CleanDatabase(nil)
 		}, "CleanDatabase should panic with nil database")
 	})
 }
@@ -185,7 +185,7 @@ func TestInitializeDatabase_Comprehensive(t *testing.T) {
 	t.Run("Initialize database without root email - simple success", func(t *testing.T) {
 		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock all SQL statements to succeed - tables and migrations
 		for i := 0; i < 50; i++ {
@@ -200,7 +200,7 @@ func TestInitializeDatabase_Comprehensive(t *testing.T) {
 	t.Run("Error during table creation", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock first SQL statement to fail
 		mock.ExpectExec(".+").WillReturnError(sql.ErrConnDone)
@@ -215,7 +215,7 @@ func TestInitializeWorkspaceDatabase_Comprehensive(t *testing.T) {
 	t.Run("Successfully initialize workspace database", func(t *testing.T) {
 		db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherRegexp))
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock all SQL statements - tables, indexes, trigger functions, and triggers
 		// Current count: ~34 table/index queries + ~34 trigger queries = 68 total
@@ -230,7 +230,7 @@ func TestInitializeWorkspaceDatabase_Comprehensive(t *testing.T) {
 	t.Run("Error creating workspace table", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 
 		// Mock first CREATE TABLE to fail
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS contacts").WillReturnError(sql.ErrConnDone)

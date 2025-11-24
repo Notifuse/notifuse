@@ -92,7 +92,7 @@ func TestEmailHandler_RegisterRoutes(t *testing.T) {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Assert
 	// We expect a 401 Unauthorized since we didn't provide authentication

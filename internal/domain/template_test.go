@@ -1277,9 +1277,10 @@ func TestUpdateTemplateRequest_Validate(t *testing.T) {
 				assert.Equal(t, tt.request.ID, template.ID)
 				assert.Equal(t, tt.request.Name, template.Name)
 				assert.Equal(t, tt.request.Channel, template.Channel)
-				if tt.request.Channel == "email" {
+				switch tt.request.Channel {
+				case "email":
 					assert.Equal(t, tt.request.Email, template.Email)
-				} else if tt.request.Channel == "web" {
+				case "web":
 					assert.Equal(t, tt.request.Web, template.Web)
 				}
 				assert.Equal(t, tt.request.Category, template.Category)

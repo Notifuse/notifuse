@@ -116,17 +116,17 @@ func (e *EmailProvider) Validate(passphrase string) error {
 		return e.SparkPost.Validate(passphrase)
 	case EmailProviderKindPostmark:
 		if e.Postmark == nil {
-			return fmt.Errorf("Postmark settings required when email provider kind is postmark")
+			return fmt.Errorf("postmark settings required when email provider kind is postmark")
 		}
 		return e.Postmark.Validate(passphrase)
 	case EmailProviderKindMailgun:
 		if e.Mailgun == nil {
-			return fmt.Errorf("Mailgun settings required when email provider kind is mailgun")
+			return fmt.Errorf("mailgun settings required when email provider kind is mailgun")
 		}
 		return e.Mailgun.Validate(passphrase)
 	case EmailProviderKindMailjet:
 		if e.Mailjet == nil {
-			return fmt.Errorf("Mailjet settings required when email provider kind is mailjet")
+			return fmt.Errorf("mailjet settings required when email provider kind is mailjet")
 		}
 		return e.Mailjet.Validate(passphrase)
 	default:

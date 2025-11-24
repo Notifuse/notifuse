@@ -56,7 +56,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -104,7 +104,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -218,7 +218,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -255,7 +255,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -300,7 +300,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -349,7 +349,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -420,7 +420,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -469,7 +469,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -524,7 +524,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -601,7 +601,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -700,7 +700,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -763,7 +763,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -846,7 +846,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -965,7 +965,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -1071,7 +1071,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -1148,7 +1148,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -1224,7 +1224,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()
@@ -1300,7 +1300,7 @@ func TestUpsertContact(t *testing.T) {
 				tx, _ := newDb.Begin()
 				err := fn(tx)
 				if err != nil {
-					tx.Rollback()
+					_ = tx.Rollback()
 					return err
 				}
 				return tx.Commit()

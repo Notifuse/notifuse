@@ -1896,7 +1896,7 @@ func TestCircuitBreaker_Advanced(t *testing.T) {
 					cb.RecordSuccess()
 				}
 				cb.IsOpen()
-				cb.GetLastError()
+				_ = cb.GetLastError()
 			}(i)
 		}
 		wg.Wait()
@@ -1904,7 +1904,7 @@ func TestCircuitBreaker_Advanced(t *testing.T) {
 		// Should not panic and should be in a consistent state
 		assert.NotPanics(t, func() {
 			cb.IsOpen()
-			cb.GetLastError()
+			_ = cb.GetLastError()
 		})
 	})
 }
