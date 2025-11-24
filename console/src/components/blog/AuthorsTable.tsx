@@ -1,4 +1,4 @@
-import { Avatar, Button, Form, Input, Space, Table, Modal, Popconfirm } from 'antd'
+import { Avatar, Button, Form, Input, Space, Table, Modal, Popconfirm, Tooltip } from 'antd'
 import { EditOutlined, DeleteOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons'
 import { useState } from 'react'
 import type { BlogAuthor } from '../../services/api/blog'
@@ -76,7 +76,11 @@ export function AuthorsTable({ value = [], onChange }: AuthorsTableProps) {
             {record.name || <em className="text-gray-400">No name</em>}
           </div>
           {record.avatar_url && (
-            <div className="text-xs text-gray-500 truncate mt-1">{record.avatar_url}</div>
+            <Tooltip title={record.avatar_url}>
+              <div className="text-xs text-gray-500 truncate mt-1" style={{ maxWidth: 200 }}>
+                {record.avatar_url}
+              </div>
+            </Tooltip>
           )}
         </div>
       )

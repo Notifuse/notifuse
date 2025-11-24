@@ -43,7 +43,29 @@ export function RootLayout() {
     }
 
     if (shouldRedirectToSignin) {
-      navigate({ to: '/console/signin' })
+      // Check if we're already on the signin pathname to avoid unnecessary navigation
+      // This handles race conditions where route matching hasn't completed yet
+      const currentPathname = window.location.pathname
+      if (currentPathname === '/console/signin') {
+        // Already on signin route, don't navigate
+        return
+      }
+
+      // Preserve search parameters when redirecting to signin
+      const currentSearch = window.location.search
+      const searchParams = new URLSearchParams(currentSearch)
+      const search: { email?: string } = {}
+      
+      // Preserve email parameter if present
+      if (searchParams.has('email')) {
+        search.email = searchParams.get('email') || undefined
+      }
+
+      navigate({ 
+        to: '/console/signin',
+        search: Object.keys(search).length > 0 ? search : undefined,
+        replace: true
+      })
       return
     }
 
@@ -51,7 +73,7 @@ export function RootLayout() {
       navigate({ to: '/console/workspace/create' })
       return
     }
-  }, [loading, shouldRedirectToSetup, shouldRedirectToSignin, shouldRedirectToCreateWorkspace])
+  }, [loading, shouldRedirectToSetup, shouldRedirectToSignin, shouldRedirectToCreateWorkspace, navigate])
 
   if (
     loading ||

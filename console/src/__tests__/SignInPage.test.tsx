@@ -13,9 +13,13 @@ vi.mock('../services/api/auth', () => ({
   }
 }))
 
-// Mock the navigate function
+// Mock the navigate function and useSearch
+const mockNavigate = vi.fn(() => ({}))
+const mockSearch = { email: undefined }
+
 vi.mock('@tanstack/react-router', () => ({
-  useNavigate: () => vi.fn(() => ({}))
+  useNavigate: () => mockNavigate,
+  useSearch: vi.fn((options?: { from?: string }) => mockSearch)
 }))
 
 // Mock antd message component
@@ -41,6 +45,8 @@ describe('SignInPage', () => {
     vi.clearAllMocks()
     // Clear any previous mock implementations
     vi.spyOn(App, 'useApp').mockReturnValue({ message: mockMessage } as any)
+    // Reset search mock
+    mockSearch.email = undefined
   })
 
   it('renders the email form initially', () => {
@@ -165,6 +171,50 @@ describe('SignInPage', () => {
     })
 
     // Email form should still be visible
+    expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
+  })
+
+  it('auto-fills and submits email from URL parameter', async () => {
+    // Set email in URL search params
+    mockSearch.email = 'demo@notifuse.com'
+
+    // Mock successful response
+    vi.mocked(authService.authService.signIn).mockResolvedValueOnce({
+      message: 'Magic code sent'
+    })
+
+    renderWithProviders(<SignInPage />)
+
+    // Wait for auto-submit to complete
+    await waitFor(() => {
+      expect(authService.authService.signIn).toHaveBeenCalledWith({
+        email: 'demo@notifuse.com'
+      })
+    })
+
+    // Verify code input form is shown (after auto-submit)
+    await waitFor(() => {
+      expect(screen.getByText(/enter the 6-digit code/i)).toBeInTheDocument()
+    })
+
+    // Verify email field is pre-filled
+    const emailInput = screen.getByLabelText(/email/i) as HTMLInputElement
+    expect(emailInput.value).toBe('demo@notifuse.com')
+  })
+
+  it('does not auto-submit when email parameter is not present', async () => {
+    // Ensure email is not in search params
+    mockSearch.email = undefined
+
+    renderWithProviders(<SignInPage />)
+
+    // Wait a bit to ensure no auto-submit happens
+    await new Promise(resolve => setTimeout(resolve, 100))
+
+    // Verify API was not called
+    expect(authService.authService.signIn).not.toHaveBeenCalled()
+
+    // Email form should be visible
     expect(screen.getByLabelText(/email/i)).toBeInTheDocument()
   })
 })

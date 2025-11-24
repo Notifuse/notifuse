@@ -984,6 +984,27 @@ func BuildBlogTemplateData(req BlogTemplateDataRequest) (MapOfAny, error) {
 		// Add SEO settings from blog settings
 		if req.Workspace.Settings.BlogSettings != nil && req.Workspace.Settings.BlogSettings.SEO != nil {
 			seoData := MapOfAny{}
+			if req.Workspace.Settings.BlogSettings.SEO.MetaTitle != "" {
+				seoData["meta_title"] = req.Workspace.Settings.BlogSettings.SEO.MetaTitle
+			}
+			if req.Workspace.Settings.BlogSettings.SEO.MetaDescription != "" {
+				seoData["meta_description"] = req.Workspace.Settings.BlogSettings.SEO.MetaDescription
+			}
+			if req.Workspace.Settings.BlogSettings.SEO.OGTitle != "" {
+				seoData["og_title"] = req.Workspace.Settings.BlogSettings.SEO.OGTitle
+			}
+			if req.Workspace.Settings.BlogSettings.SEO.OGDescription != "" {
+				seoData["og_description"] = req.Workspace.Settings.BlogSettings.SEO.OGDescription
+			}
+			if req.Workspace.Settings.BlogSettings.SEO.OGImage != "" {
+				seoData["og_image"] = req.Workspace.Settings.BlogSettings.SEO.OGImage
+			}
+			if req.Workspace.Settings.BlogSettings.SEO.CanonicalURL != "" {
+				seoData["canonical_url"] = req.Workspace.Settings.BlogSettings.SEO.CanonicalURL
+			}
+			if len(req.Workspace.Settings.BlogSettings.SEO.Keywords) > 0 {
+				seoData["keywords"] = req.Workspace.Settings.BlogSettings.SEO.Keywords
+			}
 			if req.Workspace.Settings.BlogSettings.SEO.MetaRobots != "" {
 				seoData["meta_robots"] = req.Workspace.Settings.BlogSettings.SEO.MetaRobots
 			}

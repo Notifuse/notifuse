@@ -725,7 +725,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
             </Form.Item>
 
             <Form.Item name="seo" noStyle>
-              <SEOSettingsForm />
+              <SEOSettingsForm namePrefix={[]} />
             </Form.Item>
           </div>
         </div>

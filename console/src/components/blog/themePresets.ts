@@ -87,7 +87,7 @@ const defaultTheme: ThemePreset = {
   {%- if posts.size > 0 -%}
     {%- assign featured_post = posts.first -%}
     <section class="featured-post-section">
-      <div>
+      <div class="featured-post-container">
         {%- if featured_post.category_slug -%}
           <a href="{{ base_url }}/{{ featured_post.category_slug }}/{{ featured_post.slug }}" class="featured-post">
         {%- else -%}
@@ -99,6 +99,18 @@ const defaultTheme: ThemePreset = {
             </div>
           {%- endif -%}
           <div class="featured-content">
+            {%- if featured_post.category_slug and categories -%}
+              {%- assign category_name = '' -%}
+              {%- for cat in categories -%}
+                {%- if cat.slug == featured_post.category_slug -%}
+                  {%- assign category_name = cat.name -%}
+                  {%- break -%}
+                {%- endif -%}
+              {%- endfor -%}
+              {%- if category_name != '' -%}
+                <div class="post-card-category">{{ category_name | upcase }}</div>
+              {%- endif -%}
+            {%- endif -%}
             <h2>{{ featured_post.title }}</h2>
             {%- if featured_post.excerpt -%}
               <p class="excerpt">{{ featured_post.excerpt }}</p>
@@ -135,10 +147,10 @@ const defaultTheme: ThemePreset = {
 
   {%- comment -%} Posts Grid {%- endcomment -%}
   <section class="posts-grid-section">
-    <div>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+    <div class="posts-grid-container">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
         {%- for post in posts offset: 1 -%}
-          {% render 'shared', widget: 'post-card', post: post %}
+          {% render 'shared', widget: 'post-card', post: post, categories: categories %}
         {%- endfor -%}
       </div>
     </div>
@@ -223,11 +235,11 @@ const defaultTheme: ThemePreset = {
 
   {%- comment -%} Posts Grid {%- endcomment -%}
   <section class="posts-grid-section">
-    <div>
+    <div class="posts-grid-container">
       {%- if posts.size > 0 -%}
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-12">
           {%- for post in posts -%}
-            {% render 'shared', widget: 'post-card', post: post %}
+            {% render 'shared', widget: 'post-card', post: post, categories: categories %}
           {%- endfor -%}
         </div>
       {%- else -%}
@@ -293,67 +305,49 @@ const defaultTheme: ThemePreset = {
     <header class="post-header">
       {%- if category -%}
         <div class="post-category-badge">
-          <a href="{{ base_url }}/{{ category.slug }}" class="category-pill">
-            {{ category.name }}
+          <a href="{{ base_url }}/{{ category.slug }}" class="post-card-category">
+            {{ category.name | upcase }}
           </a>
         </div>
       {%- endif -%}
 
-      <div class="post-header-layout">
-        {%- comment -%} Featured Image Column (Left) {%- endcomment -%}
-        {%- if post.featured_image_url -%}
-          <div class="post-featured-image-column">
-            <div class="post-featured-image">
-              <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" />
+      <div class="post-header-content">
+        <h1 class="post-title">{{ post.title }}</h1>
+
+        <div class="post-meta">
+          <div class="author-info">
+            <div class="author-avatars">
+              {%- for author in post.authors -%}
+                {%- if author.avatar_url -%}
+                  <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="author-avatar" />
+                {%- endif -%}
+              {%- endfor -%}
             </div>
-          </div>
-        {%- endif -%}
-
-        {%- comment -%} Title and Meta Column (Right) {%- endcomment -%}
-        <div class="post-header-content">
-          <h1 class="post-title">{{ post.title }}</h1>
-
-          <div class="post-meta">
-            <div class="author-info">
-              <div class="author-avatars">
+            <div>
+              <div class="author-names">
                 {%- for author in post.authors -%}
-                  {%- if author.avatar_url -%}
-                    <img src="{{ author.avatar_url }}" alt="{{ author.name }}" class="author-avatar" />
-                  {%- endif -%}
+                  {{ author.name }}{% unless forloop.last %}, {% endunless %}
                 {%- endfor -%}
               </div>
-              <div>
-                <div class="author-names">
-                  {%- for author in post.authors -%}
-                    {{ author.name }}{% unless forloop.last %}, {% endunless %}
-                  {%- endfor -%}
-                </div>
-                <div class="post-date">
-                  {%- if post.published_at -%}
-                    {{ post.published_at | date: "%b %d, %Y" }}
-                  {%- endif -%}
-                  {%- if post.reading_time_minutes -%}
-                    · {{ post.reading_time_minutes }} min read
-                  {%- endif -%}
-                </div>
+              <div class="post-date">
+                {%- if post.published_at -%}
+                  {{ post.published_at | date: "%b %d, %Y" }}
+                {%- endif -%}
+                {%- if post.reading_time_minutes -%}
+                  · {{ post.reading_time_minutes }} min read
+                {%- endif -%}
               </div>
             </div>
           </div>
         </div>
       </div>
-
-      {%- comment -%} Featured Image for Mobile (below meta, before content) {%- endcomment -%}
-      {%- if post.featured_image_url -%}
-        <div class="post-featured-image-mobile">
-          <div class="post-featured-image">
-            <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" />
-          </div>
-        </div>
-      {%- endif -%}
     </header>
 
     {%- comment -%} Post Content with TOC Sidebar {%- endcomment -%}
     <div class="post-content-wrapper">
+      <div class="post-content">
+        {{ post.content }}
+      </div>
       {%- if post.table_of_contents.size > 0 -%}
         <nav class="toc-sidebar">
           <div class="toc-header">Table of Contents</div>
@@ -366,9 +360,6 @@ const defaultTheme: ThemePreset = {
           </ul>
         </nav>
       {%- endif -%}
-      <div class="post-content">
-        {{ post.content }}
-      </div>
     </div>
   </article>
 
@@ -394,7 +385,7 @@ const defaultTheme: ThemePreset = {
         <h2 class="related-posts-title">Last articles</h2>
         <div class="grid grid-cols-1 md:grid-cols-3 gap-12">
           {%- for related_post in posts limit: 3 -%}
-            {% render 'shared', widget: 'post-card', post: related_post %}
+            {% render 'shared', widget: 'post-card', post: related_post, categories: categories %}
           {%- endfor -%}
         </div>
       </div>
@@ -431,6 +422,8 @@ const defaultTheme: ThemePreset = {
       {{ category.seo.meta_title }}
     {%- elsif category.name -%}
       {{ category.name }} - {{ workspace.name }}
+    {%- elsif workspace.seo.meta_title -%}
+      {{ workspace.seo.meta_title }}
     {%- else -%}
       {{ workspace.name }}
     {%- endif -%}
@@ -443,20 +436,24 @@ const defaultTheme: ThemePreset = {
   
   {%- comment -%} SEO Meta Description {%- endcomment -%}
   {%- if post.seo.meta_description -%}
-    <meta name="description" content="{{ post.seo.meta_description }}">
+    <meta name="description" content="{{ post.seo.meta_description | escape }}">
   {%- elsif post.excerpt -%}
-    <meta name="description" content="{{ post.excerpt }}">
+    <meta name="description" content="{{ post.excerpt | escape }}">
   {%- elsif category.seo.meta_description -%}
-    <meta name="description" content="{{ category.seo.meta_description }}">
+    <meta name="description" content="{{ category.seo.meta_description | escape }}">
   {%- elsif category.description -%}
-    <meta name="description" content="{{ category.description }}">
+    <meta name="description" content="{{ category.description | escape }}">
+  {%- elsif workspace.seo.meta_description -%}
+    <meta name="description" content="{{ workspace.seo.meta_description | escape }}">
   {%- endif -%}
   
   {%- comment -%} SEO Keywords {%- endcomment -%}
   {%- if post.seo.keywords -%}
-    <meta name="keywords" content="{{ post.seo.keywords }}">
+    <meta name="keywords" content="{{ post.seo.keywords | escape }}">
   {%- elsif category.seo.keywords -%}
-    <meta name="keywords" content="{{ category.seo.keywords }}">
+    <meta name="keywords" content="{{ category.seo.keywords | escape }}">
+  {%- elsif workspace.seo.keywords -%}
+    <meta name="keywords" content="{{ workspace.seo.keywords | join: ', ' | escape }}">
   {%- endif -%}
   
   {%- comment -%} Canonical URL {%- endcomment -%}
@@ -464,6 +461,8 @@ const defaultTheme: ThemePreset = {
     <link rel="canonical" href="{{ post.seo.canonical_url }}">
   {%- elsif category.seo.canonical_url -%}
     <link rel="canonical" href="{{ category.seo.canonical_url }}">
+  {%- elsif workspace.seo.canonical_url -%}
+    <link rel="canonical" href="{{ workspace.seo.canonical_url }}">
   {%- elsif post -%}
     {%- if category -%}
       <link rel="canonical" href="{{ base_url }}/{{ category.slug }}/{{ post.slug }}">
@@ -478,23 +477,29 @@ const defaultTheme: ThemePreset = {
   
   {%- comment -%} Open Graph Tags {%- endcomment -%}
   {%- if post.seo.og_title or post.title -%}
-    <meta property="og:title" content="{% if post.seo.og_title %}{{ post.seo.og_title }}{% else %}{{ post.title }}{% endif %}">
+    <meta property="og:title" content="{% if post.seo.og_title %}{{ post.seo.og_title | escape }}{% else %}{{ post.title | escape }}{% endif %}">
   {%- elsif category.seo.og_title or category.name -%}
-    <meta property="og:title" content="{% if category.seo.og_title %}{{ category.seo.og_title }}{% else %}{{ category.name }}{% endif %}">
+    <meta property="og:title" content="{% if category.seo.og_title %}{{ category.seo.og_title | escape }}{% else %}{{ category.name | escape }}{% endif %}">
+  {%- elsif workspace.seo.og_title -%}
+    <meta property="og:title" content="{{ workspace.seo.og_title | escape }}">
   {%- else -%}
-    <meta property="og:title" content="{{ workspace.name }}">
+    <meta property="og:title" content="{{ workspace.name | escape }}">
   {%- endif -%}
   
   {%- if post.seo.og_description or post.excerpt -%}
-    <meta property="og:description" content="{% if post.seo.og_description %}{{ post.seo.og_description }}{% else %}{{ post.excerpt }}{% endif %}">
+    <meta property="og:description" content="{% if post.seo.og_description %}{{ post.seo.og_description | escape }}{% else %}{{ post.excerpt | escape }}{% endif %}">
   {%- elsif category.seo.og_description or category.description -%}
-    <meta property="og:description" content="{% if category.seo.og_description %}{{ category.seo.og_description }}{% else %}{{ category.description }}{% endif %}">
+    <meta property="og:description" content="{% if category.seo.og_description %}{{ category.seo.og_description | escape }}{% else %}{{ category.description | escape }}{% endif %}">
+  {%- elsif workspace.seo.og_description -%}
+    <meta property="og:description" content="{{ workspace.seo.og_description | escape }}">
   {%- endif -%}
   
   {%- if post.seo.og_image or post.featured_image_url -%}
-    <meta property="og:image" content="{% if post.seo.og_image %}{{ post.seo.og_image }}{% else %}{{ post.featured_image_url }}{% endif %}">
+    <meta property="og:image" content="{% if post.seo.og_image %}{{ post.seo.og_image | escape }}{% else %}{{ post.featured_image_url | escape }}{% endif %}">
   {%- elsif category.seo.og_image -%}
-    <meta property="og:image" content="{{ category.seo.og_image }}">
+    <meta property="og:image" content="{{ category.seo.og_image | escape }}">
+  {%- elsif workspace.seo.og_image -%}
+    <meta property="og:image" content="{{ workspace.seo.og_image | escape }}">
   {%- endif -%}
   
   <meta property="og:type" content="{% if post %}article{% else %}website{% endif %}">
@@ -514,21 +519,27 @@ const defaultTheme: ThemePreset = {
   {%- comment -%} Twitter Card Tags {%- endcomment -%}
   <meta name="twitter:card" content="summary_large_image">
   {%- if post.seo.og_title or post.title -%}
-    <meta name="twitter:title" content="{% if post.seo.og_title %}{{ post.seo.og_title }}{% else %}{{ post.title }}{% endif %}">
+    <meta name="twitter:title" content="{% if post.seo.og_title %}{{ post.seo.og_title | escape }}{% else %}{{ post.title | escape }}{% endif %}">
   {%- elsif category.seo.og_title or category.name -%}
-    <meta name="twitter:title" content="{% if category.seo.og_title %}{{ category.seo.og_title }}{% else %}{{ category.name }}{% endif %}">
+    <meta name="twitter:title" content="{% if category.seo.og_title %}{{ category.seo.og_title | escape }}{% else %}{{ category.name | escape }}{% endif %}">
+  {%- elsif workspace.seo.og_title -%}
+    <meta name="twitter:title" content="{{ workspace.seo.og_title | escape }}">
   {%- endif -%}
   
   {%- if post.seo.og_description or post.excerpt -%}
-    <meta name="twitter:description" content="{% if post.seo.og_description %}{{ post.seo.og_description }}{% else %}{{ post.excerpt }}{% endif %}">
+    <meta name="twitter:description" content="{% if post.seo.og_description %}{{ post.seo.og_description | escape }}{% else %}{{ post.excerpt | escape }}{% endif %}">
   {%- elsif category.seo.og_description or category.description -%}
-    <meta name="twitter:description" content="{% if category.seo.og_description %}{{ category.seo.og_description }}{% else %}{{ category.description }}{% endif %}">
+    <meta name="twitter:description" content="{% if category.seo.og_description %}{{ category.seo.og_description | escape }}{% else %}{{ category.description | escape }}{% endif %}">
+  {%- elsif workspace.seo.og_description -%}
+    <meta name="twitter:description" content="{{ workspace.seo.og_description | escape }}">
   {%- endif -%}
   
   {%- if post.seo.og_image or post.featured_image_url -%}
-    <meta name="twitter:image" content="{% if post.seo.og_image %}{{ post.seo.og_image }}{% else %}{{ post.featured_image_url }}{% endif %}">
+    <meta name="twitter:image" content="{% if post.seo.og_image %}{{ post.seo.og_image | escape }}{% else %}{{ post.featured_image_url | escape }}{% endif %}">
   {%- elsif category.seo.og_image -%}
-    <meta name="twitter:image" content="{{ category.seo.og_image }}">
+    <meta name="twitter:image" content="{{ category.seo.og_image | escape }}">
+  {%- elsif workspace.seo.og_image -%}
+    <meta name="twitter:image" content="{{ workspace.seo.og_image | escape }}">
   {%- endif -%}
   
   {%- comment -%} Tailwind CSS CDN {%- endcomment -%}
@@ -607,7 +618,7 @@ const defaultTheme: ThemePreset = {
      {% render 'shared', widget: 'newsletter' %}
   
   2. Render post-card widget with post data:
-     {% render 'shared', widget: 'post-card', post: post %}
+     {% render 'shared', widget: 'post-card', post: post, categories: categories %}
   
   3. Render categories widget with active category:
      {% render 'shared', widget: 'categories', active_category: category.slug %}
@@ -711,6 +722,7 @@ const defaultTheme: ThemePreset = {
 
 {%- elsif widget == 'post-card' -%}
   {%- comment -%} Reusable Post Card {%- endcomment -%}
+  {%- comment -%} Note: categories must be passed as a parameter: {% render 'shared', widget: 'post-card', post: post, categories: categories %} {%- endcomment -%}
   {%- if post.category_slug -%}
     <a href="{{ base_url }}/{{ post.category_slug }}/{{ post.slug }}" class="post-card">
   {%- else -%}
@@ -718,6 +730,18 @@ const defaultTheme: ThemePreset = {
   {%- endif -%}
     {%- if post.featured_image_url -%}
       <img src="{{ post.featured_image_url }}" alt="{{ post.title }}" class="post-card-image" />
+    {%- endif -%}
+    {%- if post.category_slug and categories -%}
+      {%- assign category_name = '' -%}
+      {%- for cat in categories -%}
+        {%- if cat.slug == post.category_slug -%}
+          {%- assign category_name = cat.name -%}
+          {%- break -%}
+        {%- endif -%}
+      {%- endfor -%}
+      {%- if category_name != '' -%}
+        <div class="post-card-category">{{ category_name | upcase }}</div>
+      {%- endif -%}
     {%- endif -%}
     <h3 class="post-card-title">{{ post.title }}</h3>
     {%- if post.excerpt -%}
@@ -926,7 +950,7 @@ const defaultTheme: ThemePreset = {
   /* Button padding */
   --input-border-width: 1px;
   /* Input border width */
-  --author-avatar-size: 2rem;
+  --author-avatar-size: 2.5rem;
   /* Author avatar size */
 }
 
@@ -1213,7 +1237,12 @@ h3 {
 
 /* Featured Post */
 .featured-post-section {
+  border-bottom: var(--input-border-width) solid var(--color-border);
+}
+
+.featured-post-container {
   padding: var(--section-padding-y) var(--section-padding-x);
+  padding-bottom: var(--spacing-3xl);
 }
 
 .featured-post {
@@ -1271,6 +1300,15 @@ h3 {
   margin-bottom: var(--spacing-md);
 }
 
+.post-card-category {
+  font-size: 0.625rem;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-link);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
 .post-card-title {
   font-size: var(--post-card-title-size);
   font-weight: var(--font-weight-bold);
@@ -1325,7 +1363,11 @@ h3 {
 
 /* Posts Grid Section */
 .posts-grid-section {
-  padding: var(--section-padding-x) var(--section-padding-x) var(--spacing-4xl) var(--section-padding-x);
+  border-bottom: var(--input-border-width) solid var(--color-border);
+}
+
+.posts-grid-container {
+  padding: var(--spacing-3xl) var(--section-padding-x) var(--spacing-4xl) var(--section-padding-x);
 }
 
 /* ==================== POST PAGE STYLES ==================== */
@@ -1429,22 +1471,8 @@ h3 {
   margin-bottom: var(--spacing-md);
 }
 
-/* Post Header Layout - Two Column (Featured Image Left, Title+Meta Right) */
-.post-header-layout {
-  display: flex;
-  gap: var(--spacing-3xl);
-  align-items: flex-start;
-}
-
-.post-featured-image-column {
-  flex-shrink: 0;
-  width: 240px;
-  display: block;
-}
-
 .post-header-content {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
 }
 
 .post-title {
@@ -1460,24 +1488,6 @@ h3 {
   padding-top: var(--spacing-lg);
 }
 
-/* Post Featured Image */
-.post-featured-image {
-  border-radius: var(--border-radius-lg);
-  overflow: hidden;
-}
-
-.post-featured-image img {
-  width: 100%;
-  height: auto;
-  display: block;
-}
-
-/* Mobile Featured Image (shown below meta, before content) */
-.post-featured-image-mobile {
-  display: none;
-  margin-top: var(--spacing-xl);
-  margin-bottom: var(--spacing-3xl);
-}
 
 /* Post Content Wrapper - contains TOC sidebar and content */
 .post-content-wrapper {
@@ -2019,7 +2029,7 @@ h3 {
     padding: var(--spacing-lg) var(--section-padding-x);
   }
 
-  .featured-post-section {
+  .featured-post-container {
     padding: var(--spacing-2xl) var(--section-padding-x);
   }
 
@@ -2028,7 +2038,7 @@ h3 {
     gap: var(--spacing-xl);
   }
 
-  .posts-grid-section {
+  .posts-grid-container {
     padding: var(--spacing-lg) var(--section-padding-x) var(--section-padding-y) var(--section-padding-x);
   }
 
@@ -2049,19 +2059,6 @@ h3 {
     display: none; /* Keep hidden on mobile */
   }
 
-  /* Post Header Mobile Layout */
-  .post-header-layout {
-    flex-direction: column;
-    gap: 0;
-  }
-
-  .post-featured-image-column {
-    display: none; /* Hide desktop featured image column on mobile */
-  }
-
-  .post-featured-image-mobile {
-    display: block; /* Show mobile featured image */
-  }
 
   .post-title {
     font-size: 1.875rem;
