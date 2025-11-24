@@ -159,7 +159,7 @@ export function CategoryDrawer({ open, onClose, category, workspaceId }: Categor
           />
         </Form.Item>
 
-        <SEOSettingsForm />
+        <SEOSettingsForm namePrefix={['seo']} />
       </Form>
     </Drawer>
   )
