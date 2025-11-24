@@ -8,7 +8,7 @@ import {
   PlusOutlined
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { blogThemesApi, BlogTheme } from '../../services/api/blog'
+import { blogThemesApi, BlogTheme } from '../../services/api/blog.ts'
 import { ThemeEditorDrawer } from './ThemeEditorDrawer'
 import { ThemePreset, THEME_PRESETS } from './themePresets'
 import dayjs from 'dayjs'

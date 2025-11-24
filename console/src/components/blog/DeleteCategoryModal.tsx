@@ -1,5 +1,5 @@
 import { Modal, Typography } from 'antd'
-import type { BlogCategory } from '../../services/api/blog'
+import type { BlogCategory } from '../../services/api/blog.ts'
 
 const { Paragraph } = Typography
 

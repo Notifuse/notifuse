@@ -1,7 +1,7 @@
 import { Avatar, Button, Form, Input, Space, Table, Modal, Popconfirm } from 'antd'
 import { EditOutlined, DeleteOutlined, PlusOutlined, UserOutlined } from '@ant-design/icons'
 import { useState } from 'react'
-import type { BlogAuthor } from '../../services/api/blog'
+import type { BlogAuthor } from '../../services/api/blog.ts'
 import { ImageURLInput } from '../common/ImageURLInput'
 
 interface AuthorsTableProps {

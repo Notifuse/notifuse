@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import { Button, Drawer, Form, Input, App } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { blogCategoriesApi, normalizeSlug, BlogCategory } from '../../services/api/blog'
-import type { CreateBlogCategoryRequest, UpdateBlogCategoryRequest } from '../../services/api/blog'
+import { blogCategoriesApi, normalizeSlug, BlogCategory } from '../../services/api/blog.ts'
+import type { CreateBlogCategoryRequest, UpdateBlogCategoryRequest } from '../../services/api/blog.ts'
 import { SEOSettingsForm } from '../seo/SEOSettingsForm'
 
 const { TextArea } = Input

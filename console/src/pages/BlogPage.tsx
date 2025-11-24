@@ -8,7 +8,7 @@ import { BlogSidebar } from '../components/blog/BlogSidebar'
 import { CategoryDrawer } from '../components/blog/CategoryDrawer'
 import { DeleteCategoryModal } from '../components/blog/DeleteCategoryModal'
 import { PostDrawer } from '../components/blog/PostDrawer'
-import { blogCategoriesApi, blogPostsApi, BlogCategory } from '../services/api/blog'
+import { blogCategoriesApi, blogPostsApi, BlogCategory } from '../services/api/blog.ts'
 import { useAuth } from '../contexts/AuthContext'
 
 const { Sider, Content } = Layout

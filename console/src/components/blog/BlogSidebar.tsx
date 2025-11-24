@@ -1,7 +1,7 @@
 import { Menu, Divider, Button, Space } from 'antd'
 import { PlusOutlined } from '@ant-design/icons'
 import { useQuery } from '@tanstack/react-query'
-import { blogCategoriesApi, BlogCategory } from '../../services/api/blog'
+import { blogCategoriesApi, BlogCategory } from '../../services/api/blog.ts'
 import { faPenToSquare, faTrashCan } from '@fortawesome/free-regular-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { MissingMetaTagsWarning } from '../seo/MissingMetaTagsWarning'

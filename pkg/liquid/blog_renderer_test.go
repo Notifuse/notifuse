@@ -1383,14 +1383,9 @@ async function subscribeToNewsletter(email, firstName = null) {
 // using all 6 theme files from the default theme preset (matching themePresets.ts)
 // This simulates the exact production scenario where all files are loaded as partials
 //
-// NOTE: These tests currently fail with "Liquid error: internal" due to a bug in liquidgo
-// when handling very large/complex template combinations. The core functionality is verified
-// in other passing tests (TestRenderBlogTemplate_WorkspaceIdInPartial, TestBlogRendererGo_WithPartials, etc.).
-// External tests with similar template structures work fine, confirming this is a liquidgo issue.
-//
-// TODO: Report this issue to liquidgo and re-enable these tests once fixed.
+// This test was previously failing with "Liquid error: internal" on liquidgo v0.0.0-20251123222503
+// but is now fixed in liquidgo v0.0.0-20251123230918-9fa7a8e35e4e (commit 9fa7a8e "nil check")
 func TestRenderBlogTemplate_FullThemeIntegration(t *testing.T) {
-	t.Skip("Skipping due to liquidgo bug with complex template combinations - see test comments")
 
 	t.Run("workspace.id renders in scripts through header include chain", func(t *testing.T) {
 		// This test simulates the EXACT production flow:

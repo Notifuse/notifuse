@@ -1,5 +1,5 @@
 import { Liquid } from 'liquidjs'
-import { BlogThemeFiles } from '../services/api/blog'
+import { BlogThemeFiles } from '../services/api/blog.ts'
 import { MockBlogData } from './mockBlogData'
 import { validateTemplateSecurity } from './liquidConfig'
 

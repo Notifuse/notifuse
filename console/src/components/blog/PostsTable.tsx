@@ -14,7 +14,7 @@ import {
   Tooltip
 } from 'antd'
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
-import { blogPostsApi, blogCategoriesApi, BlogPost, BlogPostStatus } from '../../services/api/blog'
+import { blogPostsApi, blogCategoriesApi, BlogPost, BlogPostStatus } from '../../services/api/blog.ts'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faPenToSquare, faTrashCan, faEyeSlash } from '@fortawesome/free-regular-svg-icons'
 import { faExternalLinkAlt } from '@fortawesome/free-solid-svg-icons'

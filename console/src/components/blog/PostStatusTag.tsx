@@ -1,5 +1,5 @@
 import { Tag } from 'antd'
-import type { BlogPost } from '../../services/api/blog'
+import type { BlogPost } from '../../services/api/blog.ts'
 
 interface PostStatusTagProps {
   post: BlogPost
