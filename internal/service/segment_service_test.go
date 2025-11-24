@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createTestTree() *domain.TreeNode {
@@ -1002,4 +1004,69 @@ func TestNewSegmentService(t *testing.T) {
 	assert.NotNil(t, service.taskService)
 	assert.NotNil(t, service.queryBuilder)
 	assert.NotNil(t, service.logger)
+}
+
+func TestCalculateNext5AMInTimezone(t *testing.T) {
+	// Test calculateNext5AMInTimezone - this was at 0% coverage
+	t.Run("Success - Valid timezone UTC", func(t *testing.T) {
+		next5AM, err := calculateNext5AMInTimezone("UTC")
+		require.NoError(t, err)
+		assert.NotZero(t, next5AM)
+
+		// Verify it's 5 AM in UTC
+		utcLoc, _ := time.LoadLocation("UTC")
+		next5AMInUTC := next5AM.In(utcLoc)
+		assert.Equal(t, 5, next5AMInUTC.Hour())
+		assert.Equal(t, 0, next5AMInUTC.Minute())
+		assert.Equal(t, 0, next5AMInUTC.Second())
+	})
+
+	t.Run("Success - Valid timezone America/New_York", func(t *testing.T) {
+		next5AM, err := calculateNext5AMInTimezone("America/New_York")
+		require.NoError(t, err)
+		assert.NotZero(t, next5AM)
+
+		// Verify it's 5 AM in the timezone
+		nyLoc, _ := time.LoadLocation("America/New_York")
+		next5AMInNY := next5AM.In(nyLoc)
+		assert.Equal(t, 5, next5AMInNY.Hour())
+		assert.Equal(t, 0, next5AMInNY.Minute())
+		assert.Equal(t, 0, next5AMInNY.Second())
+	})
+
+	t.Run("Success - Valid timezone Europe/London", func(t *testing.T) {
+		next5AM, err := calculateNext5AMInTimezone("Europe/London")
+		require.NoError(t, err)
+		assert.NotZero(t, next5AM)
+
+		// Verify it's 5 AM in the timezone
+		londonLoc, _ := time.LoadLocation("Europe/London")
+		next5AMInLondon := next5AM.In(londonLoc)
+		assert.Equal(t, 5, next5AMInLondon.Hour())
+		assert.Equal(t, 0, next5AMInLondon.Minute())
+		assert.Equal(t, 0, next5AMInLondon.Second())
+	})
+
+	t.Run("Error - Invalid timezone", func(t *testing.T) {
+		next5AM, err := calculateNext5AMInTimezone("Invalid/Timezone")
+		require.Error(t, err)
+		assert.Zero(t, next5AM)
+		assert.Contains(t, err.Error(), "invalid timezone")
+	})
+
+	t.Run("Success - Returns next day if already past 5 AM", func(t *testing.T) {
+		// This test verifies that if it's already past 5 AM, it returns tomorrow's 5 AM
+		// We can't control the exact time, but we can verify the logic works
+		next5AM, err := calculateNext5AMInTimezone("UTC")
+		require.NoError(t, err)
+
+		// The result should be in the future (or very close to now if it's exactly 5 AM)
+		now := time.Now().UTC()
+		assert.True(t, next5AM.After(now) || next5AM.Equal(now), "next5AM should be in the future or now")
+
+		// Verify it's 5 AM in UTC
+		utcLoc, _ := time.LoadLocation("UTC")
+		next5AMInUTC := next5AM.In(utcLoc)
+		assert.Equal(t, 5, next5AMInUTC.Hour())
+	})
 }

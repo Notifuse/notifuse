@@ -48,8 +48,8 @@ func TestNewServer(t *testing.T) {
 	t.Run("creates server with TLS", func(t *testing.T) {
 		// Create temporary cert and key files
 		certFile, keyFile := createTempCertFiles(t)
-		defer os.Remove(certFile)
-		defer os.Remove(keyFile)
+		defer func() { _ = os.Remove(certFile) }()
+		defer func() { _ = os.Remove(keyFile) }()
 
 		cfg := ServerConfig{
 			Host:        "localhost",
@@ -267,7 +267,7 @@ func createTempCertFiles(t *testing.T) (string, string) {
 	require.NoError(t, err)
 	err = pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
 	require.NoError(t, err)
-	certOut.Close()
+	_ = certOut.Close()
 
 	// Write key file
 	keyOut, err := os.Create(keyFile)
@@ -276,7 +276,7 @@ func createTempCertFiles(t *testing.T) (string, string) {
 	require.NoError(t, err)
 	err = pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes})
 	require.NoError(t, err)
-	keyOut.Close()
+	_ = keyOut.Close()
 
 	return certFile, keyFile
 }

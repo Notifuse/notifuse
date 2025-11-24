@@ -27,7 +27,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 	t.Run("should_pause_broadcast_and_set_reason_when_circuit_breaker_triggers", func(t *testing.T) {
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
-		defer dbManager.Cleanup()
+		defer func() { _ = _ = dbManager.Cleanup() }()
 
 		err := dbManager.Setup()
 		require.NoError(t, err)
@@ -41,7 +41,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 		// Get workspace database connection
 		workspaceDB, err := dbManager.GetWorkspaceDB("testws01")
 		require.NoError(t, err)
-		defer workspaceDB.Close()
+		defer func() { _ = workspaceDB.Close() }()
 
 		// Ensure workspace database has the broadcasts table (initialize schema)
 		err = initializeWorkspaceSchema(workspaceDB)
@@ -120,7 +120,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 				"error":        "Daily sending limit exceeded",
 			},
 		}
-		mockEventBus.Publish(ctx, circuitBreakerEvent)
+		_ = mockEventBus.Publish(ctx, circuitBreakerEvent)
 
 		// Publish broadcast paused event (simulating what orchestrator would do)
 		broadcastPausedEvent := domain.EventPayload{
@@ -131,7 +131,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 				"reason":       circuitBreakerReason,
 			},
 		}
-		mockEventBus.Publish(ctx, broadcastPausedEvent)
+		_ = mockEventBus.Publish(ctx, broadcastPausedEvent)
 
 		// Step 6: Verify the broadcast was paused with the correct reason
 		var finalStatus, finalPauseReason string
@@ -176,7 +176,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 	t.Run("should_handle_multiple_circuit_breaker_triggers_gracefully", func(t *testing.T) {
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
-		defer dbManager.Cleanup()
+		defer func() { _ = _ = dbManager.Cleanup() }()
 
 		err := dbManager.Setup()
 		require.NoError(t, err)
@@ -188,7 +188,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 		// Get workspace database connection
 		workspaceDB, err := dbManager.GetWorkspaceDB("testws01")
 		require.NoError(t, err)
-		defer workspaceDB.Close()
+		defer func() { _ = workspaceDB.Close() }()
 
 		// Ensure workspace database has the broadcasts table (initialize schema)
 		err = initializeWorkspaceSchema(workspaceDB)
@@ -265,7 +265,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 	t.Run("should_preserve_pause_reason_when_broadcast_is_resumed", func(t *testing.T) {
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
-		defer dbManager.Cleanup()
+		defer func() { _ = _ = dbManager.Cleanup() }()
 
 		err := dbManager.Setup()
 		require.NoError(t, err)
@@ -277,7 +277,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 		// Get workspace database connection
 		workspaceDB, err := dbManager.GetWorkspaceDB("testws01")
 		require.NoError(t, err)
-		defer workspaceDB.Close()
+		defer func() { _ = workspaceDB.Close() }()
 
 		// Ensure workspace database has the broadcasts table (initialize schema)
 		err = initializeWorkspaceSchema(workspaceDB)

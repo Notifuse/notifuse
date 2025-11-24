@@ -30,7 +30,6 @@ func (m *mockTaskExecutor) getCallCount() int32 {
 	return atomic.LoadInt32(&m.callCount)
 }
 
-
 func TestNewTaskScheduler(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()

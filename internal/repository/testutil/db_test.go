@@ -55,4 +55,3 @@ func TestSetupMockDB(t *testing.T) {
 		assert.NotNil(t, mock)
 	})
 }
-

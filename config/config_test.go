@@ -31,31 +31,31 @@ func TestIsDevelopment(t *testing.T) {
 
 func TestLoadWithOptions(t *testing.T) {
 	// Set environment variables for the test
-	os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456") // 32 bytes
-	os.Setenv("ROOT_EMAIL", "test@example.com")
-	os.Setenv("SERVER_PORT", "9000")
-	os.Setenv("SERVER_HOST", "127.0.0.1")
-	os.Setenv("DB_HOST", "testhost")
-	os.Setenv("DB_PORT", "5432")
-	os.Setenv("DB_USER", "testuser")
-	os.Setenv("DB_PASSWORD", "testpass")
-	os.Setenv("DB_PREFIX", "test")
-	os.Setenv("DB_NAME", "test_system")
-	os.Setenv("ENVIRONMENT", "development")
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456") // 32 bytes
+	_ = os.Setenv("ROOT_EMAIL", "test@example.com")
+	_ = os.Setenv("SERVER_PORT", "9000")
+	_ = os.Setenv("SERVER_HOST", "127.0.0.1")
+	_ = os.Setenv("DB_HOST", "testhost")
+	_ = os.Setenv("DB_PORT", "5432")
+	_ = os.Setenv("DB_USER", "testuser")
+	_ = os.Setenv("DB_PASSWORD", "testpass")
+	_ = os.Setenv("DB_PREFIX", "test")
+	_ = os.Setenv("DB_NAME", "test_system")
+	_ = os.Setenv("ENVIRONMENT", "development")
 
 	// Clean up after the test
 	defer func() {
-		os.Unsetenv("SECRET_KEY")
-		os.Unsetenv("ROOT_EMAIL")
-		os.Unsetenv("SERVER_PORT")
-		os.Unsetenv("SERVER_HOST")
-		os.Unsetenv("DB_HOST")
-		os.Unsetenv("DB_PORT")
-		os.Unsetenv("DB_USER")
-		os.Unsetenv("DB_PASSWORD")
-		os.Unsetenv("DB_PREFIX")
-		os.Unsetenv("DB_NAME")
-		os.Unsetenv("ENVIRONMENT")
+		_ = os.Unsetenv("SECRET_KEY")
+		_ = os.Unsetenv("ROOT_EMAIL")
+		_ = os.Unsetenv("SERVER_PORT")
+		_ = os.Unsetenv("SERVER_HOST")
+		_ = os.Unsetenv("DB_HOST")
+		_ = os.Unsetenv("DB_PORT")
+		_ = os.Unsetenv("DB_USER")
+		_ = os.Unsetenv("DB_PASSWORD")
+		_ = os.Unsetenv("DB_PREFIX")
+		_ = os.Unsetenv("DB_NAME")
+		_ = os.Unsetenv("ENVIRONMENT")
 	}()
 
 	// Load config with env vars
@@ -88,8 +88,8 @@ func TestLoadWithOptions(t *testing.T) {
 func TestInvalidKeysHandling(t *testing.T) {
 	t.Run("missing_secret_key", func(t *testing.T) {
 		// Clear any existing environment variables
-		os.Unsetenv("SECRET_KEY")
-		os.Unsetenv("PASETO_PRIVATE_KEY")
+		_ = os.Unsetenv("SECRET_KEY")
+		_ = os.Unsetenv("PASETO_PRIVATE_KEY")
 
 		// Test missing SECRET_KEY
 		_, err := LoadWithOptions(LoadOptions{})
@@ -99,12 +99,12 @@ func TestInvalidKeysHandling(t *testing.T) {
 
 	t.Run("valid_secret_key", func(t *testing.T) {
 		// Clear any existing environment variables first
-		os.Unsetenv("SECRET_KEY")
-		os.Unsetenv("PASETO_PRIVATE_KEY")
+		_ = os.Unsetenv("SECRET_KEY")
+		_ = os.Unsetenv("PASETO_PRIVATE_KEY")
 
 		// Set SECRET_KEY with valid length
-		os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
-		defer os.Unsetenv("SECRET_KEY")
+		_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+		defer func() { _ = os.Unsetenv("SECRET_KEY") }()
 
 		// Should succeed
 		cfg, err := LoadWithOptions(LoadOptions{})
@@ -115,12 +115,12 @@ func TestInvalidKeysHandling(t *testing.T) {
 
 	t.Run("backward_compatibility_paseto_private_key", func(t *testing.T) {
 		// Clear any existing environment variables first
-		os.Unsetenv("SECRET_KEY")
-		os.Unsetenv("PASETO_PRIVATE_KEY")
+		_ = os.Unsetenv("SECRET_KEY")
+		_ = os.Unsetenv("PASETO_PRIVATE_KEY")
 
 		// Set only PASETO_PRIVATE_KEY (backward compatibility)
-		os.Setenv("PASETO_PRIVATE_KEY", "8OSonZEkrCTlDd612EBoORCKVMZ4OjbWlrq03n0FIEgEJK+qb95F4pwewi+Dd++qOjQ9zkviUjFdIaBUz3nzgA==")
-		defer os.Unsetenv("PASETO_PRIVATE_KEY")
+		_ = os.Setenv("PASETO_PRIVATE_KEY", "8OSonZEkrCTlDd612EBoORCKVMZ4OjbWlrq03n0FIEgEJK+qb95F4pwewi+Dd++qOjQ9zkviUjFdIaBUz3nzgA==")
+		defer func() { _ = os.Unsetenv("PASETO_PRIVATE_KEY") }()
 
 		// Should succeed with base64-decoded secret
 		cfg, err := LoadWithOptions(LoadOptions{})
@@ -133,13 +133,13 @@ func TestInvalidKeysHandling(t *testing.T) {
 func TestLoad(t *testing.T) {
 	// Test the Load function by temporarily setting the required environment variables
 	// Set environment variables for the test
-	os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
-	os.Setenv("ROOT_EMAIL", "test@example.com")
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-1234567890123456")
+	_ = os.Setenv("ROOT_EMAIL", "test@example.com")
 
 	// Clean up after the test
 	defer func() {
-		os.Unsetenv("SECRET_KEY")
-		os.Unsetenv("ROOT_EMAIL")
+		_ = os.Unsetenv("SECRET_KEY")
+		_ = os.Unsetenv("ROOT_EMAIL")
 	}()
 
 	// Call Load() directly
@@ -161,10 +161,10 @@ func TestLoad(t *testing.T) {
 
 func TestDatabaseConnectionConfig_Defaults(t *testing.T) {
 	// Set minimal required env vars
-	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
-	os.Setenv("DB_PASSWORD", "testpass")
-	defer os.Unsetenv("SECRET_KEY")
-	defer os.Unsetenv("DB_PASSWORD")
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	_ = os.Setenv("DB_PASSWORD", "testpass")
+	defer func() { _ = os.Unsetenv("SECRET_KEY") }()
+	defer func() { _ = os.Unsetenv("DB_PASSWORD") }()
 
 	cfg, err := LoadWithOptions(LoadOptions{})
 	require.NoError(t, err)
@@ -178,19 +178,19 @@ func TestDatabaseConnectionConfig_Defaults(t *testing.T) {
 
 func TestDatabaseConnectionConfig_CustomValues(t *testing.T) {
 	// Set custom connection configuration
-	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
-	os.Setenv("DB_PASSWORD", "testpass")
-	os.Setenv("DB_MAX_CONNECTIONS", "200")
-	os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "5")
-	os.Setenv("DB_CONNECTION_MAX_LIFETIME", "20m")
-	os.Setenv("DB_CONNECTION_MAX_IDLE_TIME", "10m")
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	_ = os.Setenv("DB_PASSWORD", "testpass")
+	_ = os.Setenv("DB_MAX_CONNECTIONS", "200")
+	_ = os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "5")
+	_ = os.Setenv("DB_CONNECTION_MAX_LIFETIME", "20m")
+	_ = os.Setenv("DB_CONNECTION_MAX_IDLE_TIME", "10m")
 
-	defer os.Unsetenv("SECRET_KEY")
-	defer os.Unsetenv("DB_PASSWORD")
-	defer os.Unsetenv("DB_MAX_CONNECTIONS")
-	defer os.Unsetenv("DB_MAX_CONNECTIONS_PER_DB")
-	defer os.Unsetenv("DB_CONNECTION_MAX_LIFETIME")
-	defer os.Unsetenv("DB_CONNECTION_MAX_IDLE_TIME")
+	defer func() { _ = os.Unsetenv("SECRET_KEY") }()
+	defer func() { _ = os.Unsetenv("DB_PASSWORD") }()
+	defer func() { _ = os.Unsetenv("DB_MAX_CONNECTIONS") }()
+	defer func() { _ = os.Unsetenv("DB_MAX_CONNECTIONS_PER_DB") }()
+	defer func() { _ = os.Unsetenv("DB_CONNECTION_MAX_LIFETIME") }()
+	defer func() { _ = os.Unsetenv("DB_CONNECTION_MAX_IDLE_TIME") }()
 
 	cfg, err := LoadWithOptions(LoadOptions{})
 	require.NoError(t, err)
@@ -204,9 +204,9 @@ func TestDatabaseConnectionConfig_CustomValues(t *testing.T) {
 
 func TestDatabaseConnectionConfig_ValidationMinimum(t *testing.T) {
 	// Test that MaxConnections below minimum fails
-	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
-	os.Setenv("DB_PASSWORD", "testpass")
-	os.Setenv("DB_MAX_CONNECTIONS", "10") // Below minimum of 20
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	_ = os.Setenv("DB_PASSWORD", "testpass")
+	_ = os.Setenv("DB_MAX_CONNECTIONS", "10") // Below minimum of 20
 
 	defer os.Unsetenv("SECRET_KEY")
 	defer os.Unsetenv("DB_PASSWORD")
@@ -219,9 +219,9 @@ func TestDatabaseConnectionConfig_ValidationMinimum(t *testing.T) {
 
 func TestDatabaseConnectionConfig_ValidationMaximum(t *testing.T) {
 	// Test that MaxConnections above maximum fails
-	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
-	os.Setenv("DB_PASSWORD", "testpass")
-	os.Setenv("DB_MAX_CONNECTIONS", "15000") // Above maximum of 10000
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	_ = os.Setenv("DB_PASSWORD", "testpass")
+	_ = os.Setenv("DB_MAX_CONNECTIONS", "15000") // Above maximum of 10000
 
 	defer os.Unsetenv("SECRET_KEY")
 	defer os.Unsetenv("DB_PASSWORD")
@@ -234,13 +234,13 @@ func TestDatabaseConnectionConfig_ValidationMaximum(t *testing.T) {
 
 func TestDatabaseConnectionConfig_ValidationPerDBMinimum(t *testing.T) {
 	// Test that MaxConnectionsPerDB below minimum fails
-	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
-	os.Setenv("DB_PASSWORD", "testpass")
-	os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "0") // Below minimum of 1
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	_ = os.Setenv("DB_PASSWORD", "testpass")
+	_ = os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "0") // Below minimum of 1
 
 	defer os.Unsetenv("SECRET_KEY")
 	defer os.Unsetenv("DB_PASSWORD")
-	defer os.Unsetenv("DB_MAX_CONNECTIONS_PER_DB")
+	defer func() { _ = os.Unsetenv("DB_MAX_CONNECTIONS_PER_DB") }()
 
 	_, err := LoadWithOptions(LoadOptions{})
 	require.Error(t, err)
@@ -249,13 +249,13 @@ func TestDatabaseConnectionConfig_ValidationPerDBMinimum(t *testing.T) {
 
 func TestDatabaseConnectionConfig_ValidationPerDBMaximum(t *testing.T) {
 	// Test that MaxConnectionsPerDB above maximum fails
-	os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
-	os.Setenv("DB_PASSWORD", "testpass")
-	os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "60") // Above maximum of 50
+	_ = os.Setenv("SECRET_KEY", "test-secret-key-for-testing")
+	_ = os.Setenv("DB_PASSWORD", "testpass")
+	_ = os.Setenv("DB_MAX_CONNECTIONS_PER_DB", "60") // Above maximum of 50
 
 	defer os.Unsetenv("SECRET_KEY")
 	defer os.Unsetenv("DB_PASSWORD")
-	defer os.Unsetenv("DB_MAX_CONNECTIONS_PER_DB")
+	defer func() { _ = os.Unsetenv("DB_MAX_CONNECTIONS_PER_DB") }()
 
 	_, err := LoadWithOptions(LoadOptions{})
 	require.Error(t, err)

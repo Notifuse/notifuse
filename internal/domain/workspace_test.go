@@ -4079,9 +4079,9 @@ func TestUserPermissions_Scan(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:  "empty JSON object",
-			input: []byte(`{}`),
-			want:  UserPermissions{},
+			name:    "empty JSON object",
+			input:   []byte(`{}`),
+			want:    UserPermissions{},
 			wantErr: false,
 		},
 		{
@@ -4367,10 +4367,10 @@ func TestWorkspace_GetEmailProviderWithIntegrationID(t *testing.T) {
 					},
 				},
 			},
-			isMarketing:  true,
-			wantProvider: false,
-			wantID:       "",
-			wantErr:      true,
+			isMarketing:   true,
+			wantProvider:  false,
+			wantID:        "",
+			wantErr:       true,
 			errorContains: "integration with ID non-existent not found",
 		},
 		{

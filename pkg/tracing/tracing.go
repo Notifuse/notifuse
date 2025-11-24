@@ -264,7 +264,7 @@ func registerCustomViews() error {
 // initJaegerExporter initializes the Jaeger exporter
 func initJaegerExporter(cfg *config.TracingConfig) error {
 	if cfg.JaegerEndpoint == "" {
-		return fmt.Errorf("Jaeger endpoint is required for Jaeger exporter")
+		return fmt.Errorf("jaeger endpoint is required for Jaeger exporter")
 	}
 
 	je, err := jaeger.NewExporter(jaeger.Options{
@@ -286,7 +286,7 @@ func initJaegerExporter(cfg *config.TracingConfig) error {
 // initZipkinExporter initializes the Zipkin exporter
 func initZipkinExporter(cfg *config.TracingConfig) error {
 	if cfg.ZipkinEndpoint == "" {
-		return fmt.Errorf("Zipkin endpoint is required for Zipkin exporter")
+		return fmt.Errorf("zipkin endpoint is required for Zipkin exporter")
 	}
 
 	reporter := zipkinhttp.NewReporter(cfg.ZipkinEndpoint)
@@ -299,7 +299,7 @@ func initZipkinExporter(cfg *config.TracingConfig) error {
 // initStackdriverTraceExporter initializes the Stackdriver trace exporter
 func initStackdriverTraceExporter(cfg *config.TracingConfig) error {
 	if cfg.StackdriverProjectID == "" {
-		return fmt.Errorf("Stackdriver project ID is required for Stackdriver exporter")
+		return fmt.Errorf("stackdriver project ID is required for Stackdriver exporter")
 	}
 
 	se, err := stackdriver.NewExporter(stackdriver.Options{
@@ -322,7 +322,7 @@ func initDatadogTraceExporter(cfg *config.TracingConfig) error {
 	}
 
 	if agentAddr == "" {
-		return fmt.Errorf("Datadog agent address is required for Datadog exporter")
+		return fmt.Errorf("datadog agent address is required for Datadog exporter")
 	}
 
 	// Create Datadog exporter
@@ -388,7 +388,7 @@ func initPrometheusExporter(cfg *config.TracingConfig) error {
 			// Add a simple health check endpoint
 			mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 				w.WriteHeader(http.StatusOK)
-				w.Write([]byte("OK"))
+				_, _ = w.Write([]byte("OK"))
 			})
 
 			server := &http.Server{
@@ -411,7 +411,7 @@ func initPrometheusExporter(cfg *config.TracingConfig) error {
 // initStackdriverMetricsExporter initializes the Stackdriver metrics exporter
 func initStackdriverMetricsExporter(cfg *config.TracingConfig) error {
 	if cfg.StackdriverProjectID == "" {
-		return fmt.Errorf("Stackdriver project ID is required for Stackdriver metrics exporter")
+		return fmt.Errorf("stackdriver project ID is required for Stackdriver metrics exporter")
 	}
 
 	// Build options for Stackdriver
@@ -444,7 +444,7 @@ func initDatadogMetricsExporter(cfg *config.TracingConfig) error {
 	}
 
 	if agentAddr == "" {
-		return fmt.Errorf("Datadog agent address is required for Datadog metrics exporter")
+		return fmt.Errorf("datadog agent address is required for Datadog metrics exporter")
 	}
 
 	// Build options for Datadog

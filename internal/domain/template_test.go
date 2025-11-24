@@ -685,6 +685,52 @@ func TestWebTemplate_Scan_Value(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestWebTemplate_UnmarshalJSON(t *testing.T) {
+	// Test WebTemplate.UnmarshalJSON - this was at 0% coverage
+	t.Run("valid JSON", func(t *testing.T) {
+		jsonData := []byte(`{
+			"content": {"type": "doc", "content": []},
+			"html": "<div>Test HTML</div>",
+			"plain_text": "Test plain text"
+		}`)
+
+		web := &WebTemplate{}
+		err := web.UnmarshalJSON(jsonData)
+		assert.NoError(t, err)
+		assert.NotNil(t, web.Content)
+		assert.Equal(t, "<div>Test HTML</div>", web.HTML)
+		assert.Equal(t, "Test plain text", web.PlainText)
+	})
+
+	t.Run("invalid JSON", func(t *testing.T) {
+		jsonData := []byte(`{invalid json}`)
+
+		web := &WebTemplate{}
+		err := web.UnmarshalJSON(jsonData)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to unmarshal WebTemplate")
+	})
+
+	t.Run("empty JSON", func(t *testing.T) {
+		jsonData := []byte(`{}`)
+
+		web := &WebTemplate{}
+		err := web.UnmarshalJSON(jsonData)
+		assert.NoError(t, err)
+	})
+
+	t.Run("partial fields", func(t *testing.T) {
+		jsonData := []byte(`{
+			"content": {"type": "doc"}
+		}`)
+
+		web := &WebTemplate{}
+		err := web.UnmarshalJSON(jsonData)
+		assert.NoError(t, err)
+		assert.NotNil(t, web.Content)
+	})
+}
+
 func TestCreateTemplateRequest_Validate(t *testing.T) {
 	tests := []struct {
 		name    string

@@ -86,3 +86,34 @@ func TestErrorTypeAssertion(t *testing.T) {
 		t.Error("Type assertion incorrectly succeeded for wrong error type")
 	}
 }
+
+func TestPermissionError_Error(t *testing.T) {
+	// Test PermissionError.Error method - this was at 0% coverage
+	err := &PermissionError{
+		Resource:   PermissionResourceWorkspace,
+		Permission: PermissionTypeRead,
+		Message:    "You do not have permission to read this workspace",
+	}
+
+	expected := "You do not have permission to read this workspace"
+	if err.Error() != expected {
+		t.Errorf("Expected error message '%s', got '%s'", expected, err.Error())
+	}
+
+	// Test with different message
+	err2 := &PermissionError{
+		Resource:   PermissionResourceContacts,
+		Permission: PermissionTypeWrite,
+		Message:    "Access denied",
+	}
+
+	expected2 := "Access denied"
+	if err2.Error() != expected2 {
+		t.Errorf("Expected error message '%s', got '%s'", expected2, err2.Error())
+	}
+
+	// Test that Error() returns the Message field directly
+	if err.Error() != err.Message {
+		t.Error("Error() should return the Message field")
+	}
+}

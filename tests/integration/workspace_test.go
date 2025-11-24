@@ -18,7 +18,7 @@ func TestWorkspaceCreateFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -42,7 +42,7 @@ func TestWorkspaceCreateFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.create", createReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -94,14 +94,14 @@ func TestWorkspaceCreateFlow(t *testing.T) {
 
 		resp1, err := client.Post("/api/workspaces.create", createReq)
 		require.NoError(t, err)
-		resp1.Body.Close()
+		_ = resp1.Body.Close()
 		assert.Equal(t, http.StatusCreated, resp1.StatusCode)
 
 		// Try to create second workspace with same ID
 		createReq.Name = "Second Workspace"
 		resp2, err := client.Post("/api/workspaces.create", createReq)
 		require.NoError(t, err)
-		defer resp2.Body.Close()
+		defer func() { _ = _ = resp2.Body.Close() }()
 
 		assert.Equal(t, http.StatusConflict, resp2.StatusCode)
 
@@ -123,7 +123,7 @@ func TestWorkspaceCreateFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.create", createReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -142,7 +142,7 @@ func TestWorkspaceCreateFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.create", createReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 
@@ -157,7 +157,7 @@ func TestWorkspaceGetFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -173,7 +173,7 @@ func TestWorkspaceGetFlow(t *testing.T) {
 			"id": workspaceID,
 		})
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -193,7 +193,7 @@ func TestWorkspaceGetFlow(t *testing.T) {
 			"id": "nonexistent" + uuid.New().String()[:8],
 		})
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
@@ -201,7 +201,7 @@ func TestWorkspaceGetFlow(t *testing.T) {
 	t.Run("missing workspace ID", func(t *testing.T) {
 		resp, err := client.Get("/api/workspaces.get")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -213,7 +213,7 @@ func TestWorkspaceListFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -229,7 +229,7 @@ func TestWorkspaceListFlow(t *testing.T) {
 
 		resp, err := client.Get("/api/workspaces.list")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -252,7 +252,7 @@ func TestWorkspaceListFlow(t *testing.T) {
 
 		resp, err := client.Get("/api/workspaces.list")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -264,7 +264,7 @@ func TestWorkspaceUpdateFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -289,7 +289,7 @@ func TestWorkspaceUpdateFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.update", updateReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -322,7 +322,7 @@ func TestWorkspaceUpdateFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.update", updateReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
@@ -334,7 +334,7 @@ func TestWorkspaceDeleteFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -360,7 +360,7 @@ func TestWorkspaceDeleteFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.delete", deleteReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -387,7 +387,7 @@ func TestWorkspaceDeleteFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.delete", deleteReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 	})
@@ -399,7 +399,7 @@ func TestWorkspaceMembersFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -415,7 +415,7 @@ func TestWorkspaceMembersFlow(t *testing.T) {
 			"id": workspaceID,
 		})
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -435,7 +435,7 @@ func TestWorkspaceMembersFlow(t *testing.T) {
 	t.Run("missing workspace ID", func(t *testing.T) {
 		resp, err := client.Get("/api/workspaces.members")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -447,7 +447,7 @@ func TestWorkspaceInviteMemberFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -473,7 +473,7 @@ func TestWorkspaceInviteMemberFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.inviteMember", inviteReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -507,7 +507,7 @@ func TestWorkspaceInviteMemberFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.inviteMember", inviteReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -536,7 +536,7 @@ func TestWorkspaceInviteMemberFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.inviteMember", inviteReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -548,7 +548,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -584,7 +584,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.createIntegration", createReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -602,7 +602,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 			"id": workspaceID,
 		})
 		require.NoError(t, err)
-		defer getResp.Body.Close()
+		defer func() { _ = _ = getResp.Body.Close() }()
 
 		var getResponse map[string]interface{}
 		err = json.NewDecoder(getResp.Body).Decode(&getResponse)
@@ -631,7 +631,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.createIntegration", createReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -656,7 +656,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.createIntegration", createReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -674,7 +674,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 			"id": workspaceID,
 		})
 		require.NoError(t, err)
-		defer getResp.Body.Close()
+		defer func() { _ = _ = getResp.Body.Close() }()
 
 		var getResponse map[string]interface{}
 		err = json.NewDecoder(getResp.Body).Decode(&getResponse)
@@ -703,7 +703,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 			"workspace_id": workspaceID,
 		})
 		require.NoError(t, err)
-		defer templatesResp.Body.Close()
+		defer func() { _ = _ = templatesResp.Body.Close() }()
 
 		var templatesResponse map[string]interface{}
 		err = json.NewDecoder(templatesResp.Body).Decode(&templatesResponse)
@@ -741,7 +741,7 @@ func TestWorkspaceIntegrationsFlow(t *testing.T) {
 			"workspace_id": workspaceID,
 		})
 		require.NoError(t, err)
-		defer notificationsResp.Body.Close()
+		defer func() { _ = _ = notificationsResp.Body.Close() }()
 
 		var notificationsResponse map[string]interface{}
 		err = json.NewDecoder(notificationsResp.Body).Decode(&notificationsResponse)
@@ -782,7 +782,7 @@ func TestWorkspaceAPIKeyFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -801,7 +801,7 @@ func TestWorkspaceAPIKeyFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.createAPIKey", createReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -828,7 +828,7 @@ func TestWorkspaceAPIKeyFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.createAPIKey", createReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -840,7 +840,7 @@ func TestWorkspaceRemoveMemberFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -865,7 +865,7 @@ func TestWorkspaceRemoveMemberFlow(t *testing.T) {
 	}
 	inviteResp, err := client.Post("/api/workspaces.inviteMember", inviteReq)
 	require.NoError(t, err)
-	inviteResp.Body.Close()
+	_ = inviteResp.Body.Close()
 
 	// Get member user ID
 	db := suite.DBManager.GetDB()
@@ -881,7 +881,7 @@ func TestWorkspaceRemoveMemberFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.removeMember", removeReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -918,7 +918,7 @@ func TestWorkspaceRemoveMemberFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/workspaces.removeMember", removeReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 	})
@@ -946,7 +946,7 @@ func createTestWorkspace(t *testing.T, client *testutil.APIClient, name string) 
 
 	resp, err := client.Post("/api/workspaces.create", createReq)
 	require.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = _ = resp.Body.Close() }()
 
 	require.Equal(t, http.StatusCreated, resp.StatusCode)
 

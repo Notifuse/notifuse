@@ -23,7 +23,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 	t.Run("max connections respected", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Pool is configured with maxConnections=10 by default
 		// Create workspaces up to that limit (reduced to 8 for stability)
@@ -56,7 +56,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 	t.Run("connection reuse within pool", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		workspaceID := "test_limits_reuse"
 
@@ -84,7 +84,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 	t.Run("connection timeout handling", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		workspaceID := "test_limits_timeout"
 
@@ -110,7 +110,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 	t.Run("idle connection cleanup", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Create multiple workspaces (reduced to 3 for stability)
 		numWorkspaces := 3
@@ -148,7 +148,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 	t.Run("connection stats accuracy", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Initial count should be 0
 		assert.Equal(t, 0, pool.GetConnectionCount())
@@ -173,7 +173,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 		assert.Equal(t, 2, pool.GetConnectionCount(), "Count should decrease after cleanup")
 
 		// Full cleanup
-		err = pool.Cleanup()
+		err = _ = pool.Cleanup()
 		require.NoError(t, err)
 
 		assert.Equal(t, 0, pool.GetConnectionCount(), "Count should be 0 after full cleanup")
@@ -182,7 +182,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 	t.Run("max open connections per database", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		workspaceID := "test_limits_per_db"
 
@@ -233,7 +233,7 @@ func TestConnectionPoolLimits(t *testing.T) {
 	t.Run("connection limit protects system", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Try to create many workspaces
 		// Note: Test pool is configured with maxConnections=10 but doesn't
@@ -282,7 +282,7 @@ func TestConnectionPoolResourceManagement(t *testing.T) {
 	t.Run("no connection leaks on error", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		workspaceID := "test_leaks_error"
 
@@ -349,7 +349,7 @@ func TestConnectionPoolResourceManagement(t *testing.T) {
 		assert.Greater(t, midCount, initialCount, "Should have more connections")
 
 		// Cleanup all
-		err = pool.Cleanup()
+		err = _ = pool.Cleanup()
 		require.NoError(t, err)
 
 		// Wait for connections to close

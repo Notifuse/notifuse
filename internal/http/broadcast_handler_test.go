@@ -1826,3 +1826,22 @@ func TestHandleSelectWinner(t *testing.T) {
 		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 	})
 }
+
+func TestMissingParameterError_Error(t *testing.T) {
+	// Test MissingParameterError.Error - this was at 0% coverage
+	t.Run("returns formatted error message", func(t *testing.T) {
+		err := &http_handler.MissingParameterError{
+			Param: "workspace_id",
+		}
+		expected := "Missing parameter: workspace_id"
+		assert.Equal(t, expected, err.Error())
+	})
+
+	t.Run("returns formatted error message with different param", func(t *testing.T) {
+		err := &http_handler.MissingParameterError{
+			Param: "broadcast_id",
+		}
+		expected := "Missing parameter: broadcast_id"
+		assert.Equal(t, expected, err.Error())
+	})
+}

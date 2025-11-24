@@ -25,7 +25,7 @@ func TestBlogRoutingLogic(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	// Create a client that does NOT follow redirects for these routing tests
 	noRedirectClient := testutil.NewAPIClientNoRedirect(suite.ServerManager.GetURL())
@@ -64,7 +64,7 @@ func TestBlogRoutingLogic(t *testing.T) {
 		// Use the regular client here since we expect 200 (no redirect)
 		resp, err := suite.APIClient.MakeRequestWithHost("GET", "/", "blog.example.com", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should serve blog (200 OK)
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Blog should be served")
@@ -86,7 +86,7 @@ func TestBlogRoutingLogic(t *testing.T) {
 		// Make request to "/" with Host header - use noRedirectClient to test the redirect itself
 		resp, err := noRedirectClient.MakeRequestWithHost("GET", "/", "disabled.example.com", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should redirect to console (307)
 		assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode, "Should redirect when blog disabled")
@@ -103,7 +103,7 @@ func TestBlogRoutingLogic(t *testing.T) {
 		// Make request to "/" with any Host header - use noRedirectClient to test the redirect itself
 		resp, err := noRedirectClient.MakeRequestWithHost("GET", "/", "random.example.com", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should redirect to console (307)
 		assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode, "Should redirect when no custom domain")
@@ -121,7 +121,7 @@ func TestBlogRoutingLogic(t *testing.T) {
 		// Make request with WRONG Host header - use noRedirectClient to test the redirect itself
 		resp, err := noRedirectClient.MakeRequestWithHost("GET", "/", "wrong.example.com", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should redirect to console (307)
 		assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode, "Should redirect when wrong domain")
@@ -139,7 +139,7 @@ func TestBlogRoutingLogic(t *testing.T) {
 		// Make request to /console (not /) - use noRedirectClient to ensure we see actual response
 		resp, err := noRedirectClient.MakeRequestWithHost("GET", "/console", "blog2.example.com", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should serve console (200 OK or 404 for missing file, but not redirect)
 		assert.NotEqual(t, http.StatusTemporaryRedirect, resp.StatusCode, "Should not redirect /console")
@@ -155,7 +155,7 @@ func TestBlogCategoryAPIEndpoints(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -183,7 +183,7 @@ func TestBlogCategoryAPIEndpoints(t *testing.T) {
 
 		resp, err := client.CreateBlogCategory(category)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode, "Should create category")
 
@@ -210,7 +210,7 @@ func TestBlogCategoryAPIEndpoints(t *testing.T) {
 		}
 		resp, err := client.GetBlogCategory(params)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -232,7 +232,7 @@ func TestBlogCategoryAPIEndpoints(t *testing.T) {
 
 		resp, err := client.ListBlogCategories()
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -262,7 +262,7 @@ func TestBlogCategoryAPIEndpoints(t *testing.T) {
 
 		resp, err := client.UpdateBlogCategory(update)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -290,7 +290,7 @@ func TestBlogCategoryAPIEndpoints(t *testing.T) {
 
 		resp, err := client.DeleteBlogCategory(deleteReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -311,7 +311,7 @@ func TestBlogPostAPIEndpoints(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -354,7 +354,7 @@ func TestBlogPostAPIEndpoints(t *testing.T) {
 
 		resp, err := client.CreateBlogPost(post)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -381,7 +381,7 @@ func TestBlogPostAPIEndpoints(t *testing.T) {
 		}
 		resp, err := client.GetBlogPost(params)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -415,7 +415,7 @@ func TestBlogPostAPIEndpoints(t *testing.T) {
 		}
 		resp, err := client.ListBlogPosts(params)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -450,7 +450,7 @@ func TestBlogPostAPIEndpoints(t *testing.T) {
 
 		resp, err := client.UpdateBlogPost(update)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -479,7 +479,7 @@ func TestBlogPostAPIEndpoints(t *testing.T) {
 
 		resp, err := client.PublishBlogPost(publishReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -489,7 +489,7 @@ func TestBlogPostAPIEndpoints(t *testing.T) {
 		}
 		getResp, err := client.GetBlogPost(params)
 		require.NoError(t, err)
-		defer getResp.Body.Close()
+		defer func() { _ = _ = getResp.Body.Close() }()
 
 		var result map[string]interface{}
 		err = json.NewDecoder(getResp.Body).Decode(&result)
@@ -515,7 +515,7 @@ func TestBlogPostAPIEndpoints(t *testing.T) {
 
 		resp, err := client.UnpublishBlogPost(unpublishReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -525,7 +525,7 @@ func TestBlogPostAPIEndpoints(t *testing.T) {
 		}
 		getResp, err := client.GetBlogPost(params)
 		require.NoError(t, err)
-		defer getResp.Body.Close()
+		defer func() { _ = _ = getResp.Body.Close() }()
 
 		var result map[string]interface{}
 		err = json.NewDecoder(getResp.Body).Decode(&result)
@@ -550,7 +550,7 @@ func TestBlogPostAPIEndpoints(t *testing.T) {
 
 		resp, err := client.DeleteBlogPost(deleteReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 	})
@@ -565,7 +565,7 @@ func TestBlogThemeAPIEndpoints(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -600,7 +600,7 @@ func TestBlogThemeAPIEndpoints(t *testing.T) {
 
 		resp, err := client.CreateBlogTheme(theme)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -623,7 +623,7 @@ func TestBlogThemeAPIEndpoints(t *testing.T) {
 		}
 		resp, err := client.GetBlogTheme(params)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -644,7 +644,7 @@ func TestBlogThemeAPIEndpoints(t *testing.T) {
 
 		resp, err := client.ListBlogThemes()
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -670,14 +670,14 @@ func TestBlogThemeAPIEndpoints(t *testing.T) {
 
 		resp, err := client.PublishBlogTheme(publishReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		// Verify it's published
 		getResp, err := client.GetPublishedBlogTheme()
 		require.NoError(t, err)
-		defer getResp.Body.Close()
+		defer func() { _ = _ = getResp.Body.Close() }()
 
 		var result map[string]interface{}
 		err = json.NewDecoder(getResp.Body).Decode(&result)
@@ -697,7 +697,7 @@ func TestBlogPublicRendering(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	// Create workspace with blog enabled and custom domain
 	workspace, err := suite.DataFactory.CreateWorkspace(
@@ -738,7 +738,7 @@ func TestBlogPublicRendering(t *testing.T) {
 	t.Run("Get Home Page", func(t *testing.T) {
 		resp, err := suite.APIClient.MakeRequestWithHost("GET", "/", "public.blog", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Home page should load")
 
@@ -750,7 +750,7 @@ func TestBlogPublicRendering(t *testing.T) {
 	t.Run("Get Category Page", func(t *testing.T) {
 		resp, err := suite.APIClient.MakeRequestWithHost("GET", "/technology", "public.blog", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Category page should load")
 	})
@@ -758,7 +758,7 @@ func TestBlogPublicRendering(t *testing.T) {
 	t.Run("Get Published Post Page", func(t *testing.T) {
 		resp, err := suite.APIClient.MakeRequestWithHost("GET", "/technology/my-published-post", "public.blog", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Published post should be accessible")
 	})
@@ -766,7 +766,7 @@ func TestBlogPublicRendering(t *testing.T) {
 	t.Run("Draft Post Not Accessible", func(t *testing.T) {
 		resp, err := suite.APIClient.MakeRequestWithHost("GET", "/technology/my-draft-post", "public.blog", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Draft posts should return 404
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode, "Draft post should not be accessible")
@@ -775,7 +775,7 @@ func TestBlogPublicRendering(t *testing.T) {
 	t.Run("Invalid Category Returns 404", func(t *testing.T) {
 		resp, err := suite.APIClient.MakeRequestWithHost("GET", "/invalid-category", "public.blog", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode, "Invalid category should return 404")
 	})
@@ -783,7 +783,7 @@ func TestBlogPublicRendering(t *testing.T) {
 	t.Run("Invalid Post Returns 404", func(t *testing.T) {
 		resp, err := suite.APIClient.MakeRequestWithHost("GET", "/technology/invalid-post", "public.blog", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode, "Invalid post should return 404")
 	})
@@ -798,7 +798,7 @@ func TestBlogDataFactory(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	factory := suite.DataFactory
 
@@ -896,11 +896,11 @@ func TestBlogE2EFlow(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	factory := suite.DataFactory
 	client := suite.APIClient
-	
+
 	// Create a no-redirect client for testing redirects
 	noRedirectClient := testutil.NewAPIClientNoRedirect(suite.ServerManager.GetURL())
 
@@ -964,21 +964,21 @@ func TestBlogE2EFlow(t *testing.T) {
 		// Step 4: Verify GET "/" serves blog
 		resp, err := client.MakeRequestWithHost("GET", "/", "e2e.blog", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Blog should be served")
 
 		// Step 5: Verify published posts are accessible
 		resp, err = client.MakeRequestWithHost("GET", "/technology/ai-in-2024", "e2e.blog", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Published post should be accessible")
 
 		// Step 6: Verify draft posts are NOT accessible
 		resp, err = client.MakeRequestWithHost("GET", "/technology/draft-tech-post", "e2e.blog", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode, "Draft post should not be accessible")
 
@@ -998,7 +998,7 @@ func TestBlogE2EFlow(t *testing.T) {
 		// Use noRedirectClient to test the redirect itself
 		resp, err = noRedirectClient.MakeRequestWithHost("GET", "/", "disabled.blog", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusTemporaryRedirect, resp.StatusCode, "Should redirect when blog disabled")
 		assert.Equal(t, "/console", resp.Header.Get("Location"))
@@ -1027,9 +1027,8 @@ func TestBlogE2EFlow(t *testing.T) {
 		// Step 10: Verify "/" serves blog again
 		resp, err = client.MakeRequestWithHost("GET", "/", "reenabled.blog", nil)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Blog should be served after re-enabling")
 	})
 }
-

@@ -1033,3 +1033,147 @@ func TestBlogPostRepository_ContextErrors(t *testing.T) {
 		assert.Contains(t, err.Error(), "workspace_id not found in context")
 	})
 }
+
+func TestBlogCategoryRepository_TxMethods(t *testing.T) {
+	// Test blog repository Tx methods - these were at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBlogCategoryRepository(mockWorkspaceRepo)
+
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+
+	testCategory := &domain.BlogCategory{
+		ID:   "cat123",
+		Slug: "tech-blog",
+		Settings: domain.BlogCategorySettings{
+			Name: "Tech Blog",
+		},
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	t.Run("GetCategoryTx", func(t *testing.T) {
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT id, slug, settings, created_at, updated_at, deleted_at
+		FROM blog_categories
+		WHERE id = $1 AND deleted_at IS NULL
+	`)).WithArgs("cat123").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "slug", "settings", "created_at", "updated_at", "deleted_at"}).
+				AddRow(testCategory.ID, testCategory.Slug, []byte(`{"name":"Tech Blog"}`), testCategory.CreatedAt, testCategory.UpdatedAt, nil))
+		sqlMock.ExpectCommit()
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		category, err := repo.GetCategoryTx(ctx, tx, "cat123")
+		assert.NoError(t, err)
+		assert.NotNil(t, category)
+		assert.Equal(t, "cat123", category.ID)
+		_ = tx.Commit()
+	})
+
+	t.Run("GetCategoryBySlugTx", func(t *testing.T) {
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT id, slug, settings, created_at, updated_at, deleted_at
+		FROM blog_categories
+		WHERE slug = $1 AND deleted_at IS NULL
+	`)).WithArgs("tech-blog").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "slug", "settings", "created_at", "updated_at", "deleted_at"}).
+				AddRow(testCategory.ID, testCategory.Slug, []byte(`{"name":"Tech Blog"}`), testCategory.CreatedAt, testCategory.UpdatedAt, nil))
+		sqlMock.ExpectCommit()
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		category, err := repo.GetCategoryBySlugTx(ctx, tx, "tech-blog")
+		assert.NoError(t, err)
+		assert.NotNil(t, category)
+		assert.Equal(t, "tech-blog", category.Slug)
+		_ = tx.Commit()
+	})
+}
+
+func TestBlogPostRepository_TxMethods(t *testing.T) {
+	// Test blog post repository Tx methods - these were at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBlogPostRepository(mockWorkspaceRepo)
+
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+
+	testPost := &domain.BlogPost{
+		ID:         "post123",
+		CategoryID: "cat123",
+		Slug:       "test-post",
+		Settings: domain.BlogPostSettings{
+			Title: "Test Post",
+		},
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	t.Run("GetPostTx", func(t *testing.T) {
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT id, category_id, slug, settings, published_at, created_at, updated_at, deleted_at
+		FROM blog_posts
+		WHERE id = $1 AND deleted_at IS NULL
+	`)).WithArgs("post123").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "category_id", "slug", "settings", "published_at", "created_at", "updated_at", "deleted_at"}).
+				AddRow(testPost.ID, testPost.CategoryID, testPost.Slug, []byte(`{"title":"Test Post"}`), nil, testPost.CreatedAt, testPost.UpdatedAt, nil))
+		sqlMock.ExpectCommit()
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		post, err := repo.GetPostTx(ctx, tx, "post123")
+		assert.NoError(t, err)
+		assert.NotNil(t, post)
+		assert.Equal(t, "post123", post.ID)
+	})
+
+	t.Run("GetPostBySlugTx", func(t *testing.T) {
+		// Create a fresh mock for this test case
+		db2, sqlMock2, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db2.Close() }()
+
+		sqlMock2.ExpectBegin()
+		sqlMock2.ExpectQuery(regexp.QuoteMeta(`
+		SELECT id, category_id, slug, settings, published_at, created_at, updated_at, deleted_at
+		FROM blog_posts
+		WHERE slug = $1 AND deleted_at IS NULL
+	`)).WithArgs("test-post").
+			WillReturnRows(sqlmock.NewRows([]string{"id", "category_id", "slug", "settings", "published_at", "created_at", "updated_at", "deleted_at"}).
+				AddRow(testPost.ID, testPost.CategoryID, testPost.Slug, []byte(`{"title":"Test Post"}`), nil, testPost.CreatedAt, testPost.UpdatedAt, nil))
+		sqlMock2.ExpectCommit()
+
+		tx, err := db2.Begin()
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		post, err := repo.GetPostBySlugTx(ctx, tx, "test-post")
+		_ = tx.Commit()
+		assert.NoError(t, err)
+		assert.NotNil(t, post)
+		assert.Equal(t, "test-post", post.Slug)
+		assert.NoError(t, sqlMock2.ExpectationsWereMet())
+	})
+}

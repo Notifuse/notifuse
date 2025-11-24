@@ -18,7 +18,7 @@ func TestUserLogout(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -30,7 +30,7 @@ func TestUserLogout(t *testing.T) {
 			signinReq := domain.SignInInput{Email: email}
 			resp, err := client.Post("/api/user.signin", signinReq)
 			require.NoError(t, err)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 
 		// Verify multiple sessions exist
@@ -53,7 +53,7 @@ func TestUserLogout(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -85,7 +85,7 @@ func TestUserLogout(t *testing.T) {
 
 		resp1, err := http.DefaultClient.Do(req1)
 		require.NoError(t, err)
-		resp1.Body.Close()
+		_ = resp1.Body.Close()
 		assert.Equal(t, http.StatusOK, resp1.StatusCode)
 
 		// Try to use the same token again - should fail because session is deleted
@@ -95,7 +95,7 @@ func TestUserLogout(t *testing.T) {
 
 		resp2, err := http.DefaultClient.Do(req2)
 		require.NoError(t, err)
-		defer resp2.Body.Close()
+		defer func() { _ = _ = resp2.Body.Close() }()
 
 		// Should be unauthorized because session no longer exists
 		assert.Equal(t, http.StatusUnauthorized, resp2.StatusCode)
@@ -107,7 +107,7 @@ func TestUserLogout(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -119,7 +119,7 @@ func TestUserLogout(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -167,7 +167,7 @@ func TestUserLogout(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		// Verify user 1 has no sessions

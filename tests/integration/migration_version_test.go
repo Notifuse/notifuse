@@ -27,7 +27,7 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 	t.Run("should_run_migrations_when_database_version_is_lower_than_code_version", func(t *testing.T) {
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
-		defer dbManager.Cleanup()
+		defer _ = dbManager.Cleanup()
 
 		err := dbManager.Setup()
 		require.NoError(t, err)
@@ -96,7 +96,7 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 	t.Run("should_not_run_migrations_when_database_version_equals_code_version", func(t *testing.T) {
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
-		defer dbManager.Cleanup()
+		defer _ = dbManager.Cleanup()
 
 		err := dbManager.Setup()
 		require.NoError(t, err)
@@ -150,7 +150,7 @@ func TestMigrationVersionUpgrade(t *testing.T) {
 	t.Run("should_handle_missing_database_version_as_first_run", func(t *testing.T) {
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
-		defer dbManager.Cleanup()
+		defer _ = dbManager.Cleanup()
 
 		err := dbManager.Setup()
 		require.NoError(t, err)

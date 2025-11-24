@@ -69,7 +69,7 @@ func (s *DNSVerificationService) VerifyDomainOwnership(ctx context.Context, doma
 
 	// Verify CNAME points to expected target
 	cname = strings.TrimSuffix(cname, ".")
-	
+
 	// Extract hostname from expectedTarget (it might be a URL)
 	expectedTargetHostname, err := extractHostname(s.expectedTarget)
 	if err != nil {
@@ -78,9 +78,9 @@ func (s *DNSVerificationService) VerifyDomainOwnership(ctx context.Context, doma
 	expectedTargetHostname = strings.TrimSuffix(expectedTargetHostname, ".")
 
 	s.logger.WithFields(map[string]interface{}{
-		"hostname":              hostname,
-		"cname":                 cname,
-		"expected_target":       s.expectedTarget,
+		"hostname":             hostname,
+		"cname":                cname,
+		"expected_target":      s.expectedTarget,
 		"expected_target_host": expectedTargetHostname,
 	}).Debug("CNAME lookup result")
 

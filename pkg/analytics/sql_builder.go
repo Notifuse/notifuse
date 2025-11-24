@@ -421,10 +421,10 @@ func (sb *SQLBuilder) sanitizeTimezone(timezone string) string {
 	// Validate against common timezone patterns
 	// Allow only alphanumeric, underscore, slash, plus, minus, and colon
 	for _, char := range timezone {
-		if !((char >= 'A' && char <= 'Z') ||
-			(char >= 'a' && char <= 'z') ||
-			(char >= '0' && char <= '9') ||
-			char == '_' || char == '/' || char == '+' || char == '-' || char == ':') {
+		if (char < 'A' || char > 'Z') &&
+			(char < 'a' || char > 'z') &&
+			(char < '0' || char > '9') &&
+			char != '_' && char != '/' && char != '+' && char != '-' && char != ':' {
 			return "" // Invalid character found
 		}
 	}

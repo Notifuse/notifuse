@@ -316,3 +316,70 @@ func TestWorkspaceRepository_DeleteInvitation(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestWorkspaceRepository_GetWorkspaceInvitations(t *testing.T) {
+	// Test workspaceRepository.GetWorkspaceInvitations - this was at 0% coverage
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	repo := &workspaceRepository{
+		systemDB: db,
+		dbConfig: &config.DatabaseConfig{
+			Host:     "localhost",
+			Port:     5432,
+			User:     "postgres",
+			Password: "postgres",
+			DBName:   "notifuse",
+			Prefix:   "nf",
+		},
+	}
+
+	workspaceID := "ws-123"
+	now := time.Now().Truncate(time.Second)
+
+	t.Run("Success - Returns invitations", func(t *testing.T) {
+		rows := sqlmock.NewRows([]string{
+			"id", "workspace_id", "inviter_id", "email", "permissions", "expires_at", "created_at", "updated_at",
+		}).
+			AddRow("inv-1", workspaceID, "user-1", "test1@example.com", []byte(`{"contacts":{"read":true}}`), now.Add(24*time.Hour), now, now).
+			AddRow("inv-2", workspaceID, "user-2", "test2@example.com", []byte(`{"contacts":{"read":true,"write":true}}`), now.Add(48*time.Hour), now, now)
+
+		mock.ExpectQuery(`SELECT id, workspace_id, inviter_id, email, permissions, expires_at, created_at, updated_at FROM workspace_invitations WHERE workspace_id = \$1 ORDER BY created_at DESC`).
+			WithArgs(workspaceID).
+			WillReturnRows(rows)
+
+		invitations, err := repo.GetWorkspaceInvitations(context.Background(), workspaceID)
+		require.NoError(t, err)
+		require.Len(t, invitations, 2)
+		assert.Equal(t, "inv-1", invitations[0].ID)
+		assert.Equal(t, "inv-2", invitations[1].ID)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Success - Empty result", func(t *testing.T) {
+		rows := sqlmock.NewRows([]string{
+			"id", "workspace_id", "inviter_id", "email", "permissions", "expires_at", "created_at", "updated_at",
+		})
+
+		mock.ExpectQuery(`SELECT id, workspace_id, inviter_id, email, permissions, expires_at, created_at, updated_at FROM workspace_invitations WHERE workspace_id = \$1 ORDER BY created_at DESC`).
+			WithArgs(workspaceID).
+			WillReturnRows(rows)
+
+		invitations, err := repo.GetWorkspaceInvitations(context.Background(), workspaceID)
+		require.NoError(t, err)
+		require.Empty(t, invitations)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Query error", func(t *testing.T) {
+		mock.ExpectQuery(`SELECT id, workspace_id, inviter_id, email, permissions, expires_at, created_at, updated_at FROM workspace_invitations WHERE workspace_id = \$1 ORDER BY created_at DESC`).
+			WithArgs(workspaceID).
+			WillReturnError(fmt.Errorf("query error"))
+
+		invitations, err := repo.GetWorkspaceInvitations(context.Background(), workspaceID)
+		require.Error(t, err)
+		assert.Nil(t, invitations)
+		assert.Contains(t, err.Error(), "failed to get workspace invitations")
+	})
+}

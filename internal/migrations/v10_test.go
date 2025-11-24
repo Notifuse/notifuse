@@ -27,6 +27,12 @@ func TestV10Migration_HasWorkspaceUpdate(t *testing.T) {
 	assert.True(t, migration.HasWorkspaceUpdate(), "V10Migration should have workspace updates")
 }
 
+func TestV10Migration_ShouldRestartServer(t *testing.T) {
+	// Test V10Migration.ShouldRestartServer - this was at 0% coverage
+	migration := &V10Migration{}
+	assert.False(t, migration.ShouldRestartServer(), "V10Migration should not require server restart")
+}
+
 func TestV10Migration_UpdateSystem(t *testing.T) {
 	migration := &V10Migration{}
 	ctx := context.Background()

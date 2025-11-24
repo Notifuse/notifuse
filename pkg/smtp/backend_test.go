@@ -337,4 +337,3 @@ func TestSession_Logout_MultipleTimes(t *testing.T) {
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 }
-

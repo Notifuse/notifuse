@@ -2717,3 +2717,96 @@ func TestWorkspaceService_SetUserPermissions(t *testing.T) {
 		require.NoError(t, err) // Should still succeed despite session error
 	})
 }
+
+func TestWorkspaceService_deleteSupabaseIntegrationResources(t *testing.T) {
+	// Test WorkspaceService.deleteSupabaseIntegrationResources - this was at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockUserRepo := mocks.NewMockUserRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockUserService := mocks.NewMockUserServiceInterface(ctrl)
+	mockAuthService := mocks.NewMockAuthService(ctrl)
+	mockMailer := pkgmocks.NewMockMailer(ctrl)
+	mockConfig := &config.Config{RootEmail: "test@example.com"}
+	mockContactService := mocks.NewMockContactService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockContactListService := mocks.NewMockContactListService(ctrl)
+	mockTemplateService := mocks.NewMockTemplateService(ctrl)
+	mockWebhookRegService := mocks.NewMockWebhookRegistrationService(ctrl)
+
+	// Create a real SupabaseService with mocked dependencies
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockTransactionalRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
+	mockWebhookEventRepo := mocks.NewMockWebhookEventRepository(ctrl)
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+
+	supabaseService := NewSupabaseService(
+		mockRepo,
+		nil, // emailService
+		mockContactService,
+		mockListService,
+		mockContactListRepo,
+		mockTemplateRepo,
+		mockTemplateService,
+		mockTransactionalRepo,
+		nil, // transactionalService
+		mockWebhookEventRepo,
+		mockLogger,
+	)
+
+	service := NewWorkspaceService(
+		mockRepo,
+		mockUserRepo,
+		mocks.NewMockTaskRepository(ctrl),
+		mockLogger,
+		mockUserService,
+		mockAuthService,
+		mockMailer,
+		mockConfig,
+		mockContactService,
+		mockListService,
+		mockContactListService,
+		mockTemplateService,
+		mockWebhookRegService,
+		"secret_key",
+		supabaseService,
+		&DNSVerificationService{},
+		&BlogService{},
+	)
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	integrationID := "integration-456"
+
+	t.Run("Success - Deletes resources", func(t *testing.T) {
+		// Mock template repo to return empty list (no templates to delete)
+		mockTemplateRepo.EXPECT().
+			GetTemplates(gomock.Any(), workspaceID, "", "").
+			Return([]*domain.Template{}, nil)
+
+		// Mock transactional repo to return empty list (no notifications to delete)
+		mockTransactionalRepo.EXPECT().
+			List(gomock.Any(), workspaceID, gomock.Any(), gomock.Any(), gomock.Any()).
+			Return([]*domain.TransactionalNotification{}, 0, nil)
+
+		err := service.deleteSupabaseIntegrationResources(ctx, workspaceID, integrationID)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error - Template repo error", func(t *testing.T) {
+		mockTemplateRepo.EXPECT().
+			GetTemplates(gomock.Any(), workspaceID, "", "").
+			Return(nil, errors.New("template repo error"))
+
+		err := service.deleteSupabaseIntegrationResources(ctx, workspaceID, integrationID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to list templates")
+	})
+}

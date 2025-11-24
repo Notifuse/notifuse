@@ -42,7 +42,6 @@ func setupMessageHistoryHandlerTest(t *testing.T) (*MessageHistoryHandler, *mock
 	return handler, mockService, mockAuthService, mockTracer, jwtSecret
 }
 
-
 func TestMessageHistoryHandler_handleList_MethodNotAllowed(t *testing.T) {
 	handler, _, _, mockTracer, _ := setupMessageHistoryHandlerTest(t)
 

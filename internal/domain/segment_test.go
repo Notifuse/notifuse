@@ -609,19 +609,19 @@ func TestScanSegment(t *testing.T) {
 
 		scanner := &segmentMockScanner{
 			values: []interface{}{
-				"segment123",           // ID
-				"My Segment",           // Name
-				"#FF5733",              // Color
-				treeJSON,                // Tree (as JSON bytes)
-				"America/New_York",     // Timezone
-				int64(1),                // Version
-				"active",                // Status
-				&generatedSQL,           // GeneratedSQL
-				argsJSON,                // GeneratedArgs (as JSON bytes)
-				&now,                    // RecomputeAfter
-				now,                     // DBCreatedAt
-				now,                     // DBUpdatedAt
-				42,                      // UsersCount
+				"segment123",       // ID
+				"My Segment",       // Name
+				"#FF5733",          // Color
+				treeJSON,           // Tree (as JSON bytes)
+				"America/New_York", // Timezone
+				int64(1),           // Version
+				"active",           // Status
+				&generatedSQL,      // GeneratedSQL
+				argsJSON,           // GeneratedArgs (as JSON bytes)
+				&now,               // RecomputeAfter
+				now,                // DBCreatedAt
+				now,                // DBUpdatedAt
+				42,                 // UsersCount
 			},
 		}
 
@@ -659,7 +659,7 @@ func TestScanSegment(t *testing.T) {
 	t.Run("invalid tree data - unmarshalable value", func(t *testing.T) {
 		now := time.Now()
 		generatedSQL := "SELECT * FROM contacts"
-		
+
 		// Create a MapOfAny with a channel value, which can't be marshaled to JSON
 		// This will cause TreeNodeFromMapOfAny to fail when trying to marshal
 		invalidMap := MapOfAny{
@@ -672,14 +672,14 @@ func TestScanSegment(t *testing.T) {
 		// the scanner return an error that gets handled properly.
 		// Actually, the simplest is to test with malformed JSON bytes that MapOfAny.Scan can handle
 		// but TreeNodeFromMapOfAny can't process. But MapOfAny.Scan will fail first.
-		
+
 		// Let's try a different approach: use valid JSON but with a structure that causes
 		// json.Marshal in TreeNodeFromMapOfAny to fail. But json.Marshal handles most things.
 		// The only way json.Marshal fails is with circular references or unsupported types.
 		// Since we're using MapOfAny which is map[string]any, we can put a channel in it.
 		// But MapOfAny.Scan will try to unmarshal JSON bytes first, so we need to pass
 		// the MapOfAny directly, not as bytes.
-		
+
 		scanner := &segmentMockScanner{
 			values: []interface{}{
 				"segment123",
@@ -728,9 +728,9 @@ func TestScanSegment(t *testing.T) {
 				"America/New_York",
 				int64(1),
 				"active",
-				nil, // GeneratedSQL is nil
+				nil,          // GeneratedSQL is nil
 				[]byte("[]"), // GeneratedArgs
-				nil, // RecomputeAfter is nil
+				nil,          // RecomputeAfter is nil
 				now,
 				now,
 				0,

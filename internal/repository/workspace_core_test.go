@@ -1055,3 +1055,23 @@ func TestWorkspaceRepository_GetWorkspaceByCustomDomain(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to query workspace by custom domain")
 	})
 }
+
+func TestWorkspaceRepository_GetSystemConnection(t *testing.T) {
+	// Test workspaceRepository.GetSystemConnection - this was at 0% coverage
+	db, _, cleanup := testutil.SetupMockDB(t)
+	defer cleanup()
+
+	dbConfig := &config.DatabaseConfig{
+		Prefix: "notifuse",
+	}
+
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr)
+
+	t.Run("Success - Returns system connection", func(t *testing.T) {
+		systemDB, err := repo.GetSystemConnection(context.Background())
+		require.NoError(t, err)
+		assert.NotNil(t, systemDB)
+		assert.Equal(t, db, systemDB)
+	})
+}

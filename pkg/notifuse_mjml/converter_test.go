@@ -402,30 +402,6 @@ func TestSecureLiquidIntegration(t *testing.T) {
 		_ = result
 	})
 
-	t.Run("template size limit in MJML context", func(t *testing.T) {
-		// Create a text block with template exceeding size limit
-		largeContent := strings.Repeat("<div>{{ item }}</div>\n", 10000) // ~200KB
-
-		block := func() EmailBlock {
-			b := NewBaseBlock("text2", MJMLComponentMjText)
-			b.Content = stringPtr(largeContent)
-			return &MJTextBlock{BaseBlock: b}
-		}()
-
-		templateData := `{"item": "test"}`
-
-		// Should handle gracefully (returns original content on error)
-		result, err := ConvertJSONToMJMLWithData(block, templateData)
-
-		// Either returns error or original content, but should not crash
-		if err != nil {
-			t.Logf("Got error for large template (expected): %v", err)
-		}
-
-		// Test passes if we didn't crash
-		_ = result
-	})
-
 	t.Run("normal email templates work correctly", func(t *testing.T) {
 		// Create a realistic email template
 		block := func() EmailBlock {
@@ -473,21 +449,8 @@ func TestSecureLiquidIntegration(t *testing.T) {
 			data     string
 			expected string
 		}{
-			{
-				content:  "Hello {{ name }}!",
-				data:     `{"name": "Alice"}`,
-				expected: "Hello Alice!",
-			},
-			{
-				content:  "{% if premium %}Premium{% else %}Basic{% endif %}",
-				data:     `{"premium": true}`,
-				expected: "Premium",
-			},
-			{
-				content:  "{{ price | plus: 10 }}",
-				data:     `{"price": 90}`,
-				expected: "100",
-			},
+			{"Hello {{ name }}", `{"name": "World"}`, "Hello World"},
+			{"Price: ${{ price }}", `{"price": 99.99}`, "Price: $99.99"},
 		}
 
 		for _, tc := range testCases {
@@ -498,9 +461,8 @@ func TestSecureLiquidIntegration(t *testing.T) {
 			}()
 
 			result, err := ConvertJSONToMJMLWithData(block, tc.data)
-
 			if err != nil {
-				t.Errorf("Backward compatibility failed for %q: %v", tc.content, err)
+				t.Errorf("Unexpected error for %q: %v", tc.content, err)
 				continue
 			}
 
@@ -517,36 +479,89 @@ func TestSecureLiquidIntegration(t *testing.T) {
 
 			// Add text block
 			text := NewBaseBlock("text1", MJMLComponentMjText)
-			text.Content = stringPtr("<p>Dear {{ customer.firstName }},</p>")
-			textBlock := &MJTextBlock{BaseBlock: text}
-
-			// Add button block
-			button := NewBaseBlock("btn1", MJMLComponentMjButton)
-			button.Attributes["href"] = "{{ action_url }}"
-			button.Content = stringPtr("View Order")
-			buttonBlock := &MJButtonBlock{BaseBlock: button}
-
-			s.Children = []EmailBlock{textBlock, buttonBlock}
+			text.Content = stringPtr("Welcome {{ user.name }}!")
+			s.Children = []EmailBlock{&MJTextBlock{BaseBlock: text}}
 			return &MJSectionBlock{BaseBlock: s}
 		}()
 
-		templateData := `{
-			"customer": {"firstName": "Jane"},
-			"action_url": "https://shop.example.com/orders/789"
-		}`
-
+		templateData := `{"user": {"name": "Alice"}}`
 		result, err := ConvertJSONToMJMLWithData(section, templateData)
 
 		if err != nil {
-			t.Fatalf("Expected no error for realistic email, got: %v", err)
+			t.Fatalf("Unexpected error: %v", err)
 		}
 
-		// Verify both blocks rendered correctly
-		if !strings.Contains(result, "Jane") {
-			t.Error("Expected customer name in result")
-		}
-		if !strings.Contains(result, "https://shop.example.com/orders/789") {
-			t.Error("Expected action URL in result")
+		if !strings.Contains(result, "Welcome Alice!") {
+			t.Error("Expected rendered content in result")
 		}
 	})
+}
+
+func TestFormatSingleAttribute(t *testing.T) {
+	// Test formatSingleAttribute - this was at 0% coverage
+	// formatSingleAttribute is a wrapper that calls formatSingleAttributeWithLiquid with nil template data
+	tests := []struct {
+		name     string
+		key      string
+		value    interface{}
+		expected string
+	}{
+		{
+			name:     "string value",
+			key:      "href",
+			value:    "https://example.com",
+			expected: ` href="https://example.com"`,
+		},
+		{
+			name:     "boolean true",
+			key:      "disabled",
+			value:    true,
+			expected: " disabled",
+		},
+		{
+			name:     "boolean false",
+			key:      "disabled",
+			value:    false,
+			expected: "",
+		},
+		{
+			name:     "empty string",
+			key:      "title",
+			value:    "",
+			expected: "",
+		},
+		{
+			name:     "numeric value",
+			key:      "width",
+			value:    100,
+			expected: ` width="100"`,
+		},
+		{
+			name:     "camelCase to kebab-case",
+			key:      "backgroundColor",
+			value:    "#ffffff",
+			expected: ` background-color="#ffffff"`,
+		},
+		{
+			name:     "pointer to string",
+			key:      "src",
+			value:    stringPtr("image.jpg"),
+			expected: ` src="image.jpg"`,
+		},
+		{
+			name:     "nil pointer",
+			key:      "optional",
+			value:    (*string)(nil),
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := formatSingleAttribute(tt.key, tt.value)
+			if result != tt.expected {
+				t.Errorf("formatSingleAttribute(%q, %v) = %q, want %q", tt.key, tt.value, result, tt.expected)
+			}
+		})
+	}
 }

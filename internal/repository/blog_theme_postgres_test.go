@@ -465,3 +465,66 @@ func TestBlogThemeRepository_MissingWorkspaceID(t *testing.T) {
 		assert.Contains(t, err.Error(), "workspace_id not found in context")
 	})
 }
+
+func TestBlogThemeRepository_GetPublishedThemeTx(t *testing.T) {
+	// Test blogThemeRepository.GetPublishedThemeTx - this was at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBlogThemeRepository(mockWorkspaceRepo)
+
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+
+	publishedTime := time.Now().UTC()
+	userID := "user123"
+
+	t.Run("Success - Published theme found", func(t *testing.T) {
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at
+		FROM blog_themes
+		WHERE published_at IS NOT NULL
+	`)).
+			WillReturnRows(sqlmock.NewRows([]string{"version", "published_at", "published_by_user_id", "files", "notes", "created_at", "updated_at"}).
+				AddRow(2, publishedTime, userID, []byte(`{"home":"published home"}`), nil, time.Now(), time.Now()))
+		sqlMock.ExpectCommit()
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		theme, err := repo.GetPublishedThemeTx(ctx, tx)
+		_ = tx.Commit()
+		assert.NoError(t, err)
+		assert.NotNil(t, theme)
+		assert.Equal(t, 2, theme.Version)
+		assert.NotNil(t, theme.PublishedAt)
+		assert.NotNil(t, theme.PublishedByUserID)
+		assert.Equal(t, userID, *theme.PublishedByUserID)
+	})
+
+	t.Run("Error - No published theme", func(t *testing.T) {
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT version, published_at, published_by_user_id, files, notes, created_at, updated_at
+		FROM blog_themes
+		WHERE published_at IS NOT NULL
+	`)).
+			WillReturnError(sql.ErrNoRows)
+		sqlMock.ExpectRollback()
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		theme, err := repo.GetPublishedThemeTx(ctx, tx)
+		assert.Error(t, err)
+		assert.Nil(t, theme)
+		assert.Contains(t, err.Error(), "no published blog theme found")
+	})
+}

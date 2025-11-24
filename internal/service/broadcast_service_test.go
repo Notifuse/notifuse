@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -2339,4 +2340,55 @@ func TestBroadcastService_SendToIndividual_ContactToMapError(t *testing.T) {
 
 	err := d.svc.SendToIndividual(ctx, req)
 	require.NoError(t, err)
+}
+
+func TestValidateSlug(t *testing.T) {
+	// Test ValidateSlug - this was at 0% coverage
+	t.Run("Success - Valid slugs", func(t *testing.T) {
+		validSlugs := []string{
+			"hello-world",
+			"test123",
+			"my-blog-post",
+			"a",
+			"123",
+			"a-b-c-123",
+			strings.Repeat("a", 100), // Max length
+		}
+
+		for _, slug := range validSlugs {
+			err := ValidateSlug(slug)
+			assert.NoError(t, err, "slug '%s' should be valid", slug)
+		}
+	})
+
+	t.Run("Error - Empty slug", func(t *testing.T) {
+		err := ValidateSlug("")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "slug cannot be empty")
+	})
+
+	t.Run("Error - Too long", func(t *testing.T) {
+		longSlug := strings.Repeat("a", 101) // 101 characters
+		err := ValidateSlug(longSlug)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "slug too long")
+	})
+
+	t.Run("Error - Invalid characters", func(t *testing.T) {
+		invalidSlugs := []string{
+			"Hello-World",  // Uppercase
+			"hello world",  // Space
+			"hello_world",  // Underscore
+			"hello.world",  // Dot
+			"hello@world",  // At sign
+			"hello#world",  // Hash
+			"hello world!", // Space and exclamation
+		}
+
+		for _, slug := range invalidSlugs {
+			err := ValidateSlug(slug)
+			assert.Error(t, err, "slug '%s' should be invalid", slug)
+			assert.Contains(t, err.Error(), "lowercase letters, numbers, and hyphens")
+		}
+	})
 }

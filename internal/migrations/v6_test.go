@@ -132,6 +132,12 @@ func TestV6Migration_Interface(t *testing.T) {
 	assert.Equal(t, 6.0, migration.GetMajorVersion())
 }
 
+func TestV6Migration_ShouldRestartServer(t *testing.T) {
+	// Test V6Migration.ShouldRestartServer - this was at 0% coverage
+	migration := &V6Migration{}
+	assert.False(t, migration.ShouldRestartServer(), "V6Migration should not require server restart")
+}
+
 func TestV6Migration_Registration(t *testing.T) {
 	// Test that the migration is registered (this tests the init function)
 	registeredMigration, found := GetRegisteredMigration(6.0)

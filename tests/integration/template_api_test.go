@@ -21,7 +21,7 @@ func TestTemplateEndpointsExist(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -63,7 +63,7 @@ func TestTemplateEndpointsExist(t *testing.T) {
 				}
 
 				require.NoError(t, err, "Should be able to connect to %s", endpoint)
-				defer resp.Body.Close()
+				defer func() { _ = _ = resp.Body.Close() }()
 
 				// Endpoint should exist (not 404)
 				assert.NotEqual(t, http.StatusNotFound, resp.StatusCode,
@@ -81,7 +81,7 @@ func TestTemplateEndpointsExist(t *testing.T) {
 			"workspace_id": workspaceID,
 		})
 		require.NoError(t, err, "Should be able to list templates")
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return 200 OK or some valid response
 		assert.True(t, resp.StatusCode >= 200 && resp.StatusCode < 500,
@@ -118,7 +118,7 @@ func TestTemplateEndpointsExist(t *testing.T) {
 
 		resp, err := client.CreateTemplate(template)
 		require.NoError(t, err, "Should be able to create template")
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return success or meaningful error
 		assert.True(t, resp.StatusCode >= 200 && resp.StatusCode < 500,
@@ -144,7 +144,7 @@ func TestTemplateEndpointsExist(t *testing.T) {
 
 		resp, err := client.CreateTemplate(template)
 		require.NoError(t, err, "Should be able to make request")
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return 400 Bad Request for missing fields
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode,
@@ -166,7 +166,7 @@ func TestTemplateIntegrationBasic(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -200,14 +200,14 @@ func TestTemplateIntegrationBasic(t *testing.T) {
 
 		createResp, err := client.CreateTemplate(template)
 		require.NoError(t, err, "Should be able to create template")
-		createResp.Body.Close()
+		_ = createResp.Body.Close()
 
 		// Test List (should include our template)
 		listResp, err := client.Get("/api/templates.list", map[string]string{
 			"workspace_id": workspaceID,
 		})
 		require.NoError(t, err, "Should be able to list templates")
-		listResp.Body.Close()
+		_ = listResp.Body.Close()
 
 		// Test Get (should retrieve our template)
 		getResp, err := client.Get("/api/templates.get", map[string]string{
@@ -215,7 +215,7 @@ func TestTemplateIntegrationBasic(t *testing.T) {
 			"id":           templateID,
 		})
 		require.NoError(t, err, "Should be able to get template")
-		getResp.Body.Close()
+		_ = getResp.Body.Close()
 
 		// Test Update (should update our template)
 		updateData := map[string]interface{}{
@@ -237,7 +237,7 @@ func TestTemplateIntegrationBasic(t *testing.T) {
 
 		updateResp, err := client.Post("/api/templates.update", updateData)
 		require.NoError(t, err, "Should be able to update template")
-		updateResp.Body.Close()
+		_ = updateResp.Body.Close()
 
 		// Test Delete (should remove our template)
 		deleteData := map[string]interface{}{
@@ -247,7 +247,7 @@ func TestTemplateIntegrationBasic(t *testing.T) {
 
 		deleteResp, err := client.Post("/api/templates.delete", deleteData)
 		require.NoError(t, err, "Should be able to delete template")
-		deleteResp.Body.Close()
+		_ = deleteResp.Body.Close()
 
 		// All operations should succeed or give meaningful errors
 		t.Logf("Template CRUD operations completed - Create: %d, List: %d, Get: %d, Update: %d, Delete: %d",
@@ -256,7 +256,12 @@ func TestTemplateIntegrationBasic(t *testing.T) {
 }
 
 // Helper functions for creating test data
+// These are currently unused but kept for potential future use
 
+// createTestTemplatePayload, createSimpleMJMLBlock, and createSimpleMJMLString are unused test helpers
+// They are kept for potential future use but currently not called by any tests
+// Uncomment and use them when needed:
+/*
 func createTestTemplatePayload() map[string]interface{} {
 	return map[string]interface{}{
 		"id":       fmt.Sprintf("test-template-%d", time.Now().UnixNano()),
@@ -324,3 +329,4 @@ func createSimpleMJMLString() string {
 		</mj-body>
 	</mjml>`
 }
+*/

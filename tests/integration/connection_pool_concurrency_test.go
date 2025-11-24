@@ -24,7 +24,7 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 	t.Run("concurrent workspace creation", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		numGoroutines := 25 // Reduced from 50 to avoid connection exhaustion
 		var wg sync.WaitGroup
@@ -81,14 +81,14 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		assert.Equal(t, numGoroutines, pool.GetConnectionCount(), "Should have all workspace connections")
 
 		// Explicit cleanup to release connections faster
-		err := pool.Cleanup()
+		err := _ = pool.Cleanup()
 		require.NoError(t, err)
 	})
 
 	t.Run("concurrent same workspace access", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		workspaceID := "test_concurrent_same"
 
@@ -161,7 +161,7 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 	t.Run("concurrent read write operations", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Create 5 workspaces (reduced to avoid connection exhaustion)
 		numWorkspaces := 5
@@ -244,7 +244,7 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 	t.Run("concurrent cleanup", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Create multiple workspaces (reduced to avoid connection exhaustion)
 		numWorkspaces := 10
@@ -302,7 +302,7 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 		// Run with: go test -race
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		workspaceID := "test_race_detector"
 		err := pool.EnsureWorkspaceDatabase(workspaceID)
@@ -366,7 +366,7 @@ func TestConnectionPoolConcurrency(t *testing.T) {
 	t.Run("high contention on single workspace", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		workspaceID := "test_high_contention"
 		err := pool.EnsureWorkspaceDatabase(workspaceID)

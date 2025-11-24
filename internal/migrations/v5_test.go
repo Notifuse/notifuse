@@ -84,6 +84,12 @@ func TestV5Migration_UpdateWorkspace_AlterTableFails(t *testing.T) {
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
+func TestV5Migration_ShouldRestartServer(t *testing.T) {
+	// Test V5Migration.ShouldRestartServer - this was at 0% coverage
+	migration := &V5Migration{}
+	assert.False(t, migration.ShouldRestartServer(), "V5Migration should not require server restart")
+}
+
 func TestV5Migration_Registration(t *testing.T) {
 	// Test that V5Migration is registered in the default registry
 	migration, exists := GetRegisteredMigration(5.0)

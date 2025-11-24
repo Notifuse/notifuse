@@ -163,7 +163,7 @@ func TestConnectionManager_HasCapacityForNewPool(t *testing.T) {
 
 	db, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	err = InitializeConnectionManager(cfg, db)
 	require.NoError(t, err)
@@ -194,7 +194,7 @@ func TestConnectionManager_GetTotalConnectionCount(t *testing.T) {
 	cfg := createTestConfig()
 	systemDB, systemMock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer systemDB.Close()
+	defer func() { _ = systemDB.Close() }()
 
 	systemDB.SetMaxOpenConns(10)
 	systemMock.ExpectClose()
@@ -231,7 +231,7 @@ func TestConnectionManager_GetTotalConnectionCount(t *testing.T) {
 		delete(cm.workspacePools, "test_ws")
 		delete(cm.poolAccessTimes, "test_ws")
 		cm.mu.Unlock()
-		wsDB.Close()
+		_ = wsDB.Close()
 	})
 }
 
@@ -241,7 +241,7 @@ func TestConnectionManager_CloseLRUIdlePools(t *testing.T) {
 	cfg := createTestConfig()
 	systemDB, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer systemDB.Close()
+	defer func() { _ = systemDB.Close() }()
 
 	err = InitializeConnectionManager(cfg, systemDB)
 	require.NoError(t, err)
@@ -297,9 +297,9 @@ func TestConnectionManager_CloseLRUIdlePools(t *testing.T) {
 		delete(cm.poolAccessTimes, "ws_recent")
 		cm.mu.Unlock()
 
-		old.Close()
-		medium.Close()
-		recent.Close()
+		_ = old.Close()
+		_ = medium.Close()
+		_ = recent.Close()
 	})
 
 	t.Run("closes multiple pools in LRU order", func(t *testing.T) {
@@ -340,7 +340,7 @@ func TestConnectionManager_CloseLRUIdlePools(t *testing.T) {
 		for i := 2; i < 5; i++ {
 			wsID := fmt.Sprintf("ws_%d", i)
 			if pool, ok := cm.workspacePools[wsID]; ok {
-				pool.Close()
+				_ = pool.Close()
 				delete(cm.workspacePools, wsID)
 				delete(cm.poolAccessTimes, wsID)
 			}
@@ -360,7 +360,7 @@ func TestConnectionManager_ContextCancellation(t *testing.T) {
 	cfg := createTestConfig()
 	systemDB, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer systemDB.Close()
+	defer func() { _ = systemDB.Close() }()
 
 	err = InitializeConnectionManager(cfg, systemDB)
 	require.NoError(t, err)
@@ -394,7 +394,7 @@ func TestConnectionManager_RaceConditionSafety(t *testing.T) {
 	cfg := createTestConfig()
 	systemDB, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer systemDB.Close()
+	defer func() { _ = systemDB.Close() }()
 
 	err = InitializeConnectionManager(cfg, systemDB)
 	require.NoError(t, err)
@@ -402,7 +402,7 @@ func TestConnectionManager_RaceConditionSafety(t *testing.T) {
 	t.Run("double-check prevents duplicate pool creation", func(t *testing.T) {
 		mockPool, _, _ := sqlmock.New()
 		mockPool.SetMaxOpenConns(3)
-		defer mockPool.Close()
+		defer func() { _ = mockPool.Close() }()
 
 		instance.mu.Lock()
 		instance.workspacePools["race_test"] = mockPool
@@ -429,7 +429,7 @@ func TestConnectionManager_CloseWorkspaceConnection(t *testing.T) {
 	cfg := createTestConfig()
 	systemDB, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer systemDB.Close()
+	defer func() { _ = systemDB.Close() }()
 
 	err = InitializeConnectionManager(cfg, systemDB)
 	require.NoError(t, err)
@@ -473,7 +473,7 @@ func TestConnectionManager_AccessTimeTracking(t *testing.T) {
 	cfg := createTestConfig()
 	systemDB, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer systemDB.Close()
+	defer func() { _ = systemDB.Close() }()
 
 	err = InitializeConnectionManager(cfg, systemDB)
 	require.NoError(t, err)
@@ -483,7 +483,7 @@ func TestConnectionManager_AccessTimeTracking(t *testing.T) {
 	t.Run("tracks access time on pool reuse", func(t *testing.T) {
 		mockPool, mockSQL, _ := sqlmock.New(sqlmock.MonitorPingsOption(true))
 		mockPool.SetMaxOpenConns(3)
-		defer mockPool.Close()
+		defer func() { _ = mockPool.Close() }()
 
 		now := time.Now()
 		cm.mu.Lock()
@@ -521,7 +521,7 @@ func TestConnectionManager_StalePoolRemoval(t *testing.T) {
 	cfg := createTestConfig()
 	systemDB, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer systemDB.Close()
+	defer func() { _ = systemDB.Close() }()
 
 	err = InitializeConnectionManager(cfg, systemDB)
 	require.NoError(t, err)
@@ -531,7 +531,7 @@ func TestConnectionManager_StalePoolRemoval(t *testing.T) {
 	t.Run("removes stale pool when ping fails", func(t *testing.T) {
 		mockPool, _, _ := sqlmock.New()
 		mockPool.SetMaxOpenConns(3)
-		mockPool.Close()
+		_ = mockPool.Close()
 
 		cm.mu.Lock()
 		cm.workspacePools["stale_test"] = mockPool
@@ -559,7 +559,7 @@ func TestConnectionManager_LRUSorting(t *testing.T) {
 	cfg := createTestConfig()
 	systemDB, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer systemDB.Close()
+	defer func() { _ = systemDB.Close() }()
 
 	err = InitializeConnectionManager(cfg, systemDB)
 	require.NoError(t, err)
@@ -613,11 +613,83 @@ func TestConnectionManager_LRUSorting(t *testing.T) {
 		cm.mu.Lock()
 		for _, a := range ages {
 			if pool, ok := cm.workspacePools[a.id]; ok {
-				pool.Close()
+				_ = pool.Close()
 				delete(cm.workspacePools, a.id)
 				delete(cm.poolAccessTimes, a.id)
 			}
 		}
 		cm.mu.Unlock()
+	})
+}
+
+func TestConnectionManager_GetSystemConnection(t *testing.T) {
+	// Test connectionManager.GetSystemConnection - this was at 0% coverage
+	defer ResetConnectionManager()
+
+	cfg := createTestConfig()
+	systemDB, _, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = systemDB.Close() }()
+
+	err = InitializeConnectionManager(cfg, systemDB)
+	require.NoError(t, err)
+
+	cm, err := GetConnectionManager()
+	require.NoError(t, err)
+
+	t.Run("Returns system connection", func(t *testing.T) {
+		conn := cm.GetSystemConnection()
+		assert.NotNil(t, conn)
+		assert.Equal(t, systemDB, conn)
+	})
+}
+
+func TestConnectionManager_GetStats(t *testing.T) {
+	// Test connectionManager.GetStats - this was at 0% coverage
+	defer ResetConnectionManager()
+
+	cfg := createTestConfig()
+	systemDB, _, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = systemDB.Close() }()
+
+	systemDB.SetMaxOpenConns(10)
+
+	err = InitializeConnectionManager(cfg, systemDB)
+	require.NoError(t, err)
+
+	cm, err := GetConnectionManager()
+	require.NoError(t, err)
+
+	t.Run("Returns stats with system connection", func(t *testing.T) {
+		stats := cm.GetStats()
+		assert.Equal(t, cfg.Database.MaxConnections, stats.MaxConnections)
+		assert.Equal(t, cfg.Database.MaxConnectionsPerDB, stats.MaxConnectionsPerDB)
+		assert.NotNil(t, stats.SystemConnections)
+		assert.GreaterOrEqual(t, stats.SystemConnections.OpenConnections, 0)
+		assert.Equal(t, 0, stats.ActiveWorkspaceDatabases)
+	})
+
+	t.Run("Returns stats with workspace pools", func(t *testing.T) {
+		// Add a workspace pool
+		wsDB, _, _ := sqlmock.New()
+		wsDB.SetMaxOpenConns(3)
+		defer func() { _ = wsDB.Close() }()
+
+		instance.mu.Lock()
+		instance.workspacePools["test_ws"] = wsDB
+		instance.poolAccessTimes["test_ws"] = time.Now()
+		instance.mu.Unlock()
+
+		stats := cm.GetStats()
+		assert.Equal(t, 1, stats.ActiveWorkspaceDatabases)
+		assert.NotNil(t, stats.WorkspacePools)
+		assert.Contains(t, stats.WorkspacePools, "test_ws")
+
+		// Clean up
+		instance.mu.Lock()
+		delete(instance.workspacePools, "test_ws")
+		delete(instance.poolAccessTimes, "test_ws")
+		instance.mu.Unlock()
 	})
 }

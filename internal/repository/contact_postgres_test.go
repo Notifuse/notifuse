@@ -2208,3 +2208,132 @@ func TestContactRepository_BulkUpsertContacts(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestContactRepository_Count(t *testing.T) {
+	// Test contactRepository.Count - this was at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewContactRepository(mockWorkspaceRepo)
+
+	db, mock, cleanup := setupMockDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+
+	t.Run("Success - Returns count", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts`).
+			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(42))
+
+		count, err := repo.Count(ctx, workspaceID)
+		assert.NoError(t, err)
+		assert.Equal(t, 42, count)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(nil, errors.New("connection error"))
+
+		count, err := repo.Count(ctx, workspaceID)
+		assert.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("Error - Query error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts`).
+			WillReturnError(errors.New("query error"))
+
+		count, err := repo.Count(ctx, workspaceID)
+		assert.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), "failed to execute count query")
+	})
+}
+
+func TestContactRepository_GetBatchForSegment(t *testing.T) {
+	// Test contactRepository.GetBatchForSegment - this was at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewContactRepository(mockWorkspaceRepo)
+
+	db, mock, cleanup := setupMockDB(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+
+	t.Run("Success - Returns emails", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectQuery(`SELECT email FROM contacts ORDER BY email ASC LIMIT \$1 OFFSET \$2`).
+			WithArgs(10, int64(0)).
+			WillReturnRows(sqlmock.NewRows([]string{"email"}).
+				AddRow("test1@example.com").
+				AddRow("test2@example.com"))
+
+		emails, err := repo.GetBatchForSegment(ctx, workspaceID, 0, 10)
+		assert.NoError(t, err)
+		assert.Len(t, emails, 2)
+		assert.Equal(t, "test1@example.com", emails[0])
+		assert.Equal(t, "test2@example.com", emails[1])
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Success - Empty result", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectQuery(`SELECT email FROM contacts ORDER BY email ASC LIMIT \$1 OFFSET \$2`).
+			WithArgs(10, int64(100)).
+			WillReturnRows(sqlmock.NewRows([]string{"email"}))
+
+		emails, err := repo.GetBatchForSegment(ctx, workspaceID, 100, 10)
+		assert.NoError(t, err)
+		assert.Empty(t, emails)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(nil, errors.New("connection error"))
+
+		emails, err := repo.GetBatchForSegment(ctx, workspaceID, 0, 10)
+		assert.Error(t, err)
+		assert.Nil(t, emails)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("Error - Query error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectQuery(`SELECT email FROM contacts ORDER BY email ASC LIMIT \$1 OFFSET \$2`).
+			WithArgs(10, int64(0)).
+			WillReturnError(errors.New("query error"))
+
+		emails, err := repo.GetBatchForSegment(ctx, workspaceID, 0, 10)
+		assert.Error(t, err)
+		assert.Nil(t, emails)
+		assert.Contains(t, err.Error(), "failed to query emails")
+	})
+}

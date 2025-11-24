@@ -176,6 +176,12 @@ func TestV4Migration_Interface(t *testing.T) {
 	assert.Equal(t, 4.0, migration.GetMajorVersion())
 }
 
+func TestV4Migration_ShouldRestartServer(t *testing.T) {
+	// Test V4Migration.ShouldRestartServer - this was at 0% coverage
+	migration := &V4Migration{}
+	assert.False(t, migration.ShouldRestartServer(), "V4Migration should not require server restart")
+}
+
 func TestV4Migration_Registration(t *testing.T) {
 	// Test that the migration is registered (this tests the init function)
 	registeredMigration, found := GetRegisteredMigration(4.0)

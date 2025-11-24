@@ -44,7 +44,7 @@ func TestSMTPRelayE2E_FullFlow(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	factory := suite.DataFactory
 	appInstance := suite.ServerManager.GetApp()
@@ -139,7 +139,7 @@ func TestSMTPRelayE2E_FullFlow(t *testing.T) {
 	addr := fmt.Sprintf("localhost:%d", testPort)
 	smtpClient, err := smtp.Dial(addr)
 	require.NoError(t, err)
-	defer smtpClient.Close()
+	defer func() { _ = smtpClient.Close() }()
 
 	// Start TLS
 	tlsClientConfig := &tls.Config{
@@ -229,7 +229,7 @@ func TestSMTPRelayE2E_WithEmailHeaders(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	factory := suite.DataFactory
 	appInstance := suite.ServerManager.GetApp()
@@ -309,7 +309,7 @@ func TestSMTPRelayE2E_WithEmailHeaders(t *testing.T) {
 	addr := fmt.Sprintf("localhost:%d", testPort)
 	smtpClient, err := smtp.Dial(addr)
 	require.NoError(t, err)
-	defer smtpClient.Close()
+	defer func() { _ = smtpClient.Close() }()
 
 	tlsClientConfig := &tls.Config{
 		InsecureSkipVerify: true,
@@ -394,7 +394,7 @@ func TestSMTPRelayE2E_InvalidAuthentication(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	appInstance := suite.ServerManager.GetApp()
 	authService := appInstance.GetAuthService().(*service.AuthService)
@@ -445,7 +445,7 @@ func TestSMTPRelayE2E_InvalidAuthentication(t *testing.T) {
 	addr := fmt.Sprintf("localhost:%d", testPort)
 	smtpClient, err := smtp.Dial(addr)
 	require.NoError(t, err)
-	defer smtpClient.Close()
+	defer func() { _ = smtpClient.Close() }()
 
 	tlsClientConfig := &tls.Config{
 		InsecureSkipVerify: true,
@@ -471,7 +471,7 @@ func TestSMTPRelayE2E_InvalidJSON(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	factory := suite.DataFactory
 	appInstance := suite.ServerManager.GetApp()
@@ -538,7 +538,7 @@ func TestSMTPRelayE2E_InvalidJSON(t *testing.T) {
 	addr := fmt.Sprintf("localhost:%d", testPort)
 	smtpClient, err := smtp.Dial(addr)
 	require.NoError(t, err)
-	defer smtpClient.Close()
+	defer func() { _ = smtpClient.Close() }()
 
 	tlsClientConfig := &tls.Config{
 		InsecureSkipVerify: true,
@@ -585,7 +585,7 @@ func TestSMTPRelayE2E_MultipleMessages(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	factory := suite.DataFactory
 	appInstance := suite.ServerManager.GetApp()

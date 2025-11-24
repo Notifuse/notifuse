@@ -119,7 +119,6 @@ func createSupabaseTestData(emailActionType string) domain.MapOfAny {
 	}
 }
 
-
 // createSignupTemplate creates the signup confirmation template
 func (s *SupabaseService) createSignupTemplate(ctx context.Context, workspaceID, integrationID string) (string, error) {
 	// Use random number to avoid collisions in concurrent tests

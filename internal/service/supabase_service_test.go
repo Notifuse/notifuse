@@ -604,3 +604,71 @@ func TestProcessUserCreatedHook_RejectDisposableEmail_Disabled(t *testing.T) {
 	// Should return nil even with disposable email since rejection is disabled
 	assert.NoError(t, err)
 }
+
+func TestSupabaseService_storeSupabaseWebhook(t *testing.T) {
+	// Test SupabaseService.storeSupabaseWebhook - this was at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWebhookEventRepo := mocks.NewMockWebhookEventRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	service := NewSupabaseService(
+		nil, // workspaceRepo
+		nil, // emailService
+		nil, // contactService
+		nil, // listRepo
+		nil, // contactListRepo
+		nil, // templateRepo
+		nil, // templateService
+		nil, // transactionalRepo
+		nil, // transactionalService
+		mockWebhookEventRepo,
+		mockLogger,
+	)
+
+	ctx := context.Background()
+	workspaceID := "workspace-123"
+	integrationID := "integration-456"
+	recipientEmail := "test@example.com"
+	eventType := "email.sent"
+	payload := []byte(`{"test": "data"}`)
+	webhookTimestamp := "2024-01-01T12:00:00Z"
+
+	t.Run("Success - Stores webhook event", func(t *testing.T) {
+		mockWebhookEventRepo.EXPECT().
+			StoreEvents(ctx, workspaceID, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, workspaceID string, events []*domain.WebhookEvent) error {
+				assert.Len(t, events, 1)
+				assert.Equal(t, domain.EmailEventType(eventType), events[0].Type)
+				assert.Equal(t, domain.WebhookSourceSupabase, events[0].Source)
+				assert.Equal(t, integrationID, events[0].IntegrationID)
+				assert.Equal(t, recipientEmail, events[0].RecipientEmail)
+				return nil
+			})
+
+		err := service.storeSupabaseWebhook(ctx, workspaceID, integrationID, recipientEmail, eventType, payload, webhookTimestamp)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Error - Repository error", func(t *testing.T) {
+		mockWebhookEventRepo.EXPECT().
+			StoreEvents(ctx, workspaceID, gomock.Any()).
+			Return(errors.New("repository error"))
+
+		err := service.storeSupabaseWebhook(ctx, workspaceID, integrationID, recipientEmail, eventType, payload, webhookTimestamp)
+		assert.Error(t, err)
+	})
+
+	t.Run("Success - Invalid timestamp uses current time", func(t *testing.T) {
+		mockWebhookEventRepo.EXPECT().
+			StoreEvents(ctx, workspaceID, gomock.Any()).
+			DoAndReturn(func(ctx context.Context, workspaceID string, events []*domain.WebhookEvent) error {
+				assert.NotNil(t, events[0].Timestamp)
+				return nil
+			})
+
+		err := service.storeSupabaseWebhook(ctx, workspaceID, integrationID, recipientEmail, eventType, payload, "invalid-timestamp")
+		assert.NoError(t, err)
+	})
+}

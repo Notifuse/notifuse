@@ -23,7 +23,7 @@ func TestEmailHandler_Integration(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	t.Run("HandleClickRedirection", func(t *testing.T) {
 		testEmailHandlerClickRedirection(t, suite)
@@ -73,7 +73,7 @@ func testEmailHandlerClickRedirection(t *testing.T, suite *testutil.IntegrationT
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should redirect with 303 See Other
 		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -101,7 +101,7 @@ func testEmailHandlerClickRedirection(t *testing.T, suite *testutil.IntegrationT
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should still redirect even without tracking parameters
 		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -118,7 +118,7 @@ func testEmailHandlerClickRedirection(t *testing.T, suite *testutil.IntegrationT
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return bad request when URL is missing
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -146,7 +146,7 @@ func testEmailHandlerClickRedirection(t *testing.T, suite *testutil.IntegrationT
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should redirect even with partial parameters
 		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -171,7 +171,7 @@ func testEmailHandlerOpens(t *testing.T, suite *testutil.IntegrationTestSuite) {
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return 200 OK
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -199,7 +199,7 @@ func testEmailHandlerOpens(t *testing.T, suite *testutil.IntegrationTestSuite) {
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return bad request
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -217,7 +217,7 @@ func testEmailHandlerOpens(t *testing.T, suite *testutil.IntegrationTestSuite) {
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return bad request
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -235,7 +235,7 @@ func testEmailHandlerOpens(t *testing.T, suite *testutil.IntegrationTestSuite) {
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return bad request
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -286,7 +286,7 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 			// Check if it's a service-level error vs HTTP error
 			httpResp, httpErr := suite.APIClient.Post("/api/email.testProvider", reqBody)
 			if httpErr == nil {
-				defer httpResp.Body.Close()
+				defer func() { _ = _ = httpResp.Body.Close() }()
 				assert.Equal(t, http.StatusOK, httpResp.StatusCode)
 
 				// Decode the response
@@ -315,7 +315,7 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 
 		resp, err := suite.APIClient.Post("/api/email.testProvider", reqBody)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
@@ -335,7 +335,7 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 
 		resp, err := suite.APIClient.Post("/api/email.testProvider", reqBody)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
@@ -360,7 +360,7 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 		httpClient := &http.Client{}
 		resp, err := httpClient.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
@@ -380,7 +380,7 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 		httpClient := &http.Client{}
 		resp, err := httpClient.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 
@@ -412,7 +412,7 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -448,7 +448,7 @@ func testBotDetectionClickTracking(t *testing.T, suite *testutil.IntegrationTest
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should still redirect properly (bot gets redirected)
 		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -483,7 +483,7 @@ func testBotDetectionClickTracking(t *testing.T, suite *testutil.IntegrationTest
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should still redirect properly (fast clicks get redirected)
 		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -514,7 +514,7 @@ func testBotDetectionClickTracking(t *testing.T, suite *testutil.IntegrationTest
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should redirect properly
 		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -543,7 +543,7 @@ func testBotDetectionClickTracking(t *testing.T, suite *testutil.IntegrationTest
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should still redirect properly (bot gets redirected)
 		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -579,7 +579,7 @@ func testBotDetectionClickTracking(t *testing.T, suite *testutil.IntegrationTest
 
 				resp, err := client.Do(req)
 				require.NoError(t, err)
-				defer resp.Body.Close()
+				defer func() { _ = _ = resp.Body.Close() }()
 
 				// Email scanners should still get redirected
 				assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -608,7 +608,7 @@ func testBotDetectionClickTracking(t *testing.T, suite *testutil.IntegrationTest
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should still work (time check is skipped if no ts parameter)
 		assert.Equal(t, http.StatusSeeOther, resp.StatusCode)
@@ -641,7 +641,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should still return a pixel (bot gets the image)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -677,7 +677,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should still return a pixel
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -705,7 +705,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return a pixel
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -732,7 +732,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should still return a pixel
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -755,7 +755,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should still work (invalid ts is ignored, time check skipped)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -781,7 +781,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return a pixel
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -807,7 +807,7 @@ func testBotDetectionOpenTracking(t *testing.T, suite *testutil.IntegrationTestS
 
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should work fine
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -821,7 +821,7 @@ func TestEmailHandler_ConcurrentRequests(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	baseURL := suite.ServerManager.GetURL()
 
@@ -861,7 +861,7 @@ func TestEmailHandler_ConcurrentRequests(t *testing.T) {
 					results <- err
 					return
 				}
-				resp.Body.Close()
+				_ = resp.Body.Close()
 
 				if resp.StatusCode != http.StatusSeeOther {
 					results <- fmt.Errorf("expected status 303, got %d", resp.StatusCode)
@@ -904,7 +904,7 @@ func TestEmailHandler_ConcurrentRequests(t *testing.T) {
 					results <- err
 					return
 				}
-				resp.Body.Close()
+				_ = resp.Body.Close()
 
 				if resp.StatusCode != http.StatusOK {
 					results <- fmt.Errorf("expected status 200, got %d", resp.StatusCode)

@@ -24,7 +24,7 @@ func TestTransactionalHandler(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -99,7 +99,7 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 
 			resp, err := client.CreateTransactionalNotification(notification)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -125,7 +125,7 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 
 			resp, err := client.CreateTransactionalNotification(notification)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -143,7 +143,7 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 
 			resp, err := client.CreateTransactionalNotification(notification)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -168,7 +168,7 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 		t.Run("should get notification successfully", func(t *testing.T) {
 			resp, err := client.GetTransactionalNotification(notification.ID)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -185,7 +185,7 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 		t.Run("should return 404 for non-existent notification", func(t *testing.T) {
 			resp, err := client.GetTransactionalNotification("non-existent")
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 		})
@@ -226,7 +226,7 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 				"offset": "0",
 			})
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -248,7 +248,7 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 				"offset": "0",
 			})
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -285,7 +285,7 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 
 			resp, err := client.UpdateTransactionalNotification(notification.ID, updates)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -306,7 +306,7 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 
 			resp, err := client.UpdateTransactionalNotification("non-existent", updates)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 		})
@@ -331,7 +331,7 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 		t.Run("should delete notification successfully", func(t *testing.T) {
 			resp, err := client.DeleteTransactionalNotification(notification.ID)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -345,14 +345,14 @@ func testTransactionalCRUD(t *testing.T, client *testutil.APIClient, factory *te
 			// Verify notification is deleted
 			getResp, err := client.GetTransactionalNotification(notification.ID)
 			require.NoError(t, err)
-			defer getResp.Body.Close()
+			defer func() { _ = _ = getResp.Body.Close() }()
 			assert.Equal(t, http.StatusNotFound, getResp.StatusCode)
 		})
 
 		t.Run("should return 404 for non-existent notification", func(t *testing.T) {
 			resp, err := client.DeleteTransactionalNotification("non-existent")
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 		})
@@ -400,7 +400,7 @@ func testTransactionalSend(t *testing.T, client *testutil.APIClient, factory *te
 
 			resp, err := client.SendTransactionalNotification(sendRequest)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			// With proper SMTP email provider setup, should succeed
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -422,7 +422,7 @@ func testTransactionalSend(t *testing.T, client *testutil.APIClient, factory *te
 
 			resp, err := client.SendTransactionalNotification(sendRequest)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -438,7 +438,7 @@ func testTransactionalSend(t *testing.T, client *testutil.APIClient, factory *te
 
 			resp, err := client.SendTransactionalNotification(sendRequest)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -468,7 +468,7 @@ func testTransactionalTemplateTest(t *testing.T, client *testutil.APIClient, fac
 
 			resp, err := client.TestTransactionalTemplate(testRequest)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -490,7 +490,7 @@ func testTransactionalTemplateTest(t *testing.T, client *testutil.APIClient, fac
 
 			resp, err := client.TestTransactionalTemplate(testRequest)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -505,7 +505,7 @@ func testTransactionalTemplateTest(t *testing.T, client *testutil.APIClient, fac
 
 			resp, err := client.TestTransactionalTemplate(testRequest)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -528,7 +528,7 @@ func TestTransactionalAuthentication(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -585,7 +585,7 @@ func TestTransactionalAuthentication(t *testing.T) {
 			t.Run(endpoint.name, func(t *testing.T) {
 				resp, err := endpoint.method()
 				require.NoError(t, err)
-				defer resp.Body.Close()
+				defer func() { _ = _ = resp.Body.Close() }()
 
 				assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 			})
@@ -601,7 +601,7 @@ func TestTransactionalMethodValidation(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -625,38 +625,38 @@ func TestTransactionalMethodValidation(t *testing.T) {
 		// Test that GET-only endpoints reject POST
 		resp, err := client.Post("/api/transactional.list", map[string]interface{}{})
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 
 		resp, err = client.Post("/api/transactional.get", map[string]interface{}{})
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 
 		// Test that POST-only endpoints reject GET
 		resp, err = client.Get("/api/transactional.create")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 
 		resp, err = client.Get("/api/transactional.update")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 
 		resp, err = client.Get("/api/transactional.delete")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 
 		resp, err = client.Get("/api/transactional.send")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 
 		resp, err = client.Get("/api/transactional.testTemplate")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 	})
 }
@@ -721,7 +721,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 
 		resp, err := client.SendTransactionalNotification(sendRequest)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Check response
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
@@ -745,7 +745,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		t.Log("Checking MailHog API for email count...")
 		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
 		require.NoError(t, err, "Failed to connect to MailHog API")
-		defer mailhogResp.Body.Close()
+		defer func() { _ = _ = mailhogResp.Body.Close() }()
 
 		var mailhogData struct {
 			Total int `json:"total"`
@@ -808,7 +808,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		// Verify message history was created for the main recipient
 		messageResp, err := client.Get("/api/messages.list?workspace_id=" + workspaceID + "&id=" + messageID)
 		require.NoError(t, err)
-		defer messageResp.Body.Close()
+		defer func() { _ = _ = messageResp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, messageResp.StatusCode)
 
@@ -864,7 +864,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 
 		resp, err := client.SendTransactionalNotification(sendRequest)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "Should reject invalid CC email")
 
@@ -875,7 +875,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 
 		resp, err = client.SendTransactionalNotification(sendRequest)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "Should reject invalid BCC email")
 	})
@@ -910,7 +910,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 
 		resp, err := client.SendTransactionalNotification(sendRequest)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should fail validation - empty strings are not allowed
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "Should reject empty strings in CC")
@@ -975,7 +975,7 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 
 		resp, err := client.SendTransactionalNotification(sendRequest)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Check response
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
@@ -999,7 +999,7 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		t.Log("Checking MailHog API for email with custom from_name...")
 		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
 		require.NoError(t, err, "Failed to connect to MailHog API")
-		defer mailhogResp.Body.Close()
+		defer func() { _ = _ = mailhogResp.Body.Close() }()
 
 		var mailhogData struct {
 			Total int `json:"total"`
@@ -1050,7 +1050,7 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		// Verify message history was created
 		messageResp, err := client.Get("/api/messages.list?workspace_id=" + workspaceID + "&id=" + messageID)
 		require.NoError(t, err)
-		defer messageResp.Body.Close()
+		defer func() { _ = _ = messageResp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, messageResp.StatusCode)
 
@@ -1115,7 +1115,7 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 
 		resp, err := client.SendTransactionalNotification(sendRequest)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
 
@@ -1135,7 +1135,7 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		// Check MailHog to verify email was sent (with default from_name)
 		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
 		require.NoError(t, err)
-		defer mailhogResp.Body.Close()
+		defer func() { _ = _ = mailhogResp.Body.Close() }()
 
 		var mailhogData struct {
 			Total int `json:"total"`
@@ -1210,7 +1210,7 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 
 		resp, err := client.SendTransactionalNotification(sendRequest)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Expected 200 OK when sending notification")
 
@@ -1230,7 +1230,7 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		// Verify email was sent
 		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
 		require.NoError(t, err)
-		defer mailhogResp.Body.Close()
+		defer func() { _ = _ = mailhogResp.Body.Close() }()
 
 		var mailhogData struct {
 			Total int `json:"total"`

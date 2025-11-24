@@ -854,3 +854,160 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 		assert.False(t, node.HasRelativeDates())
 	})
 }
+
+func TestContactListCondition_Validate(t *testing.T) {
+	// Test ContactListCondition.Validate - this was at 0% coverage
+	tests := []struct {
+		name    string
+		cond    ContactListCondition
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid with 'in' operator",
+			cond: ContactListCondition{
+				Operator: "in",
+				ListID:   "list-123",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid with 'not_in' operator",
+			cond: ContactListCondition{
+				Operator: "not_in",
+				ListID:   "list-456",
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid operator",
+			cond: ContactListCondition{
+				Operator: "invalid",
+				ListID:   "list-123",
+			},
+			wantErr: true,
+			errMsg:  "invalid contact_list operator",
+		},
+		{
+			name: "missing list_id",
+			cond: ContactListCondition{
+				Operator: "in",
+				ListID:   "",
+			},
+			wantErr: true,
+			errMsg:  "contact_list condition must have 'list_id'",
+		},
+		{
+			name: "empty operator",
+			cond: ContactListCondition{
+				Operator: "",
+				ListID:   "list-123",
+			},
+			wantErr: true,
+			errMsg:  "invalid contact_list operator",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cond.Validate()
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestContactTimelineCondition_Validate(t *testing.T) {
+	// Test ContactTimelineCondition.Validate - this was at 0% coverage
+	tests := []struct {
+		name    string
+		cond    ContactTimelineCondition
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid with 'at_least' operator",
+			cond: ContactTimelineCondition{
+				Kind:          "email_sent",
+				CountOperator: "at_least",
+				CountValue:    5,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid with 'at_most' operator",
+			cond: ContactTimelineCondition{
+				Kind:          "email_opened",
+				CountOperator: "at_most",
+				CountValue:    10,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid with 'exactly' operator",
+			cond: ContactTimelineCondition{
+				Kind:          "email_clicked",
+				CountOperator: "exactly",
+				CountValue:    3,
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing kind",
+			cond: ContactTimelineCondition{
+				Kind:          "",
+				CountOperator: "at_least",
+				CountValue:    5,
+			},
+			wantErr: true,
+			errMsg:  "contact_timeline condition must have 'kind'",
+		},
+		{
+			name: "invalid count_operator",
+			cond: ContactTimelineCondition{
+				Kind:          "email_sent",
+				CountOperator: "invalid",
+				CountValue:    5,
+			},
+			wantErr: true,
+			errMsg:  "invalid count_operator",
+		},
+		{
+			name: "negative count_value",
+			cond: ContactTimelineCondition{
+				Kind:          "email_sent",
+				CountOperator: "at_least",
+				CountValue:    -1,
+			},
+			wantErr: true,
+			errMsg:  "count_value must be non-negative",
+		},
+		{
+			name: "zero count_value is valid",
+			cond: ContactTimelineCondition{
+				Kind:          "email_sent",
+				CountOperator: "at_least",
+				CountValue:    0,
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.cond.Validate()
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

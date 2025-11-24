@@ -20,7 +20,7 @@ func TestSignInRateLimiter_Integration(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 	email := testUserEmail // Pre-seeded test user
@@ -32,7 +32,7 @@ func TestSignInRateLimiter_Integration(t *testing.T) {
 
 			resp, err := client.Post("/api/user.signin", signinReq)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			// Should succeed (200) - not rate limited
 			assert.Equal(t, http.StatusOK, resp.StatusCode, "Attempt %d should succeed", i+1)
@@ -54,7 +54,7 @@ func TestSignInRateLimiter_Integration(t *testing.T) {
 
 		resp, err := client.Post("/api/user.signin", signinReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return error status
 		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
@@ -93,7 +93,7 @@ func TestSignInRateLimiter_Integration(t *testing.T) {
 
 		resp, err := client.Post("/api/user.signin", signinReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should succeed - different user has separate rate limit
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -115,7 +115,7 @@ func TestVerifyCodeRateLimiter_Integration(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -161,7 +161,7 @@ func TestVerifyCodeRateLimiter_Integration(t *testing.T) {
 
 			resp, err := client.Post("/api/user.verify", verifyReq)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			// Should fail (wrong code) but NOT with rate limit error
 			var response map[string]interface{}
@@ -183,7 +183,7 @@ func TestVerifyCodeRateLimiter_Integration(t *testing.T) {
 
 		resp, err := client.Post("/api/user.verify", verifyReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return unauthorized status (all verify errors return 401)
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
@@ -221,7 +221,7 @@ func TestVerifyCodeRateLimiter_Integration(t *testing.T) {
 		signinReq := domain.SignInInput{Email: email}
 		signinResp, err := client.Post("/api/user.signin", signinReq)
 		require.NoError(t, err)
-		defer signinResp.Body.Close()
+		defer func() { _ = _ = signinResp.Body.Close() }()
 
 		var signinResponse map[string]interface{}
 		err = json.NewDecoder(signinResp.Body).Decode(&signinResponse)
@@ -239,7 +239,7 @@ func TestVerifyCodeRateLimiter_Integration(t *testing.T) {
 
 			resp, err := client.Post("/api/user.verify", verifyReq)
 			require.NoError(t, err)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 
 		// Now verify with correct code - should succeed and reset limiter
@@ -250,7 +250,7 @@ func TestVerifyCodeRateLimiter_Integration(t *testing.T) {
 
 		verifyResp, err := client.Post("/api/user.verify", verifyReq)
 		require.NoError(t, err)
-		defer verifyResp.Body.Close()
+		defer func() { _ = _ = verifyResp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, verifyResp.StatusCode, "Correct code should succeed")
 
@@ -259,7 +259,7 @@ func TestVerifyCodeRateLimiter_Integration(t *testing.T) {
 		signinReq2 := domain.SignInInput{Email: email}
 		signinResp2, err := client.Post("/api/user.signin", signinReq2)
 		require.NoError(t, err)
-		defer signinResp2.Body.Close()
+		defer func() { _ = _ = signinResp2.Body.Close() }()
 
 		// Should succeed - rate limiter was reset
 		var signinResponse2 map[string]interface{}
@@ -278,7 +278,7 @@ func TestVerifyCodeRateLimiter_Integration(t *testing.T) {
 
 		verifyResp2, err := client.Post("/api/user.verify", verifyReq2)
 		require.NoError(t, err)
-		defer verifyResp2.Body.Close()
+		defer func() { _ = _ = verifyResp2.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, verifyResp2.StatusCode, "Should not be rate limited after reset")
 	})
@@ -290,7 +290,7 @@ func TestRateLimiter_CrossEndpoint_Independence(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -317,14 +317,14 @@ func TestRateLimiter_CrossEndpoint_Independence(t *testing.T) {
 			signinReq := domain.SignInInput{Email: email}
 			resp, err := client.Post("/api/user.signin", signinReq)
 			require.NoError(t, err)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 
 		// Verify signin is rate limited
 		signinReq := domain.SignInInput{Email: email}
 		signinResp, err := client.Post("/api/user.signin", signinReq)
 		require.NoError(t, err)
-		defer signinResp.Body.Close()
+		defer func() { _ = _ = signinResp.Body.Close() }()
 
 		assert.Equal(t, http.StatusInternalServerError, signinResp.StatusCode)
 
@@ -351,7 +351,7 @@ func TestRateLimiter_CrossEndpoint_Independence(t *testing.T) {
 
 		verifyResp, err := client.Post("/api/user.verify", verifyReq)
 		require.NoError(t, err)
-		defer verifyResp.Body.Close()
+		defer func() { _ = _ = verifyResp.Body.Close() }()
 
 		// Should fail for wrong code, but NOT with rate limit error
 		var response map[string]interface{}
@@ -371,7 +371,7 @@ func TestRateLimiter_ErrorMessages(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -398,14 +398,14 @@ func TestRateLimiter_ErrorMessages(t *testing.T) {
 			signinReq := domain.SignInInput{Email: email}
 			resp, err := client.Post("/api/user.signin", signinReq)
 			require.NoError(t, err)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 
 		// Next attempt should return proper error
 		signinReq := domain.SignInInput{Email: email}
 		resp, err := client.Post("/api/user.signin", signinReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		var response map[string]interface{}
 		err = json.NewDecoder(resp.Body).Decode(&response)
@@ -458,7 +458,7 @@ func TestRateLimiter_ErrorMessages(t *testing.T) {
 			}
 			resp, err := client.Post("/api/user.verify", verifyReq)
 			require.NoError(t, err)
-			resp.Body.Close()
+			_ = resp.Body.Close()
 		}
 
 		// Next attempt should return proper error
@@ -468,7 +468,7 @@ func TestRateLimiter_ErrorMessages(t *testing.T) {
 		}
 		resp, err := client.Post("/api/user.verify", verifyReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// Should return unauthorized status (all verify errors return 401)
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)

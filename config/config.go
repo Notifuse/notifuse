@@ -235,7 +235,7 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 		// If settings table doesn't exist yet, return default settings
 		return settings, nil
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	settingsMap := make(map[string]string)
 	for rows.Next() {
@@ -263,7 +263,7 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 		// Load SMTP settings
 		settings.SMTPHost = settingsMap["smtp_host"]
 		if port, ok := settingsMap["smtp_port"]; ok && port != "" {
-			fmt.Sscanf(port, "%d", &settings.SMTPPort)
+			_, _ = fmt.Sscanf(port, "%d", &settings.SMTPPort)
 		}
 		settings.SMTPFromEmail = settingsMap["smtp_from_email"]
 		settings.SMTPFromName = settingsMap["smtp_from_name"]
@@ -299,7 +299,7 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 
 		settings.SMTPRelayDomain = settingsMap["smtp_relay_domain"]
 		if port, ok := settingsMap["smtp_relay_port"]; ok && port != "" {
-			fmt.Sscanf(port, "%d", &settings.SMTPRelayPort)
+			_, _ = fmt.Sscanf(port, "%d", &settings.SMTPRelayPort)
 		}
 
 		// Decrypt SMTP Relay TLS certificate if present
@@ -464,7 +464,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 
 	db, err := sql.Open("postgres", getSystemDSN(&dbConfig))
 	if err == nil {
-		defer db.Close()
+		defer func() { _ = db.Close() }()
 		if err := db.Ping(); err == nil {
 			// Database is accessible, try to load settings
 			systemSettings, err = loadSystemSettings(db, secretKey)

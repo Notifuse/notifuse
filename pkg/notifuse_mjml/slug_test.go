@@ -188,4 +188,3 @@ func TestGenerateNanoID(t *testing.T) {
 		assert.True(t, matched, "Result should be valid even with fallback")
 	})
 }
-

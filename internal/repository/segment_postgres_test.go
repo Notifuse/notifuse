@@ -830,3 +830,232 @@ func TestSegmentRepository_PreviewSegment(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to execute preview count query")
 	})
 }
+
+func TestSegmentRepository_WithTransaction(t *testing.T) {
+	// Test segmentRepository.WithTransaction - this was at 0% coverage
+	repoInterface, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+	repo := repoInterface.(*segmentRepository) // Cast to concrete type to access WithTransaction
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+
+	t.Run("Success - Transaction commits", func(t *testing.T) {
+		dbMock, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = dbMock.Close() }()
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(dbMock, nil)
+
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectCommit()
+
+		err = repo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
+			// Simulate successful operation
+			return nil
+		})
+		assert.NoError(t, err)
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(nil, errors.New("connection error"))
+
+		err := repo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
+			return nil
+		})
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("Error - Function returns error", func(t *testing.T) {
+		dbMock, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = dbMock.Close() }()
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(dbMock, nil)
+
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectRollback()
+
+		err = repo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
+			return errors.New("function error")
+		})
+		assert.Error(t, err)
+		assert.Equal(t, "function error", err.Error())
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+}
+
+func TestSegmentRepository_GetSegmentsDueForRecompute(t *testing.T) {
+	// Test segmentRepository.GetSegmentsDueForRecompute - this was at 0% coverage
+	repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+
+	t.Run("Success - Returns segments", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		now := time.Now().UTC()
+		rows := sqlmock.NewRows([]string{
+			"id", "name", "color", "tree", "timezone", "version", "status",
+			"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at",
+			"users_count",
+		}).
+			AddRow("seg1", "Test Segment", "#FF0000", []byte("{}"), "UTC", int64(1), "active",
+				"SELECT email", []byte("[]"), now, now, now, 0)
+
+		mock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT 
+			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
+			0 as users_count
+		FROM segments s
+		WHERE s.status = 'active'
+			AND s.recompute_after IS NOT NULL
+			AND s.recompute_after <= NOW()
+		ORDER BY s.recompute_after ASC
+		LIMIT $1
+	`)).
+			WithArgs(10).
+			WillReturnRows(rows)
+
+		segments, err := repo.GetSegmentsDueForRecompute(ctx, workspaceID, 10)
+		assert.NoError(t, err)
+		assert.Len(t, segments, 1)
+		assert.Equal(t, "seg1", segments[0].ID)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(nil, errors.New("connection error"))
+
+		segments, err := repo.GetSegmentsDueForRecompute(ctx, workspaceID, 10)
+		assert.Error(t, err)
+		assert.Nil(t, segments)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("Success - Empty result", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectQuery(regexp.QuoteMeta(`
+		SELECT 
+			s.id, s.name, s.color, s.tree, s.timezone, s.version, s.status,
+			s.generated_sql, s.generated_args, s.recompute_after, s.db_created_at, s.db_updated_at,
+			0 as users_count
+		FROM segments s
+		WHERE s.status = 'active'
+			AND s.recompute_after IS NOT NULL
+			AND s.recompute_after <= NOW()
+		ORDER BY s.recompute_after ASC
+		LIMIT $1
+	`)).
+			WithArgs(10).
+			WillReturnRows(sqlmock.NewRows([]string{
+				"id", "name", "color", "tree", "timezone", "version", "status",
+				"generated_sql", "generated_args", "recompute_after", "db_created_at", "db_updated_at",
+				"users_count",
+			}))
+
+		segments, err := repo.GetSegmentsDueForRecompute(ctx, workspaceID, 10)
+		assert.NoError(t, err)
+		assert.Empty(t, segments)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestSegmentRepository_UpdateRecomputeAfter(t *testing.T) {
+	// Test segmentRepository.UpdateRecomputeAfter - this was at 0% coverage
+	repo, _, mockWorkspaceRepo := setupSegmentRepositoryTest(t)
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	segmentID := "seg1"
+	recomputeAfter := time.Now().UTC().Add(24 * time.Hour)
+
+	t.Run("Success - Updates recompute_after", func(t *testing.T) {
+		dbMock, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = dbMock.Close() }()
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(dbMock, nil)
+
+		sqlMock.ExpectExec(`UPDATE segments SET recompute_after`).
+			WithArgs(segmentID, recomputeAfter, sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err = repo.UpdateRecomputeAfter(ctx, workspaceID, segmentID, &recomputeAfter)
+		assert.NoError(t, err)
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+
+	t.Run("Success - Sets to NULL", func(t *testing.T) {
+		dbMock, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = dbMock.Close() }()
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(dbMock, nil)
+
+		sqlMock.ExpectExec(`UPDATE segments SET recompute_after`).
+			WithArgs(segmentID, nil, sqlmock.AnyArg()).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err = repo.UpdateRecomputeAfter(ctx, workspaceID, segmentID, nil)
+		assert.NoError(t, err)
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(nil, errors.New("connection error"))
+
+		err := repo.UpdateRecomputeAfter(ctx, workspaceID, segmentID, &recomputeAfter)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("Error - Update fails", func(t *testing.T) {
+		dbMock, sqlMock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = dbMock.Close() }()
+
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(dbMock, nil)
+
+		sqlMock.ExpectExec(`UPDATE segments SET recompute_after`).
+			WithArgs(segmentID, recomputeAfter, sqlmock.AnyArg()).
+			WillReturnError(errors.New("update error"))
+
+		err = repo.UpdateRecomputeAfter(ctx, workspaceID, segmentID, &recomputeAfter)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to update recompute_after")
+		assert.NoError(t, sqlMock.ExpectationsWereMet())
+	})
+}

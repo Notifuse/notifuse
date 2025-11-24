@@ -2258,3 +2258,32 @@ func TestTaskService_ExecutePendingTasks_SetLastCronRun(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestTaskService_IsAutoExecuteEnabled(t *testing.T) {
+	// Test TaskService.IsAutoExecuteEnabled - this was at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockRepo := mocks.NewMockTaskRepository(ctrl)
+	mockSettingRepo := mocks.NewMockSettingRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	var mockAuthService *AuthService = nil
+	apiEndpoint := "http://localhost:8080"
+
+	taskService := NewTaskService(mockRepo, mockSettingRepo, mockLogger, mockAuthService, apiEndpoint)
+
+	t.Run("Default is enabled", func(t *testing.T) {
+		// NewTaskService creates service with autoExecuteImmediate = true by default
+		assert.True(t, taskService.IsAutoExecuteEnabled())
+	})
+
+	t.Run("Returns false when disabled", func(t *testing.T) {
+		taskService.SetAutoExecuteImmediate(false)
+		assert.False(t, taskService.IsAutoExecuteEnabled())
+	})
+
+	t.Run("Returns true when enabled", func(t *testing.T) {
+		taskService.SetAutoExecuteImmediate(true)
+		assert.True(t, taskService.IsAutoExecuteEnabled())
+	})
+}

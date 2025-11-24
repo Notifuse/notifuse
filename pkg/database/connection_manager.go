@@ -125,7 +125,7 @@ func ResetConnectionManager() {
 	defer instanceMu.Unlock()
 
 	if instance != nil {
-		instance.Close()
+		_ = instance.Close()
 		instance = nil
 	}
 	instanceOnce = sync.Once{}
@@ -173,7 +173,7 @@ func (cm *connectionManager) GetWorkspaceConnection(ctx context.Context, workspa
 		if cm.workspacePools[workspaceID] == pool {
 			delete(cm.workspacePools, workspaceID)
 			delete(cm.poolAccessTimes, workspaceID)
-			pool.Close()
+			_ = pool.Close()
 		}
 		cm.mu.Unlock()
 	}
@@ -266,7 +266,7 @@ func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceI
 
 	// Test connection with context
 	if err := db.PingContext(ctx); err != nil {
-		db.Close()
+		_ = db.Close()
 		// Don't include dsn in error (contains password)
 		return nil, fmt.Errorf("failed to connect to workspace %s database: %w", workspaceID, err)
 	}
@@ -274,7 +274,7 @@ func (cm *connectionManager) createWorkspacePool(ctx context.Context, workspaceI
 	// Verify pool actually works with a test query
 	var result int
 	if err := db.QueryRowContext(ctx, "SELECT 1").Scan(&result); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("failed to verify database access for workspace %s: %w", workspaceID, err)
 	}
 
@@ -389,7 +389,7 @@ func (cm *connectionManager) closeLRUIdlePools(count int) int {
 			// Re-check pool is still idle (state may have changed between phases)
 			stats := pool.Stats()
 			if stats.InUse == 0 {
-				pool.Close()
+				_ = pool.Close()
 				delete(cm.workspacePools, workspaceID)
 				delete(cm.poolAccessTimes, workspaceID)
 				closed++

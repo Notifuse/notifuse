@@ -1500,3 +1500,162 @@ func TestTaskRepository_GetNextBatch_QueryBuildError(t *testing.T) {
 	assert.Len(t, tasks, 1)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestTaskRepository_MarkAsPending(t *testing.T) {
+	// Test TaskRepository.MarkAsPending - this was at 0% coverage
+	db, mock, repo := setupTaskMock(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspace := "test-workspace"
+	id := "task-123"
+	nextRunAfter := time.Now().UTC().Add(1 * time.Hour)
+	progress := 50.0
+	state := &domain.TaskState{
+		SendBroadcast: &domain.SendBroadcastState{
+			BroadcastID:     "broadcast-123",
+			RecipientOffset: 100,
+		},
+	}
+
+	t.Run("Success - Marks task as pending", func(t *testing.T) {
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE tasks SET").
+			WithArgs(
+				domain.TaskStatusPending,
+				progress,
+				sqlmock.AnyArg(), // state JSON
+				sqlmock.AnyArg(), // updated_at
+				nextRunAfter,
+				nil, // timeout_after
+				id,
+				workspace,
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		err := repo.MarkAsPending(ctx, workspace, id, nextRunAfter, progress, state)
+		assert.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Task not found", func(t *testing.T) {
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE tasks SET").
+			WithArgs(
+				domain.TaskStatusPending,
+				progress,
+				sqlmock.AnyArg(),
+				sqlmock.AnyArg(),
+				nextRunAfter,
+				nil,
+				id,
+				workspace,
+			).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectRollback()
+
+		err := repo.MarkAsPending(ctx, workspace, id, nextRunAfter, progress, state)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "task not found")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestTaskRepository_MarkAsPendingTx(t *testing.T) {
+	// Test TaskRepository.MarkAsPendingTx - this was at 0% coverage
+	db, mock, repo := setupTaskMock(t)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+
+	workspace := "test-workspace"
+	id := "task-123"
+	nextRunAfter := time.Now().UTC().Add(1 * time.Hour)
+	progress := 50.0
+	state := &domain.TaskState{
+		SendBroadcast: &domain.SendBroadcastState{
+			BroadcastID:     "broadcast-123",
+			RecipientOffset: 100,
+		},
+	}
+
+	t.Run("Success - Marks task as pending in transaction", func(t *testing.T) {
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE tasks SET").
+			WithArgs(
+				domain.TaskStatusPending,
+				progress,
+				sqlmock.AnyArg(), // state JSON
+				sqlmock.AnyArg(), // updated_at
+				nextRunAfter,
+				nil, // timeout_after
+				id,
+				workspace,
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		err = repo.MarkAsPendingTx(ctx, tx, workspace, id, nextRunAfter, progress, state)
+		assert.NoError(t, err)
+		_ = tx.Commit()
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Task not found", func(t *testing.T) {
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE tasks SET").
+			WithArgs(
+				domain.TaskStatusPending,
+				progress,
+				sqlmock.AnyArg(),
+				sqlmock.AnyArg(),
+				nextRunAfter,
+				nil,
+				id,
+				workspace,
+			).
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Note: MarkAsPendingTx doesn't rollback on error, caller manages transaction
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		err = repo.MarkAsPendingTx(ctx, tx, workspace, id, nextRunAfter, progress, state)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "task not found")
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Success - Nil state", func(t *testing.T) {
+		mock.ExpectBegin()
+		mock.ExpectExec("UPDATE tasks SET").
+			WithArgs(
+				domain.TaskStatusPending,
+				progress,
+				[]byte("null"),   // nil state marshaled as null
+				sqlmock.AnyArg(), // updated_at
+				nextRunAfter,
+				nil, // timeout_after
+				id,
+				workspace,
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+		mock.ExpectCommit()
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		err = repo.MarkAsPendingTx(ctx, tx, workspace, id, nextRunAfter, progress, nil)
+		// nil state should be marshaled as null, which is valid
+		assert.NoError(t, err)
+		_ = tx.Commit()
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"regexp"
 	"testing"
 	"time"
 
@@ -552,5 +553,71 @@ func TestContactListRepository_DeleteForEmail(t *testing.T) {
 		err := repo.DeleteForEmail(ctx, workspaceID, email)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to get affected rows")
+	})
+}
+
+func TestContactListRepository_BulkAddContactsToLists(t *testing.T) {
+	// Test contactListRepository.BulkAddContactsToLists - this was at 0% coverage
+	mockWorkspaceRepo, repo, mock, db, cleanup := setupContactListTest(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+	emails := []string{"test1@example.com", "test2@example.com"}
+	listIDs := []string{"list1", "list2"}
+	status := domain.ContactListStatusActive
+
+	t.Run("Success - Bulk add", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		// Expect INSERT with cross-product (2 emails * 2 lists = 4 rows)
+		// Note: deleted_at is NULL in SQL, not a parameter, so only 5 args per row
+		mock.ExpectExec(regexp.QuoteMeta(`INSERT INTO contact_lists (email, list_id, status, created_at, updated_at, deleted_at) VALUES`)).
+			WithArgs(
+				emails[0], listIDs[0], status, sqlmock.AnyArg(), sqlmock.AnyArg(),
+				emails[0], listIDs[1], status, sqlmock.AnyArg(), sqlmock.AnyArg(),
+				emails[1], listIDs[0], status, sqlmock.AnyArg(), sqlmock.AnyArg(),
+				emails[1], listIDs[1], status, sqlmock.AnyArg(), sqlmock.AnyArg(),
+			).
+			WillReturnResult(sqlmock.NewResult(4, 4))
+
+		err := repo.BulkAddContactsToLists(ctx, workspaceID, emails, listIDs, status)
+		require.NoError(t, err)
+		require.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Success - Empty emails", func(t *testing.T) {
+		err := repo.BulkAddContactsToLists(ctx, workspaceID, []string{}, listIDs, status)
+		require.NoError(t, err)
+	})
+
+	t.Run("Success - Empty listIDs", func(t *testing.T) {
+		err := repo.BulkAddContactsToLists(ctx, workspaceID, emails, []string{}, status)
+		require.NoError(t, err)
+	})
+
+	t.Run("Error - Connection error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(nil, errors.New("connection error"))
+
+		err := repo.BulkAddContactsToLists(ctx, workspaceID, emails, listIDs, status)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to get workspace connection")
+	})
+
+	t.Run("Error - Execution error", func(t *testing.T) {
+		mockWorkspaceRepo.EXPECT().
+			GetConnection(ctx, workspaceID).
+			Return(db, nil)
+
+		mock.ExpectExec(`INSERT INTO contact_lists`).
+			WillReturnError(errors.New("execution error"))
+
+		err := repo.BulkAddContactsToLists(ctx, workspaceID, emails, listIDs, status)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to bulk add contacts to lists")
 	})
 }

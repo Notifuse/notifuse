@@ -105,7 +105,7 @@ func TestSession_Mail(t *testing.T) {
 	}
 
 	// Authenticate
-	s.AuthPlain("api@example.com", "token")
+	_ = s.AuthPlain("api@example.com", "token")
 
 	// Should succeed after authentication
 	err = s.Mail("sender@example.com", nil)
@@ -140,7 +140,7 @@ func TestSession_Rcpt(t *testing.T) {
 	}
 
 	// Authenticate
-	s.AuthPlain("api@example.com", "token")
+	_ = s.AuthPlain("api@example.com", "token")
 
 	// Should succeed after authentication
 	err = s.Rcpt("recipient1@example.com", nil)
@@ -183,9 +183,9 @@ func TestSession_Data(t *testing.T) {
 	s := session.(*Session)
 
 	// Authenticate and set up message
-	s.AuthPlain("api@example.com", "token")
-	s.Mail("sender@example.com", nil)
-	s.Rcpt("recipient@example.com", nil)
+	_ = s.AuthPlain("api@example.com", "token")
+	_ = s.Mail("sender@example.com", nil)
+	_ = s.Rcpt("recipient@example.com", nil)
 
 	// Send data
 	messageData := []byte(`{"workspace_id": "workspace123", "notification": {"id": "test"}}`)
@@ -214,6 +214,97 @@ func TestSession_Data(t *testing.T) {
 	}
 }
 
+func TestSession_AuthMechanisms(t *testing.T) {
+	// Test Session.AuthMechanisms - this was at 0% coverage
+	log := logger.NewLogger()
+
+	authHandler := func(username, password string) (string, error) {
+		return "user123", nil
+	}
+
+	messageHandler := func(userID string, from string, to []string, data []byte) error {
+		return nil
+	}
+
+	backend := NewBackend(authHandler, messageHandler, log)
+	session, _ := backend.NewSession(nil)
+	s := session.(*Session)
+
+	mechanisms := s.AuthMechanisms()
+	if len(mechanisms) != 1 {
+		t.Errorf("Expected 1 auth mechanism, got %d", len(mechanisms))
+	}
+	if mechanisms[0] != "PLAIN" {
+		t.Errorf("Expected 'PLAIN' mechanism, got '%s'", mechanisms[0])
+	}
+}
+
+func TestSession_Auth(t *testing.T) {
+	// Test Session.Auth - this was at 0% coverage
+	log := logger.NewLogger()
+
+	tests := []struct {
+		name     string
+		mech     string
+		username string
+		password string
+		authFunc AuthHandler
+		wantErr  bool
+	}{
+		{
+			name:     "successful authentication with PLAIN",
+			mech:     "PLAIN",
+			username: "api@example.com",
+			password: "api_key_token",
+			authFunc: func(username, password string) (string, error) {
+				if username == "api@example.com" && password == "api_key_token" {
+					return "user123", nil
+				}
+				return "", smtp.ErrAuthFailed
+			},
+			wantErr: false,
+		},
+		{
+			name:     "failed authentication",
+			mech:     "PLAIN",
+			username: "api@example.com",
+			password: "wrong_token",
+			authFunc: func(username, password string) (string, error) {
+				return "", smtp.ErrAuthFailed
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			messageHandler := func(userID string, from string, to []string, data []byte) error {
+				return nil
+			}
+
+			backend := NewBackend(tt.authFunc, messageHandler, log)
+			session, _ := backend.NewSession(nil)
+			s := session.(*Session)
+
+			saslServer, err := s.Auth(tt.mech)
+			if err != nil {
+				t.Fatalf("Auth() returned error: %v", err)
+			}
+
+			// Test the SASL server with credentials
+			// Next returns (more bool, resp []byte, err error)
+			_, _, authErr := saslServer.Next([]byte("\x00" + tt.username + "\x00" + tt.password))
+			if (authErr != nil) != tt.wantErr {
+				t.Errorf("SASL authentication error = %v, wantErr %v", authErr, tt.wantErr)
+			}
+
+			if !tt.wantErr && s.userID == "" {
+				t.Error("Expected userID to be set after successful authentication")
+			}
+		})
+	}
+}
+
 func TestSession_Reset(t *testing.T) {
 	log := logger.NewLogger()
 
@@ -230,9 +321,9 @@ func TestSession_Reset(t *testing.T) {
 	s := session.(*Session)
 
 	// Set up some state
-	s.AuthPlain("api@example.com", "token")
-	s.Mail("sender@example.com", nil)
-	s.Rcpt("recipient@example.com", nil)
+	_ = s.AuthPlain("api@example.com", "token")
+	_ = s.Mail("sender@example.com", nil)
+	_ = s.Rcpt("recipient@example.com", nil)
 
 	// Reset
 	s.Reset()

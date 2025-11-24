@@ -1242,3 +1242,133 @@ func TestTransactionalChannelHandling(t *testing.T) {
 	// Verify the channel was preserved through JSON serialization
 	assert.Contains(t, unmarshaled.Channels, emailChannel)
 }
+
+func TestTestTemplateRequest_Validate(t *testing.T) {
+	// Test TestTemplateRequest.Validate - this was at 0% coverage
+	tests := []struct {
+		name    string
+		req     TestTemplateRequest
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid request",
+			req: TestTemplateRequest{
+				WorkspaceID:    "workspace-123",
+				TemplateID:     "template-456",
+				IntegrationID:  "integration-789",
+				SenderID:       "sender-101",
+				RecipientEmail: "test@example.com",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid request with email options",
+			req: TestTemplateRequest{
+				WorkspaceID:    "workspace-123",
+				TemplateID:     "template-456",
+				IntegrationID:  "integration-789",
+				SenderID:       "sender-101",
+				RecipientEmail: "test@example.com",
+				EmailOptions: EmailOptions{
+					CC:      []string{"cc@example.com"},
+					BCC:     []string{"bcc@example.com"},
+					ReplyTo: "reply@example.com",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "missing workspace_id",
+			req: TestTemplateRequest{
+				TemplateID:     "template-456",
+				IntegrationID:  "integration-789",
+				SenderID:       "sender-101",
+				RecipientEmail: "test@example.com",
+			},
+			wantErr: true,
+			errMsg:  "workspace_id is required",
+		},
+		{
+			name: "missing template_id",
+			req: TestTemplateRequest{
+				WorkspaceID:    "workspace-123",
+				IntegrationID:  "integration-789",
+				SenderID:       "sender-101",
+				RecipientEmail: "test@example.com",
+			},
+			wantErr: true,
+			errMsg:  "template_id is required",
+		},
+		{
+			name: "missing integration_id",
+			req: TestTemplateRequest{
+				WorkspaceID:    "workspace-123",
+				TemplateID:     "template-456",
+				SenderID:       "sender-101",
+				RecipientEmail: "test@example.com",
+			},
+			wantErr: true,
+			errMsg:  "integration_id is required",
+		},
+		{
+			name: "missing sender_id",
+			req: TestTemplateRequest{
+				WorkspaceID:    "workspace-123",
+				TemplateID:     "template-456",
+				IntegrationID:  "integration-789",
+				RecipientEmail: "test@example.com",
+			},
+			wantErr: true,
+			errMsg:  "sender_id is required",
+		},
+		{
+			name: "missing recipient_email",
+			req: TestTemplateRequest{
+				WorkspaceID:   "workspace-123",
+				TemplateID:    "template-456",
+				IntegrationID: "integration-789",
+				SenderID:      "sender-101",
+			},
+			wantErr: true,
+			errMsg:  "recipient_email is required",
+		},
+		{
+			name: "invalid recipient_email format",
+			req: TestTemplateRequest{
+				WorkspaceID:    "workspace-123",
+				TemplateID:     "template-456",
+				IntegrationID:  "integration-789",
+				SenderID:       "sender-101",
+				RecipientEmail: "not-an-email",
+			},
+			wantErr: true,
+			errMsg:  "invalid recipient_email format",
+		},
+		{
+			name: "empty recipient_email",
+			req: TestTemplateRequest{
+				WorkspaceID:    "workspace-123",
+				TemplateID:     "template-456",
+				IntegrationID:  "integration-789",
+				SenderID:       "sender-101",
+				RecipientEmail: "",
+			},
+			wantErr: true,
+			errMsg:  "recipient_email is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.req.Validate()
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}

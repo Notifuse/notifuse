@@ -8,16 +8,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
-
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
-
+	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/logger"
-
 	"github.com/golang/mock/gomock"
-
 	"github.com/stretchr/testify/assert"
-
 	"github.com/stretchr/testify/require"
 )
 
@@ -443,4 +441,101 @@ func TestNewNotificationCenterHandler(t *testing.T) {
 	assert.Equal(t, mockService, handler.service)
 	assert.Equal(t, mockListService, handler.listService)
 	assert.Equal(t, mockLogger, handler.logger)
+}
+
+func TestNotificationCenterHandler_handleHealth(t *testing.T) {
+	// Test NotificationCenterHandler.handleHealth - this was at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockService := mocks.NewMockNotificationCenterService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockLogger := &mockLogger{}
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
+
+	// Initialize connection manager for testing
+	cfg := &config.Config{
+		Database: config.DatabaseConfig{
+			MaxConnections:      100,
+			MaxConnectionsPerDB: 10,
+		},
+	}
+	mockDB, _, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = mockDB.Close() }()
+
+	err = pkgDatabase.InitializeConnectionManager(cfg, mockDB)
+	require.NoError(t, err)
+	defer pkgDatabase.ResetConnectionManager()
+
+	t.Run("successful health check", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/health", nil)
+		w := httptest.NewRecorder()
+
+		handler.handleHealth(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var response map[string]interface{}
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		require.NoError(t, err)
+		assert.Contains(t, response, "max_connections")
+		assert.Contains(t, response, "system_connections")
+	})
+
+	t.Run("method not allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/health", nil)
+		w := httptest.NewRecorder()
+
+		handler.handleHealth(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
+}
+
+func TestNotificationCenterHandler_handleHealthz(t *testing.T) {
+	// Test NotificationCenterHandler.handleHealthz - this was at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockService := mocks.NewMockNotificationCenterService(ctrl)
+	mockListService := mocks.NewMockListService(ctrl)
+	mockLogger := &mockLogger{}
+	handler := NewNotificationCenterHandler(mockService, mockListService, mockLogger, nil)
+
+	// Initialize connection manager for testing
+	cfg := &config.Config{
+		Database: config.DatabaseConfig{
+			MaxConnections:      100,
+			MaxConnectionsPerDB: 10,
+		},
+	}
+	mockDB, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = mockDB.Close() }()
+
+	// Mock ping query for healthz check
+	mock.ExpectPing()
+
+	err = pkgDatabase.InitializeConnectionManager(cfg, mockDB)
+	require.NoError(t, err)
+	defer pkgDatabase.ResetConnectionManager()
+
+	t.Run("successful healthz check", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+		w := httptest.NewRecorder()
+
+		handler.handleHealthz(w, req)
+
+		// May return OK or ServiceUnavailable depending on DB ping
+		assert.True(t, w.Code == http.StatusOK || w.Code == http.StatusServiceUnavailable)
+	})
+
+	t.Run("method not allowed", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/healthz", nil)
+		w := httptest.NewRecorder()
+
+		handler.handleHealthz(w, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+	})
 }

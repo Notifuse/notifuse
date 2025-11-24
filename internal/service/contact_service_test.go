@@ -867,3 +867,71 @@ func TestContactService_BatchImportContacts_WithBulkOperations(t *testing.T) {
 		assert.Contains(t, response.Error, "write access to lists required")
 	})
 }
+
+func TestContactService_CountContacts(t *testing.T) {
+	// Test ContactService.CountContacts - this was at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	service, mockRepo, _, mockAuthService, _, _, _, _, mockLogger := createContactServiceWithMocks(ctrl)
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "user123",
+		WorkspaceID: workspaceID,
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceContacts: {Read: true, Write: true},
+		},
+	}
+
+	t.Run("Success - Returns count", func(t *testing.T) {
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().Count(ctx, workspaceID).Return(42, nil)
+
+		count, err := service.CountContacts(ctx, workspaceID)
+		assert.NoError(t, err)
+		assert.Equal(t, 42, count)
+	})
+
+	t.Run("Error - Authentication fails", func(t *testing.T) {
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, nil, nil, errors.New("auth error"))
+
+		count, err := service.CountContacts(ctx, workspaceID)
+		assert.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), "failed to authenticate user")
+	})
+
+	t.Run("Error - Insufficient permissions", func(t *testing.T) {
+		userWorkspaceNoPerms := &domain.UserWorkspace{
+			UserID:      "user123",
+			WorkspaceID: workspaceID,
+			Role:        "member",
+			Permissions: domain.UserPermissions{
+				domain.PermissionResourceContacts: {Read: false, Write: false},
+			},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspaceNoPerms, nil)
+
+		count, err := service.CountContacts(ctx, workspaceID)
+		assert.Error(t, err)
+		assert.Equal(t, 0, count)
+		var permErr *domain.PermissionError
+		assert.True(t, errors.As(err, &permErr))
+	})
+
+	t.Run("Error - Repository error", func(t *testing.T) {
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+		mockRepo.EXPECT().Count(ctx, workspaceID).Return(0, errors.New("repository error"))
+		mockLogger.EXPECT().Error(gomock.Any())
+
+		count, err := service.CountContacts(ctx, workspaceID)
+		assert.Error(t, err)
+		assert.Equal(t, 0, count)
+		assert.Contains(t, err.Error(), "failed to count contacts")
+	})
+}

@@ -12,9 +12,9 @@ import (
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
-	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/cache"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -724,20 +724,20 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 
 		posts := []*domain.BlogPost{
 			{
-				ID:         "post-1",
-				CategoryID: "cat-1",
-				Slug:       "first-post",
+				ID:          "post-1",
+				CategoryID:  "cat-1",
+				Slug:        "first-post",
 				PublishedAt: &now,
-				CreatedAt:  now,
-				UpdatedAt:  now,
+				CreatedAt:   now,
+				UpdatedAt:   now,
 			},
 			{
-				ID:         "post-2",
-				CategoryID: "cat-1",
-				Slug:       "second-post",
+				ID:          "post-2",
+				CategoryID:  "cat-1",
+				Slug:        "second-post",
 				PublishedAt: &now,
-				CreatedAt:  now,
-				UpdatedAt:  now,
+				CreatedAt:   now,
+				UpdatedAt:   now,
 			},
 		}
 
@@ -821,12 +821,12 @@ func TestRootHandler_serveBlogSitemap(t *testing.T) {
 		now := time.Now().UTC()
 		posts := []*domain.BlogPost{
 			{
-				ID:         "post-1",
-				CategoryID: "", // No category
-				Slug:       "first-post",
+				ID:          "post-1",
+				CategoryID:  "", // No category
+				Slug:        "first-post",
 				PublishedAt: &now,
-				CreatedAt:  now,
-				UpdatedAt:  now,
+				CreatedAt:   now,
+				UpdatedAt:   now,
 			},
 		}
 
@@ -1190,12 +1190,12 @@ func TestRootHandler_serveBlogPost(t *testing.T) {
 
 		now := time.Now().UTC()
 		post := &domain.BlogPost{
-			ID:         "post-1",
-			CategoryID: "cat-1",
-			Slug:       "my-post",
+			ID:          "post-1",
+			CategoryID:  "cat-1",
+			Slug:        "my-post",
 			PublishedAt: &now,
-			CreatedAt:  now,
-			UpdatedAt:  now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
 		}
 
 		expectedHTML := "<html><body>Post Page</body></html>"
@@ -1219,12 +1219,12 @@ func TestRootHandler_serveBlogPost(t *testing.T) {
 
 		now := time.Now().UTC()
 		post := &domain.BlogPost{
-			ID:         "post-1",
-			CategoryID: "cat-1",
-			Slug:       "my-post",
+			ID:          "post-1",
+			CategoryID:  "cat-1",
+			Slug:        "my-post",
 			PublishedAt: &now,
-			CreatedAt:  now,
-			UpdatedAt:  now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
 		}
 
 		cachedHTML := "<html><body>Cached Post</body></html>"
@@ -1247,12 +1247,12 @@ func TestRootHandler_serveBlogPost(t *testing.T) {
 
 		now := time.Now().UTC()
 		post := &domain.BlogPost{
-			ID:         "post-1",
-			CategoryID: "cat-1",
-			Slug:       "my-post",
+			ID:          "post-1",
+			CategoryID:  "cat-1",
+			Slug:        "my-post",
 			PublishedAt: &now,
-			CreatedAt:  now,
-			UpdatedAt:  now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
 		}
 
 		expectedHTML := "<html><body>Preview Post</body></html>"
@@ -1277,12 +1277,12 @@ func TestRootHandler_serveBlogPost(t *testing.T) {
 
 		now := time.Now().UTC()
 		post := &domain.BlogPost{
-			ID:         "post-1",
-			CategoryID: "cat-1",
-			Slug:       "my-post",
+			ID:          "post-1",
+			CategoryID:  "cat-1",
+			Slug:        "my-post",
 			PublishedAt: &now,
-			CreatedAt:  now,
-			UpdatedAt:  now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
 		}
 
 		req := httptest.NewRequest("GET", "/invalid-path", nil)
@@ -1299,12 +1299,12 @@ func TestRootHandler_serveBlogPost(t *testing.T) {
 
 		now := time.Now().UTC()
 		post := &domain.BlogPost{
-			ID:         "post-1",
-			CategoryID: "cat-1",
-			Slug:       "my-post",
+			ID:          "post-1",
+			CategoryID:  "cat-1",
+			Slug:        "my-post",
 			PublishedAt: &now,
-			CreatedAt:  now,
-			UpdatedAt:  now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
 		}
 
 		blogErr := &domain.BlogRenderError{
@@ -1329,12 +1329,12 @@ func TestRootHandler_serveBlogPost(t *testing.T) {
 
 		now := time.Now().UTC()
 		post := &domain.BlogPost{
-			ID:         "post-1",
-			CategoryID: "cat-1",
-			Slug:       "my-post",
+			ID:          "post-1",
+			CategoryID:  "cat-1",
+			Slug:        "my-post",
 			PublishedAt: &now,
-			CreatedAt:  now,
-			UpdatedAt:  now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
 		}
 
 		mockBlogService.EXPECT().
@@ -1437,12 +1437,12 @@ func TestRootHandler_serveBlog(t *testing.T) {
 
 		now := time.Now().UTC()
 		post := &domain.BlogPost{
-			ID:         "post-1",
-			CategoryID: "cat-1",
-			Slug:       "my-post",
+			ID:          "post-1",
+			CategoryID:  "cat-1",
+			Slug:        "my-post",
 			PublishedAt: &now,
-			CreatedAt:  now,
-			UpdatedAt:  now,
+			CreatedAt:   now,
+			UpdatedAt:   now,
 		}
 
 		mockBlogService.EXPECT().

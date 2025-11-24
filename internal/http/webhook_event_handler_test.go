@@ -43,7 +43,6 @@ func setupWebhookEventHandlerTest(t *testing.T) (*WebhookEventHandler, *mocks.Mo
 	return handler, mockService, jwtSecret
 }
 
-
 // Tests for handleIncomingWebhook
 
 func TestWebhookEventHandler_handleIncomingWebhook_MethodNotAllowed(t *testing.T) {

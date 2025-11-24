@@ -1703,7 +1703,7 @@ func TestScanRows(t *testing.T) {
 	// Create mock database
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	tests := []struct {
 		name         string
@@ -1784,7 +1784,7 @@ func TestScanRows(t *testing.T) {
 			// Execute query to get rows
 			rows, err := db.Query("SELECT * FROM test")
 			require.NoError(t, err)
-			defer rows.Close()
+			defer func() { _ = rows.Close() }()
 
 			// Test ScanRows function
 			data, err := ScanRows(rows)
@@ -1812,7 +1812,7 @@ func TestProcessRows(t *testing.T) {
 	// Create mock database
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	tests := []struct {
 		name         string
@@ -1930,7 +1930,7 @@ func TestProcessRows(t *testing.T) {
 			// Execute query to get rows
 			rows, err := db.Query("SELECT * FROM test")
 			require.NoError(t, err)
-			defer rows.Close()
+			defer func() { _ = rows.Close() }()
 
 			// Test ProcessRows function
 			data, err := ProcessRows(rows, tt.query)
@@ -1958,7 +1958,7 @@ func TestProcessRows_ErrorHandling(t *testing.T) {
 	// Create mock database
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	query := Query{
 		Schema:   "test_table",
@@ -1984,7 +1984,7 @@ func TestProcessRows_ErrorHandling(t *testing.T) {
 
 	rows2, err := db.Query("SELECT * FROM test")
 	require.NoError(t, err)
-	defer rows2.Close()
+	defer func() { _ = rows2.Close() }()
 
 	// This should handle the scanning error
 	data, err := ProcessRows(rows2, query)

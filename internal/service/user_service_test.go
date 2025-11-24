@@ -427,3 +427,30 @@ func TestUserService_GetUserByEmail(t *testing.T) {
 		require.True(t, ok, "Expected ErrUserNotFound error type")
 	})
 }
+
+func TestUserService_Logout(t *testing.T) {
+	// Test UserService.Logout - this was at 0% coverage
+	mockRepo, _, service, _ := setupUserTest(t)
+
+	ctx := context.Background()
+	userID := "user123"
+
+	t.Run("Success - Logs out user", func(t *testing.T) {
+		mockRepo.EXPECT().
+			DeleteAllSessionsByUserID(ctx, userID).
+			Return(nil)
+
+		err := service.Logout(ctx, userID)
+		require.NoError(t, err)
+	})
+
+	t.Run("Error - Repository error", func(t *testing.T) {
+		mockRepo.EXPECT().
+			DeleteAllSessionsByUserID(ctx, userID).
+			Return(errors.New("database error"))
+
+		err := service.Logout(ctx, userID)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "failed to logout")
+	})
+}

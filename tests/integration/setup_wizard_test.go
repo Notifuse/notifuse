@@ -22,7 +22,7 @@ func TestSetupWizardFlow(t *testing.T) {
 	// Create a custom test suite that doesn't seed the installation data
 	// This allows us to test the setup wizard from scratch
 	suite := createUninstalledTestSuite(t)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -30,7 +30,7 @@ func TestSetupWizardFlow(t *testing.T) {
 		// Check that the system is not installed
 		resp, err := client.Get("/api/setup.status")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -54,7 +54,7 @@ func TestSetupWizardFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -70,7 +70,7 @@ func TestSetupWizardFlow(t *testing.T) {
 		// Check that the system is now installed
 		resp, err := client.Get("/api/setup.status")
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -94,7 +94,7 @@ func TestSetupWizardFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -114,7 +114,7 @@ func TestSetupWizardWithJWT(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := createUninstalledTestSuite(t)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -131,7 +131,7 @@ func TestSetupWizardWithJWT(t *testing.T) {
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -151,7 +151,7 @@ func TestSetupWizardValidation(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := createUninstalledTestSuite(t)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -193,7 +193,7 @@ func TestSetupWizardValidation(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			resp, err := client.Post("/api/setup.initialize", tc.request)
 			require.NoError(t, err)
-			defer resp.Body.Close()
+			defer func() { _ = _ = resp.Body.Close() }()
 
 			if tc.expectError {
 				assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -211,7 +211,7 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := createUninstalledTestSuite(t)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -224,7 +224,7 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 
 		resp, err := client.Post("/api/setup.testSmtp", testReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		// MailHog may not be available in all test environments, so we accept both success and failure
 		// The important thing is that the endpoint is working and returning proper responses
@@ -248,7 +248,7 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 
 		resp, err := client.Post("/api/setup.testSmtp", testReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
@@ -272,7 +272,7 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
 		require.NoError(t, err)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 
 		// Now try to test SMTP - should be forbidden
 		testReq := map[string]interface{}{
@@ -282,7 +282,7 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 
 		resp, err = client.Post("/api/setup.testSmtp", testReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusForbidden, resp.StatusCode)
 	})
@@ -307,7 +307,7 @@ func TestSetupWizardWithServerRestart(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := createUninstalledTestSuite(t)
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	client := suite.APIClient
 
@@ -335,7 +335,7 @@ func TestSetupWizardWithServerRestart(t *testing.T) {
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
 		require.NoError(t, err)
-		defer resp.Body.Close()
+		defer func() { _ = _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode, "Setup should succeed")
 
@@ -357,14 +357,14 @@ func TestSetupWizardWithServerRestart(t *testing.T) {
 		// We verify this by creating a fresh test suite that loads config from database.
 
 		// Clean up original suite (simulates process shutdown)
-		suite.Cleanup()
+		_ = suite.Cleanup()
 
 		// Create fresh test suite (simulates Docker restart)
 		// This will create a new app that loads config from the database where setup was saved
 		freshSuite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 			return app.NewApp(cfg)
 		})
-		defer freshSuite.Cleanup()
+		defer _ = freshSuite.Cleanup()
 
 		// Verify the fresh app loaded config correctly by testing signin
 		signinReq := map[string]interface{}{
@@ -373,7 +373,7 @@ func TestSetupWizardWithServerRestart(t *testing.T) {
 
 		signinResp, err := freshSuite.APIClient.Post("/api/user.signin", signinReq)
 		require.NoError(t, err)
-		defer signinResp.Body.Close()
+		defer func() { _ = _ = signinResp.Body.Close() }()
 
 		var signinResult map[string]interface{}
 		err = json.NewDecoder(signinResp.Body).Decode(&signinResult)

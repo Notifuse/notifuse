@@ -390,7 +390,7 @@ func BenchmarkInMemoryCache_GetOrSet(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		cache.GetOrSet("key", 1*time.Second, compute)
+		_, _ = cache.GetOrSet("key", 1*time.Second, compute)
 	}
 }
 

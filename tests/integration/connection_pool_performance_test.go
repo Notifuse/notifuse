@@ -25,7 +25,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 	t.Run("connection reuse performance", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		workspaceID := "test_perf_reuse"
 
@@ -68,7 +68,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 	t.Run("high workspace count", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Create 25 workspace pools (reduced from 100 to avoid "too many clients")
 		// Test environment has connection limits
@@ -132,7 +132,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 	t.Run("rapid create destroy cycles", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Rapidly create and destroy 50 workspaces, repeat 10 times
 		numCycles := 10
@@ -193,7 +193,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 	t.Run("idle connection cleanup overhead", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Create 10 workspace pools (reduced from 20 to avoid exhaustion)
 		numWorkspaces := 10
@@ -241,7 +241,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 	t.Run("concurrent query performance", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Create 5 workspaces
 		numWorkspaces := 5
@@ -307,7 +307,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 	t.Run("memory efficiency with large result sets", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		workspaceID := "test_perf_memory"
 
@@ -388,7 +388,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 		start := time.Now()
 
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Get system connection
 		_, err := pool.GetSystemConnection()
@@ -424,7 +424,7 @@ func TestConnectionPoolScalability(t *testing.T) {
 	t.Run("linear scaling with workspace count", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Test different workspace counts and measure time
 		workspaceCounts := []int{5, 10, 20}
@@ -475,7 +475,7 @@ func TestConnectionPoolScalability(t *testing.T) {
 	t.Run("throughput under sustained load", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer pool.Cleanup()
+		defer _ = pool.Cleanup()
 
 		// Create 10 workspaces
 		numWorkspaces := 10

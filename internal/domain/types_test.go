@@ -133,15 +133,15 @@ func TestJSONArray_Scan(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			name:  "valid JSON bytes array",
-			input: []byte(`[1, 2, "three", true, null]`),
-			want:  JSONArray{1, 2, "three", true, nil},
+			name:    "valid JSON bytes array",
+			input:   []byte(`[1, 2, "three", true, null]`),
+			want:    JSONArray{1, 2, "three", true, nil},
 			wantErr: false,
 		},
 		{
-			name:  "valid JSON string array",
-			input: `[1, 2, "three", true]`,
-			want:  JSONArray{1, 2, "three", true},
+			name:    "valid JSON string array",
+			input:   `[1, 2, "three", true]`,
+			want:    JSONArray{1, 2, "three", true},
 			wantErr: false,
 		},
 		{
@@ -157,21 +157,21 @@ func TestJSONArray_Scan(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:  "array with float64 integers converted to int",
-			input: []byte(`[1.0, 2.0, 3.5, 4.0]`),
-			want:  JSONArray{1, 2, 3.5, 4}, // 1.0, 2.0, 4.0 should become int, 3.5 stays float64
+			name:    "array with float64 integers converted to int",
+			input:   []byte(`[1.0, 2.0, 3.5, 4.0]`),
+			want:    JSONArray{1, 2, 3.5, 4}, // 1.0, 2.0, 4.0 should become int, 3.5 stays float64
 			wantErr: false,
 		},
 		{
-			name:  "empty array",
-			input: []byte(`[]`),
-			want:  JSONArray{},
+			name:    "empty array",
+			input:   []byte(`[]`),
+			want:    JSONArray{},
 			wantErr: false,
 		},
 		{
-			name:  "nested arrays",
-			input: []byte(`[[1, 2], [3, 4]]`),
-			want:  JSONArray{[]interface{}{1.0, 2.0}, []interface{}{3.0, 4.0}},
+			name:    "nested arrays",
+			input:   []byte(`[[1, 2], [3, 4]]`),
+			want:    JSONArray{[]interface{}{1.0, 2.0}, []interface{}{3.0, 4.0}},
 			wantErr: false,
 		},
 	}
@@ -188,7 +188,7 @@ func TestJSONArray_Scan(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.Equal(t, len(tt.want), len(a))
-			
+
 			// Check each element, accounting for float64 to int conversion
 			for i, expected := range tt.want {
 				if i < len(a) {
@@ -253,14 +253,14 @@ func TestJSONArray_Value(t *testing.T) {
 			}
 
 			assert.NoError(t, err)
-			
+
 			if tt.input == nil {
 				assert.Nil(t, got)
 			} else {
 				// Verify the value is a valid JSON byte array
 				jsonBytes, ok := got.([]byte)
 				assert.True(t, ok)
-				
+
 				// Verify we can unmarshal it back
 				var unmarshaled JSONArray
 				err := json.Unmarshal(jsonBytes, &unmarshaled)

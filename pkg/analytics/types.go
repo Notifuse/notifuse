@@ -140,7 +140,7 @@ func (q *Query) Query(ctx context.Context, db *sql.DB, schema SchemaDefinition) 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	// Process rows with time series gap filling
 	data, err := ProcessRows(rows, *q)

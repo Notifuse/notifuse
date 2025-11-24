@@ -369,7 +369,7 @@ func TestQuery_Query(t *testing.T) {
 			// Create a fresh mock for each test to avoid conflicts
 			db, mock, err := sqlmock.New()
 			require.NoError(t, err)
-			defer db.Close()
+			defer func() { _ = db.Close() }()
 
 			if !tt.expectedError {
 				// Set up mock expectations
@@ -419,7 +419,7 @@ func TestQuery_QueryValidation(t *testing.T) {
 	// Create mock database
 	db, _, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	schema := SchemaDefinition{
 		Name: "test_table",
@@ -512,7 +512,7 @@ func TestQuery_QueryWithDatabase(t *testing.T) {
 	// Integration test with mock database
 	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	schema := SchemaDefinition{
 		Name: "analytics_test",

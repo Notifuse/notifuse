@@ -1098,3 +1098,68 @@ func TestBroadcastRepository_ListBroadcasts_WithStatus(t *testing.T) {
 	assert.Equal(t, "bc456", result.Broadcasts[1].ID)
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
+
+func TestBroadcastRepository_GetBroadcastTx(t *testing.T) {
+	// Test broadcastRepository.GetBroadcastTx - this was at 0% coverage
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBroadcastRepository(mockWorkspaceRepo)
+
+	db, sqlMock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+
+	workspaceID := "ws123"
+	broadcastID := "bc123"
+
+	t.Run("Success - Broadcast found", func(t *testing.T) {
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectQuery("SELECT").
+			WithArgs(broadcastID, workspaceID).
+			WillReturnRows(sqlmock.NewRows([]string{
+				"id", "workspace_id", "name", "status", "audience", "schedule",
+				"test_settings", "utm_parameters", "metadata",
+				"winning_template",
+				"test_sent_at", "winner_sent_at", "created_at", "updated_at",
+				"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
+			}).
+				AddRow(
+					broadcastID, workspaceID, "Test Broadcast", "draft",
+					[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
+					"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, "",
+				))
+		sqlMock.ExpectCommit()
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		broadcast, err := repo.GetBroadcastTx(ctx, tx, workspaceID, broadcastID)
+		_ = tx.Commit()
+		assert.NoError(t, err)
+		assert.NotNil(t, broadcast)
+		assert.Equal(t, broadcastID, broadcast.ID)
+		assert.Equal(t, workspaceID, broadcast.WorkspaceID)
+	})
+
+	t.Run("Error - Broadcast not found", func(t *testing.T) {
+		sqlMock.ExpectBegin()
+		sqlMock.ExpectQuery("SELECT").
+			WithArgs("nonexistent", workspaceID).
+			WillReturnError(sql.ErrNoRows)
+		sqlMock.ExpectRollback()
+
+		tx, err := db.Begin()
+		require.NoError(t, err)
+		defer func() { _ = tx.Rollback() }()
+
+		broadcast, err := repo.GetBroadcastTx(ctx, tx, workspaceID, "nonexistent")
+		assert.Error(t, err)
+		assert.Nil(t, broadcast)
+		assert.Contains(t, err.Error(), "Broadcast not found")
+	})
+}

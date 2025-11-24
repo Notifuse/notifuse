@@ -199,4 +199,3 @@ func TestFilterBlocksByChannel(t *testing.T) {
 		assert.Len(t, filtered.GetChildren(), 0, "Filtered tree should be different")
 	})
 }
-

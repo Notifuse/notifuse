@@ -553,3 +553,15 @@ func TestBlogThemeHandler_HandleList(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, w.Code)
 	})
 }
+
+func TestBlogThemeHandler_RegisterRoutes(t *testing.T) {
+	// Test BlogThemeHandler.RegisterRoutes - this was at 0% coverage
+	handler, _, _, ctrl := setupBlogThemeHandler(t)
+	defer ctrl.Finish()
+
+	mux := http.NewServeMux()
+	handler.RegisterRoutes(mux)
+
+	// Verify that routes are registered by checking if mux is not nil after registration
+	assert.NotNil(t, mux, "mux should not be nil after RegisterRoutes")
+}

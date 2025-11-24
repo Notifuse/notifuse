@@ -27,7 +27,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer suite.Cleanup()
+	defer _ = suite.Cleanup()
 
 	factory := suite.DataFactory
 	client := suite.APIClient
@@ -77,7 +77,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 		createResp, err := client.CreateTemplate(template)
 		require.NoError(t, err, "Failed to create template")
 		require.Equal(t, http.StatusCreated, createResp.StatusCode, "Template creation should return 201")
-		createResp.Body.Close()
+		_ = createResp.Body.Close()
 
 		// Retrieve template via API
 		getResp, err := client.Get("/api/templates.get", map[string]string{
@@ -85,7 +85,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 			"id":           templateID,
 		})
 		require.NoError(t, err, "Failed to get template")
-		defer getResp.Body.Close()
+		defer func() { _ = _ = getResp.Body.Close() }()
 
 		// Decode response
 		var result struct {
@@ -130,7 +130,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 		createResp, err := client.CreateTemplate(template)
 		require.NoError(t, err, "Failed to create template")
 		require.Equal(t, http.StatusCreated, createResp.StatusCode, "Template creation should return 201")
-		createResp.Body.Close()
+		_ = createResp.Body.Close()
 
 		// Retrieve template via API
 		getResp, err := client.Get("/api/templates.get", map[string]string{
@@ -138,7 +138,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 			"id":           templateID,
 		})
 		require.NoError(t, err, "Failed to get template")
-		defer getResp.Body.Close()
+		defer func() { _ = _ = getResp.Body.Close() }()
 
 		// Decode response
 		var result struct {
@@ -158,7 +158,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 			"workspace_id": workspace.ID,
 		})
 		require.NoError(t, err, "Failed to list templates")
-		defer listResp.Body.Close()
+		defer func() { _ = _ = listResp.Body.Close() }()
 
 		// Decode response
 		var result struct {
@@ -213,7 +213,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 				require.NoError(t, err, "Failed to create %s template", name)
 				require.Equal(t, http.StatusCreated, createResp.StatusCode,
 					"Template creation should return 201 for %s", name)
-				createResp.Body.Close()
+				_ = createResp.Body.Close()
 
 				// Retrieve template via API
 				getResp, err := client.Get("/api/templates.get", map[string]string{
@@ -221,7 +221,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 					"id":           templateID,
 				})
 				require.NoError(t, err, "Failed to get %s template", name)
-				defer getResp.Body.Close()
+				defer func() { _ = _ = getResp.Body.Close() }()
 
 				// Decode response
 				var result struct {

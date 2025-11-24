@@ -1,17 +1,15 @@
 package service_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/pkg/logger"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSetupService_ValidateSetupConfig(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
 
 	setupService := service.NewSetupService(
 		&service.SettingService{},
@@ -96,3 +94,67 @@ func (m *mockLogger) Panic(msg string)                                       {}
 func (m *mockLogger) WithField(key string, value interface{}) logger.Logger  { return m }
 func (m *mockLogger) WithFields(fields map[string]interface{}) logger.Logger { return m }
 func (m *mockLogger) WithError(err error) logger.Logger                      { return m }
+
+func TestSetupService_Initialize(t *testing.T) {
+	// Test SetupService.Initialize - this was at 0% coverage
+	// Note: This is a complex method that requires proper mocks for SettingService and UserRepository
+	// For basic coverage, we test validation error path
+	setupService := service.NewSetupService(
+		&service.SettingService{},
+		&service.UserService{},
+		nil,
+		&mockLogger{},
+		"test-secret-key",
+		nil,
+		nil,
+	)
+
+	ctx := context.Background()
+
+	t.Run("Error - Validation fails", func(t *testing.T) {
+		config := &service.SetupConfig{
+			// Missing required fields
+		}
+
+		err := setupService.Initialize(ctx, config)
+		assert.Error(t, err)
+	})
+}
+
+func TestSetupService_TestSMTPConnection(t *testing.T) {
+	// Test SetupService.TestSMTPConnection - this was at 0% coverage
+	setupService := service.NewSetupService(
+		&service.SettingService{},
+		&service.UserService{},
+		nil,
+		&mockLogger{},
+		"test-secret-key",
+		nil,
+		nil,
+	)
+
+	ctx := context.Background()
+
+	t.Run("Error - Missing host", func(t *testing.T) {
+		config := &service.SMTPTestConfig{
+			Port: 587,
+		}
+
+		err := setupService.TestSMTPConnection(ctx, config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "SMTP host is required")
+	})
+
+	t.Run("Error - Missing port", func(t *testing.T) {
+		config := &service.SMTPTestConfig{
+			Host: "smtp.example.com",
+		}
+
+		err := setupService.TestSMTPConnection(ctx, config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "SMTP port is required")
+	})
+
+	// Note: Actual SMTP connection test would require a real SMTP server or more complex mocking
+	// For coverage purposes, we test the validation logic
+}

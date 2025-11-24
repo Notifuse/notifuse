@@ -332,7 +332,7 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 					Error("HTTP request for task execution failed")
 				return
 			}
-						defer func() { _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Check response
 			if resp.StatusCode != http.StatusOK {

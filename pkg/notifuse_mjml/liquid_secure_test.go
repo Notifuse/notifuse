@@ -186,8 +186,10 @@ func TestSecureLiquidEngine_PanicRecovery(t *testing.T) {
 		result, err := engine.RenderWithTimeout(template, data)
 
 		// Either returns error or empty result, but should not panic
+		// It's ok if it's a rendering error (not a panic)
 		if err != nil && !strings.Contains(err.Error(), "panic") && !strings.Contains(err.Error(), "rendering failed") {
-			// It's ok if it's a rendering error
+			// Non-panic rendering errors are acceptable
+			_ = err
 		}
 
 		// The important thing is we didn't panic - test passes if we get here

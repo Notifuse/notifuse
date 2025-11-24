@@ -111,3 +111,55 @@ func TestWorkspaceRepository_RemoveUserFromWorkspace(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get affected rows")
 }
+
+func TestWorkspaceRepository_UpdateUserWorkspacePermissions(t *testing.T) {
+	// Test workspaceRepository.UpdateUserWorkspacePermissions - this was at 0% coverage
+	db, mock, cleanup := testutil.SetupMockDB(t)
+	defer cleanup()
+
+	dbConfig := &config.DatabaseConfig{
+		Prefix: "notifuse",
+	}
+
+	connMgr := newMockConnectionManager(db)
+	repo := NewWorkspaceRepository(db, dbConfig, "secret-key", connMgr)
+
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "user123",
+		WorkspaceID: "workspace123",
+		Role:        "member",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceContacts: domain.ResourcePermissions{Read: true, Write: true},
+		},
+	}
+
+	t.Run("Success - Updates permissions", func(t *testing.T) {
+		mock.ExpectExec(`UPDATE user_workspaces SET permissions = \$1, updated_at = \$2 WHERE user_id = \$3 AND workspace_id = \$4`).
+			WithArgs(
+				userWorkspace.Permissions,
+				sqlmock.AnyArg(), // updated_at
+				userWorkspace.UserID,
+				userWorkspace.WorkspaceID,
+			).
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := repo.UpdateUserWorkspacePermissions(context.Background(), userWorkspace)
+		require.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("Error - Database error", func(t *testing.T) {
+		mock.ExpectExec(`UPDATE user_workspaces SET permissions = \$1, updated_at = \$2 WHERE user_id = \$3 AND workspace_id = \$4`).
+			WithArgs(
+				userWorkspace.Permissions,
+				sqlmock.AnyArg(),
+				userWorkspace.UserID,
+				userWorkspace.WorkspaceID,
+			).
+			WillReturnError(fmt.Errorf("database error"))
+
+		err := repo.UpdateUserWorkspacePermissions(context.Background(), userWorkspace)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to update user workspace permissions")
+	})
+}
