@@ -1,5 +1,5 @@
 import { Modal, Typography } from 'antd'
-import type { BlogCategory } from '../../services/api/blog.ts'
+import type { BlogCategory } from '../../services/api/blog'
 
 const { Paragraph } = Typography
 
@@ -29,8 +29,7 @@ export function DeleteCategoryModal({
       cancelButtonProps={{ disabled: loading }}
     >
       <Paragraph>
-        Are you sure you want to delete the category{' '}
-        <strong>{category?.settings.name}</strong>?
+        Are you sure you want to delete the category <strong>{category?.settings.name}</strong>?
       </Paragraph>
       <Paragraph type="secondary">
         Both the category and all its associated posts will be unpublished from the web.
@@ -38,5 +37,3 @@ export function DeleteCategoryModal({
     </Modal>
   )
 }
-
-

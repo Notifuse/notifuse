@@ -11,7 +11,7 @@ import { workspaceService } from '../../services/api/workspace'
 import { SEOSettingsForm } from '../seo/SEOSettingsForm'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 import { RecentThemesTable } from '../blog/RecentThemesTable'
-import { blogThemesApi } from '../../services/api/blog.ts'
+import { blogThemesApi } from '../../services/api/blog'
 import { THEME_PRESETS } from '../blog/themePresets'
 import { ImageURLInput } from '../common/ImageURLInput'
 

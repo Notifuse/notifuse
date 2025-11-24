@@ -1,4 +1,4 @@
-import { BlogThemeFiles } from '../../services/api/blog.ts'
+import { BlogThemeFiles } from '../../services/api/blog'
 
 export interface ThemePreset {
   id: string

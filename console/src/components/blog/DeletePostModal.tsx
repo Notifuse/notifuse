@@ -1,5 +1,5 @@
 import { Modal, Typography } from 'antd'
-import type { BlogPost } from '../../services/api/blog.ts'
+import type { BlogPost } from '../../services/api/blog'
 
 const { Paragraph } = Typography
 
@@ -35,9 +35,3 @@ export function DeletePostModal({
     </Modal>
   )
 }
-
-
-
-
-
-

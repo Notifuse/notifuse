@@ -8,7 +8,7 @@ import { BlogSidebar } from '../components/blog/BlogSidebar'
 import { CategoryDrawer } from '../components/blog/CategoryDrawer'
 import { DeleteCategoryModal } from '../components/blog/DeleteCategoryModal'
 import { PostDrawer } from '../components/blog/PostDrawer'
-import { blogCategoriesApi, blogPostsApi, BlogCategory } from '../services/api/blog.ts'
+import { blogCategoriesApi, blogPostsApi, BlogCategory } from '../services/api/blog'
 import { useAuth } from '../contexts/AuthContext'
 
 const { Sider, Content } = Layout
@@ -24,10 +24,10 @@ export function BlogPage() {
   const queryClient = useQueryClient()
   const { message } = App.useApp()
   const { workspaces } = useAuth()
-  
+
   // Get the current workspace
   const workspace = workspaces.find((w) => w.id === workspaceId)
-  
+
   if (!workspace) {
     return null // Or handle the case where workspace is not found
   }

@@ -1,6 +1,6 @@
 import { Popover, List } from 'antd'
 import { WarningOutlined } from '@ant-design/icons'
-import type { SEOSettings } from '../../services/api/blog.ts'
+import type { SEOSettings } from '../../services/api/blog'
 
 interface MissingMetaTagsWarningProps {
   seo?: SEOSettings
@@ -98,4 +98,3 @@ export function MissingMetaTagsWarning({ seo, className }: MissingMetaTagsWarnin
     </Popover>
   )
 }
-

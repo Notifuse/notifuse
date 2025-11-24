@@ -14,7 +14,7 @@ coverage.out
 coverage.txt
 coverage-unit.txt
 coverage-integration.txt
-api
+/api
 console/public/config.js
 
 notification_center/tsconfig.tsbuildinfo

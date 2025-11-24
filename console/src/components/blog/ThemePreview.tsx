@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Spin, Alert } from 'antd'
-import { BlogThemeFiles } from '../../services/api/blog.ts'
+import { BlogThemeFiles } from '../../services/api/blog'
 import { renderBlogPage, RenderResult } from '../../utils/liquidRenderer'
 import { getMockDataForView } from '../../utils/mockBlogData'
 import { Workspace } from '../../services/api/types'

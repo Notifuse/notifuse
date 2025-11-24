@@ -21,8 +21,8 @@ import {
   normalizeSlug,
   BlogPost,
   BlogAuthor
-} from '../../services/api/blog.ts'
-import type { CreateBlogPostRequest, UpdateBlogPostRequest } from '../../services/api/blog.ts'
+} from '../../services/api/blog'
+import type { CreateBlogPostRequest, UpdateBlogPostRequest } from '../../services/api/blog'
 import { SEOSettingsForm } from '../seo/SEOSettingsForm'
 import { ImageURLInput } from '../common/ImageURLInput'
 import { templatesApi } from '../../services/api/template'

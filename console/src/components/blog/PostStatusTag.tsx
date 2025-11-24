@@ -1,5 +1,5 @@
 import { Tag } from 'antd'
-import type { BlogPost } from '../../services/api/blog.ts'
+import type { BlogPost } from '../../services/api/blog'
 
 interface PostStatusTagProps {
   post: BlogPost
@@ -7,12 +7,15 @@ interface PostStatusTagProps {
 
 export function PostStatusTag({ post }: PostStatusTagProps) {
   if (post.published_at) {
-    return <Tag color="green" bordered={false}>Published</Tag>
+    return (
+      <Tag color="green" bordered={false}>
+        Published
+      </Tag>
+    )
   }
-  return <Tag color="blue" bordered={false}>Draft</Tag>
+  return (
+    <Tag color="blue" bordered={false}>
+      Draft
+    </Tag>
+  )
 }
-
-
-
-
-
