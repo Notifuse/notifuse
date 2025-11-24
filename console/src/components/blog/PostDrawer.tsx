@@ -530,71 +530,76 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
         <div style={{ display: 'flex', height: `calc(100vh - ${HEADER_HEIGHT}px)` }}>
           {/* Left Column: TOC + Title + Editor */}
           <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-            {/* TOC Sidebar - conditionally rendered */}
-            {tableOfContents.length > 0 && windowWidth >= 1400 && (
+            {/* TOC Sidebar - space always reserved on wide screens, content shown when available */}
+            {windowWidth >= 1400 && (
               <aside
                 style={{
                   width: '240px',
                   overflow: 'auto',
                   padding: '24px 32px',
                   position: 'relative',
-                  marginTop: '90px'
+                  marginTop: '90px',
+                  flexShrink: 0
                 }}
               >
-                <div
-                  style={{
-                    position: 'sticky',
-                    top: 0,
-                    paddingBottom: '6px',
-                    marginBottom: '12px',
-                    borderBottom: '1px solid #f0f0f0'
-                  }}
-                >
-                  <Typography.Text strong style={{ fontSize: '13px' }}>
-                    Table of Contents
-                  </Typography.Text>
-                </div>
-                <nav>
-                  <ul style={{ listStyle: 'none', padding: '0 0 0 8px', margin: 0 }}>
-                    {tableOfContents.map((anchor) => (
-                      <li
-                        key={anchor.id}
-                        style={{
-                          marginBottom: '8px',
-                          paddingLeft: `${(anchor.level - 2) * 12}px`
-                        }}
-                      >
-                        <button
-                          type="button"
-                          onClick={() => handleTOCClick(anchor)}
-                          style={{
-                            all: 'unset',
-                            cursor: 'pointer',
-                            fontSize: anchor.level === 2 ? '13px' : '12px',
-                            fontWeight: anchor.level === 2 ? 500 : 400,
-                            color: anchor.isActive ? '#1677ff' : 'rgba(0, 0, 0, 0.65)',
-                            display: 'block',
-                            transition: 'color 0.15s ease-in-out',
-                            width: '100%',
-                            textAlign: 'left',
-                            padding: '4px 0',
-                            lineHeight: '1.4'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.color = '#1677ff'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.color = anchor.isActive
-                              ? '#1677ff'
-                              : 'rgba(0, 0, 0, 0.65)'
-                          }}
-                        >
-                          {anchor.textContent}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                </nav>
+                {tableOfContents.length > 0 ? (
+                  <>
+                    <div
+                      style={{
+                        position: 'sticky',
+                        top: 0,
+                        paddingBottom: '6px',
+                        marginBottom: '12px',
+                        borderBottom: '1px solid #f0f0f0'
+                      }}
+                    >
+                      <Typography.Text strong style={{ fontSize: '13px' }}>
+                        Table of Contents
+                      </Typography.Text>
+                    </div>
+                    <nav>
+                      <ul style={{ listStyle: 'none', padding: '0 0 0 8px', margin: 0 }}>
+                        {tableOfContents.map((anchor) => (
+                          <li
+                            key={anchor.id}
+                            style={{
+                              marginBottom: '8px',
+                              paddingLeft: `${(anchor.level - 2) * 12}px`
+                            }}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleTOCClick(anchor)}
+                              style={{
+                                all: 'unset',
+                                cursor: 'pointer',
+                                fontSize: anchor.level === 2 ? '13px' : '12px',
+                                fontWeight: anchor.level === 2 ? 500 : 400,
+                                color: anchor.isActive ? '#1677ff' : 'rgba(0, 0, 0, 0.65)',
+                                display: 'block',
+                                transition: 'color 0.15s ease-in-out',
+                                width: '100%',
+                                textAlign: 'left',
+                                padding: '4px 0',
+                                lineHeight: '1.4'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.color = '#1677ff'
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.color = anchor.isActive
+                                  ? '#1677ff'
+                                  : 'rgba(0, 0, 0, 0.65)'
+                              }}
+                            >
+                              {anchor.textContent}
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    </nav>
+                  </>
+                ) : null}
               </aside>
             )}
 
@@ -624,10 +629,10 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
                   </div>
                 ) : (
                   <NotifuseEditor
-                    key={`editor-${post?.id || 'new'}-${post?.settings.template.template_id}-${post?.settings.template.template_version || 0}-${blogContent ? 'loaded' : 'empty'}`}
+                    key={`editor-${post?.id || 'new'}-${post?.settings.template.template_id || 'no-template'}-${post?.settings.template.template_version || 0}`}
                     ref={editorRef}
                     placeholder="Start writing your blog post..."
-                    initialContent={blogContent ? jsonToHtml(blogContent) : undefined}
+                    initialContent={blogContent ? jsonToHtml(blogContent) : ''}
                     disableH1={true}
                     showHeader={false}
                     onChange={handleContentChange}

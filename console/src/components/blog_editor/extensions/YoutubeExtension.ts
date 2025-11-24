@@ -1,23 +1,30 @@
+import { Node, mergeAttributes } from '@tiptap/core'
 import { ReactNodeViewRenderer } from '@tiptap/react'
-import { Youtube } from '@tiptap/extension-youtube'
 import { YoutubeNodeView } from '../components/youtube/YoutubeNodeView'
+import { getYoutubeVideoId, getYoutubeEmbedUrl } from '../utils/youtube-utils'
 
 /**
- * Custom YouTube extension with input overlay support and interactive controls
- * Extends the standard Tiptap YouTube extension with a custom node view
+ * Independent YouTube extension with full control over URL parsing and rendering
+ *
+ * Key features:
+ * - Stores only video IDs (not full URLs) to prevent double transformation
+ * - Extracts video IDs from any YouTube URL format during parsing
+ * - Builds clean embed URLs during rendering
+ * - Supports per-node playback options as attributes
+ * - Custom node view with interactive controls
  */
-export const YoutubeExtension = Youtube.extend({
+export const YoutubeExtension = Node.create({
+  name: 'youtube',
+
+  group: 'block',
+
+  draggable: true,
+
   addAttributes() {
     return {
-      ...this.parent?.(),
-      align: {
-        default: 'left',
-        parseHTML: (element) => element.getAttribute('data-align') || 'left',
-        renderHTML: (attributes) => {
-          return {
-            'data-align': attributes.align
-          }
-        }
+      src: {
+        default: null
+        // Don't parse from attributes - handled in parseHTML()
       },
       width: {
         default: null,
@@ -29,6 +36,18 @@ export const YoutubeExtension = Youtube.extend({
           if (!attributes.width) return {}
           return {
             'data-width': attributes.width
+          }
+        }
+      },
+      height: {
+        default: 315
+      },
+      align: {
+        default: 'left',
+        parseHTML: (element) => element.getAttribute('data-align') || 'left',
+        renderHTML: (attributes) => {
+          return {
+            'data-align': attributes.align
           }
         }
       },
@@ -109,6 +128,116 @@ export const YoutubeExtension = Youtube.extend({
           }
         }
       }
+    }
+  },
+
+  parseHTML() {
+    return [
+      {
+        // Match official format: div[data-youtube-video]
+        tag: 'div[data-youtube-video]',
+        getAttrs: (node) => {
+          const element = node as HTMLElement
+          const iframe = element.querySelector('iframe')
+          if (!iframe) return false
+
+          const src = iframe.getAttribute('src')
+          if (!src) return false
+
+          // Extract video ID from any YouTube URL format (or just use ID if already extracted)
+          const videoId = getYoutubeVideoId(src)
+          if (!videoId) return false
+
+          // Store only the video ID in src
+          return {
+            src: videoId,
+            width: element.getAttribute('data-width')
+              ? parseInt(element.getAttribute('data-width')!)
+              : null,
+            align: element.getAttribute('data-align') || 'left',
+            showCaption: element.getAttribute('data-show-caption') === 'true',
+            caption: element.getAttribute('data-caption') || '',
+            cc: element.getAttribute('data-cc') === 'true',
+            autoplay: element.getAttribute('data-autoplay') === 'true',
+            loop: element.getAttribute('data-loop') === 'true',
+            controls: element.getAttribute('data-controls') !== 'false',
+            modestbranding: element.getAttribute('data-modestbranding') === 'true',
+            start: element.getAttribute('data-start')
+              ? parseInt(element.getAttribute('data-start')!)
+              : 0
+          }
+        }
+      }
+    ]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    // Build clean embed URL from video ID + playback options
+    const embedUrl = getYoutubeEmbedUrl(HTMLAttributes.src, {
+      cc: HTMLAttributes['data-cc'] === 'true',
+      autoplay: HTMLAttributes['data-autoplay'] === 'true',
+      loop: HTMLAttributes['data-loop'] === 'true',
+      controls: HTMLAttributes['data-controls'] !== 'false',
+      modestbranding: HTMLAttributes['data-modestbranding'] === 'true',
+      start: parseInt(HTMLAttributes['data-start']) || 0
+    })
+
+    // If URL is invalid, return error div
+    if (!embedUrl) {
+      return ['div', { class: 'youtube-error' }, 'Invalid YouTube URL']
+    }
+
+    // Return with wrapper div (required for parseHTML recognition)
+    return [
+      'div',
+      mergeAttributes(
+        { 'data-youtube-video': '' },
+        {
+          'data-align': HTMLAttributes['data-align'],
+          'data-width': HTMLAttributes['data-width'],
+          'data-show-caption': HTMLAttributes['data-show-caption'],
+          'data-caption': HTMLAttributes['data-caption'],
+          'data-cc': HTMLAttributes['data-cc'],
+          'data-autoplay': HTMLAttributes['data-autoplay'],
+          'data-loop': HTMLAttributes['data-loop'],
+          'data-controls': HTMLAttributes['data-controls'],
+          'data-modestbranding': HTMLAttributes['data-modestbranding'],
+          'data-start': HTMLAttributes['data-start']
+        }
+      ),
+      [
+        'iframe',
+        {
+          src: embedUrl,
+          width: HTMLAttributes['data-width'] || 640,
+          height: HTMLAttributes.height || 360,
+          frameborder: '0',
+          allowfullscreen: 'true',
+          allow:
+            'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+        }
+      ]
+    ]
+  },
+
+  addCommands() {
+    return {
+      setYoutubeVideo:
+        (options: { src: string; width?: number; height?: number; start?: number }) =>
+        ({ commands }) => {
+          // Extract video ID from any URL format
+          const videoId = getYoutubeVideoId(options.src)
+          if (!videoId) return false
+
+          // Insert with video ID only (not full URL)
+          return commands.insertContent({
+            type: this.name,
+            attrs: {
+              ...options,
+              src: videoId // Store only video ID
+            }
+          })
+        }
     }
   },
 

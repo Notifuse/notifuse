@@ -449,9 +449,9 @@ const defaultTheme: ThemePreset = {
   
   {%- comment -%} SEO Keywords {%- endcomment -%}
   {%- if post.seo.keywords -%}
-    <meta name="keywords" content="{{ post.seo.keywords | escape }}">
+    <meta name="keywords" content="{{ post.seo.keywords | join: ', ' | escape }}">
   {%- elsif category.seo.keywords -%}
-    <meta name="keywords" content="{{ category.seo.keywords | escape }}">
+    <meta name="keywords" content="{{ category.seo.keywords | join: ', ' | escape }}">
   {%- elsif workspace.seo.keywords -%}
     <meta name="keywords" content="{{ workspace.seo.keywords | join: ', ' | escape }}">
   {%- endif -%}

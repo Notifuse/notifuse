@@ -227,70 +227,71 @@ export interface TOCAnchor {
 /**
  * Default initial content for the editor
  */
-const DEFAULT_INITIAL_CONTENT = `
-<p>This is a <strong>powerful</strong> and <em>flexible</em> rich text editor built with Tiptap. Try out these features:</p>
+// KEEP FOR LATER USE
+// const DEFAULT_INITIAL_CONTENT = `
+// <p>This is a <strong>powerful</strong> and <em>flexible</em> rich text editor built with Tiptap. Try out these features:</p>
 
-<h2>Text Formatting</h2>
-<p>You can make text <strong>bold</strong>, <em>italic</em>, <u>underlined</u>, <s>strikethrough</s>, <code>code</code>, or combine them like <strong><em>bold and italic</em></strong>.</p>
+// <h2>Text Formatting</h2>
+// <p>You can make text <strong>bold</strong>, <em>italic</em>, <u>underlined</u>, <s>strikethrough</s>, <code>code</code>, or combine them like <strong><em>bold and italic</em></strong>.</p>
 
-<h2>Lists</h2>
-<p>Create bullet lists:</p>
-<ul>
-  <li>First item</li>
-  <li>Second item with <strong>bold text</strong></li>
-  <li>Third item</li>
-</ul>
+// <h2>Lists</h2>
+// <p>Create bullet lists:</p>
+// <ul>
+//   <li>First item</li>
+//   <li>Second item with <strong>bold text</strong></li>
+//   <li>Third item</li>
+// </ul>
 
-<p>Or numbered lists:</p>
-<ol>
-  <li>Step one</li>
-  <li>Step two</li>
-  <li>Step three</li>
-</ol>
+// <p>Or numbered lists:</p>
+// <ol>
+//   <li>Step one</li>
+//   <li>Step two</li>
+//   <li>Step three</li>
+// </ol>
 
-<h2>Block Actions</h2>
-<p>Hover over any block and click the <strong>::</strong> handle to:</p>
-<ul>
-  <li>Transform blocks (turn paragraphs into headings, lists, etc.)</li>
-  <li>Change text and background colors</li>
-  <li>Duplicate or delete blocks</li>
-  <li>Reset formatting</li>
-</ul>
+// <h2>Block Actions</h2>
+// <p>Hover over any block and click the <strong>::</strong> handle to:</p>
+// <ul>
+//   <li>Transform blocks (turn paragraphs into headings, lists, etc.)</li>
+//   <li>Change text and background colors</li>
+//   <li>Duplicate or delete blocks</li>
+//   <li>Reset formatting</li>
+// </ul>
 
-<blockquote>
-  <p>This is a quote block. You can use it for important callouts or citations.</p>
-</blockquote>
+// <blockquote>
+//   <p>This is a quote block. You can use it for important callouts or citations.</p>
+// </blockquote>
 
-<h2>Code Blocks with Syntax Highlighting</h2>
-<p>Click inside any code block to access the floating toolbar with language selection and height controls:</p>
+// <h2>Code Blocks with Syntax Highlighting</h2>
+// <p>Click inside any code block to access the floating toolbar with language selection and height controls:</p>
 
-<pre><code class="language-json">{
-  "name": "Tiptap Editor",
-  "version": "1.0.0",
-  "features": [
-    "Syntax highlighting",
-    "Multiple languages",
-    "Adjustable height"
-  ],
-  "supported": true
-}</code></pre>
+// <pre><code class="language-json">{
+//   "name": "Tiptap Editor",
+//   "version": "1.0.0",
+//   "features": [
+//     "Syntax highlighting",
+//     "Multiple languages",
+//     "Adjustable height"
+//   ],
+//   "supported": true
+// }</code></pre>
 
-<h2>Try These Features</h2>
-<p>Select text to see the formatting toolbar, or type <code>/</code> to open the command menu with more options!</p>
+// <h2>Try These Features</h2>
+// <p>Select text to see the formatting toolbar, or type <code>/</code> to open the command menu with more options!</p>
 
-<h2>Media Support</h2>
-<p>Add images with alignment and resize controls. Select the image to see the toolbar:</p>
+// <h2>Media Support</h2>
+// <p>Add images with alignment and resize controls. Select the image to see the toolbar:</p>
 
-<img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format&fit=crop" alt="Mountain landscape" data-align="center" data-width="600" data-show-caption="true" data-caption="Beautiful mountain landscape at sunset" />
+// <img src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&auto=format&fit=crop" alt="Mountain landscape" data-align="center" data-width="600" data-show-caption="true" data-caption="Beautiful mountain landscape at sunset" />
 
-<p>Embed YouTube videos with custom playback options. Select the video to adjust settings:</p>
+// <p>Embed YouTube videos with custom playback options. Select the video to adjust settings:</p>
 
-<div data-youtube-video data-align="center" data-width="640">
-  <iframe src="https://www.youtube.com/watch?v=jNQXAC9IVRw"></iframe>
-</div>
+// <div data-youtube-video data-align="left" data-width="640">
+//   <iframe src="jNQXAC9IVRw"></iframe>
+// </div>
 
-<p>Start editing and make this document your own! ✨</p>
-`
+// <p>Start editing and make this document your own! ✨</p>
+// `
 
 export interface NotifuseEditorProps {
   placeholder?: string
@@ -347,7 +348,7 @@ export function EditorContentArea() {
 export const EditorProvider = forwardRef<NotifuseEditorRef, EditorProviderProps>((props, ref) => {
   const {
     placeholder = 'Start writing...',
-    initialContent = DEFAULT_INITIAL_CONTENT,
+    initialContent = '',
     styleConfig = defaultEditorStyles,
     disableH1 = false,
     showHeader = true,

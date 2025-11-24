@@ -4,6 +4,7 @@ import { NodeViewWrapper } from '@tiptap/react'
 import { Input, Button, Popover, Tooltip, Divider, Switch } from 'antd'
 import type { InputRef } from 'antd'
 import { AlignLeft, AlignCenter, AlignRight, MessageSquare, Settings } from 'lucide-react'
+import { getYoutubeVideoId, getYoutubeEmbedUrl } from '../../utils/youtube-utils'
 
 import './youtube-node.css'
 import '../../toolbars/floating-toolbar.css'
@@ -87,82 +88,6 @@ function formatSecondsToTime(seconds: number): string {
   }
 
   return `${minutes}:${secs.toString().padStart(2, '0')}`
-}
-
-/**
- * Extract YouTube video ID from various URL formats
- */
-function getYoutubeVideoId(url: string): string | null {
-  if (!url) return null
-
-  // Already an embed URL
-  if (url.includes('/embed/')) {
-    const match = url.match(/\/embed\/([^?]+)/)
-    return match ? match[1] : null
-  }
-
-  // Standard watch URL
-  if (url.includes('watch?v=')) {
-    const match = url.match(/[?&]v=([^&]+)/)
-    return match ? match[1] : null
-  }
-
-  // Short URL
-  if (url.includes('youtu.be/')) {
-    const match = url.match(/youtu\.be\/([^?]+)/)
-    return match ? match[1] : null
-  }
-
-  // Just video ID
-  if (/^[a-zA-Z0-9_-]{11}$/.test(url)) {
-    return url
-  }
-
-  return null
-}
-
-/**
- * Convert YouTube URL to embed format with playback options
- */
-function getYoutubeEmbedUrl(
-  url: string,
-  options?: {
-    cc?: boolean
-    autoplay?: boolean
-    loop?: boolean
-    controls?: boolean
-    modestbranding?: boolean
-    start?: number
-  }
-): string | null {
-  const videoId = getYoutubeVideoId(url)
-  if (!videoId) return null
-
-  const params = new URLSearchParams()
-
-  // Add playback options as URL parameters
-  if (options?.cc) {
-    params.append('cc_load_policy', '1')
-  }
-  if (options?.autoplay) {
-    params.append('autoplay', '1')
-  }
-  if (options?.loop) {
-    params.append('loop', '1')
-    params.append('playlist', videoId) // Required for loop to work
-  }
-  if (options?.controls === false) {
-    params.append('controls', '0')
-  }
-  if (options?.modestbranding) {
-    params.append('modestbranding', '1')
-  }
-  if (options?.start && options.start > 0) {
-    params.append('start', options.start.toString())
-  }
-
-  const queryString = params.toString()
-  return `https://www.youtube.com/embed/${videoId}${queryString ? `?${queryString}` : ''}`
 }
 
 /**

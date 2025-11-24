@@ -44,7 +44,6 @@
     "@tiptap/extension-text-style": "^3.10.5",
     "@tiptap/extension-typography": "^3.10.5",
     "@tiptap/extension-underline": "^3.10.5",
-    "@tiptap/extension-youtube": "^3.10.7",
     "@tiptap/extensions": "^3.10.5",
     "@tiptap/pm": "^3.10.5",
     "@tiptap/react": "^3.10.5",
