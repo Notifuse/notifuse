@@ -590,6 +590,9 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 		return nil, fmt.Errorf("failed to update post: %w", err)
 	}
 
+	// Invalidate blog caches
+	s.invalidateBlogCaches(workspaceID, post.CategoryID)
+
 	return post, nil
 }
 
@@ -623,11 +626,21 @@ func (s *BlogService) DeletePost(ctx context.Context, request *domain.DeleteBlog
 		return err
 	}
 
+	// Get the post to find its category before deleting
+	post, err := s.postRepo.GetPost(ctx, request.ID)
+	if err != nil {
+		s.logger.Error("Failed to get post for deletion")
+		return fmt.Errorf("post not found: %w", err)
+	}
+
 	// Delete the post
 	if err := s.postRepo.DeletePost(ctx, request.ID); err != nil {
 		s.logger.Error("Failed to delete post")
 		return fmt.Errorf("failed to delete post: %w", err)
 	}
+
+	// Invalidate blog caches
+	s.invalidateBlogCaches(workspaceID, post.CategoryID)
 
 	return nil
 }

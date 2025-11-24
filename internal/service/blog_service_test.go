@@ -668,7 +668,7 @@ func TestBlogService_GetPost(t *testing.T) {
 }
 
 func TestBlogService_UpdatePost(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	categoryID := "cat123"
 
@@ -683,8 +683,17 @@ func TestBlogService_UpdatePost(t *testing.T) {
 		}
 
 		existingPost := &domain.BlogPost{
-			ID:   "post123",
-			Slug: "old-post",
+			ID:         "post123",
+			Slug:       "old-post",
+			CategoryID: categoryID,
+		}
+
+		workspace := &domain.Workspace{
+			ID:   "workspace123",
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone: "UTC",
+			},
 		}
 
 		mockPostRepo.EXPECT().
@@ -704,6 +713,11 @@ func TestBlogService_UpdatePost(t *testing.T) {
 		mockPostRepo.EXPECT().
 			UpdatePost(ctx, gomock.Any()).
 			Return(nil)
+
+		// GetByID is called by invalidateBlogCaches (uses context.Background())
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), "workspace123").
+			Return(workspace, nil)
 
 		post, err := service.UpdatePost(ctx, req)
 		require.NoError(t, err)
@@ -767,7 +781,7 @@ func TestBlogService_UpdatePost(t *testing.T) {
 }
 
 func TestBlogService_DeletePost(t *testing.T) {
-	service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful deletion", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -775,9 +789,32 @@ func TestBlogService_DeletePost(t *testing.T) {
 			ID: "post123",
 		}
 
+		post := &domain.BlogPost{
+			ID:         "post123",
+			CategoryID: "cat-1",
+		}
+
+		workspace := &domain.Workspace{
+			ID:   "workspace123",
+			Name: "Test Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone: "UTC",
+			},
+		}
+
+		// GetPost is called before DeletePost to get category ID for cache invalidation
+		mockPostRepo.EXPECT().
+			GetPost(ctx, req.ID).
+			Return(post, nil)
+
 		mockPostRepo.EXPECT().
 			DeletePost(ctx, req.ID).
 			Return(nil)
+
+		// GetByID is called by invalidateBlogCaches (uses context.Background())
+		mockWorkspaceRepo.EXPECT().
+			GetByID(gomock.Any(), "workspace123").
+			Return(workspace, nil)
 
 		err := service.DeletePost(ctx, req)
 		require.NoError(t, err)
@@ -790,6 +827,22 @@ func TestBlogService_DeletePost(t *testing.T) {
 		err := service.DeletePost(ctx, req)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "id is required")
+	})
+
+	t.Run("post not found", func(t *testing.T) {
+		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
+		req := &domain.DeleteBlogPostRequest{
+			ID: "nonexistent",
+		}
+
+		// GetPost is called before DeletePost to get category ID for cache invalidation
+		mockPostRepo.EXPECT().
+			GetPost(ctx, req.ID).
+			Return(nil, errors.New("not found"))
+
+		err := service.DeletePost(ctx, req)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "post not found")
 	})
 }
 
