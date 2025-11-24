@@ -20,7 +20,7 @@ func TestSubscribeRateLimiter_Integration(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	// Get base URL for the public endpoint
 	baseURL := suite.ServerManager.GetURL()
@@ -56,7 +56,7 @@ func TestSubscribeRateLimiter_Integration(t *testing.T) {
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Should succeed (200) - not rate limited
 			assert.Equal(t, http.StatusOK, resp.StatusCode, "Attempt %d should succeed", i+1)
@@ -104,7 +104,7 @@ func TestSubscribeRateLimiter_Integration(t *testing.T) {
 		client := &http.Client{}
 		resp, err := client.Do(req)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should return 429 Too Many Requests
 		assert.Equal(t, http.StatusTooManyRequests, resp.StatusCode)
@@ -165,7 +165,7 @@ func TestSubscribeRateLimiter_Integration(t *testing.T) {
 		client := &http.Client{}
 		resp1, err := client.Do(req1)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp1.Body.Close() }()
+		defer func() { _ = resp1.Body.Close() }()
 
 		assert.Equal(t, http.StatusTooManyRequests, resp1.StatusCode, "Email1 should be rate limited")
 
@@ -185,7 +185,7 @@ func TestSubscribeRateLimiter_Integration(t *testing.T) {
 
 		resp2, err := client.Do(req2)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp2.Body.Close() }()
+		defer func() { _ = resp2.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp2.StatusCode, "Email2 should not be rate limited")
 	})
@@ -249,7 +249,7 @@ func TestSubscribeRateLimiter_Integration(t *testing.T) {
 
 		resp2, err := client.Do(req2)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp2.Body.Close() }()
+		defer func() { _ = resp2.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp2.StatusCode, "Should be allowed after window expires")
 	})
@@ -261,7 +261,7 @@ func TestSubscribeIPRateLimiter_Integration(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	// Get base URL for the public endpoint
 	baseURL := suite.ServerManager.GetURL()
@@ -301,7 +301,7 @@ func TestSubscribeIPRateLimiter_Integration(t *testing.T) {
 			client := &http.Client{}
 			resp, err := client.Do(req)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			// All should succeed since they use different emails
 			assert.Equal(t, http.StatusOK, resp.StatusCode, "Request %d should succeed", i+1)

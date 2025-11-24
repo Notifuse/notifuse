@@ -28,7 +28,7 @@ func TestConnectionPoolFunctionality(t *testing.T) {
 	}
 
 	pool := NewTestConnectionPool(config)
-	defer pool.Cleanup()
+	defer func() { _ = pool.Cleanup() }()
 
 	t.Run("system connection", func(t *testing.T) {
 		// Test system connection

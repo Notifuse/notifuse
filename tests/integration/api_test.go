@@ -23,7 +23,7 @@ func TestAPIServerStartup(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	// Test that server is running
 	assert.True(t, suite.ServerManager.IsStarted(), "Server should be started")
@@ -31,7 +31,7 @@ func TestAPIServerStartup(t *testing.T) {
 	// Test basic HTTP connectivity
 	resp, err := http.Get(suite.ServerManager.GetURL() + "/health")
 	require.NoError(t, err, "Should be able to make HTTP request")
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Health endpoint should return 200 or 404 (if not implemented)
 	assert.True(t, resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotFound,
@@ -44,7 +44,7 @@ func TestAPIServerShutdown(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	// Verify server is started
 	assert.True(t, suite.ServerManager.IsStarted(), "Server should be started")
@@ -63,7 +63,7 @@ func TestAPIClientConnection(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -72,7 +72,7 @@ func TestAPIClientConnection(t *testing.T) {
 		"id": "test-workspace-id",
 	})
 	require.NoError(t, err, "Should be able to make API request")
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Should get some response (might be unauthorized, but connection works)
 	assert.True(t, resp.StatusCode > 0, "Should get HTTP response")
@@ -84,7 +84,7 @@ func TestDatabaseIntegrationWithAPI(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	// Test that API can connect to database through the app
 	app := suite.ServerManager.GetApp()
@@ -105,7 +105,7 @@ func TestAPIEndpointDiscovery(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -120,7 +120,7 @@ func TestAPIEndpointDiscovery(t *testing.T) {
 	for _, endpoint := range endpoints {
 		resp, err := client.Get(endpoint)
 		require.NoError(t, err, "Should be able to connect to endpoint %s", endpoint)
-		_ = _ = resp.Body.Close()
+		_ = resp.Body.Close()
 
 		// Endpoints should exist (not 404) even if unauthorized
 		assert.NotEqual(t, http.StatusNotFound, resp.StatusCode,
@@ -134,7 +134,7 @@ func TestAPIServerRestart(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	originalURL := suite.ServerManager.GetURL()
 
@@ -163,7 +163,7 @@ func TestConcurrentAPIRequests(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -178,7 +178,7 @@ func TestConcurrentAPIRequests(t *testing.T) {
 				results <- err
 				return
 			}
-			_ = _ = resp.Body.Close()
+			_ = resp.Body.Close()
 			results <- nil
 		}()
 	}
@@ -196,7 +196,7 @@ func TestAPIWithAppContext(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	app := suite.ServerManager.GetApp()
 

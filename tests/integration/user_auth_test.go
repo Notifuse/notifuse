@@ -23,7 +23,7 @@ func TestUserSignInFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -37,7 +37,7 @@ func TestUserSignInFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/user.signin", signinReq)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should return 400 Bad Request
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -75,7 +75,7 @@ func TestUserSignInFlow(t *testing.T) {
 		// Second signin for same user
 		resp2, err := client.Post("/api/user.signin", signinReq)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp2.Body.Close() }()
+		defer func() { _ = resp2.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp2.StatusCode)
 
@@ -97,7 +97,7 @@ func TestUserSignInFlow(t *testing.T) {
 
 		resp, err := client.Post("/api/user.signin", signinReq)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Empty email should also fail since no user exists with empty email
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -138,7 +138,7 @@ func TestUserVerifyCodeFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -150,7 +150,7 @@ func TestUserVerifyCodeFlow(t *testing.T) {
 
 		signinResp, err := client.Post("/api/user.signin", signinReq)
 		require.NoError(t, err)
-		defer func() { _ = _ = signinResp.Body.Close() }()
+		defer func() { _ = signinResp.Body.Close() }()
 
 		var signinResponse map[string]interface{}
 		err = json.NewDecoder(signinResp.Body).Decode(&signinResponse)
@@ -168,7 +168,7 @@ func TestUserVerifyCodeFlow(t *testing.T) {
 
 		verifyResp, err := client.Post("/api/user.verify", verifyReq)
 		require.NoError(t, err)
-		defer func() { _ = _ = verifyResp.Body.Close() }()
+		defer func() { _ = verifyResp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, verifyResp.StatusCode)
 
@@ -216,7 +216,7 @@ func TestUserVerifyCodeFlow(t *testing.T) {
 
 		verifyResp, err := client.Post("/api/user.verify", verifyReq)
 		require.NoError(t, err)
-		defer func() { _ = _ = verifyResp.Body.Close() }()
+		defer func() { _ = verifyResp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, verifyResp.StatusCode)
 
@@ -271,7 +271,7 @@ func TestUserVerifyCodeFlow(t *testing.T) {
 
 		verifyResp, err := client.Post("/api/user.verify", verifyReq)
 		require.NoError(t, err)
-		defer func() { _ = _ = verifyResp.Body.Close() }()
+		defer func() { _ = verifyResp.Body.Close() }()
 
 		// Check the actual response to understand behavior
 		var response map[string]interface{}
@@ -297,7 +297,7 @@ func TestUserVerifyCodeFlow(t *testing.T) {
 
 		verifyResp, err := client.Post("/api/user.verify", verifyReq)
 		require.NoError(t, err)
-		defer func() { _ = _ = verifyResp.Body.Close() }()
+		defer func() { _ = verifyResp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, verifyResp.StatusCode)
 
@@ -336,7 +336,7 @@ func TestUserGetCurrentUserFlow(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -353,7 +353,7 @@ func TestUserGetCurrentUserFlow(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -383,7 +383,7 @@ func TestUserGetCurrentUserFlow(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -395,7 +395,7 @@ func TestUserGetCurrentUserFlow(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -408,7 +408,7 @@ func TestUserSessionManagement(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -553,7 +553,7 @@ func performCompleteSignInFlow(t *testing.T, client *testutil.APIClient, email s
 
 	signinResp, err := client.Post("/api/user.signin", signinReq)
 	require.NoError(t, err)
-	defer func() { _ = _ = signinResp.Body.Close() }()
+	defer func() { _ = signinResp.Body.Close() }()
 
 	var signinResponse map[string]interface{}
 	err = json.NewDecoder(signinResp.Body).Decode(&signinResponse)
@@ -570,7 +570,7 @@ func performCompleteSignInFlow(t *testing.T, client *testutil.APIClient, email s
 
 	verifyResp, err := client.Post("/api/user.verify", verifyReq)
 	require.NoError(t, err)
-	defer func() { _ = _ = verifyResp.Body.Close() }()
+	defer func() { _ = verifyResp.Body.Close() }()
 
 	var authResponse domain.AuthResponse
 	err = json.NewDecoder(verifyResp.Body).Decode(&authResponse)

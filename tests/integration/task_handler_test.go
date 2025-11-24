@@ -30,7 +30,7 @@ func TestTaskHandler(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -91,7 +91,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 
 			resp, err := client.CreateTask(createRequest)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
@@ -114,7 +114,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 
 			resp, err := client.CreateTask(createRequest)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -127,7 +127,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 
 			resp, err := client.CreateTask(createRequest)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -143,7 +143,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 
 			resp, err := client.GetTask(workspaceID, task.ID)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -163,7 +163,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 			nonExistentID := "00000000-0000-0000-0000-000000000000"
 			resp, err := client.GetTask(workspaceID, nonExistentID)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 		})
@@ -171,7 +171,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 		t.Run("should fail with missing parameters", func(t *testing.T) {
 			resp, err := client.GetTask("", "some-id")
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -191,7 +191,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 
 			resp, err := client.ListTasks(params)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -223,7 +223,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 
 			resp, err := client.ListTasks(params)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -253,7 +253,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 
 			resp, err := client.ListTasks(params)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -280,7 +280,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 
 			resp, err := client.ListTasks(params)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -302,7 +302,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 
 			resp, err := client.DeleteTask(workspaceID, task.ID)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -317,7 +317,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 			// Verify task is deleted
 			getResp, err := client.GetTask(workspaceID, task.ID)
 			require.NoError(t, err)
-			defer func() { _ = _ = getResp.Body.Close() }()
+			defer func() { _ = getResp.Body.Close() }()
 			assert.Equal(t, http.StatusNotFound, getResp.StatusCode)
 		})
 
@@ -326,7 +326,7 @@ func testTaskCRUD(t *testing.T, client *testutil.APIClient, factory *testutil.Te
 			nonExistentID := "00000000-0000-0000-0000-000000000000"
 			resp, err := client.DeleteTask(workspaceID, nonExistentID)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 		})
@@ -349,7 +349,7 @@ func testTaskExecution(t *testing.T, client *testutil.APIClient, factory *testut
 
 			resp, err := client.ExecuteTask(executeRequest)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Task execution is expected for now - the actual processing depends on registered processors
 			// For integration tests, we mainly verify the endpoint works correctly
@@ -377,7 +377,7 @@ func testTaskExecution(t *testing.T, client *testutil.APIClient, factory *testut
 
 			resp, err := client.ExecuteTask(executeRequest)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 		})
@@ -390,7 +390,7 @@ func testTaskExecution(t *testing.T, client *testutil.APIClient, factory *testut
 
 			resp, err := client.ExecuteTask(executeRequest)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -411,7 +411,7 @@ func testTaskExecution(t *testing.T, client *testutil.APIClient, factory *testut
 
 			resp, err := client.ExecutePendingTasks(5)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -449,7 +449,7 @@ func testTaskExecution(t *testing.T, client *testutil.APIClient, factory *testut
 
 			resp, err := client.ExecutePendingTasks(0) // This should use default
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -457,7 +457,7 @@ func testTaskExecution(t *testing.T, client *testutil.APIClient, factory *testut
 			time.Sleep(2 * time.Second) // Give it a moment to process
 			taskResp, err := client.GetTask(workspaceID, task.ID)
 			require.NoError(t, err)
-			defer func() { _ = _ = taskResp.Body.Close() }()
+			defer func() { _ = taskResp.Body.Close() }()
 
 			var taskResult map[string]interface{}
 			err = json.NewDecoder(taskResp.Body).Decode(&taskResult)
@@ -486,7 +486,7 @@ func testTaskStateManagement(t *testing.T, client *testutil.APIClient, factory *
 			// Verify status change
 			resp, err := client.GetTask(workspaceID, task.ID)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			var result map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&result)
@@ -505,7 +505,7 @@ func testTaskStateManagement(t *testing.T, client *testutil.APIClient, factory *
 			// Verify status change
 			resp, err := client.GetTask(workspaceID, task.ID)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			var result map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&result)
@@ -531,7 +531,7 @@ func testTaskStateManagement(t *testing.T, client *testutil.APIClient, factory *
 			// Verify task status
 			resp, err := client.GetTask(workspaceID, failTask.ID)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			var result map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&result)
@@ -565,7 +565,7 @@ func testTaskStateManagement(t *testing.T, client *testutil.APIClient, factory *
 			// Verify paused status
 			resp, err := client.GetTask(workspaceID, pauseTask.ID)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			var result map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&result)
@@ -589,7 +589,7 @@ func testTaskAuthentication(t *testing.T, client *testutil.APIClient, factory *t
 
 		resp, err := client.ExecutePendingTasks(5)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 		// Should be accessible but may fail for other reasons
 		assert.NotEqual(t, http.StatusUnauthorized, resp.StatusCode)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -598,7 +598,7 @@ func testTaskAuthentication(t *testing.T, client *testutil.APIClient, factory *t
 		time.Sleep(2 * time.Second)
 		taskResp, err := client.GetTask(workspaceID, task.ID)
 		require.NoError(t, err)
-		defer func() { _ = _ = taskResp.Body.Close() }()
+		defer func() { _ = taskResp.Body.Close() }()
 
 		var taskResult map[string]interface{}
 		err = json.NewDecoder(taskResp.Body).Decode(&taskResult)
@@ -621,7 +621,7 @@ func testTaskRepositoryOperations(t *testing.T, client *testutil.APIClient, fact
 		// Retrieve and verify task exists
 		resp, err := client.GetTask(workspaceID, task.ID)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -645,7 +645,7 @@ func testTaskRepositoryOperations(t *testing.T, client *testutil.APIClient, fact
 		// Verify status update
 		resp, err := client.GetTask(workspaceID, task.ID)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		var result map[string]interface{}
 		err = json.NewDecoder(resp.Body).Decode(&result)
@@ -692,7 +692,7 @@ func testTaskErrorHandling(t *testing.T, client *testutil.APIClient, factory *te
 				}
 
 				require.NoError(t, err)
-				defer func() { _ = _ = resp.Body.Close() }()
+				defer func() { _ = resp.Body.Close() }()
 				assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 			})
 		}
@@ -708,7 +708,7 @@ func testTaskErrorHandling(t *testing.T, client *testutil.APIClient, factory *te
 
 		resp, err := client.CreateTask(createRequest)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -725,7 +725,7 @@ func testTaskErrorHandling(t *testing.T, client *testutil.APIClient, factory *te
 		// Try to access task from current workspace context
 		resp, err := client.GetTask(workspaceID, task.ID)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should not find the task (as it belongs to different workspace)
 		assert.Equal(t, http.StatusNotFound, resp.StatusCode)
@@ -749,7 +749,7 @@ func testBroadcastTaskIntegration(t *testing.T, client *testutil.APIClient, fact
 			// Verify task creation
 			resp, err := client.GetTask(workspaceID, task.ID)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -786,7 +786,7 @@ func testBroadcastTaskIntegration(t *testing.T, client *testutil.APIClient, fact
 			// Verify A/B testing configuration
 			resp, err := client.GetTask(workspaceID, task.ID)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			var result map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&result)
@@ -814,7 +814,7 @@ func TestTaskAuthentication(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -848,7 +848,7 @@ func TestTaskAuthentication(t *testing.T) {
 			t.Run(endpoint.name, func(t *testing.T) {
 				resp, err := endpoint.fn()
 				require.NoError(t, err)
-				defer func() { _ = _ = resp.Body.Close() }()
+				defer func() { _ = resp.Body.Close() }()
 
 				assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 			})
@@ -862,7 +862,7 @@ func TestTaskAuthentication(t *testing.T) {
 		t.Run("execute endpoint", func(t *testing.T) {
 			resp, err := client.ExecuteTask(map[string]interface{}{"workspace_id": workspace.ID, "id": testTaskID})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Should not be unauthorized - may return 404 for non-existent task, but not 401
 			assert.NotEqual(t, http.StatusUnauthorized, resp.StatusCode)
@@ -877,7 +877,7 @@ func TestTaskAuthentication(t *testing.T) {
 
 			resp, err := client.ExecutePendingTasks(5)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Should not be unauthorized
 			assert.NotEqual(t, http.StatusUnauthorized, resp.StatusCode)
@@ -887,7 +887,7 @@ func TestTaskAuthentication(t *testing.T) {
 			time.Sleep(2 * time.Second)
 			taskResp, err := client.GetTask(workspace.ID, task.ID)
 			require.NoError(t, err)
-			defer func() { _ = _ = taskResp.Body.Close() }()
+			defer func() { _ = taskResp.Body.Close() }()
 
 			var taskResult map[string]interface{}
 			err = json.NewDecoder(taskResp.Body).Decode(&taskResult)

@@ -21,7 +21,7 @@ func TestConnectionPoolLifecycle(t *testing.T) {
 	t.Run("pool initialization", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		// Test system connection is established
 		systemDB, err := pool.GetSystemConnection()
@@ -40,7 +40,7 @@ func TestConnectionPoolLifecycle(t *testing.T) {
 	t.Run("workspace pool creation", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		workspaceID := "test_lifecycle_create"
 
@@ -70,7 +70,7 @@ func TestConnectionPoolLifecycle(t *testing.T) {
 	t.Run("workspace pool reuse", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		workspaceID := "test_lifecycle_reuse"
 
@@ -96,7 +96,7 @@ func TestConnectionPoolLifecycle(t *testing.T) {
 	t.Run("workspace pool cleanup", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		workspaceID := "test_lifecycle_cleanup"
 
@@ -146,7 +146,7 @@ func TestConnectionPoolLifecycle(t *testing.T) {
 		assert.Equal(t, 3, pool.GetConnectionCount())
 
 		// Clean up all
-		err := _ = pool.Cleanup()
+		err := pool.Cleanup()
 		require.NoError(t, err, "Full cleanup should succeed")
 
 		// Verify no connections remain
@@ -176,11 +176,11 @@ func TestConnectionPoolLifecycle(t *testing.T) {
 		_, err = pool.GetWorkspaceConnection(workspaceID)
 		require.NoError(t, err)
 
-		err = _ = pool.Cleanup()
+		err = pool.Cleanup()
 		require.NoError(t, err)
 
 		// Cleanup again should not error
-		err = _ = pool.Cleanup()
+		err = pool.Cleanup()
 		require.NoError(t, err, "Second cleanup should not error")
 	})
 
@@ -189,8 +189,8 @@ func TestConnectionPoolLifecycle(t *testing.T) {
 
 		pool1 := testutil.NewTestConnectionPool(config)
 		pool2 := testutil.NewTestConnectionPool(config)
-		defer _ = pool1.Cleanup()
-		defer _ = pool2.Cleanup()
+		defer func() { _ = pool1.Cleanup() }()
+		defer func() { _ = pool2.Cleanup() }()
 
 		workspaceID1 := "test_lifecycle_isolated_1"
 		workspaceID2 := "test_lifecycle_isolated_2"
@@ -212,7 +212,7 @@ func TestConnectionPoolLifecycle(t *testing.T) {
 		assert.Equal(t, 1, pool2.GetConnectionCount())
 
 		// Cleanup pool1 should not affect pool2
-		err = _ = pool1.Cleanup()
+		err = pool1.Cleanup()
 		require.NoError(t, err)
 
 		assert.Equal(t, 0, pool1.GetConnectionCount())
@@ -232,7 +232,7 @@ func TestConnectionPoolManagerIsolation(t *testing.T) {
 	t.Run("isolated pools per test", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		manager := testutil.NewTestConnectionPoolManager()
-		defer manager.CleanupAll()
+		defer func() { _ = manager.CleanupAll() }()
 
 		// Create pools for different "tests"
 		pool1 := manager.GetOrCreatePool("test1", config)
@@ -254,7 +254,7 @@ func TestConnectionPoolManagerIsolation(t *testing.T) {
 	t.Run("cleanup specific pool", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		manager := testutil.NewTestConnectionPoolManager()
-		defer manager.CleanupAll()
+		defer func() { _ = manager.CleanupAll() }()
 
 		pool1 := manager.GetOrCreatePool("test1", config)
 		pool2 := manager.GetOrCreatePool("test2", config)
@@ -309,7 +309,7 @@ func TestConnectionPoolMetrics(t *testing.T) {
 	t.Run("metrics tracking", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		// Create metrics tracker
 		metrics := testutil.NewConnectionPoolMetrics("test_metrics", 0)
@@ -328,7 +328,7 @@ func TestConnectionPoolMetrics(t *testing.T) {
 		}
 
 		// Cleanup and finalize
-		err := _ = pool.Cleanup()
+		err := pool.Cleanup()
 		require.NoError(t, err)
 
 		metrics.Finalize(pool.GetConnectionCount())

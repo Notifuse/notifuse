@@ -27,7 +27,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 	t.Run("should_pause_broadcast_and_set_reason_when_circuit_breaker_triggers", func(t *testing.T) {
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
-		defer func() { _ = _ = dbManager.Cleanup() }()
+		defer func() { _ = dbManager.Cleanup() }()
 
 		err := dbManager.Setup()
 		require.NoError(t, err)
@@ -176,7 +176,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 	t.Run("should_handle_multiple_circuit_breaker_triggers_gracefully", func(t *testing.T) {
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
-		defer func() { _ = _ = dbManager.Cleanup() }()
+		defer func() { _ = dbManager.Cleanup() }()
 
 		err := dbManager.Setup()
 		require.NoError(t, err)
@@ -265,7 +265,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 	t.Run("should_preserve_pause_reason_when_broadcast_is_resumed", func(t *testing.T) {
 		// Create a fresh test database
 		dbManager := testutil.NewDatabaseManager()
-		defer func() { _ = _ = dbManager.Cleanup() }()
+		defer func() { _ = dbManager.Cleanup() }()
 
 		err := dbManager.Setup()
 		require.NoError(t, err)

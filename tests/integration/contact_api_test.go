@@ -22,7 +22,7 @@ func TestContactAPIEndpoints(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -31,7 +31,7 @@ func TestContactAPIEndpoints(t *testing.T) {
 			"limit": "10",
 		})
 		require.NoError(t, err, "Should be able to list contacts")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should get a response (might be unauthorized but endpoint exists)
 		assert.NotEqual(t, http.StatusNotFound, resp.StatusCode, "Contacts list endpoint should exist")
@@ -46,7 +46,7 @@ func TestContactAPIEndpoints(t *testing.T) {
 
 		resp, err := client.CreateContact(contact)
 		require.NoError(t, err, "Should be able to create contact")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should get a response (might fail validation but endpoint exists)
 		assert.NotEqual(t, http.StatusNotFound, resp.StatusCode, "Contact create endpoint should exist")
@@ -55,7 +55,7 @@ func TestContactAPIEndpoints(t *testing.T) {
 	t.Run("Get Contact by Email", func(t *testing.T) {
 		resp, err := client.GetContactByEmail("test@example.com")
 		require.NoError(t, err, "Should be able to get contact by email")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should get a response (might be not found but endpoint exists)
 		assert.NotEqual(t, http.StatusNotFound, resp.StatusCode, "Get contact by email endpoint should exist")
@@ -70,7 +70,7 @@ func TestContactDataFactory(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	factory := suite.DataFactory
 
@@ -135,7 +135,7 @@ func TestContactDatabaseOperations(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	factory := suite.DataFactory
 
@@ -217,7 +217,7 @@ func TestContactAPIIntegration(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -237,7 +237,7 @@ func TestContactAPIIntegration(t *testing.T) {
 		// Try to fetch via API (might fail due to auth but test structure)
 		resp, err := client.GetContactByEmail(email)
 		require.NoError(t, err, "Should be able to make API request")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// If we get data back, verify structure
 		if resp.StatusCode == http.StatusOK {
@@ -266,7 +266,7 @@ func TestContactAPIIntegration(t *testing.T) {
 			"limit": "10",
 		})
 		require.NoError(t, err, "Should be able to list contacts")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// If we get data back, verify structure
 		if resp.StatusCode == http.StatusOK {

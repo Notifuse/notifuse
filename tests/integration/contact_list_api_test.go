@@ -21,7 +21,7 @@ func TestContactListAPIEndpoints(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -34,7 +34,7 @@ func TestContactListAPIEndpoints(t *testing.T) {
 
 		resp, err := client.Get("/api/contactLists.getByIDs", params)
 		require.NoError(t, err, "Should be able to call getByIDs endpoint")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should not be 404, endpoint should exist
 		assert.NotEqual(t, http.StatusNotFound, resp.StatusCode, "GetByIDs endpoint should exist")
@@ -48,7 +48,7 @@ func TestContactListAPIEndpoints(t *testing.T) {
 
 		resp, err := client.Get("/api/contactLists.getContactsByList", params)
 		require.NoError(t, err, "Should be able to call getContactsByList endpoint")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should not be 404, endpoint should exist
 		assert.NotEqual(t, http.StatusNotFound, resp.StatusCode, "GetContactsByList endpoint should exist")
@@ -62,7 +62,7 @@ func TestContactListAPIEndpoints(t *testing.T) {
 
 		resp, err := client.Get("/api/contactLists.getListsByContact", params)
 		require.NoError(t, err, "Should be able to call getListsByContact endpoint")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should not be 404, endpoint should exist
 		assert.NotEqual(t, http.StatusNotFound, resp.StatusCode, "GetListsByContact endpoint should exist")
@@ -78,7 +78,7 @@ func TestContactListAPIEndpoints(t *testing.T) {
 
 		resp, err := client.Post("/api/contactLists.updateStatus", updateReq)
 		require.NoError(t, err, "Should be able to call updateStatus endpoint")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should not be 404, endpoint should exist
 		assert.NotEqual(t, http.StatusNotFound, resp.StatusCode, "UpdateStatus endpoint should exist")
@@ -93,7 +93,7 @@ func TestContactListAPIEndpoints(t *testing.T) {
 
 		resp, err := client.Post("/api/contactLists.removeContact", removeReq)
 		require.NoError(t, err, "Should be able to call removeContact endpoint")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should not be 404, endpoint should exist
 		assert.NotEqual(t, http.StatusNotFound, resp.StatusCode, "RemoveContact endpoint should exist")
@@ -108,7 +108,7 @@ func TestContactListAPIWithoutAuthentication(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	factory := suite.DataFactory
 	client := suite.APIClient
@@ -141,7 +141,7 @@ func TestContactListAPIWithoutAuthentication(t *testing.T) {
 
 		resp, err := client.Get("/api/contactLists.getByIDs", params)
 		require.NoError(t, err, "Should be able to call getByIDs with auth")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Without proper auth token, we still get 401
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode,
@@ -156,7 +156,7 @@ func TestContactListAPIWithoutAuthentication(t *testing.T) {
 
 		resp, err := client.Get("/api/contactLists.getContactsByList", params)
 		require.NoError(t, err, "Should be able to call getContactsByList with auth")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Without proper auth token, we still get 401
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode,
@@ -171,7 +171,7 @@ func TestContactListAPIWithoutAuthentication(t *testing.T) {
 
 		resp, err := client.Get("/api/contactLists.getListsByContact", params)
 		require.NoError(t, err, "Should be able to call getListsByContact with auth")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Without proper auth token, we still get 401
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode,
@@ -187,7 +187,7 @@ func TestContactListAPIValidation(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -200,7 +200,7 @@ func TestContactListAPIValidation(t *testing.T) {
 
 		resp, err := client.Get("/api/contactLists.getByIDs", params)
 		require.NoError(t, err, "Should be able to make request")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Without authentication, we get 401 instead of 400
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, "Should return 401 for unauthenticated request")
@@ -213,7 +213,7 @@ func TestContactListAPIValidation(t *testing.T) {
 
 		resp, err = client.Get("/api/contactLists.getByIDs", params)
 		require.NoError(t, err, "Should be able to make request")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, "Should return 401 for unauthenticated request")
 
@@ -225,7 +225,7 @@ func TestContactListAPIValidation(t *testing.T) {
 
 		resp, err = client.Get("/api/contactLists.getByIDs", params)
 		require.NoError(t, err, "Should be able to make request")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, "Should return 401 for unauthenticated request")
 	})
@@ -239,7 +239,7 @@ func TestContactListAPIValidation(t *testing.T) {
 
 		resp, err := client.Get("/api/contactLists.getByIDs", params)
 		require.NoError(t, err, "Should be able to make request")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, "Should return 401 for unauthenticated request")
 	})
@@ -254,7 +254,7 @@ func TestContactListAPIValidation(t *testing.T) {
 
 		resp, err := client.Post("/api/contactLists.updateStatus", updateReq)
 		require.NoError(t, err, "Should be able to make request")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode, "Should return 401 for unauthenticated request")
 	})
@@ -272,7 +272,7 @@ func TestContactListAPIValidation(t *testing.T) {
 
 			resp, err := client.Post("/api/contactLists.updateStatus", updateReq)
 			require.NoError(t, err, "Should be able to make request with status %s", status)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Should get 401 for unauthenticated request regardless of status
 			assert.Equal(t, http.StatusUnauthorized, resp.StatusCode,
@@ -289,7 +289,7 @@ func TestContactListAPIFullWorkflow(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	factory := suite.DataFactory
 	client := suite.APIClient
@@ -332,7 +332,7 @@ func TestContactListAPIFullWorkflow(t *testing.T) {
 
 		resp, err := client.Get("/api/contactLists.getByIDs", params)
 		require.NoError(t, err, "Should be able to get contact list by IDs")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode == http.StatusOK {
 			var result map[string]interface{}
@@ -354,7 +354,7 @@ func TestContactListAPIFullWorkflow(t *testing.T) {
 
 		resp, err = client.Get("/api/contactLists.getContactsByList", params)
 		require.NoError(t, err, "Should be able to get contacts by list")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode == http.StatusOK {
 			var result map[string]interface{}
@@ -374,7 +374,7 @@ func TestContactListAPIFullWorkflow(t *testing.T) {
 
 		resp, err = client.Get("/api/contactLists.getListsByContact", params)
 		require.NoError(t, err, "Should be able to get lists by contact")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode == http.StatusOK {
 			var result map[string]interface{}
@@ -396,7 +396,7 @@ func TestContactListAPIFullWorkflow(t *testing.T) {
 
 		resp, err = client.Post("/api/contactLists.updateStatus", updateReq)
 		require.NoError(t, err, "Should be able to update status")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode == http.StatusOK {
 			var result map[string]interface{}
@@ -426,7 +426,7 @@ func TestContactListAPIFullWorkflow(t *testing.T) {
 
 		resp, err = client.Post("/api/contactLists.removeContact", removeReq)
 		require.NoError(t, err, "Should be able to remove contact")
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		if resp.StatusCode == http.StatusOK {
 			var result map[string]interface{}
@@ -448,7 +448,7 @@ func TestContactListAPIMethodValidation(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -463,7 +463,7 @@ func TestContactListAPIMethodValidation(t *testing.T) {
 			// Try POST on GET endpoint
 			resp, err := client.Post(endpoint, map[string]interface{}{})
 			require.NoError(t, err, "Should be able to make POST request to %s", endpoint)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusUnauthorized, resp.StatusCode,
 				"Should return 401 for unauthenticated request to %s", endpoint)
@@ -480,7 +480,7 @@ func TestContactListAPIMethodValidation(t *testing.T) {
 			// Try GET on POST endpoint
 			resp, err := client.Get(endpoint)
 			require.NoError(t, err, "Should be able to make GET request to %s", endpoint)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusUnauthorized, resp.StatusCode,
 				"Should return 401 for unauthenticated request to %s", endpoint)

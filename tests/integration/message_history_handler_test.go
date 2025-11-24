@@ -24,7 +24,7 @@ func TestMessageHistoryHandler(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -60,7 +60,7 @@ func testMessagesList(t *testing.T, client *testutil.APIClient, factory *testuti
 				"workspace_id": workspaceID,
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -81,7 +81,7 @@ func testMessagesList(t *testing.T, client *testutil.APIClient, factory *testuti
 
 			resp, err := client.Get("/api/messages.list")
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Debug: print response status and body
 			body, _ := io.ReadAll(resp.Body)
@@ -95,7 +95,7 @@ func testMessagesList(t *testing.T, client *testutil.APIClient, factory *testuti
 				"workspace_id": workspaceID,
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 		})
@@ -122,7 +122,7 @@ func testMessagesList(t *testing.T, client *testutil.APIClient, factory *testuti
 				"limit":        "3",
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -161,7 +161,7 @@ func testMessagesList(t *testing.T, client *testutil.APIClient, factory *testuti
 				"channel":      "email",
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -182,7 +182,7 @@ func testMessagesList(t *testing.T, client *testutil.APIClient, factory *testuti
 				"channel":      "invalid_channel",
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -213,7 +213,7 @@ func testMessagesList(t *testing.T, client *testutil.APIClient, factory *testuti
 				"is_delivered": "true",
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -256,7 +256,7 @@ func testMessagesList(t *testing.T, client *testutil.APIClient, factory *testuti
 				"sent_before":  now.Format(time.RFC3339),
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -277,7 +277,7 @@ func testMessagesList(t *testing.T, client *testutil.APIClient, factory *testuti
 				"sent_after":   "invalid-time-format",
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -315,7 +315,7 @@ func testBroadcastStats(t *testing.T, client *testutil.APIClient, factory *testu
 				"broadcast_id": broadcast.ID,
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -338,7 +338,7 @@ func testBroadcastStats(t *testing.T, client *testutil.APIClient, factory *testu
 				"workspace_id": workspaceID,
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 		})
@@ -353,7 +353,7 @@ func testBroadcastStats(t *testing.T, client *testutil.APIClient, factory *testu
 				"broadcast_id": "test-broadcast-id",
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Debug: print response status and body
 			body, _ := io.ReadAll(resp.Body)
@@ -368,7 +368,7 @@ func testBroadcastStats(t *testing.T, client *testutil.APIClient, factory *testu
 				"broadcast_id": "test-broadcast-id",
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 		})
@@ -379,7 +379,7 @@ func testBroadcastStats(t *testing.T, client *testutil.APIClient, factory *testu
 				"broadcast_id": "non-existent-broadcast-id",
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			// Should return OK with empty stats
 			assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -402,7 +402,7 @@ func TestMessageHistoryAuthentication(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -426,7 +426,7 @@ func TestMessageHistoryAuthentication(t *testing.T) {
 				"workspace_id": workspace.ID,
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 		})
@@ -437,7 +437,7 @@ func TestMessageHistoryAuthentication(t *testing.T) {
 				"broadcast_id": "test-broadcast-id",
 			})
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 		})
@@ -452,7 +452,7 @@ func TestMessageHistoryDataFactory(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	factory := suite.DataFactory
 	workspace, err := factory.CreateWorkspace()
@@ -541,7 +541,7 @@ func TestMessageDataEncryption(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	factory := suite.DataFactory
 	workspace, err := factory.CreateWorkspace()

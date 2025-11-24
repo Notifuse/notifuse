@@ -32,7 +32,7 @@ func TestContactBulkImportE2E(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -112,7 +112,7 @@ func testBulkInsertNewContacts(t *testing.T, client *testutil.APIClient, workspa
 	// Import contacts - executes REAL multi-row INSERT against PostgreSQL
 	resp, err := client.BatchImportContacts(contacts, nil)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -192,7 +192,7 @@ func testBulkUpdateExistingContacts(t *testing.T, client *testutil.APIClient, wo
 	// Import updated contacts
 	resp, err = client.BatchImportContacts(updatedContacts, nil)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -253,7 +253,7 @@ func testMixedCreateUpdateOperations(t *testing.T, client *testutil.APIClient, w
 		},
 	})
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Verify the contact was actually created
 	if resp.StatusCode != http.StatusOK {
@@ -294,7 +294,7 @@ func testMixedCreateUpdateOperations(t *testing.T, client *testutil.APIClient, w
 	// Import mixed batch - TESTS xmax DETECTION ACCURACY
 	resp, err = client.BatchImportContacts(contacts, nil)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -353,7 +353,7 @@ func testBulkImportWithListSubscription(t *testing.T, client *testutil.APIClient
 	// Import contacts with list subscription - TESTS BULK LIST SUBSCRIPTION
 	resp, err := client.BatchImportContacts(contacts, []string{list.ID})
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -401,7 +401,7 @@ func testBulkImportWithValidationErrors(t *testing.T, client *testutil.APIClient
 	// Import contacts - TESTS PARTIAL SUCCESS BEHAVIOR
 	resp, err := client.BatchImportContacts(contacts, nil)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -452,7 +452,7 @@ func testLargeBatchPerformance(t *testing.T, client *testutil.APIClient, workspa
 	startTime := time.Now()
 	resp, err := client.BatchImportContacts(contacts, nil)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 	duration := time.Since(startTime)
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -508,7 +508,7 @@ func testTransactionIntegrity(t *testing.T, client *testutil.APIClient, workspac
 	// Import contacts
 	resp, err := client.BatchImportContacts(contacts, nil)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -528,7 +528,7 @@ func testTransactionIntegrity(t *testing.T, client *testutil.APIClient, workspac
 	contacts[0]["first_name"] = "Updated"
 	resp, err = client.BatchImportContacts(contacts[:1], nil)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Verify update was applied
 	var firstName string
@@ -587,7 +587,7 @@ func testCustomFieldsPreservation(t *testing.T, client *testutil.APIClient, work
 
 	resp, err := client.BatchImportContacts(contacts, nil)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 

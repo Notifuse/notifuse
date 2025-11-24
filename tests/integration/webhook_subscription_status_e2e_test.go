@@ -29,7 +29,7 @@ func TestWebhookSubscriptionStatusE2E(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -136,7 +136,7 @@ func testHardBounceUpdatesContactListStatus(t *testing.T, suite *testutil.Integr
 
 	resp, err := client.PostRaw(webhookURL, bouncePayload)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -212,7 +212,7 @@ func testComplaintUpdatesContactListStatus(t *testing.T, suite *testutil.Integra
 
 	resp, err := client.PostRaw(webhookURL, complaintPayload)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -289,7 +289,7 @@ func testSoftBounceDoesNotUpdateContactListStatus(t *testing.T, suite *testutil.
 
 	resp, err := client.PostRaw(webhookURL, softBouncePayload)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -384,7 +384,7 @@ func testWebhookUpdatesMultipleLists(t *testing.T, suite *testutil.IntegrationTe
 
 	resp, err := client.PostRaw(webhookURL, bouncePayload)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -462,7 +462,7 @@ func testComplaintTakesPriorityOverBounce(t *testing.T, suite *testutil.Integrat
 
 	resp, err := client.PostRaw(webhookURL, complaintPayload)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -517,7 +517,7 @@ func testWebhookWithoutListIDDoesNotUpdate(t *testing.T, suite *testutil.Integra
 
 	resp, err := client.PostRaw(webhookURL, bouncePayload)
 	require.NoError(t, err)
-	defer func() { _ = _ = resp.Body.Close() }()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 

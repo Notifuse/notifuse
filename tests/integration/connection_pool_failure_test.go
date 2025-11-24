@@ -27,7 +27,7 @@ func TestConnectionPoolFailureRecovery(t *testing.T) {
 	t.Run("stale connection detection", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		workspaceID := "test_failure_stale"
 
@@ -60,7 +60,7 @@ func TestConnectionPoolFailureRecovery(t *testing.T) {
 	t.Run("workspace database deleted externally", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		workspaceID := "test_failure_deleted"
 
@@ -105,7 +105,7 @@ func TestConnectionPoolFailureRecovery(t *testing.T) {
 	t.Run("connection pool handles invalid database name", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		// Try to get connection to non-existent workspace
 		// (without calling EnsureWorkspaceDatabase first)
@@ -123,7 +123,7 @@ func TestConnectionPoolFailureRecovery(t *testing.T) {
 	t.Run("recover from connection errors", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		workspaceID := "test_failure_recover"
 
@@ -171,7 +171,7 @@ func TestConnectionPoolFailureRecovery(t *testing.T) {
 	t.Run("concurrent failures don't crash pool", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		workspaceID := "test_failure_concurrent"
 
@@ -223,7 +223,7 @@ func TestConnectionPoolFailureRecovery(t *testing.T) {
 	t.Run("cleanup handles partially failed state", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		// Create multiple workspaces
 		workspaceIDs := []string{
@@ -252,7 +252,7 @@ func TestConnectionPoolFailureRecovery(t *testing.T) {
 		require.NoError(t, err)
 
 		// Cleanup should handle the partial failure gracefully
-		err = _ = pool.Cleanup()
+		err = pool.Cleanup()
 		// May return error, but shouldn't panic
 		t.Logf("Cleanup with partial failure: %v", err)
 
@@ -273,7 +273,7 @@ func TestConnectionPoolSystemConnectionFailure(t *testing.T) {
 	t.Run("system connection retry", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		// Get system connection multiple times
 		for i := 0; i < 5; i++ {
@@ -300,7 +300,7 @@ func TestConnectionPoolSystemConnectionFailure(t *testing.T) {
 		}
 
 		pool := testutil.NewTestConnectionPool(invalidConfig)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		// System connection should fail
 		_, err := pool.GetSystemConnection()
@@ -320,7 +320,7 @@ func TestConnectionPoolEdgeCases(t *testing.T) {
 	t.Run("empty workspace ID", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		// Empty workspace ID should be handled gracefully
 		err := pool.EnsureWorkspaceDatabase("")
@@ -331,7 +331,7 @@ func TestConnectionPoolEdgeCases(t *testing.T) {
 	t.Run("very long workspace ID", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		// PostgreSQL has limits on identifier length
 		// Use a reasonable but long ID
@@ -351,7 +351,7 @@ func TestConnectionPoolEdgeCases(t *testing.T) {
 	t.Run("special characters in workspace ID", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		// Workspace IDs with special characters (should be sanitized)
 		specialIDs := []string{
@@ -394,18 +394,18 @@ func TestConnectionPoolEdgeCases(t *testing.T) {
 		assert.NoError(t, err, "Double cleanup should be idempotent")
 
 		// Full pool cleanup
-		err = _ = pool.Cleanup()
+		err = pool.Cleanup()
 		require.NoError(t, err)
 
 		// Another cleanup should not error
-		err = _ = pool.Cleanup()
+		err = pool.Cleanup()
 		assert.NoError(t, err, "Double pool cleanup should be idempotent")
 	})
 
 	t.Run("nil database connection handling", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		// Get system connection
 		db, err := pool.GetSystemConnection()
@@ -434,7 +434,7 @@ func TestConnectionPoolConcurrentFailures(t *testing.T) {
 	t.Run("concurrent creation with failures", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
 		pool := testutil.NewTestConnectionPool(config)
-		defer _ = pool.Cleanup()
+		defer func() { _ = pool.Cleanup() }()
 
 		numGoroutines := 20
 		done := make(chan error, numGoroutines)

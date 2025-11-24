@@ -14,7 +14,7 @@ func TestDatabaseConnection(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	dbManager := testutil.NewDatabaseManager()
-	defer _ = dbManager.Cleanup()
+	defer func() { _ = dbManager.Cleanup() }()
 
 	err := dbManager.Setup()
 	require.NoError(t, err, "Failed to setup database")
@@ -33,7 +33,7 @@ func TestDatabaseMigrations(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	dbManager := testutil.NewDatabaseManager()
-	defer _ = dbManager.Cleanup()
+	defer func() { _ = dbManager.Cleanup() }()
 
 	err := dbManager.Setup()
 	require.NoError(t, err, "Failed to setup database")
@@ -75,7 +75,7 @@ func TestDatabaseSeedData(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	dbManager := testutil.NewDatabaseManager()
-	defer _ = dbManager.Cleanup()
+	defer func() { _ = dbManager.Cleanup() }()
 
 	err := dbManager.Setup()
 	require.NoError(t, err, "Failed to setup database")
@@ -113,7 +113,7 @@ func TestDatabaseCleanup(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	dbManager := testutil.NewDatabaseManager()
-	defer _ = dbManager.Cleanup()
+	defer func() { _ = dbManager.Cleanup() }()
 
 	err := dbManager.Setup()
 	require.NoError(t, err, "Failed to setup database")

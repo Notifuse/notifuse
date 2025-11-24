@@ -27,7 +27,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	factory := suite.DataFactory
 	client := suite.APIClient
@@ -85,7 +85,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 			"id":           templateID,
 		})
 		require.NoError(t, err, "Failed to get template")
-		defer func() { _ = _ = getResp.Body.Close() }()
+		defer func() { _ = getResp.Body.Close() }()
 
 		// Decode response
 		var result struct {
@@ -138,7 +138,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 			"id":           templateID,
 		})
 		require.NoError(t, err, "Failed to get template")
-		defer func() { _ = _ = getResp.Body.Close() }()
+		defer func() { _ = getResp.Body.Close() }()
 
 		// Decode response
 		var result struct {
@@ -158,7 +158,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 			"workspace_id": workspace.ID,
 		})
 		require.NoError(t, err, "Failed to list templates")
-		defer func() { _ = _ = listResp.Body.Close() }()
+		defer func() { _ = listResp.Body.Close() }()
 
 		// Decode response
 		var result struct {
@@ -221,7 +221,7 @@ func TestTemplateRoundtripSerialization(t *testing.T) {
 					"id":           templateID,
 				})
 				require.NoError(t, err, "Failed to get %s template", name)
-				defer func() { _ = _ = getResp.Body.Close() }()
+				defer func() { _ = getResp.Body.Close() }()
 
 				// Decode response
 				var result struct {

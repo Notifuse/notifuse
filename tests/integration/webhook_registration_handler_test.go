@@ -25,7 +25,7 @@ func TestWebhookRegistrationHandler(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -79,7 +79,7 @@ func testWebhookRegistrationAuthentication(t *testing.T, suite *testutil.Integra
 
 		resp, err := unauthClient.RegisterWebhooks(request)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -90,7 +90,7 @@ func testWebhookRegistrationAuthentication(t *testing.T, suite *testutil.Integra
 
 		resp, err := unauthClient.GetWebhookStatus(workspaceID, integration.ID)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -110,7 +110,7 @@ func testRegisterWebhooks(t *testing.T, client *testutil.APIClient, factory *tes
 
 		resp, err := client.RegisterWebhooks(request)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// SMTP provider doesn't support webhook registration, should return error
 		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
@@ -133,7 +133,7 @@ func testRegisterWebhooks(t *testing.T, client *testutil.APIClient, factory *tes
 
 		resp, err := client.RegisterWebhooks(request)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should still fail gracefully for unsupported provider
 		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
@@ -148,7 +148,7 @@ func testRegisterWebhooks(t *testing.T, client *testutil.APIClient, factory *tes
 
 			resp, err := client.RegisterWebhooks(request)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
@@ -165,7 +165,7 @@ func testRegisterWebhooks(t *testing.T, client *testutil.APIClient, factory *tes
 
 			resp, err := client.RegisterWebhooks(request)
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
@@ -179,7 +179,7 @@ func testRegisterWebhooks(t *testing.T, client *testutil.APIClient, factory *tes
 		// This test sends malformed JSON to the register endpoint
 		resp, err := client.Post("/api/webhooks.register", "invalid-json")
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
@@ -197,7 +197,7 @@ func testRegisterWebhooks(t *testing.T, client *testutil.APIClient, factory *tes
 
 		resp, err := client.RegisterWebhooks(request)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should return 500 or 404 depending on implementation
 		assert.True(t, resp.StatusCode >= 400)
@@ -215,7 +215,7 @@ func testRegisterWebhooks(t *testing.T, client *testutil.APIClient, factory *tes
 
 		resp, err := client.RegisterWebhooks(request)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should still process - invalid event types are handled by the service layer
 		assert.True(t, resp.StatusCode >= 200)
@@ -230,7 +230,7 @@ func testGetWebhookStatus(t *testing.T, client *testutil.APIClient, factory *tes
 
 		resp, err := client.GetWebhookStatus(workspaceID, integration.ID)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// SMTP provider doesn't support webhook status, should return error
 		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
@@ -244,7 +244,7 @@ func testGetWebhookStatus(t *testing.T, client *testutil.APIClient, factory *tes
 		t.Run("missing workspace_id", func(t *testing.T) {
 			resp, err := client.GetWebhookStatus("", "test-integration-id")
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
@@ -256,7 +256,7 @@ func testGetWebhookStatus(t *testing.T, client *testutil.APIClient, factory *tes
 		t.Run("missing integration_id", func(t *testing.T) {
 			resp, err := client.GetWebhookStatus(workspaceID, "")
 			require.NoError(t, err)
-			defer func() { _ = _ = resp.Body.Close() }()
+			defer func() { _ = resp.Body.Close() }()
 
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 
@@ -269,7 +269,7 @@ func testGetWebhookStatus(t *testing.T, client *testutil.APIClient, factory *tes
 	t.Run("should handle non-existent integration", func(t *testing.T) {
 		resp, err := client.GetWebhookStatus(workspaceID, "non-existent-integration")
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should return error status
 		assert.True(t, resp.StatusCode >= 400)
@@ -281,7 +281,7 @@ func testGetWebhookStatus(t *testing.T, client *testutil.APIClient, factory *tes
 
 		resp, err := client.GetWebhookStatus("non-existent-workspace", integration.ID)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should return error status
 		assert.True(t, resp.StatusCode >= 400)
@@ -299,7 +299,7 @@ func testWebhookMethodValidation(t *testing.T, client *testutil.APIClient, facto
 			"integration_id": integration.ID,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 
@@ -317,7 +317,7 @@ func testWebhookMethodValidation(t *testing.T, client *testutil.APIClient, facto
 
 		resp, err := client.Post("/api/webhooks.status", request)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusMethodNotAllowed, resp.StatusCode)
 
@@ -335,7 +335,7 @@ func TestWebhookRegistrationWithDifferentProviders(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -389,7 +389,7 @@ func testWebhookRegistrationWithUnsupportedProvider(
 
 		registerResp, err := client.RegisterWebhooks(registerRequest)
 		require.NoError(t, err)
-		defer func() { _ = _ = registerResp.Body.Close() }()
+		defer func() { _ = registerResp.Body.Close() }()
 
 		// Should fail for unsupported provider
 		assert.Equal(t, http.StatusInternalServerError, registerResp.StatusCode)
@@ -403,7 +403,7 @@ func testWebhookRegistrationWithUnsupportedProvider(
 		// Check webhook status with unsupported provider
 		statusResp, err := client.GetWebhookStatus(workspaceID, integration.ID)
 		require.NoError(t, err)
-		defer func() { _ = _ = statusResp.Body.Close() }()
+		defer func() { _ = statusResp.Body.Close() }()
 
 		// Should fail for unsupported provider
 		assert.Equal(t, http.StatusInternalServerError, statusResp.StatusCode)
@@ -422,7 +422,7 @@ func TestWebhookRegistrationErrorHandling(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 	factory := suite.DataFactory
@@ -458,7 +458,7 @@ func TestWebhookRegistrationErrorHandling(t *testing.T) {
 
 		resp, err := client.RegisterWebhooks(request)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should return authorization error
 		assert.True(t, resp.StatusCode >= 400)
@@ -467,7 +467,7 @@ func TestWebhookRegistrationErrorHandling(t *testing.T) {
 	t.Run("should handle empty request body", func(t *testing.T) {
 		resp, err := client.Post("/api/webhooks.register", nil)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
@@ -484,7 +484,7 @@ func TestWebhookRegistrationErrorHandling(t *testing.T) {
 
 		resp, err := client.RegisterWebhooks(request)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		// Should handle gracefully (specific behavior depends on implementation)
 		assert.True(t, resp.StatusCode >= 200)

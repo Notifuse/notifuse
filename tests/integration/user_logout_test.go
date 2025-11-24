@@ -18,7 +18,7 @@ func TestUserLogout(t *testing.T) {
 	defer testutil.CleanupTestEnvironment()
 
 	suite := testutil.NewIntegrationTestSuite(t, appFactory)
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	client := suite.APIClient
 
@@ -53,7 +53,7 @@ func TestUserLogout(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
@@ -95,7 +95,7 @@ func TestUserLogout(t *testing.T) {
 
 		resp2, err := http.DefaultClient.Do(req2)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp2.Body.Close() }()
+		defer func() { _ = resp2.Body.Close() }()
 
 		// Should be unauthorized because session no longer exists
 		assert.Equal(t, http.StatusUnauthorized, resp2.StatusCode)
@@ -107,7 +107,7 @@ func TestUserLogout(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})
@@ -119,7 +119,7 @@ func TestUserLogout(t *testing.T) {
 
 		resp, err := http.DefaultClient.Do(req)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 
 		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 	})

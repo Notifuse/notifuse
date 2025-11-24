@@ -36,7 +36,7 @@ func TestSegmentE2E(t *testing.T) {
 	defer func() {
 		// Wait for any pending async operations to complete
 		time.Sleep(500 * time.Millisecond)
-		_ = suite.Cleanup()
+		suite.Cleanup()
 	}()
 
 	client := suite.APIClient
@@ -160,7 +160,7 @@ func testSimpleContactSegment(t *testing.T, client *testutil.APIClient, factory 
 		// Step 3: Create the segment
 		resp, err := client.Post("/api/segments.create", segment)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
 		var createResult map[string]interface{}
@@ -178,7 +178,7 @@ func testSimpleContactSegment(t *testing.T, client *testutil.APIClient, factory 
 			"segment_id":   segmentID,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = rebuildResp.Body.Close() }()
+		defer func() { _ = rebuildResp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, rebuildResp.StatusCode)
 
 		// Step 5: Execute pending tasks to process segment build
@@ -198,7 +198,7 @@ func testSimpleContactSegment(t *testing.T, client *testutil.APIClient, factory 
 		// Step 6: Verify segment status and users count
 		getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
 		require.NoError(t, err)
-		defer func() { _ = _ = getResp.Body.Close() }()
+		defer func() { _ = getResp.Body.Close() }()
 
 		var getResult map[string]interface{}
 		err = json.NewDecoder(getResp.Body).Decode(&getResult)
@@ -259,7 +259,7 @@ func testSegmentPreview(t *testing.T, client *testutil.APIClient, factory *testu
 
 		resp, err := client.Post("/api/segments.preview", previewReq)
 		require.NoError(t, err)
-		defer func() { _ = _ = resp.Body.Close() }()
+		defer func() { _ = resp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		var result map[string]interface{}
@@ -390,7 +390,7 @@ func testComplexSegmentTree(t *testing.T, client *testutil.APIClient, factory *t
 			"limit":        20,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = previewResp.Body.Close() }()
+		defer func() { _ = previewResp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, previewResp.StatusCode)
 
 		var previewResult map[string]interface{}
@@ -473,7 +473,7 @@ func testSegmentWithContactLists(t *testing.T, client *testutil.APIClient, facto
 			"limit":        20,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = previewResp.Body.Close() }()
+		defer func() { _ = previewResp.Body.Close() }()
 
 		var previewResult map[string]interface{}
 		err = json.NewDecoder(previewResp.Body).Decode(&previewResult)
@@ -554,7 +554,7 @@ func testSegmentWithContactTimeline(t *testing.T, client *testutil.APIClient, fa
 			"limit":        20,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = previewResp.Body.Close() }()
+		defer func() { _ = previewResp.Body.Close() }()
 
 		var previewResult map[string]interface{}
 		err = json.NewDecoder(previewResp.Body).Decode(&previewResult)
@@ -610,7 +610,7 @@ func testSegmentRebuild(t *testing.T, client *testutil.APIClient, factory *testu
 		// Create segment
 		createResp, err := client.Post("/api/segments.create", segment)
 		require.NoError(t, err)
-		defer func() { _ = _ = createResp.Body.Close() }()
+		defer func() { _ = createResp.Body.Close() }()
 
 		var createResult map[string]interface{}
 		err = json.NewDecoder(createResp.Body).Decode(&createResult)
@@ -625,7 +625,7 @@ func testSegmentRebuild(t *testing.T, client *testutil.APIClient, factory *testu
 			"segment_id":   segmentID,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = rebuildResp.Body.Close() }()
+		defer func() { _ = rebuildResp.Body.Close() }()
 
 		// Execute tasks
 		execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
@@ -654,7 +654,7 @@ func testSegmentRebuild(t *testing.T, client *testutil.APIClient, factory *testu
 			"segment_id":   segmentID,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = rebuildResp2.Body.Close() }()
+		defer func() { _ = rebuildResp2.Body.Close() }()
 
 		// Execute tasks again
 		execResp2, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
@@ -671,7 +671,7 @@ func testSegmentRebuild(t *testing.T, client *testutil.APIClient, factory *testu
 		// Verify updated count
 		getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
 		require.NoError(t, err)
-		defer func() { _ = _ = getResp.Body.Close() }()
+		defer func() { _ = getResp.Body.Close() }()
 
 		var getResult map[string]interface{}
 		err = json.NewDecoder(getResp.Body).Decode(&getResult)
@@ -722,7 +722,7 @@ func testListAndGetSegments(t *testing.T, client *testutil.APIClient, factory *t
 		// List segments
 		listResp, err := client.Get(fmt.Sprintf("/api/segments.list?workspace_id=%s", workspaceID))
 		require.NoError(t, err)
-		defer func() { _ = _ = listResp.Body.Close() }()
+		defer func() { _ = listResp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, listResp.StatusCode)
 
 		var listResult map[string]interface{}
@@ -738,7 +738,7 @@ func testListAndGetSegments(t *testing.T, client *testutil.APIClient, factory *t
 
 		getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
 		require.NoError(t, err)
-		defer func() { _ = _ = getResp.Body.Close() }()
+		defer func() { _ = getResp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, getResp.StatusCode)
 
 		var getResult map[string]interface{}
@@ -781,7 +781,7 @@ func testUpdateAndDeleteSegments(t *testing.T, client *testutil.APIClient, facto
 
 		createResp, err := client.Post("/api/segments.create", segment)
 		require.NoError(t, err)
-		defer func() { _ = _ = createResp.Body.Close() }()
+		defer func() { _ = createResp.Body.Close() }()
 
 		var createResult map[string]interface{}
 		err = json.NewDecoder(createResp.Body).Decode(&createResult)
@@ -802,7 +802,7 @@ func testUpdateAndDeleteSegments(t *testing.T, client *testutil.APIClient, facto
 
 		updateResp, err := client.Post("/api/segments.update", updateReq)
 		require.NoError(t, err)
-		defer func() { _ = _ = updateResp.Body.Close() }()
+		defer func() { _ = updateResp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, updateResp.StatusCode)
 
 		var updateResult map[string]interface{}
@@ -819,13 +819,13 @@ func testUpdateAndDeleteSegments(t *testing.T, client *testutil.APIClient, facto
 			"id":           segmentID,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = deleteResp.Body.Close() }()
+		defer func() { _ = deleteResp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, deleteResp.StatusCode)
 
 		// Verify segment is deleted - soft delete sets status to "deleted"
 		getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
 		require.NoError(t, err)
-		defer func() { _ = _ = getResp.Body.Close() }()
+		defer func() { _ = getResp.Body.Close() }()
 
 		// The segment may be soft deleted (status="deleted") or hard deleted (404)
 		if getResp.StatusCode == http.StatusOK {
@@ -889,7 +889,7 @@ func testSegmentWithRelativeDates(t *testing.T, client *testutil.APIClient, fact
 		// Create the segment
 		createResp, err := client.Post("/api/segments.create", segment)
 		require.NoError(t, err)
-		defer func() { _ = _ = createResp.Body.Close() }()
+		defer func() { _ = createResp.Body.Close() }()
 		assert.Equal(t, http.StatusCreated, createResp.StatusCode)
 
 		var createResult map[string]interface{}
@@ -915,7 +915,7 @@ func testSegmentWithRelativeDates(t *testing.T, client *testutil.APIClient, fact
 			"segment_id":   segmentID,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = rebuildResp.Body.Close() }()
+		defer func() { _ = rebuildResp.Body.Close() }()
 
 		// Execute tasks to start the build
 		execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
@@ -932,7 +932,7 @@ func testSegmentWithRelativeDates(t *testing.T, client *testutil.APIClient, fact
 		// Verify segment is built and recompute_after is still set
 		getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
 		require.NoError(t, err)
-		defer func() { _ = _ = getResp.Body.Close() }()
+		defer func() { _ = getResp.Body.Close() }()
 
 		var getResult map[string]interface{}
 		err = json.NewDecoder(getResp.Body).Decode(&getResult)
@@ -975,7 +975,7 @@ func testSegmentWithRelativeDates(t *testing.T, client *testutil.APIClient, fact
 
 		createResp, err := client.Post("/api/segments.create", segment)
 		require.NoError(t, err)
-		defer func() { _ = _ = createResp.Body.Close() }()
+		defer func() { _ = createResp.Body.Close() }()
 
 		var createResult map[string]interface{}
 		err = json.NewDecoder(createResp.Body).Decode(&createResult)
@@ -1046,7 +1046,7 @@ func testSegmentWithRelativeDates(t *testing.T, client *testutil.APIClient, fact
 
 		updateResp, err := client.Post("/api/segments.update", updateReq)
 		require.NoError(t, err)
-		defer func() { _ = _ = updateResp.Body.Close() }()
+		defer func() { _ = updateResp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, updateResp.StatusCode)
 
 		var updateResult map[string]interface{}
@@ -1095,7 +1095,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 		// Create the segment
 		createResp, err := client.Post("/api/segments.create", segment1)
 		require.NoError(t, err)
-		defer func() { _ = _ = createResp.Body.Close() }()
+		defer func() { _ = createResp.Body.Close() }()
 		assert.Equal(t, http.StatusCreated, createResp.StatusCode)
 
 		var createResult map[string]interface{}
@@ -1138,7 +1138,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 			"type":         "check_segment_recompute",
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = listResp.Body.Close() }()
+		defer func() { _ = listResp.Body.Close() }()
 
 		var listResult map[string]interface{}
 		err = json.NewDecoder(listResp.Body).Decode(&listResult)
@@ -1167,7 +1167,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 			"id":           recomputeTaskID,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = executeResp.Body.Close() }()
+		defer func() { _ = executeResp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, executeResp.StatusCode)
 
 		// Note: check_segment_recompute is a recurring task that stays "pending" by design
@@ -1184,7 +1184,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 		// Verify the check_segment_recompute task is still pending (continues recurring)
 		getTaskResp, err := client.GetTask(workspaceID, recomputeTaskID)
 		require.NoError(t, err)
-		defer func() { _ = _ = getTaskResp.Body.Close() }()
+		defer func() { _ = getTaskResp.Body.Close() }()
 
 		var getTaskResult map[string]interface{}
 		err = json.NewDecoder(getTaskResp.Body).Decode(&getTaskResult)
@@ -1225,7 +1225,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 		// Create the segment
 		createResp, err := client.Post("/api/segments.create", segment2)
 		require.NoError(t, err)
-		defer func() { _ = _ = createResp.Body.Close() }()
+		defer func() { _ = createResp.Body.Close() }()
 
 		var createResult map[string]interface{}
 		err = json.NewDecoder(createResp.Body).Decode(&createResult)
@@ -1245,7 +1245,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 			"type":         "check_segment_recompute",
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = listResp.Body.Close() }()
+		defer func() { _ = listResp.Body.Close() }()
 
 		var listResult map[string]interface{}
 		err = json.NewDecoder(listResp.Body).Decode(&listResult)
@@ -1272,7 +1272,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 			"status":       "pending",
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = buildTasksBeforeResp.Body.Close() }()
+		defer func() { _ = buildTasksBeforeResp.Body.Close() }()
 
 		var buildTasksBeforeResult map[string]interface{}
 		err = json.NewDecoder(buildTasksBeforeResp.Body).Decode(&buildTasksBeforeResult)
@@ -1288,7 +1288,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 			"id":           recomputeTaskID,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = executeResp.Body.Close() }()
+		defer func() { _ = executeResp.Body.Close() }()
 
 		// Note: check_segment_recompute is a recurring task that stays "pending" by design
 		// Wait a bit for it to execute
@@ -1301,7 +1301,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 			"status":       "pending",
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = buildTasksAfterResp.Body.Close() }()
+		defer func() { _ = buildTasksAfterResp.Body.Close() }()
 
 		var buildTasksAfterResult map[string]interface{}
 		err = json.NewDecoder(buildTasksAfterResp.Body).Decode(&buildTasksAfterResult)
@@ -1343,7 +1343,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 		// Create the segment
 		createResp, err := client.Post("/api/segments.create", segment3)
 		require.NoError(t, err)
-		defer func() { _ = _ = createResp.Body.Close() }()
+		defer func() { _ = createResp.Body.Close() }()
 
 		var createResult map[string]interface{}
 		err = json.NewDecoder(createResp.Body).Decode(&createResult)
@@ -1363,7 +1363,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 			"id":           segment3ID,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = deleteResp.Body.Close() }()
+		defer func() { _ = deleteResp.Body.Close() }()
 
 		// Find and execute the check_segment_recompute task
 		listResp, err := client.ListTasks(map[string]string{
@@ -1371,7 +1371,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 			"type":         "check_segment_recompute",
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = listResp.Body.Close() }()
+		defer func() { _ = listResp.Body.Close() }()
 
 		var listResult map[string]interface{}
 		err = json.NewDecoder(listResp.Body).Decode(&listResult)
@@ -1401,7 +1401,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 			"id":           recomputeTaskID,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = executeResp.Body.Close() }()
+		defer func() { _ = executeResp.Body.Close() }()
 
 		// Note: check_segment_recompute is a recurring task that stays "pending" by design
 		// Wait a bit for it to execute
@@ -1413,7 +1413,7 @@ func testCheckSegmentRecomputeProcessor(t *testing.T, client *testutil.APIClient
 			"type":         "build_segment",
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = buildTasksAfterResp.Body.Close() }()
+		defer func() { _ = buildTasksAfterResp.Body.Close() }()
 
 		var buildTasksAfterResult map[string]interface{}
 		err = json.NewDecoder(buildTasksAfterResp.Body).Decode(&buildTasksAfterResult)
@@ -1498,7 +1498,7 @@ func testContactPropertyRelativeDates(t *testing.T, client *testutil.APIClient, 
 		// Create the segment
 		createResp, err := client.Post("/api/segments.create", segment)
 		require.NoError(t, err)
-		defer func() { _ = _ = createResp.Body.Close() }()
+		defer func() { _ = createResp.Body.Close() }()
 		assert.Equal(t, http.StatusCreated, createResp.StatusCode)
 
 		var createResult map[string]interface{}
@@ -1524,7 +1524,7 @@ func testContactPropertyRelativeDates(t *testing.T, client *testutil.APIClient, 
 			"segment_id":   segmentID,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = rebuildResp.Body.Close() }()
+		defer func() { _ = rebuildResp.Body.Close() }()
 
 		// Execute tasks to build the segment
 		execResp, err := client.Post("/api/tasks.execute", map[string]interface{}{"limit": 10})
@@ -1541,7 +1541,7 @@ func testContactPropertyRelativeDates(t *testing.T, client *testutil.APIClient, 
 		// Verify segment matches the recent contacts
 		getResp, err := client.Get(fmt.Sprintf("/api/segments.get?workspace_id=%s&id=%s", workspaceID, segmentID))
 		require.NoError(t, err)
-		defer func() { _ = _ = getResp.Body.Close() }()
+		defer func() { _ = getResp.Body.Close() }()
 
 		var getResult map[string]interface{}
 		err = json.NewDecoder(getResp.Body).Decode(&getResult)
@@ -1639,7 +1639,7 @@ func testContactPropertyRelativeDates(t *testing.T, client *testutil.APIClient, 
 			"limit":        20,
 		})
 		require.NoError(t, err)
-		defer func() { _ = _ = previewResp.Body.Close() }()
+		defer func() { _ = previewResp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, previewResp.StatusCode)
 
 		var previewResult map[string]interface{}

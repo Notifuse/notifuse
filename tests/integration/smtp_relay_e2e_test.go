@@ -44,7 +44,7 @@ func TestSMTPRelayE2E_FullFlow(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	factory := suite.DataFactory
 	appInstance := suite.ServerManager.GetApp()
@@ -229,7 +229,7 @@ func TestSMTPRelayE2E_WithEmailHeaders(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	factory := suite.DataFactory
 	appInstance := suite.ServerManager.GetApp()
@@ -394,7 +394,7 @@ func TestSMTPRelayE2E_InvalidAuthentication(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	appInstance := suite.ServerManager.GetApp()
 	authService := appInstance.GetAuthService().(*service.AuthService)
@@ -471,7 +471,7 @@ func TestSMTPRelayE2E_InvalidJSON(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	factory := suite.DataFactory
 	appInstance := suite.ServerManager.GetApp()
@@ -585,7 +585,7 @@ func TestSMTPRelayE2E_MultipleMessages(t *testing.T) {
 	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
 		return app.NewApp(cfg)
 	})
-	defer _ = suite.Cleanup()
+	defer func() { suite.Cleanup() }()
 
 	factory := suite.DataFactory
 	appInstance := suite.ServerManager.GetApp()
