@@ -7,7 +7,6 @@
 
 export interface YoutubeEmbedOptions {
   cc?: boolean
-  autoplay?: boolean
   loop?: boolean
   controls?: boolean
   modestbranding?: boolean
@@ -98,7 +97,7 @@ export function getYoutubeVideoId(url: string): string | null {
  * double-transformation issues.
  *
  * @param url - YouTube URL or video ID
- * @param options - Playback options (cc, autoplay, loop, controls, modestbranding, start)
+ * @param options - Playback options (cc, loop, controls, modestbranding, start)
  * @returns Clean embed URL with options or null if invalid
  */
 export function getYoutubeEmbedUrl(url: string, options?: YoutubeEmbedOptions): string | null {
@@ -111,9 +110,6 @@ export function getYoutubeEmbedUrl(url: string, options?: YoutubeEmbedOptions): 
   // Add playback options as URL parameters
   if (options?.cc) {
     params.append('cc_load_policy', '1')
-  }
-  if (options?.autoplay) {
-    params.append('autoplay', '1')
   }
   if (options?.loop) {
     params.append('loop', '1')

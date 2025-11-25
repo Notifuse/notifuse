@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -522,6 +521,13 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 		return nil, fmt.Errorf("workspace_id not found in context")
 	}
 
+	s.logger.WithFields(map[string]interface{}{
+		"workspace_id": workspaceID,
+		"post_id":      request.ID,
+		"category_id":  request.CategoryID,
+		"slug":         request.Slug,
+	}).Info("UpdatePost called")
+
 	// Authenticate user for workspace
 	var err error
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
@@ -551,17 +557,6 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 		return nil, fmt.Errorf("post not found: %w", err)
 	}
 
-	// Track old slugs for cache invalidation
-	oldCategoryID := post.CategoryID
-	oldPostSlug := post.Slug
-	var oldCategorySlug string
-	if oldCategoryID != "" {
-		oldCategory, err := s.categoryRepo.GetCategory(ctx, oldCategoryID)
-		if err == nil && oldCategory != nil {
-			oldCategorySlug = oldCategory.Slug
-		}
-	}
-
 	// Check if slug is changing and if new slug already exists
 	if post.Slug != request.Slug {
 		existing, err := s.postRepo.GetPostBySlug(ctx, request.Slug)
@@ -571,7 +566,7 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 	}
 
 	// Verify category exists
-	newCategory, err := s.categoryRepo.GetCategory(ctx, request.CategoryID)
+	_, err = s.categoryRepo.GetCategory(ctx, request.CategoryID)
 	if err != nil {
 		return nil, fmt.Errorf("category not found: %w", err)
 	}
@@ -601,13 +596,13 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 		return nil, fmt.Errorf("failed to update post: %w", err)
 	}
 
+	s.logger.WithField("post_id", post.ID).Info("Post updated successfully, clearing cache...")
+
 	// Invalidate blog caches
-	// Invalidate old post page if slug or category changed
-	if oldCategorySlug != "" && oldPostSlug != "" && (oldCategorySlug != newCategory.Slug || oldPostSlug != post.Slug) {
-		s.invalidateBlogCaches(workspaceID, "", oldCategorySlug, oldPostSlug, false)
-	}
-	// Invalidate new post page and all category pages
-	s.invalidateBlogCaches(workspaceID, "", newCategory.Slug, post.Slug, true)
+	// Clear blog cache since post was updated
+	s.clearBlogCache(workspaceID)
+
+	s.logger.WithField("post_id", post.ID).Info("UpdatePost completed")
 
 	return post, nil
 }
@@ -642,20 +637,11 @@ func (s *BlogService) DeletePost(ctx context.Context, request *domain.DeleteBlog
 		return err
 	}
 
-	// Get the post to find its category before deleting
-	post, err := s.postRepo.GetPost(ctx, request.ID)
+	// Verify post exists before deleting
+	_, err = s.postRepo.GetPost(ctx, request.ID)
 	if err != nil {
 		s.logger.Error("Failed to get post for deletion")
 		return fmt.Errorf("post not found: %w", err)
-	}
-
-	// Get category slug for cache invalidation
-	var categorySlug string
-	if post.CategoryID != "" {
-		category, err := s.categoryRepo.GetCategory(ctx, post.CategoryID)
-		if err == nil && category != nil {
-			categorySlug = category.Slug
-		}
 	}
 
 	// Delete the post
@@ -664,8 +650,8 @@ func (s *BlogService) DeletePost(ctx context.Context, request *domain.DeleteBlog
 		return fmt.Errorf("failed to delete post: %w", err)
 	}
 
-	// Invalidate blog caches
-	s.invalidateBlogCaches(workspaceID, "", categorySlug, post.Slug, false)
+	// Clear blog cache
+	s.clearBlogCache(workspaceID)
 
 	return nil
 }
@@ -733,20 +719,11 @@ func (s *BlogService) PublishPost(ctx context.Context, request *domain.PublishBl
 		return err
 	}
 
-	// Get the post to find its category
-	post, err := s.postRepo.GetPost(ctx, request.ID)
+	// Verify post exists
+	_, err = s.postRepo.GetPost(ctx, request.ID)
 	if err != nil {
 		s.logger.Error("Failed to get post for publishing")
 		return fmt.Errorf("failed to get post: %w", err)
-	}
-
-	// Get category slug for cache invalidation
-	var categorySlug string
-	if post.CategoryID != "" {
-		category, err := s.categoryRepo.GetCategory(ctx, post.CategoryID)
-		if err == nil && category != nil {
-			categorySlug = category.Slug
-		}
 	}
 
 	// Publish the post
@@ -755,8 +732,8 @@ func (s *BlogService) PublishPost(ctx context.Context, request *domain.PublishBl
 		return fmt.Errorf("failed to publish post: %w", err)
 	}
 
-	// Invalidate blog caches
-	s.invalidateBlogCaches(workspaceID, "", categorySlug, post.Slug, false)
+	// Clear blog cache
+	s.clearBlogCache(workspaceID)
 
 	return nil
 }
@@ -791,20 +768,11 @@ func (s *BlogService) UnpublishPost(ctx context.Context, request *domain.Unpubli
 		return err
 	}
 
-	// Get the post to find its category
-	post, err := s.postRepo.GetPost(ctx, request.ID)
+	// Verify post exists
+	_, err = s.postRepo.GetPost(ctx, request.ID)
 	if err != nil {
 		s.logger.Error("Failed to get post for unpublishing")
 		return fmt.Errorf("failed to get post: %w", err)
-	}
-
-	// Get category slug for cache invalidation
-	var categorySlug string
-	if post.CategoryID != "" {
-		category, err := s.categoryRepo.GetCategory(ctx, post.CategoryID)
-		if err == nil && category != nil {
-			categorySlug = category.Slug
-		}
 	}
 
 	// Unpublish the post
@@ -813,8 +781,8 @@ func (s *BlogService) UnpublishPost(ctx context.Context, request *domain.Unpubli
 		return fmt.Errorf("failed to unpublish post: %w", err)
 	}
 
-	// Invalidate blog caches
-	s.invalidateBlogCaches(workspaceID, "", categorySlug, post.Slug, false)
+	// Clear blog cache
+	s.clearBlogCache(workspaceID)
 
 	return nil
 }
@@ -1051,8 +1019,8 @@ func (s *BlogService) PublishTheme(ctx context.Context, request *domain.PublishB
 		return fmt.Errorf("failed to publish theme: %w", err)
 	}
 
-	// Invalidate all blog caches since theme affects all pages
-	s.invalidateBlogCaches(workspaceID, "", "", "", true)
+	// Clear all blog caches since theme affects all pages
+	s.clearBlogCache(workspaceID)
 
 	return nil
 }
@@ -1097,90 +1065,27 @@ func (s *BlogService) ListThemes(ctx context.Context, params *domain.ListBlogThe
 // invalidateBlogCaches clears all blog-related caches for a workspace
 // This should be called when blog content changes (publish/unpublish posts, publish themes)
 // categorySlug and postSlug are optional - when provided, invalidates the individual post page cache
-// invalidateAllCategories - when true, invalidates all category pages (not just the specific category)
-func (s *BlogService) invalidateBlogCaches(workspaceID, categoryID string, categorySlug, postSlug string, invalidateAllCategories bool) {
+// clearBlogCache clears the entire blog cache
+// This is called for any blog CRUD operation to ensure cache consistency
+func (s *BlogService) clearBlogCache(workspaceID string) {
 	if s.cache == nil {
+		s.logger.WithField("workspace_id", workspaceID).Warn("Blog cache is nil, cannot clear")
 		return
 	}
 
-	// Get workspace to find custom domain
-	workspace, err := s.workspaceRepo.GetByID(context.Background(), workspaceID)
-	if err != nil {
-		s.logger.WithField("error", err.Error()).Warn("Failed to get workspace for cache invalidation")
-		return
-	}
+	// Log cache size before clearing
+	sizeBefore := s.cache.Size()
 
-	// Determine the host for cache keys
-	host := ""
-	if workspace.Settings.CustomEndpointURL != nil && *workspace.Settings.CustomEndpointURL != "" {
-		// Extract host from custom endpoint URL
-		// CustomEndpointURL format: "https://example.com"
-		customURL := *workspace.Settings.CustomEndpointURL
-		// Remove protocol
-		if idx := strings.Index(customURL, "://"); idx != -1 {
-			host = customURL[idx+3:]
-		} else {
-			host = customURL
-		}
-		// Remove trailing slash
-		host = strings.TrimSuffix(host, "/")
-	}
+	// Clear entire blog cache for any operation
+	// This is simple, safe, and performant since blog writes are infrequent
+	s.cache.Clear()
 
-	if host == "" {
-		s.logger.WithField("workspace_id", workspaceID).Debug("No custom domain found, cannot invalidate cache")
-		return
-	}
-
-	// Invalidate homepage cache (all pages)
-	// We can't know exactly how many pages exist, so we invalidate the first few
-	for page := 1; page <= 10; page++ {
-		cacheKey := fmt.Sprintf("blog:%s:/?page=%d", host, page)
-		s.cache.Delete(cacheKey)
-	}
-
-	// Invalidate individual post page cache if categorySlug and postSlug are provided
-	if categorySlug != "" && postSlug != "" {
-		cacheKey := fmt.Sprintf("blog:%s:/%s/%s", host, categorySlug, postSlug)
-		s.cache.Delete(cacheKey)
-	}
-
-	// Invalidate category pages
-	if invalidateAllCategories {
-		// Fetch all categories and invalidate each category's pages
-		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, workspaceID)
-		categories, err := s.categoryRepo.ListCategories(ctx)
-		if err == nil {
-			for _, category := range categories {
-				for page := 1; page <= 10; page++ {
-					cacheKey := fmt.Sprintf("blog:%s:/%s?page=%d", host, category.Slug, page)
-					s.cache.Delete(cacheKey)
-				}
-			}
-		} else {
-			s.logger.WithField("error", err.Error()).Warn("Failed to list categories for cache invalidation")
-		}
-	} else if categorySlug != "" {
-		// Invalidate specific category page cache if categorySlug is provided
-		for page := 1; page <= 10; page++ {
-			cacheKey := fmt.Sprintf("blog:%s:/%s?page=%d", host, categorySlug, page)
-			s.cache.Delete(cacheKey)
-		}
-	} else if categoryID != "" {
-		// Invalidate specific category page cache if categoryID is provided (fallback when slug not available)
-		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, workspaceID)
-		category, err := s.categoryRepo.GetCategory(ctx, categoryID)
-		if err == nil && category != nil {
-			for page := 1; page <= 10; page++ {
-				cacheKey := fmt.Sprintf("blog:%s:/%s?page=%d", host, category.Slug, page)
-				s.cache.Delete(cacheKey)
-			}
-		}
-	}
-
-	s.logger.
-		WithField("workspace_id", workspaceID).
-		WithField("host", host).
-		Info("Blog caches invalidated")
+	sizeAfter := s.cache.Size()
+	s.logger.WithFields(map[string]interface{}{
+		"workspace_id": workspaceID,
+		"size_before":  sizeBefore,
+		"size_after":   sizeAfter,
+	}).Info("Blog cache cleared")
 }
 
 // getPublicListsForWorkspace fetches all public lists for a workspace

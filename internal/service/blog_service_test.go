@@ -668,7 +668,7 @@ func TestBlogService_GetPost(t *testing.T) {
 }
 
 func TestBlogService_UpdatePost(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	categoryID := "cat123"
 
@@ -688,59 +688,28 @@ func TestBlogService_UpdatePost(t *testing.T) {
 			CategoryID: categoryID,
 		}
 
-		oldCategory := &domain.BlogCategory{
+		category := &domain.BlogCategory{
 			ID:   categoryID,
-			Slug: "old-category",
-		}
-
-		newCategory := &domain.BlogCategory{
-			ID:   categoryID,
-			Slug: "new-category",
-		}
-
-		customURL := "https://example.com"
-		workspace := &domain.Workspace{
-			ID:   "workspace123",
-			Name: "Test Workspace",
-			Settings: domain.WorkspaceSettings{
-				Timezone:          "UTC",
-				CustomEndpointURL: &customURL,
-			},
+			Slug: "tech-category",
 		}
 
 		mockPostRepo.EXPECT().
 			GetPost(ctx, req.ID).
 			Return(existingPost, nil)
 
-		// Mock old category fetch for cache invalidation
-		mockCategoryRepo.EXPECT().
-			GetCategory(ctx, categoryID).
-			Return(oldCategory, nil)
-
 		// Mock slug check
 		mockPostRepo.EXPECT().
 			GetPostBySlug(ctx, req.Slug).
 			Return(nil, errors.New("not found"))
 
-		// Mock new category check
+		// Verify category exists
 		mockCategoryRepo.EXPECT().
 			GetCategory(ctx, categoryID).
-			Return(newCategory, nil)
+			Return(category, nil)
 
 		mockPostRepo.EXPECT().
 			UpdatePost(ctx, gomock.Any()).
 			Return(nil)
-
-		// GetByID is called by invalidateBlogCaches (uses context.Background())
-		mockWorkspaceRepo.EXPECT().
-			GetByID(gomock.Any(), "workspace123").
-			Return(workspace, nil).
-			Times(2) // Called twice: once for old post invalidation, once for new post invalidation
-
-		// ListCategories is called when invalidateAllCategories is true
-		mockCategoryRepo.EXPECT().
-			ListCategories(gomock.Any()).
-			Return([]*domain.BlogCategory{newCategory}, nil)
 
 		post, err := service.UpdatePost(ctx, req)
 		require.NoError(t, err)
@@ -804,7 +773,7 @@ func TestBlogService_UpdatePost(t *testing.T) {
 }
 
 func TestBlogService_DeletePost(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful deletion", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -818,39 +787,14 @@ func TestBlogService_DeletePost(t *testing.T) {
 			Slug:       "my-post",
 		}
 
-		category := &domain.BlogCategory{
-			ID:   "cat-1",
-			Slug: "tech",
-		}
-
-		customURL := "https://example.com"
-		workspace := &domain.Workspace{
-			ID:   "workspace123",
-			Name: "Test Workspace",
-			Settings: domain.WorkspaceSettings{
-				Timezone:          "UTC",
-				CustomEndpointURL: &customURL,
-			},
-		}
-
-		// GetPost is called before DeletePost to get category ID for cache invalidation
+		// Verify post exists before deleting
 		mockPostRepo.EXPECT().
 			GetPost(ctx, req.ID).
 			Return(post, nil)
 
-		// GetCategory is called to get category slug for cache invalidation
-		mockCategoryRepo.EXPECT().
-			GetCategory(ctx, post.CategoryID).
-			Return(category, nil)
-
 		mockPostRepo.EXPECT().
 			DeletePost(ctx, req.ID).
 			Return(nil)
-
-		// GetByID is called by invalidateBlogCaches (uses context.Background())
-		mockWorkspaceRepo.EXPECT().
-			GetByID(gomock.Any(), "workspace123").
-			Return(workspace, nil)
 
 		err := service.DeletePost(ctx, req)
 		require.NoError(t, err)
@@ -929,7 +873,7 @@ func TestBlogService_ListPosts(t *testing.T) {
 }
 
 func TestBlogService_PublishPost(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful publish", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -943,39 +887,14 @@ func TestBlogService_PublishPost(t *testing.T) {
 			Slug:       "my-post",
 		}
 
-		category := &domain.BlogCategory{
-			ID:   "cat-1",
-			Slug: "tech",
-		}
-
-		customURL := "https://example.com"
-		workspace := &domain.Workspace{
-			ID:   "workspace123",
-			Name: "Test Workspace",
-			Settings: domain.WorkspaceSettings{
-				Timezone:          "UTC",
-				CustomEndpointURL: &customURL,
-			},
-		}
-
-		// GetPost is called before PublishPost to get category ID for cache invalidation
+		// Verify post exists before publishing
 		mockPostRepo.EXPECT().
 			GetPost(ctx, req.ID).
 			Return(post, nil)
 
-		// GetCategory is called to get category slug for cache invalidation
-		mockCategoryRepo.EXPECT().
-			GetCategory(ctx, post.CategoryID).
-			Return(category, nil)
-
 		mockPostRepo.EXPECT().
 			PublishPost(ctx, req.ID).
 			Return(nil)
-
-		// GetByID is called by invalidateBlogCaches (uses context.Background())
-		mockWorkspaceRepo.EXPECT().
-			GetByID(gomock.Any(), "workspace123").
-			Return(workspace, nil)
 
 		err := service.PublishPost(ctx, req)
 		require.NoError(t, err)
@@ -1002,20 +921,10 @@ func TestBlogService_PublishPost(t *testing.T) {
 			Slug:       "my-post",
 		}
 
-		category := &domain.BlogCategory{
-			ID:   "cat-1",
-			Slug: "tech",
-		}
-
-		// GetPost is called before PublishPost to get category ID for cache invalidation
+		// Verify post exists before publishing
 		mockPostRepo.EXPECT().
 			GetPost(ctx, req.ID).
 			Return(post, nil)
-
-		// GetCategory is called to get category slug for cache invalidation
-		mockCategoryRepo.EXPECT().
-			GetCategory(ctx, post.CategoryID).
-			Return(category, nil)
 
 		mockPostRepo.EXPECT().
 			PublishPost(ctx, req.ID).
@@ -1028,7 +937,7 @@ func TestBlogService_PublishPost(t *testing.T) {
 }
 
 func TestBlogService_UnpublishPost(t *testing.T) {
-	service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, mockPostRepo, _, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful unpublish", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -1042,39 +951,14 @@ func TestBlogService_UnpublishPost(t *testing.T) {
 			Slug:       "my-post",
 		}
 
-		category := &domain.BlogCategory{
-			ID:   "cat-1",
-			Slug: "tech",
-		}
-
-		customURL := "https://example.com"
-		workspace := &domain.Workspace{
-			ID:   "workspace123",
-			Name: "Test Workspace",
-			Settings: domain.WorkspaceSettings{
-				Timezone:          "UTC",
-				CustomEndpointURL: &customURL,
-			},
-		}
-
-		// GetPost is called before UnpublishPost to get category ID for cache invalidation
+		// Verify post exists before unpublishing
 		mockPostRepo.EXPECT().
 			GetPost(ctx, req.ID).
 			Return(post, nil)
 
-		// GetCategory is called to get category slug for cache invalidation
-		mockCategoryRepo.EXPECT().
-			GetCategory(ctx, post.CategoryID).
-			Return(category, nil)
-
 		mockPostRepo.EXPECT().
 			UnpublishPost(ctx, req.ID).
 			Return(nil)
-
-		// GetByID is called by invalidateBlogCaches (uses context.Background())
-		mockWorkspaceRepo.EXPECT().
-			GetByID(gomock.Any(), "workspace123").
-			Return(workspace, nil)
 
 		err := service.UnpublishPost(ctx, req)
 		require.NoError(t, err)
@@ -1468,31 +1352,11 @@ func TestBlogService_UpdateTheme(t *testing.T) {
 }
 
 func TestBlogService_PublishTheme(t *testing.T) {
-	service, mockCategoryRepo, _, mockThemeRepo, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, _, _, mockThemeRepo, _, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful publish", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.PublishBlogThemeRequest{Version: 1}
-
-		customURL := "https://example.com"
-		workspace := &domain.Workspace{
-			ID:   "workspace123",
-			Name: "Test Workspace",
-			Settings: domain.WorkspaceSettings{
-				Timezone:          "UTC",
-				CustomEndpointURL: &customURL,
-			},
-		}
-
-		// GetByID is called by invalidateBlogCaches (uses context.Background())
-		mockWorkspaceRepo.EXPECT().
-			GetByID(gomock.Any(), "workspace123").
-			Return(workspace, nil)
-
-		// ListCategories is called when invalidateAllCategories is true
-		mockCategoryRepo.EXPECT().
-			ListCategories(gomock.Any()).
-			Return([]*domain.BlogCategory{}, nil)
 
 		mockThemeRepo.EXPECT().
 			PublishTheme(ctx, 1, "user123").

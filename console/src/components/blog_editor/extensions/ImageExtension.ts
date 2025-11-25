@@ -1,5 +1,6 @@
 import { ReactNodeViewRenderer } from '@tiptap/react'
 import { Image } from '@tiptap/extension-image'
+import { mergeAttributes } from '@tiptap/core'
 import { ImageNodeView } from '../components/image/ImageNodeView'
 
 /**
@@ -34,7 +35,21 @@ export const ImageExtension = Image.extend({
       },
       showCaption: {
         default: false,
-        parseHTML: (element) => element.getAttribute('data-show-caption') === 'true',
+        parseHTML: (element) => {
+          // Check for data-show-caption attribute
+          if (element.getAttribute('data-show-caption') === 'true') return true
+
+          // If inside a figure with figcaption, showCaption should be true
+          const figure = element.closest('figure')
+          if (figure) {
+            const figcaption = figure.querySelector('figcaption')
+            if (figcaption && figcaption.textContent?.trim()) {
+              return true
+            }
+          }
+
+          return false
+        },
         renderHTML: (attributes) => {
           return {
             'data-show-caption': attributes.showCaption
@@ -43,7 +58,22 @@ export const ImageExtension = Image.extend({
       },
       caption: {
         default: '',
-        parseHTML: (element) => element.getAttribute('data-caption') || '',
+        parseHTML: (element) => {
+          // First check for data-caption attribute
+          const dataCaption = element.getAttribute('data-caption')
+          if (dataCaption) return dataCaption
+
+          // If inside a figure, check for figcaption text content
+          const figure = element.closest('figure')
+          if (figure) {
+            const figcaption = figure.querySelector('figcaption')
+            if (figcaption) {
+              return figcaption.textContent || ''
+            }
+          }
+
+          return ''
+        },
         renderHTML: (attributes) => {
           if (!attributes.caption) return {}
           return {
@@ -52,6 +82,27 @@ export const ImageExtension = Image.extend({
         }
       }
     }
+  },
+
+  renderHTML({ HTMLAttributes, node }) {
+    const attrs = node.attrs || {}
+    const showCaption = attrs.showCaption || false
+    const caption = attrs.caption || ''
+
+    // Build the image element with merged attributes
+    // The parent Image extension renders as ['img', HTMLAttributes]
+    const imgElement: [string, Record<string, any>] = [
+      'img',
+      mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)
+    ]
+
+    // If caption should be shown and caption text exists, wrap in figure with figcaption
+    if (showCaption && caption) {
+      return ['figure', {}, imgElement, ['figcaption', {}, caption]]
+    }
+
+    // Otherwise, return image as-is
+    return imgElement
   },
 
   addNodeView() {

@@ -866,7 +866,7 @@ func TestRootHandler_serveBlogHome(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "text/html; charset=utf-8", w.Header().Get("Content-Type"))
-		assert.Equal(t, "public, max-age=60", w.Header().Get("Cache-Control"))
+		assert.Empty(t, w.Header().Get("Cache-Control"), "Cache-Control should not be set for normal responses")
 		assert.Equal(t, "MISS", w.Header().Get("X-Cache"))
 		assert.Equal(t, expectedHTML, w.Body.String())
 	})
@@ -919,8 +919,8 @@ func TestRootHandler_serveBlogHome(t *testing.T) {
 		_, _, testCache, workspace, handler := setupBlogHandlerTest(t)
 
 		cachedHTML := "<html><body>Cached</body></html>"
-		cacheKey := "blog:example.com:/?page=1"
-		testCache.Set(cacheKey, cachedHTML, 60*time.Second)
+		cacheKey := "example.com:/?page=1"
+		testCache.Set(cacheKey, cachedHTML, 5*time.Minute)
 
 		req := httptest.NewRequest("GET", "/", nil)
 		req.Host = "example.com"
@@ -1113,8 +1113,8 @@ func TestRootHandler_serveBlogCategory(t *testing.T) {
 		_, _, testCache, workspace, handler := setupBlogHandlerTest(t)
 
 		cachedHTML := "<html><body>Cached Category</body></html>"
-		cacheKey := "blog:example.com:/tech?page=1"
-		testCache.Set(cacheKey, cachedHTML, 60*time.Second)
+		cacheKey := "example.com:/tech?page=1"
+		testCache.Set(cacheKey, cachedHTML, 5*time.Minute)
 
 		req := httptest.NewRequest("GET", "/tech", nil)
 		req.Host = "example.com"
@@ -1144,6 +1144,7 @@ func TestRootHandler_serveBlogCategory(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "BYPASS", w.Header().Get("X-Cache"))
+		assert.Equal(t, "no-store, no-cache, must-revalidate", w.Header().Get("Cache-Control"))
 		assert.Equal(t, expectedHTML, w.Body.String())
 	})
 
@@ -1228,8 +1229,8 @@ func TestRootHandler_serveBlogPost(t *testing.T) {
 		}
 
 		cachedHTML := "<html><body>Cached Post</body></html>"
-		cacheKey := "blog:example.com:/tech/my-post"
-		testCache.Set(cacheKey, cachedHTML, 60*time.Second)
+		cacheKey := "example.com:/tech/my-post"
+		testCache.Set(cacheKey, cachedHTML, 5*time.Minute)
 
 		req := httptest.NewRequest("GET", "/tech/my-post", nil)
 		req.Host = "example.com"

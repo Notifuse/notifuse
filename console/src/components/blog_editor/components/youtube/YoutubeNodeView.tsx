@@ -120,7 +120,6 @@ export function YoutubeNodeView(props: NodeViewProps) {
   const showCaption = node.attrs.showCaption || false
   const caption = node.attrs.caption || ''
   const cc = node.attrs.cc || false
-  const autoplay = node.attrs.autoplay || false
   const loop = node.attrs.loop || false
   const controls = node.attrs.controls !== false
   const modestbranding = node.attrs.modestbranding || false
@@ -415,29 +414,6 @@ export function YoutubeNodeView(props: NodeViewProps) {
             marginBottom: '8px'
           }}
         >
-          <span style={{ fontSize: '13px', fontWeight: '500' }}>Autoplay</span>
-          <Switch
-            size="small"
-            checked={autoplay}
-            onChange={(checked) => {
-              updateAttributes({ autoplay: checked })
-            }}
-          />
-        </div>
-        <div style={{ fontSize: '11px', color: '#8c8c8c', marginBottom: '12px' }}>
-          Start playing automatically
-        </div>
-      </div>
-
-      <div style={{ marginBottom: '12px' }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '8px'
-          }}
-        >
           <span style={{ fontSize: '13px', fontWeight: '500' }}>Loop</span>
           <Switch
             size="small"
@@ -629,11 +605,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
               icon={
                 <Settings className="notifuse-editor-toolbar-icon" style={{ fontSize: '16px' }} />
               }
-              type={
-                cc || autoplay || loop || !controls || modestbranding || start > 0
-                  ? 'primary'
-                  : 'text'
-              }
+              type={cc || loop || !controls || modestbranding || start > 0 ? 'primary' : 'text'}
               onClick={(e) => {
                 e.stopPropagation()
                 setPlaybackPopoverOpen(!playbackPopoverOpen)
@@ -650,7 +622,6 @@ export function YoutubeNodeView(props: NodeViewProps) {
   // Render YouTube iframe for filled state
   const embedUrl = getYoutubeEmbedUrl(node.attrs.src, {
     cc,
-    autoplay,
     loop,
     controls,
     modestbranding,

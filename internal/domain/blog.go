@@ -20,6 +20,11 @@ import (
 // Regular expression for validating slugs (lowercase letters, numbers, and hyphens)
 var slugRegex = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
+// Blog cache configuration
+const (
+	BlogCacheTTL = 5 * time.Minute // TTL for cached blog pages
+)
+
 // SEOSettings contains web page SEO configuration (without slug)
 // Reusable across workspace (homepage), blog categories, and blog posts
 type SEOSettings struct {

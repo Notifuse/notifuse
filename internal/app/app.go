@@ -147,7 +147,7 @@ type App struct {
 	sesService       *service.SESService
 
 	// Cache
-	cache cache.Cache
+	blogCache cache.Cache // Dedicated cache for blog rendering
 
 	// HTTP handlers
 	mux    *http.ServeMux
@@ -722,7 +722,7 @@ func (a *App) InitServices() error {
 		a.listRepo,
 		a.templateRepo,
 		a.authService,
-		a.cache,
+		a.blogCache,
 	)
 
 	// Initialize workspace service (after all its dependencies)
@@ -933,7 +933,7 @@ func (a *App) InitHandlers() error {
 		smtpRelayTLSEnabled,
 		a.workspaceRepo,
 		a.blogService,
-		a.cache,
+		a.blogCache,
 	)
 	setupHandler := httpHandler.NewSetupHandler(
 		a.setupService,
@@ -1130,10 +1130,10 @@ func (a *App) Shutdown(ctx context.Context) error {
 	// Signal shutdown to all components
 	a.shutdownCancel()
 
-	// Stop cache cleanup goroutine
-	if a.cache != nil {
-		a.logger.Info("Stopping cache...")
-		a.cache.Stop()
+	// Stop blog cache cleanup goroutine
+	if a.blogCache != nil {
+		a.logger.Info("Stopping blog cache...")
+		a.blogCache.Stop()
 	}
 
 	// Stop task scheduler first (before stopping server)
@@ -1366,9 +1366,9 @@ func (a *App) Initialize() error {
 		a.logger.Info("System installation verified")
 	}
 
-	// Initialize cache
-	a.cache = cache.NewInMemoryCache(30 * time.Second)
-	a.logger.Info("Cache initialized with 30s cleanup interval")
+	// Initialize dedicated blog cache
+	a.blogCache = cache.NewInMemoryCache(domain.BlogCacheTTL)
+	a.logger.Info("Blog cache initialized")
 
 	if err := a.InitMailer(); err != nil {
 		return err

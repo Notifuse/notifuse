@@ -4,6 +4,25 @@ import { YoutubeNodeView } from '../components/youtube/YoutubeNodeView'
 import { getYoutubeVideoId, getYoutubeEmbedUrl } from '../utils/youtube-utils'
 
 /**
+ * TypeScript declarations for commands
+ */
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    youtube: {
+      /**
+       * Inserts a YouTube video
+       */
+      setYoutubeVideo: (options: {
+        src: string
+        width?: number
+        height?: number
+        start?: number
+      }) => ReturnType
+    }
+  }
+}
+
+/**
  * Independent YouTube extension with full control over URL parsing and rendering
  *
  * Key features:
@@ -79,15 +98,6 @@ export const YoutubeExtension = Node.create({
           }
         }
       },
-      autoplay: {
-        default: false,
-        parseHTML: (element) => element.getAttribute('data-autoplay') === 'true',
-        renderHTML: (attributes) => {
-          return {
-            'data-autoplay': attributes.autoplay
-          }
-        }
-      },
       loop: {
         default: false,
         parseHTML: (element) => element.getAttribute('data-loop') === 'true',
@@ -148,6 +158,11 @@ export const YoutubeExtension = Node.create({
           const videoId = getYoutubeVideoId(src)
           if (!videoId) return false
 
+          // Check for caption div
+          const captionDiv = element.querySelector('.caption')
+          const captionText = captionDiv?.textContent || ''
+          const hasCaption = !!captionText.trim()
+
           // Store only the video ID in src
           return {
             src: videoId,
@@ -155,10 +170,9 @@ export const YoutubeExtension = Node.create({
               ? parseInt(element.getAttribute('data-width')!)
               : null,
             align: element.getAttribute('data-align') || 'left',
-            showCaption: element.getAttribute('data-show-caption') === 'true',
-            caption: element.getAttribute('data-caption') || '',
+            showCaption: element.getAttribute('data-show-caption') === 'true' || hasCaption,
+            caption: element.getAttribute('data-caption') || captionText,
             cc: element.getAttribute('data-cc') === 'true',
-            autoplay: element.getAttribute('data-autoplay') === 'true',
             loop: element.getAttribute('data-loop') === 'true',
             controls: element.getAttribute('data-controls') !== 'false',
             modestbranding: element.getAttribute('data-modestbranding') === 'true',
@@ -171,15 +185,19 @@ export const YoutubeExtension = Node.create({
     ]
   },
 
-  renderHTML({ HTMLAttributes }) {
+  renderHTML({ HTMLAttributes, node }) {
+    // Get raw node attributes for building embed URL
+    const attrs = node.attrs || {}
+    const showCaption = attrs.showCaption || false
+    const caption = attrs.caption || ''
+
     // Build clean embed URL from video ID + playback options
-    const embedUrl = getYoutubeEmbedUrl(HTMLAttributes.src, {
-      cc: HTMLAttributes['data-cc'] === 'true',
-      autoplay: HTMLAttributes['data-autoplay'] === 'true',
-      loop: HTMLAttributes['data-loop'] === 'true',
-      controls: HTMLAttributes['data-controls'] !== 'false',
-      modestbranding: HTMLAttributes['data-modestbranding'] === 'true',
-      start: parseInt(HTMLAttributes['data-start']) || 0
+    const embedUrl = getYoutubeEmbedUrl(attrs.src, {
+      cc: attrs.cc || false,
+      loop: attrs.loop || false,
+      controls: attrs.controls !== false,
+      modestbranding: attrs.modestbranding || false,
+      start: attrs.start || 0
     })
 
     // If URL is invalid, return error div
@@ -187,44 +205,40 @@ export const YoutubeExtension = Node.create({
       return ['div', { class: 'youtube-error' }, 'Invalid YouTube URL']
     }
 
-    // Return with wrapper div (required for parseHTML recognition)
-    return [
-      'div',
-      mergeAttributes(
-        { 'data-youtube-video': '' },
-        {
-          'data-align': HTMLAttributes['data-align'],
-          'data-width': HTMLAttributes['data-width'],
-          'data-show-caption': HTMLAttributes['data-show-caption'],
-          'data-caption': HTMLAttributes['data-caption'],
-          'data-cc': HTMLAttributes['data-cc'],
-          'data-autoplay': HTMLAttributes['data-autoplay'],
-          'data-loop': HTMLAttributes['data-loop'],
-          'data-controls': HTMLAttributes['data-controls'],
-          'data-modestbranding': HTMLAttributes['data-modestbranding'],
-          'data-start': HTMLAttributes['data-start']
-        }
-      ),
-      [
-        'iframe',
-        {
-          src: embedUrl,
-          width: HTMLAttributes['data-width'] || 640,
-          height: HTMLAttributes.height || 360,
-          frameborder: '0',
-          allowfullscreen: 'true',
-          allow:
-            'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
-        }
-      ]
+    // Build the iframe element
+    const iframeElement = [
+      'iframe',
+      {
+        src: embedUrl,
+        width: attrs.width || HTMLAttributes['data-width'] || 640,
+        height: attrs.height || HTMLAttributes.height || 360,
+        frameborder: '0',
+        allowfullscreen: 'true',
+        allow:
+          'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
+      }
     ]
+
+    // If caption should be shown and caption text exists, add caption div
+    if (showCaption && caption) {
+      return [
+        'div',
+        mergeAttributes({ 'data-youtube-video': '' }, HTMLAttributes),
+        iframeElement,
+        ['div', { class: 'caption' }, caption]
+      ]
+    }
+
+    // Return with wrapper div (required for parseHTML recognition)
+    // HTMLAttributes already contains the merged data-* attributes from individual renderHTML methods
+    return ['div', mergeAttributes({ 'data-youtube-video': '' }, HTMLAttributes), iframeElement]
   },
 
   addCommands() {
     return {
       setYoutubeVideo:
         (options: { src: string; width?: number; height?: number; start?: number }) =>
-        ({ commands }) => {
+        ({ commands }: { commands: any }) => {
           // Extract video ID from any URL format
           const videoId = getYoutubeVideoId(options.src)
           if (!videoId) return false

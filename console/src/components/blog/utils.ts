@@ -37,7 +37,7 @@ function convertNodeToHtml(node: any): string {
   // Handle text nodes
   if (node.type === 'text') {
     let text = escapeHtml(node.text || '')
-    
+
     // Apply marks (formatting)
     if (node.marks) {
       for (const mark of node.marks) {
@@ -80,7 +80,7 @@ function convertNodeToHtml(node: any): string {
         }
       }
     }
-    
+
     return text
   }
 
@@ -131,29 +131,65 @@ function convertNodeToHtml(node: any): string {
       const alt = escapeHtml(attrs.alt || '')
       const title = attrs.title ? ` title="${escapeHtml(attrs.title)}"` : ''
       let imgAttrs = `src="${src}" alt="${alt}"${title}`
-      
+
       // Add data attributes
       if (attrs.width) imgAttrs += ` data-width="${attrs.width}"`
       if (attrs.height) imgAttrs += ` data-height="${attrs.height}"`
       if (attrs.align) imgAttrs += ` data-align="${escapeHtml(attrs.align)}"`
       if (attrs.caption) imgAttrs += ` data-caption="${escapeHtml(attrs.caption)}"`
       if (attrs.showCaption !== undefined) imgAttrs += ` data-show-caption="${attrs.showCaption}"`
-      
+
       return `<img ${imgAttrs} />`
 
     case 'youtube':
       const videoId = attrs.src || ''
       const width = attrs.width || 640
       const height = attrs.height || 360
-      const align = attrs.align || 'center'
-      let iframeSrc = `https://www.youtube-nocookie.com/embed/${videoId}?`
-      
-      if (attrs.controls) iframeSrc += 'controls=1&'
-      if (attrs.nocookie) iframeSrc += 'nocookie=1&'
-      if (attrs.modestBranding) iframeSrc += 'modestbranding=1&'
-      if (attrs.ccLoadPolicy) iframeSrc += 'cc_load_policy=1&'
-      
-      return `<div data-youtube-video data-align="${align}" data-width="${width}"><iframe src="${iframeSrc}" width="${width}" height="${height}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
+      const align = attrs.align || 'left'
+      // Handle boolean attributes that might come as strings, booleans, or numbers
+      // YouTube parameters use 0/1, so we need to handle those cases too
+      const cc = attrs.cc === true || attrs.cc === 'true' || attrs.cc === 1 || attrs.cc === '1'
+      const loop =
+        attrs.loop === true || attrs.loop === 'true' || attrs.loop === 1 || attrs.loop === '1'
+      const controls =
+        attrs.controls !== false &&
+        attrs.controls !== 'false' &&
+        attrs.controls !== 0 &&
+        attrs.controls !== '0' // default to true
+      const modestbranding =
+        attrs.modestbranding === true ||
+        attrs.modestbranding === 'true' ||
+        attrs.modestbranding === 1 ||
+        attrs.modestbranding === '1'
+      const startTime = attrs.start ? parseInt(attrs.start.toString()) : 0
+      const showCaption = attrs.showCaption === true || attrs.showCaption === 'true'
+      const caption = attrs.caption || ''
+
+      // Build iframe URL with playback options
+      const params = new URLSearchParams()
+      if (cc) params.append('cc_load_policy', '1')
+      if (loop) {
+        params.append('loop', '1')
+        params.append('playlist', videoId) // Required for loop to work
+      }
+      if (!controls) params.append('controls', '0')
+      if (modestbranding) params.append('modestbranding', '1')
+      if (startTime > 0) params.append('start', startTime.toString())
+
+      const queryString = params.toString()
+      const iframeSrc = `https://www.youtube-nocookie.com/embed/${videoId}${queryString ? `?${queryString}` : ''}`
+
+      // Build data attributes for the div
+      let divAttrs = `data-youtube-video data-align="${escapeHtml(align)}" data-width="${width}"`
+      if (showCaption) divAttrs += ` data-show-caption="true"`
+      if (caption) divAttrs += ` data-caption="${escapeHtml(caption)}"`
+      if (cc) divAttrs += ` data-cc="true"`
+      if (loop) divAttrs += ` data-loop="true"`
+      if (!controls) divAttrs += ` data-controls="false"`
+      if (modestbranding) divAttrs += ` data-modestbranding="true"`
+      if (startTime > 0) divAttrs += ` data-start="${startTime}"`
+
+      return `<div ${divAttrs}><iframe src="${escapeHtml(iframeSrc)}" width="${width}" height="${height}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
 
     default:
       // Unknown node type, just return the content
@@ -166,19 +202,19 @@ function convertNodeToHtml(node: any): string {
  */
 function buildStyleAttr(attrs: any): string {
   const styles: string[] = []
-  
+
   if (attrs.textAlign && attrs.textAlign !== 'left') {
     styles.push(`text-align: ${attrs.textAlign}`)
   }
-  
+
   if (attrs.backgroundColor) {
     styles.push(`background-color: ${attrs.backgroundColor}`)
   }
-  
+
   if (attrs.color) {
     styles.push(`color: ${attrs.color}`)
   }
-  
+
   return styles.length > 0 ? ` style="${styles.join('; ')}"` : ''
 }
 
@@ -214,4 +250,3 @@ function escapeHtml(text: string): string {
   }
   return text.replace(/[&<>"']/g, (m) => map[m])
 }
-

@@ -9,7 +9,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/cache"
@@ -296,12 +295,11 @@ func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, work
 
 	// Try cache first (include page in cache key)
 	// Skip cache if previewing
-	cacheKey := fmt.Sprintf("blog:%s:/?page=%d", r.Host, page)
+	cacheKey := fmt.Sprintf("%s:/?page=%d", r.Host, page)
 	if h.cache != nil && themeVersion == nil {
 		if cached, found := h.cache.Get(cacheKey); found {
 			if html, ok := cached.(string); ok {
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
-				w.Header().Set("Cache-Control", "public, max-age=60")
 				w.Header().Set("X-Cache", "HIT")
 				_, _ = w.Write([]byte(html))
 				return
@@ -325,7 +323,7 @@ func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, work
 
 	// Store in cache (skip if previewing)
 	if h.cache != nil && themeVersion == nil {
-		h.cache.Set(cacheKey, html, 60*time.Second)
+		h.cache.Set(cacheKey, html, domain.BlogCacheTTL)
 	}
 
 	// Serve the rendered HTML
@@ -334,7 +332,6 @@ func (h *RootHandler) serveBlogHome(w http.ResponseWriter, r *http.Request, work
 		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 		w.Header().Set("X-Cache", "BYPASS")
 	} else {
-		w.Header().Set("Cache-Control", "public, max-age=60")
 		w.Header().Set("X-Cache", "MISS")
 	}
 	_, _ = w.Write([]byte(html))
@@ -373,12 +370,11 @@ func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, 
 
 	// Try cache first (include page in cache key)
 	// Skip cache if previewing
-	cacheKey := fmt.Sprintf("blog:%s:/%s?page=%d", r.Host, categorySlug, page)
+	cacheKey := fmt.Sprintf("%s:/%s?page=%d", r.Host, categorySlug, page)
 	if h.cache != nil && themeVersion == nil {
 		if cached, found := h.cache.Get(cacheKey); found {
 			if html, ok := cached.(string); ok {
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
-				w.Header().Set("Cache-Control", "public, max-age=60")
 				w.Header().Set("X-Cache", "HIT")
 				_, _ = w.Write([]byte(html))
 				return
@@ -402,7 +398,7 @@ func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, 
 
 	// Store in cache (skip if previewing)
 	if h.cache != nil && themeVersion == nil {
-		h.cache.Set(cacheKey, html, 60*time.Second)
+		h.cache.Set(cacheKey, html, domain.BlogCacheTTL)
 	}
 
 	// Serve the rendered HTML
@@ -411,7 +407,6 @@ func (h *RootHandler) serveBlogCategory(w http.ResponseWriter, r *http.Request, 
 		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 		w.Header().Set("X-Cache", "BYPASS")
 	} else {
-		w.Header().Set("Cache-Control", "public, max-age=60")
 		w.Header().Set("X-Cache", "MISS")
 	}
 	_, _ = w.Write([]byte(html))
@@ -441,12 +436,18 @@ func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, work
 
 	// Try cache first
 	// Skip cache if previewing
-	cacheKey := fmt.Sprintf("blog:%s:/%s/%s", r.Host, categorySlug, postSlug)
+	cacheKey := fmt.Sprintf("%s:/%s/%s", r.Host, categorySlug, postSlug)
 	if h.cache != nil && themeVersion == nil {
 		if cached, found := h.cache.Get(cacheKey); found {
 			if html, ok := cached.(string); ok {
+				h.logger.WithFields(map[string]interface{}{
+					"cache_key":     cacheKey,
+					"cache_size":    h.cache.Size(),
+					"category_slug": categorySlug,
+					"post_slug":     postSlug,
+				}).Info("Blog post cache HIT")
+
 				w.Header().Set("Content-Type", "text/html; charset=utf-8")
-				w.Header().Set("Cache-Control", "public, max-age=60")
 				w.Header().Set("X-Cache", "HIT")
 				_, _ = w.Write([]byte(html))
 				return
@@ -470,7 +471,7 @@ func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, work
 
 	// Store in cache (skip if previewing)
 	if h.cache != nil && themeVersion == nil {
-		h.cache.Set(cacheKey, html, 60*time.Second)
+		h.cache.Set(cacheKey, html, domain.BlogCacheTTL)
 	}
 
 	// Serve the rendered HTML
@@ -479,7 +480,6 @@ func (h *RootHandler) serveBlogPost(w http.ResponseWriter, r *http.Request, work
 		w.Header().Set("Cache-Control", "no-store, no-cache, must-revalidate")
 		w.Header().Set("X-Cache", "BYPASS")
 	} else {
-		w.Header().Set("Cache-Control", "public, max-age=60")
 		w.Header().Set("X-Cache", "MISS")
 	}
 	_, _ = w.Write([]byte(html))

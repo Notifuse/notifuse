@@ -1631,6 +1631,16 @@ h3 {
   line-height: 1.6;
 }
 
+/* Captions */
+.post-content figcaption,
+.post-content .caption {
+  font-size: 0.875rem;
+  color: #6b7280;
+  font-style: italic;
+  margin-top: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
 /* Code Blocks */
 .post-content pre {
   background: #1e1e1e;
