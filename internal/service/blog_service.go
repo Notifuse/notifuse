@@ -551,6 +551,17 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 		return nil, fmt.Errorf("post not found: %w", err)
 	}
 
+	// Track old slugs for cache invalidation
+	oldCategoryID := post.CategoryID
+	oldPostSlug := post.Slug
+	var oldCategorySlug string
+	if oldCategoryID != "" {
+		oldCategory, err := s.categoryRepo.GetCategory(ctx, oldCategoryID)
+		if err == nil && oldCategory != nil {
+			oldCategorySlug = oldCategory.Slug
+		}
+	}
+
 	// Check if slug is changing and if new slug already exists
 	if post.Slug != request.Slug {
 		existing, err := s.postRepo.GetPostBySlug(ctx, request.Slug)
@@ -560,7 +571,7 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 	}
 
 	// Verify category exists
-	_, err = s.categoryRepo.GetCategory(ctx, request.CategoryID)
+	newCategory, err := s.categoryRepo.GetCategory(ctx, request.CategoryID)
 	if err != nil {
 		return nil, fmt.Errorf("category not found: %w", err)
 	}
@@ -591,7 +602,12 @@ func (s *BlogService) UpdatePost(ctx context.Context, request *domain.UpdateBlog
 	}
 
 	// Invalidate blog caches
-	s.invalidateBlogCaches(workspaceID, post.CategoryID)
+	// Invalidate old post page if slug or category changed
+	if oldCategorySlug != "" && oldPostSlug != "" && (oldCategorySlug != newCategory.Slug || oldPostSlug != post.Slug) {
+		s.invalidateBlogCaches(workspaceID, "", oldCategorySlug, oldPostSlug, false)
+	}
+	// Invalidate new post page and all category pages
+	s.invalidateBlogCaches(workspaceID, "", newCategory.Slug, post.Slug, true)
 
 	return post, nil
 }
@@ -633,6 +649,15 @@ func (s *BlogService) DeletePost(ctx context.Context, request *domain.DeleteBlog
 		return fmt.Errorf("post not found: %w", err)
 	}
 
+	// Get category slug for cache invalidation
+	var categorySlug string
+	if post.CategoryID != "" {
+		category, err := s.categoryRepo.GetCategory(ctx, post.CategoryID)
+		if err == nil && category != nil {
+			categorySlug = category.Slug
+		}
+	}
+
 	// Delete the post
 	if err := s.postRepo.DeletePost(ctx, request.ID); err != nil {
 		s.logger.Error("Failed to delete post")
@@ -640,7 +665,7 @@ func (s *BlogService) DeletePost(ctx context.Context, request *domain.DeleteBlog
 	}
 
 	// Invalidate blog caches
-	s.invalidateBlogCaches(workspaceID, post.CategoryID)
+	s.invalidateBlogCaches(workspaceID, "", categorySlug, post.Slug, false)
 
 	return nil
 }
@@ -715,6 +740,15 @@ func (s *BlogService) PublishPost(ctx context.Context, request *domain.PublishBl
 		return fmt.Errorf("failed to get post: %w", err)
 	}
 
+	// Get category slug for cache invalidation
+	var categorySlug string
+	if post.CategoryID != "" {
+		category, err := s.categoryRepo.GetCategory(ctx, post.CategoryID)
+		if err == nil && category != nil {
+			categorySlug = category.Slug
+		}
+	}
+
 	// Publish the post
 	if err := s.postRepo.PublishPost(ctx, request.ID); err != nil {
 		s.logger.Error("Failed to publish post")
@@ -722,7 +756,7 @@ func (s *BlogService) PublishPost(ctx context.Context, request *domain.PublishBl
 	}
 
 	// Invalidate blog caches
-	s.invalidateBlogCaches(workspaceID, post.CategoryID)
+	s.invalidateBlogCaches(workspaceID, "", categorySlug, post.Slug, false)
 
 	return nil
 }
@@ -764,6 +798,15 @@ func (s *BlogService) UnpublishPost(ctx context.Context, request *domain.Unpubli
 		return fmt.Errorf("failed to get post: %w", err)
 	}
 
+	// Get category slug for cache invalidation
+	var categorySlug string
+	if post.CategoryID != "" {
+		category, err := s.categoryRepo.GetCategory(ctx, post.CategoryID)
+		if err == nil && category != nil {
+			categorySlug = category.Slug
+		}
+	}
+
 	// Unpublish the post
 	if err := s.postRepo.UnpublishPost(ctx, request.ID); err != nil {
 		s.logger.Error("Failed to unpublish post")
@@ -771,7 +814,7 @@ func (s *BlogService) UnpublishPost(ctx context.Context, request *domain.Unpubli
 	}
 
 	// Invalidate blog caches
-	s.invalidateBlogCaches(workspaceID, post.CategoryID)
+	s.invalidateBlogCaches(workspaceID, "", categorySlug, post.Slug, false)
 
 	return nil
 }
@@ -1009,7 +1052,7 @@ func (s *BlogService) PublishTheme(ctx context.Context, request *domain.PublishB
 	}
 
 	// Invalidate all blog caches since theme affects all pages
-	s.invalidateBlogCaches(workspaceID, "")
+	s.invalidateBlogCaches(workspaceID, "", "", "", true)
 
 	return nil
 }
@@ -1053,7 +1096,9 @@ func (s *BlogService) ListThemes(ctx context.Context, params *domain.ListBlogThe
 
 // invalidateBlogCaches clears all blog-related caches for a workspace
 // This should be called when blog content changes (publish/unpublish posts, publish themes)
-func (s *BlogService) invalidateBlogCaches(workspaceID, categoryID string) {
+// categorySlug and postSlug are optional - when provided, invalidates the individual post page cache
+// invalidateAllCategories - when true, invalidates all category pages (not just the specific category)
+func (s *BlogService) invalidateBlogCaches(workspaceID, categoryID string, categorySlug, postSlug string, invalidateAllCategories bool) {
 	if s.cache == nil {
 		return
 	}
@@ -1093,9 +1138,35 @@ func (s *BlogService) invalidateBlogCaches(workspaceID, categoryID string) {
 		s.cache.Delete(cacheKey)
 	}
 
-	// Invalidate category page cache if categoryID is provided
-	if categoryID != "" {
-		// Get category to find its slug
+	// Invalidate individual post page cache if categorySlug and postSlug are provided
+	if categorySlug != "" && postSlug != "" {
+		cacheKey := fmt.Sprintf("blog:%s:/%s/%s", host, categorySlug, postSlug)
+		s.cache.Delete(cacheKey)
+	}
+
+	// Invalidate category pages
+	if invalidateAllCategories {
+		// Fetch all categories and invalidate each category's pages
+		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, workspaceID)
+		categories, err := s.categoryRepo.ListCategories(ctx)
+		if err == nil {
+			for _, category := range categories {
+				for page := 1; page <= 10; page++ {
+					cacheKey := fmt.Sprintf("blog:%s:/%s?page=%d", host, category.Slug, page)
+					s.cache.Delete(cacheKey)
+				}
+			}
+		} else {
+			s.logger.WithField("error", err.Error()).Warn("Failed to list categories for cache invalidation")
+		}
+	} else if categorySlug != "" {
+		// Invalidate specific category page cache if categorySlug is provided
+		for page := 1; page <= 10; page++ {
+			cacheKey := fmt.Sprintf("blog:%s:/%s?page=%d", host, categorySlug, page)
+			s.cache.Delete(cacheKey)
+		}
+	} else if categoryID != "" {
+		// Invalidate specific category page cache if categoryID is provided (fallback when slug not available)
 		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, workspaceID)
 		category, err := s.categoryRepo.GetCategory(ctx, categoryID)
 		if err == nil && category != nil {

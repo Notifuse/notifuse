@@ -688,11 +688,23 @@ func TestBlogService_UpdatePost(t *testing.T) {
 			CategoryID: categoryID,
 		}
 
+		oldCategory := &domain.BlogCategory{
+			ID:   categoryID,
+			Slug: "old-category",
+		}
+
+		newCategory := &domain.BlogCategory{
+			ID:   categoryID,
+			Slug: "new-category",
+		}
+
+		customURL := "https://example.com"
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
 			Name: "Test Workspace",
 			Settings: domain.WorkspaceSettings{
-				Timezone: "UTC",
+				Timezone:          "UTC",
+				CustomEndpointURL: &customURL,
 			},
 		}
 
@@ -700,15 +712,20 @@ func TestBlogService_UpdatePost(t *testing.T) {
 			GetPost(ctx, req.ID).
 			Return(existingPost, nil)
 
+		// Mock old category fetch for cache invalidation
+		mockCategoryRepo.EXPECT().
+			GetCategory(ctx, categoryID).
+			Return(oldCategory, nil)
+
 		// Mock slug check
 		mockPostRepo.EXPECT().
 			GetPostBySlug(ctx, req.Slug).
 			Return(nil, errors.New("not found"))
 
-		// Mock category check
+		// Mock new category check
 		mockCategoryRepo.EXPECT().
 			GetCategory(ctx, categoryID).
-			Return(&domain.BlogCategory{ID: categoryID}, nil)
+			Return(newCategory, nil)
 
 		mockPostRepo.EXPECT().
 			UpdatePost(ctx, gomock.Any()).
@@ -717,7 +734,13 @@ func TestBlogService_UpdatePost(t *testing.T) {
 		// GetByID is called by invalidateBlogCaches (uses context.Background())
 		mockWorkspaceRepo.EXPECT().
 			GetByID(gomock.Any(), "workspace123").
-			Return(workspace, nil)
+			Return(workspace, nil).
+			Times(2) // Called twice: once for old post invalidation, once for new post invalidation
+
+		// ListCategories is called when invalidateAllCategories is true
+		mockCategoryRepo.EXPECT().
+			ListCategories(gomock.Any()).
+			Return([]*domain.BlogCategory{newCategory}, nil)
 
 		post, err := service.UpdatePost(ctx, req)
 		require.NoError(t, err)
@@ -781,7 +804,7 @@ func TestBlogService_UpdatePost(t *testing.T) {
 }
 
 func TestBlogService_DeletePost(t *testing.T) {
-	service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful deletion", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -792,13 +815,21 @@ func TestBlogService_DeletePost(t *testing.T) {
 		post := &domain.BlogPost{
 			ID:         "post123",
 			CategoryID: "cat-1",
+			Slug:       "my-post",
 		}
 
+		category := &domain.BlogCategory{
+			ID:   "cat-1",
+			Slug: "tech",
+		}
+
+		customURL := "https://example.com"
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
 			Name: "Test Workspace",
 			Settings: domain.WorkspaceSettings{
-				Timezone: "UTC",
+				Timezone:          "UTC",
+				CustomEndpointURL: &customURL,
 			},
 		}
 
@@ -806,6 +837,11 @@ func TestBlogService_DeletePost(t *testing.T) {
 		mockPostRepo.EXPECT().
 			GetPost(ctx, req.ID).
 			Return(post, nil)
+
+		// GetCategory is called to get category slug for cache invalidation
+		mockCategoryRepo.EXPECT().
+			GetCategory(ctx, post.CategoryID).
+			Return(category, nil)
 
 		mockPostRepo.EXPECT().
 			DeletePost(ctx, req.ID).
@@ -893,7 +929,7 @@ func TestBlogService_ListPosts(t *testing.T) {
 }
 
 func TestBlogService_PublishPost(t *testing.T) {
-	service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful publish", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -904,13 +940,21 @@ func TestBlogService_PublishPost(t *testing.T) {
 		post := &domain.BlogPost{
 			ID:         "post123",
 			CategoryID: "cat-1",
+			Slug:       "my-post",
 		}
 
+		category := &domain.BlogCategory{
+			ID:   "cat-1",
+			Slug: "tech",
+		}
+
+		customURL := "https://example.com"
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
 			Name: "Test Workspace",
 			Settings: domain.WorkspaceSettings{
-				Timezone: "UTC",
+				Timezone:          "UTC",
+				CustomEndpointURL: &customURL,
 			},
 		}
 
@@ -918,6 +962,11 @@ func TestBlogService_PublishPost(t *testing.T) {
 		mockPostRepo.EXPECT().
 			GetPost(ctx, req.ID).
 			Return(post, nil)
+
+		// GetCategory is called to get category slug for cache invalidation
+		mockCategoryRepo.EXPECT().
+			GetCategory(ctx, post.CategoryID).
+			Return(category, nil)
 
 		mockPostRepo.EXPECT().
 			PublishPost(ctx, req.ID).
@@ -950,12 +999,23 @@ func TestBlogService_PublishPost(t *testing.T) {
 		post := &domain.BlogPost{
 			ID:         "post123",
 			CategoryID: "cat-1",
+			Slug:       "my-post",
+		}
+
+		category := &domain.BlogCategory{
+			ID:   "cat-1",
+			Slug: "tech",
 		}
 
 		// GetPost is called before PublishPost to get category ID for cache invalidation
 		mockPostRepo.EXPECT().
 			GetPost(ctx, req.ID).
 			Return(post, nil)
+
+		// GetCategory is called to get category slug for cache invalidation
+		mockCategoryRepo.EXPECT().
+			GetCategory(ctx, post.CategoryID).
+			Return(category, nil)
 
 		mockPostRepo.EXPECT().
 			PublishPost(ctx, req.ID).
@@ -968,7 +1028,7 @@ func TestBlogService_PublishPost(t *testing.T) {
 }
 
 func TestBlogService_UnpublishPost(t *testing.T) {
-	service, _, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, mockPostRepo, _, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful unpublish", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
@@ -979,13 +1039,21 @@ func TestBlogService_UnpublishPost(t *testing.T) {
 		post := &domain.BlogPost{
 			ID:         "post123",
 			CategoryID: "cat-1",
+			Slug:       "my-post",
 		}
 
+		category := &domain.BlogCategory{
+			ID:   "cat-1",
+			Slug: "tech",
+		}
+
+		customURL := "https://example.com"
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
 			Name: "Test Workspace",
 			Settings: domain.WorkspaceSettings{
-				Timezone: "UTC",
+				Timezone:          "UTC",
+				CustomEndpointURL: &customURL,
 			},
 		}
 
@@ -993,6 +1061,11 @@ func TestBlogService_UnpublishPost(t *testing.T) {
 		mockPostRepo.EXPECT().
 			GetPost(ctx, req.ID).
 			Return(post, nil)
+
+		// GetCategory is called to get category slug for cache invalidation
+		mockCategoryRepo.EXPECT().
+			GetCategory(ctx, post.CategoryID).
+			Return(category, nil)
 
 		mockPostRepo.EXPECT().
 			UnpublishPost(ctx, req.ID).
@@ -1395,17 +1468,19 @@ func TestBlogService_UpdateTheme(t *testing.T) {
 }
 
 func TestBlogService_PublishTheme(t *testing.T) {
-	service, _, _, mockThemeRepo, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
+	service, mockCategoryRepo, _, mockThemeRepo, mockWorkspaceRepo, _, _, mockAuthService := setupBlogServiceTest(t)
 
 	t.Run("successful publish", func(t *testing.T) {
 		ctx := setupBlogContextWithAuth(mockAuthService, "workspace123", true, true)
 		req := &domain.PublishBlogThemeRequest{Version: 1}
 
+		customURL := "https://example.com"
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
 			Name: "Test Workspace",
 			Settings: domain.WorkspaceSettings{
-				Timezone: "UTC",
+				Timezone:          "UTC",
+				CustomEndpointURL: &customURL,
 			},
 		}
 
@@ -1413,6 +1488,11 @@ func TestBlogService_PublishTheme(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().
 			GetByID(gomock.Any(), "workspace123").
 			Return(workspace, nil)
+
+		// ListCategories is called when invalidateAllCategories is true
+		mockCategoryRepo.EXPECT().
+			ListCategories(gomock.Any()).
+			Return([]*domain.BlogCategory{}, nil)
 
 		mockThemeRepo.EXPECT().
 			PublishTheme(ctx, 1, "user123").
@@ -1529,11 +1609,13 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 
 	t.Run("successful render with public lists", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
+		customURL := "https://example.com"
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
 			Name: "Test Workspace",
 			Settings: domain.WorkspaceSettings{
-				Timezone: "UTC",
+				Timezone:          "UTC",
+				CustomEndpointURL: &customURL,
 			},
 		}
 
@@ -1602,11 +1684,13 @@ func TestBlogService_RenderHomePage(t *testing.T) {
 
 	t.Run("filters deleted categories from navigation but uses them for slug lookup", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
+		customURL := "https://example.com"
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
 			Name: "Test Workspace",
 			Settings: domain.WorkspaceSettings{
-				Timezone: "UTC",
+				Timezone:          "UTC",
+				CustomEndpointURL: &customURL,
 			},
 		}
 
@@ -2180,11 +2264,13 @@ func TestBlogService_RenderHomePage_WithPaginationSettings(t *testing.T) {
 	t.Run("uses default page size when not configured", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 
+		customURL := "https://example.com"
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
 			Name: "Test Workspace",
 			Settings: domain.WorkspaceSettings{
-				Timezone: "UTC",
+				Timezone:          "UTC",
+				CustomEndpointURL: &customURL,
 			},
 		}
 
@@ -2334,11 +2420,13 @@ func TestBlogService_RenderCategoryPage_WithPaginationSettings(t *testing.T) {
 	t.Run("uses default category page size when not configured", func(t *testing.T) {
 		ctx := context.WithValue(context.Background(), domain.WorkspaceIDKey, "workspace123")
 
+		customURL := "https://example.com"
 		workspace := &domain.Workspace{
 			ID:   "workspace123",
 			Name: "Test Workspace",
 			Settings: domain.WorkspaceSettings{
-				Timezone: "UTC",
+				Timezone:          "UTC",
+				CustomEndpointURL: &customURL,
 			},
 		}
 
