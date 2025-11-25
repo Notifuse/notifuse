@@ -3140,19 +3140,6 @@ func TestTemplateBlock_MarshalUnmarshal(t *testing.T) {
 	assert.Equal(t, notifuse_mjml.MJMLComponentMjText, out.Block.GetType())
 }
 
-// dummyEmptyTypeBlock implements notifuse_mjml.EmailBlock but returns empty type
-type dummyEmptyTypeBlock struct{}
-
-func (d dummyEmptyTypeBlock) GetID() string                                   { return "dummy" }
-func (d dummyEmptyTypeBlock) SetID(id string)                                 {}
-func (d dummyEmptyTypeBlock) GetType() notifuse_mjml.MJMLComponentType        { return "" }
-func (d dummyEmptyTypeBlock) GetChildren() []notifuse_mjml.EmailBlock         { return nil }
-func (d dummyEmptyTypeBlock) SetChildren(children []notifuse_mjml.EmailBlock) {}
-func (d dummyEmptyTypeBlock) GetAttributes() map[string]interface{}           { return nil }
-func (d dummyEmptyTypeBlock) SetAttributes(attrs map[string]interface{})      {}
-func (d dummyEmptyTypeBlock) GetContent() *string                             { return nil }
-func (d dummyEmptyTypeBlock) SetContent(content *string)                      {}
-
 func TestWorkspaceSettings_Validate_TemplateBlocks(t *testing.T) {
 	passphrase := "test-passphrase"
 
@@ -4692,6 +4679,116 @@ func TestErrWorkspaceNotFound_Error(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			got := tt.err.Error()
 			assert.Equal(t, tt.wantMsg, got)
+		})
+	}
+}
+
+// TestWorkspaceSettings_ValidateTemplateBlocks tests template block validation in workspace settings
+func TestWorkspaceSettings_ValidateTemplateBlocks(t *testing.T) {
+	passphrase := "test-passphrase"
+	validBlock := createTestEmailBlock()
+
+	tests := []struct {
+		name      string
+		settings  WorkspaceSettings
+		expectErr bool
+		errMsg    string
+	}{
+		{
+			name: "valid template blocks",
+			settings: WorkspaceSettings{
+				Timezone: "UTC",
+				TemplateBlocks: []TemplateBlock{
+					{
+						ID:    "block1",
+						Name:  "Test Block",
+						Block: validBlock,
+					},
+				},
+			},
+			expectErr: false,
+		},
+		{
+			name: "empty template blocks",
+			settings: WorkspaceSettings{
+				Timezone:       "UTC",
+				TemplateBlocks: []TemplateBlock{},
+			},
+			expectErr: false,
+		},
+		{
+			name: "template block with missing name",
+			settings: WorkspaceSettings{
+				Timezone: "UTC",
+				TemplateBlocks: []TemplateBlock{
+					{
+						ID:    "block1",
+						Name:  "",
+						Block: validBlock,
+					},
+				},
+			},
+			expectErr: true,
+			errMsg:    "name is required",
+		},
+		{
+			name: "template block with name too long",
+			settings: WorkspaceSettings{
+				Timezone: "UTC",
+				TemplateBlocks: []TemplateBlock{
+					{
+						ID:    "block1",
+						Name:  strings.Repeat("a", 256),
+						Block: validBlock,
+					},
+				},
+			},
+			expectErr: true,
+			errMsg:    "name length must be between 1 and 255",
+		},
+		{
+			name: "template block with nil block",
+			settings: WorkspaceSettings{
+				Timezone: "UTC",
+				TemplateBlocks: []TemplateBlock{
+					{
+						ID:    "block1",
+						Name:  "Test Block",
+						Block: nil,
+					},
+				},
+			},
+			expectErr: true,
+			errMsg:    "block kind is required",
+		},
+		{
+			name: "template block with empty block type",
+			settings: WorkspaceSettings{
+				Timezone: "UTC",
+				TemplateBlocks: []TemplateBlock{
+					{
+						ID:    "block1",
+						Name:  "Test Block",
+						Block: dummyEmptyTypeBlock{},
+					},
+				},
+			},
+			expectErr: true,
+			errMsg:    "block kind is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.settings.Validate(passphrase)
+			if tt.expectErr {
+				assert.Error(t, err)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
 		})
 	}
 }

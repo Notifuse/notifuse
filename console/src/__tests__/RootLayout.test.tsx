@@ -19,12 +19,16 @@ vi.mock('@tanstack/react-router', () => ({
 describe('RootLayout', () => {
   const mockNavigate = vi.fn()
   const originalLocation = window.location
+  const originalIsInstalled = (window as any).IS_INSTALLED
 
   beforeEach(() => {
     vi.clearAllMocks()
     // @ts-ignore - we're mocking the return value
     useNavigate.mockReturnValue(mockNavigate)
-    
+
+    // Mock window.IS_INSTALLED to prevent setup redirect
+    ;(window as any).IS_INSTALLED = true
+
     // Mock window.location
     delete (window as any).location
     window.location = {
@@ -37,6 +41,7 @@ describe('RootLayout', () => {
 
   afterEach(() => {
     window.location = originalLocation
+    ;(window as any).IS_INSTALLED = originalIsInstalled
   })
 
   it('shows loading state when auth is loading', () => {
@@ -69,7 +74,7 @@ describe('RootLayout', () => {
     useMatch.mockImplementation(() => false)
 
     render(<RootLayout />)
-    expect(mockNavigate).toHaveBeenCalledWith({ 
+    expect(mockNavigate).toHaveBeenCalledWith({
       to: '/console/signin',
       search: undefined,
       replace: true
@@ -97,7 +102,7 @@ describe('RootLayout', () => {
     } as Location
 
     render(<RootLayout />)
-    expect(mockNavigate).toHaveBeenCalledWith({ 
+    expect(mockNavigate).toHaveBeenCalledWith({
       to: '/console/signin',
       search: { email: 'demo@notifuse.com' },
       replace: true

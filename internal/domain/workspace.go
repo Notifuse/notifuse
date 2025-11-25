@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
-	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/asaskevich/govalidator"
 )
 
@@ -223,79 +222,6 @@ func (b *Integration) Scan(value interface{}) error {
 	cloned := bytes.Clone(v)
 	return json.Unmarshal(cloned, b)
 }
-
-type TemplateBlock struct {
-	ID      string                   `json:"id"`
-	Name    string                   `json:"name"`
-	Block   notifuse_mjml.EmailBlock `json:"block"`
-	Created time.Time                `json:"created"`
-	Updated time.Time                `json:"updated"`
-}
-
-// MarshalJSON implements custom JSON marshaling for TemplateBlock
-func (tb TemplateBlock) MarshalJSON() ([]byte, error) {
-	// Create a temporary struct with the same fields but Block as interface{}
-	temp := struct {
-		ID      string      `json:"id"`
-		Name    string      `json:"name"`
-		Block   interface{} `json:"block"`
-		Created time.Time   `json:"created"`
-		Updated time.Time   `json:"updated"`
-	}{
-		ID:      tb.ID,
-		Name:    tb.Name,
-		Block:   tb.Block,
-		Created: tb.Created,
-		Updated: tb.Updated,
-	}
-	return json.Marshal(temp)
-}
-
-// UnmarshalJSON implements custom JSON unmarshaling for TemplateBlock
-func (tb *TemplateBlock) UnmarshalJSON(data []byte) error {
-	// First unmarshal into a temporary struct
-	temp := struct {
-		ID      string          `json:"id"`
-		Name    string          `json:"name"`
-		Block   json.RawMessage `json:"block"`
-		Created time.Time       `json:"created"`
-		Updated time.Time       `json:"updated"`
-	}{}
-
-	if err := json.Unmarshal(data, &temp); err != nil {
-		return err
-	}
-
-	// Set the simple fields
-	tb.ID = temp.ID
-	tb.Name = temp.Name
-	tb.Created = temp.Created
-	tb.Updated = temp.Updated
-
-	// Unmarshal the Block using the existing EmailBlock unmarshaling logic
-	if len(temp.Block) > 0 {
-		// Skip if it's just an empty string or null - these are not valid EmailBlock JSON
-		blockStr := string(temp.Block)
-		if blockStr == `""` || blockStr == `null` {
-			tb.Block = nil
-		} else {
-			block, err := notifuse_mjml.UnmarshalEmailBlock(temp.Block)
-			if err != nil {
-				return fmt.Errorf("failed to unmarshal template block: %w", err)
-			}
-			tb.Block = block
-		}
-	}
-
-	return nil
-}
-
-type SaveOperation string
-
-const (
-	SaveOperationCreate SaveOperation = "create"
-	SaveOperationUpdate SaveOperation = "update"
-)
 
 // BlogSettings contains blog title and SEO configuration
 type BlogSettings struct {

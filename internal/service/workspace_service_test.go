@@ -16,6 +16,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
+	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 )
 
 func TestWorkspaceService_ListWorkspaces(t *testing.T) {
@@ -757,6 +758,126 @@ func TestWorkspaceService_UpdateWorkspace(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, workspace)
 		assert.Equal(t, customFieldLabels, workspace.Settings.CustomFieldLabels)
+	})
+
+	t.Run("preserves template blocks when not provided", func(t *testing.T) {
+		expectedUser := &domain.User{ID: userID}
+		expectedUserWorkspace := &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		// Create a test email block
+		blockJSON := []byte(`{"id":"b1","type":"mj-text","content":"Hello","attributes":{"fontSize":"16px"}}`)
+		testBlock, _ := notifuse_mjml.UnmarshalEmailBlock(blockJSON)
+
+		// Existing workspace with template blocks
+		existingTemplateBlocks := []domain.TemplateBlock{
+			{
+				ID:      "block-1",
+				Name:    "Existing Block",
+				Block:   testBlock,
+				Created: time.Now().Add(-24 * time.Hour),
+				Updated: time.Now().Add(-24 * time.Hour),
+			},
+		}
+
+		existingWorkspace := &domain.Workspace{
+			ID:   workspaceID,
+			Name: "Original Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone:       "UTC",
+				TemplateBlocks: existingTemplateBlocks,
+			},
+		}
+
+		// Update settings without template blocks
+		settings := domain.WorkspaceSettings{
+			Timezone: "America/New_York",
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existingWorkspace, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			// Verify template blocks are preserved
+			assert.Len(t, workspace.Settings.TemplateBlocks, 1)
+			assert.Equal(t, "block-1", workspace.Settings.TemplateBlocks[0].ID)
+			assert.Equal(t, "Existing Block", workspace.Settings.TemplateBlocks[0].Name)
+			// Verify timezone was updated
+			assert.Equal(t, "America/New_York", workspace.Settings.Timezone)
+			return nil
+		})
+
+		workspace, err := service.UpdateWorkspace(ctx, workspaceID, "Updated Workspace", settings)
+		require.NoError(t, err)
+		assert.NotNil(t, workspace)
+		assert.Len(t, workspace.Settings.TemplateBlocks, 1)
+		assert.Equal(t, existingTemplateBlocks[0].ID, workspace.Settings.TemplateBlocks[0].ID)
+	})
+
+	t.Run("updates template blocks when explicitly provided", func(t *testing.T) {
+		expectedUser := &domain.User{ID: userID}
+		expectedUserWorkspace := &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		// Create a test email block
+		blockJSON := []byte(`{"id":"b1","type":"mj-text","content":"Hello","attributes":{"fontSize":"16px"}}`)
+		testBlock, _ := notifuse_mjml.UnmarshalEmailBlock(blockJSON)
+
+		existingWorkspace := &domain.Workspace{
+			ID:   workspaceID,
+			Name: "Original Workspace",
+			Settings: domain.WorkspaceSettings{
+				Timezone: "UTC",
+				TemplateBlocks: []domain.TemplateBlock{
+					{
+						ID:      "old-block",
+						Name:    "Old Block",
+						Block:   testBlock,
+						Created: time.Now().Add(-24 * time.Hour),
+						Updated: time.Now().Add(-24 * time.Hour),
+					},
+				},
+			},
+		}
+
+		// Update settings with new template blocks
+		newTemplateBlocks := []domain.TemplateBlock{
+			{
+				ID:    "", // New block without ID
+				Name:  "New Block",
+				Block: testBlock,
+			},
+		}
+
+		settings := domain.WorkspaceSettings{
+			Timezone:       "UTC",
+			TemplateBlocks: newTemplateBlocks,
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(existingWorkspace, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			// Verify template blocks were updated
+			assert.Len(t, workspace.Settings.TemplateBlocks, 1)
+			assert.NotEmpty(t, workspace.Settings.TemplateBlocks[0].ID) // ID should be generated
+			assert.Equal(t, "New Block", workspace.Settings.TemplateBlocks[0].Name)
+			assert.NotZero(t, workspace.Settings.TemplateBlocks[0].Created)
+			assert.NotZero(t, workspace.Settings.TemplateBlocks[0].Updated)
+			return nil
+		})
+
+		workspace, err := service.UpdateWorkspace(ctx, workspaceID, "Updated Workspace", settings)
+		require.NoError(t, err)
+		assert.NotNil(t, workspace)
+		assert.Len(t, workspace.Settings.TemplateBlocks, 1)
+		assert.Equal(t, "New Block", workspace.Settings.TemplateBlocks[0].Name)
 	})
 }
 

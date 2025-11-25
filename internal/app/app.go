@@ -118,6 +118,7 @@ type App struct {
 	listService                      *service.ListService
 	contactListService               *service.ContactListService
 	templateService                  *service.TemplateService
+	templateBlockService             *service.TemplateBlockService
 	emailService                     *service.EmailService
 	broadcastService                 *service.BroadcastService
 	taskService                      *service.TaskService
@@ -496,6 +497,13 @@ func (a *App) InitServices() error {
 		a.authService,
 		a.logger,
 		a.config.APIEndpoint,
+	)
+
+	// Initialize template block service
+	a.templateBlockService = service.NewTemplateBlockService(
+		a.workspaceRepo,
+		a.authService,
+		a.logger,
 	)
 
 	// Initialize contact service
@@ -944,6 +952,7 @@ func (a *App) InitHandlers() error {
 	listHandler := httpHandler.NewListHandler(a.listService, getJWTSecret, a.logger)
 	contactListHandler := httpHandler.NewContactListHandler(a.contactListService, getJWTSecret, a.logger)
 	templateHandler := httpHandler.NewTemplateHandler(a.templateService, getJWTSecret, a.logger)
+	templateBlockHandler := httpHandler.NewTemplateBlockHandler(a.templateBlockService, getJWTSecret, a.logger)
 	emailHandler := httpHandler.NewEmailHandler(a.emailService, getJWTSecret, a.logger, a.config.Security.SecretKey)
 	broadcastHandler := httpHandler.NewBroadcastHandler(a.broadcastService, a.templateService, getJWTSecret, a.logger, a.config.IsDemo())
 	blogHandler := httpHandler.NewBlogHandler(a.blogService, getJWTSecret, a.logger, a.config.IsDemo())
@@ -1000,6 +1009,7 @@ func (a *App) InitHandlers() error {
 	listHandler.RegisterRoutes(a.mux)
 	contactListHandler.RegisterRoutes(a.mux)
 	templateHandler.RegisterRoutes(a.mux)
+	templateBlockHandler.RegisterRoutes(a.mux)
 	emailHandler.RegisterRoutes(a.mux)
 	broadcastHandler.RegisterRoutes(a.mux)
 	blogHandler.RegisterRoutes(a.mux)

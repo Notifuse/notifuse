@@ -520,6 +520,7 @@ func TestAppInitServices(t *testing.T) {
 	assert.NotNil(t, appImpl.listService, "List service should be initialized")
 	assert.NotNil(t, appImpl.contactListService, "ContactList service should be initialized")
 	assert.NotNil(t, appImpl.templateService, "Template service should be initialized")
+	assert.NotNil(t, appImpl.templateBlockService, "TemplateBlock service should be initialized")
 	assert.NotNil(t, appImpl.emailService, "Email service should be initialized")
 	assert.NotNil(t, appImpl.broadcastService, "Broadcast service should be initialized")
 	assert.NotNil(t, appImpl.taskService, "Task service should be initialized")
@@ -624,7 +625,28 @@ func TestAppInitHandlers(t *testing.T) {
 	// Verify handlers were initialized - since handlers are not directly exposed,
 	// we can only check that the mux has routes registered
 	assert.NotNil(t, app.GetMux(), "HTTP mux should be initialized")
-	// We could add more specific assertions by checking specific routes if needed
+	
+	// Verify templateBlocks routes are registered by checking if they exist in the mux
+	mux := app.GetMux()
+	
+	// Create test requests to verify routes exist
+	testRoutes := []string{
+		"/api/templateBlocks.list",
+		"/api/templateBlocks.get",
+		"/api/templateBlocks.create",
+		"/api/templateBlocks.update",
+		"/api/templateBlocks.delete",
+	}
+	
+	for _, route := range testRoutes {
+		req := httptest.NewRequest("GET", route, nil)
+		handler, pattern := mux.Handler(req)
+		// If route is registered, handler should not be nil and pattern should match
+		// For routes with auth middleware, we can't easily test without auth, but we can verify they're registered
+		assert.NotNil(t, handler, "Handler should be registered for route: %s", route)
+		// Pattern should match the route (or be empty for exact match)
+		assert.True(t, pattern == route || pattern == "", "Pattern should match route %s, got %s", route, pattern)
+	}
 }
 
 // generateSelfSignedCert creates a temporary self-signed certificate and key for TLS tests

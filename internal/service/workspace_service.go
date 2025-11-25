@@ -359,20 +359,28 @@ func (s *WorkspaceService) UpdateWorkspace(ctx context.Context, id string, name 
 	existingWorkspace.Settings.BlogEnabled = settings.BlogEnabled
 	existingWorkspace.Settings.BlogSettings = settings.BlogSettings
 
-	// Handle template blocks - ensure they have proper timestamps and IDs
-	for i := range settings.TemplateBlocks {
-		block := &settings.TemplateBlocks[i]
+	// Handle template blocks - preserve existing blocks if not provided in update
+	// Note: Template blocks should be managed via dedicated /api/templateBlocks.* endpoints
+	// which support granular template permissions instead of requiring owner role.
+	// This code is kept for backward compatibility.
+	if settings.TemplateBlocks != nil {
+		// Only update template blocks if explicitly provided in the request
+		// Ensure they have proper timestamps and IDs
+		for i := range settings.TemplateBlocks {
+			block := &settings.TemplateBlocks[i]
 
-		// If this is a new block (no ID), generate one and set created time
-		if block.ID == "" {
-			block.ID = uuid.New().String()
-			block.Created = time.Now().UTC()
+			// If this is a new block (no ID), generate one and set created time
+			if block.ID == "" {
+				block.ID = uuid.New().String()
+				block.Created = time.Now().UTC()
+			}
+
+			// Always update the Updated timestamp
+			block.Updated = time.Now().UTC()
 		}
-
-		// Always update the Updated timestamp
-		block.Updated = time.Now().UTC()
+		existingWorkspace.Settings.TemplateBlocks = settings.TemplateBlocks
 	}
-	existingWorkspace.Settings.TemplateBlocks = settings.TemplateBlocks
+	// If settings.TemplateBlocks is nil, preserve existing template blocks (don't overwrite)
 
 	existingWorkspace.UpdatedAt = time.Now().UTC()
 
