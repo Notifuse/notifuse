@@ -236,7 +236,7 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 		workspaceID,
 		"Demo Workspace",
 		"https://demo.notifuse.com",
-		"https://demo.notifuse.com/logo.png",
+		"https://www.notifuse.com/apple-touch-icon.png",
 		"https://demo.notifuse.com/cover.png",
 		"UTC",
 		fileManagerSettings,
