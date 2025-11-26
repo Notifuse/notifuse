@@ -15,6 +15,11 @@ All notable changes to this project will be documented in this file.
   - Full control over templating using Liquid syntax for dynamic content
   - The blog is served at the root path `/` of the custom domain configured in the workspace settings when it's enabled
 
+- **Segmentation Engine JSON Support**: Enhanced contact segmentation with JSON attribute matching
+  - Support for matching contact `custom_json_x` attributes in segmentation rules
+  - Advanced filtering capabilities for complex contact data structures
+  - Improved targeting precision for email campaigns and contact management
+
 ### Enhancements
 
 - **Template Permission Updates**: Custom email blocks now use template write permissions instead of workspace write permissions for better security granularity
