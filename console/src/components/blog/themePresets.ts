@@ -2152,6 +2152,196 @@ const NOTIFUSE_CONFIG = {
 // =======================================================
 
 /**
+ * Preview mode functionality - preserves preview_theme_version parameter
+ */
+function initPreviewMode() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const previewVersion = urlParams.get('preview_theme_version');
+  
+  if (previewVersion) {
+    // Add preview banner
+    createPreviewBanner(previewVersion);
+    
+    // Preserve preview parameter on all internal links
+    preservePreviewParameter(previewVersion);
+  }
+}
+
+/**
+ * Create and display preview mode banner
+ * @param {string} previewVersion - The preview theme version
+ */
+function createPreviewBanner(previewVersion) {
+  // Check if banner already exists
+  if (document.querySelector('.preview-banner')) return;
+  
+  const banner = document.createElement('div');
+  banner.className = 'preview-banner';
+  banner.innerHTML = \`
+    <div style="
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #7763f1;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 24px;
+      font-size: 14px;
+      z-index: 1000;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    ">
+      <span>Preview Mode Active (Theme: \${previewVersion})</span>
+      <button class="exit-preview-btn" style="
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: none;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background 0.2s ease;
+      " onmouseover="this.style.background='rgba(255,255,255,0.3)'" onmouseout="this.style.background='rgba(255,255,255,0.2)'">
+        Exit Preview
+      </button>
+    </div>
+  \`;
+  
+  // Insert banner into the page
+  document.body.appendChild(banner);
+  
+  // Add click handler for exit button
+  const exitButton = banner.querySelector('.exit-preview-btn');
+  if (exitButton) {
+    exitButton.addEventListener('click', function(e) {
+      e.preventDefault();
+      exitPreviewMode();
+    });
+  }
+}
+
+/**
+ * Exit preview mode by removing preview parameter and reloading
+ */
+function exitPreviewMode() {
+  const url = new URL(window.location);
+  url.searchParams.delete('preview_theme_version');
+  window.location.href = url.toString();
+}
+
+/**
+ * Preserve preview parameter on all internal links
+ * @param {string} previewVersion - The preview theme version
+ */
+function preservePreviewParameter(previewVersion) {
+  // Get current domain for internal link detection
+  const currentHost = window.location.hostname;
+  
+  // Function to add preview parameter to a URL
+  const addPreviewParam = (url) => {
+    try {
+      const urlObj = new URL(url, window.location.origin);
+      urlObj.searchParams.set('preview_theme_version', previewVersion);
+      return urlObj.toString();
+    } catch (e) {
+      // Fallback for relative URLs
+      const separator = url.includes('?') ? '&' : '?';
+      return \`\${url}\${separator}preview_theme_version=\${encodeURIComponent(previewVersion)}\`;
+    }
+  };
+  
+  // Update existing links
+  const updateLinks = () => {
+    const links = document.querySelectorAll('a[href]');
+    links.forEach(link => {
+      const href = link.getAttribute('href');
+      
+      // Skip if already has preview parameter or is external/special link
+      if (!href || href.includes('preview_theme_version') || 
+          href.startsWith('#') || href.startsWith('mailto:') || 
+          href.startsWith('tel:') || href.startsWith('javascript:')) {
+        return;
+      }
+      
+      try {
+        // Check if it's an internal link
+        const url = new URL(href, window.location.origin);
+        if (url.hostname === currentHost) {
+          link.href = addPreviewParam(href);
+        }
+      } catch (e) {
+        // Handle relative URLs (these are internal by definition)
+        if (href.startsWith('/') || href.startsWith('./') || href.startsWith('../') || 
+            (!href.includes('://') && !href.startsWith('//'))) {
+          link.href = addPreviewParam(href);
+        }
+      }
+    });
+  };
+  
+  // Update links immediately
+  updateLinks();
+  
+  // Intercept clicks on links that might be added dynamically
+  document.addEventListener('click', (e) => {
+    const link = e.target.closest('a');
+    if (!link || !link.href) return;
+    
+    const href = link.getAttribute('href');
+    if (!href || href.includes('preview_theme_version') || 
+        href.startsWith('#') || href.startsWith('mailto:') || 
+        href.startsWith('tel:') || href.startsWith('javascript:')) {
+      return;
+    }
+    
+    try {
+      const url = new URL(link.href);
+      if (url.hostname === currentHost && !url.searchParams.has('preview_theme_version')) {
+        e.preventDefault();
+        url.searchParams.set('preview_theme_version', previewVersion);
+        window.location.href = url.toString();
+      }
+    } catch (e) {
+      // Handle relative URLs
+      if (href.startsWith('/') || href.startsWith('./') || href.startsWith('../') || 
+          (!href.includes('://') && !href.startsWith('//'))) {
+        e.preventDefault();
+        window.location.href = addPreviewParam(href);
+      }
+    }
+  });
+  
+  // Watch for dynamically added content
+  const observer = new MutationObserver((mutations) => {
+    let shouldUpdate = false;
+    mutations.forEach((mutation) => {
+      if (mutation.type === 'childList') {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            if (node.tagName === 'A' || node.querySelector('a')) {
+              shouldUpdate = true;
+            }
+          }
+        });
+      }
+    });
+    
+    if (shouldUpdate) {
+      updateLinks();
+    }
+  });
+  
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
+/**
  * Subscribe a contact to newsletter lists via Notifuse API
  * @param {string} email - Contact email address
  * @param {string} firstName - Contact first name (optional)
@@ -2347,10 +2537,12 @@ function initMobileNav() {
 // Initialize when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', function () {
+    initPreviewMode();
     initNewsletterForms();
     initMobileNav();
   });
 } else {
+  initPreviewMode();
   initNewsletterForms();
   initMobileNav();
 }`
