@@ -109,6 +109,7 @@ type App struct {
 	blogCategoryRepo              domain.BlogCategoryRepository
 	blogPostRepo                  domain.BlogPostRepository
 	blogThemeRepo                 domain.BlogThemeRepository
+	customEventRepo               domain.CustomEventRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -139,6 +140,7 @@ type App struct {
 	supabaseService                  *service.SupabaseService
 	taskScheduler                    *service.TaskScheduler
 	dnsVerificationService           *service.DNSVerificationService
+	customEventService               *service.CustomEventService
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -404,6 +406,7 @@ func (a *App) InitRepositories() error {
 	a.blogCategoryRepo = repository.NewBlogCategoryRepository(a.workspaceRepo)
 	a.blogPostRepo = repository.NewBlogPostRepository(a.workspaceRepo)
 	a.blogThemeRepo = repository.NewBlogThemeRepository(a.workspaceRepo)
+	a.customEventRepo = repository.NewCustomEventRepository(a.workspaceRepo)
 
 	// Initialize setting service
 	a.settingService = service.NewSettingService(a.settingRepo)
@@ -526,6 +529,14 @@ func (a *App) InitServices() error {
 		a.contactRepo,
 		a.listRepo,
 		a.contactListRepo,
+		a.logger,
+	)
+
+	// Initialize custom event service
+	a.customEventService = service.NewCustomEventService(
+		a.customEventRepo,
+		a.contactRepo,
+		a.authService,
 		a.logger,
 	)
 
@@ -995,6 +1006,11 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
+	customEventHandler := httpHandler.NewCustomEventHandler(
+		a.customEventService,
+		getJWTSecret,
+		a.logger,
+	)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -1024,6 +1040,7 @@ func (a *App) InitHandlers() error {
 	analyticsHandler.RegisterRoutes(a.mux)
 	contactTimelineHandler.RegisterRoutes(a.mux)
 	segmentHandler.RegisterRoutes(a.mux)
+	customEventHandler.RegisterRoutes(a.mux)
 
 	return nil
 }

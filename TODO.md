@@ -1,5 +1,12 @@
 # TODO
 
+## custom events
+
+- remove:
+  CREATE INDEX IF NOT EXISTS idx_custom_events_integration_id
+  ON custom_events(integration_id)
+  WHERE integration_id IS NOT NULL;
+
 ## Content
 
 - send newsletter to all contacts+previous customers

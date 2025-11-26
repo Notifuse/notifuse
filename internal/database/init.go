@@ -323,6 +323,22 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		)`,
 		`CREATE UNIQUE INDEX IF NOT EXISTS idx_blog_themes_published ON blog_themes(version) WHERE published_at IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_blog_themes_version ON blog_themes(version DESC)`,
+		`CREATE TABLE IF NOT EXISTS custom_events (
+			event_name VARCHAR(100) NOT NULL,
+			external_id VARCHAR(255) NOT NULL,
+			email VARCHAR(255) NOT NULL,
+			properties JSONB NOT NULL DEFAULT '{}'::jsonb,
+			occurred_at TIMESTAMPTZ NOT NULL,
+			source VARCHAR(50) NOT NULL DEFAULT 'api',
+			integration_id VARCHAR(32),
+			created_at TIMESTAMPTZ DEFAULT NOW(),
+			updated_at TIMESTAMPTZ DEFAULT NOW(),
+			PRIMARY KEY (event_name, external_id)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_custom_events_email ON custom_events(email, occurred_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_custom_events_external_id ON custom_events(external_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_custom_events_integration_id ON custom_events(integration_id) WHERE integration_id IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_custom_events_properties ON custom_events USING GIN (properties jsonb_path_ops)`,
 	}
 
 	// Run all table creation queries
