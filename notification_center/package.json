@@ -35,13 +35,13 @@
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^5.0.1",
-    "@vitest/ui": "^2.1.8",
+    "@vitest/ui": "^2.1.9",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
-    "happy-dom": "^15.11.7",
+    "happy-dom": "^20.0.2",
     "jsdom": "^25.0.1",
     "js-yaml": "^4.1.1",
     "postcss": "^8.5.3",
@@ -50,6 +50,6 @@
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.30.1",
     "vite": "^7.1.11",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.9"
   }
 }
