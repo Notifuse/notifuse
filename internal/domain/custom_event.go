@@ -82,13 +82,13 @@ func (r *CreateCustomEventRequest) Validate() error {
 	return nil
 }
 
-// BatchCreateCustomEventsRequest for bulk import
-type BatchCreateCustomEventsRequest struct {
+// ImportCustomEventsRequest for bulk import
+type ImportCustomEventsRequest struct {
 	WorkspaceID string          `json:"workspace_id"`
 	Events      []*CustomEvent  `json:"events"`
 }
 
-func (r *BatchCreateCustomEventsRequest) Validate() error {
+func (r *ImportCustomEventsRequest) Validate() error {
 	if r.WorkspaceID == "" {
 		return fmt.Errorf("workspace_id is required")
 	}
@@ -96,7 +96,7 @@ func (r *BatchCreateCustomEventsRequest) Validate() error {
 		return fmt.Errorf("events array cannot be empty")
 	}
 	if len(r.Events) > 50 {
-		return fmt.Errorf("cannot batch create more than 50 events at once")
+		return fmt.Errorf("cannot import more than 50 events at once")
 	}
 	return nil
 }
@@ -142,7 +142,7 @@ type CustomEventRepository interface {
 // CustomEventService defines business logic
 type CustomEventService interface {
 	CreateEvent(ctx context.Context, req *CreateCustomEventRequest) (*CustomEvent, error)
-	BatchCreateEvents(ctx context.Context, req *BatchCreateCustomEventsRequest) ([]string, error)
+	ImportEvents(ctx context.Context, req *ImportCustomEventsRequest) ([]string, error)
 	GetEvent(ctx context.Context, workspaceID, eventName, externalID string) (*CustomEvent, error)
 	ListEvents(ctx context.Context, req *ListCustomEventsRequest) ([]*CustomEvent, error)
 }

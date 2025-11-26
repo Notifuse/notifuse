@@ -1,5 +1,5 @@
 import React from 'react'
-import { Timeline, Empty, Spin, Button, Tag, Tooltip, Typography, Popover } from 'antd'
+import { Timeline, Empty, Spin, Button, Tag, Tooltip, Typography, Popover, Collapse } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCheck,
@@ -16,13 +16,15 @@ import {
   ContactTimelineEntry,
   ContactListEntityData,
   MessageHistoryEntityData,
-  WebhookEventEntityData
+  WebhookEventEntityData,
+  CustomEventEntityData
 } from '../../services/api/contact_timeline'
 import type { Workspace } from '../../services/api/types'
 import type { Segment } from '../../services/api/segment'
 import dayjs from '../../lib/dayjs'
 import TemplatePreviewDrawer from '../templates/TemplatePreviewDrawer'
 import { getProviderIcon } from '../integrations/EmailProviders'
+import { formatValue, formatEventName, getSourceBadge } from '../../utils/formatters'
 
 const { Text } = Typography
 
@@ -117,6 +119,8 @@ export function ContactTimeline({
         } else if (eventType === 'delivered') {
           return faCheck
         }
+        return faBolt
+      case 'custom_event':
         return faBolt
       default:
         return faClock
@@ -222,6 +226,90 @@ export function ContactTimeline({
     }
 
     return null
+  }
+
+  // Render custom event properties with tiered display approach
+  const renderCustomEventProperties = (
+    properties: Record<string, any> | undefined,
+    timezone: string
+  ): React.ReactNode => {
+    if (!properties || Object.keys(properties).length === 0) {
+      return (
+        <Text type="secondary" className="text-xs">
+          No properties
+        </Text>
+      )
+    }
+
+    const entries = Object.entries(properties)
+    const propertyCount = entries.length
+
+    // Check if all values are primitives (not objects or arrays)
+    const allPrimitives = entries.every(
+      ([_, value]) => typeof value !== 'object' || value === null
+    )
+
+    // Tier 1: Inline display for ≤3 properties with all primitives
+    if (propertyCount <= 3 && allPrimitives) {
+      return (
+        <div className="space-y-1 mt-2">
+          {entries.map(([key, value]) => (
+            <div key={key} className="text-sm">
+              <Text type="secondary" className="font-mono text-xs">
+                {key}:
+              </Text>{' '}
+              {formatValue(value, timezone)}
+            </div>
+          ))}
+        </div>
+      )
+    }
+
+    // Tier 2: Expandable for >3 properties or complex objects
+    const rawJsonContent = (
+      <div className="p-2 bg-gray-50 rounded border border-gray-200 max-h-96 overflow-auto">
+        <pre className="text-xs m-0 whitespace-pre-wrap break-all">
+          {JSON.stringify(properties, null, 2)}
+        </pre>
+      </div>
+    )
+
+    return (
+      <div className="mt-2 space-y-2">
+        <Collapse
+          size="small"
+          items={[
+            {
+              key: '1',
+              label: `${propertyCount} properties`,
+              children: (
+                <div className="space-y-1">
+                  {entries.map(([key, value]) => (
+                    <div key={key} className="text-sm">
+                      <Text type="secondary" className="font-mono text-xs">
+                        {key}:
+                      </Text>{' '}
+                      {formatValue(value, timezone)}
+                    </div>
+                  ))}
+                </div>
+              )
+            }
+          ]}
+        />
+        <Popover
+          content={rawJsonContent}
+          title="Raw JSON"
+          placement="rightTop"
+          trigger="click"
+          overlayStyle={{ maxWidth: '600px' }}
+        >
+          <Button size="small" type="text">
+            View Raw JSON
+          </Button>
+        </Popover>
+      </div>
+    )
   }
 
   // Render entity-specific details based on entity type
@@ -570,6 +658,58 @@ export function ContactTimeline({
                   </Text>
                 </div>
               )}
+            </div>
+          </div>
+        )
+
+      case 'custom_event':
+        const customEventData = entry.entity_data as CustomEventEntityData
+
+        return (
+          <div>
+            {renderTitleWithDate(
+              entry,
+              <>
+                <Tooltip title={customEventData.event_name}>
+                  <span>
+                    <Tag color="purple">{formatEventName(customEventData.event_name)}</Tag>
+                  </span>
+                </Tooltip>
+                {getSourceBadge(customEventData.source)}
+                {entry.operation === 'update' && (
+                  <Tag color="orange" bordered={false}>
+                    updated
+                  </Tag>
+                )}
+              </>
+            )}
+
+            <div className="space-y-1">
+              {/* External ID */}
+              <div className="mb-1">
+                <Text type="secondary" className="text-xs">
+                  ID:{' '}
+                  <Text code className="text-xs">
+                    {customEventData.external_id}
+                  </Text>
+                </Text>
+              </div>
+
+              {/* Occurred time (if different from created_at) */}
+              {customEventData.occurred_at !== entry.created_at && (
+                <div className="mb-1">
+                  <Tooltip
+                    title={`${dayjs(customEventData.occurred_at).format('LLLL')} in ${timezone}`}
+                  >
+                    <Text type="secondary" className="text-xs cursor-help">
+                      Occurred: {dayjs(customEventData.occurred_at).fromNow()}
+                    </Text>
+                  </Tooltip>
+                </div>
+              )}
+
+              {/* Properties */}
+              {renderCustomEventProperties(customEventData.properties, timezone)}
             </div>
           </div>
         )

@@ -35,21 +35,6 @@ func (m *MockCustomEventService) EXPECT() *MockCustomEventServiceMockRecorder {
 	return m.recorder
 }
 
-// BatchCreateEvents mocks base method.
-func (m *MockCustomEventService) BatchCreateEvents(arg0 context.Context, arg1 *domain.BatchCreateCustomEventsRequest) ([]string, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BatchCreateEvents", arg0, arg1)
-	ret0, _ := ret[0].([]string)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// BatchCreateEvents indicates an expected call of BatchCreateEvents.
-func (mr *MockCustomEventServiceMockRecorder) BatchCreateEvents(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCreateEvents", reflect.TypeOf((*MockCustomEventService)(nil).BatchCreateEvents), arg0, arg1)
-}
-
 // CreateEvent mocks base method.
 func (m *MockCustomEventService) CreateEvent(arg0 context.Context, arg1 *domain.CreateCustomEventRequest) (*domain.CustomEvent, error) {
 	m.ctrl.T.Helper()
@@ -78,6 +63,21 @@ func (m *MockCustomEventService) GetEvent(arg0 context.Context, arg1, arg2, arg3
 func (mr *MockCustomEventServiceMockRecorder) GetEvent(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetEvent", reflect.TypeOf((*MockCustomEventService)(nil).GetEvent), arg0, arg1, arg2, arg3)
+}
+
+// ImportEvents mocks base method.
+func (m *MockCustomEventService) ImportEvents(arg0 context.Context, arg1 *domain.ImportCustomEventsRequest) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ImportEvents", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ImportEvents indicates an expected call of ImportEvents.
+func (mr *MockCustomEventServiceMockRecorder) ImportEvents(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ImportEvents", reflect.TypeOf((*MockCustomEventService)(nil).ImportEvents), arg0, arg1)
 }
 
 // ListEvents mocks base method.

@@ -303,18 +303,18 @@ func TestCreateCustomEventRequest_Validate(t *testing.T) {
 	}
 }
 
-func TestBatchCreateCustomEventsRequest_Validate(t *testing.T) {
+func TestImportCustomEventsRequest_Validate(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
 		name    string
-		req     BatchCreateCustomEventsRequest
+		req     ImportCustomEventsRequest
 		wantErr bool
 		errMsg  string
 	}{
 		{
 			name: "valid batch with single event",
-			req: BatchCreateCustomEventsRequest{
+			req: ImportCustomEventsRequest{
 				WorkspaceID: "workspace_123",
 				Events: []*CustomEvent{
 					{
@@ -331,7 +331,7 @@ func TestBatchCreateCustomEventsRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "valid batch with 50 events (max)",
-			req: BatchCreateCustomEventsRequest{
+			req: ImportCustomEventsRequest{
 				WorkspaceID: "workspace_123",
 				Events: func() []*CustomEvent {
 					events := make([]*CustomEvent, 50)
@@ -352,7 +352,7 @@ func TestBatchCreateCustomEventsRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "valid batch with multiple events",
-			req: BatchCreateCustomEventsRequest{
+			req: ImportCustomEventsRequest{
 				WorkspaceID: "workspace_123",
 				Events: []*CustomEvent{
 					{
@@ -377,7 +377,7 @@ func TestBatchCreateCustomEventsRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "missing workspace_id",
-			req: BatchCreateCustomEventsRequest{
+			req: ImportCustomEventsRequest{
 				Events: []*CustomEvent{
 					{
 						ExternalID: "event_1",
@@ -394,7 +394,7 @@ func TestBatchCreateCustomEventsRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "empty events array",
-			req: BatchCreateCustomEventsRequest{
+			req: ImportCustomEventsRequest{
 				WorkspaceID: "workspace_123",
 				Events:      []*CustomEvent{},
 			},
@@ -403,7 +403,7 @@ func TestBatchCreateCustomEventsRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "too many events (51)",
-			req: BatchCreateCustomEventsRequest{
+			req: ImportCustomEventsRequest{
 				WorkspaceID: "workspace_123",
 				Events: func() []*CustomEvent {
 					events := make([]*CustomEvent, 51)
@@ -421,7 +421,7 @@ func TestBatchCreateCustomEventsRequest_Validate(t *testing.T) {
 				}(),
 			},
 			wantErr: true,
-			errMsg:  "cannot batch create more than 50 events at once",
+			errMsg:  "cannot import more than 50 events at once",
 		},
 	}
 

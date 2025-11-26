@@ -148,7 +148,7 @@ func TestCustomEventService_CreateEvent(t *testing.T) {
 	})
 }
 
-func TestCustomEventService_BatchCreateEvents(t *testing.T) {
+func TestCustomEventService_ImportEvents(t *testing.T) {
 	mockRepo, _, mockAuthService, service, ctrl := setupCustomEventServiceTest(t)
 	defer ctrl.Finish()
 
@@ -190,12 +190,12 @@ func TestCustomEventService_BatchCreateEvents(t *testing.T) {
 		},
 	}
 
-	req := &domain.BatchCreateCustomEventsRequest{
+	req := &domain.ImportCustomEventsRequest{
 		WorkspaceID: workspaceID,
 		Events:      events,
 	}
 
-	t.Run("successful batch create", func(t *testing.T) {
+	t.Run("successful import", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
 			Return(ctx, &domain.User{ID: "user123"}, userWorkspace, nil)
@@ -204,7 +204,7 @@ func TestCustomEventService_BatchCreateEvents(t *testing.T) {
 			BatchCreate(gomock.Any(), workspaceID, events).
 			Return(nil)
 
-		result, err := service.BatchCreateEvents(ctx, req)
+		result, err := service.ImportEvents(ctx, req)
 		require.NoError(t, err)
 		require.Len(t, result, 2)
 		assert.Equal(t, "event_1", result[0])

@@ -37,6 +37,7 @@ import { MessageHistoryTable } from '../messages/MessageHistoryTable'
 import { ContactTimeline } from '../timeline'
 import { contactTimelineApi, ContactTimelineEntry } from '../../services/api/contact_timeline'
 import { useCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
+import { formatValue as sharedFormatValue } from '../../utils/formatters'
 
 const { Title, Text } = Typography
 
@@ -378,30 +379,6 @@ export function ContactDetailsDrawer({
 
   // Create name from first and last name
   const fullName = [contact?.first_name, contact?.last_name].filter(Boolean).join(' ') || ''
-
-  const formatValue = (value: any) => {
-    if (value === null || value === undefined) return '-'
-
-    // Format number values with numbro
-    if (typeof value === 'number') {
-      // For currency-like fields
-      if (String(value).includes('.') && value > 0) {
-        return numbro(value).format({
-          thousandSeparated: true,
-          mantissa: 2,
-          trimMantissa: true
-        })
-      }
-      // For integer values
-      return numbro(value).format({
-        thousandSeparated: true,
-        mantissa: 0
-      })
-    }
-
-    if (typeof value === 'object') return JSON.stringify(value, null, 2)
-    return value
-  }
 
   // Format JSON with truncation and popover for full view
   const formatJson = (jsonData: any): React.ReactNode => {
@@ -891,7 +868,7 @@ export function ContactDetailsDrawer({
                         {'displayLabel' in field ? field.displayLabel : field.label}
                       </span>
                     )}
-                    <span>{formatValue(field.value)}</span>
+                    <span>{sharedFormatValue(field.value, workspace.settings.timezone)}</span>
                   </div>
                 ))}
 

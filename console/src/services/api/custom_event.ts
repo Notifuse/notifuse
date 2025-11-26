@@ -27,7 +27,7 @@ export interface CreateCustomEventResponse {
   event: CustomEvent
 }
 
-export interface BatchCreateCustomEventsRequest {
+export interface ImportCustomEventsRequest {
   workspace_id: string
   events: Array<{
     email: string
@@ -40,7 +40,7 @@ export interface BatchCreateCustomEventsRequest {
   }>
 }
 
-export interface BatchCreateCustomEventsResponse {
+export interface ImportCustomEventsResponse {
   event_ids: string[]
   count: number
 }
@@ -63,8 +63,8 @@ export const customEventApi = {
     return api.post('/api/customEvent.create', params)
   },
 
-  batchCreate: async (params: BatchCreateCustomEventsRequest): Promise<BatchCreateCustomEventsResponse> => {
-    return api.post('/api/customEvent.batchCreate', params)
+  import: async (params: ImportCustomEventsRequest): Promise<ImportCustomEventsResponse> => {
+    return api.post('/api/customEvent.import', params)
   },
 
   get: async (params: {

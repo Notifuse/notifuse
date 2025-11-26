@@ -106,7 +106,7 @@ func (s *CustomEventService) CreateEvent(ctx context.Context, req *domain.Create
 	return event, nil
 }
 
-func (s *CustomEventService) BatchCreateEvents(ctx context.Context, req *domain.BatchCreateCustomEventsRequest) ([]string, error) {
+func (s *CustomEventService) ImportEvents(ctx context.Context, req *domain.ImportCustomEventsRequest) ([]string, error) {
 	var err error
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, req.WorkspaceID)
 	if err != nil {
@@ -155,8 +155,8 @@ func (s *CustomEventService) BatchCreateEvents(ctx context.Context, req *domain.
 
 	// Batch create/update
 	if err := s.repo.BatchCreate(ctx, req.WorkspaceID, req.Events); err != nil {
-		s.logger.WithField("error", err.Error()).Error("Failed to batch create custom events")
-		return nil, fmt.Errorf("failed to batch create custom events: %w", err)
+		s.logger.WithField("error", err.Error()).Error("Failed to import custom events")
+		return nil, fmt.Errorf("failed to import custom events: %w", err)
 	}
 
 	// Extract external IDs
@@ -168,7 +168,7 @@ func (s *CustomEventService) BatchCreateEvents(ctx context.Context, req *domain.
 	s.logger.WithFields(map[string]interface{}{
 		"workspace_id": req.WorkspaceID,
 		"count":        len(externalIDs),
-	}).Info("Custom events batch created successfully")
+	}).Info("Custom events imported successfully")
 
 	return externalIDs, nil
 }

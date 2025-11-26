@@ -32,7 +32,7 @@ func (h *CustomEventHandler) RegisterRoutes(mux *http.ServeMux) {
 
 	// Register RPC-style endpoints with dot notation
 	mux.Handle("/api/customEvent.create", requireAuth(http.HandlerFunc(h.CreateCustomEvent)))
-	mux.Handle("/api/customEvent.batchCreate", requireAuth(http.HandlerFunc(h.BatchCreateCustomEvents)))
+	mux.Handle("/api/customEvent.import", requireAuth(http.HandlerFunc(h.ImportCustomEvents)))
 	mux.Handle("/api/customEvent.get", requireAuth(http.HandlerFunc(h.GetCustomEvent)))
 	mux.Handle("/api/customEvent.list", requireAuth(http.HandlerFunc(h.ListCustomEvents)))
 }
@@ -63,23 +63,23 @@ func (h *CustomEventHandler) CreateCustomEvent(w http.ResponseWriter, r *http.Re
 	})
 }
 
-// POST /api/customEvent.batchCreate
-func (h *CustomEventHandler) BatchCreateCustomEvents(w http.ResponseWriter, r *http.Request) {
-	var req domain.BatchCreateCustomEventsRequest
+// POST /api/customEvent.import
+func (h *CustomEventHandler) ImportCustomEvents(w http.ResponseWriter, r *http.Request) {
+	var req domain.ImportCustomEventsRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to decode request")
 		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	eventIDs, err := h.service.BatchCreateEvents(r.Context(), &req)
+	eventIDs, err := h.service.ImportEvents(r.Context(), &req)
 	if err != nil {
-		h.logger.WithField("error", err.Error()).Error("Failed to batch create custom events")
+		h.logger.WithField("error", err.Error()).Error("Failed to import custom events")
 		if _, ok := err.(*domain.PermissionError); ok {
 			WriteJSONError(w, err.Error(), http.StatusForbidden)
 			return
 		}
-		WriteJSONError(w, "Failed to create custom events", http.StatusInternalServerError)
+		WriteJSONError(w, "Failed to import custom events", http.StatusInternalServerError)
 		return
 	}
 
