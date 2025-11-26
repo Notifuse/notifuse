@@ -4,7 +4,7 @@
 [![Go](https://github.com/Notifuse/notifuse/actions/workflows/go.yml/badge.svg)](https://github.com/Notifuse/notifuse/actions/workflows/go.yml)
 [![codecov](https://codecov.io/gh/Notifuse/notifuse/graph/badge.svg?token=VZ0HBEM9OZ)](https://codecov.io/gh/Notifuse/notifuse)
 
-**[🎯 Try the Live Demo](https://demo.notifuse.com/signin?email=demo@notifuse.com)**
+**[🎯 Try the Live Demo](https://demo.notifuse.com/console/signin?email=demo@notifuse.com)**
 
 **The open-source alternative to Mailchimp, Brevo, Mailjet, Listmonk, Mailerlite, and Klaviyo, Loop.so, etc.**
 
@@ -121,4 +121,4 @@ Notifuse is released under the [GNU Affero General Public License v3.0](LICENSE)
 
 ---
 
-**Ready to get started?** [Try the live demo](https://demo.notifuse.com/signin?email=demo@notifuse.com) or [deploy your own instance](https://docs.notifuse.com) in minutes.
+**Ready to get started?** [Try the live demo](https://demo.notifuse.com/console/signin?email=demo@notifuse.com) or [deploy your own instance](https://docs.notifuse.com) in minutes.
