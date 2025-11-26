@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [17.0] - 2025-11-26
+
+### Database Schema Changes
+
+- Migration v17.0 introduces blog feature support
+
+### Features
+
+- **Blog Feature**: Full-featured blogging system with advanced templating capabilities
+  - Notion-like blog post editor for intuitive content creation
+  - Full control over templating using Liquid syntax for dynamic content
+  - The blog is served at the root path `/` of the custom domain configured in the workspace settings when it's enabled
+
+### Enhancements
+
+- **Template Permission Updates**: Custom email blocks now use template write permissions instead of workspace write permissions for better security granularity
+- **Auto-unsubscribe Enhancement**: Notification center now automatically processes unsubscribe actions when the unsubscribe link loads, improving user experience
+
+### Breaking Changes
+
+- The console UI is now serverd at `/console` instead of `/` to avoid conflicts with the new blog feature. When the blog is disabled the `/` path will redirect to `/console`.
+- Permission system updated: saving custom email blocks requires `templates:write` permission instead of `workspace:write`
+
 ## [16.3] - 2025-11-15
 
 ### Fixes
