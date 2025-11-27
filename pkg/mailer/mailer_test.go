@@ -28,7 +28,7 @@ func captureOutput(f func()) string {
 
 	// Read the captured output
 	var buf bytes.Buffer
-		_, _ = io.Copy(&buf, r)
+	_, _ = io.Copy(&buf, r)
 
 	return buf.String()
 }
@@ -316,7 +316,7 @@ func TestSMTPMailer_SendWorkspaceInvitation(t *testing.T) {
 	})
 
 	// Verify log output contains expected information
-	expectedInviteURL := baseURL + "/accept-invitation?token=" + token
+	expectedInviteURL := baseURL + "/console/accept-invitation?token=" + token
 	expectedLogLines := []string{
 		"Sending invitation email to: " + email,
 		"From: " + config.FromName + " <" + config.FromEmail + ">",
