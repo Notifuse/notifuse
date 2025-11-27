@@ -523,7 +523,9 @@ func (r *DeleteBlogPostRequest) Validate() error {
 
 // PublishBlogPostRequest defines the request to publish a blog post
 type PublishBlogPostRequest struct {
-	ID string `json:"id"`
+	ID          string     `json:"id"`
+	PublishedAt *time.Time `json:"published_at,omitempty"` // Optional custom timestamp
+	Timezone    string     `json:"timezone,omitempty"`     // Optional IANA timezone
 }
 
 // Validate validates the publish blog post request
@@ -660,7 +662,7 @@ type BlogPostRepository interface {
 	UpdatePost(ctx context.Context, post *BlogPost) error
 	DeletePost(ctx context.Context, id string) error
 	ListPosts(ctx context.Context, params ListBlogPostsRequest) (*BlogPostListResponse, error)
-	PublishPost(ctx context.Context, id string) error
+	PublishPost(ctx context.Context, id string, publishedAt *time.Time) error
 	UnpublishPost(ctx context.Context, id string) error
 
 	// Transaction management
@@ -671,7 +673,7 @@ type BlogPostRepository interface {
 	UpdatePostTx(ctx context.Context, tx *sql.Tx, post *BlogPost) error
 	DeletePostTx(ctx context.Context, tx *sql.Tx, id string) error
 	DeletePostsByCategoryIDTx(ctx context.Context, tx *sql.Tx, categoryID string) (int64, error)
-	PublishPostTx(ctx context.Context, tx *sql.Tx, id string) error
+	PublishPostTx(ctx context.Context, tx *sql.Tx, id string, publishedAt *time.Time) error
 	UnpublishPostTx(ctx context.Context, tx *sql.Tx, id string) error
 }
 

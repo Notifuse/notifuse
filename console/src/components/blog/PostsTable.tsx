@@ -27,6 +27,7 @@ import { PostStatusTag } from './PostStatusTag'
 import { CategoryDrawer } from './CategoryDrawer'
 import { DeleteCategoryModal } from './DeleteCategoryModal'
 import { MissingMetaTagsWarning } from '../seo/MissingMetaTagsWarning'
+import { PublishModal } from './PublishModal'
 
 const { Title, Paragraph } = Typography
 
@@ -54,6 +55,8 @@ export function PostsTable() {
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
   const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null)
+  const [publishModalOpen, setPublishModalOpen] = useState(false)
+  const [postToPublish, setPostToPublish] = useState<BlogPost | null>(null)
   const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false)
   const [deleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState(false)
 
@@ -96,18 +99,6 @@ export function PostsTable() {
     }
   })
 
-  const publishMutation = useMutation({
-    mutationFn: (id: string) => blogPostsApi.publish(workspaceId, { id }),
-    onSuccess: () => {
-      message.success('Post published successfully')
-      queryClient.invalidateQueries({ queryKey: ['blog-posts', workspaceId] })
-    },
-    onError: (error: any) => {
-      const errorMsg = error?.message || 'Failed to publish post'
-      message.error(errorMsg)
-    }
-  })
-
   const unpublishMutation = useMutation({
     mutationFn: (id: string) => blogPostsApi.unpublish(workspaceId, { id }),
     onSuccess: () => {
@@ -128,6 +119,11 @@ export function PostsTable() {
   const handleDelete = (post: BlogPost) => {
     setPostToDelete(post)
     setDeleteModalOpen(true)
+  }
+
+  const handlePublish = (post: BlogPost) => {
+    setPostToPublish(post)
+    setPublishModalOpen(true)
   }
 
   const handleCreateNew = () => {
@@ -233,8 +229,24 @@ export function PostsTable() {
         const timezone = workspace?.settings?.timezone || 'UTC'
         const dateInTz = dayjs(publishedAt).tz(timezone)
         const formattedDate = dateInTz.format('MMM D, YYYY HH:mm')
-        const relativeTime = dayjs(publishedAt).fromNow()
+        const now = dayjs()
+        const publishDate = dayjs(publishedAt)
+        const isFuture = publishDate.isAfter(now)
 
+        if (isFuture) {
+          const daysUntil = publishDate.diff(now, 'day')
+          const displayText = daysUntil === 0
+            ? 'Scheduled today'
+            : `Scheduled in ${daysUntil} ${daysUntil === 1 ? 'day' : 'days'}`
+
+          return (
+            <Tooltip title={`${formattedDate} ${timezone}`}>
+              <span className="text-blue-600">{displayText}</span>
+            </Tooltip>
+          )
+        }
+
+        const relativeTime = publishDate.fromNow()
         return (
           <Tooltip title={`${formattedDate} ${timezone}`}>
             <span>{relativeTime}</span>
@@ -284,19 +296,15 @@ export function PostsTable() {
                   </Tooltip>
                 </Popconfirm>
               ) : (
-                <Popconfirm
-                  title="Publish post"
-                  description="Are you sure you want to publish this post?"
-                  onConfirm={() => publishMutation.mutate(record.id)}
-                  okText="Yes"
-                  cancelText="No"
-                >
-                  <Tooltip title="Publish" placement="left">
-                    <Button type="primary" size="small" loading={publishMutation.isPending}>
-                      Publish
-                    </Button>
-                  </Tooltip>
-                </Popconfirm>
+                <Tooltip title="Publish" placement="left">
+                  <Button
+                    type="primary"
+                    size="small"
+                    onClick={() => handlePublish(record)}
+                  >
+                    Publish
+                  </Button>
+                </Tooltip>
               )}
               <Tooltip title="Delete">
                 <Button
@@ -413,6 +421,17 @@ export function PostsTable() {
         onConfirm={() => selectedCategory && deleteCategoryMutation.mutate(selectedCategory.id)}
         onCancel={() => setDeleteCategoryModalOpen(false)}
         loading={deleteCategoryMutation.isPending}
+      />
+
+      <PublishModal
+        post={postToPublish}
+        visible={publishModalOpen}
+        onClose={() => {
+          setPublishModalOpen(false)
+          setPostToPublish(null)
+        }}
+        workspaceId={workspaceId}
+        workspace={workspace}
       />
     </div>
   )

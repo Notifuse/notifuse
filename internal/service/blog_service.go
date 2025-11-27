@@ -726,8 +726,8 @@ func (s *BlogService) PublishPost(ctx context.Context, request *domain.PublishBl
 		return fmt.Errorf("failed to get post: %w", err)
 	}
 
-	// Publish the post
-	if err := s.postRepo.PublishPost(ctx, request.ID); err != nil {
+	// Publish the post with optional custom timestamp
+	if err := s.postRepo.PublishPost(ctx, request.ID, request.PublishedAt); err != nil {
 		s.logger.Error("Failed to publish post")
 		return fmt.Errorf("failed to publish post: %w", err)
 	}

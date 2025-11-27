@@ -123,6 +123,8 @@ export interface DeleteBlogPostRequest {
 
 export interface PublishBlogPostRequest {
   id: string
+  published_at?: string
+  timezone?: string
 }
 
 export interface UnpublishBlogPostRequest {

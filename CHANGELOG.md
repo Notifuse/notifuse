@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [17.3] - 2025-11-27
+
+- New feature: Blog posts can now be scheduled for publication at past or future dates, allowing you to plan posts in advance or import posts with their original publication dates.
+
 ## [17.2] - 2025-11-27
 
 - Fix: retrieve broadcasts list when `pause_reason` or `winning_template` is null to avoid SQL errors
