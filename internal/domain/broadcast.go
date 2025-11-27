@@ -262,7 +262,7 @@ type Broadcast struct {
 	CompletedAt               *time.Time            `json:"completed_at,omitempty"`
 	CancelledAt               *time.Time            `json:"cancelled_at,omitempty"`
 	PausedAt                  *time.Time            `json:"paused_at,omitempty"`
-	PauseReason               string                `json:"pause_reason,omitempty"`
+	PauseReason               *string               `json:"pause_reason,omitempty"`
 }
 
 // UTMParameters contains UTM tracking parameters for the broadcast

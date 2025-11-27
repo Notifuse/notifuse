@@ -1005,7 +1005,8 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					// Update broadcast status to paused with reason
 					currentBroadcast.Status = domain.BroadcastStatusPaused
 					currentBroadcast.PausedAt = &[]time.Time{time.Now().UTC()}[0]
-					currentBroadcast.PauseReason = fmt.Sprintf("Circuit breaker triggered: %v", broadcastErr.Err)
+					reason := fmt.Sprintf("Circuit breaker triggered: %v", broadcastErr.Err)
+					currentBroadcast.PauseReason = &reason
 					currentBroadcast.UpdatedAt = time.Now().UTC()
 
 					// Save the updated broadcast

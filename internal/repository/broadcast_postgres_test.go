@@ -522,7 +522,7 @@ func TestBroadcastRepository_GetBroadcast_Success(t *testing.T) {
 			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
 			"", // Use empty string instead of nil for winning_template
 			nil, nil, time.Now(), time.Now(),
-			nil, nil, nil, nil, "",
+			nil, nil, nil, nil, nil,
 		)
 
 	mock.ExpectQuery("SELECT").
@@ -536,6 +536,110 @@ func TestBroadcastRepository_GetBroadcast_Success(t *testing.T) {
 	assert.Equal(t, workspaceID, broadcast.WorkspaceID)
 	assert.Equal(t, "Test Broadcast", broadcast.Name)
 	assert.Equal(t, domain.BroadcastStatusDraft, broadcast.Status)
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestBroadcastRepository_GetBroadcast_NullPauseReason tests that the repository
+// can correctly handle NULL pause_reason values (simulating migrated old broadcasts).
+// This regression test ensures we don't reintroduce the bug where NULL values
+// couldn't be scanned into non-nullable string fields.
+func TestBroadcastRepository_GetBroadcast_NullPauseReason(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBroadcastRepository(mockWorkspaceRepo)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspaceID := "ws123"
+	broadcastID := "bc123"
+
+	mockWorkspaceRepo.EXPECT().
+		GetConnection(gomock.Any(), workspaceID).
+		Return(db, nil)
+
+	// Create mock rows with NULL pause_reason (simulating migrated data)
+	rows := sqlmock.NewRows([]string{
+		"id", "workspace_id", "name", "status", "audience", "schedule",
+		"test_settings", "utm_parameters", "metadata",
+		"winning_template",
+		"test_sent_at", "winner_sent_at", "created_at", "updated_at",
+		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
+	}).
+		AddRow(
+			broadcastID, workspaceID, "Test Broadcast", domain.BroadcastStatusDraft,
+			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
+			"", // Use empty string instead of nil for winning_template
+			nil, nil, time.Now(), time.Now(),
+			nil, nil, nil, nil, nil, // NULL pause_reason
+		)
+
+	mock.ExpectQuery("SELECT").
+		WithArgs(broadcastID, workspaceID).
+		WillReturnRows(rows)
+
+	broadcast, err := repo.GetBroadcast(ctx, workspaceID, broadcastID)
+	assert.NoError(t, err, "Should successfully scan broadcast with NULL pause_reason")
+	assert.NotNil(t, broadcast)
+	assert.Equal(t, broadcastID, broadcast.ID)
+	assert.Equal(t, workspaceID, broadcast.WorkspaceID)
+	assert.Equal(t, "Test Broadcast", broadcast.Name)
+	assert.Nil(t, broadcast.PauseReason, "NULL pause_reason should be scanned as nil pointer")
+	assert.NoError(t, mock.ExpectationsWereMet())
+}
+
+// TestBroadcastRepository_GetBroadcast_WithPauseReason tests that the repository
+// correctly handles non-NULL pause_reason values.
+func TestBroadcastRepository_GetBroadcast_WithPauseReason(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	repo := NewBroadcastRepository(mockWorkspaceRepo)
+
+	db, mock, err := sqlmock.New()
+	require.NoError(t, err)
+	defer func() { _ = db.Close() }()
+
+	ctx := context.Background()
+	workspaceID := "ws123"
+	broadcastID := "bc123"
+	expectedReason := "Circuit breaker triggered: Email provider error"
+
+	mockWorkspaceRepo.EXPECT().
+		GetConnection(gomock.Any(), workspaceID).
+		Return(db, nil)
+
+	// Create mock rows with non-NULL pause_reason
+	rows := sqlmock.NewRows([]string{
+		"id", "workspace_id", "name", "status", "audience", "schedule",
+		"test_settings", "utm_parameters", "metadata",
+		"winning_template",
+		"test_sent_at", "winner_sent_at", "created_at", "updated_at",
+		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
+	}).
+		AddRow(
+			broadcastID, workspaceID, "Test Broadcast", domain.BroadcastStatusPaused,
+			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
+			"",
+			nil, nil, time.Now(), time.Now(),
+			nil, nil, nil, time.Now(), expectedReason, // Non-NULL pause_reason
+		)
+
+	mock.ExpectQuery("SELECT").
+		WithArgs(broadcastID, workspaceID).
+		WillReturnRows(rows)
+
+	broadcast, err := repo.GetBroadcast(ctx, workspaceID, broadcastID)
+	assert.NoError(t, err, "Should successfully scan broadcast with pause_reason")
+	assert.NotNil(t, broadcast)
+	assert.Equal(t, broadcastID, broadcast.ID)
+	assert.NotNil(t, broadcast.PauseReason, "Non-NULL pause_reason should be scanned as pointer")
+	assert.Equal(t, expectedReason, *broadcast.PauseReason, "Pause reason should match expected value")
 	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
@@ -1066,11 +1170,11 @@ func TestBroadcastRepository_ListBroadcasts_WithStatus(t *testing.T) {
 	}).
 		AddRow(
 			"bc123", workspaceID, "Broadcast 1", status, []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
-			"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, "",
+			"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, nil,
 		).
 		AddRow(
 			"bc456", workspaceID, "Broadcast 2", status, []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
-			"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, "",
+			"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, nil,
 		)
 
 	// Expect query with limit/offset
@@ -1130,7 +1234,7 @@ func TestBroadcastRepository_GetBroadcastTx(t *testing.T) {
 				AddRow(
 					broadcastID, workspaceID, "Test Broadcast", "draft",
 					[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
-					"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, "",
+					"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, nil,
 				))
 		sqlMock.ExpectCommit()
 

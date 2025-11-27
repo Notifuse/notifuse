@@ -2470,6 +2470,12 @@ function initNewsletterForms() {
         return;
       }
 
+      // Check if public lists are configured
+      if (!NOTIFUSE_CONFIG.listIds || NOTIFUSE_CONFIG.listIds.length === 0) {
+        showMessage(form, 'A public list should be configured first.', true);
+        return;
+      }
+
       // Set loading state
       setButtonLoading(submitButton, true);
 

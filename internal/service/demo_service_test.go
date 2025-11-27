@@ -10,6 +10,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/pkg/logger"
+	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -219,8 +220,9 @@ func TestDemoService_CreateSampleLists_Error(t *testing.T) {
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
 	mockEmail := domainmocks.NewMockEmailServiceInterface(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockCache := pkgmocks.NewMockCache(ctrl)
 
-	listSvc := NewListService(mockListRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuth, mockEmail, logger.NewLoggerWithLevel("disabled"), "https://api.test")
+	listSvc := NewListService(mockListRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuth, mockEmail, logger.NewLoggerWithLevel("disabled"), "https://api.test", mockCache)
 
 	svc := &DemoService{
 		logger:      logger.NewLoggerWithLevel("disabled"),
@@ -258,8 +260,9 @@ func TestDemoService_SubscribeContactsToList_Success(t *testing.T) {
 	mockMessageHistoryRepo := domainmocks.NewMockMessageHistoryRepository(ctrl)
 	mockWebhookEventRepo := domainmocks.NewMockWebhookEventRepository(ctrl)
 	mockContactTimelineRepo := domainmocks.NewMockContactTimelineRepository(ctrl)
+	mockCache := pkgmocks.NewMockCache(ctrl)
 	contactSvc := NewContactService(mockContactRepo, mockWorkspaceRepo, mockAuth, mockMessageHistoryRepo, mockWebhookEventRepo, mockContactListRepo, mockContactTimelineRepo, logger.NewLoggerWithLevel("disabled"))
-	listSvc := NewListService(mockListRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuth, mockEmail, logger.NewLoggerWithLevel("disabled"), "https://api.test")
+	listSvc := NewListService(mockListRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuth, mockEmail, logger.NewLoggerWithLevel("disabled"), "https://api.test", mockCache)
 
 	svc := &DemoService{
 		logger:         logger.NewLoggerWithLevel("disabled"),
@@ -469,8 +472,9 @@ func TestDemoService_CreateSampleLists_Success(t *testing.T) {
 	mockAuth := domainmocks.NewMockAuthService(ctrl)
 	mockEmail := domainmocks.NewMockEmailServiceInterface(ctrl)
 	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockCache := pkgmocks.NewMockCache(ctrl)
 
-	listSvc := NewListService(mockListRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuth, mockEmail, logger.NewLoggerWithLevel("disabled"), "https://api.test")
+	listSvc := NewListService(mockListRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuth, mockEmail, logger.NewLoggerWithLevel("disabled"), "https://api.test", mockCache)
 
 	svc := &DemoService{
 		logger:      logger.NewLoggerWithLevel("disabled"),
@@ -489,6 +493,7 @@ func TestDemoService_CreateSampleLists_Success(t *testing.T) {
 
 	mockAuth.EXPECT().AuthenticateUserForWorkspace(ctx, "demo").Return(ctx, &domain.User{ID: "u1"}, userWorkspace, nil)
 	mockListRepo.EXPECT().CreateList(ctx, "demo", gomock.Any()).Return(nil)
+	mockCache.EXPECT().Clear()
 
 	err := svc.createSampleLists(ctx, "demo")
 	assert.NoError(t, err)

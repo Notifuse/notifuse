@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [17.2] - 2025-11-27
+
+- Fix: retrieve broadcasts list when `pause_reason` is null to avoid SQL errors
+- Fix: blog cache is cleared when updating mailing lists to ensure subscription forms work correctly
+- Enahncement: blog theme shows a helpful error message when no public lists are configured for newsletter subscription forms
+
+## [17.1] - 2025-11-27
+
+- Fix: Invitation links now correctly point to `/console/accept-invitation` instead of `/accept-invitation` to match the new console path
+
 ## [17.0] - 2025-11-26
 
 ### Database Schema Changes
@@ -11,6 +21,7 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 - **Blog Feature**: Full-featured blogging system with advanced templating capabilities
+
   - Notion-like blog post editor for intuitive content creation
   - Full control over templating using Liquid syntax for dynamic content
   - The blog is served at the root path `/` of the custom domain configured in the workspace settings when it's enabled

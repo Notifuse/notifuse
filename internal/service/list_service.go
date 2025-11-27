@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/pkg/cache"
 	"github.com/Notifuse/notifuse/pkg/disposable_emails"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
@@ -21,9 +22,10 @@ type ListService struct {
 	emailService    domain.EmailServiceInterface
 	logger          logger.Logger
 	apiEndpoint     string
+	blogCache       cache.Cache
 }
 
-func NewListService(repo domain.ListRepository, workspaceRepo domain.WorkspaceRepository, contactListRepo domain.ContactListRepository, contactRepo domain.ContactRepository, authService domain.AuthService, emailService domain.EmailServiceInterface, logger logger.Logger, apiEndpoint string) *ListService {
+func NewListService(repo domain.ListRepository, workspaceRepo domain.WorkspaceRepository, contactListRepo domain.ContactListRepository, contactRepo domain.ContactRepository, authService domain.AuthService, emailService domain.EmailServiceInterface, logger logger.Logger, apiEndpoint string, blogCache cache.Cache) *ListService {
 	return &ListService{
 		repo:            repo,
 		workspaceRepo:   workspaceRepo,
@@ -33,6 +35,7 @@ func NewListService(repo domain.ListRepository, workspaceRepo domain.WorkspaceRe
 		emailService:    emailService,
 		logger:          logger,
 		apiEndpoint:     apiEndpoint,
+		blogCache:       blogCache,
 	}
 }
 
@@ -64,6 +67,9 @@ func (s *ListService) CreateList(ctx context.Context, workspaceID string, list *
 		s.logger.WithField("list_id", list.ID).Error(fmt.Sprintf("Failed to create list: %v", err))
 		return fmt.Errorf("failed to create list: %w", err)
 	}
+
+	// Clear blog cache since public lists may be displayed on blog pages
+	s.blogCache.Clear()
 
 	return nil
 }
@@ -148,6 +154,9 @@ func (s *ListService) UpdateList(ctx context.Context, workspaceID string, list *
 		return fmt.Errorf("failed to update list: %w", err)
 	}
 
+	// Clear blog cache since public lists may be displayed on blog pages
+	s.blogCache.Clear()
+
 	return nil
 }
 
@@ -171,6 +180,9 @@ func (s *ListService) DeleteList(ctx context.Context, workspaceID string, id str
 		s.logger.WithField("list_id", id).Error(fmt.Sprintf("Failed to delete list: %v", err))
 		return fmt.Errorf("failed to delete list: %w", err)
 	}
+
+	// Clear blog cache since public lists may be displayed on blog pages
+	s.blogCache.Clear()
 
 	return nil
 }
