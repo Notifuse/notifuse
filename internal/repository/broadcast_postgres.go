@@ -459,6 +459,7 @@ func scanBroadcast(scanner interface {
 	Scan(dest ...interface{}) error
 }) (*domain.Broadcast, error) {
 	broadcast := &domain.Broadcast{}
+	var winningTemplate sql.NullString
 	var pauseReason sql.NullString
 
 	err := scanner.Scan(
@@ -471,7 +472,7 @@ func scanBroadcast(scanner interface {
 		&broadcast.TestSettings,
 		&broadcast.UTMParameters,
 		&broadcast.Metadata,
-		&broadcast.WinningTemplate,
+		&winningTemplate,
 		&broadcast.TestSentAt,
 		&broadcast.WinnerSentAt,
 		&broadcast.CreatedAt,
@@ -488,6 +489,9 @@ func scanBroadcast(scanner interface {
 	}
 
 	// Convert sql.NullString to *string
+	if winningTemplate.Valid {
+		broadcast.WinningTemplate = &winningTemplate.String
+	}
 	if pauseReason.Valid {
 		broadcast.PauseReason = &pauseReason.String
 	}

@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [17.2] - 2025-11-27
 
-- Fix: retrieve broadcasts list when `pause_reason` is null to avoid SQL errors
+- Fix: retrieve broadcasts list when `pause_reason` or `winning_template` is null to avoid SQL errors
 - Fix: blog cache is cleared when updating mailing lists to ensure subscription forms work correctly
 - Enahncement: blog theme shows a helpful error message when no public lists are configured for newsletter subscription forms
 
