@@ -1,5 +1,12 @@
 # TODO
 
+- create notifuse blog
+- pages on homepage for:
+  - rich contact profiles with custom events + segments
+  - newsletter campaigns
+  - transactional API
+  - blog posts
+
 ## custom events
 
 - remove:
