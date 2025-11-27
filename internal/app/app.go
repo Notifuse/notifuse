@@ -818,6 +818,7 @@ func (a *App) InitServices() error {
 		a.messageHistoryRepo,
 		a.webhookEventRepo,
 		a.broadcastRepo,
+		a.customEventRepo,
 	)
 
 	// Initialize telemetry service

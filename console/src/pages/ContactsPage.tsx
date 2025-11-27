@@ -46,9 +46,6 @@ const DEFAULT_VISIBLE_COLUMNS = {
   phone: false,
   address: false,
   job_title: false,
-  lifetime_value: false,
-  orders_count: false,
-  last_order_at: false,
   created_at: false,
   custom_string_1: false,
   custom_string_2: false,
@@ -247,9 +244,6 @@ export function ContactsPage() {
     { key: 'timezone', title: 'Timezone' },
     { key: 'address', title: 'Address' },
     { key: 'job_title', title: 'Job Title' },
-    { key: 'lifetime_value', title: 'Lifetime Value' },
-    { key: 'orders_count', title: 'Orders Count' },
-    { key: 'last_order_at', title: 'Last Order' },
     { key: 'created_at', title: 'Created At' },
     { key: 'custom_string_1', title: getCustomFieldLabel('custom_string_1', currentWorkspace) },
     { key: 'custom_string_2', title: getCustomFieldLabel('custom_string_2', currentWorkspace) },
@@ -584,28 +578,6 @@ export function ContactsPage() {
       dataIndex: 'job_title',
       key: 'job_title',
       hidden: !visibleColumns.job_title
-    },
-    {
-      title: 'Lifetime Value',
-      dataIndex: 'lifetime_value',
-      key: 'lifetime_value',
-      render: (_: unknown, record: Contact) =>
-        record.lifetime_value ? `$${record.lifetime_value.toFixed(2)}` : '-',
-      hidden: !visibleColumns.lifetime_value
-    },
-    {
-      title: 'Orders Count',
-      dataIndex: 'orders_count',
-      key: 'orders_count',
-      hidden: !visibleColumns.orders_count
-    },
-    {
-      title: 'Last Order',
-      dataIndex: 'last_order_at',
-      key: 'last_order_at',
-      render: (_: unknown, record: Contact) =>
-        record.last_order_at ? new Date(record.last_order_at).toLocaleDateString() : '-',
-      hidden: !visibleColumns.last_order_at
     },
     {
       title: 'Created At',

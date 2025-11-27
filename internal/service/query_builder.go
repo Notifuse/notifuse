@@ -61,7 +61,6 @@ func (qb *QueryBuilder) initializeContactFields() {
 
 	// Number fields
 	numberFields := []string{
-		"lifetime_value", "orders_count",
 		"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 	}
 	for _, field := range numberFields {
@@ -73,7 +72,7 @@ func (qb *QueryBuilder) initializeContactFields() {
 
 	// Time fields
 	timeFields := []string{
-		"last_order_at", "created_at", "updated_at",
+		"created_at", "updated_at",
 		"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 	}
 	for _, field := range timeFields {
@@ -217,27 +216,33 @@ func (qb *QueryBuilder) parseLeaf(leaf *domain.TreeNodeLeaf, argIndex int) (stri
 		return "", nil, argIndex, fmt.Errorf("leaf cannot be nil")
 	}
 
-	switch leaf.Table {
+	switch leaf.Source {
 	case "contacts":
 		if leaf.Contact == nil {
-			return "", nil, argIndex, fmt.Errorf("leaf with table 'contacts' must have 'contact' field")
+			return "", nil, argIndex, fmt.Errorf("leaf with source 'contacts' must have 'contact' field")
 		}
 		return qb.parseContactConditions(leaf.Contact, argIndex)
 
 	case "contact_lists":
 		if leaf.ContactList == nil {
-			return "", nil, argIndex, fmt.Errorf("leaf with table 'contact_lists' must have 'contact_list' field")
+			return "", nil, argIndex, fmt.Errorf("leaf with source 'contact_lists' must have 'contact_list' field")
 		}
 		return qb.parseContactListConditions(leaf.ContactList, argIndex)
 
 	case "contact_timeline":
 		if leaf.ContactTimeline == nil {
-			return "", nil, argIndex, fmt.Errorf("leaf with table 'contact_timeline' must have 'contact_timeline' field")
+			return "", nil, argIndex, fmt.Errorf("leaf with source 'contact_timeline' must have 'contact_timeline' field")
 		}
 		return qb.parseContactTimelineConditions(leaf.ContactTimeline, argIndex)
 
+	case "custom_events_goals":
+		if leaf.CustomEventsGoal == nil {
+			return "", nil, argIndex, fmt.Errorf("leaf with source 'custom_events_goals' must have 'custom_events_goal' field")
+		}
+		return qb.parseCustomEventsGoalCondition(leaf.CustomEventsGoal, argIndex)
+
 	default:
-		return "", nil, argIndex, fmt.Errorf("unsupported table: %s (supported: 'contacts', 'contact_lists', 'contact_timeline')", leaf.Table)
+		return "", nil, argIndex, fmt.Errorf("unsupported source: %s (supported: 'contacts', 'contact_lists', 'contact_timeline', 'custom_events_goals')", leaf.Source)
 	}
 }
 
@@ -514,6 +519,178 @@ func (qb *QueryBuilder) parseContactTimelineConditions(timeline *domain.ContactT
 	argIndex++
 
 	return countCondition, args, argIndex, nil
+}
+
+// parseCustomEventsGoalCondition generates SQL for custom_events goal-based filtering
+// Uses EXISTS subquery with aggregation to check goal metrics (LTV, transaction count, etc.)
+func (qb *QueryBuilder) parseCustomEventsGoalCondition(goal *domain.CustomEventsGoalCondition, argIndex int) (string, []interface{}, int, error) {
+	if goal == nil {
+		return "", nil, argIndex, fmt.Errorf("custom_events_goal condition cannot be nil")
+	}
+
+	var args []interface{}
+	var conditions []string
+
+	// Always exclude soft-deleted events
+	conditions = append(conditions, "ce.deleted_at IS NULL")
+
+	// Filter by goal_type if not "*" (wildcard for all)
+	if goal.GoalType != "*" {
+		args = append(args, goal.GoalType)
+		conditions = append(conditions, fmt.Sprintf("ce.goal_type = $%d", argIndex))
+		argIndex++
+	} else {
+		// For wildcard, just ensure goal_type is set
+		conditions = append(conditions, "ce.goal_type IS NOT NULL")
+	}
+
+	// Filter by goal_name if provided
+	if goal.GoalName != nil && *goal.GoalName != "" {
+		args = append(args, *goal.GoalName)
+		conditions = append(conditions, fmt.Sprintf("ce.goal_name = $%d", argIndex))
+		argIndex++
+	}
+
+	// Add timeframe conditions
+	if goal.TimeframeOperator != "" && goal.TimeframeOperator != "anytime" {
+		timeCondition, timeArgs, newArgIndex, err := qb.parseGoalTimeframeCondition(goal.TimeframeOperator, goal.TimeframeValues, argIndex)
+		if err != nil {
+			return "", nil, argIndex, err
+		}
+		if timeCondition != "" {
+			conditions = append(conditions, timeCondition)
+			args = append(args, timeArgs...)
+			argIndex = newArgIndex
+		}
+	}
+
+	// Build aggregate expression
+	var aggExpr string
+	switch goal.AggregateOperator {
+	case "sum":
+		aggExpr = "COALESCE(SUM(ce.goal_value), 0)"
+	case "count":
+		aggExpr = "COUNT(*)"
+	case "avg":
+		aggExpr = "COALESCE(AVG(ce.goal_value), 0)"
+	case "min":
+		aggExpr = "MIN(ce.goal_value)"
+	case "max":
+		aggExpr = "MAX(ce.goal_value)"
+	default:
+		return "", nil, argIndex, fmt.Errorf("invalid aggregate_operator: %s", goal.AggregateOperator)
+	}
+
+	// Build comparison expression
+	var comparison string
+	switch goal.Operator {
+	case "gte":
+		args = append(args, goal.Value)
+		comparison = fmt.Sprintf("%s >= $%d", aggExpr, argIndex)
+		argIndex++
+	case "lte":
+		args = append(args, goal.Value)
+		comparison = fmt.Sprintf("%s <= $%d", aggExpr, argIndex)
+		argIndex++
+	case "eq":
+		args = append(args, goal.Value)
+		comparison = fmt.Sprintf("%s = $%d", aggExpr, argIndex)
+		argIndex++
+	case "between":
+		if goal.Value2 == nil {
+			return "", nil, argIndex, fmt.Errorf("between operator requires value_2")
+		}
+		args = append(args, goal.Value, *goal.Value2)
+		comparison = fmt.Sprintf("%s BETWEEN $%d AND $%d", aggExpr, argIndex, argIndex+1)
+		argIndex += 2
+	default:
+		return "", nil, argIndex, fmt.Errorf("invalid operator: %s", goal.Operator)
+	}
+
+	// Build the EXISTS subquery with GROUP BY and HAVING
+	whereClause := strings.Join(conditions, " AND ")
+	existsClause := fmt.Sprintf(
+		"EXISTS (SELECT 1 FROM custom_events ce WHERE ce.email = contacts.email AND %s GROUP BY ce.email HAVING %s)",
+		whereClause,
+		comparison,
+	)
+
+	return existsClause, args, argIndex, nil
+}
+
+// parseGoalTimeframeCondition generates SQL for goal timeframe filters
+func (qb *QueryBuilder) parseGoalTimeframeCondition(operator string, values []string, argIndex int) (string, []interface{}, int, error) {
+	var args []interface{}
+
+	switch operator {
+	case "in_date_range":
+		if len(values) != 2 {
+			return "", nil, argIndex, fmt.Errorf("in_date_range requires 2 values (start and end)")
+		}
+		startTime, err := time.Parse(time.RFC3339, values[0])
+		if err != nil {
+			startTime, err = time.Parse("2006-01-02", values[0])
+			if err != nil {
+				return "", nil, argIndex, fmt.Errorf("invalid start time: %w", err)
+			}
+		}
+		endTime, err := time.Parse(time.RFC3339, values[1])
+		if err != nil {
+			endTime, err = time.Parse("2006-01-02", values[1])
+			if err != nil {
+				return "", nil, argIndex, fmt.Errorf("invalid end time: %w", err)
+			}
+		}
+		args = append(args, startTime, endTime)
+		condition := fmt.Sprintf("ce.occurred_at BETWEEN $%d AND $%d", argIndex, argIndex+1)
+		return condition, args, argIndex + 2, nil
+
+	case "before_date":
+		if len(values) != 1 {
+			return "", nil, argIndex, fmt.Errorf("before_date requires 1 value")
+		}
+		t, err := time.Parse(time.RFC3339, values[0])
+		if err != nil {
+			t, err = time.Parse("2006-01-02", values[0])
+			if err != nil {
+				return "", nil, argIndex, fmt.Errorf("invalid time: %w", err)
+			}
+		}
+		args = append(args, t)
+		condition := fmt.Sprintf("ce.occurred_at < $%d", argIndex)
+		return condition, args, argIndex + 1, nil
+
+	case "after_date":
+		if len(values) != 1 {
+			return "", nil, argIndex, fmt.Errorf("after_date requires 1 value")
+		}
+		t, err := time.Parse(time.RFC3339, values[0])
+		if err != nil {
+			t, err = time.Parse("2006-01-02", values[0])
+			if err != nil {
+				return "", nil, argIndex, fmt.Errorf("invalid time: %w", err)
+			}
+		}
+		args = append(args, t)
+		condition := fmt.Sprintf("ce.occurred_at > $%d", argIndex)
+		return condition, args, argIndex + 1, nil
+
+	case "in_the_last_days":
+		if len(values) != 1 {
+			return "", nil, argIndex, fmt.Errorf("in_the_last_days requires 1 value (number of days)")
+		}
+		var days int
+		_, err := fmt.Sscanf(values[0], "%d", &days)
+		if err != nil {
+			return "", nil, argIndex, fmt.Errorf("invalid days value: %w", err)
+		}
+		// Safe from SQL injection: days is parsed as int
+		condition := fmt.Sprintf("ce.occurred_at > NOW() - INTERVAL '%d days'", days)
+		return condition, args, argIndex, nil
+
+	default:
+		return "", nil, argIndex, fmt.Errorf("unsupported goal timeframe operator: %s", operator)
+	}
 }
 
 // parseTimeframeCondition generates SQL for timeline timeframe filters

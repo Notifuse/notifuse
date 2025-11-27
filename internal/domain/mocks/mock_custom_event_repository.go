@@ -35,32 +35,18 @@ func (m *MockCustomEventRepository) EXPECT() *MockCustomEventRepositoryMockRecor
 	return m.recorder
 }
 
-// BatchCreate mocks base method.
-func (m *MockCustomEventRepository) BatchCreate(arg0 context.Context, arg1 string, arg2 []*domain.CustomEvent) error {
+// BatchUpsert mocks base method.
+func (m *MockCustomEventRepository) BatchUpsert(arg0 context.Context, arg1 string, arg2 []*domain.CustomEvent) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "BatchCreate", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "BatchUpsert", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// BatchCreate indicates an expected call of BatchCreate.
-func (mr *MockCustomEventRepositoryMockRecorder) BatchCreate(arg0, arg1, arg2 interface{}) *gomock.Call {
+// BatchUpsert indicates an expected call of BatchUpsert.
+func (mr *MockCustomEventRepositoryMockRecorder) BatchUpsert(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchCreate", reflect.TypeOf((*MockCustomEventRepository)(nil).BatchCreate), arg0, arg1, arg2)
-}
-
-// Create mocks base method.
-func (m *MockCustomEventRepository) Create(arg0 context.Context, arg1 string, arg2 *domain.CustomEvent) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Create", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// Create indicates an expected call of Create.
-func (mr *MockCustomEventRepositoryMockRecorder) Create(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockCustomEventRepository)(nil).Create), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "BatchUpsert", reflect.TypeOf((*MockCustomEventRepository)(nil).BatchUpsert), arg0, arg1, arg2)
 }
 
 // DeleteForEmail mocks base method.
@@ -120,4 +106,18 @@ func (m *MockCustomEventRepository) ListByEventName(arg0 context.Context, arg1, 
 func (mr *MockCustomEventRepositoryMockRecorder) ListByEventName(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListByEventName", reflect.TypeOf((*MockCustomEventRepository)(nil).ListByEventName), arg0, arg1, arg2, arg3, arg4)
+}
+
+// Upsert mocks base method.
+func (m *MockCustomEventRepository) Upsert(arg0 context.Context, arg1 string, arg2 *domain.CustomEvent) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Upsert", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Upsert indicates an expected call of Upsert.
+func (mr *MockCustomEventRepositoryMockRecorder) Upsert(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Upsert", reflect.TypeOf((*MockCustomEventRepository)(nil).Upsert), arg0, arg1, arg2)
 }

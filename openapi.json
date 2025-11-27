@@ -26,7 +26,7 @@
     "/api/transactional.send": {
       "post": {
         "summary": "Send a transactional notification",
-        "description": "Sends a transactional notification to a contact through specified channels.\nRequires authentication.",
+        "description": "Sends a transactional notification to a contact through specified channels.\nRequires authentication.\n",
         "operationId": "sendTransactionalNotification",
         "security": [
           {
@@ -1685,6 +1685,79 @@
         }
       }
     },
+    "/api/broadcasts.selectWinner": {
+      "post": {
+        "summary": "Select winning A/B test variation",
+        "description": "Manually selects the winning variation for an A/B test broadcast. The winning variation will be sent to the remaining audience. This endpoint is restricted in demo mode.",
+        "operationId": "selectBroadcastWinner",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SelectWinnerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Winner selected successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to select winner"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/templates.list": {
       "get": {
         "summary": "List templates",
@@ -1732,7 +1805,10 @@
             "required": false,
             "schema": {
               "type": "string",
-              "enum": ["email", "web"]
+              "enum": [
+                "email",
+                "web"
+              ]
             },
             "description": "Filter templates by channel"
           }
@@ -2227,160 +2303,6 @@
         }
       }
     },
-    "/api/broadcasts.selectWinner": {
-      "post": {
-        "summary": "Select winning A/B test variation",
-        "description": "Manually selects the winning variation for an A/B test broadcast. The winning variation will be sent to the remaining audience. This endpoint is restricted in demo mode.",
-        "operationId": "selectBroadcastWinner",
-        "security": [
-          {
-            "BearerAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SelectWinnerRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Winner selected successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - validation failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - invalid or missing authentication token",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "error": "Failed to select winner"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/subscribe": {
-      "post": {
-        "summary": "Subscribe to email lists",
-        "description": "Subscribe a contact to one or more email lists. This is a public endpoint that doesn't require authentication. If the list has double opt-in enabled, a confirmation email will be sent.",
-        "operationId": "subscribeToLists",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SubscribeToListsRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Subscription successful",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "description": "Whether the subscription was successful",
-                      "example": true
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - validation failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "examples": {
-                  "missingWorkspaceId": {
-                    "value": {
-                      "error": "workspace_id is required"
-                    }
-                  },
-                  "invalidEmail": {
-                    "value": {
-                      "error": "invalid contact: invalid email format"
-                    }
-                  },
-                  "missingListIds": {
-                    "value": {
-                      "error": "list_ids is required"
-                    }
-                  },
-                  "listNotPublic": {
-                    "value": {
-                      "error": "list is not public"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                },
-                "example": {
-                  "error": "Failed to subscribe to lists"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/customEvent.import": {
       "post": {
         "summary": "Import custom events",
@@ -2487,6 +2409,88 @@
           }
         }
       }
+    },
+    "/subscribe": {
+      "post": {
+        "summary": "Subscribe to email lists",
+        "description": "Subscribe a contact to one or more email lists. This is a public endpoint that doesn't require authentication. If the list has double opt-in enabled, a confirmation email will be sent.",
+        "operationId": "subscribeToLists",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeToListsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Whether the subscription was successful",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "invalidEmail": {
+                    "value": {
+                      "error": "invalid contact: invalid email format"
+                    }
+                  },
+                  "missingListIds": {
+                    "value": {
+                      "error": "list_ids is required"
+                    }
+                  },
+                  "listNotPublic": {
+                    "value": {
+                      "error": "list is not public"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Failed to subscribe to lists"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2506,11 +2510,16 @@
             "description": "Error message"
           }
         },
-        "required": ["error"]
+        "required": [
+          "error"
+        ]
       },
       "SendTransactionalRequest": {
         "type": "object",
-        "required": ["workspace_id", "notification"],
+        "required": [
+          "workspace_id",
+          "notification"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -2524,7 +2533,10 @@
       },
       "TransactionalNotificationSendParams": {
         "type": "object",
-        "required": ["id", "contact"],
+        "required": [
+          "id",
+          "contact"
+        ],
         "properties": {
           "id": {
             "type": "string",
@@ -2545,9 +2557,13 @@
             "description": "Specific channels to send through (if empty, use all configured channels)",
             "items": {
               "type": "string",
-              "enum": ["email"]
+              "enum": [
+                "email"
+              ]
             },
-            "example": ["email"]
+            "example": [
+              "email"
+            ]
           },
           "data": {
             "type": "object",
@@ -2584,7 +2600,9 @@
                   "type": "string",
                   "format": "email"
                 },
-                "example": ["manager@example.com"]
+                "example": [
+                  "manager@example.com"
+                ]
               },
               "bcc": {
                 "type": "array",
@@ -2593,7 +2611,9 @@
                   "type": "string",
                   "format": "email"
                 },
-                "example": ["archive@example.com"]
+                "example": [
+                  "archive@example.com"
+                ]
               },
               "reply_to": {
                 "type": "string",
@@ -2623,7 +2643,9 @@
       },
       "Contact": {
         "type": "object",
-        "required": ["email"],
+        "required": [
+          "email"
+        ],
         "properties": {
           "email": {
             "type": "string",
@@ -2702,27 +2724,6 @@
             "nullable": true,
             "description": "Job title of the contact",
             "example": "Software Engineer"
-          },
-          "lifetime_value": {
-            "type": "number",
-            "format": "float",
-            "nullable": true,
-            "description": "Lifetime value of the contact",
-            "example": 1250.5
-          },
-          "orders_count": {
-            "type": "number",
-            "format": "float",
-            "nullable": true,
-            "description": "Number of orders placed by the contact",
-            "example": 5
-          },
-          "last_order_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "description": "Date and time of the contact's last order",
-            "example": "2023-05-15T14:30:00Z"
           },
           "custom_string_1": {
             "type": "string",
@@ -2896,7 +2897,13 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "pending", "unsubscribed", "bounced", "complained"],
+            "enum": [
+              "active",
+              "pending",
+              "unsubscribed",
+              "bounced",
+              "complained"
+            ],
             "description": "Subscription status",
             "example": "active"
           },
@@ -2923,7 +2930,11 @@
       },
       "SubscribeToListsRequest": {
         "type": "object",
-        "required": ["workspace_id", "contact", "list_ids"],
+        "required": [
+          "workspace_id",
+          "contact",
+          "list_ids"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -2939,14 +2950,19 @@
             "items": {
               "type": "string"
             },
-            "example": ["newsletter", "product_updates"],
+            "example": [
+              "newsletter",
+              "product_updates"
+            ],
             "minItems": 1
           }
         }
       },
       "SubscriptionContact": {
         "type": "object",
-        "required": ["email"],
+        "required": [
+          "email"
+        ],
         "properties": {
           "email": {
             "type": "string",
@@ -3030,27 +3046,6 @@
             "nullable": true,
             "description": "Job title of the contact",
             "example": "Software Engineer"
-          },
-          "lifetime_value": {
-            "type": "number",
-            "format": "float",
-            "nullable": true,
-            "description": "Lifetime value of the contact",
-            "example": 1250.5
-          },
-          "orders_count": {
-            "type": "number",
-            "format": "float",
-            "nullable": true,
-            "description": "Number of orders placed by the contact",
-            "example": 5
-          },
-          "last_order_at": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true,
-            "description": "Date and time of the contact's last order",
-            "example": "2023-05-15T14:30:00Z"
           },
           "custom_string_1": {
             "type": "string",
@@ -3175,7 +3170,10 @@
       },
       "UpsertContactRequest": {
         "type": "object",
-        "required": ["workspace_id", "contact"],
+        "required": [
+          "workspace_id",
+          "contact"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3192,7 +3190,11 @@
         "properties": {
           "action": {
             "type": "string",
-            "enum": ["created", "updated", "unchanged"],
+            "enum": [
+              "created",
+              "updated",
+              "unchanged"
+            ],
             "description": "The action that was performed on the contact",
             "example": "created"
           },
@@ -3209,7 +3211,10 @@
       },
       "DeleteContactRequest": {
         "type": "object",
-        "required": ["workspace_id", "email"],
+        "required": [
+          "workspace_id",
+          "email"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3226,7 +3231,10 @@
       },
       "BatchImportContactsRequest": {
         "type": "object",
-        "required": ["workspace_id", "contacts"],
+        "required": [
+          "workspace_id",
+          "contacts"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3259,7 +3267,10 @@
             "items": {
               "type": "string"
             },
-            "example": ["newsletter", "product_updates"]
+            "example": [
+              "newsletter",
+              "product_updates"
+            ]
           }
         }
       },
@@ -3292,7 +3303,11 @@
           },
           "action": {
             "type": "string",
-            "enum": ["create", "update", "error"],
+            "enum": [
+              "create",
+              "update",
+              "error"
+            ],
             "description": "The action that was performed: 'create' for new contacts, 'update' for existing contacts, 'error' for failed operations",
             "example": "create"
           },
@@ -3306,7 +3321,12 @@
       },
       "UpdateContactListStatusRequest": {
         "type": "object",
-        "required": ["workspace_id", "email", "list_id", "status"],
+        "required": [
+          "workspace_id",
+          "email",
+          "list_id",
+          "status"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3326,7 +3346,13 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "pending", "unsubscribed", "bounced", "complained"],
+            "enum": [
+              "active",
+              "pending",
+              "unsubscribed",
+              "bounced",
+              "complained"
+            ],
             "description": "New subscription status",
             "example": "active"
           }
@@ -3354,7 +3380,10 @@
       },
       "EmailAttachment": {
         "type": "object",
-        "required": ["filename", "content"],
+        "required": [
+          "filename",
+          "content"
+        ],
         "properties": {
           "filename": {
             "type": "string",
@@ -3375,7 +3404,10 @@
           },
           "disposition": {
             "type": "string",
-            "enum": ["attachment", "inline"],
+            "enum": [
+              "attachment",
+              "inline"
+            ],
             "description": "How the attachment should be displayed (defaults to 'attachment')",
             "example": "attachment",
             "default": "attachment"
@@ -3529,7 +3561,10 @@
           },
           "auto_send_winner_metric": {
             "type": "string",
-            "enum": ["open_rate", "click_rate"],
+            "enum": [
+              "open_rate",
+              "click_rate"
+            ],
             "description": "Metric used to determine the winner",
             "example": "open_rate"
           },
@@ -3553,6 +3588,9 @@
       },
       "BroadcastVariation": {
         "type": "object",
+        "required": [
+          "template_id"
+        ],
         "properties": {
           "variation_name": {
             "type": "string",
@@ -3572,8 +3610,7 @@
             "nullable": true,
             "description": "Full template object (populated when with_templates=true)"
           }
-        },
-        "required": ["template_id"]
+        }
       },
       "VariationMetrics": {
         "type": "object",
@@ -3610,7 +3647,9 @@
       },
       "AudienceSettings": {
         "type": "object",
-        "required": ["list"],
+        "required": [
+          "list"
+        ],
         "properties": {
           "list": {
             "type": "string",
@@ -3623,7 +3662,9 @@
             "items": {
               "type": "string"
             },
-            "example": ["premium_users"]
+            "example": [
+              "premium_users"
+            ]
           },
           "exclude_unsubscribed": {
             "type": "boolean",
@@ -3694,7 +3735,11 @@
       },
       "CreateBroadcastRequest": {
         "type": "object",
-        "required": ["workspace_id", "name", "audience"],
+        "required": [
+          "workspace_id",
+          "name",
+          "audience"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3733,7 +3778,12 @@
       },
       "UpdateBroadcastRequest": {
         "type": "object",
-        "required": ["workspace_id", "id", "name", "audience"],
+        "required": [
+          "workspace_id",
+          "id",
+          "name",
+          "audience"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3777,7 +3827,10 @@
       },
       "ScheduleBroadcastRequest": {
         "type": "object",
-        "required": ["workspace_id", "id"],
+        "required": [
+          "workspace_id",
+          "id"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3820,7 +3873,10 @@
       },
       "PauseBroadcastRequest": {
         "type": "object",
-        "required": ["workspace_id", "id"],
+        "required": [
+          "workspace_id",
+          "id"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3836,7 +3892,10 @@
       },
       "ResumeBroadcastRequest": {
         "type": "object",
-        "required": ["workspace_id", "id"],
+        "required": [
+          "workspace_id",
+          "id"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3852,7 +3911,10 @@
       },
       "CancelBroadcastRequest": {
         "type": "object",
-        "required": ["workspace_id", "id"],
+        "required": [
+          "workspace_id",
+          "id"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3868,7 +3930,10 @@
       },
       "DeleteBroadcastRequest": {
         "type": "object",
-        "required": ["workspace_id", "id"],
+        "required": [
+          "workspace_id",
+          "id"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3884,7 +3949,11 @@
       },
       "SendToIndividualRequest": {
         "type": "object",
-        "required": ["workspace_id", "broadcast_id", "recipient_email"],
+        "required": [
+          "workspace_id",
+          "broadcast_id",
+          "recipient_email"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -3911,7 +3980,11 @@
       },
       "SelectWinnerRequest": {
         "type": "object",
-        "required": ["workspace_id", "id", "template_id"],
+        "required": [
+          "workspace_id",
+          "id",
+          "template_id"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -4069,7 +4142,10 @@
           },
           "channel": {
             "type": "string",
-            "enum": ["email", "web"],
+            "enum": [
+              "email",
+              "web"
+            ],
             "description": "Communication channel",
             "example": "email"
           },
@@ -4137,7 +4213,12 @@
             "description": "When the template was deleted (null if active)"
           }
         },
-        "required": ["id", "name", "channel", "category"]
+        "required": [
+          "id",
+          "name",
+          "channel",
+          "category"
+        ]
       },
       "EmailTemplate": {
         "type": "object",
@@ -4177,7 +4258,11 @@
             }
           }
         },
-        "required": ["subject", "compiled_preview", "visual_editor_tree"]
+        "required": [
+          "subject",
+          "compiled_preview",
+          "visual_editor_tree"
+        ]
       },
       "WebTemplate": {
         "type": "object",
@@ -4196,11 +4281,19 @@
             "description": "Extracted text for search indexing"
           }
         },
-        "required": ["content"]
+        "required": [
+          "content"
+        ]
       },
       "CreateTemplateRequest": {
         "type": "object",
-        "required": ["workspace_id", "id", "name", "channel", "category"],
+        "required": [
+          "workspace_id",
+          "id",
+          "name",
+          "channel",
+          "category"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -4222,7 +4315,10 @@
           },
           "channel": {
             "type": "string",
-            "enum": ["email", "web"],
+            "enum": [
+              "email",
+              "web"
+            ],
             "description": "Communication channel",
             "example": "email"
           },
@@ -4267,7 +4363,13 @@
       },
       "UpdateTemplateRequest": {
         "type": "object",
-        "required": ["workspace_id", "id", "name", "channel", "category"],
+        "required": [
+          "workspace_id",
+          "id",
+          "name",
+          "channel",
+          "category"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -4288,7 +4390,10 @@
           },
           "channel": {
             "type": "string",
-            "enum": ["email", "web"],
+            "enum": [
+              "email",
+              "web"
+            ],
             "description": "Communication channel",
             "example": "email"
           },
@@ -4333,7 +4438,10 @@
       },
       "DeleteTemplateRequest": {
         "type": "object",
-        "required": ["workspace_id", "id"],
+        "required": [
+          "workspace_id",
+          "id"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -4349,7 +4457,10 @@
       },
       "CompileTemplateRequest": {
         "type": "object",
-        "required": ["template_content", "template_data"],
+        "required": [
+          "template_content",
+          "template_data"
+        ],
         "properties": {
           "template_content": {
             "type": "object",
@@ -4385,7 +4496,11 @@
       },
       "CustomEvent": {
         "type": "object",
-        "required": ["event_name", "external_id", "email"],
+        "required": [
+          "event_name",
+          "external_id",
+          "email"
+        ],
         "properties": {
           "event_name": {
             "type": "string",
@@ -4425,7 +4540,11 @@
           },
           "source": {
             "type": "string",
-            "enum": ["api", "integration", "import"],
+            "enum": [
+              "api",
+              "integration",
+              "import"
+            ],
             "description": "Origin of the event",
             "example": "api",
             "default": "api"
@@ -4452,7 +4571,10 @@
       },
       "ImportCustomEventsRequest": {
         "type": "object",
-        "required": ["workspace_id", "events"],
+        "required": [
+          "workspace_id",
+          "events"
+        ],
         "properties": {
           "workspace_id": {
             "type": "string",
@@ -4466,7 +4588,11 @@
             "maxItems": 50,
             "items": {
               "type": "object",
-              "required": ["event_name", "external_id", "email"],
+              "required": [
+                "event_name",
+                "external_id",
+                "email"
+              ],
               "properties": {
                 "event_name": {
                   "type": "string",
@@ -4504,7 +4630,11 @@
                 },
                 "source": {
                   "type": "string",
-                  "enum": ["api", "integration", "import"],
+                  "enum": [
+                    "api",
+                    "integration",
+                    "import"
+                  ],
                   "description": "Origin of the event",
                   "example": "api"
                 },
@@ -4549,7 +4679,10 @@
             "items": {
               "type": "string"
             },
-            "example": ["shopify_order_12345", "stripe_payment_67890"]
+            "example": [
+              "shopify_order_12345",
+              "stripe_payment_67890"
+            ]
           },
           "count": {
             "type": "integer",

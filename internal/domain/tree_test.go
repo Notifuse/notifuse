@@ -13,7 +13,7 @@ func TestTreeNode_Validate(t *testing.T) {
 		node := &TreeNode{
 			Kind: "leaf",
 			Leaf: &TreeNodeLeaf{
-				Table: "contacts",
+				Source: "contacts",
 				Contact: &ContactCondition{
 					Filters: []*DimensionFilter{
 						{
@@ -40,7 +40,7 @@ func TestTreeNode_Validate(t *testing.T) {
 					{
 						Kind: "leaf",
 						Leaf: &TreeNodeLeaf{
-							Table: "contacts",
+							Source: "contacts",
 							Contact: &ContactCondition{
 								Filters: []*DimensionFilter{
 									{
@@ -56,11 +56,11 @@ func TestTreeNode_Validate(t *testing.T) {
 					{
 						Kind: "leaf",
 						Leaf: &TreeNodeLeaf{
-							Table: "contacts",
+							Source: "contacts",
 							Contact: &ContactCondition{
 								Filters: []*DimensionFilter{
 									{
-										FieldName:    "orders_count",
+										FieldName:    "custom_number_1",
 										FieldType:    "number",
 										Operator:     "gte",
 										NumberValues: []float64{5},
@@ -114,7 +114,7 @@ func TestTreeNodeBranch_Validate(t *testing.T) {
 				{
 					Kind: "leaf",
 					Leaf: &TreeNodeLeaf{
-						Table: "contacts",
+						Source: "contacts",
 						Contact: &ContactCondition{
 							Filters: []*DimensionFilter{
 								{
@@ -141,7 +141,7 @@ func TestTreeNodeBranch_Validate(t *testing.T) {
 				{
 					Kind: "leaf",
 					Leaf: &TreeNodeLeaf{
-						Table: "contacts",
+						Source: "contacts",
 						Contact: &ContactCondition{
 							Filters: []*DimensionFilter{
 								{
@@ -177,7 +177,7 @@ func TestTreeNodeBranch_Validate(t *testing.T) {
 func TestTreeNodeLeaf_Validate(t *testing.T) {
 	t.Run("valid contacts leaf", func(t *testing.T) {
 		leaf := &TreeNodeLeaf{
-			Table: "contacts",
+			Source: "contacts",
 			Contact: &ContactCondition{
 				Filters: []*DimensionFilter{
 					{
@@ -194,22 +194,22 @@ func TestTreeNodeLeaf_Validate(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("missing table", func(t *testing.T) {
+	t.Run("missing source", func(t *testing.T) {
 		leaf := &TreeNodeLeaf{}
 		err := leaf.Validate()
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "must have 'table'")
+		assert.Contains(t, err.Error(), "must have 'source'")
 	})
 
-	t.Run("invalid table", func(t *testing.T) {
-		leaf := &TreeNodeLeaf{Table: "invalid"}
+	t.Run("invalid source", func(t *testing.T) {
+		leaf := &TreeNodeLeaf{Source: "invalid"}
 		err := leaf.Validate()
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid table")
+		assert.Contains(t, err.Error(), "invalid source")
 	})
 
 	t.Run("contacts table without contact field", func(t *testing.T) {
-		leaf := &TreeNodeLeaf{Table: "contacts"}
+		leaf := &TreeNodeLeaf{Source: "contacts"}
 		err := leaf.Validate()
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "must have 'contact' field")
@@ -231,7 +231,7 @@ func TestDimensionFilter_Validate(t *testing.T) {
 
 	t.Run("valid number filter", func(t *testing.T) {
 		filter := &DimensionFilter{
-			FieldName:    "orders_count",
+			FieldName:    "custom_number_1",
 			FieldType:    "number",
 			Operator:     "gte",
 			NumberValues: []float64{5},
@@ -315,7 +315,7 @@ func TestDimensionFilter_Validate(t *testing.T) {
 
 	t.Run("number filter without values", func(t *testing.T) {
 		filter := &DimensionFilter{
-			FieldName: "orders_count",
+			FieldName: "custom_number_1",
 			FieldType: "number",
 			Operator:  "gte",
 		}
@@ -463,7 +463,7 @@ func TestTreeNode_JSONMarshaling(t *testing.T) {
 		original := &TreeNode{
 			Kind: "leaf",
 			Leaf: &TreeNodeLeaf{
-				Table: "contacts",
+				Source: "contacts",
 				Contact: &ContactCondition{
 					Filters: []*DimensionFilter{
 						{
@@ -489,7 +489,7 @@ func TestTreeNode_JSONMarshaling(t *testing.T) {
 		// Verify
 		assert.Equal(t, original.Kind, restored.Kind)
 		assert.NotNil(t, restored.Leaf)
-		assert.Equal(t, original.Leaf.Table, restored.Leaf.Table)
+		assert.Equal(t, original.Leaf.Source, restored.Leaf.Source)
 		assert.NotNil(t, restored.Leaf.Contact)
 		assert.Len(t, restored.Leaf.Contact.Filters, 1)
 		assert.Equal(t, "country", restored.Leaf.Contact.Filters[0].FieldName)
@@ -504,11 +504,11 @@ func TestTreeNode_JSONMarshaling(t *testing.T) {
 					{
 						Kind: "leaf",
 						Leaf: &TreeNodeLeaf{
-							Table: "contacts",
+							Source: "contacts",
 							Contact: &ContactCondition{
 								Filters: []*DimensionFilter{
 									{
-										FieldName:    "orders_count",
+										FieldName:    "custom_number_1",
 										FieldType:    "number",
 										Operator:     "gte",
 										NumberValues: []float64{5},
@@ -520,7 +520,7 @@ func TestTreeNode_JSONMarshaling(t *testing.T) {
 					{
 						Kind: "leaf",
 						Leaf: &TreeNodeLeaf{
-							Table: "contacts",
+							Source: "contacts",
 							Contact: &ContactCondition{
 								Filters: []*DimensionFilter{
 									{
@@ -559,7 +559,7 @@ func TestTreeNode_ToMapOfAny(t *testing.T) {
 		node := &TreeNode{
 			Kind: "leaf",
 			Leaf: &TreeNodeLeaf{
-				Table: "contacts",
+				Source: "contacts",
 				Contact: &ContactCondition{
 					Filters: []*DimensionFilter{
 						{
@@ -585,7 +585,7 @@ func TestTreeNodeFromMapOfAny(t *testing.T) {
 		mapData := MapOfAny{
 			"kind": "leaf",
 			"leaf": map[string]interface{}{
-				"table": "contacts",
+				"source": "contacts",
 				"contact": map[string]interface{}{
 					"filters": []interface{}{
 						map[string]interface{}{
@@ -603,7 +603,7 @@ func TestTreeNodeFromMapOfAny(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "leaf", node.Kind)
 		assert.NotNil(t, node.Leaf)
-		assert.Equal(t, "contacts", node.Leaf.Table)
+		assert.Equal(t, "contacts", node.Leaf.Source)
 	})
 }
 
@@ -612,7 +612,7 @@ func TestTreeNodeFromJSON(t *testing.T) {
 		jsonStr := `{
 			"kind": "leaf",
 			"leaf": {
-				"table": "contacts",
+				"source": "contacts",
 				"contact": {
 					"filters": [{
 						"field_name": "country",
@@ -628,7 +628,7 @@ func TestTreeNodeFromJSON(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, "leaf", node.Kind)
 		assert.NotNil(t, node.Leaf)
-		assert.Equal(t, "contacts", node.Leaf.Table)
+		assert.Equal(t, "contacts", node.Leaf.Source)
 
 		// Validate it
 		err = node.Validate()
@@ -648,7 +648,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 		node := &TreeNode{
 			Kind: "leaf",
 			Leaf: &TreeNodeLeaf{
-				Table: "contact_timeline",
+				Source: "contact_timeline",
 				ContactTimeline: &ContactTimelineCondition{
 					Kind:              "open_email",
 					CountOperator:     "at_least",
@@ -667,7 +667,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 		node := &TreeNode{
 			Kind: "leaf",
 			Leaf: &TreeNodeLeaf{
-				Table: "contact_timeline",
+				Source: "contact_timeline",
 				ContactTimeline: &ContactTimelineCondition{
 					Kind:              "open_email",
 					CountOperator:     "at_least",
@@ -684,7 +684,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 		node := &TreeNode{
 			Kind: "leaf",
 			Leaf: &TreeNodeLeaf{
-				Table: "contacts",
+				Source: "contacts",
 				Contact: &ContactCondition{
 					Filters: []*DimensionFilter{
 						{
@@ -705,7 +705,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 		node := &TreeNode{
 			Kind: "leaf",
 			Leaf: &TreeNodeLeaf{
-				Table: "contacts",
+				Source: "contacts",
 				Contact: &ContactCondition{
 					Filters: []*DimensionFilter{
 						{
@@ -726,7 +726,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 		node := &TreeNode{
 			Kind: "leaf",
 			Leaf: &TreeNodeLeaf{
-				Table: "contacts",
+				Source: "contacts",
 				Contact: &ContactCondition{
 					Filters: []*DimensionFilter{
 						{
@@ -759,7 +759,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 					{
 						Kind: "leaf",
 						Leaf: &TreeNodeLeaf{
-							Table: "contacts",
+							Source: "contacts",
 							Contact: &ContactCondition{
 								Filters: []*DimensionFilter{
 									{
@@ -775,7 +775,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 					{
 						Kind: "leaf",
 						Leaf: &TreeNodeLeaf{
-							Table: "contact_timeline",
+							Source: "contact_timeline",
 							ContactTimeline: &ContactTimelineCondition{
 								Kind:              "open_email",
 								CountOperator:     "at_least",
@@ -801,7 +801,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 					{
 						Kind: "leaf",
 						Leaf: &TreeNodeLeaf{
-							Table: "contacts",
+							Source: "contacts",
 							Contact: &ContactCondition{
 								Filters: []*DimensionFilter{
 									{
@@ -817,7 +817,7 @@ func TestTreeNode_HasRelativeDates(t *testing.T) {
 					{
 						Kind: "leaf",
 						Leaf: &TreeNodeLeaf{
-							Table: "contact_lists",
+							Source: "contact_lists",
 							ContactList: &ContactListCondition{
 								Operator: "in",
 								ListID:   "test-list",

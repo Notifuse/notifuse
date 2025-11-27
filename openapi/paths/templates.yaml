@@ -1,0 +1,341 @@
+/api/templates.list:
+  get:
+    summary: List templates
+    description: Retrieves a list of all templates in the workspace. Supports optional filtering by category and channel.
+    operationId: listTemplates
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: category
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+            - marketing
+            - transactional
+            - welcome
+            - opt_in
+            - unsubscribe
+            - bounce
+            - blocklist
+            - blog
+            - other
+        description: Filter templates by category
+      - name: channel
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+            - email
+            - web
+        description: Filter templates by channel
+    responses:
+      '200':
+        description: List of templates retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                templates:
+                  type: array
+                  items:
+                    $ref: '../components/schemas/template.yaml#/Template'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: workspace_id is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to get templates
+
+/api/templates.get:
+  get:
+    summary: Get a template
+    description: Retrieves a single template by ID. Optionally specify a version number to retrieve a specific version.
+    operationId: getTemplate
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the template
+        example: welcome_email
+      - name: version
+        in: query
+        required: false
+        schema:
+          type: integer
+          format: int64
+        description: Specific version number (defaults to latest)
+        example: 1
+    responses:
+      '200':
+        description: Template retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                template:
+                  $ref: '../components/schemas/template.yaml#/Template'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Template not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Template not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/templates.create:
+  post:
+    summary: Create a template
+    description: Creates a new template. Each template must have a channel (email or web) with corresponding channel-specific content.
+    operationId: createTemplate
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/template.yaml#/CreateTemplateRequest'
+    responses:
+      '201':
+        description: Template created successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                template:
+                  $ref: '../components/schemas/template.yaml#/Template'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              duplicateId:
+                value:
+                  error: Template id already exists
+              missingEmail:
+                value:
+                  error: "email is required for channel 'email'"
+              invalidId:
+                value:
+                  error: id must contain only letters, numbers, underscores, and hyphens
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to create template
+
+/api/templates.update:
+  post:
+    summary: Update a template
+    description: Updates an existing template. Creates a new version of the template.
+    operationId: updateTemplate
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/template.yaml#/UpdateTemplateRequest'
+    responses:
+      '200':
+        description: Template updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                template:
+                  $ref: '../components/schemas/template.yaml#/Template'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Template not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Template not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to update template
+
+/api/templates.delete:
+  post:
+    summary: Delete a template
+    description: Soft-deletes a template. The template will be marked as deleted but not removed from the database.
+    operationId: deleteTemplate
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/template.yaml#/DeleteTemplateRequest'
+    responses:
+      '200':
+        description: Template deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Template not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Template not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to delete template
+
+/api/templates.compile:
+  post:
+    summary: Compile template
+    description: Compiles an MJML template with provided data, returning the rendered HTML. Useful for previewing templates before saving.
+    operationId: compileTemplate
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/template.yaml#/CompileTemplateRequest'
+    responses:
+      '200':
+        description: Template compiled successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/template.yaml#/CompileTemplateResponse'
+      '400':
+        description: Bad request - compilation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: "Compilation failed: Invalid MJML syntax"
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'

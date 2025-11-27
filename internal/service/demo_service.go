@@ -38,6 +38,7 @@ type DemoService struct {
 	messageHistoryRepo               domain.MessageHistoryRepository
 	webhookEventRepo                 domain.WebhookEventRepository
 	broadcastRepo                    domain.BroadcastRepository
+	customEventRepo                  domain.CustomEventRepository
 }
 
 // Sample data arrays for contact generation
@@ -111,6 +112,7 @@ func NewDemoService(
 	messageHistoryRepo domain.MessageHistoryRepository,
 	webhookEventRepo domain.WebhookEventRepository,
 	broadcastRepo domain.BroadcastRepository,
+	customEventRepo domain.CustomEventRepository,
 ) *DemoService {
 	return &DemoService{
 		logger:                           logger,
@@ -135,6 +137,7 @@ func NewDemoService(
 		messageHistoryRepo:               messageHistoryRepo,
 		webhookEventRepo:                 webhookEventRepo,
 		broadcastRepo:                    broadcastRepo,
+		customEventRepo:                  customEventRepo,
 	}
 }
 
@@ -284,6 +287,12 @@ func (s *DemoService) addSampleData(ctx context.Context, workspaceID string) err
 		return err
 	}
 
+	// Step 3b: Generate sample custom events to simulate e-commerce transactions
+	if err := s.generateSampleCustomEvents(ctx, workspaceID); err != nil {
+		s.logger.WithField("error", err.Error()).Warn("Failed to create sample custom events")
+		// Don't fail the entire operation if custom events creation fails
+	}
+
 	// Step 4: Subscribe all contacts to the newsletter list
 	if err := s.subscribeContactsToList(ctx, workspaceID, "newsletter"); err != nil {
 		s.logger.WithField("error", err.Error()).Warn("Failed to subscribe contacts to newsletter list")
@@ -428,17 +437,98 @@ func (s *DemoService) generateSampleContactsBatch(count int, startIndex int) []*
 			UpdatedAt: createdAt,
 		}
 
-		// Add some custom fields for e-commerce demo data
-		if rand.Float32() < 0.7 { // 70% of contacts have purchase history
-			contact.LifetimeValue = &domain.NullableFloat64{Float64: rand.Float64() * 1000, IsNull: false}
-			contact.OrdersCount = &domain.NullableFloat64{Float64: float64(rand.Intn(20)), IsNull: false}
-			contact.LastOrderAt = &domain.NullableTime{Time: createdAt.Add(time.Duration(rand.Intn(30)) * 24 * time.Hour), IsNull: false}
-		}
-
 		contacts[i] = contact
 	}
 
 	return contacts
+}
+
+// generateSampleCustomEvents creates sample custom events to simulate e-commerce transactions
+func (s *DemoService) generateSampleCustomEvents(ctx context.Context, workspaceID string) error {
+	s.logger.WithField("workspace_id", workspaceID).Info("Generating sample custom events for e-commerce simulation")
+
+	// Get all contacts to create events for
+	contactsReq := &domain.GetContactsRequest{
+		WorkspaceID: workspaceID,
+		Limit:       1000,
+	}
+
+	contactsResp, err := s.contactService.GetContacts(ctx, contactsReq)
+	if err != nil {
+		return fmt.Errorf("failed to get contacts for custom events: %w", err)
+	}
+
+	if len(contactsResp.Contacts) == 0 {
+		s.logger.WithField("workspace_id", workspaceID).Info("No contacts found, skipping custom events generation")
+		return nil
+	}
+
+	// Sample product names for realistic demo data
+	productNames := []string{
+		"Premium Subscription", "Basic Plan", "Pro License", "Enterprise Package",
+		"Widget Pack", "Service Credit", "Annual Membership", "Monthly Bundle",
+		"Starter Kit", "Professional Tools", "Digital Download", "Consulting Hour",
+	}
+
+	totalEvents := 0
+
+	// 70% of contacts have purchase history
+	for _, contact := range contactsResp.Contacts {
+		if rand.Float32() >= 0.7 {
+			continue // Skip 30% of contacts
+		}
+
+		// Generate 1-5 purchase events per contact
+		numPurchases := 1 + rand.Intn(5)
+		contactCreatedAt := contact.CreatedAt
+
+		for j := 0; j < numPurchases; j++ {
+			// Spread purchases over time after contact creation
+			daysAfterCreation := rand.Intn(180) // Up to 6 months after signup
+			purchaseTime := contactCreatedAt.Add(time.Duration(daysAfterCreation*24) * time.Hour)
+
+			// Don't create events in the future
+			if purchaseTime.After(time.Now()) {
+				purchaseTime = time.Now().Add(-time.Duration(rand.Intn(30*24)) * time.Hour)
+			}
+
+			// Generate purchase value (between $10 and $500)
+			purchaseValue := 10.0 + rand.Float64()*490.0
+			purchaseValue = float64(int(purchaseValue*100)) / 100 // Round to 2 decimal places
+
+			goalType := "purchase"
+			goalName := "E-commerce Purchase"
+
+			customEvent := &domain.CustomEvent{
+				ExternalID: fmt.Sprintf("demo_purchase_%s_%d_%d", contact.Email, j, purchaseTime.Unix()),
+				Email:      contact.Email,
+				EventName:  "purchase",
+				Properties: map[string]interface{}{
+					"product_name": getRandomElement(productNames),
+					"quantity":     1 + rand.Intn(3),
+					"currency":     "USD",
+					"order_id":     fmt.Sprintf("ORD-%d", 10000+rand.Intn(90000)),
+				},
+				OccurredAt: purchaseTime,
+				Source:     "demo",
+				GoalName:   &goalName,
+				GoalType:   &goalType,
+				GoalValue:  &purchaseValue,
+				CreatedAt:  purchaseTime,
+				UpdatedAt:  purchaseTime,
+			}
+
+			if err := s.customEventRepo.Upsert(ctx, workspaceID, customEvent); err != nil {
+				s.logger.WithField("email", contact.Email).WithField("error", err.Error()).Debug("Failed to create custom event")
+				continue
+			}
+
+			totalEvents++
+		}
+	}
+
+	s.logger.WithField("workspace_id", workspaceID).WithField("total_events", totalEvents).Info("Sample custom events generation completed")
+	return nil
 }
 
 // generateEmail creates a realistic email address
@@ -1670,7 +1760,7 @@ func getStringValue(ns *domain.NullableString) string {
 func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID string) error {
 	s.logger.WithField("workspace_id", workspaceID).Info("Creating sample segments")
 
-	// Segment 1: VIP Customers (high lifetime value and orders) - demonstrates AND logic
+	// Segment 1: VIP Customers (high lifetime value and orders) - demonstrates AND logic with custom events goals
 	vipSegment := &domain.CreateSegmentRequest{
 		WorkspaceID: workspaceID,
 		ID:          "vip_customers",
@@ -1685,32 +1775,26 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 					{
 						Kind: "leaf",
 						Leaf: &domain.TreeNodeLeaf{
-							Table: "contacts",
-							Contact: &domain.ContactCondition{
-								Filters: []*domain.DimensionFilter{
-									{
-										FieldName:    "lifetime_value",
-										FieldType:    "number",
-										Operator:     "gte",
-										NumberValues: []float64{800.0},
-									},
-								},
+							Source: "custom_events_goals",
+							CustomEventsGoal: &domain.CustomEventsGoalCondition{
+								GoalType:          "purchase",
+								AggregateOperator: "sum",
+								Operator:          "gte",
+								Value:             800.0,
+								TimeframeOperator: "anytime",
 							},
 						},
 					},
 					{
 						Kind: "leaf",
 						Leaf: &domain.TreeNodeLeaf{
-							Table: "contacts",
-							Contact: &domain.ContactCondition{
-								Filters: []*domain.DimensionFilter{
-									{
-										FieldName:    "orders_count",
-										FieldType:    "number",
-										Operator:     "gte",
-										NumberValues: []float64{3.0},
-									},
-								},
+							Source: "custom_events_goals",
+							CustomEventsGoal: &domain.CustomEventsGoalCondition{
+								GoalType:          "purchase",
+								AggregateOperator: "count",
+								Operator:          "gte",
+								Value:             3.0,
+								TimeframeOperator: "anytime",
 							},
 						},
 					},
@@ -1740,7 +1824,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 					{
 						Kind: "leaf",
 						Leaf: &domain.TreeNodeLeaf{
-							Table: "contacts",
+							Source: "contacts",
 							Contact: &domain.ContactCondition{
 								Filters: []*domain.DimensionFilter{
 									{
@@ -1756,7 +1840,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 					{
 						Kind: "leaf",
 						Leaf: &domain.TreeNodeLeaf{
-							Table: "contacts",
+							Source: "contacts",
 							Contact: &domain.ContactCondition{
 								Filters: []*domain.DimensionFilter{
 									{
@@ -1772,7 +1856,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 					{
 						Kind: "leaf",
 						Leaf: &domain.TreeNodeLeaf{
-							Table: "contacts",
+							Source: "contacts",
 							Contact: &domain.ContactCondition{
 								Filters: []*domain.DimensionFilter{
 									{
@@ -1788,7 +1872,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 					{
 						Kind: "leaf",
 						Leaf: &domain.TreeNodeLeaf{
-							Table: "contacts",
+							Source: "contacts",
 							Contact: &domain.ContactCondition{
 								Filters: []*domain.DimensionFilter{
 									{
@@ -1804,7 +1888,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 					{
 						Kind: "leaf",
 						Leaf: &domain.TreeNodeLeaf{
-							Table: "contacts",
+							Source: "contacts",
 							Contact: &domain.ContactCondition{
 								Filters: []*domain.DimensionFilter{
 									{
@@ -1844,7 +1928,7 @@ func (s *DemoService) createSampleSegments(ctx context.Context, workspaceID stri
 					{
 						Kind: "leaf",
 						Leaf: &domain.TreeNodeLeaf{
-							Table: "contact_timeline",
+							Source: "contact_timeline",
 							ContactTimeline: &domain.ContactTimelineCondition{
 								Kind:              "open_email",
 								CountOperator:     "at_least",

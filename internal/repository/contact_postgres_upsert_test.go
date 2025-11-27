@@ -127,8 +127,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-			"lifetime_value", "orders_count", "last_order_at",
-			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -137,7 +136,6 @@ func TestUpsertContact(t *testing.T) {
 			AddRow(
 				existingContact.Email, "old-ext", nil, nil, "Old", "Name", nil,
 				nil, nil, nil, nil, nil, nil,
-				nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -362,8 +360,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-			"lifetime_value", "orders_count", "last_order_at",
-			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -372,7 +369,6 @@ func TestUpsertContact(t *testing.T) {
 			AddRow(
 				email, "old-ext", nil, nil, "Old", "Name", nil,
 				nil, nil, nil, nil, nil, nil,
-				nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -537,8 +533,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-			"lifetime_value", "orders_count", "last_order_at",
-			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -547,7 +542,6 @@ func TestUpsertContact(t *testing.T) {
 			AddRow(
 				email, "ext123", nil, nil, "John", "Doe", nil,
 				nil, nil, nil, nil, nil, nil,
-				nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -625,9 +619,6 @@ func TestUpsertContact(t *testing.T) {
 			Postcode:      &domain.NullableString{String: "75001", IsNull: false},
 			State:         &domain.NullableString{String: "Île-de-France", IsNull: false},
 			JobTitle:      &domain.NullableString{String: "Developer", IsNull: false},
-			LifetimeValue: &domain.NullableFloat64{Float64: 1250.50, IsNull: false},
-			OrdersCount:   &domain.NullableFloat64{Float64: 12, IsNull: false},
-			LastOrderAt:   &domain.NullableTime{Time: now.Add(-24 * time.Hour), IsNull: false},
 
 			// Custom string fields
 			CustomString1: &domain.NullableString{String: "Custom 1", IsNull: false},
@@ -713,13 +704,10 @@ func TestUpsertContact(t *testing.T) {
 		minimalContact := &domain.Contact{
 			Email: email,
 			// All optional fields are nil or explicitly NULL
-			ExternalID:    &domain.NullableString{IsNull: true},
-			FirstName:     &domain.NullableString{IsNull: true},
-			LastName:      &domain.NullableString{IsNull: true},
-			LifetimeValue: &domain.NullableFloat64{IsNull: true},
-			OrdersCount:   &domain.NullableFloat64{IsNull: true},
-			LastOrderAt:   &domain.NullableTime{IsNull: true},
-			CustomJSON1:   &domain.NullableJSON{IsNull: true},
+			ExternalID:  &domain.NullableString{IsNull: true},
+			FirstName:   &domain.NullableString{IsNull: true},
+			LastName:    &domain.NullableString{IsNull: true},
+			CustomJSON1: &domain.NullableJSON{IsNull: true},
 			CreatedAt:     now,
 			UpdatedAt:     now,
 		}
@@ -776,8 +764,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-			"lifetime_value", "orders_count", "last_order_at",
-			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -786,7 +773,6 @@ func TestUpsertContact(t *testing.T) {
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
 				nil, nil, nil, nil, nil, nil,
-				nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -859,8 +845,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-			"lifetime_value", "orders_count", "last_order_at",
-			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -869,7 +854,6 @@ func TestUpsertContact(t *testing.T) {
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", "+1234567000",
 				"Old Address 1", "Old Address 2", "Old Country", "Old Postcode", "Old State", "Old Job Title",
-				100.0, 5, now.Add(-72*time.Hour),
 				"Old Custom 1", "Old Custom 2", "Old Custom 3", "Old Custom 4", "Old Custom 5",
 				1.1, 2.2, 3.3, 4.4, 5.5,
 				now.Add(-10*time.Hour), now.Add(-20*time.Hour), now.Add(-30*time.Hour), now.Add(-40*time.Hour), now.Add(-50*time.Hour),
@@ -892,9 +876,6 @@ func TestUpsertContact(t *testing.T) {
 			Postcode:      &domain.NullableString{String: "75001", IsNull: false},
 			State:         &domain.NullableString{String: "Île-de-France", IsNull: false},
 			JobTitle:      &domain.NullableString{String: "Developer", IsNull: false},
-			LifetimeValue: &domain.NullableFloat64{Float64: 1250.50, IsNull: false},
-			OrdersCount:   &domain.NullableFloat64{Float64: 12, IsNull: false},
-			LastOrderAt:   &domain.NullableTime{Time: now.Add(-24 * time.Hour), IsNull: false},
 
 			// Custom string fields
 			CustomString1: &domain.NullableString{String: "New Custom 1", IsNull: false},
@@ -978,8 +959,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-			"lifetime_value", "orders_count", "last_order_at",
-			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -988,7 +968,6 @@ func TestUpsertContact(t *testing.T) {
 			AddRow(
 				email, "ext123", "UTC", "en-US", "John", "Doe", "+1234567890",
 				"Address 1", "Address 2", "Country", "Postcode", "State", "Job Title",
-				100.0, 5, now.Add(-24*time.Hour),
 				"Custom 1", "Custom 2", "Custom 3", "Custom 4", "Custom 5",
 				1.1, 2.2, 3.3, 4.4, 5.5,
 				now.Add(-1*time.Hour), now.Add(-2*time.Hour), now.Add(-3*time.Hour), now.Add(-4*time.Hour), now.Add(-5*time.Hour),
@@ -1011,14 +990,11 @@ func TestUpsertContact(t *testing.T) {
 			CustomString3:   &domain.NullableString{IsNull: true},
 			CustomString4:   &domain.NullableString{IsNull: true},
 			CustomString5:   &domain.NullableString{IsNull: true},
-			LifetimeValue:   &domain.NullableFloat64{IsNull: true},
-			OrdersCount:     &domain.NullableFloat64{IsNull: true},
 			CustomNumber1:   &domain.NullableFloat64{IsNull: true},
 			CustomNumber2:   &domain.NullableFloat64{IsNull: true},
 			CustomNumber3:   &domain.NullableFloat64{IsNull: true},
 			CustomNumber4:   &domain.NullableFloat64{IsNull: true},
 			CustomNumber5:   &domain.NullableFloat64{IsNull: true},
-			LastOrderAt:     &domain.NullableTime{IsNull: true},
 			CustomDatetime1: &domain.NullableTime{IsNull: true},
 			CustomDatetime2: &domain.NullableTime{IsNull: true},
 			CustomDatetime3: &domain.NullableTime{IsNull: true},
@@ -1084,8 +1060,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-			"lifetime_value", "orders_count", "last_order_at",
-			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -1094,7 +1069,6 @@ func TestUpsertContact(t *testing.T) {
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
 				nil, nil, nil, nil, nil, nil,
-				nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -1161,8 +1135,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-			"lifetime_value", "orders_count", "last_order_at",
-			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -1171,7 +1144,6 @@ func TestUpsertContact(t *testing.T) {
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
 				nil, nil, nil, nil, nil, nil,
-				nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -1237,8 +1209,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-			"lifetime_value", "orders_count", "last_order_at",
-			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -1247,7 +1218,6 @@ func TestUpsertContact(t *testing.T) {
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
 				nil, nil, nil, nil, nil, nil,
-				nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -1313,8 +1283,7 @@ func TestUpsertContact(t *testing.T) {
 		rows := sqlmock.NewRows([]string{
 			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
-			"lifetime_value", "orders_count", "last_order_at",
-			"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 			"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
 			"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
@@ -1323,7 +1292,6 @@ func TestUpsertContact(t *testing.T) {
 			AddRow(
 				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
 				nil, nil, nil, nil, nil, nil,
-				nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,

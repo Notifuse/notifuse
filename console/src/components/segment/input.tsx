@@ -254,18 +254,18 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
 
     // Add leaf
     const leaf = {
-      table: selectedOptions[0].value
+      source: selectedOptions[0].value
     } as TreeNodeLeaf
 
-    // Initialize based on table type
-    if (leaf.table === 'contact_lists') {
+    // Initialize based on source type
+    if (leaf.source === 'contact_lists') {
       // Contact lists use ContactListCondition
       leaf.contact_list = {
         operator: 'in',
         list_id: '',
         status: undefined
       }
-    } else if (leaf.table === 'contacts') {
+    } else if (leaf.source === 'contacts') {
       // Contacts use ContactCondition
       leaf.contact = {
         filters: [] as DimensionFilter[]
@@ -400,7 +400,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
         ? true
         : false
 
-    const schema = props.schemas[node.leaf?.table as string]
+    const schema = props.schemas[node.leaf?.source as string]
 
     if (!schema) {
       return (
@@ -409,25 +409,25 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
             {deleteButton(path, pathKey, false)}
           </Flex>
           <div>
-            <Alert type="error" message={'table ' + node.leaf?.table + ' not found'} />
+            <Alert type="error" message={'source ' + node.leaf?.source + ' not found'} />
           </div>
         </div>
       )
     }
 
     if (isEditingCurrent && editingNodeLeaf) {
-      const isContactTable = node.leaf?.table === 'contacts'
-      const isContactListTable = node.leaf?.table === 'contact_lists'
+      const isContactSource = node.leaf?.source === 'contacts'
+      const isContactListSource = node.leaf?.source === 'contact_lists'
 
       return (
         <div className="py-4 pl-4">
-          {isContactTable && (
+          {isContactSource && (
             <LeafContactForm
               value={node}
               onChange={(updatedLeaf: TreeNode) => {
                 onUpdateNode(updatedLeaf, path, pathKey)
               }}
-              table={node.leaf?.table as string}
+              source={node.leaf?.source as string}
               schema={schema}
               editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
               setEditingNodeLeaf={setEditingNodeLeaf}
@@ -435,13 +435,13 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               customFieldLabels={props.customFieldLabels}
             />
           )}
-          {isContactListTable && (
+          {isContactListSource && (
             <LeafContactListForm
               value={node}
               onChange={(updatedLeaf: TreeNode) => {
                 onUpdateNode(updatedLeaf, path, pathKey)
               }}
-              table={node.leaf?.table as string}
+              source={node.leaf?.source as string}
               schema={schema}
               editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
               setEditingNodeLeaf={setEditingNodeLeaf}
@@ -450,13 +450,13 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               customFieldLabels={props.customFieldLabels}
             />
           )}
-          {!isContactTable && !isContactListTable && (
+          {!isContactSource && !isContactListSource && (
             <LeafActionForm
               value={node}
               onChange={(updatedLeaf: TreeNode) => {
                 onUpdateNode(updatedLeaf, path, pathKey)
               }}
-              table={node.leaf?.table as string}
+              source={node.leaf?.source as string}
               schema={schema}
               editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
               setEditingNodeLeaf={setEditingNodeLeaf}
@@ -471,8 +471,8 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     // console.log('node', node)
 
     // Special rendering for contact_lists
-    const isContactListTable = node.leaf?.table === 'contact_lists'
-    if (isContactListTable && node.leaf?.contact_list) {
+    const isContactListSource = node.leaf?.source === 'contact_lists'
+    if (isContactListSource && node.leaf?.contact_list) {
       const contactList = node.leaf.contact_list
       const listName =
         props.lists?.find((l) => l.id === contactList.list_id)?.name || contactList.list_id
@@ -514,12 +514,12 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
       )
     }
 
-    // Determine filters based on table type
-    const isContactTable = node.leaf?.table === 'contacts'
-    const isContactTimelineTable = node.leaf?.table === 'contact_timeline'
-    const filtersToShow = isContactTable
+    // Determine filters based on source type
+    const isContactSource = node.leaf?.source === 'contacts'
+    const isContactTimelineSource = node.leaf?.source === 'contact_timeline'
+    const filtersToShow = isContactSource
       ? node.leaf?.contact?.filters
-      : isContactTimelineTable
+      : isContactTimelineSource
         ? node.leaf?.contact_timeline?.filters
         : undefined
 
@@ -534,13 +534,13 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
 
         <div>
           <Space style={{ alignItems: 'start' }}>
-            {isContactTable && (
+            {isContactSource && (
               <Tag bordered={false} color="cyan">
                 {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
                 Contact property
               </Tag>
             )}
-            {isContactTimelineTable && (
+            {isContactTimelineSource && (
               <Tag bordered={false} color="cyan">
                 {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
                 Activity

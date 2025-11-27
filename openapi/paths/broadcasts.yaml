@@ -1,0 +1,653 @@
+/api/broadcasts.list:
+  get:
+    summary: List broadcasts
+    description: Retrieves a list of broadcasts with pagination and optional filtering by status. Supports fetching template details for each variation.
+    operationId: listBroadcasts
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+            - draft
+            - scheduled
+            - sending
+            - paused
+            - sent
+            - cancelled
+            - failed
+            - testing
+            - test_completed
+            - winner_selected
+        description: Filter broadcasts by status
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 50
+        description: Maximum number of broadcasts to return
+        example: 50
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          default: 0
+        description: Number of broadcasts to skip for pagination
+        example: 0
+      - name: with_templates
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+        description: Include full template details for each variation
+        example: false
+    responses:
+      '200':
+        description: List of broadcasts retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/broadcast.yaml#/BroadcastListResponse'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: workspace_id is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to list broadcasts
+
+/api/broadcasts.get:
+  get:
+    summary: Get a broadcast
+    description: Retrieves a single broadcast by ID. Optionally includes template details for each variation.
+    operationId: getBroadcast
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the broadcast
+        example: broadcast_12345
+      - name: with_templates
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+        description: Include full template details for each variation
+        example: false
+    responses:
+      '200':
+        description: Broadcast retrieved successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                broadcast:
+                  $ref: '../components/schemas/broadcast.yaml#/Broadcast'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Broadcast not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/broadcasts.create:
+  post:
+    summary: Create a broadcast
+    description: Creates a new broadcast campaign. The broadcast is created in draft status unless scheduling is configured.
+    operationId: createBroadcast
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/CreateBroadcastRequest'
+    responses:
+      '201':
+        description: Broadcast created successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                broadcast:
+                  $ref: '../components/schemas/broadcast.yaml#/Broadcast'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingName:
+                value:
+                  error: name is required
+              missingList:
+                value:
+                  error: list is required
+              invalidTestSettings:
+                value:
+                  error: at least 2 variations are required for A/B testing
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to create broadcast
+
+/api/broadcasts.update:
+  post:
+    summary: Update a broadcast
+    description: Updates an existing broadcast. Only broadcasts in draft, scheduled, or paused status can be updated.
+    operationId: updateBroadcast
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/UpdateBroadcastRequest'
+    responses:
+      '200':
+        description: Broadcast updated successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                broadcast:
+                  $ref: '../components/schemas/broadcast.yaml#/Broadcast'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              invalidStatus:
+                value:
+                  error: "cannot update broadcast with status: sending"
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Broadcast not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/broadcasts.schedule:
+  post:
+    summary: Schedule a broadcast
+    description: Schedules a broadcast for sending either immediately or at a specified time. This endpoint is restricted in demo mode.
+    operationId: scheduleBroadcast
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/ScheduleBroadcastRequest'
+    responses:
+      '200':
+        description: Broadcast scheduled successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingDateTime:
+                value:
+                  error: scheduled_date and scheduled_time are required when not sending immediately
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/broadcasts.pause:
+  post:
+    summary: Pause a broadcast
+    description: Pauses a broadcast that is currently sending.
+    operationId: pauseBroadcast
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/PauseBroadcastRequest'
+    responses:
+      '200':
+        description: Broadcast paused successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/broadcasts.resume:
+  post:
+    summary: Resume a broadcast
+    description: Resumes a paused broadcast.
+    operationId: resumeBroadcast
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/ResumeBroadcastRequest'
+    responses:
+      '200':
+        description: Broadcast resumed successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/broadcasts.cancel:
+  post:
+    summary: Cancel a broadcast
+    description: Cancels a scheduled broadcast.
+    operationId: cancelBroadcast
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/CancelBroadcastRequest'
+    responses:
+      '200':
+        description: Broadcast cancelled successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/broadcasts.sendToIndividual:
+  post:
+    summary: Send broadcast to individual
+    description: Sends a broadcast to a single recipient for testing purposes. Optionally specify which template variation to send.
+    operationId: sendBroadcastToIndividual
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/SendToIndividualRequest'
+    responses:
+      '200':
+        description: Broadcast sent to individual successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/broadcasts.delete:
+  post:
+    summary: Delete a broadcast
+    description: Deletes a broadcast. This action is permanent and cannot be undone.
+    operationId: deleteBroadcast
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/DeleteBroadcastRequest'
+    responses:
+      '200':
+        description: Broadcast deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Broadcast not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/broadcasts.getTestResults:
+  get:
+    summary: Get A/B test results
+    description: Retrieves the performance metrics for all variations in an A/B test broadcast.
+    operationId: getBroadcastTestResults
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the broadcast
+        example: broadcast_12345
+    responses:
+      '200':
+        description: Test results retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/broadcast.yaml#/TestResultsResponse'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to get test results
+
+/api/broadcasts.selectWinner:
+  post:
+    summary: Select winning A/B test variation
+    description: Manually selects the winning variation for an A/B test broadcast. The winning variation will be sent to the remaining audience. This endpoint is restricted in demo mode.
+    operationId: selectBroadcastWinner
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/broadcast.yaml#/SelectWinnerRequest'
+    responses:
+      '200':
+        description: Winner selected successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to select winner

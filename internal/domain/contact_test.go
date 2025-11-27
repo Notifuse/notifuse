@@ -88,12 +88,12 @@ func TestContact_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "valid contact with commerce fields",
+			name: "valid contact with custom number fields",
 			contact: Contact{
 				Email:         "test@example.com",
-				LifetimeValue: &NullableFloat64{Float64: 100.0, IsNull: false},
-				OrdersCount:   &NullableFloat64{Float64: 5.0, IsNull: false},
-				LastOrderAt:   &NullableTime{Time: time.Now(), IsNull: false},
+				CustomNumber1: &NullableFloat64{Float64: 100.0, IsNull: false},
+				CustomNumber2: &NullableFloat64{Float64: 5.0, IsNull: false},
+				CustomNumber3: &NullableFloat64{Float64: 10.0, IsNull: false},
 			},
 			wantErr: false,
 		},
@@ -169,9 +169,6 @@ func TestScanContact(t *testing.T) {
 			sql.NullString{String: "12345", Valid: true},        // Postcode
 			sql.NullString{String: "CA", Valid: true},           // State
 			sql.NullString{String: "Developer", Valid: true},    // JobTitle
-			sql.NullFloat64{Float64: 100.50, Valid: true},       // LifetimeValue
-			sql.NullFloat64{Float64: 5, Valid: true},            // OrdersCount
-			sql.NullTime{Time: now, Valid: true},                // LastOrderAt
 			sql.NullString{String: "Custom 1", Valid: true},     // CustomString1
 			sql.NullString{String: "Custom 2", Valid: true},     // CustomString2
 			sql.NullString{String: "Custom 3", Valid: true},     // CustomString3
@@ -225,12 +222,6 @@ func TestScanContact(t *testing.T) {
 	assert.False(t, contact.State.IsNull)
 	assert.Equal(t, "Developer", contact.JobTitle.String)
 	assert.False(t, contact.JobTitle.IsNull)
-	assert.Equal(t, 100.50, contact.LifetimeValue.Float64)
-	assert.False(t, contact.LifetimeValue.IsNull)
-	assert.Equal(t, float64(5), contact.OrdersCount.Float64)
-	assert.False(t, contact.OrdersCount.IsNull)
-	assert.Equal(t, now, contact.LastOrderAt.Time)
-	assert.False(t, contact.LastOrderAt.IsNull)
 	assert.Equal(t, "Custom 1", contact.CustomString1.String)
 	assert.False(t, contact.CustomString1.IsNull)
 	assert.Equal(t, 42.0, contact.CustomNumber1.Float64)
@@ -283,9 +274,6 @@ func TestScanContact(t *testing.T) {
 				sql.NullString{String: "", Valid: false},      // Postcode
 				sql.NullString{String: "", Valid: false},      // State
 				sql.NullString{String: "", Valid: false},      // JobTitle
-				sql.NullFloat64{Float64: 0, Valid: false},     // LifetimeValue
-				sql.NullFloat64{Float64: 0, Valid: false},     // OrdersCount
-				sql.NullTime{Time: time.Time{}, Valid: false}, // LastOrderAt
 				sql.NullString{String: "", Valid: false},      // CustomString1
 				sql.NullString{String: "", Valid: false},      // CustomString2
 				sql.NullString{String: "", Valid: false},      // CustomString3
@@ -328,9 +316,6 @@ func TestScanContact(t *testing.T) {
 		assert.Nil(t, contact.Postcode)
 		assert.Nil(t, contact.State)
 		assert.Nil(t, contact.JobTitle)
-		assert.Nil(t, contact.LifetimeValue)
-		assert.Nil(t, contact.OrdersCount)
-		assert.Nil(t, contact.LastOrderAt)
 		assert.Nil(t, contact.CustomString1)
 		assert.Nil(t, contact.CustomString2)
 		assert.Nil(t, contact.CustomString3)
@@ -369,9 +354,6 @@ func TestScanContact(t *testing.T) {
 				sql.NullString{String: "", Valid: false},      // Postcode
 				sql.NullString{String: "", Valid: false},      // State
 				sql.NullString{String: "", Valid: false},      // JobTitle
-				sql.NullFloat64{Float64: 0, Valid: false},     // LifetimeValue
-				sql.NullFloat64{Float64: 0, Valid: false},     // OrdersCount
-				sql.NullTime{Time: time.Time{}, Valid: false}, // LastOrderAt
 				sql.NullString{String: "", Valid: false},      // CustomString1
 				sql.NullString{String: "", Valid: false},      // CustomString2
 				sql.NullString{String: "", Valid: false},      // CustomString3
@@ -563,24 +545,24 @@ func TestContact_Merge(t *testing.T) {
 			},
 		},
 		{
-			name: "Merge commerce fields",
+			name: "Merge custom number fields",
 			base: &Contact{
 				Email:         "test@example.com",
-				LifetimeValue: &NullableFloat64{Float64: 100.0, IsNull: false},
-				OrdersCount:   &NullableFloat64{Float64: 1.0, IsNull: false},
-				LastOrderAt:   &NullableTime{Time: now, IsNull: false},
+				CustomNumber1: &NullableFloat64{Float64: 100.0, IsNull: false},
+				CustomNumber2: &NullableFloat64{Float64: 1.0, IsNull: false},
+				CustomDatetime1: &NullableTime{Time: now, IsNull: false},
 			},
 			other: &Contact{
 				Email:         "test@example.com",
-				LifetimeValue: &NullableFloat64{Float64: 200.0, IsNull: false},
-				OrdersCount:   &NullableFloat64{Float64: 2.0, IsNull: false},
-				LastOrderAt:   &NullableTime{Time: later, IsNull: false},
+				CustomNumber1: &NullableFloat64{Float64: 200.0, IsNull: false},
+				CustomNumber2: &NullableFloat64{Float64: 2.0, IsNull: false},
+				CustomDatetime1: &NullableTime{Time: later, IsNull: false},
 			},
 			expected: &Contact{
 				Email:         "test@example.com",
-				LifetimeValue: &NullableFloat64{Float64: 200.0, IsNull: false},
-				OrdersCount:   &NullableFloat64{Float64: 2.0, IsNull: false},
-				LastOrderAt:   &NullableTime{Time: later, IsNull: false},
+				CustomNumber1: &NullableFloat64{Float64: 200.0, IsNull: false},
+				CustomNumber2: &NullableFloat64{Float64: 2.0, IsNull: false},
+				CustomDatetime1: &NullableTime{Time: later, IsNull: false},
 			},
 		},
 		{
@@ -849,9 +831,6 @@ func TestFromJSON(t *testing.T) {
 		"postcode": "12345",
 		"state": "NY",
 		"job_title": "Engineer",
-		"lifetime_value": 1000.50,
-		"orders_count": 5,
-		"last_order_at": "` + now.Format(time.RFC3339) + `",
 		"custom_string_1": "custom1",
 		"custom_string_2": null,
 		"custom_number_1": 42.5,
@@ -885,9 +864,6 @@ func TestFromJSON(t *testing.T) {
 				Postcode:        &NullableString{String: "12345", IsNull: false},
 				State:           &NullableString{String: "NY", IsNull: false},
 				JobTitle:        &NullableString{String: "Engineer", IsNull: false},
-				LifetimeValue:   &NullableFloat64{Float64: 1000.50, IsNull: false},
-				OrdersCount:     &NullableFloat64{Float64: 5, IsNull: false},
-				LastOrderAt:     &NullableTime{Time: now, IsNull: false},
 				CustomString1:   &NullableString{String: "custom1", IsNull: false},
 				CustomString2:   &NullableString{String: "", IsNull: true},
 				CustomNumber1:   &NullableFloat64{Float64: 42.5, IsNull: false},
@@ -940,7 +916,7 @@ func TestFromJSON(t *testing.T) {
 			name: "invalid JSON format for nullable float",
 			input: `{
 				"email": "test@example.com",
-				"lifetime_value": "not-a-number"
+				"custom_number_1": "not-a-number"
 			}`,
 			want:    nil,
 			wantErr: true,
@@ -949,7 +925,7 @@ func TestFromJSON(t *testing.T) {
 			name: "invalid JSON format for nullable time",
 			input: `{
 				"email": "test@example.com",
-				"last_order_at": "invalid-time"
+				"custom_datetime_1": "invalid-time"
 			}`,
 			want:    nil,
 			wantErr: true,
@@ -1047,11 +1023,6 @@ func TestFromJSON(t *testing.T) {
 				if tt.want.CustomJSON2 != nil {
 					assert.Equal(t, tt.want.CustomJSON2.IsNull, got.CustomJSON2.IsNull)
 					assert.Equal(t, tt.want.CustomJSON2.Data, got.CustomJSON2.Data)
-				}
-
-				if tt.want.LastOrderAt != nil {
-					assert.Equal(t, tt.want.LastOrderAt.Time.Unix(), got.LastOrderAt.Time.Unix())
-					assert.Equal(t, tt.want.LastOrderAt.IsNull, got.LastOrderAt.IsNull)
 				}
 			}
 		})
@@ -1409,9 +1380,6 @@ func TestFromJSON_AdditionalCases(t *testing.T) {
 				"postcode": "12345",
 				"state": "NY",
 				"job_title": "Engineer",
-				"lifetime_value": 1000.50,
-				"orders_count": 5,
-				"last_order_at": "2023-01-01T12:00:00Z",
 				"custom_string_1": "custom1",
 				"custom_number_1": 42,
 				"custom_datetime_1": "2023-01-01T12:00:00Z",
@@ -1434,8 +1402,8 @@ func TestFromJSON_AdditionalCases(t *testing.T) {
 			input: `{
 				"email": "test@example.com",
 				"external_id": 123,
-				"lifetime_value": "not a number",
-				"last_order_at": "invalid date"
+				"custom_number_1": "not a number",
+				"custom_datetime_1": "invalid date"
 			}`,
 			wantErr: true,
 		},
@@ -1444,7 +1412,7 @@ func TestFromJSON_AdditionalCases(t *testing.T) {
 			input: `{
 				"email": "test@example.com",
 				"external_id": null,
-				"lifetime_value": null,
+				"custom_number_1": null,
 				"custom_json_1": null
 			}`,
 			wantErr: false,
@@ -1522,30 +1490,30 @@ func TestContact_ToMapOfAny(t *testing.T) {
 				Email:         "test@example.com",
 				CreatedAt:     now,
 				UpdatedAt:     now,
-				LifetimeValue: &NullableFloat64{Float64: 100.50, IsNull: false},
-				OrdersCount:   &NullableFloat64{Float64: 5, IsNull: false},
-				CustomNumber1: &NullableFloat64{Float64: 42.0, IsNull: false},
+				CustomNumber1: &NullableFloat64{Float64: 100.50, IsNull: false},
+				CustomNumber2: &NullableFloat64{Float64: 5, IsNull: false},
+				CustomNumber3: &NullableFloat64{Float64: 42.0, IsNull: false},
 			},
 			expectError: false,
 			validate: func(t *testing.T, result MapOfAny) {
 				assert.Equal(t, "test@example.com", result["email"])
-				assert.Equal(t, 100.50, result["lifetime_value"])
-				assert.Equal(t, float64(5), result["orders_count"])
-				assert.Equal(t, float64(42.0), result["custom_number_1"])
+				assert.Equal(t, 100.50, result["custom_number_1"])
+				assert.Equal(t, float64(5), result["custom_number_2"])
+				assert.Equal(t, float64(42.0), result["custom_number_3"])
 			},
 		},
 		{
 			name: "contact with date fields",
 			contact: &Contact{
-				Email:       "test@example.com",
-				CreatedAt:   now,
-				UpdatedAt:   now,
-				LastOrderAt: &NullableTime{Time: now, IsNull: false},
+				Email:           "test@example.com",
+				CreatedAt:       now,
+				UpdatedAt:       now,
+				CustomDatetime1: &NullableTime{Time: now, IsNull: false},
 			},
 			expectError: false,
 			validate: func(t *testing.T, result MapOfAny) {
 				assert.Equal(t, "test@example.com", result["email"])
-				assert.NotNil(t, result["last_order_at"])
+				assert.NotNil(t, result["custom_datetime_1"])
 			},
 		},
 		{
@@ -1587,9 +1555,9 @@ func TestContact_ToMapOfAny(t *testing.T) {
 				ExternalID:      &NullableString{String: "ext123", IsNull: false},
 				FirstName:       &NullableString{String: "John", IsNull: false},
 				LastName:        &NullableString{String: "Doe", IsNull: false},
-				LifetimeValue:   &NullableFloat64{Float64: 100.50, IsNull: false},
-				OrdersCount:     &NullableFloat64{Float64: 5, IsNull: false},
-				LastOrderAt:     &NullableTime{Time: now, IsNull: false},
+				CustomNumber2:   &NullableFloat64{Float64: 100.50, IsNull: false},
+				CustomNumber3:   &NullableFloat64{Float64: 5, IsNull: false},
+				CustomDatetime2: &NullableTime{Time: now, IsNull: false},
 				CustomString1:   &NullableString{String: "Custom 1", IsNull: false},
 				CustomNumber1:   &NullableFloat64{Float64: 42.0, IsNull: false},
 				CustomDatetime1: &NullableTime{Time: now, IsNull: false},
@@ -1603,9 +1571,9 @@ func TestContact_ToMapOfAny(t *testing.T) {
 				assert.Equal(t, "ext123", result["external_id"])
 				assert.Equal(t, "John", result["first_name"])
 				assert.Equal(t, "Doe", result["last_name"])
-				assert.Equal(t, 100.50, result["lifetime_value"])
-				assert.Equal(t, float64(5), result["orders_count"])
-				assert.NotNil(t, result["last_order_at"])
+				assert.Equal(t, 100.50, result["custom_number_2"])
+				assert.Equal(t, float64(5), result["custom_number_3"])
+				assert.NotNil(t, result["custom_datetime_2"])
 				assert.Equal(t, "Custom 1", result["custom_string_1"])
 				assert.Equal(t, float64(42.0), result["custom_number_1"])
 				assert.NotNil(t, result["custom_datetime_1"])
@@ -1964,9 +1932,6 @@ func TestFromJSON_Comprehensive(t *testing.T) {
 			"postcode": "75001",
 			"state": "Paris",
 			"job_title": "Engineer",
-			"lifetime_value": 500.50,
-			"orders_count": 5,
-			"last_order_at": "%s",
 			"custom_string_1": "Custom Value 1",
 			"custom_string_2": "Custom Value 2",
 			"custom_number_1": 42.5,
@@ -1975,7 +1940,7 @@ func TestFromJSON_Comprehensive(t *testing.T) {
 			"custom_datetime_2": "%s",
 			"custom_json_1": {"preferences": {"theme": "dark"}},
 			"custom_json_2": ["item1", "item2"]
-		}`, validTime, validTime, validTime)
+		}`, validTime, validTime)
 
 		contact, err := FromJSON(jsonStr)
 		require.NoError(t, err)
@@ -1996,10 +1961,6 @@ func TestFromJSON_Comprehensive(t *testing.T) {
 		assert.Equal(t, "75001", contact.Postcode.String)
 		assert.Equal(t, "Paris", contact.State.String)
 		assert.Equal(t, "Engineer", contact.JobTitle.String)
-
-		// Check commerce fields
-		assert.Equal(t, 500.50, contact.LifetimeValue.Float64)
-		assert.Equal(t, 5.0, contact.OrdersCount.Float64)
 
 		// Check custom fields
 		assert.Equal(t, "Custom Value 1", contact.CustomString1.String)
@@ -2545,9 +2506,6 @@ func TestScanContact_SetsDBTimestamps(t *testing.T) {
 			sql.NullString{String: "", Valid: false},      // Postcode
 			sql.NullString{String: "", Valid: false},      // State
 			sql.NullString{String: "", Valid: false},      // JobTitle
-			sql.NullFloat64{Float64: 0, Valid: false},     // LifetimeValue
-			sql.NullFloat64{Float64: 0, Valid: false},     // OrdersCount
-			sql.NullTime{Time: time.Time{}, Valid: false}, // LastOrderAt
 			sql.NullString{String: "", Valid: false},      // CustomString1
 			sql.NullString{String: "", Valid: false},      // CustomString2
 			sql.NullString{String: "", Valid: false},      // CustomString3

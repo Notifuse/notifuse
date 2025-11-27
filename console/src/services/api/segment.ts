@@ -16,7 +16,7 @@ export type SegmentStatus = 'active' | 'deleted' | 'building'
 // Tree structure types
 export type TreeNodeKind = 'branch' | 'leaf'
 export type BooleanOperator = 'and' | 'or'
-export type TableType = 'contacts' | 'contact_lists' | 'contact_timeline'
+export type SourceType = 'contacts' | 'contact_lists' | 'contact_timeline' | 'custom_events_goals'
 
 // Dimension filter types
 export type FieldType = 'string' | 'number' | 'time' | 'json'
@@ -84,7 +84,7 @@ export interface ContactTimelineCondition {
 }
 
 export interface TreeNodeLeaf {
-  table: TableType
+  source: SourceType
   contact?: ContactCondition
   contact_list?: ContactListCondition
   contact_timeline?: ContactTimelineCondition
@@ -126,7 +126,7 @@ export interface EditingNodeLeaf extends TreeNode {
 
 // Field definition type
 export interface FieldDefinition {
-  table: string
+  source: string
   field_name: string
   definition: FieldSchema
 }

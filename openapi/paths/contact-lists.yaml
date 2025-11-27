@@ -1,0 +1,59 @@
+/api/contactLists.updateStatus:
+  post:
+    summary: Update contact list subscription status
+    description: Updates the subscription status of a contact in a specific list. Can set status to active, pending, unsubscribed, bounced, or complained.
+    operationId: updateContactListStatus
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/contact.yaml#/UpdateContactListStatusRequest'
+    responses:
+      '200':
+        description: Status updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/contact.yaml#/UpdateContactListStatusResponse'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              missingEmail:
+                value:
+                  error: email is required
+              missingListId:
+                value:
+                  error: list_id is required
+              invalidStatus:
+                value:
+                  error: invalid status value
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Contact list relationship not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: contact list not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'

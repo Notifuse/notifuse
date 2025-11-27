@@ -202,18 +202,18 @@ func TestCustomEvent_Validate(t *testing.T) {
 	}
 }
 
-func TestCreateCustomEventRequest_Validate(t *testing.T) {
+func TestUpsertCustomEventRequest_Validate(t *testing.T) {
 	now := time.Now()
 
 	tests := []struct {
 		name    string
-		req     CreateCustomEventRequest
+		req     UpsertCustomEventRequest
 		wantErr bool
 		errMsg  string
 	}{
 		{
 			name: "valid request with all fields",
-			req: CreateCustomEventRequest{
+			req: UpsertCustomEventRequest{
 				WorkspaceID: "workspace_123",
 				Email:       "user@example.com",
 				EventName:   "orders/fulfilled",
@@ -227,7 +227,7 @@ func TestCreateCustomEventRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "valid request with minimal fields",
-			req: CreateCustomEventRequest{
+			req: UpsertCustomEventRequest{
 				WorkspaceID: "workspace_123",
 				Email:       "user@example.com",
 				EventName:   "test.event",
@@ -237,7 +237,7 @@ func TestCreateCustomEventRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "valid request with nil properties (should auto-initialize)",
-			req: CreateCustomEventRequest{
+			req: UpsertCustomEventRequest{
 				WorkspaceID: "workspace_123",
 				Email:       "user@example.com",
 				EventName:   "test.event",
@@ -248,7 +248,7 @@ func TestCreateCustomEventRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "missing workspace_id",
-			req: CreateCustomEventRequest{
+			req: UpsertCustomEventRequest{
 				Email:      "user@example.com",
 				EventName:  "test.event",
 				ExternalID: "test_123",
@@ -258,7 +258,7 @@ func TestCreateCustomEventRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "missing email",
-			req: CreateCustomEventRequest{
+			req: UpsertCustomEventRequest{
 				WorkspaceID: "workspace_123",
 				EventName:   "test.event",
 				ExternalID:  "test_123",
@@ -268,7 +268,7 @@ func TestCreateCustomEventRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "missing event_name",
-			req: CreateCustomEventRequest{
+			req: UpsertCustomEventRequest{
 				WorkspaceID: "workspace_123",
 				Email:       "user@example.com",
 				ExternalID:  "test_123",
@@ -278,7 +278,7 @@ func TestCreateCustomEventRequest_Validate(t *testing.T) {
 		},
 		{
 			name: "missing external_id",
-			req: CreateCustomEventRequest{
+			req: UpsertCustomEventRequest{
 				WorkspaceID: "workspace_123",
 				Email:       "user@example.com",
 				EventName:   "test.event",

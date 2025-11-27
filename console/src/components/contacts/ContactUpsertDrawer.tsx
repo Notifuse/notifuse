@@ -159,9 +159,6 @@ const getOptionalFields = (workspace: Workspace) => [
   { key: 'postcode', label: 'Postcode' },
   { key: 'state', label: 'State' },
   { key: 'job_title', label: 'Job Title' },
-  { key: 'lifetime_value', label: 'Lifetime Value' },
-  { key: 'orders_count', label: 'Orders Count' },
-  { key: 'last_order_at', label: 'Last Order At' },
   { key: 'custom_string_1', label: formatCustomFieldLabel('custom_string_1', workspace) },
   { key: 'custom_string_2', label: formatCustomFieldLabel('custom_string_2', workspace) },
   { key: 'custom_string_3', label: formatCustomFieldLabel('custom_string_3', workspace) },
@@ -258,7 +255,7 @@ export function ContactUpsertDrawer({
         }
 
         // Handle date fields - convert string to dayjs object for DatePicker
-        else if (field === 'last_order_at' || field.startsWith('custom_datetime_')) {
+        else if (field.startsWith('custom_datetime_')) {
           const dateValue = contact[field as keyof Contact]
           if (dateValue) {
             formattedValues[field as keyof Contact] = dayjs(dateValue as string)
@@ -295,7 +292,7 @@ export function ContactUpsertDrawer({
           }
         }
         // Handle date fields - convert dayjs to ISO string
-        else if (field === 'last_order_at' || field.startsWith('custom_datetime_')) {
+        else if (field.startsWith('custom_datetime_')) {
           const dateValue = values[field]
           if (dateValue && dateValue.$d) {
             contactData[field] = dateValue.toISOString()
@@ -389,8 +386,6 @@ export function ContactUpsertDrawer({
     }
 
     if (
-      field === 'lifetime_value' ||
-      field === 'orders_count' ||
       field === 'custom_number_1' ||
       field === 'custom_number_2' ||
       field === 'custom_number_3' ||
@@ -403,7 +398,6 @@ export function ContactUpsertDrawer({
     }
 
     if (
-      field === 'last_order_at' ||
       field === 'custom_datetime_1' ||
       field === 'custom_datetime_2' ||
       field === 'custom_datetime_3' ||

@@ -1,0 +1,301 @@
+Template:
+  type: object
+  properties:
+    id:
+      type: string
+      description: Unique identifier for the template (alphanumeric, underscores, and hyphens only)
+      example: welcome_email
+      maxLength: 32
+      pattern: ^[a-zA-Z0-9_-]+$
+    name:
+      type: string
+      description: Name of the template
+      example: Welcome Email
+      maxLength: 32
+    version:
+      type: integer
+      format: int64
+      description: Version number of the template
+      example: 1
+    channel:
+      type: string
+      enum:
+        - email
+        - web
+      description: Communication channel
+      example: email
+    email:
+      $ref: '#/EmailTemplate'
+    web:
+      $ref: '#/WebTemplate'
+    category:
+      type: string
+      enum:
+        - marketing
+        - transactional
+        - welcome
+        - opt_in
+        - unsubscribe
+        - bounce
+        - blocklist
+        - blog
+        - other
+      description: Template category
+      example: transactional
+      maxLength: 20
+    template_macro_id:
+      type: string
+      nullable: true
+      description: ID of the template macro (layout) to use
+    integration_id:
+      type: string
+      nullable: true
+      description: ID of the integration managing this template (e.g., Supabase)
+    test_data:
+      type: object
+      additionalProperties: true
+      description: Test data for template preview
+      example:
+        user_name: John Doe
+        action_url: https://example.com/action
+    settings:
+      type: object
+      additionalProperties: true
+      description: Channel-specific third-party settings
+    created_at:
+      type: string
+      format: date-time
+      description: When the template was created
+    updated_at:
+      type: string
+      format: date-time
+      description: When the template was last updated
+    deleted_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the template was deleted (null if active)
+  required:
+    - id
+    - name
+    - channel
+    - category
+
+EmailTemplate:
+  type: object
+  properties:
+    sender_id:
+      type: string
+      description: ID of the sender configuration to use
+      example: sender_123
+    reply_to:
+      type: string
+      format: email
+      description: Reply-To email address
+      example: support@example.com
+    subject:
+      type: string
+      description: Email subject line (supports Liquid templating)
+      example: Welcome, {{user_name}}!
+    subject_preview:
+      type: string
+      nullable: true
+      description: Preview text shown in email clients
+      example: Get started with your account
+    compiled_preview:
+      type: string
+      description: Compiled HTML preview of the email
+    visual_editor_tree:
+      type: object
+      description: MJML visual editor tree structure
+      example:
+        type: mjml
+        children: []
+  required:
+    - subject
+    - compiled_preview
+    - visual_editor_tree
+
+WebTemplate:
+  type: object
+  properties:
+    content:
+      type: object
+      additionalProperties: true
+      description: Tiptap JSON content (source of truth for web templates)
+    html:
+      type: string
+      description: Pre-rendered HTML for display
+    plain_text:
+      type: string
+      description: Extracted text for search indexing
+  required:
+    - content
+
+CreateTemplateRequest:
+  type: object
+  required:
+    - workspace_id
+    - id
+    - name
+    - channel
+    - category
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    id:
+      type: string
+      description: Unique identifier for the template (alphanumeric, underscores, and hyphens only)
+      example: welcome_email
+      maxLength: 32
+      pattern: ^[a-zA-Z0-9_-]+$
+    name:
+      type: string
+      description: Name of the template
+      example: Welcome Email
+      maxLength: 32
+    channel:
+      type: string
+      enum:
+        - email
+        - web
+      description: Communication channel
+      example: email
+    email:
+      $ref: '#/EmailTemplate'
+    web:
+      $ref: '#/WebTemplate'
+    category:
+      type: string
+      enum:
+        - marketing
+        - transactional
+        - welcome
+        - opt_in
+        - unsubscribe
+        - bounce
+        - blocklist
+        - blog
+        - other
+      description: Template category
+      example: transactional
+    template_macro_id:
+      type: string
+      nullable: true
+      description: ID of the template macro (layout) to use
+    test_data:
+      type: object
+      additionalProperties: true
+      description: Test data for template preview
+    settings:
+      type: object
+      additionalProperties: true
+      description: Channel-specific settings
+
+UpdateTemplateRequest:
+  type: object
+  required:
+    - workspace_id
+    - id
+    - name
+    - channel
+    - category
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    id:
+      type: string
+      description: ID of the template to update
+      example: welcome_email
+      maxLength: 32
+    name:
+      type: string
+      description: Name of the template
+      example: Welcome Email
+      maxLength: 32
+    channel:
+      type: string
+      enum:
+        - email
+        - web
+      description: Communication channel
+      example: email
+    email:
+      $ref: '#/EmailTemplate'
+    web:
+      $ref: '#/WebTemplate'
+    category:
+      type: string
+      enum:
+        - marketing
+        - transactional
+        - welcome
+        - opt_in
+        - unsubscribe
+        - bounce
+        - blocklist
+        - blog
+        - other
+      description: Template category
+      example: transactional
+    template_macro_id:
+      type: string
+      nullable: true
+      description: ID of the template macro (layout) to use
+    test_data:
+      type: object
+      additionalProperties: true
+      description: Test data for template preview
+    settings:
+      type: object
+      additionalProperties: true
+      description: Channel-specific settings
+
+DeleteTemplateRequest:
+  type: object
+  required:
+    - workspace_id
+    - id
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    id:
+      type: string
+      description: ID of the template to delete
+      example: welcome_email
+
+CompileTemplateRequest:
+  type: object
+  required:
+    - template_content
+    - template_data
+  properties:
+    template_content:
+      type: object
+      description: MJML template structure to compile
+      additionalProperties: true
+    template_data:
+      type: object
+      description: Data to use for Liquid templating
+      additionalProperties: true
+      example:
+        user_name: John Doe
+        action_url: https://example.com/action
+
+CompileTemplateResponse:
+  type: object
+  properties:
+    html:
+      type: string
+      description: Compiled HTML output
+    errors:
+      type: array
+      description: Compilation errors, if any
+      items:
+        type: string

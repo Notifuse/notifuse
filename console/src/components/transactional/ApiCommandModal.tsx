@@ -46,9 +46,6 @@ export const ApiCommandModal: React.FC<ApiCommandModalProps> = ({
       "postcode": "10001",
       "state": "NY",
       "job_title": "Software Engineer",
-      "lifetime_value": 1500.50,
-      "orders_count": 5,
-      "last_order_at": "2024-01-15T10:30:00Z",
       "custom_string_1": "custom_value_1",
       "custom_string_2": "custom_value_2",
       "custom_number_1": 42.5,
@@ -99,12 +96,7 @@ export const ApiCommandModal: React.FC<ApiCommandModalProps> = ({
   postcode?: string;
   state?: string;
   job_title?: string;
-  
-  // Commerce related fields
-  lifetime_value?: number;
-  orders_count?: number;
-  last_order_at?: string;
-  
+
   // Custom string fields
   custom_string_1?: string;
   custom_string_2?: string;
@@ -174,9 +166,6 @@ const sendNotification = async (): Promise<void> => {
         postcode: "10001",
         state: "NY",
         job_title: "Software Engineer",
-        lifetime_value: 1500.50,
-        orders_count: 5,
-        last_order_at: "2024-01-15T10:30:00Z",
         custom_string_1: "custom_value_1",
         custom_string_2: "custom_value_2",
         custom_number_1: 42.5,
@@ -265,9 +254,6 @@ def send_notification():
                 "postcode": "10001",
                 "state": "NY",
                 "job_title": "Software Engineer",
-                "lifetime_value": 1500.50,
-                "orders_count": 5,
-                "last_order_at": "2024-01-15T10:30:00Z",
                 "custom_string_1": "custom_value_1",
                 "custom_string_2": "custom_value_2",
                 "custom_number_1": 42.5,
@@ -346,9 +332,6 @@ type Contact struct {
     Postcode      string   \`json:"postcode,omitempty"\`
     State         string   \`json:"state,omitempty"\`
     JobTitle      string   \`json:"job_title,omitempty"\`
-    LifetimeValue *float64 \`json:"lifetime_value,omitempty"\`
-    OrdersCount   *float64 \`json:"orders_count,omitempty"\`
-    LastOrderAt   *string  \`json:"last_order_at,omitempty"\`
     CustomString1 string   \`json:"custom_string_1,omitempty"\`
     CustomString2 string   \`json:"custom_string_2,omitempty"\`
     CustomString3 string   \`json:"custom_string_3,omitempty"\`
@@ -399,10 +382,7 @@ func sendNotification() error {
     url := "${window.API_ENDPOINT}/api/transactional.send"
     
     externalID := "your-unique-id-123"
-    lifetimeValue := 1500.50
-    ordersCount := float64(5)
-    lastOrderAt := "2024-01-15T10:30:00Z"
-    
+
     payload := NotificationRequest{
         WorkspaceID: "${workspaceId}",
         Notification: Notification{
@@ -423,9 +403,6 @@ func sendNotification() error {
                 Postcode:      "10001",
                 State:         "NY",
                 JobTitle:      "Software Engineer",
-                LifetimeValue: &lifetimeValue,
-                OrdersCount:   &ordersCount,
-                LastOrderAt:   &lastOrderAt,
                 CustomString1: "custom_value_1",
                 CustomString2: "custom_value_2",
                 CustomNumber1: func() *float64 { v := 42.5; return &v }(),
@@ -618,12 +595,6 @@ public class NotificationSender {
         public String state;
         @JsonProperty("job_title")
         public String jobTitle;
-        @JsonProperty("lifetime_value")
-        public Double lifetimeValue;
-        @JsonProperty("orders_count")
-        public Integer ordersCount;
-        @JsonProperty("last_order_at")
-        public String lastOrderAt;
         @JsonProperty("custom_string_1")
         public String customString1;
         @JsonProperty("custom_string_2")
@@ -740,9 +711,6 @@ public class NotificationSender {
         contact.postcode = "10001";
         contact.state = "NY";
         contact.jobTitle = "Software Engineer";
-        contact.lifetimeValue = 1500.50;
-        contact.ordersCount = 5;
-        contact.lastOrderAt = "2024-01-15T10:30:00Z";
         contact.customString1 = "custom_value_1";
         contact.customString2 = "custom_value_2";
         contact.customNumber1 = 42.5;

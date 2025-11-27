@@ -30,7 +30,8 @@ func NewCustomEventService(
 	}
 }
 
-func (s *CustomEventService) CreateEvent(ctx context.Context, req *domain.CreateCustomEventRequest) (*domain.CustomEvent, error) {
+// UpsertEvent creates or updates a custom event with goal tracking and soft-delete support
+func (s *CustomEventService) UpsertEvent(ctx context.Context, req *domain.UpsertCustomEventRequest) (*domain.CustomEvent, error) {
 	var err error
 	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, req.WorkspaceID)
 	if err != nil {
@@ -50,19 +51,22 @@ func (s *CustomEventService) CreateEvent(ctx context.Context, req *domain.Create
 		return nil, fmt.Errorf("invalid request: %w", err)
 	}
 
-	// Verify contact exists (or create if it doesn't)
-	contact, err := s.contactRepo.GetContactByEmail(ctx, req.WorkspaceID, req.Email)
-	if err != nil {
-		// Create contact if it doesn't exist
-		contact = &domain.Contact{
-			Email:     req.Email,
-			CreatedAt: time.Now(),
-			UpdatedAt: time.Now(),
-		}
-		_, err = s.contactRepo.UpsertContact(ctx, req.WorkspaceID, contact)
+	// Verify contact exists (or create if it doesn't) - only if not soft-deleting
+	if req.DeletedAt == nil {
+		contact, err := s.contactRepo.GetContactByEmail(ctx, req.WorkspaceID, req.Email)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create contact for custom event: %w", err)
+			// Create contact if it doesn't exist
+			contact = &domain.Contact{
+				Email:     req.Email,
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			}
+			_, err = s.contactRepo.UpsertContact(ctx, req.WorkspaceID, contact)
+			if err != nil {
+				return nil, fmt.Errorf("failed to create contact for custom event: %w", err)
+			}
 		}
+		_ = contact // suppress unused warning
 	}
 
 	// Create or update custom event
@@ -80,6 +84,10 @@ func (s *CustomEventService) CreateEvent(ctx context.Context, req *domain.Create
 		OccurredAt:    occurredAt,
 		Source:        "api",
 		IntegrationID: req.IntegrationID,
+		GoalName:      req.GoalName,
+		GoalType:      req.GoalType,
+		GoalValue:     req.GoalValue,
+		DeletedAt:     req.DeletedAt,
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}
@@ -88,12 +96,17 @@ func (s *CustomEventService) CreateEvent(ctx context.Context, req *domain.Create
 		return nil, fmt.Errorf("invalid custom event: %w", err)
 	}
 
-	if err := s.repo.Create(ctx, req.WorkspaceID, event); err != nil {
+	if err := s.repo.Upsert(ctx, req.WorkspaceID, event); err != nil {
 		s.logger.WithFields(map[string]interface{}{
 			"error":      err.Error(),
 			"event_name": event.EventName,
-		}).Error("Failed to create custom event")
-		return nil, fmt.Errorf("failed to create custom event: %w", err)
+		}).Error("Failed to upsert custom event")
+		return nil, fmt.Errorf("failed to upsert custom event: %w", err)
+	}
+
+	action := "upserted"
+	if req.DeletedAt != nil {
+		action = "soft-deleted"
 	}
 
 	s.logger.WithFields(map[string]interface{}{
@@ -101,7 +114,8 @@ func (s *CustomEventService) CreateEvent(ctx context.Context, req *domain.Create
 		"email":        req.Email,
 		"event_name":   event.EventName,
 		"external_id":  event.ExternalID,
-	}).Info("Custom event created successfully")
+		"action":       action,
+	}).Info("Custom event " + action + " successfully")
 
 	return event, nil
 }
@@ -153,8 +167,8 @@ func (s *CustomEventService) ImportEvents(ctx context.Context, req *domain.Impor
 		}
 	}
 
-	// Batch create/update
-	if err := s.repo.BatchCreate(ctx, req.WorkspaceID, req.Events); err != nil {
+	// Batch upsert (supports goal fields and soft-delete)
+	if err := s.repo.BatchUpsert(ctx, req.WorkspaceID, req.Events); err != nil {
 		s.logger.WithField("error", err.Error()).Error("Failed to import custom events")
 		return nil, fmt.Errorf("failed to import custom events: %w", err)
 	}

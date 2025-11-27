@@ -520,21 +520,6 @@ export function ContactDetailsDrawer({
     { key: 'language', label: 'Language', value: contact?.language },
     { key: 'external_id', label: 'External ID', value: contact?.external_id },
     {
-      key: 'lifetime_value',
-      label: 'Lifetime Value',
-      value: contact?.lifetime_value
-    },
-    {
-      key: 'orders_count',
-      label: 'Orders Count',
-      value: contact?.orders_count
-    },
-    {
-      key: 'last_order_at',
-      label: 'Last Order At',
-      value: formatDate(contact?.last_order_at)
-    },
-    {
       key: 'created_at',
       label: 'Created At',
       value: formatDate(contact?.created_at)
@@ -777,56 +762,6 @@ export function ContactDetailsDrawer({
                     })}
                   </Space>
                 )}
-              </div>
-            </div>
-
-            {/* E-commerce Stats */}
-            <div className="px-6 py-3 border-b border-gray-200">
-              <div className="grid grid-cols-3 gap-4">
-                {/* Lifetime Value */}
-                <Tooltip
-                  title={
-                    contact?.lifetime_value ? formatCurrency(contact?.lifetime_value) : '$0.00'
-                  }
-                >
-                  <div className="cursor-help">
-                    <Statistic
-                      title={<span className="text-[10px]">LTV</span>}
-                      value={formatAverage(contact?.lifetime_value || 0)}
-                      valueStyle={{ fontSize: '14px', fontWeight: 600 }}
-                    />
-                  </div>
-                </Tooltip>
-
-                {/* Orders Count */}
-                <Tooltip title={`${formatNumber(contact?.orders_count || 0)} orders`}>
-                  <div className="cursor-help">
-                    <Statistic
-                      title={<span className="text-[10px]">Orders</span>}
-                      value={formatAverage(contact?.orders_count || 0)}
-                      valueStyle={{ fontSize: '14px', fontWeight: 600 }}
-                    />
-                  </div>
-                </Tooltip>
-
-                {/* Last Order */}
-                <Tooltip
-                  title={
-                    contact?.last_order_at
-                      ? `${dayjs(contact?.last_order_at).format('LLLL')} in ${workspace.settings.timezone}`
-                      : 'No orders yet'
-                  }
-                >
-                  <div className="cursor-help">
-                    <Statistic
-                      title={<span className="text-[10px]">Last Order</span>}
-                      value={
-                        contact?.last_order_at ? dayjs(contact?.last_order_at).fromNow() : 'Never'
-                      }
-                      valueStyle={{ fontSize: '12px', fontWeight: 600 }}
-                    />
-                  </div>
-                </Tooltip>
               </div>
             </div>
 

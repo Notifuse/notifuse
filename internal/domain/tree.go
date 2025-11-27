@@ -19,12 +19,13 @@ type TreeNodeBranch struct {
 	Leaves   []*TreeNode `json:"leaves"`
 }
 
-// TreeNodeLeaf represents an actual condition on a table
+// TreeNodeLeaf represents an actual condition on a data source
 type TreeNodeLeaf struct {
-	Table           string                    `json:"table"` // "contacts", "contact_lists", "contact_timeline"
-	Contact         *ContactCondition         `json:"contact,omitempty"`
-	ContactList     *ContactListCondition     `json:"contact_list,omitempty"`
-	ContactTimeline *ContactTimelineCondition `json:"contact_timeline,omitempty"`
+	Source            string                      `json:"source"` // "contacts", "contact_lists", "contact_timeline", "custom_events_goals"
+	Contact           *ContactCondition           `json:"contact,omitempty"`
+	ContactList       *ContactListCondition       `json:"contact_list,omitempty"`
+	ContactTimeline   *ContactTimelineCondition   `json:"contact_timeline,omitempty"`
+	CustomEventsGoal  *CustomEventsGoalCondition  `json:"custom_events_goal,omitempty"`
 }
 
 // ContactCondition represents filters on the contacts table
@@ -47,6 +48,19 @@ type ContactTimelineCondition struct {
 	TimeframeOperator *string            `json:"timeframe_operator,omitempty"` // "anytime", "in_date_range", "before_date", "after_date", "in_the_last_days"
 	TimeframeValues   []string           `json:"timeframe_values,omitempty"`
 	Filters           []*DimensionFilter `json:"filters,omitempty"`
+}
+
+// CustomEventsGoalCondition represents conditions on goal aggregations from custom_events
+// Used for segmentation based on LTV, transaction counts, etc.
+type CustomEventsGoalCondition struct {
+	GoalType          string   `json:"goal_type"`           // purchase, subscription, lead, signup, booking, trial, other, or "*" for all
+	GoalName          *string  `json:"goal_name,omitempty"` // Optional filter by goal name
+	AggregateOperator string   `json:"aggregate_operator"`  // sum, count, avg, min, max
+	Operator          string   `json:"operator"`            // gte, lte, eq, between
+	Value             float64  `json:"value"`
+	Value2            *float64 `json:"value_2,omitempty"` // For between operator
+	TimeframeOperator string   `json:"timeframe_operator"` // anytime, in_the_last_days, in_date_range, before_date, after_date
+	TimeframeValues   []string `json:"timeframe_values,omitempty"`
 }
 
 // DimensionFilter represents a single filter condition on a field
@@ -109,28 +123,33 @@ func (b *TreeNodeBranch) Validate() error {
 
 // Validate validates a leaf node
 func (l *TreeNodeLeaf) Validate() error {
-	if l.Table == "" {
-		return fmt.Errorf("leaf must have 'table' field")
+	if l.Source == "" {
+		return fmt.Errorf("leaf must have 'source' field")
 	}
 
-	switch l.Table {
+	switch l.Source {
 	case "contacts":
 		if l.Contact == nil {
-			return fmt.Errorf("leaf with table 'contacts' must have 'contact' field")
+			return fmt.Errorf("leaf with source 'contacts' must have 'contact' field")
 		}
 		return l.Contact.Validate()
 	case "contact_lists":
 		if l.ContactList == nil {
-			return fmt.Errorf("leaf with table 'contact_lists' must have 'contact_list' field")
+			return fmt.Errorf("leaf with source 'contact_lists' must have 'contact_list' field")
 		}
 		return l.ContactList.Validate()
 	case "contact_timeline":
 		if l.ContactTimeline == nil {
-			return fmt.Errorf("leaf with table 'contact_timeline' must have 'contact_timeline' field")
+			return fmt.Errorf("leaf with source 'contact_timeline' must have 'contact_timeline' field")
 		}
 		return l.ContactTimeline.Validate()
+	case "custom_events_goals":
+		if l.CustomEventsGoal == nil {
+			return fmt.Errorf("leaf with source 'custom_events_goals' must have 'custom_events_goal' field")
+		}
+		return l.CustomEventsGoal.Validate()
 	default:
-		return fmt.Errorf("invalid table: %s (must be 'contacts', 'contact_lists', or 'contact_timeline')", l.Table)
+		return fmt.Errorf("invalid source: %s (must be 'contacts', 'contact_lists', 'contact_timeline', or 'custom_events_goals')", l.Source)
 	}
 }
 
@@ -196,6 +215,76 @@ func (c *ContactTimelineCondition) Validate() error {
 		if err := filter.Validate(); err != nil {
 			return fmt.Errorf("filter %d: %w", i, err)
 		}
+	}
+
+	return nil
+}
+
+// Validate validates custom events goal conditions
+func (g *CustomEventsGoalCondition) Validate() error {
+	if g.GoalType == "" {
+		return fmt.Errorf("custom_events_goal condition must have 'goal_type'")
+	}
+
+	// Validate goal_type (allow "*" for all)
+	if g.GoalType != "*" {
+		validTypes := map[string]bool{
+			GoalTypePurchase:     true,
+			GoalTypeSubscription: true,
+			GoalTypeLead:         true,
+			GoalTypeSignup:       true,
+			GoalTypeBooking:      true,
+			GoalTypeTrial:        true,
+			GoalTypeOther:        true,
+		}
+		if !validTypes[g.GoalType] {
+			return fmt.Errorf("invalid goal_type: %s (must be one of: purchase, subscription, lead, signup, booking, trial, other, or '*')", g.GoalType)
+		}
+	}
+
+	// Validate aggregate_operator
+	validAggregates := map[string]bool{
+		"sum":   true,
+		"count": true,
+		"avg":   true,
+		"min":   true,
+		"max":   true,
+	}
+	if !validAggregates[g.AggregateOperator] {
+		return fmt.Errorf("invalid aggregate_operator: %s (must be 'sum', 'count', 'avg', 'min', or 'max')", g.AggregateOperator)
+	}
+
+	// Validate operator
+	validOperators := map[string]bool{
+		"gte":     true,
+		"lte":     true,
+		"eq":      true,
+		"between": true,
+	}
+	if !validOperators[g.Operator] {
+		return fmt.Errorf("invalid operator: %s (must be 'gte', 'lte', 'eq', or 'between')", g.Operator)
+	}
+
+	// Validate between operator has Value2
+	if g.Operator == "between" && g.Value2 == nil {
+		return fmt.Errorf("between operator requires 'value_2'")
+	}
+
+	// Validate timeframe_operator
+	validTimeframes := map[string]bool{
+		"anytime":         true,
+		"in_the_last_days": true,
+		"in_date_range":   true,
+		"before_date":     true,
+		"after_date":      true,
+	}
+	if !validTimeframes[g.TimeframeOperator] {
+		return fmt.Errorf("invalid timeframe_operator: %s (must be 'anytime', 'in_the_last_days', 'in_date_range', 'before_date', or 'after_date')", g.TimeframeOperator)
+	}
+
+	// Validate timeframe values are provided when needed
+	if g.TimeframeOperator != "anytime" && len(g.TimeframeValues) == 0 {
+		return fmt.Errorf("timeframe_values required for timeframe_operator '%s'", g.TimeframeOperator)
 	}
 
 	return nil
@@ -376,6 +465,12 @@ func (t *TreeNode) HasRelativeDates() bool {
 				if filter.Operator == "in_the_last_days" {
 					return true
 				}
+			}
+		}
+		// Check custom events goal conditions for relative date operators
+		if t.Leaf.CustomEventsGoal != nil {
+			if t.Leaf.CustomEventsGoal.TimeframeOperator == "in_the_last_days" {
+				return true
 			}
 		}
 		return false

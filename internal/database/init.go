@@ -86,9 +86,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			postcode VARCHAR(20),
 			state VARCHAR(100),
 			job_title VARCHAR(255),
-			lifetime_value DECIMAL,
-			orders_count INTEGER,
-			last_order_at TIMESTAMP WITH TIME ZONE,
 			custom_string_1 VARCHAR(255),
 			custom_string_2 VARCHAR(255),
 			custom_string_3 VARCHAR(255),
@@ -331,14 +328,24 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			occurred_at TIMESTAMPTZ NOT NULL,
 			source VARCHAR(50) NOT NULL DEFAULT 'api',
 			integration_id VARCHAR(32),
+			-- Goal tracking fields
+			goal_name VARCHAR(100) DEFAULT NULL,
+			goal_type VARCHAR(20) DEFAULT NULL,
+			goal_value DECIMAL(15,2) DEFAULT NULL,
+			-- Soft delete
+			deleted_at TIMESTAMPTZ DEFAULT NULL,
+			-- Timestamps
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			updated_at TIMESTAMPTZ DEFAULT NOW(),
 			PRIMARY KEY (event_name, external_id)
 		)`,
-		`CREATE INDEX IF NOT EXISTS idx_custom_events_email ON custom_events(email, occurred_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_custom_events_email ON custom_events(email, occurred_at DESC) WHERE deleted_at IS NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_custom_events_external_id ON custom_events(external_id)`,
 		`CREATE INDEX IF NOT EXISTS idx_custom_events_integration_id ON custom_events(integration_id) WHERE integration_id IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_custom_events_properties ON custom_events USING GIN (properties jsonb_path_ops)`,
+		`CREATE INDEX IF NOT EXISTS idx_custom_events_goal_type ON custom_events(email, goal_type, occurred_at DESC) WHERE goal_type IS NOT NULL AND deleted_at IS NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_custom_events_purchases ON custom_events(email, goal_value, occurred_at) WHERE goal_type = 'purchase' AND deleted_at IS NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_custom_events_deleted ON custom_events(deleted_at) WHERE deleted_at IS NOT NULL`,
 	}
 
 	// Run all table creation queries
@@ -374,9 +381,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				IF OLD.postcode IS DISTINCT FROM NEW.postcode THEN changes_json := changes_json || jsonb_build_object('postcode', jsonb_build_object('old', OLD.postcode, 'new', NEW.postcode)); END IF;
 				IF OLD.state IS DISTINCT FROM NEW.state THEN changes_json := changes_json || jsonb_build_object('state', jsonb_build_object('old', OLD.state, 'new', NEW.state)); END IF;
 				IF OLD.job_title IS DISTINCT FROM NEW.job_title THEN changes_json := changes_json || jsonb_build_object('job_title', jsonb_build_object('old', OLD.job_title, 'new', NEW.job_title)); END IF;
-				IF OLD.lifetime_value IS DISTINCT FROM NEW.lifetime_value THEN changes_json := changes_json || jsonb_build_object('lifetime_value', jsonb_build_object('old', OLD.lifetime_value, 'new', NEW.lifetime_value)); END IF;
-				IF OLD.orders_count IS DISTINCT FROM NEW.orders_count THEN changes_json := changes_json || jsonb_build_object('orders_count', jsonb_build_object('old', OLD.orders_count, 'new', NEW.orders_count)); END IF;
-				IF OLD.last_order_at IS DISTINCT FROM NEW.last_order_at THEN changes_json := changes_json || jsonb_build_object('last_order_at', jsonb_build_object('old', OLD.last_order_at, 'new', NEW.last_order_at)); END IF;
 				IF OLD.custom_string_1 IS DISTINCT FROM NEW.custom_string_1 THEN changes_json := changes_json || jsonb_build_object('custom_string_1', jsonb_build_object('old', OLD.custom_string_1, 'new', NEW.custom_string_1)); END IF;
 				IF OLD.custom_string_2 IS DISTINCT FROM NEW.custom_string_2 THEN changes_json := changes_json || jsonb_build_object('custom_string_2', jsonb_build_object('old', OLD.custom_string_2, 'new', NEW.custom_string_2)); END IF;
 				IF OLD.custom_string_3 IS DISTINCT FROM NEW.custom_string_3 THEN changes_json := changes_json || jsonb_build_object('custom_string_3', jsonb_build_object('old', OLD.custom_string_3, 'new', NEW.custom_string_3)); END IF;
@@ -572,6 +576,59 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
+		// Custom event changes trigger function
+		`CREATE OR REPLACE FUNCTION track_custom_event_timeline()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			timeline_operation TEXT;
+			changes_json JSONB;
+			property_key TEXT;
+			property_diff JSONB;
+		BEGIN
+			IF TG_OP = 'INSERT' THEN
+				timeline_operation := 'insert';
+				changes_json := jsonb_build_object(
+					'event_name', jsonb_build_object('new', NEW.event_name),
+					'external_id', jsonb_build_object('new', NEW.external_id)
+				);
+			ELSIF TG_OP = 'UPDATE' THEN
+				timeline_operation := 'update';
+				property_diff := '{}'::jsonb;
+				FOR property_key IN
+					SELECT DISTINCT key
+					FROM (
+						SELECT key FROM jsonb_object_keys(OLD.properties) AS key
+						UNION
+						SELECT key FROM jsonb_object_keys(NEW.properties) AS key
+					) AS all_keys
+				LOOP
+					IF (OLD.properties->property_key) IS DISTINCT FROM (NEW.properties->property_key) THEN
+						property_diff := property_diff || jsonb_build_object(
+							property_key,
+							jsonb_build_object(
+								'old', OLD.properties->property_key,
+								'new', NEW.properties->property_key
+							)
+						);
+					END IF;
+				END LOOP;
+				changes_json := jsonb_build_object(
+					'properties', property_diff,
+					'occurred_at', jsonb_build_object(
+						'old', OLD.occurred_at,
+						'new', NEW.occurred_at
+					)
+				);
+			END IF;
+			INSERT INTO contact_timeline (
+				email, operation, entity_type, kind, entity_id, changes, created_at
+			) VALUES (
+				NEW.email, timeline_operation, 'custom_event', NEW.event_name,
+				NEW.external_id, changes_json, NEW.occurred_at
+			);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;`,
 		// Create triggers
 		`DROP TRIGGER IF EXISTS contact_changes_trigger ON contacts`,
 		`CREATE TRIGGER contact_changes_trigger AFTER INSERT OR UPDATE ON contacts FOR EACH ROW EXECUTE FUNCTION track_contact_changes()`,
@@ -587,6 +644,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TRIGGER contact_timeline_queue_trigger AFTER INSERT ON contact_timeline FOR EACH ROW EXECUTE FUNCTION queue_contact_for_segment_recomputation()`,
 		`DROP TRIGGER IF EXISTS message_history_status_trigger ON message_history`,
 		`CREATE TRIGGER message_history_status_trigger AFTER UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION update_contact_lists_on_status_change()`,
+		`DROP TRIGGER IF EXISTS custom_event_timeline_trigger ON custom_events`,
+		`CREATE TRIGGER custom_event_timeline_trigger AFTER INSERT OR UPDATE ON custom_events FOR EACH ROW EXECUTE FUNCTION track_custom_event_timeline()`,
 	}
 
 	for _, query := range triggerQueries {

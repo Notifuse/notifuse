@@ -2,6 +2,53 @@
 
 All notable changes to this project will be documented in this file.
 
+## [18.0] - 2025-11-27
+
+### Database Schema Changes
+
+- Migration v18.0 introduces custom events tracking system
+- Removed deprecated contact fields: `lifetime_value`, `orders_count`, `last_order_at`
+- Renamed contact timeline event kinds to semantic dotted format:
+  - Contact: `insert_contact` → `contact.created`, `update_contact` → `contact.updated`
+  - Lists: `insert_contact_list` → `list.subscribed`/`list.pending`, status changes → `list.confirmed`/`list.resubscribed`/`list.unsubscribed`/`list.bounced`/`list.complained`
+  - Segments: `join_segment` → `segment.joined`, `leave_segment` → `segment.left`
+- Added `custom_events` table for tracking user behavior and goals
+- Added computed fields in segmentation engine for custom events goal aggregations
+
+### Features
+
+- **Custom Events API**: Track user behavior and conversion goals
+  - `POST /api/customEvent.upsert` - Create or update a single event
+  - `POST /api/customEvent.import` - Batch import up to 50 events
+  - `GET /api/customEvent.get` - Retrieve event by workspace, event name, and external ID
+  - `GET /api/customEvent.list` - List events by email or event name
+  - Goal tracking with types: `purchase`, `subscription`, `lead`, `signup`, `booking`, `trial`, `other`
+  - Soft-delete support via `deleted_at` field
+
+- **Segmentation with Custom Events Goals**: Build segments based on goal aggregations
+  ```json
+  {
+    "source": "custom_events_goals",
+    "custom_events_goal": {
+      "goal_type": "purchase",
+      "aggregate_operator": "sum",
+      "operator": "gte",
+      "value": 500,
+      "timeframe_operator": "in_the_last_days",
+      "timeframe_values": ["30"]
+    }
+  }
+  ```
+  - Aggregate operators: `sum`, `count`, `avg`, `min`, `max`
+  - Timeframe operators: `anytime`, `in_the_last_days`, `in_date_range`, `before_date`, `after_date`
+
+### Breaking Changes
+
+- Removed `lifetime_value`, `orders_count`, `last_order_at` from Contact model
+- Segments using deprecated contact fields will be deleted during migration
+- Contact timeline event kinds renamed (existing data migrated automatically)
+- Segment tree `TreeNodeLeaf.table` field renamed to `source` (existing segments migrated automatically)
+
 ## [17.3] - 2025-11-27
 
 - New feature: Blog posts can now be scheduled for publication at past or future dates, allowing you to plan posts in advance or import posts with their original publication dates.

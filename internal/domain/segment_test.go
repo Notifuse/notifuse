@@ -16,7 +16,7 @@ func validTestTree() *TreeNode {
 	return &TreeNode{
 		Kind: "leaf",
 		Leaf: &TreeNodeLeaf{
-			Table: "contacts",
+			Source: "contacts",
 			Contact: &ContactCondition{
 				Filters: []*DimensionFilter{
 					{

@@ -1,0 +1,51 @@
+/subscribe:
+  post:
+    summary: Subscribe to email lists
+    description: Subscribe a contact to one or more email lists. This is a public endpoint that doesn't require authentication. If the list has double opt-in enabled, a confirmation email will be sent.
+    operationId: subscribeToLists
+    security: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/contact.yaml#/SubscribeToListsRequest'
+    responses:
+      '200':
+        description: Subscription successful
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  description: Whether the subscription was successful
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              invalidEmail:
+                value:
+                  error: 'invalid contact: invalid email format'
+              missingListIds:
+                value:
+                  error: list_ids is required
+              listNotPublic:
+                value:
+                  error: list is not public
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to subscribe to lists

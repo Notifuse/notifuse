@@ -28,7 +28,7 @@ func createTestDemoService(cfg *config.Config, serviceLogger logger.Logger) *ser
 	return service.NewDemoService(
 		serviceLogger,
 		cfg,
-		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
+		nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 	)
 }
 

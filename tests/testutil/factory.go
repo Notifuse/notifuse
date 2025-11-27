@@ -549,9 +549,9 @@ func WithContactCountry(country string) ContactOption {
 	}
 }
 
-func WithContactLifetimeValue(value float64) ContactOption {
+func WithContactCustomNumber1(value float64) ContactOption {
 	return func(c *domain.Contact) {
-		c.LifetimeValue = &domain.NullableFloat64{Float64: value, IsNull: false}
+		c.CustomNumber1 = &domain.NullableFloat64{Float64: value, IsNull: false}
 	}
 }
 

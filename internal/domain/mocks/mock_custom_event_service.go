@@ -35,21 +35,6 @@ func (m *MockCustomEventService) EXPECT() *MockCustomEventServiceMockRecorder {
 	return m.recorder
 }
 
-// CreateEvent mocks base method.
-func (m *MockCustomEventService) CreateEvent(arg0 context.Context, arg1 *domain.CreateCustomEventRequest) (*domain.CustomEvent, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateEvent", arg0, arg1)
-	ret0, _ := ret[0].(*domain.CustomEvent)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CreateEvent indicates an expected call of CreateEvent.
-func (mr *MockCustomEventServiceMockRecorder) CreateEvent(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateEvent", reflect.TypeOf((*MockCustomEventService)(nil).CreateEvent), arg0, arg1)
-}
-
 // GetEvent mocks base method.
 func (m *MockCustomEventService) GetEvent(arg0 context.Context, arg1, arg2, arg3 string) (*domain.CustomEvent, error) {
 	m.ctrl.T.Helper()
@@ -93,4 +78,19 @@ func (m *MockCustomEventService) ListEvents(arg0 context.Context, arg1 *domain.L
 func (mr *MockCustomEventServiceMockRecorder) ListEvents(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListEvents", reflect.TypeOf((*MockCustomEventService)(nil).ListEvents), arg0, arg1)
+}
+
+// UpsertEvent mocks base method.
+func (m *MockCustomEventService) UpsertEvent(arg0 context.Context, arg1 *domain.UpsertCustomEventRequest) (*domain.CustomEvent, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "UpsertEvent", arg0, arg1)
+	ret0, _ := ret[0].(*domain.CustomEvent)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// UpsertEvent indicates an expected call of UpsertEvent.
+func (mr *MockCustomEventServiceMockRecorder) UpsertEvent(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpsertEvent", reflect.TypeOf((*MockCustomEventService)(nil).UpsertEvent), arg0, arg1)
 }

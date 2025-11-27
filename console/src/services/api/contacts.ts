@@ -34,10 +34,6 @@ export interface Contact {
   state?: string
   job_title?: string
 
-  lifetime_value?: number
-  orders_count?: number
-  last_order_at?: string
-
   custom_string_1?: string
   custom_string_2?: string
   custom_string_3?: string

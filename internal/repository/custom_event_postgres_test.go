@@ -35,7 +35,7 @@ func setupCustomEventTest(t *testing.T) (*mocks.MockWorkspaceRepository, *custom
 	return mockWorkspaceRepo, repo.(*customEventRepository), mock, db, cleanup
 }
 
-func TestCustomEventRepository_Create(t *testing.T) {
+func TestCustomEventRepository_Upsert(t *testing.T) {
 	mockWorkspaceRepo, repo, mock, db, cleanup := setupCustomEventTest(t)
 	defer cleanup()
 
@@ -72,17 +72,21 @@ func TestCustomEventRepository_Create(t *testing.T) {
 				event.OccurredAt,
 				event.Source,
 				event.IntegrationID,
+				event.GoalName,
+				event.GoalType,
+				event.GoalValue,
+				event.DeletedAt,
 				sqlmock.AnyArg(),
 				sqlmock.AnyArg(),
 			).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		err := repo.Create(ctx, workspaceID, event)
+		err := repo.Upsert(ctx, workspaceID, event)
 		require.NoError(t, err)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("successful create with integration_id", func(t *testing.T) {
+	t.Run("successful upsert with integration_id", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
@@ -109,12 +113,16 @@ func TestCustomEventRepository_Create(t *testing.T) {
 				eventWithIntegration.OccurredAt,
 				eventWithIntegration.Source,
 				eventWithIntegration.IntegrationID,
+				eventWithIntegration.GoalName,
+				eventWithIntegration.GoalType,
+				eventWithIntegration.GoalValue,
+				eventWithIntegration.DeletedAt,
 				sqlmock.AnyArg(),
 				sqlmock.AnyArg(),
 			).
 			WillReturnResult(sqlmock.NewResult(1, 1))
 
-		err := repo.Create(ctx, workspaceID, eventWithIntegration)
+		err := repo.Upsert(ctx, workspaceID, eventWithIntegration)
 		require.NoError(t, err)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
@@ -124,7 +132,7 @@ func TestCustomEventRepository_Create(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(nil, errors.New("connection error"))
 
-		err := repo.Create(ctx, workspaceID, event)
+		err := repo.Upsert(ctx, workspaceID, event)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get workspace connection")
 	})
@@ -145,18 +153,22 @@ func TestCustomEventRepository_Create(t *testing.T) {
 				event.OccurredAt,
 				event.Source,
 				event.IntegrationID,
+				event.GoalName,
+				event.GoalType,
+				event.GoalValue,
+				event.DeletedAt,
 				sqlmock.AnyArg(),
 				sqlmock.AnyArg(),
 			).
 			WillReturnError(errors.New("execution error"))
 
-		err := repo.Create(ctx, workspaceID, event)
+		err := repo.Upsert(ctx, workspaceID, event)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create custom event")
+		assert.Contains(t, err.Error(), "failed to upsert custom event")
 	})
 }
 
-func TestCustomEventRepository_BatchCreate(t *testing.T) {
+func TestCustomEventRepository_BatchUpsert(t *testing.T) {
 	mockWorkspaceRepo, repo, mock, db, cleanup := setupCustomEventTest(t)
 	defer cleanup()
 
@@ -183,7 +195,7 @@ func TestCustomEventRepository_BatchCreate(t *testing.T) {
 		},
 	}
 
-	t.Run("successful batch create", func(t *testing.T) {
+	t.Run("successful batch upsert", func(t *testing.T) {
 		mockWorkspaceRepo.EXPECT().
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
@@ -202,6 +214,10 @@ func TestCustomEventRepository_BatchCreate(t *testing.T) {
 					event.OccurredAt,
 					event.Source,
 					event.IntegrationID,
+					event.GoalName,
+					event.GoalType,
+					event.GoalValue,
+					event.DeletedAt,
 					sqlmock.AnyArg(),
 					sqlmock.AnyArg(),
 				).
@@ -210,7 +226,7 @@ func TestCustomEventRepository_BatchCreate(t *testing.T) {
 
 		mock.ExpectCommit()
 
-		err := repo.BatchCreate(ctx, workspaceID, events)
+		err := repo.BatchUpsert(ctx, workspaceID, events)
 		require.NoError(t, err)
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
@@ -220,7 +236,7 @@ func TestCustomEventRepository_BatchCreate(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(nil, errors.New("connection error"))
 
-		err := repo.BatchCreate(ctx, workspaceID, events)
+		err := repo.BatchUpsert(ctx, workspaceID, events)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get workspace connection")
 	})
@@ -232,7 +248,7 @@ func TestCustomEventRepository_BatchCreate(t *testing.T) {
 
 		mock.ExpectBegin().WillReturnError(errors.New("begin error"))
 
-		err := repo.BatchCreate(ctx, workspaceID, events)
+		err := repo.BatchUpsert(ctx, workspaceID, events)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to begin transaction")
 	})
@@ -256,6 +272,10 @@ func TestCustomEventRepository_BatchCreate(t *testing.T) {
 				events[0].OccurredAt,
 				events[0].Source,
 				events[0].IntegrationID,
+				events[0].GoalName,
+				events[0].GoalType,
+				events[0].GoalValue,
+				events[0].DeletedAt,
 				sqlmock.AnyArg(),
 				sqlmock.AnyArg(),
 			).
@@ -272,6 +292,10 @@ func TestCustomEventRepository_BatchCreate(t *testing.T) {
 				events[1].OccurredAt,
 				events[1].Source,
 				events[1].IntegrationID,
+				events[1].GoalName,
+				events[1].GoalType,
+				events[1].GoalValue,
+				events[1].DeletedAt,
 				sqlmock.AnyArg(),
 				sqlmock.AnyArg(),
 			).
@@ -279,9 +303,9 @@ func TestCustomEventRepository_BatchCreate(t *testing.T) {
 
 		mock.ExpectRollback()
 
-		err := repo.BatchCreate(ctx, workspaceID, events)
+		err := repo.BatchUpsert(ctx, workspaceID, events)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to insert event")
+		assert.Contains(t, err.Error(), "failed to upsert event")
 		require.NoError(t, mock.ExpectationsWereMet())
 	})
 }
@@ -306,13 +330,17 @@ func TestCustomEventRepository_GetByID(t *testing.T) {
 
 		rows := sqlmock.NewRows([]string{
 			"event_name", "external_id", "email", "properties",
-			"occurred_at", "source", "integration_id", "created_at", "updated_at",
+			"occurred_at", "source", "integration_id",
+			"goal_name", "goal_type", "goal_value", "deleted_at",
+			"created_at", "updated_at",
 		}).AddRow(
 			eventName, externalID, "user@example.com", propertiesJSON,
-			now, "api", nil, now, now,
+			now, "api", nil,
+			nil, nil, nil, nil,
+			now, now,
 		)
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE event_name = \$1 AND external_id = \$2`).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE event_name = \$1 AND external_id = \$2 AND deleted_at IS NULL`).
 			WithArgs(eventName, externalID).
 			WillReturnRows(rows)
 
@@ -331,7 +359,7 @@ func TestCustomEventRepository_GetByID(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE event_name = \$1 AND external_id = \$2`).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE event_name = \$1 AND external_id = \$2 AND deleted_at IS NULL`).
 			WithArgs(eventName, externalID).
 			WillReturnError(sql.ErrNoRows)
 
@@ -376,12 +404,14 @@ func TestCustomEventRepository_ListByEmail(t *testing.T) {
 
 		rows := sqlmock.NewRows([]string{
 			"event_name", "external_id", "email", "properties",
-			"occurred_at", "source", "integration_id", "created_at", "updated_at",
+			"occurred_at", "source", "integration_id",
+			"goal_name", "goal_type", "goal_value", "deleted_at",
+			"created_at", "updated_at",
 		}).
-			AddRow("orders/fulfilled", "order_1", email, json1, now, "api", nil, now, now).
-			AddRow("payment.succeeded", "payment_1", email, json2, now, "integration", nil, now, now)
+			AddRow("orders/fulfilled", "order_1", email, json1, now, "api", nil, nil, nil, nil, nil, now, now).
+			AddRow("payment.succeeded", "payment_1", email, json2, now, "integration", nil, nil, nil, nil, nil, now, now)
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
 			WithArgs(email, limit, offset).
 			WillReturnRows(rows)
 
@@ -400,10 +430,12 @@ func TestCustomEventRepository_ListByEmail(t *testing.T) {
 
 		rows := sqlmock.NewRows([]string{
 			"event_name", "external_id", "email", "properties",
-			"occurred_at", "source", "integration_id", "created_at", "updated_at",
+			"occurred_at", "source", "integration_id",
+			"goal_name", "goal_type", "goal_value", "deleted_at",
+			"created_at", "updated_at",
 		})
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
 			WithArgs(email, limit, offset).
 			WillReturnRows(rows)
 
@@ -429,7 +461,7 @@ func TestCustomEventRepository_ListByEmail(t *testing.T) {
 			GetConnection(ctx, workspaceID).
 			Return(db, nil)
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE email = \$1 AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
 			WithArgs(email, limit, offset).
 			WillReturnError(errors.New("query error"))
 
@@ -463,12 +495,14 @@ func TestCustomEventRepository_ListByEventName(t *testing.T) {
 
 		rows := sqlmock.NewRows([]string{
 			"event_name", "external_id", "email", "properties",
-			"occurred_at", "source", "integration_id", "created_at", "updated_at",
+			"occurred_at", "source", "integration_id",
+			"goal_name", "goal_type", "goal_value", "deleted_at",
+			"created_at", "updated_at",
 		}).
-			AddRow(eventName, "order_1", "user1@example.com", json1, now, "api", nil, now, now).
-			AddRow(eventName, "order_2", "user2@example.com", json2, now, "api", nil, now, now)
+			AddRow(eventName, "order_1", "user1@example.com", json1, now, "api", nil, nil, nil, nil, nil, now, now).
+			AddRow(eventName, "order_2", "user2@example.com", json2, now, "api", nil, nil, nil, nil, nil, now, now)
 
-		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE event_name = \$1 ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
+		mock.ExpectQuery(`SELECT (.+) FROM custom_events WHERE event_name = \$1 AND deleted_at IS NULL ORDER BY occurred_at DESC LIMIT \$2 OFFSET \$3`).
 			WithArgs(eventName, limit, offset).
 			WillReturnRows(rows)
 

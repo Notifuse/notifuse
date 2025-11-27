@@ -40,7 +40,7 @@ func setupCustomEventServiceTest(t *testing.T) (
 	return mockRepo, mockContactRepo, mockAuthService, service, ctrl
 }
 
-func TestCustomEventService_CreateEvent(t *testing.T) {
+func TestCustomEventService_UpsertEvent(t *testing.T) {
 	mockRepo, mockContactRepo, mockAuthService, service, ctrl := setupCustomEventServiceTest(t)
 	defer ctrl.Finish()
 
@@ -59,7 +59,7 @@ func TestCustomEventService_CreateEvent(t *testing.T) {
 		},
 	}
 
-	req := &domain.CreateCustomEventRequest{
+	req := &domain.UpsertCustomEventRequest{
 		WorkspaceID: workspaceID,
 		Email:       "user@example.com",
 		EventName:   "orders/fulfilled",
@@ -81,10 +81,10 @@ func TestCustomEventService_CreateEvent(t *testing.T) {
 			Return(existingContact, nil)
 
 		mockRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Upsert(gomock.Any(), workspaceID, gomock.Any()).
 			Return(nil)
 
-		result, err := service.CreateEvent(ctx, req)
+		result, err := service.UpsertEvent(ctx, req)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, req.Email, result.Email)
@@ -92,7 +92,7 @@ func TestCustomEventService_CreateEvent(t *testing.T) {
 		assert.Equal(t, req.ExternalID, result.ExternalID)
 	})
 
-	t.Run("successful creation with auto-created contact", func(t *testing.T) {
+	t.Run("successful upsert with auto-created contact", func(t *testing.T) {
 		mockAuthService.EXPECT().
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
 			Return(ctx, &domain.User{ID: "user123"}, userWorkspace, nil)
@@ -106,10 +106,10 @@ func TestCustomEventService_CreateEvent(t *testing.T) {
 			Return(true, nil)
 
 		mockRepo.EXPECT().
-			Create(gomock.Any(), workspaceID, gomock.Any()).
+			Upsert(gomock.Any(), workspaceID, gomock.Any()).
 			Return(nil)
 
-		result, err := service.CreateEvent(ctx, req)
+		result, err := service.UpsertEvent(ctx, req)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, req.Email, result.Email)
@@ -120,7 +120,7 @@ func TestCustomEventService_CreateEvent(t *testing.T) {
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
 			Return(ctx, nil, nil, errors.New("auth error"))
 
-		result, err := service.CreateEvent(ctx, req)
+		result, err := service.UpsertEvent(ctx, req)
 		require.Error(t, err)
 		assert.Nil(t, result)
 	})
@@ -141,7 +141,7 @@ func TestCustomEventService_CreateEvent(t *testing.T) {
 			AuthenticateUserForWorkspace(gomock.Any(), workspaceID).
 			Return(ctx, &domain.User{ID: "user123"}, noPermWorkspace, nil)
 
-		result, err := service.CreateEvent(ctx, req)
+		result, err := service.UpsertEvent(ctx, req)
 		require.Error(t, err)
 		assert.IsType(t, &domain.PermissionError{}, err)
 		assert.Nil(t, result)
@@ -201,7 +201,7 @@ func TestCustomEventService_ImportEvents(t *testing.T) {
 			Return(ctx, &domain.User{ID: "user123"}, userWorkspace, nil)
 
 		mockRepo.EXPECT().
-			BatchCreate(gomock.Any(), workspaceID, events).
+			BatchUpsert(gomock.Any(), workspaceID, events).
 			Return(nil)
 
 		result, err := service.ImportEvents(ctx, req)

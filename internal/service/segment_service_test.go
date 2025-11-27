@@ -18,7 +18,7 @@ func createTestTree() *domain.TreeNode {
 	return &domain.TreeNode{
 		Kind: "leaf",
 		Leaf: &domain.TreeNodeLeaf{
-			Table: "contacts",
+			Source: "contacts",
 			Contact: &domain.ContactCondition{
 				Filters: []*domain.DimensionFilter{
 					{
@@ -456,7 +456,7 @@ func TestSegmentService_UpdateSegment(t *testing.T) {
 		newTree := &domain.TreeNode{
 			Kind: "leaf",
 			Leaf: &domain.TreeNodeLeaf{
-				Table: "contacts",
+				Source: "contacts",
 				Contact: &domain.ContactCondition{
 					Filters: []*domain.DimensionFilter{
 						{

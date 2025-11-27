@@ -1,0 +1,297 @@
+/api/contacts.upsert:
+  post:
+    summary: Create or update a contact
+    description: Creates a new contact or updates an existing one based on email address. Returns information about whether the contact was created or updated.
+    operationId: upsertContact
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/contact.yaml#/UpsertContactRequest'
+    responses:
+      '200':
+        description: Contact upserted successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/contact.yaml#/UpsertContactResponse'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              invalidEmail:
+                value:
+                  error: invalid email format
+              missingContact:
+                value:
+                  error: contact is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/contacts.getByEmail:
+  get:
+    summary: Get a contact by email address
+    description: Retrieves a contact by their email address within a specific workspace. The response always includes the contact's list subscriptions with their status (active, pending, unsubscribed, bounced, complained).
+    operationId: getContactByEmail
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: email
+        in: query
+        required: true
+        schema:
+          type: string
+          format: email
+        description: The email address of the contact
+        example: user@example.com
+    responses:
+      '200':
+        description: Contact found successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contact:
+                  $ref: '../components/schemas/contact.yaml#/Contact'
+      '400':
+        description: Bad request - missing parameters
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: Missing workspace ID
+              missingEmail:
+                value:
+                  error: Missing email
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Contact not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Contact not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/contacts.getByExternalID:
+  get:
+    summary: Get a contact by external ID
+    description: Retrieves a contact by their external ID within a specific workspace. The response always includes the contact's list subscriptions with their status (active, pending, unsubscribed, bounced, complained).
+    operationId: getContactByExternalID
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: external_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The external ID of the contact
+        example: user_12345
+    responses:
+      '200':
+        description: Contact found successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contact:
+                  $ref: '../components/schemas/contact.yaml#/Contact'
+      '400':
+        description: Bad request - missing parameters
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: Missing workspace ID
+              missingExternalId:
+                value:
+                  error: Missing external ID
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Contact not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Contact not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/contacts.import:
+  post:
+    summary: Batch import contacts
+    description: Creates or updates multiple contacts in a single batch operation. This is significantly more efficient than individual upsert operations. Optionally subscribes all contacts to specified lists.
+    operationId: batchImportContacts
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/contact.yaml#/BatchImportContactsRequest'
+    responses:
+      '200':
+        description: Batch import completed (may include partial failures)
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/contact.yaml#/BatchImportContactsResponse'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              missingContacts:
+                value:
+                  error: contacts is required
+              emptyContacts:
+                value:
+                  error: contacts array cannot be empty
+              insufficientPermissions:
+                value:
+                  error: write access to lists required when subscribe_to_lists is provided
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/contacts.delete:
+  post:
+    summary: Delete a contact
+    description: Deletes a contact from the workspace by email address. This action is permanent and cannot be undone.
+    operationId: deleteContact
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/contact.yaml#/DeleteContactRequest'
+    responses:
+      '200':
+        description: Contact deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  description: Whether the deletion was successful
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              missingEmail:
+                value:
+                  error: email is required
+              invalidEmail:
+                value:
+                  error: invalid email format
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Contact not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Contact not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to delete contact

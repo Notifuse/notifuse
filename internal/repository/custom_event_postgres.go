@@ -19,7 +19,8 @@ func NewCustomEventRepository(workspaceRepo domain.WorkspaceRepository) domain.C
 	}
 }
 
-func (r *customEventRepository) Create(ctx context.Context, workspaceID string, event *domain.CustomEvent) error {
+// Upsert creates or updates a custom event with goal tracking and soft-delete support
+func (r *customEventRepository) Upsert(ctx context.Context, workspaceID string, event *domain.CustomEvent) error {
 	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get workspace connection: %w", err)
@@ -30,20 +31,31 @@ func (r *customEventRepository) Create(ctx context.Context, workspaceID string, 
 		return fmt.Errorf("failed to marshal properties: %w", err)
 	}
 
-	// UPSERT: Insert new event or update if (event_name, external_id) exists AND new occurred_at is more recent
+	// UPSERT: Insert new event or update if (event_name, external_id) exists
+	// Updates when: new occurred_at is more recent OR deleted_at changed
 	query := `
 		INSERT INTO custom_events (
 			event_name, external_id, email, properties, occurred_at,
-			source, integration_id, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			source, integration_id, goal_name, goal_type, goal_value,
+			deleted_at, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		ON CONFLICT (event_name, external_id) DO UPDATE SET
 			email = EXCLUDED.email,
 			properties = EXCLUDED.properties,
-			occurred_at = EXCLUDED.occurred_at,
+			occurred_at = CASE
+				WHEN EXCLUDED.occurred_at > custom_events.occurred_at
+				THEN EXCLUDED.occurred_at
+				ELSE custom_events.occurred_at
+			END,
 			source = EXCLUDED.source,
 			integration_id = EXCLUDED.integration_id,
+			goal_name = COALESCE(EXCLUDED.goal_name, custom_events.goal_name),
+			goal_type = COALESCE(EXCLUDED.goal_type, custom_events.goal_type),
+			goal_value = COALESCE(EXCLUDED.goal_value, custom_events.goal_value),
+			deleted_at = EXCLUDED.deleted_at,
 			updated_at = NOW()
 		WHERE EXCLUDED.occurred_at > custom_events.occurred_at
+		   OR EXCLUDED.deleted_at IS DISTINCT FROM custom_events.deleted_at
 	`
 
 	_, err = db.ExecContext(ctx, query,
@@ -54,17 +66,22 @@ func (r *customEventRepository) Create(ctx context.Context, workspaceID string, 
 		event.OccurredAt,
 		event.Source,
 		event.IntegrationID,
+		event.GoalName,
+		event.GoalType,
+		event.GoalValue,
+		event.DeletedAt,
 		event.CreatedAt,
 		event.UpdatedAt,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to create custom event: %w", err)
+		return fmt.Errorf("failed to upsert custom event: %w", err)
 	}
 
 	return nil
 }
 
-func (r *customEventRepository) BatchCreate(ctx context.Context, workspaceID string, events []*domain.CustomEvent) error {
+// BatchUpsert creates or updates multiple custom events with goal tracking and soft-delete support
+func (r *customEventRepository) BatchUpsert(ctx context.Context, workspaceID string, events []*domain.CustomEvent) error {
 	if len(events) == 0 {
 		return nil
 	}
@@ -84,16 +101,26 @@ func (r *customEventRepository) BatchCreate(ctx context.Context, workspaceID str
 	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO custom_events (
 			event_name, external_id, email, properties, occurred_at,
-			source, integration_id, created_at, updated_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			source, integration_id, goal_name, goal_type, goal_value,
+			deleted_at, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		ON CONFLICT (event_name, external_id) DO UPDATE SET
 			email = EXCLUDED.email,
 			properties = EXCLUDED.properties,
-			occurred_at = EXCLUDED.occurred_at,
+			occurred_at = CASE
+				WHEN EXCLUDED.occurred_at > custom_events.occurred_at
+				THEN EXCLUDED.occurred_at
+				ELSE custom_events.occurred_at
+			END,
 			source = EXCLUDED.source,
 			integration_id = EXCLUDED.integration_id,
+			goal_name = COALESCE(EXCLUDED.goal_name, custom_events.goal_name),
+			goal_type = COALESCE(EXCLUDED.goal_type, custom_events.goal_type),
+			goal_value = COALESCE(EXCLUDED.goal_value, custom_events.goal_value),
+			deleted_at = EXCLUDED.deleted_at,
 			updated_at = NOW()
 		WHERE EXCLUDED.occurred_at > custom_events.occurred_at
+		   OR EXCLUDED.deleted_at IS DISTINCT FROM custom_events.deleted_at
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to prepare statement: %w", err)
@@ -114,11 +141,15 @@ func (r *customEventRepository) BatchCreate(ctx context.Context, workspaceID str
 			event.OccurredAt,
 			event.Source,
 			event.IntegrationID,
+			event.GoalName,
+			event.GoalType,
+			event.GoalValue,
+			event.DeletedAt,
 			event.CreatedAt,
 			event.UpdatedAt,
 		)
 		if err != nil {
-			return fmt.Errorf("failed to insert event %s: %w", event.ExternalID, err)
+			return fmt.Errorf("failed to upsert event %s: %w", event.ExternalID, err)
 		}
 	}
 
@@ -137,14 +168,19 @@ func (r *customEventRepository) GetByID(ctx context.Context, workspaceID, eventN
 
 	query := `
 		SELECT event_name, external_id, email, properties, occurred_at,
-		       source, integration_id, created_at, updated_at
+		       source, integration_id, goal_name, goal_type, goal_value,
+		       deleted_at, created_at, updated_at
 		FROM custom_events
-		WHERE event_name = $1 AND external_id = $2
+		WHERE event_name = $1 AND external_id = $2 AND deleted_at IS NULL
 	`
 
 	var event domain.CustomEvent
 	var propertiesJSON []byte
 	var integrationID sql.NullString
+	var goalName sql.NullString
+	var goalType sql.NullString
+	var goalValue sql.NullFloat64
+	var deletedAt sql.NullTime
 
 	err = db.QueryRowContext(ctx, query, eventName, externalID).Scan(
 		&event.EventName,
@@ -154,6 +190,10 @@ func (r *customEventRepository) GetByID(ctx context.Context, workspaceID, eventN
 		&event.OccurredAt,
 		&event.Source,
 		&integrationID,
+		&goalName,
+		&goalType,
+		&goalValue,
+		&deletedAt,
 		&event.CreatedAt,
 		&event.UpdatedAt,
 	)
@@ -166,6 +206,18 @@ func (r *customEventRepository) GetByID(ctx context.Context, workspaceID, eventN
 
 	if integrationID.Valid {
 		event.IntegrationID = &integrationID.String
+	}
+	if goalName.Valid {
+		event.GoalName = &goalName.String
+	}
+	if goalType.Valid {
+		event.GoalType = &goalType.String
+	}
+	if goalValue.Valid {
+		event.GoalValue = &goalValue.Float64
+	}
+	if deletedAt.Valid {
+		event.DeletedAt = &deletedAt.Time
 	}
 
 	if err := json.Unmarshal(propertiesJSON, &event.Properties); err != nil {
@@ -183,9 +235,10 @@ func (r *customEventRepository) ListByEmail(ctx context.Context, workspaceID, em
 
 	query := `
 		SELECT event_name, external_id, email, properties, occurred_at,
-		       source, integration_id, created_at, updated_at
+		       source, integration_id, goal_name, goal_type, goal_value,
+		       deleted_at, created_at, updated_at
 		FROM custom_events
-		WHERE email = $1
+		WHERE email = $1 AND deleted_at IS NULL
 		ORDER BY occurred_at DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -201,9 +254,10 @@ func (r *customEventRepository) ListByEventName(ctx context.Context, workspaceID
 
 	query := `
 		SELECT event_name, external_id, email, properties, occurred_at,
-		       source, integration_id, created_at, updated_at
+		       source, integration_id, goal_name, goal_type, goal_value,
+		       deleted_at, created_at, updated_at
 		FROM custom_events
-		WHERE event_name = $1
+		WHERE event_name = $1 AND deleted_at IS NULL
 		ORDER BY occurred_at DESC
 		LIMIT $2 OFFSET $3
 	`
@@ -240,6 +294,10 @@ func (r *customEventRepository) scanEvents(ctx context.Context, db *sql.DB, quer
 		var event domain.CustomEvent
 		var propertiesJSON []byte
 		var integrationID sql.NullString
+		var goalName sql.NullString
+		var goalType sql.NullString
+		var goalValue sql.NullFloat64
+		var deletedAt sql.NullTime
 
 		err := rows.Scan(
 			&event.EventName,
@@ -249,6 +307,10 @@ func (r *customEventRepository) scanEvents(ctx context.Context, db *sql.DB, quer
 			&event.OccurredAt,
 			&event.Source,
 			&integrationID,
+			&goalName,
+			&goalType,
+			&goalValue,
+			&deletedAt,
 			&event.CreatedAt,
 			&event.UpdatedAt,
 		)
@@ -258,6 +320,18 @@ func (r *customEventRepository) scanEvents(ctx context.Context, db *sql.DB, quer
 
 		if integrationID.Valid {
 			event.IntegrationID = &integrationID.String
+		}
+		if goalName.Valid {
+			event.GoalName = &goalName.String
+		}
+		if goalType.Valid {
+			event.GoalType = &goalType.String
+		}
+		if goalValue.Valid {
+			event.GoalValue = &goalValue.Float64
+		}
+		if deletedAt.Valid {
+			event.DeletedAt = &deletedAt.Time
 		}
 
 		if err := json.Unmarshal(propertiesJSON, &event.Properties); err != nil {

@@ -508,8 +508,6 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		var externalIDSQL, timezoneSQL, languageSQL sql.NullString
 		var firstNameSQL, lastNameSQL, phoneSQL, addressLine1SQL, addressLine2SQL sql.NullString
 		var countrySQL, postcodeSQL, stateSQL, jobTitleSQL sql.NullString
-		var lifetimeValueSQL, ordersCountSQL sql.NullFloat64
-		var lastOrderAtSQL sql.NullTime
 		var customString1SQL, customString2SQL, customString3SQL, customString4SQL, customString5SQL sql.NullString
 		var customNumber1SQL, customNumber2SQL, customNumber3SQL, customNumber4SQL, customNumber5SQL sql.NullFloat64
 		var customDatetime1SQL, customDatetime2SQL, customDatetime3SQL, customDatetime4SQL, customDatetime5SQL sql.NullTime
@@ -638,22 +636,6 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 			}
 		}
 
-		// Number fields
-		if contact.LifetimeValue != nil {
-			if !contact.LifetimeValue.IsNull {
-				lifetimeValueSQL = sql.NullFloat64{Float64: contact.LifetimeValue.Float64, Valid: true}
-			} else {
-				lifetimeValueSQL = sql.NullFloat64{Valid: false}
-			}
-		}
-		if contact.OrdersCount != nil {
-			if !contact.OrdersCount.IsNull {
-				ordersCountSQL = sql.NullFloat64{Float64: contact.OrdersCount.Float64, Valid: true}
-			} else {
-				ordersCountSQL = sql.NullFloat64{Valid: false}
-			}
-		}
-
 		// Custom number fields
 		if contact.CustomNumber1 != nil {
 			if !contact.CustomNumber1.IsNull {
@@ -688,15 +670,6 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 				customNumber5SQL = sql.NullFloat64{Float64: contact.CustomNumber5.Float64, Valid: true}
 			} else {
 				customNumber5SQL = sql.NullFloat64{Valid: false}
-			}
-		}
-
-		// Datetime fields
-		if contact.LastOrderAt != nil {
-			if !contact.LastOrderAt.IsNull {
-				lastOrderAtSQL = sql.NullTime{Time: contact.LastOrderAt.Time, Valid: true}
-			} else {
-				lastOrderAtSQL = sql.NullTime{Valid: false}
 			}
 		}
 
@@ -810,7 +783,6 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 				"email", "external_id", "timezone", "language",
 				"first_name", "last_name", "phone", "address_line_1", "address_line_2",
 				"country", "postcode", "state", "job_title",
-				"lifetime_value", "orders_count", "last_order_at",
 				"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 				"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
 				"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
@@ -821,7 +793,6 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 				contact.Email, externalIDSQL, timezoneSQL, languageSQL,
 				firstNameSQL, lastNameSQL, phoneSQL, addressLine1SQL, addressLine2SQL,
 				countrySQL, postcodeSQL, stateSQL, jobTitleSQL,
-				lifetimeValueSQL, ordersCountSQL, lastOrderAtSQL,
 				customString1SQL, customString2SQL, customString3SQL, customString4SQL, customString5SQL,
 				customNumber1SQL, customNumber2SQL, customNumber3SQL, customNumber4SQL, customNumber5SQL,
 				customDatetime1SQL, customDatetime2SQL, customDatetime3SQL, customDatetime4SQL, customDatetime5SQL,
@@ -855,8 +826,6 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		var externalIDSQL, timezoneSQL, languageSQL sql.NullString
 		var firstNameSQL, lastNameSQL, phoneSQL, addressLine1SQL, addressLine2SQL sql.NullString
 		var countrySQL, postcodeSQL, stateSQL, jobTitleSQL sql.NullString
-		var lifetimeValueSQL, ordersCountSQL sql.NullFloat64
-		var lastOrderAtSQL sql.NullTime
 		var customString1SQL, customString2SQL, customString3SQL, customString4SQL, customString5SQL sql.NullString
 		var customNumber1SQL, customNumber2SQL, customNumber3SQL, customNumber4SQL, customNumber5SQL sql.NullFloat64
 		var customDatetime1SQL, customDatetime2SQL, customDatetime3SQL, customDatetime4SQL, customDatetime5SQL sql.NullTime
@@ -953,18 +922,6 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 			}
 		}
 
-		// Convert number fields
-		if existingContact.LifetimeValue != nil {
-			if !existingContact.LifetimeValue.IsNull {
-				lifetimeValueSQL = sql.NullFloat64{Float64: existingContact.LifetimeValue.Float64, Valid: true}
-			}
-		}
-		if existingContact.OrdersCount != nil {
-			if !existingContact.OrdersCount.IsNull {
-				ordersCountSQL = sql.NullFloat64{Float64: existingContact.OrdersCount.Float64, Valid: true}
-			}
-		}
-
 		// Convert custom number fields
 		if existingContact.CustomNumber1 != nil {
 			if !existingContact.CustomNumber1.IsNull {
@@ -989,13 +946,6 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		if existingContact.CustomNumber5 != nil {
 			if !existingContact.CustomNumber5.IsNull {
 				customNumber5SQL = sql.NullFloat64{Float64: existingContact.CustomNumber5.Float64, Valid: true}
-			}
-		}
-
-		// Convert datetime fields
-		if existingContact.LastOrderAt != nil {
-			if !existingContact.LastOrderAt.IsNull {
-				lastOrderAtSQL = sql.NullTime{Time: existingContact.LastOrderAt.Time, Valid: true}
 			}
 		}
 
@@ -1087,9 +1037,6 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 			"postcode":          postcodeSQL,
 			"state":             stateSQL,
 			"job_title":         jobTitleSQL,
-			"lifetime_value":    lifetimeValueSQL,
-			"orders_count":      ordersCountSQL,
-			"last_order_at":     lastOrderAtSQL,
 			"custom_string_1":   customString1SQL,
 			"custom_string_2":   customString2SQL,
 			"custom_string_3":   customString3SQL,
@@ -1168,14 +1115,13 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 	// Build the multi-row INSERT statement
 	// We'll use a raw SQL query because squirrel doesn't handle complex ON CONFLICT well
 	var queryBuilder strings.Builder
-	args := make([]interface{}, 0, len(contacts)*38) // 38 fields per contact (db_created_at and db_updated_at are managed by DB)
+	args := make([]interface{}, 0, len(contacts)*35) // 35 fields per contact (db_created_at and db_updated_at are managed by DB)
 	argIndex := 1
 
 	queryBuilder.WriteString(`INSERT INTO contacts (
 		email, external_id, timezone, language,
 		first_name, last_name, phone, address_line_1, address_line_2,
 		country, postcode, state, job_title,
-		lifetime_value, orders_count, last_order_at,
 		custom_string_1, custom_string_2, custom_string_3, custom_string_4, custom_string_5,
 		custom_number_1, custom_number_2, custom_number_3, custom_number_4, custom_number_5,
 		custom_datetime_1, custom_datetime_2, custom_datetime_3, custom_datetime_4, custom_datetime_5,
@@ -1190,8 +1136,8 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 		}
 		queryBuilder.WriteString("(")
 
-		// Add 38 placeholders for contact fields (excluding db_created_at and db_updated_at)
-		for j := 0; j < 38; j++ {
+		// Add 35 placeholders for contact fields (excluding db_created_at and db_updated_at)
+		for j := 0; j < 35; j++ {
 			if j > 0 {
 				queryBuilder.WriteString(", ")
 			}
@@ -1256,31 +1202,28 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 			toNullString(contact.Postcode),       // 11
 			toNullString(contact.State),          // 12
 			toNullString(contact.JobTitle),       // 13
-			toNullFloat64(contact.LifetimeValue), // 14
-			toNullFloat64(contact.OrdersCount),   // 15
-			toNullTime(contact.LastOrderAt),      // 16
-			toNullString(contact.CustomString1),  // 17
-			toNullString(contact.CustomString2),  // 18
-			toNullString(contact.CustomString3),  // 19
-			toNullString(contact.CustomString4),  // 20
-			toNullString(contact.CustomString5),  // 21
-			toNullFloat64(contact.CustomNumber1), // 22
-			toNullFloat64(contact.CustomNumber2), // 23
-			toNullFloat64(contact.CustomNumber3), // 24
-			toNullFloat64(contact.CustomNumber4), // 25
-			toNullFloat64(contact.CustomNumber5), // 26
-			toNullTime(contact.CustomDatetime1),  // 27
-			toNullTime(contact.CustomDatetime2),  // 28
-			toNullTime(contact.CustomDatetime3),  // 29
-			toNullTime(contact.CustomDatetime4),  // 30
-			toNullTime(contact.CustomDatetime5),  // 31
-			toNullJSON(contact.CustomJSON1),      // 32
-			toNullJSON(contact.CustomJSON2),      // 33
-			toNullJSON(contact.CustomJSON3),      // 34
-			toNullJSON(contact.CustomJSON4),      // 35
-			toNullJSON(contact.CustomJSON5),      // 36
-			createdAt,                            // 37 - application-level timestamp
-			updatedAt,                            // 38 - application-level timestamp
+			toNullString(contact.CustomString1),  // 14
+			toNullString(contact.CustomString2),  // 15
+			toNullString(contact.CustomString3),  // 16
+			toNullString(contact.CustomString4),  // 17
+			toNullString(contact.CustomString5),  // 18
+			toNullFloat64(contact.CustomNumber1), // 19
+			toNullFloat64(contact.CustomNumber2), // 20
+			toNullFloat64(contact.CustomNumber3), // 21
+			toNullFloat64(contact.CustomNumber4), // 22
+			toNullFloat64(contact.CustomNumber5), // 23
+			toNullTime(contact.CustomDatetime1),  // 24
+			toNullTime(contact.CustomDatetime2),  // 25
+			toNullTime(contact.CustomDatetime3),  // 26
+			toNullTime(contact.CustomDatetime4),  // 27
+			toNullTime(contact.CustomDatetime5),  // 28
+			toNullJSON(contact.CustomJSON1),      // 29
+			toNullJSON(contact.CustomJSON2),      // 30
+			toNullJSON(contact.CustomJSON3),      // 31
+			toNullJSON(contact.CustomJSON4),      // 32
+			toNullJSON(contact.CustomJSON5),      // 33
+			createdAt,                            // 34 - application-level timestamp
+			updatedAt,                            // 35 - application-level timestamp
 		)
 	}
 
@@ -1301,9 +1244,6 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 		postcode = CASE WHEN EXCLUDED.postcode IS NOT NULL THEN EXCLUDED.postcode ELSE contacts.postcode END,
 		state = CASE WHEN EXCLUDED.state IS NOT NULL THEN EXCLUDED.state ELSE contacts.state END,
 		job_title = CASE WHEN EXCLUDED.job_title IS NOT NULL THEN EXCLUDED.job_title ELSE contacts.job_title END,
-		lifetime_value = CASE WHEN EXCLUDED.lifetime_value IS NOT NULL THEN EXCLUDED.lifetime_value ELSE contacts.lifetime_value END,
-		orders_count = CASE WHEN EXCLUDED.orders_count IS NOT NULL THEN EXCLUDED.orders_count ELSE contacts.orders_count END,
-		last_order_at = CASE WHEN EXCLUDED.last_order_at IS NOT NULL THEN EXCLUDED.last_order_at ELSE contacts.last_order_at END,
 		custom_string_1 = CASE WHEN EXCLUDED.custom_string_1 IS NOT NULL THEN EXCLUDED.custom_string_1 ELSE contacts.custom_string_1 END,
 		custom_string_2 = CASE WHEN EXCLUDED.custom_string_2 IS NOT NULL THEN EXCLUDED.custom_string_2 ELSE contacts.custom_string_2 END,
 		custom_string_3 = CASE WHEN EXCLUDED.custom_string_3 IS NOT NULL THEN EXCLUDED.custom_string_3 ELSE contacts.custom_string_3 END,
@@ -1459,8 +1399,6 @@ func (r *contactRepository) GetContactsForBroadcast(
 			var email, externalID, timezone, language sql.NullString
 			var firstName, lastName, phone, addressLine1, addressLine2 sql.NullString
 			var country, postcode, state, jobTitle sql.NullString
-			var lifetimeValue, ordersCount sql.NullFloat64
-			var lastOrderAt sql.NullTime
 			var customString1, customString2, customString3, customString4, customString5 sql.NullString
 			var customNumber1, customNumber2, customNumber3, customNumber4, customNumber5 sql.NullFloat64
 			var customDatetime1, customDatetime2, customDatetime3, customDatetime4, customDatetime5 sql.NullTime
@@ -1472,7 +1410,6 @@ func (r *contactRepository) GetContactsForBroadcast(
 				&email, &externalID, &timezone, &language,
 				&firstName, &lastName, &phone, &addressLine1, &addressLine2,
 				&country, &postcode, &state, &jobTitle,
-				&lifetimeValue, &ordersCount, &lastOrderAt,
 				&customString1, &customString2, &customString3, &customString4, &customString5,
 				&customNumber1, &customNumber2, &customNumber3, &customNumber4, &customNumber5,
 				&customDatetime1, &customDatetime2, &customDatetime3, &customDatetime4, &customDatetime5,
@@ -1529,15 +1466,6 @@ func (r *contactRepository) GetContactsForBroadcast(
 			}
 			if jobTitle.Valid {
 				contact.JobTitle = &domain.NullableString{String: jobTitle.String, IsNull: false}
-			}
-			if lifetimeValue.Valid {
-				contact.LifetimeValue = &domain.NullableFloat64{Float64: lifetimeValue.Float64, IsNull: false}
-			}
-			if ordersCount.Valid {
-				contact.OrdersCount = &domain.NullableFloat64{Float64: ordersCount.Float64, IsNull: false}
-			}
-			if lastOrderAt.Valid {
-				contact.LastOrderAt = &domain.NullableTime{Time: lastOrderAt.Time, IsNull: false}
 			}
 			// Handle custom fields similarly...
 			if customString1.Valid {

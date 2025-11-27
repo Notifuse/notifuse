@@ -15,6 +15,7 @@ import (
 // 3. Segment semantic naming (segment.joined, segment.left)
 // 4. Contact semantic naming (contact.created, contact.updated)
 // 5. Historical data migration for all three entity types
+// 6. Remove deprecated contact fields (lifetime_value, orders_count, last_order_at) - now handled by custom_events_goals
 type V18Migration struct{}
 
 func (m *V18Migration) GetMajorVersion() float64 {
@@ -44,6 +45,7 @@ func (m *V18Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 	// ========================================================================
 
 	// Create custom_events table with composite PRIMARY KEY (event_name, external_id)
+	// Includes goal tracking fields and soft-delete support
 	_, err := db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS custom_events (
 			event_name VARCHAR(100) NOT NULL,
@@ -53,6 +55,13 @@ func (m *V18Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 			occurred_at TIMESTAMPTZ NOT NULL,
 			source VARCHAR(50) NOT NULL DEFAULT 'api',
 			integration_id VARCHAR(32),
+			-- Goal tracking fields
+			goal_name VARCHAR(100) DEFAULT NULL,
+			goal_type VARCHAR(20) DEFAULT NULL,
+			goal_value DECIMAL(15,2) DEFAULT NULL,
+			-- Soft delete
+			deleted_at TIMESTAMPTZ DEFAULT NULL,
+			-- Timestamps
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			updated_at TIMESTAMPTZ DEFAULT NOW(),
 			PRIMARY KEY (event_name, external_id)
@@ -62,10 +71,11 @@ func (m *V18Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		return fmt.Errorf("failed to create custom_events table: %w", err)
 	}
 
-	// Create indexes for custom_events table
+	// Create indexes for custom_events table (exclude deleted rows where applicable)
 	_, err = db.ExecContext(ctx, `
 		CREATE INDEX IF NOT EXISTS idx_custom_events_email
-			ON custom_events(email, occurred_at DESC);
+			ON custom_events(email, occurred_at DESC)
+			WHERE deleted_at IS NULL;
 
 		CREATE INDEX IF NOT EXISTS idx_custom_events_external_id
 			ON custom_events(external_id);
@@ -76,6 +86,20 @@ func (m *V18Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 
 		CREATE INDEX IF NOT EXISTS idx_custom_events_properties
 			ON custom_events USING GIN (properties jsonb_path_ops);
+
+		-- Goal tracking indexes (exclude deleted rows)
+		CREATE INDEX IF NOT EXISTS idx_custom_events_goal_type
+			ON custom_events(email, goal_type, occurred_at DESC)
+			WHERE goal_type IS NOT NULL AND deleted_at IS NULL;
+
+		CREATE INDEX IF NOT EXISTS idx_custom_events_purchases
+			ON custom_events(email, goal_value, occurred_at)
+			WHERE goal_type = 'purchase' AND deleted_at IS NULL;
+
+		-- Index for soft-deleted records (for cleanup queries)
+		CREATE INDEX IF NOT EXISTS idx_custom_events_deleted
+			ON custom_events(deleted_at)
+			WHERE deleted_at IS NOT NULL;
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create custom_events indexes: %w", err)
@@ -383,9 +407,6 @@ func (m *V18Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 				IF OLD.postcode IS DISTINCT FROM NEW.postcode THEN changes_json := changes_json || jsonb_build_object('postcode', jsonb_build_object('old', OLD.postcode, 'new', NEW.postcode)); END IF;
 				IF OLD.state IS DISTINCT FROM NEW.state THEN changes_json := changes_json || jsonb_build_object('state', jsonb_build_object('old', OLD.state, 'new', NEW.state)); END IF;
 				IF OLD.job_title IS DISTINCT FROM NEW.job_title THEN changes_json := changes_json || jsonb_build_object('job_title', jsonb_build_object('old', OLD.job_title, 'new', NEW.job_title)); END IF;
-				IF OLD.lifetime_value IS DISTINCT FROM NEW.lifetime_value THEN changes_json := changes_json || jsonb_build_object('lifetime_value', jsonb_build_object('old', OLD.lifetime_value, 'new', NEW.lifetime_value)); END IF;
-				IF OLD.orders_count IS DISTINCT FROM NEW.orders_count THEN changes_json := changes_json || jsonb_build_object('orders_count', jsonb_build_object('old', OLD.orders_count, 'new', NEW.orders_count)); END IF;
-				IF OLD.last_order_at IS DISTINCT FROM NEW.last_order_at THEN changes_json := changes_json || jsonb_build_object('last_order_at', jsonb_build_object('old', OLD.last_order_at, 'new', NEW.last_order_at)); END IF;
 				IF OLD.custom_string_1 IS DISTINCT FROM NEW.custom_string_1 THEN changes_json := changes_json || jsonb_build_object('custom_string_1', jsonb_build_object('old', OLD.custom_string_1, 'new', NEW.custom_string_1)); END IF;
 				IF OLD.custom_string_2 IS DISTINCT FROM NEW.custom_string_2 THEN changes_json := changes_json || jsonb_build_object('custom_string_2', jsonb_build_object('old', OLD.custom_string_2, 'new', NEW.custom_string_2)); END IF;
 				IF OLD.custom_string_3 IS DISTINCT FROM NEW.custom_string_3 THEN changes_json := changes_json || jsonb_build_object('custom_string_3', jsonb_build_object('old', OLD.custom_string_3, 'new', NEW.custom_string_3)); END IF;
@@ -436,6 +457,63 @@ func (m *V18Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to migrate contact timeline entries: %w", err)
+	}
+
+	// ========================================================================
+	// PART 5: Remove deprecated contact fields
+	// These fields are now replaced by custom_events_goals segmentation
+	// ========================================================================
+
+	// Delete contact_segments for segments that use deprecated contact fields
+	// Must be done before deleting the segments due to foreign key constraints
+	_, err = db.ExecContext(ctx, `
+		DELETE FROM contact_segments
+		WHERE segment_id IN (
+			SELECT id FROM segments
+			WHERE tree::text LIKE '%lifetime_value%'
+			   OR tree::text LIKE '%orders_count%'
+			   OR tree::text LIKE '%last_order_at%'
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to delete contact_segments for deprecated segments: %w", err)
+	}
+
+	// Delete segments that use deprecated contact fields (lifetime_value, orders_count, last_order_at)
+	// These segments will no longer work after the columns are dropped
+	_, err = db.ExecContext(ctx, `
+		DELETE FROM segments
+		WHERE tree::text LIKE '%lifetime_value%'
+		   OR tree::text LIKE '%orders_count%'
+		   OR tree::text LIKE '%last_order_at%'
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to delete segments using deprecated fields: %w", err)
+	}
+
+	// Drop deprecated columns from contacts table
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE contacts
+		DROP COLUMN IF EXISTS lifetime_value,
+		DROP COLUMN IF EXISTS orders_count,
+		DROP COLUMN IF EXISTS last_order_at
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to drop deprecated contact columns: %w", err)
+	}
+
+	// ========================================================================
+	// PART 6: Rename "table" to "source" in segment tree JSONB
+	// The field was renamed for semantic clarity (custom_events_goals is not a real table)
+	// ========================================================================
+
+	_, err = db.ExecContext(ctx, `
+		UPDATE segments
+		SET tree = REPLACE(tree::text, '"table":', '"source":')::jsonb
+		WHERE tree IS NOT NULL
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to rename table to source in segment trees: %w", err)
 	}
 
 	return nil

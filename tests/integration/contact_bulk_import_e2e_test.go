@@ -560,8 +560,6 @@ func testCustomFieldsPreservation(t *testing.T, client *testutil.APIClient, work
 			"postcode":          "12345",
 			"state":             "NY",
 			"job_title":         "Engineer",
-			"lifetime_value":    1000.50,
-			"orders_count":      5.0,
 			"custom_string_1":   "value1",
 			"custom_string_2":   "value2",
 			"custom_string_3":   "value3",

@@ -21,7 +21,7 @@ func validTestTree() *domain.TreeNode {
 	return &domain.TreeNode{
 		Kind: "leaf",
 		Leaf: &domain.TreeNodeLeaf{
-			Table: "contacts",
+			Source: "contacts",
 			Contact: &domain.ContactCondition{
 				Filters: []*domain.DimensionFilter{
 					{
@@ -47,7 +47,7 @@ func setupSegmentRepositoryTest(t *testing.T) (domain.SegmentRepository, sqlmock
 
 func createTestSegment() *domain.Segment {
 	now := time.Now().UTC()
-	sql := "SELECT email FROM contacts WHERE orders_count >= $1"
+	sql := "SELECT email FROM contacts WHERE custom_number_1 >= $1"
 	return &domain.Segment{
 		ID:            "seg123",
 		Name:          "VIP Customers",

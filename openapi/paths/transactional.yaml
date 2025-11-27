@@ -1,0 +1,66 @@
+/api/transactional.send:
+  post:
+    summary: Send a transactional notification
+    description: |
+      Sends a transactional notification to a contact through specified channels.
+      Requires authentication.
+    operationId: sendTransactionalNotification
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/transactional.yaml#/SendTransactionalRequest'
+    responses:
+      '200':
+        description: Notification sent successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                message_id:
+                  type: string
+                  description: Unique identifier for the sent message
+                  example: msg_1234567890abcdef
+                success:
+                  type: boolean
+                  description: Whether the notification was sent successfully
+                  example: true
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              notFoundExample:
+                value:
+                  error: Notification not found
+              inactiveExample:
+                value:
+                  error: Notification is not active
+              noChannelsExample:
+                value:
+                  error: No valid channels configured
+              validationExample:
+                value:
+                  error: notification.contact is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Unauthorized
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to send notification

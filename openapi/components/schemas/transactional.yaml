@@ -1,0 +1,123 @@
+SendTransactionalRequest:
+  type: object
+  required:
+    - workspace_id
+    - notification
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    notification:
+      $ref: '#/TransactionalNotificationSendParams'
+
+TransactionalNotificationSendParams:
+  type: object
+  required:
+    - id
+    - contact
+  properties:
+    id:
+      type: string
+      description: ID of the notification to send
+      example: welcome_email
+    external_id:
+      type: string
+      nullable: true
+      description: External ID for idempotency checks
+      example: txn_12345
+    contact:
+      $ref: 'contact.yaml#/Contact'
+    channels:
+      type: array
+      description: Specific channels to send through (if empty, use all configured channels)
+      items:
+        type: string
+        enum:
+          - email
+      example:
+        - email
+    data:
+      type: object
+      additionalProperties: true
+      description: Data to populate the template with
+      example:
+        user_name: John Doe
+        activation_link: https://example.com/activate/abc123
+    metadata:
+      type: object
+      additionalProperties: true
+      description: Additional metadata for tracking
+      example:
+        campaign_id: spring_promo_2023
+        source: user_signup
+    email_options:
+      type: object
+      description: Email-specific options
+      properties:
+        from_name:
+          type: string
+          nullable: true
+          description: Override default sender from name
+          example: Support Team
+        cc:
+          type: array
+          description: CC email addresses
+          items:
+            type: string
+            format: email
+          example:
+            - manager@example.com
+        bcc:
+          type: array
+          description: BCC email addresses
+          items:
+            type: string
+            format: email
+          example:
+            - archive@example.com
+        reply_to:
+          type: string
+          format: email
+          description: Reply-To email address
+          example: support@example.com
+        attachments:
+          type: array
+          description: Email attachments (max 20 files, 3MB per file, 10MB total)
+          items:
+            $ref: '#/EmailAttachment'
+          maxItems: 20
+          example:
+            - filename: invoice.pdf
+              content: JVBERi0xLjQKJeLjz9MKMy4uLg==
+              content_type: application/pdf
+              disposition: attachment
+
+EmailAttachment:
+  type: object
+  required:
+    - filename
+    - content
+  properties:
+    filename:
+      type: string
+      description: Name of the file (max 255 characters, no path separators)
+      example: invoice.pdf
+      maxLength: 255
+    content:
+      type: string
+      format: byte
+      description: Base64-encoded file content (max 3MB per file)
+      example: JVBERi0xLjQKJeLjz9MKMy4uLg==
+    content_type:
+      type: string
+      description: MIME type of the file (auto-detected if not provided)
+      example: application/pdf
+    disposition:
+      type: string
+      enum:
+        - attachment
+        - inline
+      description: How the attachment should be displayed (defaults to 'attachment')
+      example: attachment
+      default: attachment

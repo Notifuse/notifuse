@@ -110,27 +110,6 @@ export const ContactsTableSchema: TableSchema = {
       type: 'string',
       shown: true
     },
-    lifetime_value: {
-      name: 'lifetime_value',
-      title: 'Lifetime Value',
-      description: 'Customer lifetime value',
-      type: 'number',
-      shown: true
-    },
-    orders_count: {
-      name: 'orders_count',
-      title: 'Orders Count',
-      description: 'Total number of orders',
-      type: 'number',
-      shown: true
-    },
-    last_order_at: {
-      name: 'last_order_at',
-      title: 'Last Order Date',
-      description: 'Date of last order',
-      type: 'time',
-      shown: true
-    },
     // Custom string fields
     custom_string_1: {
       name: 'custom_string_1',

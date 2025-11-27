@@ -12,7 +12,7 @@ import Messages from './messages'
 export type LeafFormProps = {
   value?: TreeNode
   onChange?: (updatedLeaf: TreeNode) => void
-  table: string
+  source: string
   schema: TableSchema
   editingNodeLeaf: EditingNodeLeaf
   setEditingNodeLeaf: Dispatch<SetStateAction<EditingNodeLeaf | undefined>>
@@ -54,7 +54,7 @@ export const LeafContactForm = (props: LeafFormProps) => {
     <Form component="div" layout="inline" form={form} initialValues={props.editingNodeLeaf.leaf}>
       <Form.Item
         style={{ margin: 0 }}
-        name="table"
+        name="source"
         colon={false}
         label={
           <Tag bordered={false} color="cyan">
@@ -134,7 +134,7 @@ export const LeafContactListForm = (props: LeafFormProps) => {
         List subscription
       </Tag>
       <Form component="div" layout="inline" form={form} initialValues={props.editingNodeLeaf.leaf}>
-        <Form.Item name="table" noStyle>
+        <Form.Item name="source" noStyle>
           <Input hidden />
         </Form.Item>
 
@@ -258,7 +258,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
         form={form}
         initialValues={props.editingNodeLeaf.leaf}
       >
-        <Form.Item name="table" noStyle>
+        <Form.Item name="source" noStyle>
           <Input hidden />
         </Form.Item>
 
@@ -440,7 +440,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
           </Space>
         </div>
 
-        {props.table === 'contact_events' && (
+        {props.source === 'contact_events' && (
           <div className="mt-2">
             <Space style={{ alignItems: 'start' }}>
               <span className="opacity-60" style={{ lineHeight: '32px' }}>

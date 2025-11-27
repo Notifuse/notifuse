@@ -53,7 +53,7 @@ func createTestSegment() *domain.Segment {
 		Tree: &domain.TreeNode{
 			Kind: "leaf",
 			Leaf: &domain.TreeNodeLeaf{
-				Table: "contacts",
+				Source: "contacts",
 				Contact: &domain.ContactCondition{
 					Filters: []*domain.DimensionFilter{
 						{
@@ -373,7 +373,7 @@ func TestSegmentHandler_HandleCreate(t *testing.T) {
 				Tree: &domain.TreeNode{
 					Kind: "leaf",
 					Leaf: &domain.TreeNodeLeaf{
-						Table: "contacts",
+						Source: "contacts",
 						Contact: &domain.ContactCondition{
 							Filters: []*domain.DimensionFilter{
 								{
@@ -422,7 +422,7 @@ func TestSegmentHandler_HandleCreate(t *testing.T) {
 				Tree: &domain.TreeNode{
 					Kind: "leaf",
 					Leaf: &domain.TreeNodeLeaf{
-						Table: "contacts",
+						Source: "contacts",
 						Contact: &domain.ContactCondition{
 							Filters: []*domain.DimensionFilter{},
 						},
@@ -502,7 +502,7 @@ func TestSegmentHandler_HandleUpdate(t *testing.T) {
 				Tree: &domain.TreeNode{
 					Kind: "leaf",
 					Leaf: &domain.TreeNodeLeaf{
-						Table: "contacts",
+						Source: "contacts",
 						Contact: &domain.ContactCondition{
 							Filters: []*domain.DimensionFilter{},
 						},
@@ -544,7 +544,7 @@ func TestSegmentHandler_HandleUpdate(t *testing.T) {
 				Tree: &domain.TreeNode{
 					Kind: "leaf",
 					Leaf: &domain.TreeNodeLeaf{
-						Table: "contacts",
+						Source: "contacts",
 						Contact: &domain.ContactCondition{
 							Filters: []*domain.DimensionFilter{},
 						},
@@ -571,7 +571,7 @@ func TestSegmentHandler_HandleUpdate(t *testing.T) {
 				Tree: &domain.TreeNode{
 					Kind: "leaf",
 					Leaf: &domain.TreeNodeLeaf{
-						Table: "contacts",
+						Source: "contacts",
 						Contact: &domain.ContactCondition{
 							Filters: []*domain.DimensionFilter{},
 						},

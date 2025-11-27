@@ -41,11 +41,6 @@ type Contact struct {
 	State        *NullableString `json:"state,omitempty" valid:"optional"`
 	JobTitle     *NullableString `json:"job_title,omitempty" valid:"optional"`
 
-	// Commerce related fields
-	LifetimeValue *NullableFloat64 `json:"lifetime_value,omitempty" valid:"optional"`
-	OrdersCount   *NullableFloat64 `json:"orders_count,omitempty" valid:"optional"`
-	LastOrderAt   *NullableTime    `json:"last_order_at,omitempty" valid:"optional"`
-
 	// Custom fields
 	CustomString1 *NullableString `json:"custom_string_1,omitempty" valid:"optional"`
 	CustomString2 *NullableString `json:"custom_string_2,omitempty" valid:"optional"`
@@ -130,10 +125,6 @@ type dbContact struct {
 	State        sql.NullString
 	JobTitle     sql.NullString
 
-	LifetimeValue sql.NullFloat64
-	OrdersCount   sql.NullFloat64
-	LastOrderAt   sql.NullTime
-
 	CustomString1 sql.NullString
 	CustomString2 sql.NullString
 	CustomString3 sql.NullString
@@ -185,9 +176,6 @@ func ScanContact(scanner interface {
 		&dbc.Postcode,
 		&dbc.State,
 		&dbc.JobTitle,
-		&dbc.LifetimeValue,
-		&dbc.OrdersCount,
-		&dbc.LastOrderAt,
 		&dbc.CustomString1,
 		&dbc.CustomString2,
 		&dbc.CustomString3,
@@ -271,18 +259,6 @@ func ScanContact(scanner interface {
 
 	if dbc.JobTitle.Valid {
 		c.JobTitle = &NullableString{String: dbc.JobTitle.String, IsNull: false}
-	}
-
-	if dbc.LifetimeValue.Valid {
-		c.LifetimeValue = &NullableFloat64{Float64: dbc.LifetimeValue.Float64, IsNull: false}
-	}
-
-	if dbc.OrdersCount.Valid {
-		c.OrdersCount = &NullableFloat64{Float64: dbc.OrdersCount.Float64, IsNull: false}
-	}
-
-	if dbc.LastOrderAt.Valid {
-		c.LastOrderAt = &NullableTime{Time: dbc.LastOrderAt.Time, IsNull: false}
 	}
 
 	if dbc.CustomString1.Valid {
@@ -739,14 +715,6 @@ func FromJSON(data interface{}) (*Contact, error) {
 		return nil, err
 	}
 
-	// Parse nullable number fields
-	if err := parseNullableFloat(jsonResult, "lifetime_value", &contact.LifetimeValue); err != nil {
-		return nil, err
-	}
-	if err := parseNullableFloat(jsonResult, "orders_count", &contact.OrdersCount); err != nil {
-		return nil, err
-	}
-
 	// Parse custom number fields
 	if err := parseNullableFloat(jsonResult, "custom_number_1", &contact.CustomNumber1); err != nil {
 		return nil, err
@@ -761,11 +729,6 @@ func FromJSON(data interface{}) (*Contact, error) {
 		return nil, err
 	}
 	if err := parseNullableFloat(jsonResult, "custom_number_5", &contact.CustomNumber5); err != nil {
-		return nil, err
-	}
-
-	// Parse date fields
-	if err := parseNullableTime(jsonResult, "last_order_at", &contact.LastOrderAt); err != nil {
 		return nil, err
 	}
 
@@ -926,17 +889,6 @@ func (c *Contact) Merge(other *Contact) {
 	}
 	if other.JobTitle != nil {
 		c.JobTitle = other.JobTitle
-	}
-
-	// Commerce related fields
-	if other.LifetimeValue != nil {
-		c.LifetimeValue = other.LifetimeValue
-	}
-	if other.OrdersCount != nil {
-		c.OrdersCount = other.OrdersCount
-	}
-	if other.LastOrderAt != nil {
-		c.LastOrderAt = other.LastOrderAt
 	}
 
 	// Custom string fields

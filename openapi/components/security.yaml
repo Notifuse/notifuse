@@ -1,0 +1,4 @@
+BearerAuth:
+  type: http
+  scheme: bearer
+  description: API token for authentication

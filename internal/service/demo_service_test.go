@@ -155,6 +155,7 @@ func TestNewDemoService_Constructs(t *testing.T) {
 		nil, // messageHistoryRepo
 		nil, // webhookEventRepo
 		nil, // broadcastRepo
+		nil, // customEventRepo
 	)
 	assert.NotNil(t, svc)
 }
@@ -575,6 +576,7 @@ func TestNewDemoService_AllFields(t *testing.T) {
 		nil, // messageHistoryRepo
 		nil, // webhookEventRepo
 		nil, // broadcastRepo
+		nil, // customEventRepo
 	)
 
 	assert.NotNil(t, svc)

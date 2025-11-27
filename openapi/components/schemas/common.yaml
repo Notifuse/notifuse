@@ -1,0 +1,8 @@
+ErrorResponse:
+  type: object
+  properties:
+    error:
+      type: string
+      description: Error message
+  required:
+    - error

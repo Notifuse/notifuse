@@ -97,9 +97,6 @@ export function ContactsCsvUploadDrawer({
     { key: 'postcode', label: 'Postcode' },
     { key: 'state', label: 'State' },
     { key: 'job_title', label: 'Job Title' },
-    { key: 'lifetime_value', label: 'Lifetime Value' },
-    { key: 'orders_count', label: 'Orders Count' },
-    { key: 'last_order_at', label: 'Last Order At' },
     { key: 'custom_string_1', label: getCustomFieldLabel('custom_string_1', currentWorkspace) },
     { key: 'custom_string_2', label: getCustomFieldLabel('custom_string_2', currentWorkspace) },
     { key: 'custom_string_3', label: getCustomFieldLabel('custom_string_3', currentWorkspace) },
@@ -558,11 +555,7 @@ export function ContactsCsvUploadDrawer({
                     // Set to null if not valid JSON
                     value = null
                   }
-                } else if (
-                  contactField.startsWith('custom_number_') ||
-                  contactField === 'lifetime_value' ||
-                  contactField === 'orders_count'
-                ) {
+                } else if (contactField.startsWith('custom_number_')) {
                   if (value && value.trim && value.trim() !== '') {
                     value = Number(value)
                     // Handle NaN values

@@ -1,0 +1,592 @@
+Contact:
+  type: object
+  required:
+    - email
+  properties:
+    email:
+      type: string
+      format: email
+      description: Email address of the contact
+      example: user@example.com
+    external_id:
+      type: string
+      nullable: true
+      description: External identifier for the contact
+      example: user_12345
+    timezone:
+      type: string
+      nullable: true
+      description: Timezone of the contact
+      example: America/New_York
+    language:
+      type: string
+      nullable: true
+      description: Preferred language of the contact
+      example: en-US
+    first_name:
+      type: string
+      nullable: true
+      description: First name of the contact
+      example: John
+    last_name:
+      type: string
+      nullable: true
+      description: Last name of the contact
+      example: Doe
+    phone:
+      type: string
+      nullable: true
+      description: Phone number of the contact
+      example: '+15551234567'
+    address_line_1:
+      type: string
+      nullable: true
+      description: First line of address
+      example: 123 Main St
+    address_line_2:
+      type: string
+      nullable: true
+      description: Second line of address
+      example: Apt 4B
+    country:
+      type: string
+      nullable: true
+      description: Country of the contact
+      example: US
+    postcode:
+      type: string
+      nullable: true
+      description: Postal code
+      example: '10001'
+    state:
+      type: string
+      nullable: true
+      description: State or province
+      example: NY
+    job_title:
+      type: string
+      nullable: true
+      description: Job title of the contact
+      example: Software Engineer
+    custom_string_1:
+      type: string
+      nullable: true
+      description: Custom string field 1
+      example: Premium tier
+    custom_string_2:
+      type: string
+      nullable: true
+      description: Custom string field 2
+    custom_string_3:
+      type: string
+      nullable: true
+      description: Custom string field 3
+    custom_string_4:
+      type: string
+      nullable: true
+      description: Custom string field 4
+    custom_string_5:
+      type: string
+      nullable: true
+      description: Custom string field 5
+    custom_number_1:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 1
+      example: 42
+    custom_number_2:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 2
+    custom_number_3:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 3
+    custom_number_4:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 4
+    custom_number_5:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 5
+    custom_datetime_1:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 1
+      example: '2023-06-01T09:00:00Z'
+    custom_datetime_2:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 2
+    custom_datetime_3:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 3
+    custom_datetime_4:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 4
+    custom_datetime_5:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 5
+    custom_json_1:
+      type: object
+      nullable: true
+      description: Custom JSON field 1
+      example:
+        preferences:
+          theme: dark
+          notifications: true
+    custom_json_2:
+      type: object
+      nullable: true
+      description: Custom JSON field 2
+    custom_json_3:
+      type: object
+      nullable: true
+      description: Custom JSON field 3
+    custom_json_4:
+      type: object
+      nullable: true
+      description: Custom JSON field 4
+    custom_json_5:
+      type: object
+      nullable: true
+      description: Custom JSON field 5
+    created_at:
+      type: string
+      format: date-time
+      description: When the contact was created
+      example: '2023-01-15T10:30:00Z'
+    updated_at:
+      type: string
+      format: date-time
+      description: When the contact was last updated
+      example: '2023-04-22T15:45:00Z'
+    contact_lists:
+      type: array
+      description: Lists the contact is subscribed to (only included in GET endpoints)
+      items:
+        $ref: '#/ContactList'
+      example:
+        - email: user@example.com
+          list_id: newsletter
+          list_name: Newsletter
+          status: active
+          created_at: '2023-01-15T10:30:00Z'
+          updated_at: '2023-01-15T10:30:00Z'
+          deleted_at: null
+
+ContactList:
+  type: object
+  properties:
+    email:
+      type: string
+      format: email
+      description: Email address of the contact
+      example: user@example.com
+    list_id:
+      type: string
+      description: ID of the list
+      example: newsletter
+    list_name:
+      type: string
+      description: Name of the list
+      example: Newsletter
+    status:
+      type: string
+      enum:
+        - active
+        - pending
+        - unsubscribed
+        - bounced
+        - complained
+      description: Subscription status
+      example: active
+    created_at:
+      type: string
+      format: date-time
+      description: When the contact was subscribed to this list
+      example: '2023-01-15T10:30:00Z'
+    updated_at:
+      type: string
+      format: date-time
+      description: When the subscription was last updated
+      example: '2023-01-15T10:30:00Z'
+    deleted_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: When the subscription was deleted (null if active)
+      example: null
+
+SubscribeToListsRequest:
+  type: object
+  required:
+    - workspace_id
+    - contact
+    - list_ids
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    contact:
+      $ref: '#/SubscriptionContact'
+    list_ids:
+      type: array
+      description: Array of list IDs to subscribe the contact to
+      items:
+        type: string
+      example:
+        - newsletter
+        - product_updates
+      minItems: 1
+
+SubscriptionContact:
+  type: object
+  required:
+    - email
+  properties:
+    email:
+      type: string
+      format: email
+      description: Email address of the contact
+      example: user@example.com
+    email_hmac:
+      type: string
+      description: HMAC of the email for authenticated subscription (optional)
+      example: a1b2c3d4e5f6...
+    external_id:
+      type: string
+      nullable: true
+      description: External identifier for the contact
+      example: user_12345
+    timezone:
+      type: string
+      nullable: true
+      description: Timezone of the contact
+      example: America/New_York
+    language:
+      type: string
+      nullable: true
+      description: Preferred language of the contact
+      example: en-US
+    first_name:
+      type: string
+      nullable: true
+      description: First name of the contact
+      example: John
+    last_name:
+      type: string
+      nullable: true
+      description: Last name of the contact
+      example: Doe
+    phone:
+      type: string
+      nullable: true
+      description: Phone number of the contact
+      example: '+15551234567'
+    address_line_1:
+      type: string
+      nullable: true
+      description: First line of address
+      example: 123 Main St
+    address_line_2:
+      type: string
+      nullable: true
+      description: Second line of address
+      example: Apt 4B
+    country:
+      type: string
+      nullable: true
+      description: Country of the contact
+      example: US
+    postcode:
+      type: string
+      nullable: true
+      description: Postal code
+      example: '10001'
+    state:
+      type: string
+      nullable: true
+      description: State or province
+      example: NY
+    job_title:
+      type: string
+      nullable: true
+      description: Job title of the contact
+      example: Software Engineer
+    custom_string_1:
+      type: string
+      nullable: true
+      description: Custom string field 1
+      example: Premium tier
+    custom_string_2:
+      type: string
+      nullable: true
+      description: Custom string field 2
+    custom_string_3:
+      type: string
+      nullable: true
+      description: Custom string field 3
+    custom_string_4:
+      type: string
+      nullable: true
+      description: Custom string field 4
+    custom_string_5:
+      type: string
+      nullable: true
+      description: Custom string field 5
+    custom_number_1:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 1
+      example: 42
+    custom_number_2:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 2
+    custom_number_3:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 3
+    custom_number_4:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 4
+    custom_number_5:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 5
+    custom_datetime_1:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 1
+      example: '2023-06-01T09:00:00Z'
+    custom_datetime_2:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 2
+    custom_datetime_3:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 3
+    custom_datetime_4:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 4
+    custom_datetime_5:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 5
+    custom_json_1:
+      type: object
+      nullable: true
+      description: Custom JSON field 1
+      example:
+        preferences:
+          theme: dark
+          notifications: true
+    custom_json_2:
+      type: object
+      nullable: true
+      description: Custom JSON field 2
+    custom_json_3:
+      type: object
+      nullable: true
+      description: Custom JSON field 3
+    custom_json_4:
+      type: object
+      nullable: true
+      description: Custom JSON field 4
+    custom_json_5:
+      type: object
+      nullable: true
+      description: Custom JSON field 5
+
+UpsertContactRequest:
+  type: object
+  required:
+    - workspace_id
+    - contact
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    contact:
+      $ref: '#/Contact'
+
+UpsertContactResponse:
+  type: object
+  properties:
+    action:
+      type: string
+      enum:
+        - created
+        - updated
+        - unchanged
+      description: The action that was performed on the contact
+      example: created
+    contact:
+      $ref: '#/Contact'
+    error:
+      type: string
+      nullable: true
+      description: Error message if the operation failed
+      example: null
+
+DeleteContactRequest:
+  type: object
+  required:
+    - workspace_id
+    - email
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    email:
+      type: string
+      format: email
+      description: Email address of the contact to delete
+      example: user@example.com
+
+BatchImportContactsRequest:
+  type: object
+  required:
+    - workspace_id
+    - contacts
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    contacts:
+      type: array
+      description: Array of contacts to import (create or update)
+      items:
+        $ref: '#/Contact'
+      minItems: 1
+      example:
+        - email: user1@example.com
+          first_name: John
+          last_name: Doe
+        - email: user2@example.com
+          first_name: Jane
+          last_name: Smith
+    subscribe_to_lists:
+      type: array
+      description: Optional array of list IDs to subscribe all contacts to
+      items:
+        type: string
+      example:
+        - newsletter
+        - product_updates
+
+BatchImportContactsResponse:
+  type: object
+  properties:
+    operations:
+      type: array
+      description: Array of operation results, one for each contact in the request
+      items:
+        $ref: '#/UpsertContactOperation'
+    error:
+      type: string
+      nullable: true
+      description: Global error message if the entire operation failed
+      example: null
+
+UpsertContactOperation:
+  type: object
+  properties:
+    email:
+      type: string
+      format: email
+      description: Email address of the contact
+      example: user@example.com
+    action:
+      type: string
+      enum:
+        - create
+        - update
+        - error
+      description: "The action that was performed: 'create' for new contacts, 'update' for existing contacts, 'error' for failed operations"
+      example: create
+    error:
+      type: string
+      nullable: true
+      description: Error message if this specific contact operation failed
+      example: null
+
+UpdateContactListStatusRequest:
+  type: object
+  required:
+    - workspace_id
+    - email
+    - list_id
+    - status
+  properties:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    email:
+      type: string
+      format: email
+      description: Email address of the contact
+      example: user@example.com
+    list_id:
+      type: string
+      description: ID of the list
+      example: newsletter
+    status:
+      type: string
+      enum:
+        - active
+        - pending
+        - unsubscribed
+        - bounced
+        - complained
+      description: New subscription status
+      example: active
+
+UpdateContactListStatusResponse:
+  type: object
+  properties:
+    success:
+      type: boolean
+      description: Whether the operation was successful
+      example: true
+    message:
+      type: string
+      description: Status message
+      example: status updated successfully
+    found:
+      type: boolean
+      description: Whether the contact was found in the list
+      example: true

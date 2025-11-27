@@ -31,33 +31,34 @@ func (h *CustomEventHandler) RegisterRoutes(mux *http.ServeMux) {
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation
-	mux.Handle("/api/customEvent.create", requireAuth(http.HandlerFunc(h.CreateCustomEvent)))
+	mux.Handle("/api/customEvent.upsert", requireAuth(http.HandlerFunc(h.UpsertCustomEvent)))
 	mux.Handle("/api/customEvent.import", requireAuth(http.HandlerFunc(h.ImportCustomEvents)))
 	mux.Handle("/api/customEvent.get", requireAuth(http.HandlerFunc(h.GetCustomEvent)))
 	mux.Handle("/api/customEvent.list", requireAuth(http.HandlerFunc(h.ListCustomEvents)))
 }
 
-// POST /api/customEvent.create
-func (h *CustomEventHandler) CreateCustomEvent(w http.ResponseWriter, r *http.Request) {
-	var req domain.CreateCustomEventRequest
+// POST /api/customEvent.upsert - creates or updates a custom event
+// Supports goal tracking (goal_name, goal_type, goal_value) and soft-delete (deleted_at)
+func (h *CustomEventHandler) UpsertCustomEvent(w http.ResponseWriter, r *http.Request) {
+	var req domain.UpsertCustomEventRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to decode request")
 		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
-	event, err := h.service.CreateEvent(r.Context(), &req)
+	event, err := h.service.UpsertEvent(r.Context(), &req)
 	if err != nil {
-		h.logger.WithField("error", err.Error()).Error("Failed to create custom event")
+		h.logger.WithField("error", err.Error()).Error("Failed to upsert custom event")
 		if _, ok := err.(*domain.PermissionError); ok {
 			WriteJSONError(w, err.Error(), http.StatusForbidden)
 			return
 		}
-		WriteJSONError(w, "Failed to create custom event", http.StatusInternalServerError)
+		WriteJSONError(w, "Failed to upsert custom event", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(map[string]interface{}{
 		"event": event,
 	})

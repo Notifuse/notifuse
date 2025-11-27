@@ -1,0 +1,64 @@
+/api/customEvent.import:
+  post:
+    summary: Import custom events
+    description: Imports multiple custom events in a single batch operation. Maximum 50 events per request. Auto-creates contacts if they don't exist.
+    operationId: importCustomEvents
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/custom-event.yaml#/ImportCustomEventsRequest'
+    responses:
+      '201':
+        description: Custom events imported successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/custom-event.yaml#/ImportCustomEventsResponse'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              emptyEvents:
+                value:
+                  error: events array cannot be empty
+              tooManyEvents:
+                value:
+                  error: maximum 50 events allowed per batch
+              invalidEventName:
+                value:
+                  error: 'invalid event name: must contain only lowercase letters, numbers, underscores, dots, and slashes'
+              missingRequiredFields:
+                value:
+                  error: event_name, external_id, and email are required for each event
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '403':
+        description: Forbidden - missing required permission
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: 'contacts:write permission required'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Failed to create custom events
