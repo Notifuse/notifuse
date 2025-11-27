@@ -1515,3 +1515,9 @@ func WithThemePublished(published bool) BlogThemeOption {
 		}
 	}
 }
+
+// GetWorkspaceDB returns a database connection for the specified workspace
+// This is useful for tests that need direct database access to simulate edge cases
+func (tdf *TestDataFactory) GetWorkspaceDB(workspaceID string) (*sql.DB, error) {
+	return tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+}

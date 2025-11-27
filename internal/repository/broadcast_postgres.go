@@ -459,6 +459,7 @@ func scanBroadcast(scanner interface {
 	Scan(dest ...interface{}) error
 }) (*domain.Broadcast, error) {
 	broadcast := &domain.Broadcast{}
+	var pauseReason sql.NullString
 
 	err := scanner.Scan(
 		&broadcast.ID,
@@ -479,11 +480,16 @@ func scanBroadcast(scanner interface {
 		&broadcast.CompletedAt,
 		&broadcast.CancelledAt,
 		&broadcast.PausedAt,
-		&broadcast.PauseReason,
+		&pauseReason,
 	)
 
 	if err != nil {
 		return nil, err
+	}
+
+	// Convert sql.NullString to *string
+	if pauseReason.Valid {
+		broadcast.PauseReason = &pauseReason.String
 	}
 
 	return broadcast, nil

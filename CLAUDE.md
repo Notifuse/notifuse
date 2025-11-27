@@ -168,7 +168,6 @@ func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, d
   - FontAwesome v6.7.2 (solid, regular, brands)
   - Lucide React v0.487.0
 - **Styling**: Tailwind CSS v4.1.10
-- **Scrollbars**: OverlayScrollbars React v0.5.6
 
 #### State Management & Data Fetching
 
@@ -236,7 +235,7 @@ func (m *V6Migration) UpdateSystem(ctx context.Context, config *config.Config, d
 
 - **Base Images**:
   - Node 20 Alpine for frontend builds
-  - Go 1.23 Alpine for backend builds
+  - Go 1.25 Alpine for backend builds
   - Alpine Linux for final runtime
 - **Multi-stage Build**: Optimized Docker builds with separate stages
 - **Container Orchestration**: Docker Compose for development
@@ -781,6 +780,7 @@ Refer to the `Makefile` for the most up-to-date test commands and their configur
 
 #### Best Practices
 
+- Write plans to the notifuse /plans folder
 - Include specific file paths and code snippets in plans
 - Break down complex features into clear, actionable steps
 - Reference existing architectural patterns documented in this file

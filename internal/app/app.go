@@ -585,6 +585,7 @@ func (a *App) InitServices() error {
 		a.emailService,
 		a.logger,
 		a.config.APIEndpoint,
+		a.blogCache,
 	)
 
 	// Initialize DNS verification service (before workspace service)

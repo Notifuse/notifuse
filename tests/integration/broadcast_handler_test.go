@@ -316,6 +316,64 @@ func testBroadcastCRUD(t *testing.T, client *testutil.APIClient, factory *testut
 				assert.Equal(t, "draft", broadcastData["status"])
 			}
 		})
+
+		t.Run("should handle broadcasts with NULL pause_reason (migrated broadcasts)", func(t *testing.T) {
+			// This test simulates the scenario where old broadcasts have NULL pause_reason
+			// after a database migration. This is what caused the production bug.
+
+			// Get workspace database connection
+			workspaceDB, err := factory.GetWorkspaceDB(workspaceID)
+			require.NoError(t, err)
+			defer func() { _ = workspaceDB.Close() }()
+
+			// Insert broadcast directly with NULL pause_reason (simulating migrated data)
+			broadcastID := "bc-null-test-" + testutil.GenerateRandomString(12)
+			_, err = workspaceDB.Exec(`
+				INSERT INTO broadcasts (
+					id, workspace_id, name, status, audience, schedule, test_settings,
+					created_at, updated_at, pause_reason
+				) VALUES (
+					$1, $2, 'Migrated Broadcast with NULL pause_reason', 'draft',
+					'{"type": "all"}', '{"type": "immediate"}', '{}',
+					CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL
+				)
+			`, broadcastID, workspaceID)
+			require.NoError(t, err, "Failed to insert broadcast with NULL pause_reason")
+
+			// Try to list broadcasts - this should NOT crash
+			resp, err := client.ListBroadcasts(map[string]string{
+				"workspace_id": workspaceID,
+			})
+			require.NoError(t, err)
+			defer func() { _ = resp.Body.Close() }()
+
+			assert.Equal(t, http.StatusOK, resp.StatusCode, "ListBroadcasts should handle NULL pause_reason")
+
+			var result map[string]interface{}
+			err = json.NewDecoder(resp.Body).Decode(&result)
+			require.NoError(t, err)
+
+			// Verify we got broadcasts back
+			assert.Contains(t, result, "broadcasts")
+			broadcasts := result["broadcasts"].([]interface{})
+			assert.NotEmpty(t, broadcasts, "Should return broadcasts including the one with NULL pause_reason")
+
+			// Find our test broadcast and verify pause_reason is handled correctly
+			found := false
+			for _, b := range broadcasts {
+				broadcastData := b.(map[string]interface{})
+				if broadcastData["id"] == broadcastID {
+					found = true
+					// pause_reason should either be nil or omitted from JSON (due to omitempty)
+					pauseReason, exists := broadcastData["pause_reason"]
+					if exists {
+						assert.Nil(t, pauseReason, "NULL pause_reason should be represented as nil in JSON")
+					}
+					break
+				}
+			}
+			assert.True(t, found, "Should find the broadcast with NULL pause_reason in results")
+		})
 	})
 
 	t.Run("Update Broadcast", func(t *testing.T) {
