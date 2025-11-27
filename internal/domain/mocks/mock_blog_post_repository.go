@@ -8,6 +8,7 @@ import (
 	context "context"
 	sql "database/sql"
 	reflect "reflect"
+	time "time"
 
 	domain "github.com/Notifuse/notifuse/internal/domain"
 	gomock "github.com/golang/mock/gomock"
@@ -198,31 +199,31 @@ func (mr *MockBlogPostRepositoryMockRecorder) ListPosts(arg0, arg1 interface{}) 
 }
 
 // PublishPost mocks base method.
-func (m *MockBlogPostRepository) PublishPost(arg0 context.Context, arg1 string) error {
+func (m *MockBlogPostRepository) PublishPost(arg0 context.Context, arg1 string, arg2 *time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PublishPost", arg0, arg1)
+	ret := m.ctrl.Call(m, "PublishPost", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PublishPost indicates an expected call of PublishPost.
-func (mr *MockBlogPostRepositoryMockRecorder) PublishPost(arg0, arg1 interface{}) *gomock.Call {
+func (mr *MockBlogPostRepositoryMockRecorder) PublishPost(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishPost", reflect.TypeOf((*MockBlogPostRepository)(nil).PublishPost), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishPost", reflect.TypeOf((*MockBlogPostRepository)(nil).PublishPost), arg0, arg1, arg2)
 }
 
 // PublishPostTx mocks base method.
-func (m *MockBlogPostRepository) PublishPostTx(arg0 context.Context, arg1 *sql.Tx, arg2 string) error {
+func (m *MockBlogPostRepository) PublishPostTx(arg0 context.Context, arg1 *sql.Tx, arg2 string, arg3 *time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "PublishPostTx", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "PublishPostTx", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // PublishPostTx indicates an expected call of PublishPostTx.
-func (mr *MockBlogPostRepositoryMockRecorder) PublishPostTx(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockBlogPostRepositoryMockRecorder) PublishPostTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishPostTx", reflect.TypeOf((*MockBlogPostRepository)(nil).PublishPostTx), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "PublishPostTx", reflect.TypeOf((*MockBlogPostRepository)(nil).PublishPostTx), arg0, arg1, arg2, arg3)
 }
 
 // UnpublishPost mocks base method.

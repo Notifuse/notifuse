@@ -825,20 +825,20 @@ func (r *blogPostRepository) ListPosts(ctx context.Context, params domain.ListBl
 	}, nil
 }
 
-// PublishPost sets the published_at timestamp to now
-func (r *blogPostRepository) PublishPost(ctx context.Context, id string) error {
+// PublishPost sets the published_at timestamp to provided time or now
+func (r *blogPostRepository) PublishPost(ctx context.Context, id string, publishedAt *time.Time) error {
 	workspaceID, ok := ctx.Value(domain.WorkspaceIDKey).(string)
 	if !ok {
 		return fmt.Errorf("workspace_id not found in context")
 	}
 
 	return r.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
-		return r.PublishPostTx(ctx, tx, id)
+		return r.PublishPostTx(ctx, tx, id, publishedAt)
 	})
 }
 
-// PublishPostTx sets the published_at timestamp to now within a transaction
-func (r *blogPostRepository) PublishPostTx(ctx context.Context, tx *sql.Tx, id string) error {
+// PublishPostTx sets the published_at timestamp to provided time or now within a transaction
+func (r *blogPostRepository) PublishPostTx(ctx context.Context, tx *sql.Tx, id string, publishedAt *time.Time) error {
 	query := `
 		UPDATE blog_posts
 		SET published_at = $1, updated_at = $2
@@ -846,7 +846,14 @@ func (r *blogPostRepository) PublishPostTx(ctx context.Context, tx *sql.Tx, id s
 	`
 
 	now := time.Now().UTC()
-	result, err := tx.ExecContext(ctx, query, now, now, id)
+
+	// Use provided timestamp or default to now
+	timestamp := now
+	if publishedAt != nil {
+		timestamp = publishedAt.UTC()
+	}
+
+	result, err := tx.ExecContext(ctx, query, timestamp, now, id)
 	if err != nil {
 		return fmt.Errorf("failed to publish blog post: %w", err)
 	}

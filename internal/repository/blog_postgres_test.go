@@ -862,7 +862,7 @@ func TestBlogPostRepository(t *testing.T) {
 				WillReturnResult(sqlmock.NewResult(0, 1))
 			sqlMock.ExpectCommit()
 
-			err := repo.PublishPost(ctx, testPost.ID)
+			err := repo.PublishPost(ctx, testPost.ID, nil)
 			require.NoError(t, err)
 			assert.NoError(t, sqlMock.ExpectationsWereMet())
 		})
@@ -877,7 +877,7 @@ func TestBlogPostRepository(t *testing.T) {
 				WillReturnResult(sqlmock.NewResult(0, 0))
 			sqlMock.ExpectRollback()
 
-			err := repo.PublishPost(ctx, testPost.ID)
+			err := repo.PublishPost(ctx, testPost.ID, nil)
 			require.Error(t, err)
 			assert.Contains(t, err.Error(), "not found or already published")
 		})

@@ -893,7 +893,7 @@ func TestBlogService_PublishPost(t *testing.T) {
 			Return(post, nil)
 
 		mockPostRepo.EXPECT().
-			PublishPost(ctx, req.ID).
+			PublishPost(ctx, req.ID, req.PublishedAt).
 			Return(nil)
 
 		err := service.PublishPost(ctx, req)
@@ -927,7 +927,7 @@ func TestBlogService_PublishPost(t *testing.T) {
 			Return(post, nil)
 
 		mockPostRepo.EXPECT().
-			PublishPost(ctx, req.ID).
+			PublishPost(ctx, req.ID, req.PublishedAt).
 			Return(errors.New("already published"))
 
 		err := service.PublishPost(ctx, req)
