@@ -80,7 +80,8 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_OpenRate_Success(t *testing.T) 
 	bcRepo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ *sql.Tx, updated *domain.Broadcast) error {
 			assert.Equal(t, domain.BroadcastStatusWinnerSelected, updated.Status)
-			assert.Equal(t, "tplA", updated.WinningTemplate)
+			assert.NotNil(t, updated.WinningTemplate)
+			assert.Equal(t, "tplA", *updated.WinningTemplate)
 			assert.Equal(t, broadcastID, updated.ID)
 			return nil
 		},
@@ -114,7 +115,8 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_ClickRate_Success(t *testing.T)
 	bcRepo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ *sql.Tx, updated *domain.Broadcast) error {
 			assert.Equal(t, domain.BroadcastStatusWinnerSelected, updated.Status)
-			assert.Equal(t, "tplB", updated.WinningTemplate)
+			assert.NotNil(t, updated.WinningTemplate)
+			assert.Equal(t, "tplB", *updated.WinningTemplate)
 			return nil
 		},
 	)
@@ -239,7 +241,8 @@ func TestABTestEvaluator_EvaluateAndSelectWinner_StatsErrorContinue(t *testing.T
 	)
 	bcRepo.EXPECT().UpdateBroadcastTx(ctx, gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ *sql.Tx, updated *domain.Broadcast) error {
-			assert.Equal(t, "tplB", updated.WinningTemplate)
+			assert.NotNil(t, updated.WinningTemplate)
+			assert.Equal(t, "tplB", *updated.WinningTemplate)
 			return nil
 		},
 	)

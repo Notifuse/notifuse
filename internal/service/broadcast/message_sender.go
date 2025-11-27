@@ -471,9 +471,9 @@ func (s *messageSender) SendBatch(ctx context.Context, workspaceID string, integ
 
 		// Determine which variation to use for this contact
 		var templateID string
-		if broadcast.WinningTemplate != "" {
+		if broadcast.WinningTemplate != nil {
 			// Winner selected: use it directly
-			templateID = broadcast.WinningTemplate
+			templateID = *broadcast.WinningTemplate
 		} else if broadcast.TestSettings.Enabled {
 			// Test phase (no winner yet): pick a random variation per recipient
 			if len(broadcast.TestSettings.Variations) > 0 {

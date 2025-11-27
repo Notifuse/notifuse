@@ -1017,13 +1017,19 @@ func (s *BroadcastService) GetTestResults(ctx context.Context, workspaceID, broa
 		}
 
 		// Calculate score for recommendation (if not auto-send winner mode)
-		if !broadcast.TestSettings.AutoSendWinner && broadcast.WinningTemplate == "" {
+		if !broadcast.TestSettings.AutoSendWinner && broadcast.WinningTemplate == nil {
 			score := (clickRate * 0.7) + (openRate * 0.3)
 			if score > bestScore {
 				bestScore = score
 				recommendedWinner = variation.TemplateID
 			}
 		}
+	}
+
+	// Get winning template as string for response
+	winningTemplate := ""
+	if broadcast.WinningTemplate != nil {
+		winningTemplate = *broadcast.WinningTemplate
 	}
 
 	return &domain.TestResultsResponse{
@@ -1033,7 +1039,7 @@ func (s *BroadcastService) GetTestResults(ctx context.Context, workspaceID, broa
 		TestCompletedAt:   broadcast.TestSentAt,
 		VariationResults:  variationResults,
 		RecommendedWinner: recommendedWinner,
-		WinningTemplate:   broadcast.WinningTemplate, // Include actual winner if selected
+		WinningTemplate:   winningTemplate, // Include actual winner if selected
 		IsAutoSendWinner:  broadcast.TestSettings.AutoSendWinner,
 	}, nil
 }
@@ -1083,7 +1089,7 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 		}
 
 		// Update broadcast with winning template
-		broadcast.WinningTemplate = templateID // Store the winning TemplateID
+		broadcast.WinningTemplate = &templateID // Store the winning TemplateID
 		broadcast.Status = domain.BroadcastStatusWinnerSelected
 		broadcast.UpdatedAt = time.Now().UTC()
 

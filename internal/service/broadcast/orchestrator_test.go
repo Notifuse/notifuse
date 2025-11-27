@@ -1768,7 +1768,8 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 	// Provide winning template id in refreshed broadcast
 	bcastAfter := *bcast
 	bcastAfter.Status = domain.BroadcastStatusWinnerSelected
-	bcastAfter.WinningTemplate = "tplB"
+	tplBID := "tplB"
+	bcastAfter.WinningTemplate = &tplBID
 
 	// Orchestrator loads broadcast initially, then refreshes after evaluation
 	callCount := 0
@@ -1857,12 +1858,13 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(workspace, nil).AnyTimes()
 
 	// Setup broadcast with A/B testing enabled
+	winningTemplateB := "template-B"
 	bcast := &domain.Broadcast{
 		ID:              "broadcast-123",
 		WorkspaceID:     "workspace-123",
 		Audience:        domain.AudienceSettings{List: "list-1"},
 		Status:          domain.BroadcastStatusWinnerSelected, // Winner already selected
-		WinningTemplate: "template-B",                         // Winner is template B
+		WinningTemplate: &winningTemplateB,                    // Winner is template B
 		TestSettings: domain.BroadcastTestSettings{
 			Enabled:          true,
 			SamplePercentage: 50, // 50% test phase

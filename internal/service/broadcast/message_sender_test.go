@@ -1631,10 +1631,11 @@ func TestSendBatch_AdvancedScenarios(t *testing.T) {
 			"",
 		)
 
+		winnerTemplateID := "template-winner"
 		broadcast := &domain.Broadcast{
 			ID:              broadcastID,
 			WorkspaceID:     workspaceID,
-			WinningTemplate: "template-winner", // Winner already selected
+			WinningTemplate: &winnerTemplateID, // Winner already selected
 			Audience: domain.AudienceSettings{
 				List: "test-list-1",
 			},

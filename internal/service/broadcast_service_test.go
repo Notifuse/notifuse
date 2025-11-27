@@ -2062,7 +2062,8 @@ func TestBroadcastService_GetTestResults_WithWinnerAlreadySelected(t *testing.T)
 	b.Status = domain.BroadcastStatusWinnerSelected
 	b.TestSettings.Enabled = true
 	b.TestSettings.AutoSendWinner = false
-	b.WinningTemplate = "tplB" // winner already selected
+	tplB := "tplB"
+	b.WinningTemplate = &tplB // winner already selected
 	b.TestSettings.Variations = []domain.BroadcastVariation{
 		{VariationName: "A", TemplateID: "tplA"},
 		{VariationName: "B", TemplateID: "tplB"},

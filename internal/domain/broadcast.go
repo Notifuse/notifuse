@@ -251,7 +251,7 @@ type Broadcast struct {
 	TestSettings              BroadcastTestSettings `json:"test_settings"`
 	UTMParameters             *UTMParameters        `json:"utm_parameters,omitempty"`
 	Metadata                  MapOfAny              `json:"metadata,omitempty"`
-	WinningTemplate           string                `json:"winning_template,omitempty"`
+	WinningTemplate           *string               `json:"winning_template,omitempty"`
 	TestSentAt                *time.Time            `json:"test_sent_at,omitempty"`
 	WinnerSentAt              *time.Time            `json:"winner_sent_at,omitempty"`
 	TestPhaseRecipientCount   int                   `json:"test_phase_recipient_count"`

@@ -114,7 +114,7 @@ func (e *ABTestEvaluator) selectBestVariation(ctx context.Context, workspaceID s
 func (e *ABTestEvaluator) updateBroadcastWithWinner(ctx context.Context, workspaceID string, broadcast *domain.Broadcast, winnerTemplateID string) error {
 	return e.broadcastRepo.WithTransaction(ctx, workspaceID, func(tx *sql.Tx) error {
 		// Update broadcast
-		broadcast.WinningTemplate = winnerTemplateID
+		broadcast.WinningTemplate = &winnerTemplateID
 		broadcast.Status = domain.BroadcastStatusWinnerSelected
 		broadcast.UpdatedAt = time.Now().UTC()
 

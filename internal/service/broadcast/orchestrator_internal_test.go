@@ -186,7 +186,8 @@ func TestHandleTestPhaseCompletion_ConcurrentWinner(t *testing.T) {
 	state := &domain.SendBroadcastState{Phase: "test"}
 
 	// Latest shows winner selected
-	bcRepo.EXPECT().GetBroadcast(ctx, b.WorkspaceID, b.ID).Return(&domain.Broadcast{ID: b.ID, WinningTemplate: "tplW", Status: domain.BroadcastStatusWinnerSelected}, nil)
+	tplW := "tplW"
+	bcRepo.EXPECT().GetBroadcast(ctx, b.WorkspaceID, b.ID).Return(&domain.Broadcast{ID: b.ID, WinningTemplate: &tplW, Status: domain.BroadcastStatusWinnerSelected}, nil)
 
 	done := orch.handleTestPhaseCompletion(ctx, b, state)
 	assert.False(t, done)
