@@ -71,6 +71,20 @@ func (m *V18Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		return fmt.Errorf("failed to create custom_events table: %w", err)
 	}
 
+	// Ensure all columns exist (for idempotent migrations where table might exist without these columns)
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE custom_events
+		ADD COLUMN IF NOT EXISTS goal_name VARCHAR(100) DEFAULT NULL,
+		ADD COLUMN IF NOT EXISTS goal_type VARCHAR(20) DEFAULT NULL,
+		ADD COLUMN IF NOT EXISTS goal_value DECIMAL(15,2) DEFAULT NULL,
+		ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ DEFAULT NULL,
+		ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW(),
+		ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW()
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add missing columns to custom_events: %w", err)
+	}
+
 	// Create indexes for custom_events table (exclude deleted rows where applicable)
 	_, err = db.ExecContext(ctx, `
 		CREATE INDEX IF NOT EXISTS idx_custom_events_email
@@ -124,6 +138,17 @@ func (m *V18Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 					'external_id', jsonb_build_object('new', NEW.external_id)
 				);
 
+				-- Add goal fields if present
+				IF NEW.goal_type IS NOT NULL THEN
+					changes_json := changes_json || jsonb_build_object('goal_type', jsonb_build_object('new', NEW.goal_type));
+				END IF;
+				IF NEW.goal_value IS NOT NULL THEN
+					changes_json := changes_json || jsonb_build_object('goal_value', jsonb_build_object('new', NEW.goal_value));
+				END IF;
+				IF NEW.goal_name IS NOT NULL THEN
+					changes_json := changes_json || jsonb_build_object('goal_name', jsonb_build_object('new', NEW.goal_name));
+				END IF;
+
 			ELSIF TG_OP = 'UPDATE' THEN
 				-- On UPDATE: Create timeline entry with operation='update'
 				timeline_operation := 'update';
@@ -159,6 +184,17 @@ func (m *V18Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 						'new', NEW.occurred_at
 					)
 				);
+
+				-- Add goal fields if changed
+				IF OLD.goal_type IS DISTINCT FROM NEW.goal_type THEN
+					changes_json := changes_json || jsonb_build_object('goal_type', jsonb_build_object('old', OLD.goal_type, 'new', NEW.goal_type));
+				END IF;
+				IF OLD.goal_value IS DISTINCT FROM NEW.goal_value THEN
+					changes_json := changes_json || jsonb_build_object('goal_value', jsonb_build_object('old', OLD.goal_value, 'new', NEW.goal_value));
+				END IF;
+				IF OLD.goal_name IS DISTINCT FROM NEW.goal_name THEN
+					changes_json := changes_json || jsonb_build_object('goal_name', jsonb_build_object('old', OLD.goal_name, 'new', NEW.goal_name));
+				END IF;
 			END IF;
 
 			-- Insert timeline entry with exact event_name as kind

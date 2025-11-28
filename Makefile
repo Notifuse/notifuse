@@ -1,4 +1,4 @@
-.PHONY: build test-unit run clean keygen test-service test-repo test-http test-migrations test-database test-pkg dev coverage coverage-report docker-build docker-run docker-stop docker-clean docker-logs docker-buildx-setup docker-publish docker-compose-up docker-compose-down docker-compose-build openapi-bundle openapi-lint openapi-preview
+.PHONY: build test-unit run clean keygen test-service test-repo test-http test-migrations test-database test-pkg dev coverage coverage-report docker-build docker-run docker-stop docker-clean docker-logs docker-buildx-setup docker-publish docker-compose-up docker-compose-down docker-compose-build openapi-bundle openapi-lint openapi-preview demo-hmac
 
 build:
 	@echo "Building with CGO enabled (required for V8)..."
@@ -141,5 +141,17 @@ openapi-lint:
 openapi-preview:
 	@echo "Starting OpenAPI preview server..."
 	@npx @redocly/cli preview-docs openapi/openapi.yaml
+
+# Generate HMAC for demo reset endpoint
+# Usage: make demo-hmac ROOT_EMAIL=your@email.com SECRET_KEY=your-secret-key
+demo-hmac:
+	@if [ -z "$(ROOT_EMAIL)" ] || [ -z "$(SECRET_KEY)" ]; then \
+		echo "Usage: make demo-hmac ROOT_EMAIL=your@email.com SECRET_KEY=your-secret-key"; \
+		echo ""; \
+		echo "This generates the HMAC needed to call the /api/demo.reset endpoint."; \
+		exit 1; \
+	fi
+	@echo "Generating HMAC for demo reset..."
+	@go run -exec "" cmd/hmac/main.go "$(ROOT_EMAIL)" "$(SECRET_KEY)"
 
 .DEFAULT_GOAL := build

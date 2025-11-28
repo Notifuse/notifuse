@@ -4,7 +4,12 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faClose } from '@fortawesome/free-solid-svg-icons'
 import { Button, Input, Form, Select, InputNumber, Space, DatePicker, Tag } from 'antd'
 import { useForm } from 'antd/lib/form/Form'
-import { TreeNode, EditingNodeLeaf, TreeNodeLeaf, TableSchema } from '../../services/api/segment'
+import {
+  TreeNode,
+  EditingNodeLeaf,
+  TreeNodeLeaf,
+  TableSchema
+} from '../../services/api/segment'
 import dayjs from 'dayjs'
 import { InputDimensionFilters } from './input_dimension_filters'
 import Messages from './messages'
@@ -465,6 +470,265 @@ export const LeafActionForm = (props: LeafFormProps) => {
             </Space>
           </div>
         )}
+
+        {/* CONFIRM / CANCEL */}
+        <Space style={{ position: 'absolute', top: 16, right: 0 }}>
+          <Button type="text" size="small" onClick={() => props.cancelOrDeleteNode()}>
+            <FontAwesomeIcon icon={faClose} />
+          </Button>
+          <Button type="primary" size="small" onClick={onSubmit}>
+            Confirm
+          </Button>
+        </Space>
+      </Form>
+    </Space>
+  )
+}
+
+export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
+  const [form] = useForm()
+
+  const onSubmit = () => {
+    form
+      .validateFields()
+      .then((values) => {
+        if (!props.value) return
+
+        const clonedLeaf = cloneDeep(props.value)
+        clonedLeaf.leaf = Object.assign(clonedLeaf.leaf as TreeNodeLeaf, values)
+
+        props.setEditingNodeLeaf(undefined)
+
+        if (props.onChange) props.onChange(clonedLeaf)
+      })
+      .catch((e) => {
+        console.log(e)
+      })
+  }
+
+  // Get schema options
+  const goalTypeField = props.schema.fields['goal_type']
+  const aggregateField = props.schema.fields['aggregate_operator']
+  const operatorField = props.schema.fields['operator']
+
+  return (
+    <Space style={{ alignItems: 'start' }}>
+      <Tag bordered={false} color="cyan">
+        {props.schema.icon && (
+          <FontAwesomeIcon icon={props.schema.icon} style={{ marginRight: 8 }} />
+        )}
+        Goal
+      </Tag>
+      <Form
+        component="div"
+        layout="vertical"
+        form={form}
+        initialValues={props.editingNodeLeaf.leaf}
+      >
+        <Form.Item name="source" noStyle>
+          <Input hidden />
+        </Form.Item>
+
+        {/* Goal Type Selection */}
+        <div className="mb-2">
+          <Space>
+            <span className="opacity-60" style={{ lineHeight: '32px' }}>
+              type
+            </span>
+            <Form.Item
+              noStyle
+              name={['custom_events_goal', 'goal_type']}
+              rules={[{ required: true, message: 'Please select a goal type' }]}
+            >
+              <Select style={{ width: 150 }} size="small" placeholder="Select type">
+                {goalTypeField?.options?.map((option) => (
+                  <Select.Option key={option.value} value={option.value}>
+                    {option.label}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Space>
+        </div>
+
+        {/* Aggregate Operator and Comparison */}
+        <div className="mb-2">
+          <Space>
+            <Form.Item
+              noStyle
+              name={['custom_events_goal', 'aggregate_operator']}
+              rules={[{ required: true, message: 'Please select aggregate' }]}
+            >
+              <Select style={{ width: 100 }} size="small" placeholder="Aggregate">
+                {aggregateField?.options?.map((option) => (
+                  <Select.Option key={option.value} value={option.value}>
+                    {option.label}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <span className="opacity-60" style={{ lineHeight: '32px' }}>
+              is
+            </span>
+            <Form.Item
+              noStyle
+              name={['custom_events_goal', 'operator']}
+              rules={[{ required: true, message: 'Please select operator' }]}
+            >
+              <Select style={{ width: 170 }} size="small" placeholder="Comparison">
+                {operatorField?.options?.map((option) => (
+                  <Select.Option key={option.value} value={option.value}>
+                    {option.label}
+                  </Select.Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item
+              noStyle
+              name={['custom_events_goal', 'value']}
+              rules={[{ required: true, type: 'number', message: Messages.RequiredField }]}
+            >
+              <InputNumber style={{ width: 100 }} size="small" placeholder="Value" />
+            </Form.Item>
+
+            {/* Show second value for "between" operator */}
+            <Form.Item noStyle shouldUpdate>
+              {(funcs) => {
+                const operator = funcs.getFieldValue(['custom_events_goal', 'operator'])
+                if (operator === 'between') {
+                  return (
+                    <>
+                      <span className="opacity-60" style={{ lineHeight: '32px' }}>
+                        and
+                      </span>
+                      <Form.Item
+                        noStyle
+                        name={['custom_events_goal', 'value_2']}
+                        rules={[{ required: true, type: 'number', message: Messages.RequiredField }]}
+                        dependencies={[['custom_events_goal', 'operator']]}
+                      >
+                        <InputNumber style={{ width: 100 }} size="small" placeholder="Value 2" />
+                      </Form.Item>
+                    </>
+                  )
+                }
+                return null
+              }}
+            </Form.Item>
+          </Space>
+        </div>
+
+        {/* Timeframe */}
+        <div className="mt-2">
+          <Space>
+            <span className="opacity-60" style={{ lineHeight: '32px' }}>
+              timeframe
+            </span>
+            <Form.Item noStyle name={['custom_events_goal', 'timeframe_operator']} colon={false}>
+              <Select
+                style={{ width: 130 }}
+                size="small"
+                options={[
+                  { value: 'anytime', label: 'anytime' },
+                  { value: 'in_date_range', label: 'in date range' },
+                  { value: 'before_date', label: 'before date' },
+                  { value: 'after_date', label: 'after date' },
+                  { value: 'in_the_last_days', label: 'in the last' }
+                ]}
+              />
+            </Form.Item>
+            <Form.Item noStyle shouldUpdate>
+              {(funcs) => {
+                const timeframe_operator = funcs.getFieldValue([
+                  'custom_events_goal',
+                  'timeframe_operator'
+                ])
+
+                if (timeframe_operator === 'in_the_last_days') {
+                  return (
+                    <Space>
+                      <Form.Item
+                        noStyle
+                        name={['custom_events_goal', 'timeframe_values']}
+                        colon={false}
+                        rules={[
+                          { required: true, type: 'array', min: 1, message: Messages.RequiredField }
+                        ]}
+                        dependencies={['custom_events_goal', 'timeframe_operator']}
+                        getValueProps={(values: string[]) => {
+                          return {
+                            value: values ? parseInt(values[0]) : undefined
+                          }
+                        }}
+                        getValueFromEvent={(args: any) => {
+                          return ['' + args]
+                        }}
+                      >
+                        <InputNumber step={1} size="small" />
+                      </Form.Item>
+                      <span className="opacity-60" style={{ lineHeight: '32px' }}>
+                        days
+                      </span>
+                    </Space>
+                  )
+                } else if (timeframe_operator === 'in_date_range') {
+                  return (
+                    <Form.Item
+                      noStyle
+                      name={['custom_events_goal', 'timeframe_values']}
+                      colon={false}
+                      rules={[
+                        { required: true, type: 'array', min: 2, message: Messages.RequiredField }
+                      ]}
+                      dependencies={['custom_events_goal', 'timeframe_operator']}
+                      getValueProps={(values: any[]) => {
+                        return {
+                          value: values?.map((value) => {
+                            return value ? dayjs(value) : undefined
+                          })
+                        }
+                      }}
+                      getValueFromEvent={(_date: any, dateStrings: string[]) => dateStrings}
+                    >
+                      <DatePicker.RangePicker
+                        style={{ width: 370 }}
+                        size="small"
+                        showTime={{
+                          defaultValue: [dayjs().startOf('day'), dayjs().startOf('day')]
+                        }}
+                      />
+                    </Form.Item>
+                  )
+                } else if (
+                  timeframe_operator === 'before_date' ||
+                  timeframe_operator === 'after_date'
+                ) {
+                  return (
+                    <Form.Item
+                      noStyle
+                      name={['custom_events_goal', 'timeframe_values', 0]}
+                      colon={false}
+                      dependencies={['custom_events_goal', 'timeframe_operator']}
+                      rules={[{ required: true, type: 'string', message: Messages.RequiredField }]}
+                      getValueProps={(value: any) => {
+                        return { value: value ? dayjs(value) : undefined }
+                      }}
+                      getValueFromEvent={(_date: any, dateString: string) => dateString}
+                    >
+                      <DatePicker
+                        style={{ width: 180 }}
+                        size="small"
+                        showTime={{ defaultValue: dayjs().startOf('day') }}
+                      />
+                    </Form.Item>
+                  )
+                } else {
+                  return null
+                }
+              }}
+            </Form.Item>
+          </Space>
+        </div>
 
         {/* CONFIRM / CANCEL */}
         <Space style={{ position: 'absolute', top: 16, right: 0 }}>

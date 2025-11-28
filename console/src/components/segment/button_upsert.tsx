@@ -253,7 +253,8 @@ const DrawerSegment = (props: {
     return {
       contacts: TableSchemas.contacts,
       contact_lists: TableSchemas.contact_lists,
-      contact_timeline: TableSchemas.contact_timeline
+      contact_timeline: TableSchemas.contact_timeline,
+      custom_events_goals: TableSchemas.custom_events_goals
     }
   }, [])
 

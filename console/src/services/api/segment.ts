@@ -83,11 +83,40 @@ export interface ContactTimelineCondition {
   filters?: DimensionFilter[]
 }
 
+// Goal types for custom events
+export type GoalType =
+  | 'purchase'
+  | 'subscription'
+  | 'lead'
+  | 'signup'
+  | 'booking'
+  | 'trial'
+  | 'other'
+  | '*'
+
+// Aggregate operators for custom events goals
+export type AggregateOperator = 'sum' | 'count' | 'avg' | 'min' | 'max'
+
+// Comparison operators for custom events goals
+export type GoalComparisonOperator = 'gte' | 'lte' | 'eq' | 'between'
+
+export interface CustomEventsGoalCondition {
+  goal_type: GoalType
+  goal_name?: string
+  aggregate_operator: AggregateOperator
+  operator: GoalComparisonOperator
+  value: number
+  value_2?: number // For between operator
+  timeframe_operator: TimeframeOperator
+  timeframe_values?: string[]
+}
+
 export interface TreeNodeLeaf {
   source: SourceType
   contact?: ContactCondition
   contact_list?: ContactListCondition
   contact_timeline?: ContactTimelineCondition
+  custom_events_goal?: CustomEventsGoalCondition
 }
 
 export interface TreeNodeBranch {

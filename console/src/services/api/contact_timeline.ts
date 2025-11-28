@@ -59,6 +59,10 @@ export interface CustomEventEntityData {
   occurred_at: string
   source: string
   integration_id?: string | null
+  // Goal tracking fields
+  goal_name?: string | null
+  goal_type?: string | null
+  goal_value?: number | null
   created_at: string
   updated_at: string
 }

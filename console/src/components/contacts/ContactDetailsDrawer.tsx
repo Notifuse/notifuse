@@ -12,21 +12,19 @@ import {
   Modal,
   Select,
   Form,
-  Popover,
   App,
-  Statistic,
   Avatar,
-  Tabs
+  Tabs,
+  Collapse
 } from 'antd'
 import { Contact } from '../../services/api/contacts'
 import { List, Workspace } from '../../services/api/types'
 import { Segment } from '../../services/api/segment'
 import dayjs from '../../lib/dayjs'
-import numbro from 'numbro'
-import { ContactUpsertDrawer } from './ContactUpsertDrawer'
+import { InlineEditableField } from './InlineEditableField'
+import { getFieldType } from './fieldTypes'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faEllipsis, faRotate } from '@fortawesome/free-solid-svg-icons'
-import { faPenToSquare } from '@fortawesome/free-regular-svg-icons'
+import { faPlus, faRotate } from '@fortawesome/free-solid-svg-icons'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
 import { listMessages, MessageHistory } from '../../services/api/messages_history'
 import { contactsApi } from '../../services/api/contacts'
@@ -37,7 +35,6 @@ import { MessageHistoryTable } from '../messages/MessageHistoryTable'
 import { ContactTimeline } from '../timeline'
 import { contactTimelineApi, ContactTimelineEntry } from '../../services/api/contact_timeline'
 import { useCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
-import { formatValue as sharedFormatValue } from '../../utils/formatters'
 
 const { Title, Text } = Typography
 
@@ -333,6 +330,37 @@ export function ContactDetailsDrawer({
     }
   }
 
+  // Handle inline field update
+  const handleFieldUpdate = async (fieldKey: string, value: any) => {
+    if (!contact) return
+
+    const contactData: any = {
+      email: contact.email,
+      [fieldKey]: value
+    }
+
+    const response = await contactsApi.upsert({
+      workspace_id: workspace.id,
+      contact: contactData
+    })
+
+    if (response.action === 'error') {
+      throw new Error(response.error || 'Failed to update field')
+    }
+
+    // Fetch updated contact data
+    const listResponse = await contactsApi.list({
+      workspace_id: workspace.id,
+      email: contact.email,
+      with_contact_lists: true,
+      limit: 1
+    })
+
+    if (listResponse.contacts && listResponse.contacts.length > 0) {
+      handleContactUpdated(listResponse.contacts[0])
+    }
+  }
+
   // Find list names based on list IDs
   const getListName = (listId: string): string => {
     const list = lists.find((list) => list.id === listId)
@@ -380,96 +408,10 @@ export function ContactDetailsDrawer({
   // Create name from first and last name
   const fullName = [contact?.first_name, contact?.last_name].filter(Boolean).join(' ') || ''
 
-  // Format JSON with truncation and popover for full view
-  const formatJson = (jsonData: any): React.ReactNode => {
-    if (!jsonData) return '-'
-
-    try {
-      // If it's already an object, stringify it
-      const jsonStr = typeof jsonData === 'string' ? jsonData : JSON.stringify(jsonData)
-      const obj = typeof jsonData === 'string' ? JSON.parse(jsonData) : jsonData
-
-      // Pretty format for popover
-      const prettyJson = JSON.stringify(obj, null, 2)
-
-      // Truncate for display
-      const displayText = jsonStr.length > 100 ? jsonStr.substring(0, 100) + '...' : jsonStr
-
-      const popoverContent = (
-        <div
-          className="p-2 bg-gray-50 rounded border border-gray-200 max-h-96 overflow-auto"
-          style={{ maxWidth: '500px' }}
-        >
-          <pre className="text-xs m-0 whitespace-pre-wrap break-all">{prettyJson}</pre>
-        </div>
-      )
-
-      return (
-        <Popover
-          content={popoverContent}
-          title="JSON Data"
-          placement="rightTop"
-          trigger="click"
-          styles={{
-            root: {
-              maxWidth: '400px'
-            }
-          }}
-        >
-          <div className="text-xs bg-gray-50 p-2 rounded border border-gray-200 cursor-pointer hover:bg-gray-100">
-            <code className="truncate block">{displayText}</code>
-            <div className="text-right mt-1 text-blue-500">
-              <small>
-                <FontAwesomeIcon icon={faEllipsis} className="mr-1" />
-                Click to view full JSON
-              </small>
-            </div>
-          </div>
-        </Popover>
-      )
-    } catch (e) {
-      return <Text type="danger">Invalid JSON</Text>
-    }
-  }
-
   // Format date using dayjs
   const formatDate = (dateString: string | undefined): string => {
     if (!dateString) return '-'
     return `${dayjs(dateString).format('lll')} in ${workspace.settings.timezone}`
-  }
-
-  // Format currency value using numbro
-  const formatCurrency = (value: number | undefined): string => {
-    if (value === undefined || value === null) return '$0.00'
-    return numbro(value).formatCurrency({
-      mantissa: 2,
-      currencySymbol: '$',
-      thousandSeparated: true,
-      trimMantissa: true,
-      spaceSeparatedCurrency: false
-    })
-  }
-
-  // Format number with thousand separators
-  const formatNumber = (value: number | undefined): string => {
-    if (value === undefined || value === null) return '0'
-    return numbro(value).format({
-      thousandSeparated: true,
-      mantissa: 0,
-      trimMantissa: true,
-      average: false
-    })
-  }
-
-  // Format average number (with K, M, B, etc. for large numbers)
-  const formatAverage = (value: number | undefined): string => {
-    if (value === undefined || value === null) return '0'
-    return numbro(value).format({
-      average: true,
-      mantissa: 1,
-      spaceSeparated: true,
-      trimMantissa: true
-    })
   }
 
   // Get color for list status
@@ -491,44 +433,18 @@ export function ContactDetailsDrawer({
     return useCustomFieldLabel(fieldKey, workspace)
   }
 
-  // Field display definitions without icons
-  const contactFields = [
-    { key: 'first_name', label: 'First Name', value: contact?.first_name },
-    { key: 'last_name', label: 'Last Name', value: contact?.last_name },
-    { key: 'email', label: 'Email', value: contact?.email },
+  // Editable fields configuration
+  const editableFields = [
     { key: 'phone', label: 'Phone', value: contact?.phone },
-    {
-      key: 'address',
-      label: 'Address',
-      value: [
-        contact?.address_line_1,
-        contact?.address_line_2,
-        [contact?.state, contact?.postcode, contact?.country].filter(Boolean).join(', ')
-      ]
-        .filter(Boolean)
-        .join(', '),
-      show: !!(
-        contact?.address_line_1 ||
-        contact?.address_line_2 ||
-        contact?.country ||
-        contact?.state ||
-        contact?.postcode
-      )
-    },
+    { key: 'address_line_1', label: 'Address Line 1', value: contact?.address_line_1 },
+    { key: 'address_line_2', label: 'Address Line 2', value: contact?.address_line_2 },
+    { key: 'country', label: 'Country', value: contact?.country },
+    { key: 'state', label: 'State', value: contact?.state },
+    { key: 'postcode', label: 'Postcode', value: contact?.postcode },
     { key: 'job_title', label: 'Job Title', value: contact?.job_title },
     { key: 'timezone', label: 'Timezone', value: contact?.timezone },
     { key: 'language', label: 'Language', value: contact?.language },
     { key: 'external_id', label: 'External ID', value: contact?.external_id },
-    {
-      key: 'created_at',
-      label: 'Created At',
-      value: formatDate(contact?.created_at)
-    },
-    {
-      key: 'updated_at',
-      label: 'Updated At',
-      value: formatDate(contact?.updated_at)
-    },
     // Custom string fields
     {
       key: 'custom_string_1',
@@ -581,70 +497,68 @@ export function ContactDetailsDrawer({
       ...getFieldLabel('custom_number_5'),
       value: contact?.custom_number_5
     },
-    // Custom date fields
+    // Custom datetime fields (pass raw value, InlineEditableField will format)
     {
       key: 'custom_datetime_1',
       ...getFieldLabel('custom_datetime_1'),
-      value: formatDate(contact?.custom_datetime_1)
+      value: contact?.custom_datetime_1
     },
     {
       key: 'custom_datetime_2',
       ...getFieldLabel('custom_datetime_2'),
-      value: formatDate(contact?.custom_datetime_2)
+      value: contact?.custom_datetime_2
     },
     {
       key: 'custom_datetime_3',
       ...getFieldLabel('custom_datetime_3'),
-      value: formatDate(contact?.custom_datetime_3)
+      value: contact?.custom_datetime_3
     },
     {
       key: 'custom_datetime_4',
       ...getFieldLabel('custom_datetime_4'),
-      value: formatDate(contact?.custom_datetime_4)
+      value: contact?.custom_datetime_4
     },
     {
       key: 'custom_datetime_5',
       ...getFieldLabel('custom_datetime_5'),
-      value: formatDate(contact?.custom_datetime_5)
+      value: contact?.custom_datetime_5
     }
   ]
 
-  // Add a separate section for JSON fields
+  // Read-only fields (not editable)
+  const readOnlyFields = [
+    { key: 'created_at', label: 'Created At', value: formatDate(contact?.created_at) },
+    { key: 'updated_at', label: 'Updated At', value: formatDate(contact?.updated_at) }
+  ]
+
+  // JSON fields (editable)
   const jsonFields = [
     {
       key: 'custom_json_1',
       ...getFieldLabel('custom_json_1'),
-      value: contact?.custom_json_1,
-      show: !!contact?.custom_json_1
+      value: contact?.custom_json_1
     },
     {
       key: 'custom_json_2',
       ...getFieldLabel('custom_json_2'),
-      value: contact?.custom_json_2,
-      show: !!contact?.custom_json_2
+      value: contact?.custom_json_2
     },
     {
       key: 'custom_json_3',
       ...getFieldLabel('custom_json_3'),
-      value: contact?.custom_json_3,
-      show: !!contact?.custom_json_3
+      value: contact?.custom_json_3
     },
     {
       key: 'custom_json_4',
       ...getFieldLabel('custom_json_4'),
-      value: contact?.custom_json_4,
-      show: !!contact?.custom_json_4
+      value: contact?.custom_json_4
     },
     {
       key: 'custom_json_5',
       ...getFieldLabel('custom_json_5'),
-      value: contact?.custom_json_5,
-      show: !!contact?.custom_json_5
+      value: contact?.custom_json_5
     }
   ]
-
-  // Check if there are any JSON fields to display
-  const hasJsonFields = jsonFields.some((field) => field.show)
 
   // Prepare contact lists with enhanced information
   const contactListsWithNames = contact?.contact_lists.map((list) => ({
@@ -706,27 +620,14 @@ export function ContactDetailsDrawer({
         onClose={handleClose}
         open={internalVisible}
         extra={
-          <Space>
-            <Tooltip title="Refresh">
-              <Button
-                type="text"
-                icon={<FontAwesomeIcon icon={faRotate} />}
-                onClick={handleRefreshAll}
-                loading={isLoadingContact || loadingTimeline || loadingMessages}
-              />
-            </Tooltip>
-            <ContactUpsertDrawer
-              workspace={workspace}
-              contact={contact}
-              onSuccess={handleContactUpdated}
-              buttonProps={{
-                icon: <FontAwesomeIcon icon={faPenToSquare} />,
-                type: 'primary',
-                ghost: true,
-                buttonContent: 'Update'
-              }}
+          <Tooltip title="Refresh">
+            <Button
+              type="text"
+              icon={<FontAwesomeIcon icon={faRotate} />}
+              onClick={handleRefreshAll}
+              loading={isLoadingContact || loadingTimeline || loadingMessages}
             />
-          </Space>
+          </Tooltip>
         }
       >
         <div className="flex h-full">
@@ -773,64 +674,263 @@ export function ContactDetailsDrawer({
                 </div>
               )}
 
-              {/* Display fields in a side-by-side layout */}
-              {contactFields
-                .filter(
-                  (field) =>
-                    field.value !== undefined &&
-                    field.value !== null &&
-                    field.value !== '-' &&
-                    (field.show === undefined || field.show) &&
-                    // Skip email as it's already shown at the top
-                    field.key !== 'email' &&
-                    // Skip name fields as they're already shown at the top
-                    field.key !== 'first_name' &&
-                    field.key !== 'last_name' &&
-                    // Skip JSON fields as they'll be shown separately
-                    !field.key.startsWith('custom_json_')
+              {/* Set standard fields (non-custom) */}
+              {editableFields
+                .filter((field) => !field.key.startsWith('custom_') && field.value !== null && field.value !== undefined && field.value !== '')
+                .map((field) => (
+                <InlineEditableField
+                  key={field.key}
+                  fieldKey={field.key}
+                  fieldType={getFieldType(field.key)}
+                  label={field.label}
+                  displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
+                  showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
+                  technicalName={'technicalName' in field ? field.technicalName : undefined}
+                  value={field.value}
+                  workspace={workspace}
+                  onSave={handleFieldUpdate}
+                  isLoading={isLoadingContact}
+                />
+              ))}
+
+              {/* Set custom fields */}
+              {editableFields
+                .filter((field) => field.key.startsWith('custom_') && field.value !== null && field.value !== undefined && field.value !== '')
+                .map((field) => (
+                <InlineEditableField
+                  key={field.key}
+                  fieldKey={field.key}
+                  fieldType={getFieldType(field.key)}
+                  label={field.label}
+                  displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
+                  showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
+                  technicalName={'technicalName' in field ? field.technicalName : undefined}
+                  value={field.value}
+                  workspace={workspace}
+                  onSave={handleFieldUpdate}
+                  isLoading={isLoadingContact}
+                />
+              ))}
+
+              {/* Set JSON fields */}
+              {jsonFields
+                .filter((field) => field.value !== null && field.value !== undefined && field.value !== '')
+                .map((field) => (
+                <InlineEditableField
+                  key={field.key}
+                  fieldKey={field.key}
+                  fieldType="json"
+                  label={field.label}
+                  displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
+                  showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
+                  technicalName={'technicalName' in field ? field.technicalName : undefined}
+                  value={field.value}
+                  workspace={workspace}
+                  onSave={handleFieldUpdate}
+                  isLoading={isLoadingContact}
+                />
+              ))}
+
+              {/* Labeled but unset custom fields (priority display) */}
+              {editableFields
+                .filter((field) =>
+                  field.key.startsWith('custom_') &&
+                  !!workspace?.settings?.custom_field_labels?.[field.key] &&
+                  (field.value === null || field.value === undefined || field.value === '')
                 )
                 .map((field) => (
-                  <div
-                    key={field.key}
-                    className="py-2 px-4 grid grid-cols-2 text-xs gap-1 border-b border-dashed border-gray-300"
-                  >
-                    {'showTooltip' in field && field.showTooltip ? (
-                      <Tooltip title={field.technicalName}>
-                        <span className="font-semibold text-slate-600">{field.displayLabel}</span>
-                      </Tooltip>
-                    ) : (
-                      <span className="font-semibold text-slate-600">
-                        {'displayLabel' in field ? field.displayLabel : field.label}
-                      </span>
-                    )}
-                    <span>{sharedFormatValue(field.value, workspace.settings.timezone)}</span>
-                  </div>
-                ))}
+                <InlineEditableField
+                  key={field.key}
+                  fieldKey={field.key}
+                  fieldType={getFieldType(field.key)}
+                  label={field.label}
+                  displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
+                  showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
+                  technicalName={'technicalName' in field ? field.technicalName : undefined}
+                  value={field.value}
+                  workspace={workspace}
+                  onSave={handleFieldUpdate}
+                  isLoading={isLoadingContact}
+                />
+              ))}
 
-              {/* Custom JSON fields */}
-              {hasJsonFields && (
-                <div>
-                  {jsonFields
-                    .filter((field) => field.show)
-                    .map((field) => (
-                      <div
-                        key={field.key}
-                        className="py-2 px-4 grid grid-cols-2 text-xs gap-1 border-b border-dashed border-gray-300"
-                      >
-                        {field.showTooltip ? (
-                          <Tooltip title={field.technicalName}>
-                            <span className="font-semibold text-slate-600">
-                              {field.displayLabel}
-                            </span>
-                          </Tooltip>
-                        ) : (
-                          <span className="font-semibold text-slate-600">{field.displayLabel}</span>
-                        )}
-                        {formatJson(field.value)}
-                      </div>
-                    ))}
+              {/* Labeled but unset JSON fields (priority display) */}
+              {jsonFields
+                .filter((field) =>
+                  !!workspace?.settings?.custom_field_labels?.[field.key] &&
+                  (field.value === null || field.value === undefined || field.value === '')
+                )
+                .map((field) => (
+                <InlineEditableField
+                  key={field.key}
+                  fieldKey={field.key}
+                  fieldType="json"
+                  label={field.label}
+                  displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
+                  showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
+                  technicalName={'technicalName' in field ? field.technicalName : undefined}
+                  value={field.value}
+                  workspace={workspace}
+                  onSave={handleFieldUpdate}
+                  isLoading={isLoadingContact}
+                />
+              ))}
+
+              {/* Read-only fields */}
+              {readOnlyFields.map((field) => (
+                <div
+                  key={field.key}
+                  className="py-2 px-4 grid grid-cols-2 text-xs gap-1 border-b border-dashed border-gray-300"
+                >
+                  <span className="font-semibold text-slate-600">{field.label}</span>
+                  <span className="text-gray-500">{field.value || '—'}</span>
                 </div>
-              )}
+              ))}
+
+              {/* Unset standard fields */}
+              {editableFields
+                .filter((field) => !field.key.startsWith('custom_') && (field.value === null || field.value === undefined || field.value === ''))
+                .map((field) => (
+                <InlineEditableField
+                  key={field.key}
+                  fieldKey={field.key}
+                  fieldType={getFieldType(field.key)}
+                  label={field.label}
+                  displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
+                  showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
+                  technicalName={'technicalName' in field ? field.technicalName : undefined}
+                  value={field.value}
+                  workspace={workspace}
+                  onSave={handleFieldUpdate}
+                  isLoading={isLoadingContact}
+                />
+              ))}
+
+              {/* Unset custom fields in expandable sections (excluding labeled fields) */}
+              {(() => {
+                const hasConfiguredLabel = (fieldKey: string) => !!workspace?.settings?.custom_field_labels?.[fieldKey]
+
+                const unsetCustomStrings = editableFields.filter(
+                  (field) => field.key.startsWith('custom_string_') &&
+                    !hasConfiguredLabel(field.key) &&
+                    (field.value === null || field.value === undefined || field.value === '')
+                )
+                const unsetCustomNumbers = editableFields.filter(
+                  (field) => field.key.startsWith('custom_number_') &&
+                    !hasConfiguredLabel(field.key) &&
+                    (field.value === null || field.value === undefined || field.value === '')
+                )
+                const unsetCustomDatetimes = editableFields.filter(
+                  (field) => field.key.startsWith('custom_datetime_') &&
+                    !hasConfiguredLabel(field.key) &&
+                    (field.value === null || field.value === undefined || field.value === '')
+                )
+                const unsetCustomJsons = jsonFields.filter(
+                  (field) => !hasConfiguredLabel(field.key) &&
+                    (field.value === null || field.value === undefined || field.value === '')
+                )
+
+                const collapseItems = []
+
+                if (unsetCustomStrings.length > 0) {
+                  collapseItems.push({
+                    key: 'custom_strings',
+                    label: <span className="text-xs text-gray-500">Custom String Fields ({unsetCustomStrings.length})</span>,
+                    children: unsetCustomStrings.map((field) => (
+                      <InlineEditableField
+                        key={field.key}
+                        fieldKey={field.key}
+                        fieldType="string"
+                        label={field.label}
+                        displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
+                        showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
+                        technicalName={'technicalName' in field ? field.technicalName : undefined}
+                        value={field.value}
+                        workspace={workspace}
+                        onSave={handleFieldUpdate}
+                        isLoading={isLoadingContact}
+                      />
+                    ))
+                  })
+                }
+
+                if (unsetCustomNumbers.length > 0) {
+                  collapseItems.push({
+                    key: 'custom_numbers',
+                    label: <span className="text-xs text-gray-500">Custom Number Fields ({unsetCustomNumbers.length})</span>,
+                    children: unsetCustomNumbers.map((field) => (
+                      <InlineEditableField
+                        key={field.key}
+                        fieldKey={field.key}
+                        fieldType="number"
+                        label={field.label}
+                        displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
+                        showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
+                        technicalName={'technicalName' in field ? field.technicalName : undefined}
+                        value={field.value}
+                        workspace={workspace}
+                        onSave={handleFieldUpdate}
+                        isLoading={isLoadingContact}
+                      />
+                    ))
+                  })
+                }
+
+                if (unsetCustomDatetimes.length > 0) {
+                  collapseItems.push({
+                    key: 'custom_datetimes',
+                    label: <span className="text-xs text-gray-500">Custom Datetime Fields ({unsetCustomDatetimes.length})</span>,
+                    children: unsetCustomDatetimes.map((field) => (
+                      <InlineEditableField
+                        key={field.key}
+                        fieldKey={field.key}
+                        fieldType="datetime"
+                        label={field.label}
+                        displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
+                        showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
+                        technicalName={'technicalName' in field ? field.technicalName : undefined}
+                        value={field.value}
+                        workspace={workspace}
+                        onSave={handleFieldUpdate}
+                        isLoading={isLoadingContact}
+                      />
+                    ))
+                  })
+                }
+
+                if (unsetCustomJsons.length > 0) {
+                  collapseItems.push({
+                    key: 'custom_jsons',
+                    label: <span className="text-xs text-gray-500">Custom JSON Fields ({unsetCustomJsons.length})</span>,
+                    children: unsetCustomJsons.map((field) => (
+                      <InlineEditableField
+                        key={field.key}
+                        fieldKey={field.key}
+                        fieldType="json"
+                        label={field.label}
+                        displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
+                        showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
+                        technicalName={'technicalName' in field ? field.technicalName : undefined}
+                        value={field.value}
+                        workspace={workspace}
+                        onSave={handleFieldUpdate}
+                        isLoading={isLoadingContact}
+                      />
+                    ))
+                  })
+                }
+
+                if (collapseItems.length === 0) return null
+
+                return (
+                  <Collapse
+                    ghost
+                    size="small"
+                    items={collapseItems}
+                    className="mt-2"
+                  />
+                )
+              })()}
             </div>
           </div>
 

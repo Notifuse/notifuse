@@ -591,6 +591,16 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 					'event_name', jsonb_build_object('new', NEW.event_name),
 					'external_id', jsonb_build_object('new', NEW.external_id)
 				);
+				-- Add goal fields if present
+				IF NEW.goal_type IS NOT NULL THEN
+					changes_json := changes_json || jsonb_build_object('goal_type', jsonb_build_object('new', NEW.goal_type));
+				END IF;
+				IF NEW.goal_value IS NOT NULL THEN
+					changes_json := changes_json || jsonb_build_object('goal_value', jsonb_build_object('new', NEW.goal_value));
+				END IF;
+				IF NEW.goal_name IS NOT NULL THEN
+					changes_json := changes_json || jsonb_build_object('goal_name', jsonb_build_object('new', NEW.goal_name));
+				END IF;
 			ELSIF TG_OP = 'UPDATE' THEN
 				timeline_operation := 'update';
 				property_diff := '{}'::jsonb;
@@ -619,6 +629,16 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 						'new', NEW.occurred_at
 					)
 				);
+				-- Add goal fields if changed
+				IF OLD.goal_type IS DISTINCT FROM NEW.goal_type THEN
+					changes_json := changes_json || jsonb_build_object('goal_type', jsonb_build_object('old', OLD.goal_type, 'new', NEW.goal_type));
+				END IF;
+				IF OLD.goal_value IS DISTINCT FROM NEW.goal_value THEN
+					changes_json := changes_json || jsonb_build_object('goal_value', jsonb_build_object('old', OLD.goal_value, 'new', NEW.goal_value));
+				END IF;
+				IF OLD.goal_name IS DISTINCT FROM NEW.goal_name THEN
+					changes_json := changes_json || jsonb_build_object('goal_name', jsonb_build_object('old', OLD.goal_name, 'new', NEW.goal_name));
+				END IF;
 			END IF;
 			INSERT INTO contact_timeline (
 				email, operation, entity_type, kind, entity_id, changes, created_at

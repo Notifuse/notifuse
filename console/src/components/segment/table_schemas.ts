@@ -3,7 +3,7 @@ import { CountriesFormOptions } from '../../lib/countries_timezones'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { Languages } from '../../lib/languages'
 import { faUser, faFolderOpen } from '@fortawesome/free-regular-svg-icons'
-import { faMousePointer } from '@fortawesome/free-solid-svg-icons'
+import { faMousePointer, faBullseye } from '@fortawesome/free-solid-svg-icons'
 
 /**
  * Database table schemas for segmentation engine
@@ -369,9 +369,84 @@ export const ContactTimelineTableSchema: TableSchema = {
   }
 }
 
+export const CustomEventsGoalsTableSchema: TableSchema = {
+  name: 'custom_events_goals',
+  title: 'Custom Events Goal',
+  description: 'Aggregated custom events data (LTV, transaction counts, etc.)',
+  icon: faBullseye,
+  fields: {
+    goal_type: {
+      name: 'goal_type',
+      title: 'Goal Type',
+      description: 'Type of goal (purchase, subscription, lead, etc.)',
+      type: 'string',
+      shown: true,
+      options: [
+        { value: '*', label: 'All types' },
+        { value: 'purchase', label: 'Purchase' },
+        { value: 'subscription', label: 'Subscription' },
+        { value: 'lead', label: 'Lead' },
+        { value: 'signup', label: 'Signup' },
+        { value: 'booking', label: 'Booking' },
+        { value: 'trial', label: 'Trial' },
+        { value: 'other', label: 'Other' }
+      ]
+    },
+    goal_name: {
+      name: 'goal_name',
+      title: 'Goal Name',
+      description: 'Optional specific goal name to filter by',
+      type: 'string',
+      shown: true
+    },
+    aggregate_operator: {
+      name: 'aggregate_operator',
+      title: 'Aggregate',
+      description: 'How to aggregate the goal values',
+      type: 'string',
+      shown: true,
+      options: [
+        { value: 'sum', label: 'Sum' },
+        { value: 'count', label: 'Count' },
+        { value: 'avg', label: 'Average' },
+        { value: 'min', label: 'Minimum' },
+        { value: 'max', label: 'Maximum' }
+      ]
+    },
+    operator: {
+      name: 'operator',
+      title: 'Comparison',
+      description: 'Comparison operator',
+      type: 'string',
+      shown: true,
+      options: [
+        { value: 'gte', label: 'Greater than or equal' },
+        { value: 'lte', label: 'Less than or equal' },
+        { value: 'eq', label: 'Equal to' },
+        { value: 'between', label: 'Between' }
+      ]
+    },
+    value: {
+      name: 'value',
+      title: 'Value',
+      description: 'Comparison value',
+      type: 'number',
+      shown: true
+    },
+    value_2: {
+      name: 'value_2',
+      title: 'Value 2',
+      description: 'Second value for between operator',
+      type: 'number',
+      shown: true
+    }
+  }
+}
+
 // Export all schemas as a map
 export const TableSchemas: { [key: string]: TableSchema } = {
   contacts: ContactsTableSchema,
   contact_lists: ContactListsTableSchema,
-  contact_timeline: ContactTimelineTableSchema
+  contact_timeline: ContactTimelineTableSchema,
+  custom_events_goals: CustomEventsGoalsTableSchema
 }

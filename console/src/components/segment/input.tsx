@@ -13,11 +13,17 @@ import {
   TreeNodeLeaf,
   TableSchema,
   List,
-  ContactTimelineCondition
+  ContactTimelineCondition,
+  CustomEventsGoalCondition
 } from '../../services/api/segment'
 import { FieldTypeString } from './type_string'
 import { FieldTypeTime } from './type_time'
-import { LeafActionForm, LeafContactForm, LeafContactListForm } from './form_leaf'
+import {
+  LeafActionForm,
+  LeafContactForm,
+  LeafContactListForm,
+  LeafCustomEventsGoalForm
+} from './form_leaf'
 import { FieldTypeNumber } from './type_number'
 import { FieldTypeJSON } from './type_json'
 import styles from './input.module.css'
@@ -270,6 +276,16 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
       leaf.contact = {
         filters: [] as DimensionFilter[]
       }
+    } else if (leaf.source === 'custom_events_goals') {
+      // Custom events goals use CustomEventsGoalCondition
+      leaf.custom_events_goal = {
+        goal_type: 'purchase',
+        aggregate_operator: 'sum',
+        operator: 'gte',
+        value: 0,
+        timeframe_operator: 'anytime',
+        timeframe_values: []
+      } as CustomEventsGoalCondition
     } else {
       // Contact timeline uses ContactTimelineCondition
       leaf.contact_timeline = {
@@ -418,6 +434,8 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     if (isEditingCurrent && editingNodeLeaf) {
       const isContactSource = node.leaf?.source === 'contacts'
       const isContactListSource = node.leaf?.source === 'contact_lists'
+      const isCustomEventsGoalSource = node.leaf?.source === 'custom_events_goals'
+      const isContactTimelineSource = node.leaf?.source === 'contact_timeline'
 
       return (
         <div className="py-4 pl-4">
@@ -450,7 +468,21 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
               customFieldLabels={props.customFieldLabels}
             />
           )}
-          {!isContactSource && !isContactListSource && (
+          {isCustomEventsGoalSource && (
+            <LeafCustomEventsGoalForm
+              value={node}
+              onChange={(updatedLeaf: TreeNode) => {
+                onUpdateNode(updatedLeaf, path, pathKey)
+              }}
+              source={node.leaf?.source as string}
+              schema={schema}
+              editingNodeLeaf={editingNodeLeaf as EditingNodeLeaf}
+              setEditingNodeLeaf={setEditingNodeLeaf}
+              cancelOrDeleteNode={cancelOrDeleteNode.bind(null, path, pathKey)}
+              customFieldLabels={props.customFieldLabels}
+            />
+          )}
+          {isContactTimelineSource && (
             <LeafActionForm
               value={node}
               onChange={(updatedLeaf: TreeNode) => {
@@ -508,6 +540,121 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                   </Tag>
                 </>
               )}
+            </Space>
+          </div>
+        </div>
+      )
+    }
+
+    // Special rendering for custom_events_goals
+    const isCustomEventsGoalSource = node.leaf?.source === 'custom_events_goals'
+    if (isCustomEventsGoalSource && node.leaf?.custom_events_goal) {
+      const goal = node.leaf.custom_events_goal
+      const goalTypeLabel =
+        schema.fields['goal_type']?.options?.find((o) => o.value === goal.goal_type)?.label ||
+        goal.goal_type
+      const aggregateLabel =
+        schema.fields['aggregate_operator']?.options?.find(
+          (o) => o.value === goal.aggregate_operator
+        )?.label || goal.aggregate_operator
+      const operatorLabel =
+        schema.fields['operator']?.options?.find((o) => o.value === goal.operator)?.label ||
+        goal.operator
+
+      return (
+        <div style={{ lineHeight: '32px' }} className="py-4 pl-4">
+          <Flex gap="small" className="float-right">
+            {deleteButton(path, pathKey, false)}
+            <Button size="small" onClick={editNode.bind(null, path, pathKey)}>
+              <FontAwesomeIcon icon={faPenToSquare} />
+            </Button>
+          </Flex>
+
+          <div>
+            <Space style={{ alignItems: 'start' }}>
+              <Tag bordered={false} color="cyan">
+                {schema.icon && <FontAwesomeIcon icon={schema.icon} style={{ marginRight: 8 }} />}
+                Goal
+              </Tag>
+              <div>
+                <div className="mb-2">
+                  <Space>
+                    <span className="opacity-60">type</span>
+                    <Tag bordered={false} color="blue">
+                      {goalTypeLabel}
+                    </Tag>
+                  </Space>
+                </div>
+                <div className="mb-2">
+                  <Space>
+                    <Tag bordered={false} color="blue">
+                      {aggregateLabel}
+                    </Tag>
+                    <span className="opacity-60">is</span>
+                    <Tag bordered={false} color="blue">
+                      {operatorLabel}
+                    </Tag>
+                    <Tag bordered={false} color="blue">
+                      {goal.value}
+                    </Tag>
+                    {goal.operator === 'between' && goal.value_2 !== undefined && (
+                      <>
+                        <span className="opacity-60">and</span>
+                        <Tag bordered={false} color="blue">
+                          {goal.value_2}
+                        </Tag>
+                      </>
+                    )}
+                  </Space>
+                </div>
+                <div>
+                  <Space>
+                    <span className="opacity-60">timeframe</span>
+                    {goal.timeframe_operator === 'anytime' && (
+                      <Tag bordered={false} color="blue">
+                        anytime
+                      </Tag>
+                    )}
+                    {goal.timeframe_operator === 'in_the_last_days' && (
+                      <>
+                        <span className="opacity-60">in the last</span>
+                        <Tag bordered={false} color="blue">
+                          {goal.timeframe_values?.[0]}
+                        </Tag>
+                        <span className="opacity-60">days</span>
+                      </>
+                    )}
+                    {goal.timeframe_operator === 'in_date_range' && (
+                      <>
+                        <span className="opacity-60">between</span>
+                        <Tag bordered={false} color="blue">
+                          {goal.timeframe_values?.[0]}
+                        </Tag>
+                        <span className="opacity-60">&rarr;</span>
+                        <Tag bordered={false} color="blue">
+                          {goal.timeframe_values?.[1]}
+                        </Tag>
+                      </>
+                    )}
+                    {goal.timeframe_operator === 'before_date' && (
+                      <>
+                        <span className="opacity-60">before</span>
+                        <Tag bordered={false} color="blue">
+                          {goal.timeframe_values?.[0]}
+                        </Tag>
+                      </>
+                    )}
+                    {goal.timeframe_operator === 'after_date' && (
+                      <>
+                        <span className="opacity-60">after</span>
+                        <Tag bordered={false} color="blue">
+                          {goal.timeframe_values?.[0]}
+                        </Tag>
+                      </>
+                    )}
+                  </Space>
+                </div>
+              </div>
             </Space>
           </div>
         </div>
