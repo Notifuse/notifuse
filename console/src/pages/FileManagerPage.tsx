@@ -49,12 +49,14 @@ export function FileManagerPage() {
         settings: {
           ...currentWorkspace.settings,
           file_manager: {
+            provider: newSettings.provider,
             endpoint: newSettings.endpoint,
             access_key: newSettings.access_key,
             bucket: newSettings.bucket,
             region: newSettings.region,
             secret_key: newSettings.secret_key,
-            cdn_endpoint: newSettings.cdn_endpoint
+            cdn_endpoint: newSettings.cdn_endpoint,
+            force_path_style: newSettings.force_path_style
           }
         } as any // Use type assertion to bypass the type checking
       })
@@ -79,12 +81,14 @@ export function FileManagerPage() {
     withSelection: true,
     multiple: true,
     settings: {
+      provider: currentWorkspace?.settings?.file_manager?.provider,
       endpoint: currentWorkspace?.settings?.file_manager?.endpoint || '',
       access_key: currentWorkspace?.settings?.file_manager?.access_key || '',
       bucket: currentWorkspace?.settings?.file_manager?.bucket || '',
       region: currentWorkspace?.settings?.file_manager?.region || '',
       secret_key: currentWorkspace?.settings?.file_manager?.secret_key || '',
-      cdn_endpoint: currentWorkspace?.settings?.file_manager?.cdn_endpoint || ''
+      cdn_endpoint: currentWorkspace?.settings?.file_manager?.cdn_endpoint || '',
+      force_path_style: currentWorkspace?.settings?.file_manager?.force_path_style
     },
     onUpdateSettings: handleUpdateSettings,
     readOnly: !permissions?.templates?.write

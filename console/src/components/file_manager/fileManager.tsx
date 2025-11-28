@@ -173,24 +173,30 @@ export const FileManager = (props: FileManagerProps) => {
       // console.log('new items', newItems)
       setItems(newItems)
       setIsLoading(false)
+    }).catch((error) => {
+      console.error('Failed to fetch objects:', error)
+      message.error('Failed to fetch objects: ' + error)
+      setIsLoading(false)
     })
-  }, [props.settings?.bucket, props.settings?.cdn_endpoint, props.settings?.endpoint])
+  }, [props.settings?.bucket, props.settings?.cdn_endpoint, props.settings?.endpoint, message])
 
-  // init
+  // Initialize or reinitialize S3 client when settings change
   useEffect(() => {
     // Don't initialize if settings are not provided or endpoint is empty/undefined
     if (!props.settings || !props.settings.endpoint || props.settings.endpoint === '') {
+      s3ClientRef.current = undefined
       return
     }
-    if (s3ClientRef.current) return
 
+    // Always recreate the S3 client when settings change
     s3ClientRef.current = new S3Client({
       endpoint: props.settings.endpoint,
       credentials: {
         accessKeyId: props.settings.access_key || '',
         secretAccessKey: props.settings.secret_key || ''
       },
-      region: props.settings.region || 'us-east-1'
+      region: props.settings.region || 'us-east-1',
+      forcePathStyle: props.settings.force_path_style ?? false
     })
 
     fetchObjects()
@@ -199,6 +205,7 @@ export const FileManager = (props: FileManagerProps) => {
     props.settings?.access_key,
     props.settings?.secret_key,
     props.settings?.region,
+    props.settings?.force_path_style,
     fetchObjects
   ])
 

@@ -606,12 +606,14 @@ func (w *Workspace) MarshalJSON() ([]byte, error) {
 }
 
 type FileManagerSettings struct {
+	Provider           string  `json:"provider,omitempty"`
 	Endpoint           string  `json:"endpoint"`
 	Bucket             string  `json:"bucket"`
 	AccessKey          string  `json:"access_key"`
 	EncryptedSecretKey string  `json:"encrypted_secret_key,omitempty"`
 	Region             *string `json:"region,omitempty"`
 	CDNEndpoint        *string `json:"cdn_endpoint,omitempty"`
+	ForcePathStyle     bool    `json:"force_path_style"`
 
 	// decoded secret key, not stored in the database
 	SecretKey string `json:"secret_key,omitempty"`

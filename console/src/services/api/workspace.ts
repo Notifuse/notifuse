@@ -50,6 +50,7 @@ export interface WorkspaceSettings {
 }
 
 export interface FileManagerSettings {
+  provider?: string
   endpoint: string
   access_key: string
   bucket: string
@@ -57,6 +58,7 @@ export interface FileManagerSettings {
   secret_key?: string
   encrypted_secret_key?: string
   cdn_endpoint?: string
+  force_path_style?: boolean
 }
 
 export type EmailProviderKind = 'smtp' | 'ses' | 'sparkpost' | 'postmark' | 'mailgun' | 'mailjet'
