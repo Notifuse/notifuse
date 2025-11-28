@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [17.4] - 2025-11-28
+
+- Enhancement: The File Manager now supports S3-compatible storage providers with path-style bucket endpoint.
+
 ## [17.3] - 2025-11-27
 
 - New feature: Blog posts can now be scheduled for publication at past or future dates, allowing you to plan posts in advance or import posts with their original publication dates.
