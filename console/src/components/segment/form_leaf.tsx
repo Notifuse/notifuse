@@ -10,7 +10,7 @@ import {
   TreeNodeLeaf,
   TableSchema
 } from '../../services/api/segment'
-import dayjs from 'dayjs'
+import dayjs, { Dayjs } from 'dayjs'
 import { InputDimensionFilters } from './input_dimension_filters'
 import Messages from './messages'
 
@@ -50,7 +50,7 @@ export const LeafContactForm = (props: LeafFormProps) => {
 
         if (props.onChange) props.onChange(clonedLeaf)
       })
-      .catch((_e) => {})
+      .catch(() => {})
   }
 
   // console.log('props', props)
@@ -366,7 +366,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
                             value: parseInt(values[0])
                           }
                         }}
-                        getValueFromEvent={(args: any) => {
+                        getValueFromEvent={(args: number | null) => {
                           // convert single value to array
                           return ['' + args]
                         }}
@@ -388,14 +388,14 @@ export const LeafActionForm = (props: LeafFormProps) => {
                         { required: true, type: 'array', min: 2, message: Messages.RequiredField }
                       ]}
                       dependencies={['contact_timeline', 'timeframe_operator']}
-                      getValueProps={(values: any[]) => {
+                      getValueProps={(values: string[]) => {
                         return {
                           value: values?.map((value) => {
                             return value ? dayjs(value) : undefined
                           })
                         }
                       }}
-                      getValueFromEvent={(_date: any, dateStrings: string[]) => dateStrings}
+                      getValueFromEvent={(_date: [Dayjs | null, Dayjs | null] | null, dateStrings: string[]) => dateStrings}
                     >
                       <DatePicker.RangePicker
                         style={{ width: 370 }}
@@ -417,10 +417,10 @@ export const LeafActionForm = (props: LeafFormProps) => {
                       colon={false}
                       dependencies={['contact_timeline', 'timeframe_operator']}
                       rules={[{ required: true, type: 'string', message: Messages.RequiredField }]}
-                      getValueProps={(value: any) => {
+                      getValueProps={(value: string) => {
                         return { value: value ? dayjs(value) : undefined }
                       }}
-                      getValueFromEvent={(_date: any, dateString: string) => dateString}
+                      getValueFromEvent={(_date: Dayjs | null, dateString: string) => dateString}
                     >
                       <DatePicker
                         style={{ width: 180 }}
@@ -660,7 +660,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                             value: values ? parseInt(values[0]) : undefined
                           }
                         }}
-                        getValueFromEvent={(args: any) => {
+                        getValueFromEvent={(args: number | null) => {
                           return ['' + args]
                         }}
                       >
@@ -681,14 +681,14 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                         { required: true, type: 'array', min: 2, message: Messages.RequiredField }
                       ]}
                       dependencies={['custom_events_goal', 'timeframe_operator']}
-                      getValueProps={(values: any[]) => {
+                      getValueProps={(values: string[]) => {
                         return {
                           value: values?.map((value) => {
                             return value ? dayjs(value) : undefined
                           })
                         }
                       }}
-                      getValueFromEvent={(_date: any, dateStrings: string[]) => dateStrings}
+                      getValueFromEvent={(_date: [Dayjs | null, Dayjs | null] | null, dateStrings: string[]) => dateStrings}
                     >
                       <DatePicker.RangePicker
                         style={{ width: 370 }}
@@ -710,10 +710,10 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                       colon={false}
                       dependencies={['custom_events_goal', 'timeframe_operator']}
                       rules={[{ required: true, type: 'string', message: Messages.RequiredField }]}
-                      getValueProps={(value: any) => {
+                      getValueProps={(value: string) => {
                         return { value: value ? dayjs(value) : undefined }
                       }}
-                      getValueFromEvent={(_date: any, dateString: string) => dateString}
+                      getValueFromEvent={(_date: Dayjs | null, dateString: string) => dateString}
                     >
                       <DatePicker
                         style={{ width: 180 }}

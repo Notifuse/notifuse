@@ -14,8 +14,12 @@ import {
   TableSchema,
   List,
   ContactTimelineCondition,
-  CustomEventsGoalCondition
+  CustomEventsGoalCondition,
+  BooleanOperator
 } from '../../services/api/segment'
+import type { CascaderProps } from 'antd'
+
+type CascaderOption = NonNullable<CascaderProps['options']>[number]
 import { FieldTypeString } from './type_string'
 import { FieldTypeTime } from './type_time'
 import {
@@ -77,7 +81,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
   const [editingNodeLeaf, setEditingNodeLeaf] = useState<EditingNodeLeaf | undefined>(undefined)
 
   const cascaderOptions = useMemo(() => {
-    const options: any[] = [
+    const options: CascaderOption[] = [
       {
         value: 'and',
         label: (
@@ -211,7 +215,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
       set(
         clonedTree,
         path,
-        target.filter((_x: any, i: number) => i !== key)
+        target.filter((_x: TreeNode, i: number) => i !== key)
       )
     }
 
@@ -223,7 +227,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     if (props.onChange) props.onChange(clonedTree)
   }
 
-  const addTreeNode = (path: string, key: number, values: any[], selectedOptions: any) => {
+  const addTreeNode = (path: string, key: number, values: (string | number)[], selectedOptions: CascaderOption[]) => {
     // console.log('values', values);
     // console.log('selectedOptions', selectedOptions);
     // console.log('path', path);
@@ -385,7 +389,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     setEditingNodeLeaf(editingNodeLeaf)
   }
 
-  const changeBranchOperator = (path: string, pathKey: number, value: any) => {
+  const changeBranchOperator = (path: string, pathKey: number, value: BooleanOperator) => {
     const clonedTree = cloneDeep(props.value) as TreeNode
     if (!clonedTree.branch) return
 

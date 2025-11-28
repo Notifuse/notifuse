@@ -1,6 +1,7 @@
 import { Workspace } from '../services/api/types'
 
-interface CustomFieldLabelResult {
+export interface CustomFieldLabelResult {
+  label: string
   displayLabel: string
   technicalName: string
   showTooltip: boolean
@@ -24,15 +25,17 @@ function getDefaultLabel(key: string): string {
  * Pure utility function to compute custom field label result
  * Does not use React hooks - can be called from anywhere
  */
-function computeCustomFieldLabel(
+export function computeCustomFieldLabel(
   fieldKey: string,
   workspace: Workspace | null | undefined
 ): CustomFieldLabelResult {
   const defaultLabel = getDefaultLabel(fieldKey)
   const customLabel = workspace?.settings?.custom_field_labels?.[fieldKey]
 
+  const label = customLabel || defaultLabel
   return {
-    displayLabel: customLabel || defaultLabel,
+    label,
+    displayLabel: label,
     technicalName: fieldKey,
     showTooltip: !!customLabel // Only show tooltip if there's a custom label
   }

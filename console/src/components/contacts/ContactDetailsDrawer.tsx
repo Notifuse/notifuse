@@ -34,7 +34,7 @@ import { SubscribeToListsRequest } from '../../services/api/types'
 import { MessageHistoryTable } from '../messages/MessageHistoryTable'
 import { ContactTimeline } from '../timeline'
 import { contactTimelineApi, ContactTimelineEntry } from '../../services/api/contact_timeline'
-import { useCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
+import { computeCustomFieldLabel } from '../../hooks/useCustomFieldLabel'
 
 const { Title, Text } = Typography
 
@@ -90,8 +90,6 @@ export function ContactDetailsDrawer({
   onContactUpdate,
   buttonProps
 }: ContactDetailsDrawerProps) {
-  if (!contactEmail) return null
-
   // Internal drawer visibility state
   const [internalVisible, setInternalVisible] = React.useState(false)
   const [gravatarUrl, setGravatarUrl] = React.useState<string>('')
@@ -317,6 +315,9 @@ export function ContactDetailsDrawer({
     }
   })
 
+  // Early return after all hooks
+  if (!contactEmail) return null
+
   const handleContactUpdated = async (updatedContact: Contact) => {
     // Invalidate both the contact details
     await queryClient.invalidateQueries({
@@ -331,10 +332,10 @@ export function ContactDetailsDrawer({
   }
 
   // Handle inline field update
-  const handleFieldUpdate = async (fieldKey: string, value: any) => {
+  const handleFieldUpdate = async (fieldKey: string, value: string | number | object | null) => {
     if (!contact) return
 
-    const contactData: any = {
+    const contactData: Record<string, string | number | object | null> = {
       email: contact.email,
       [fieldKey]: value
     }
@@ -430,7 +431,7 @@ export function ContactDetailsDrawer({
 
   // Helper function to get custom field label with tooltip info
   const getFieldLabel = (fieldKey: string) => {
-    return useCustomFieldLabel(fieldKey, workspace)
+    return computeCustomFieldLabel(fieldKey, workspace)
   }
 
   // Editable fields configuration
@@ -965,7 +966,7 @@ export function ContactDetailsDrawer({
                     dataIndex: 'name',
                     key: 'name',
                     width: '30%',
-                    render: (name: string, record: any) => (
+                    render: (name: string, record: ContactListWithName) => (
                       <Tooltip title={`List ID: ${record.list_id}`}>
                         <span style={{ cursor: 'help' }}>{name}</span>
                       </Tooltip>
@@ -1003,7 +1004,7 @@ export function ContactDetailsDrawer({
                     title: '',
                     key: 'actions',
                     width: '20%',
-                    render: (_: any, record: ContactListWithName) => (
+                    render: (_: unknown, record: ContactListWithName) => (
                       <Button
                         size="small"
                         onClick={() => openStatusModal(record)}

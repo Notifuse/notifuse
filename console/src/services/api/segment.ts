@@ -1,5 +1,6 @@
 import { api } from './client'
 import { FormInstance } from 'antd'
+import type { IconDefinition } from '@fortawesome/fontawesome-svg-core'
 
 // Utility types
 export interface MapOfStrings {
@@ -7,7 +8,7 @@ export interface MapOfStrings {
 }
 
 export interface MapOfInterfaces {
-  [key: string]: any
+  [key: string]: unknown
 }
 
 // Segment types
@@ -140,7 +141,7 @@ export interface Segment {
   version: number
   status: SegmentStatus
   generated_sql?: string
-  generated_args?: Record<string, any>
+  generated_args?: Record<string, unknown>
   db_created_at: string
   db_updated_at: string
   users_count?: number
@@ -209,7 +210,7 @@ export interface TableSchema {
   name: string
   title: string
   description?: string
-  icon?: any // FontAwesome icon definition
+  icon?: IconDefinition
   fields: { [key: string]: FieldSchema }
 }
 
@@ -314,7 +315,7 @@ export interface PreviewSegmentResponse {
   total_count: number
   limit: number
   generated_sql: string
-  sql_args: any[]
+  sql_args: unknown[]
 }
 
 export interface GetSegmentContactsResponse {

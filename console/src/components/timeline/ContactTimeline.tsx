@@ -124,8 +124,8 @@ export function ContactTimeline({
           return faMousePointer
         }
         return faPaperPlane
-      case 'webhook_event':
-        const webhookData = entry.entity_data as any
+      case 'webhook_event': {
+        const webhookData = entry.entity_data as WebhookEventEntityData | undefined
         const eventType = webhookData?.type
         if (eventType === 'bounce') {
           return faCircleExclamation
@@ -135,6 +135,7 @@ export function ContactTimeline({
           return faCheck
         }
         return faBolt
+      }
       case 'custom_event':
         return faBolt
       default:
@@ -264,7 +265,7 @@ export function ContactTimeline({
 
   // Render custom event properties with tiered display approach
   const renderCustomEventProperties = (
-    properties: Record<string, any> | undefined,
+    properties: Record<string, unknown> | undefined,
     timezone: string
   ): React.ReactNode => {
     if (!properties || Object.keys(properties).length === 0) {
@@ -280,7 +281,7 @@ export function ContactTimeline({
 
     // Check if all values are primitives (not objects or arrays)
     const allPrimitives = entries.every(
-      ([_, value]) => typeof value !== 'object' || value === null
+      ([, value]) => typeof value !== 'object' || value === null
     )
 
     // Tier 1: Inline display for ≤3 properties with all primitives
@@ -349,7 +350,7 @@ export function ContactTimeline({
   // Render entity-specific details based on entity type
   const renderEntityDetails = (entry: ContactTimelineEntry) => {
     switch (entry.entity_type) {
-      case 'contact':
+      case 'contact': {
         // Map operations to action labels
         const contactActionMap: Record<string, string> = {
           insert: 'created',
@@ -432,11 +433,12 @@ export function ContactTimeline({
           // Insert or delete - just header, no details needed
           return <div>{renderEventHeader(entry, 'Contact', contactAction)}</div>
         }
+      }
 
       case 'contact_list':
         return <div>{renderContactListMessage(entry)}</div>
 
-      case 'contact_segment':
+      case 'contact_segment': {
         const segmentId = entry.entity_id || 'Unknown Segment'
 
         // Look up segment from segments prop
@@ -467,8 +469,9 @@ export function ContactTimeline({
             </div>
           </div>
         )
+      }
 
-      case 'message_history':
+      case 'message_history': {
         const messageData = entry.entity_data as MessageHistoryEntityData | undefined
 
         // Determine email action based on changes
@@ -514,7 +517,7 @@ export function ContactTimeline({
                             channel: messageData.channel,
                             email: messageData.template_email,
                             test_data: messageData.message_data || {}
-                          } as any
+                          } as Parameters<typeof TemplatePreviewDrawer>[0]['record']
                         }
                         workspace={workspace}
                         templateData={messageData.message_data}
@@ -533,8 +536,9 @@ export function ContactTimeline({
             )}
           </div>
         )
+      }
 
-      case 'webhook_event':
+      case 'webhook_event': {
         const webhookEventData = entry.entity_data as WebhookEventEntityData
         const eventType = webhookEventData?.type
         const source = webhookEventData?.source || entry.changes?.source?.new
@@ -615,8 +619,9 @@ export function ContactTimeline({
             </div>
           </div>
         )
+      }
 
-      case 'custom_event':
+      case 'custom_event': {
         const customEventData = entry.entity_data as CustomEventEntityData | undefined
         // Fallback to entry.kind for event name when entity_data is not available
         const eventName = customEventData?.event_name || entry.kind
@@ -695,6 +700,7 @@ export function ContactTimeline({
             </div>
           </div>
         )
+      }
 
       default:
         return (

@@ -28,20 +28,21 @@ import {
   previewSegment,
   CreateSegmentRequest,
   UpdateSegmentRequest,
-  PreviewSegmentRequest
+  PreviewSegmentRequest,
+  TreeNode,
+  DimensionFilter
 } from '../../services/api/segment'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { TableSchemas } from './table_schemas'
-import { Workspace } from '../../services/api/types'
 
 // Helper function to check if a tree contains relative date filters
-const treeHasRelativeDates = (tree: any): boolean => {
+const treeHasRelativeDates = (tree: TreeNode | null | undefined): boolean => {
   if (!tree) return false
 
   if (tree.kind === 'branch') {
     // Check all child leaves recursively
     if (tree.branch?.leaves) {
-      return tree.branch.leaves.some((leaf: any) => treeHasRelativeDates(leaf))
+      return tree.branch.leaves.some((leaf: TreeNode) => treeHasRelativeDates(leaf))
     }
     return false
   }
@@ -56,7 +57,7 @@ const treeHasRelativeDates = (tree: any): boolean => {
     // Check contact property filters for relative date operators
     if (tree.leaf?.contact?.filters) {
       const hasRelativeDateFilter = tree.leaf.contact.filters.some(
-        (filter: any) => filter.operator === 'in_the_last_days'
+        (filter: DimensionFilter) => filter.operator === 'in_the_last_days'
       )
       if (hasRelativeDateFilter) {
         return true
@@ -110,26 +111,23 @@ const ButtonUpsertSegment = (props: {
 const DrawerSegment = (props: {
   segment?: Segment
   totalContacts?: number
-  setDrawserVisible: any
+  setDrawserVisible: (visible: boolean) => void
   onSuccess?: () => void
 }) => {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
   const { workspaces } = useAuth()
-  const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [loadingPreview, setLoadingPreview] = useState(false)
   const [previewedData, setPreviewedData] = useState<string | undefined>() // track the tree hash to avoid re-render
-  const [previewResponse, setPreviewResponse] = useState<any>()
+  const [previewResponse, setPreviewResponse] = useState<PreviewSegmentResponse | undefined>()
 
   // Find the current workspace
-  useEffect(() => {
+  const workspace = useMemo(() => {
     if (workspaceId && workspaces.length > 0) {
-      const ws = workspaces.find((w) => w.id === workspaceId)
-      if (ws) {
-        setWorkspace(ws)
-      }
+      return workspaces.find((w) => w.id === workspaceId) || null
     }
+    return null
   }, [workspaceId, workspaces])
 
   // Log the tree when the drawer opens
@@ -139,7 +137,7 @@ const DrawerSegment = (props: {
     } else {
       console.log('New segment - empty tree')
     }
-  }, [])
+  }, [props.segment?.tree])
 
   // Fetch lists for the current workspace
   const { data: listsData } = useQuery({
@@ -194,7 +192,7 @@ const DrawerSegment = (props: {
     props.segment
   )
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: { name: string; color: string; tree: TreeNode; timezone: string }) => {
     if (loading || !workspaceId) return
 
     setLoading(true)
@@ -414,10 +412,10 @@ const DrawerSegment = (props: {
                   placeholder="Select a time zone"
                   allowClear={false}
                   showSearch={true}
-                  filterOption={(input: string, option: any) => {
+                  filterOption={(input: string, option) => {
                     if (!input || !option) return true
                     const label = option.label || option.value || ''
-                    return label.toString().toLowerCase().includes(input.toLowerCase())
+                    return String(label).toLowerCase().includes(input.toLowerCase())
                   }}
                   optionFilterProp="label"
                   options={TIMEZONE_OPTIONS}

@@ -46,6 +46,7 @@ export class OperatorContains implements IOperator {
     let input = <Select mode="tags" placeholder="press enter to add a value" />
 
     switch (fieldType) {
+      case 'json':
       case 'string':
         if (fieldName === 'gender') {
           input = (

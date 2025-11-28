@@ -1,4 +1,5 @@
-import { Alert, Form, FormInstance, Input, InputNumber, Select, Tag } from 'antd'
+import { Alert, DatePicker, Form, FormInstance, Input, InputNumber, Select, Tag } from 'antd'
+import type { DefaultOptionType } from 'antd/es/select'
 import { Rule } from 'antd/lib/form'
 import Messages from './messages'
 import { DimensionFilter, FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
@@ -6,6 +7,7 @@ import { Currencies, Currency } from '../../lib/currencies'
 import { CountriesFormOptions } from '../../lib/countries_timezones'
 import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { Languages } from '../../lib/languages'
+import dayjs from 'dayjs'
 
 export type OperatorEqualsProps = {
   value: string | undefined
@@ -21,13 +23,16 @@ export class OperatorEquals implements IOperator {
   }
 
   render(filter: DimensionFilter) {
-    let value: any
+    let value: string | number | JSX.Element | undefined
     switch (filter.field_type) {
       case 'string':
         value = filter.string_values?.[0]
         break
       case 'number':
         value = filter.number_values?.[0]
+        break
+      case 'time':
+        value = filter.string_values?.[0]
         break
       case 'json':
         // JSON fields store values in string_values, number_values, or time_values
@@ -60,8 +65,9 @@ export class OperatorEquals implements IOperator {
     )
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   renderFormItems(fieldType: FieldTypeValue, fieldName: string, _form: FormInstance) {
-    let rule: Rule = { required: true, type: 'string', message: Messages.RequiredField }
+    const rule: Rule = { required: true, type: 'string', message: Messages.RequiredField }
     let input = <Input placeholder="enter a value" />
     let inputName = ['string_values', 0]
 
@@ -75,8 +81,8 @@ export class OperatorEquals implements IOperator {
               showSearch
               placeholder="Select a gender"
               optionFilterProp="children"
-              filterOption={(input: any, option: any) =>
-                option.value.toLowerCase().includes(input.toLowerCase())
+              filterOption={(input: string, option: DefaultOptionType | undefined) =>
+                String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
               }
               options={[
                 { value: 'male', label: 'Male' },
@@ -92,8 +98,8 @@ export class OperatorEquals implements IOperator {
               showSearch
               placeholder="Select a currency"
               optionFilterProp="children"
-              filterOption={(input: any, option: any) =>
-                option.value.toLowerCase().includes(input.toLowerCase())
+              filterOption={(input: string, option: DefaultOptionType | undefined) =>
+                String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
               }
               options={Currencies.map((c: Currency) => {
                 return { value: c.code, label: c.code + ' - ' + c.currency }
@@ -108,8 +114,8 @@ export class OperatorEquals implements IOperator {
               // style={{ width: '200px' }}
               showSearch
               placeholder="Select a country"
-              filterOption={(input: any, option: any) =>
-                option.label.toLowerCase().includes(input.toLowerCase())
+              filterOption={(input: string, option: DefaultOptionType | undefined) =>
+                String(option?.label ?? '').toLowerCase().includes(input.toLowerCase())
               }
               options={CountriesFormOptions}
             />
@@ -123,9 +129,9 @@ export class OperatorEquals implements IOperator {
               // style={{ width: '200px' }}
               allowClear={false}
               showSearch={true}
-              filterOption={(searchText: any, option: any) => {
+              filterOption={(searchText: string, option: DefaultOptionType | undefined) => {
                 return (
-                  searchText !== '' && option.name.toLowerCase().includes(searchText.toLowerCase())
+                  searchText !== '' && String(option?.label ?? '').toLowerCase().includes(searchText.toLowerCase())
                 )
               }}
               options={Languages}
@@ -140,9 +146,9 @@ export class OperatorEquals implements IOperator {
               placeholder="Select a time zone"
               allowClear={false}
               showSearch={true}
-              filterOption={(searchText: any, option: any) => {
+              filterOption={(searchText: string, option: DefaultOptionType | undefined) => {
                 return (
-                  searchText !== '' && option.label.toLowerCase().includes(searchText.toLowerCase())
+                  searchText !== '' && String(option?.label ?? '').toLowerCase().includes(searchText.toLowerCase())
                 )
               }}
               optionFilterProp="label"
@@ -169,6 +175,21 @@ export class OperatorEquals implements IOperator {
           )
         }
         break
+      case 'time':
+        // Time values are stored as ISO strings in string_values
+        return (
+          <Form.Item
+            name={['string_values', 0]}
+            dependencies={['operator']}
+            rules={[{ required: true, type: 'string', message: Messages.RequiredField }]}
+            getValueProps={(value: string) => {
+              return { value: value ? dayjs(value) : undefined }
+            }}
+            getValueFromEvent={(_date: unknown, dateString: string) => dateString}
+          >
+            <DatePicker showTime={{ defaultValue: dayjs().startOf('day') }} />
+          </Form.Item>
+        )
       default:
         return (
           <Alert type="error" message={'equals form item not implemented for type: ' + fieldType} />
