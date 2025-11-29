@@ -68,6 +68,9 @@ func (e *CustomEvent) Validate() error {
 	if e.ExternalID == "" {
 		return fmt.Errorf("external_id is required")
 	}
+	if len(e.ExternalID) > 255 {
+		return fmt.Errorf("external_id must be 255 characters or less")
+	}
 	if e.Email == "" {
 		return fmt.Errorf("email is required")
 	}
@@ -163,6 +166,9 @@ func (r *UpsertCustomEventRequest) Validate() error {
 	}
 	if r.ExternalID == "" {
 		return fmt.Errorf("external_id is required")
+	}
+	if len(r.ExternalID) > 255 {
+		return fmt.Errorf("external_id must be 255 characters or less")
 	}
 	if r.Properties == nil {
 		r.Properties = make(map[string]interface{})

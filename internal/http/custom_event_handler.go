@@ -54,6 +54,10 @@ func (h *CustomEventHandler) UpsertCustomEvent(w http.ResponseWriter, r *http.Re
 			WriteJSONError(w, err.Error(), http.StatusForbidden)
 			return
 		}
+		if _, ok := err.(domain.ValidationError); ok {
+			WriteJSONError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
 		WriteJSONError(w, "Failed to upsert custom event", http.StatusInternalServerError)
 		return
 	}
@@ -78,6 +82,10 @@ func (h *CustomEventHandler) ImportCustomEvents(w http.ResponseWriter, r *http.R
 		h.logger.WithField("error", err.Error()).Error("Failed to import custom events")
 		if _, ok := err.(*domain.PermissionError); ok {
 			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		if _, ok := err.(domain.ValidationError); ok {
+			WriteJSONError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		WriteJSONError(w, "Failed to import custom events", http.StatusInternalServerError)
@@ -166,6 +174,10 @@ func (h *CustomEventHandler) ListCustomEvents(w http.ResponseWriter, r *http.Req
 		h.logger.WithField("error", err.Error()).Error("Failed to list custom events")
 		if _, ok := err.(*domain.PermissionError); ok {
 			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		if _, ok := err.(domain.ValidationError); ok {
+			WriteJSONError(w, err.Error(), http.StatusBadRequest)
 			return
 		}
 		WriteJSONError(w, "Failed to list custom events", http.StatusInternalServerError)

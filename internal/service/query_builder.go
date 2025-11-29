@@ -536,6 +536,18 @@ func (qb *QueryBuilder) parseCustomEventsGoalCondition(goal *domain.CustomEvents
 
 	// Filter by goal_type if not "*" (wildcard for all)
 	if goal.GoalType != "*" {
+		// Validate goal_type against allowed values
+		validGoalType := false
+		for _, t := range domain.ValidGoalTypes {
+			if goal.GoalType == t {
+				validGoalType = true
+				break
+			}
+		}
+		if !validGoalType {
+			return "", nil, argIndex, fmt.Errorf("invalid goal_type: %s (must be one of: %v or '*' for all)", goal.GoalType, domain.ValidGoalTypes)
+		}
+
 		args = append(args, goal.GoalType)
 		conditions = append(conditions, fmt.Sprintf("ce.goal_type = $%d", argIndex))
 		argIndex++

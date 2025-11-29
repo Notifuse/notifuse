@@ -283,10 +283,10 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     } else if (leaf.source === 'custom_events_goals') {
       // Custom events goals use CustomEventsGoalCondition
       leaf.custom_events_goal = {
-        goal_type: 'purchase',
-        aggregate_operator: 'sum',
+        goal_type: '*', // All goal types by default
+        aggregate_operator: 'count',
         operator: 'gte',
-        value: 0,
+        value: 1, // At least 1 event makes sense as default
         timeframe_operator: 'anytime',
         timeframe_values: []
       } as CustomEventsGoalCondition

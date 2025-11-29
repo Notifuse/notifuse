@@ -604,8 +604,19 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                       <Form.Item
                         noStyle
                         name={['custom_events_goal', 'value_2']}
-                        rules={[{ required: true, type: 'number', message: Messages.RequiredField }]}
-                        dependencies={[['custom_events_goal', 'operator']]}
+                        rules={[
+                          { required: true, type: 'number', message: Messages.RequiredField },
+                          ({ getFieldValue }) => ({
+                            validator(_, value) {
+                              const value1 = getFieldValue(['custom_events_goal', 'value'])
+                              if (value !== undefined && value1 !== undefined && value <= value1) {
+                                return Promise.reject(new Error('Second value must be greater than first value'))
+                              }
+                              return Promise.resolve()
+                            }
+                          })
+                        ]}
+                        dependencies={[['custom_events_goal', 'operator'], ['custom_events_goal', 'value']]}
                       >
                         <InputNumber style={{ width: 100 }} size="small" placeholder="Value 2" />
                       </Form.Item>

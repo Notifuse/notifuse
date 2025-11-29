@@ -41,7 +41,7 @@ CustomEvent:
         - api
         - integration
         - import
-      description: Origin of the event
+      description: Origin of the event (set automatically by server)
       example: api
       default: api
     integration_id:
@@ -49,6 +49,37 @@ CustomEvent:
       nullable: true
       description: Optional reference to integration that created the event
       example: shopify_integration_123
+    goal_type:
+      type: string
+      enum:
+        - purchase
+        - subscription
+        - lead
+        - signup
+        - booking
+        - trial
+        - other
+      nullable: true
+      description: Type of goal for conversion tracking. Required for goal_value to have meaning.
+      example: purchase
+    goal_name:
+      type: string
+      nullable: true
+      maxLength: 100
+      description: Optional goal name for categorization (e.g., 'first_purchase', 'monthly_subscription')
+      example: first_purchase
+    goal_value:
+      type: number
+      format: double
+      nullable: true
+      description: Monetary value of the goal. Required for 'purchase' and 'subscription' goal types. Can be negative for refunds/chargebacks.
+      example: 99.99
+    deleted_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Soft delete timestamp. Set to delete an event, set to null to restore.
+      example: null
     created_at:
       type: string
       format: date-time
@@ -122,6 +153,33 @@ ImportCustomEventsRequest:
             type: string
             description: Integration reference
             example: shopify_integration_123
+          goal_type:
+            type: string
+            enum:
+              - purchase
+              - subscription
+              - lead
+              - signup
+              - booking
+              - trial
+              - other
+            description: Type of goal for conversion tracking
+            example: purchase
+          goal_name:
+            type: string
+            maxLength: 100
+            description: Optional goal name for categorization
+            example: first_purchase
+          goal_value:
+            type: number
+            format: double
+            description: Monetary value (required for purchase/subscription, can be negative for refunds)
+            example: 99.99
+          deleted_at:
+            type: string
+            format: date-time
+            description: Soft delete timestamp
+            example: null
       example:
         - event_name: orders/fulfilled
           external_id: shopify_order_12345

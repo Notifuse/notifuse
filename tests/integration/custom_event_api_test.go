@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
 	"testing"
@@ -68,6 +69,13 @@ func TestCustomEventAPIEndpoints(t *testing.T) {
 
 	t.Run("Validation Errors", func(t *testing.T) {
 		testValidationErrors(t, client, workspace.ID)
+	})
+
+	t.Run("Timeline Integration", func(t *testing.T) {
+		// Get workspace database for direct timeline verification
+		workspaceDB, err := suite.DBManager.GetWorkspaceDB(workspace.ID)
+		require.NoError(t, err, "Failed to get workspace database")
+		testTimelineIntegration(t, client, workspace.ID, workspaceDB)
 	})
 }
 
@@ -499,7 +507,7 @@ func testImportCustomEvents(t *testing.T, client *testutil.APIClient, workspaceI
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode, "Should reject import with more than 50 events")
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "Should reject import with more than 50 events")
 	})
 
 	t.Run("should reject empty events array", func(t *testing.T) {
@@ -512,7 +520,7 @@ func testImportCustomEvents(t *testing.T, client *testutil.APIClient, workspaceI
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode, "Should reject empty events array")
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "Should reject empty events array")
 	})
 }
 
@@ -701,6 +709,126 @@ func testSoftDelete(t *testing.T, client *testutil.APIClient, workspaceID string
 	})
 }
 
+func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspaceID string, db *sql.DB) {
+	t.Run("should create timeline entry when custom event is created", func(t *testing.T) {
+		email := testutil.GenerateTestEmail()
+		externalID := "timeline_test_" + testutil.GenerateRandomString(8)
+		eventName := "order.completed"
+
+		// Create a custom event
+		req := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"event_name":   eventName,
+			"external_id":  externalID,
+			"properties":   map[string]interface{}{"total": 99.99},
+			"goal_type":    domain.GoalTypePurchase,
+			"goal_name":    "first_purchase",
+			"goal_value":   99.99,
+		}
+
+		resp, err := client.Post("/api/customEvent.upsert", req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		// Wait briefly for trigger to execute
+		time.Sleep(100 * time.Millisecond)
+
+		// Query the contact_timeline table directly to verify the entry was created
+		var count int
+		err = db.QueryRow(`
+			SELECT COUNT(*)
+			FROM contact_timeline
+			WHERE email = $1
+			AND entity_type = 'custom_event'
+			AND kind = $2
+		`, email, eventName).Scan(&count)
+		require.NoError(t, err)
+		assert.GreaterOrEqual(t, count, 1, "Timeline entry should be created for custom event")
+
+		// Verify the timeline entry has correct data
+		var entityType, kind, operation string
+		err = db.QueryRow(`
+			SELECT entity_type, kind, operation
+			FROM contact_timeline
+			WHERE email = $1
+			AND entity_type = 'custom_event'
+			AND kind = $2
+			ORDER BY created_at DESC
+			LIMIT 1
+		`, email, eventName).Scan(&entityType, &kind, &operation)
+		require.NoError(t, err)
+		assert.Equal(t, "custom_event", entityType)
+		assert.Equal(t, eventName, kind)
+		assert.Equal(t, "insert", operation)
+	})
+
+	t.Run("should update timeline entry when custom event is updated", func(t *testing.T) {
+		email := testutil.GenerateTestEmail()
+		externalID := "timeline_update_" + testutil.GenerateRandomString(8)
+		eventName := "subscription.renewed"
+
+		// Create initial event
+		req1 := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"event_name":   eventName,
+			"external_id":  externalID,
+			"properties":   map[string]interface{}{"plan": "basic"},
+		}
+
+		resp1, err := client.Post("/api/customEvent.upsert", req1)
+		require.NoError(t, err)
+		resp1.Body.Close()
+		require.Equal(t, http.StatusOK, resp1.StatusCode)
+
+		time.Sleep(100 * time.Millisecond)
+
+		// Update the event
+		req2 := map[string]interface{}{
+			"workspace_id": workspaceID,
+			"email":        email,
+			"event_name":   eventName,
+			"external_id":  externalID,
+			"properties":   map[string]interface{}{"plan": "premium"},
+		}
+
+		resp2, err := client.Post("/api/customEvent.upsert", req2)
+		require.NoError(t, err)
+		resp2.Body.Close()
+		require.Equal(t, http.StatusOK, resp2.StatusCode)
+
+		time.Sleep(100 * time.Millisecond)
+
+		// Count timeline entries - should have at least 2 (insert and update)
+		var count int
+		err = db.QueryRow(`
+			SELECT COUNT(*)
+			FROM contact_timeline
+			WHERE email = $1
+			AND entity_type = 'custom_event'
+			AND kind = $2
+		`, email, eventName).Scan(&count)
+		require.NoError(t, err)
+		assert.GreaterOrEqual(t, count, 2, "Should have both insert and update timeline entries")
+
+		// Verify we have an update operation
+		var hasUpdate bool
+		err = db.QueryRow(`
+			SELECT EXISTS(
+				SELECT 1 FROM contact_timeline
+				WHERE email = $1
+				AND entity_type = 'custom_event'
+				AND kind = $2
+				AND operation = 'update'
+			)
+		`, email, eventName).Scan(&hasUpdate)
+		require.NoError(t, err)
+		assert.True(t, hasUpdate, "Should have an update operation in timeline")
+	})
+}
+
 func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID string) {
 	t.Run("should return error for missing email", func(t *testing.T) {
 		req := map[string]interface{}{
@@ -713,7 +841,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 
 	t.Run("should return error for missing external_id", func(t *testing.T) {
@@ -727,7 +855,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 
 	t.Run("should return error for missing event_name", func(t *testing.T) {
@@ -741,7 +869,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 
 	t.Run("should return error for invalid goal_type", func(t *testing.T) {
@@ -757,7 +885,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 
 	t.Run("should return error for purchase without goal_value", func(t *testing.T) {
@@ -774,7 +902,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 
 	t.Run("should return error for subscription without goal_value", func(t *testing.T) {
@@ -791,7 +919,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 
 	t.Run("should return error for invalid event_name format", func(t *testing.T) {
@@ -806,6 +934,6 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	})
 }

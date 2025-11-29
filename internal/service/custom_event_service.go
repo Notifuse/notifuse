@@ -48,7 +48,7 @@ func (s *CustomEventService) UpsertEvent(ctx context.Context, req *domain.Upsert
 	}
 
 	if err := req.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid request: %w", err)
+		return nil, domain.NewValidationError(fmt.Sprintf("invalid request: %s", err.Error()))
 	}
 
 	// Verify contact exists (or create if it doesn't) - only if not soft-deleting
@@ -93,7 +93,7 @@ func (s *CustomEventService) UpsertEvent(ctx context.Context, req *domain.Upsert
 	}
 
 	if err := event.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid custom event: %w", err)
+		return nil, domain.NewValidationError(fmt.Sprintf("invalid custom event: %s", err.Error()))
 	}
 
 	if err := s.repo.Upsert(ctx, req.WorkspaceID, event); err != nil {
@@ -137,14 +137,14 @@ func (s *CustomEventService) ImportEvents(ctx context.Context, req *domain.Impor
 	}
 
 	if err := req.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid request: %w", err)
+		return nil, domain.NewValidationError(fmt.Sprintf("invalid request: %s", err.Error()))
 	}
 
 	// Validate and prepare all events
 	now := time.Now()
 	for i, event := range req.Events {
 		if event.ExternalID == "" {
-			return nil, fmt.Errorf("event at index %d: external_id is required", i)
+			return nil, domain.NewValidationError(fmt.Sprintf("event at index %d: external_id is required", i))
 		}
 		if event.CreatedAt.IsZero() {
 			event.CreatedAt = now
@@ -163,7 +163,7 @@ func (s *CustomEventService) ImportEvents(ctx context.Context, req *domain.Impor
 		}
 
 		if err := event.Validate(); err != nil {
-			return nil, fmt.Errorf("invalid event at index %d: %w", i, err)
+			return nil, domain.NewValidationError(fmt.Sprintf("invalid event at index %d: %s", i, err.Error()))
 		}
 	}
 
@@ -223,7 +223,7 @@ func (s *CustomEventService) ListEvents(ctx context.Context, req *domain.ListCus
 	}
 
 	if err := req.Validate(); err != nil {
-		return nil, fmt.Errorf("invalid request: %w", err)
+		return nil, domain.NewValidationError(fmt.Sprintf("invalid request: %s", err.Error()))
 	}
 
 	// Query by email or event name
