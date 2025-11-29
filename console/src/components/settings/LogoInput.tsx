@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Form, Input, Image, App } from 'antd'
+import { Button, Form, Input, Image, App, Space } from 'antd'
 import { SearchOutlined } from '@ant-design/icons'
 import { workspaceService } from '../../services/api/workspace'
 
@@ -50,32 +50,38 @@ export function LogoInput({
 
   return (
     <Form.Item name={name} label={label} rules={rules}>
-      <Input
-        placeholder={placeholder}
-        addonBefore={
-          <Form.Item noStyle shouldUpdate={(prev, current) => prev[name] !== current[name]}>
-            {() => {
-              const logoUrl = formInstance.getFieldValue(name)
-              return logoUrl ? (
-                <div style={{ width: 28, height: 28 }}>
-                  <Image src={logoUrl} alt="Logo Preview" height={28} preview={false} />
-                </div>
-              ) : null
-            }}
-          </Form.Item>
-        }
-        addonAfter={
-          <Button
-            icon={<SearchOutlined />}
-            onClick={handleDetectIcon}
-            loading={isDetectingIcon}
-            type="link"
-            size="small"
-          >
-            Detect from website URL
-          </Button>
-        }
-      />
+      <Space.Compact style={{ width: '100%' }}>
+        <Form.Item noStyle shouldUpdate={(prev, current) => prev[name] !== current[name]}>
+          {() => {
+            const logoUrl = formInstance.getFieldValue(name)
+            return logoUrl ? (
+              <div
+                style={{
+                  width: 40,
+                  height: 32,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1px solid #d9d9d9',
+                  borderRight: 0,
+                  borderRadius: '6px 0 0 6px',
+                  background: '#fafafa'
+                }}
+              >
+                <Image src={logoUrl} alt="Logo Preview" height={24} preview={false} />
+              </div>
+            ) : null
+          }}
+        </Form.Item>
+        <Input placeholder={placeholder} style={{ flex: 1 }} />
+        <Button
+          icon={<SearchOutlined />}
+          onClick={handleDetectIcon}
+          loading={isDetectingIcon}
+        >
+          Detect from website URL
+        </Button>
+      </Space.Compact>
     </Form.Item>
   )
 }

@@ -289,114 +289,112 @@ const DrawerSegment = (props: {
           <Row gutter={24}>
             <Col span={18}>
               <Form.Item name="name" label="Name" rules={[{ required: true, type: 'string' }]}>
-                <Input
-                  placeholder="i.e: Big spenders..."
-                  addonAfter={
-                    <Form.Item noStyle name="color">
-                      <Select
-                        style={{ width: 150 }}
-                        options={[
-                          {
-                            label: (
-                              <Tag bordered={false} color="magenta">
-                                magenta
-                              </Tag>
-                            ),
-                            value: 'magenta'
-                          },
-                          {
-                            label: (
-                              <Tag bordered={false} color="red">
-                                red
-                              </Tag>
-                            ),
-                            value: 'red'
-                          },
-                          {
-                            label: (
-                              <Tag bordered={false} color="volcano">
-                                volcano
-                              </Tag>
-                            ),
-                            value: 'volcano'
-                          },
-                          {
-                            label: (
-                              <Tag bordered={false} color="orange">
-                                orange
-                              </Tag>
-                            ),
-                            value: 'orange'
-                          },
-                          {
-                            label: (
-                              <Tag bordered={false} color="gold">
-                                gold
-                              </Tag>
-                            ),
-                            value: 'gold'
-                          },
-                          {
-                            label: (
-                              <Tag bordered={false} color="lime">
-                                lime
-                              </Tag>
-                            ),
-                            value: 'lime'
-                          },
-                          {
-                            label: (
-                              <Tag bordered={false} color="green">
-                                green
-                              </Tag>
-                            ),
-                            value: 'green'
-                          },
-                          {
-                            label: (
-                              <Tag bordered={false} color="cyan">
-                                cyan
-                              </Tag>
-                            ),
-                            value: 'cyan'
-                          },
-                          {
-                            label: (
-                              <Tag bordered={false} color="blue">
-                                blue
-                              </Tag>
-                            ),
-                            value: 'blue'
-                          },
-                          {
-                            label: (
-                              <Tag bordered={false} color="geekblue">
-                                geekblue
-                              </Tag>
-                            ),
-                            value: 'geekblue'
-                          },
-                          {
-                            label: (
-                              <Tag bordered={false} color="purple">
-                                purple
-                              </Tag>
-                            ),
-                            value: 'purple'
-                          },
-                          {
-                            label: (
-                              <Tag bordered={false} color="grey">
-                                grey
-                              </Tag>
-                            ),
-                            value: 'grey'
-                          }
-                        ]}
-                      ></Select>
-                    </Form.Item>
-                  }
-                />
+                <Space.Compact style={{ width: '100%' }}>
+                  <Input placeholder="i.e: Big spenders..." style={{ flex: 1 }} />
+                  <Form.Item noStyle name="color">
+                    <Select
+                      style={{ width: 150 }}
+                      options={[
+                        {
+                          label: (
+                            <Tag bordered={false} color="magenta">
+                              magenta
+                            </Tag>
+                          ),
+                          value: 'magenta'
+                        },
+                        {
+                          label: (
+                            <Tag bordered={false} color="red">
+                              red
+                            </Tag>
+                          ),
+                          value: 'red'
+                        },
+                        {
+                          label: (
+                            <Tag bordered={false} color="volcano">
+                              volcano
+                            </Tag>
+                          ),
+                          value: 'volcano'
+                        },
+                        {
+                          label: (
+                            <Tag bordered={false} color="orange">
+                              orange
+                            </Tag>
+                          ),
+                          value: 'orange'
+                        },
+                        {
+                          label: (
+                            <Tag bordered={false} color="gold">
+                              gold
+                            </Tag>
+                          ),
+                          value: 'gold'
+                        },
+                        {
+                          label: (
+                            <Tag bordered={false} color="lime">
+                              lime
+                            </Tag>
+                          ),
+                          value: 'lime'
+                        },
+                        {
+                          label: (
+                            <Tag bordered={false} color="green">
+                              green
+                            </Tag>
+                          ),
+                          value: 'green'
+                        },
+                        {
+                          label: (
+                            <Tag bordered={false} color="cyan">
+                              cyan
+                            </Tag>
+                          ),
+                          value: 'cyan'
+                        },
+                        {
+                          label: (
+                            <Tag bordered={false} color="blue">
+                              blue
+                            </Tag>
+                          ),
+                          value: 'blue'
+                        },
+                        {
+                          label: (
+                            <Tag bordered={false} color="geekblue">
+                              geekblue
+                            </Tag>
+                          ),
+                          value: 'geekblue'
+                        },
+                        {
+                          label: (
+                            <Tag bordered={false} color="purple">
+                              purple
+                            </Tag>
+                          ),
+                          value: 'purple'
+                        },
+                        {
+                          label: (
+                            <Tag bordered={false} color="grey">
+                              grey
+                            </Tag>
+                          ),
+                          value: 'grey'
+                        }
+                      ]}
+                    />
+                  </Form.Item>
+                </Space.Compact>
               </Form.Item>
 
               <Form.Item

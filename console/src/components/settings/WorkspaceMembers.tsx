@@ -605,18 +605,23 @@ export function WorkspaceMembers({
               required
               rules={[{ required: true, message: 'Please enter an API key name' }]}
             >
-              <Input
-                value={apiKeyName}
-                onChange={(e) => {
-                  // Convert to snake_case on change
-                  const snakeCaseName = e.target.value
-                    .toLowerCase()
-                    .replace(/\s+/g, '_')
-                    .replace(/[^a-z0-9_]/g, '')
-                  setApiKeyName(snakeCaseName)
-                }}
-                addonAfter={'@' + domainName}
-              />
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  value={apiKeyName}
+                  onChange={(e) => {
+                    // Convert to snake_case on change
+                    const snakeCaseName = e.target.value
+                      .toLowerCase()
+                      .replace(/\s+/g, '_')
+                      .replace(/[^a-z0-9_]/g, '')
+                    setApiKeyName(snakeCaseName)
+                  }}
+                  style={{ flex: 1 }}
+                />
+                <Button disabled style={{ pointerEvents: 'none', color: 'rgba(0, 0, 0, 0.88)' }}>
+                  {'@' + domainName}
+                </Button>
+              </Space.Compact>
             </Form.Item>
           </Form>
         ) : (

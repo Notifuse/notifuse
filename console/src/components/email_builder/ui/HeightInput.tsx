@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { InputNumber, Radio } from 'antd'
+import { InputNumber, Radio, Space, Button } from 'antd'
 
 interface HeightInputProps {
   value?: string
@@ -82,16 +82,20 @@ const HeightInput: React.FC<HeightInputProps> = ({
         ]}
       />
       {mode === 'custom' && (
-        <InputNumber
-          size="small"
-          value={numericValue}
-          onChange={handleNumberChange}
-          placeholder="Height"
-          min={0}
-          step={10}
-          style={{ width: 90 }}
-          addonAfter="px"
-        />
+        <Space.Compact size="small">
+          <InputNumber
+            size="small"
+            value={numericValue}
+            onChange={handleNumberChange}
+            placeholder="Height"
+            min={0}
+            step={10}
+            style={{ width: 70 }}
+          />
+          <Button size="small" disabled style={{ pointerEvents: 'none' }}>
+            px
+          </Button>
+        </Space.Compact>
       )}
     </div>
   )

@@ -747,13 +747,20 @@ export const FileManager = (props: FileManagerProps) => {
                 }
               ]}
             >
-              <Input
-                addonBefore={currentPath !== '/' ? currentPath : '/'}
-                onChange={(e) => {
-                  // trim spaces
-                  form.setFieldsValue({ folderName: e.target.value.trim() })
-                }}
-              />
+              <Space.Compact style={{ width: '100%' }}>
+                <Input
+                  style={{ width: 'auto', pointerEvents: 'none' }}
+                  value={currentPath !== '/' ? currentPath : '/'}
+                  readOnly
+                />
+                <Input
+                  style={{ flex: 1 }}
+                  onChange={(e) => {
+                    // trim spaces
+                    form.setFieldsValue({ folderName: e.target.value.trim() })
+                  }}
+                />
+              </Space.Compact>
             </Form.Item>
           </Form>
         </Modal>

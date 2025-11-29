@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useState } from 'react'
 import { EditorContext } from '@tiptap/react'
-import { Select, InputNumber, Button, Tooltip } from 'antd'
+import { Select, InputNumber, Button, Tooltip, Space } from 'antd'
 import { MessageSquare } from 'lucide-react'
 import { FloatingToolbar } from '../FloatingToolbar'
 import { useControls } from '../../core/state/useControls'
@@ -222,17 +222,21 @@ export function CodeBlockToolbar() {
         />
 
         {/* Max Height Input */}
-        <InputNumber
-          value={currentMaxHeight}
-          onChange={handleMaxHeightChange}
-          min={100}
-          max={2000}
-          step={50}
-          size="small"
-          style={{ width: 100 }}
-          addonAfter="px"
-          placeholder="Height"
-        />
+        <Space.Compact size="small">
+          <InputNumber
+            value={currentMaxHeight}
+            onChange={handleMaxHeightChange}
+            min={100}
+            max={2000}
+            step={50}
+            size="small"
+            style={{ width: 70 }}
+            placeholder="Height"
+          />
+          <Button size="small" disabled style={{ pointerEvents: 'none' }}>
+            px
+          </Button>
+        </Space.Compact>
 
         {/* Caption Toggle */}
         <Tooltip title="Toggle caption">
