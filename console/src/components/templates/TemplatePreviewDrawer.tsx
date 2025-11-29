@@ -337,7 +337,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
               onChange={setActiveTabKey} // Update state on tab change (onChange is preferred over onTabClick for controlled Tabs)
               className="flex flex-col flex-grow"
               items={items}
-              destroyInactiveTabPane={false}
+              destroyOnHidden={false}
             />
           )}
         {!isLoading &&

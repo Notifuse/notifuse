@@ -500,7 +500,7 @@ export function CreateTemplateDrawer({
                 onChange={(k) => setTab(k)}
                 style={{ display: 'inline-block' }}
                 className="tabs-in-header"
-                destroyInactiveTabPane={false}
+                destroyOnHidden={false}
                 items={[
                   {
                     key: 'settings',
