@@ -62,10 +62,10 @@ func TestCustomEventHandler_RegisterRoutes(t *testing.T) {
 
 	// Check if routes were registered
 	endpoints := []string{
-		"/api/customEvent.upsert",
-		"/api/customEvent.import",
-		"/api/customEvent.get",
-		"/api/customEvent.list",
+		"/api/customEvents.upsert",
+		"/api/customEvents.import",
+		"/api/customEvents.get",
+		"/api/customEvents.list",
 	}
 
 	for _, endpoint := range endpoints {
@@ -171,7 +171,7 @@ func TestCustomEventHandler_UpsertCustomEvent(t *testing.T) {
 				body, _ = json.Marshal(tc.requestBody)
 			}
 
-			req := httptest.NewRequest(http.MethodPost, "/api/customEvent.upsert", bytes.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/api/customEvents.upsert", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
 
@@ -287,7 +287,7 @@ func TestCustomEventHandler_ImportCustomEvents(t *testing.T) {
 				body, _ = json.Marshal(tc.requestBody)
 			}
 
-			req := httptest.NewRequest(http.MethodPost, "/api/customEvent.import", bytes.NewReader(body))
+			req := httptest.NewRequest(http.MethodPost, "/api/customEvents.import", bytes.NewReader(body))
 			req.Header.Set("Content-Type", "application/json")
 			rr := httptest.NewRecorder()
 
@@ -382,7 +382,7 @@ func TestCustomEventHandler_GetCustomEvent(t *testing.T) {
 				tc.setupMock(mockService)
 			}
 
-			req := httptest.NewRequest(http.MethodGet, "/api/customEvent.get?"+tc.queryParams, nil)
+			req := httptest.NewRequest(http.MethodGet, "/api/customEvents.get?"+tc.queryParams, nil)
 			rr := httptest.NewRecorder()
 
 			handler.GetCustomEvent(rr, req)
@@ -554,7 +554,7 @@ func TestCustomEventHandler_ListCustomEvents(t *testing.T) {
 				tc.setupMock(mockService)
 			}
 
-			req := httptest.NewRequest(http.MethodGet, "/api/customEvent.list?"+tc.queryParams, nil)
+			req := httptest.NewRequest(http.MethodGet, "/api/customEvents.list?"+tc.queryParams, nil)
 			rr := httptest.NewRecorder()
 
 			handler.ListCustomEvents(rr, req)

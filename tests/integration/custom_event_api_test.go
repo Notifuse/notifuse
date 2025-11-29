@@ -102,7 +102,7 @@ func testUpsertCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID
 			"goal_value":     goalValue,
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -136,7 +136,7 @@ func testUpsertCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID
 			"external_id":  externalID,
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -172,7 +172,7 @@ func testUpsertCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID
 			"occurred_at":  time.Now().Add(-2 * time.Hour).Format(time.RFC3339),
 		}
 
-		resp1, err := client.Post("/api/customEvent.upsert", req1)
+		resp1, err := client.Post("/api/customEvents.upsert", req1)
 		require.NoError(t, err)
 		resp1.Body.Close()
 		require.Equal(t, http.StatusOK, resp1.StatusCode)
@@ -187,13 +187,13 @@ func testUpsertCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID
 			"occurred_at":  time.Now().Format(time.RFC3339),
 		}
 
-		resp2, err := client.Post("/api/customEvent.upsert", req2)
+		resp2, err := client.Post("/api/customEvents.upsert", req2)
 		require.NoError(t, err)
 		defer resp2.Body.Close()
 		require.Equal(t, http.StatusOK, resp2.StatusCode)
 
 		// Verify the updated event
-		getResp, err := client.Get("/api/customEvent.get", map[string]string{
+		getResp, err := client.Get("/api/customEvents.get", map[string]string{
 			"workspace_id": workspaceID,
 			"event_name":   eventName,
 			"external_id":  externalID,
@@ -222,7 +222,7 @@ func testUpsertCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID
 			"external_id":  externalID,
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -252,13 +252,13 @@ func testGetCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID st
 		"properties":   map[string]interface{}{"test": true},
 	}
 
-	createResp, err := client.Post("/api/customEvent.upsert", createReq)
+	createResp, err := client.Post("/api/customEvents.upsert", createReq)
 	require.NoError(t, err)
 	createResp.Body.Close()
 	require.Equal(t, http.StatusOK, createResp.StatusCode)
 
 	t.Run("should get event by event_name and external_id", func(t *testing.T) {
-		resp, err := client.Get("/api/customEvent.get", map[string]string{
+		resp, err := client.Get("/api/customEvents.get", map[string]string{
 			"workspace_id": workspaceID,
 			"event_name":   eventName,
 			"external_id":  externalID,
@@ -279,7 +279,7 @@ func testGetCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID st
 	})
 
 	t.Run("should return 404 for non-existent event", func(t *testing.T) {
-		resp, err := client.Get("/api/customEvent.get", map[string]string{
+		resp, err := client.Get("/api/customEvents.get", map[string]string{
 			"workspace_id": workspaceID,
 			"event_name":   "nonexistent.event",
 			"external_id":  "nonexistent_id",
@@ -292,7 +292,7 @@ func testGetCustomEvent(t *testing.T, client *testutil.APIClient, workspaceID st
 
 	t.Run("should return 400 when required params missing", func(t *testing.T) {
 		// Missing external_id
-		resp, err := client.Get("/api/customEvent.get", map[string]string{
+		resp, err := client.Get("/api/customEvents.get", map[string]string{
 			"workspace_id": workspaceID,
 			"event_name":   eventName,
 		})
@@ -316,13 +316,13 @@ func testListCustomEvents(t *testing.T, client *testutil.APIClient, workspaceID 
 			"external_id":  "list_" + testutil.GenerateRandomString(8),
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		resp.Body.Close()
 	}
 
 	t.Run("should list events by email", func(t *testing.T) {
-		resp, err := client.Get("/api/customEvent.list", map[string]string{
+		resp, err := client.Get("/api/customEvents.list", map[string]string{
 			"workspace_id": workspaceID,
 			"email":        email,
 		})
@@ -343,7 +343,7 @@ func testListCustomEvents(t *testing.T, client *testutil.APIClient, workspaceID 
 	})
 
 	t.Run("should list events by event_name", func(t *testing.T) {
-		resp, err := client.Get("/api/customEvent.list", map[string]string{
+		resp, err := client.Get("/api/customEvents.list", map[string]string{
 			"workspace_id": workspaceID,
 			"event_name":   eventName,
 		})
@@ -361,7 +361,7 @@ func testListCustomEvents(t *testing.T, client *testutil.APIClient, workspaceID 
 	})
 
 	t.Run("should support pagination", func(t *testing.T) {
-		resp, err := client.Get("/api/customEvent.list", map[string]string{
+		resp, err := client.Get("/api/customEvents.list", map[string]string{
 			"workspace_id": workspaceID,
 			"email":        email,
 			"limit":        "2",
@@ -381,7 +381,7 @@ func testListCustomEvents(t *testing.T, client *testutil.APIClient, workspaceID 
 	})
 
 	t.Run("should return 400 when neither email nor event_name provided", func(t *testing.T) {
-		resp, err := client.Get("/api/customEvent.list", map[string]string{
+		resp, err := client.Get("/api/customEvents.list", map[string]string{
 			"workspace_id": workspaceID,
 		})
 		require.NoError(t, err)
@@ -424,7 +424,7 @@ func testImportCustomEvents(t *testing.T, client *testutil.APIClient, workspaceI
 			"events":       events,
 		}
 
-		resp, err := client.Post("/api/customEvent.import", req)
+		resp, err := client.Post("/api/customEvents.import", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -463,14 +463,14 @@ func testImportCustomEvents(t *testing.T, client *testutil.APIClient, workspaceI
 			"events":       events,
 		}
 
-		resp, err := client.Post("/api/customEvent.import", req)
+		resp, err := client.Post("/api/customEvents.import", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
 		require.Equal(t, http.StatusCreated, resp.StatusCode)
 
 		// Verify the imported event has goal fields
-		getResp, err := client.Get("/api/customEvent.get", map[string]string{
+		getResp, err := client.Get("/api/customEvents.get", map[string]string{
 			"workspace_id": workspaceID,
 			"event_name":   "purchase.completed",
 			"external_id":  externalID,
@@ -503,7 +503,7 @@ func testImportCustomEvents(t *testing.T, client *testutil.APIClient, workspaceI
 			"events":       events,
 		}
 
-		resp, err := client.Post("/api/customEvent.import", req)
+		resp, err := client.Post("/api/customEvents.import", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -516,7 +516,7 @@ func testImportCustomEvents(t *testing.T, client *testutil.APIClient, workspaceI
 			"events":       []map[string]interface{}{},
 		}
 
-		resp, err := client.Post("/api/customEvent.import", req)
+		resp, err := client.Post("/api/customEvents.import", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -540,7 +540,7 @@ func testGoalTracking(t *testing.T, client *testutil.APIClient, workspaceID stri
 			"goal_value":   goalValue,
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -570,7 +570,7 @@ func testGoalTracking(t *testing.T, client *testutil.APIClient, workspaceID stri
 			"goal_value":   goalValue,
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -591,7 +591,7 @@ func testGoalTracking(t *testing.T, client *testutil.APIClient, workspaceID stri
 			// No goal_value - should be optional for lead type
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -613,7 +613,7 @@ func testGoalTracking(t *testing.T, client *testutil.APIClient, workspaceID stri
 			"goal_value":   goalValue,
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -641,7 +641,7 @@ func testSoftDelete(t *testing.T, client *testutil.APIClient, workspaceID string
 		"external_id":  externalID,
 	}
 
-	createResp, err := client.Post("/api/customEvent.upsert", createReq)
+	createResp, err := client.Post("/api/customEvents.upsert", createReq)
 	require.NoError(t, err)
 	createResp.Body.Close()
 	require.Equal(t, http.StatusOK, createResp.StatusCode)
@@ -656,7 +656,7 @@ func testSoftDelete(t *testing.T, client *testutil.APIClient, workspaceID string
 			"deleted_at":   deleteTime.Format(time.RFC3339),
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", deleteReq)
+		resp, err := client.Post("/api/customEvents.upsert", deleteReq)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -671,7 +671,7 @@ func testSoftDelete(t *testing.T, client *testutil.APIClient, workspaceID string
 	})
 
 	t.Run("should exclude soft-deleted events from get", func(t *testing.T) {
-		resp, err := client.Get("/api/customEvent.get", map[string]string{
+		resp, err := client.Get("/api/customEvents.get", map[string]string{
 			"workspace_id": workspaceID,
 			"event_name":   eventName,
 			"external_id":  externalID,
@@ -683,7 +683,7 @@ func testSoftDelete(t *testing.T, client *testutil.APIClient, workspaceID string
 	})
 
 	t.Run("should exclude soft-deleted events from list", func(t *testing.T) {
-		resp, err := client.Get("/api/customEvent.list", map[string]string{
+		resp, err := client.Get("/api/customEvents.list", map[string]string{
 			"workspace_id": workspaceID,
 			"email":        email,
 		})
@@ -727,7 +727,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 			"goal_value":   99.99,
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 		require.Equal(t, http.StatusOK, resp.StatusCode)
@@ -778,7 +778,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 			"properties":   map[string]interface{}{"plan": "basic"},
 		}
 
-		resp1, err := client.Post("/api/customEvent.upsert", req1)
+		resp1, err := client.Post("/api/customEvents.upsert", req1)
 		require.NoError(t, err)
 		resp1.Body.Close()
 		require.Equal(t, http.StatusOK, resp1.StatusCode)
@@ -794,7 +794,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 			"properties":   map[string]interface{}{"plan": "premium"},
 		}
 
-		resp2, err := client.Post("/api/customEvent.upsert", req2)
+		resp2, err := client.Post("/api/customEvents.upsert", req2)
 		require.NoError(t, err)
 		resp2.Body.Close()
 		require.Equal(t, http.StatusOK, resp2.StatusCode)
@@ -837,7 +837,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 			"external_id":  "test_" + testutil.GenerateRandomString(8),
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -851,7 +851,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 			"event_name":   "test.event",
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -865,7 +865,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 			"external_id":  "test_" + testutil.GenerateRandomString(8),
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -881,7 +881,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 			"goal_type":    "invalid_type",
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -898,7 +898,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 			// Missing goal_value - should fail
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -915,7 +915,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 			// Missing goal_value - should fail
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -930,7 +930,7 @@ func testValidationErrors(t *testing.T, client *testutil.APIClient, workspaceID 
 			"external_id":  "test_" + testutil.GenerateRandomString(8),
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", req)
+		resp, err := client.Post("/api/customEvents.upsert", req)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 

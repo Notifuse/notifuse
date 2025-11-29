@@ -65,8 +65,8 @@ paths:
     $ref: './paths/templates.yaml#/~1api~1templates.delete'
   /api/templates.compile:
     $ref: './paths/templates.yaml#/~1api~1templates.compile'
-  /api/customEvent.import:
-    $ref: './paths/custom-events.yaml#/~1api~1customEvent.import'
+  /api/customEvents.import:
+    $ref: './paths/custom-events.yaml#/~1api~1customEvents.import'
   /subscribe:
     $ref: './paths/subscribe.yaml#/~1subscribe'
 components:

@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [18.2] - 2025-11-29
+
+### Changes
+
+- **API Endpoints**: Renamed custom events endpoints from singular to plural for consistency
+  - `POST /api/customEvent.upsert` → `POST /api/customEvents.upsert`
+  - `POST /api/customEvent.import` → `POST /api/customEvents.import`
+  - `GET /api/customEvent.get` → `GET /api/customEvents.get`
+  - `GET /api/customEvent.list` → `GET /api/customEvents.list`
+
 ## [18.1] - 2025-11-29
 
 ### Enhancements
@@ -28,10 +38,10 @@ All notable changes to this project will be documented in this file.
 
 - **Custom Events API**: Track user behavior and conversion goals
 
-  - `POST /api/customEvent.upsert` - Create or update a single event
-  - `POST /api/customEvent.import` - Batch import up to 50 events
-  - `GET /api/customEvent.get` - Retrieve event by workspace, event name, and external ID
-  - `GET /api/customEvent.list` - List events by email or event name
+  - `POST /api/customEvents.upsert` - Create or update a single event
+  - `POST /api/customEvents.import` - Batch import up to 50 events
+  - `GET /api/customEvents.get` - Retrieve event by workspace, event name, and external ID
+  - `GET /api/customEvents.list` - List events by email or event name
   - Goal tracking with types: `purchase`, `subscription`, `lead`, `signup`, `booking`, `trial`, `other`
   - Soft-delete support via `deleted_at` field
 

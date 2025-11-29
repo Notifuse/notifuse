@@ -1697,7 +1697,7 @@ func testCustomEventsGoalsSegmentation(t *testing.T, client *testutil.APIClient,
 			eventReq["occurred_at"] = time.Now().Format(time.RFC3339)
 		}
 
-		resp, err := client.Post("/api/customEvent.upsert", eventReq)
+		resp, err := client.Post("/api/customEvents.upsert", eventReq)
 		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 		require.Equal(t, http.StatusOK, resp.StatusCode, "Failed to create custom event for %s", email)
@@ -1720,7 +1720,7 @@ func testCustomEventsGoalsSegmentation(t *testing.T, client *testutil.APIClient,
 				},
 			},
 		}
-		resp, err := client.Post("/api/customEvent.import", importReq)
+		resp, err := client.Post("/api/customEvents.import", importReq)
 		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 		require.Equal(t, http.StatusCreated, resp.StatusCode)

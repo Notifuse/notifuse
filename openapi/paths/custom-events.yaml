@@ -1,4 +1,4 @@
-/api/customEvent.import:
+/api/customEvents.import:
   post:
     summary: Import custom events
     description: Imports multiple custom events in a single batch operation. Maximum 50 events per request. Auto-creates contacts if they don't exist.

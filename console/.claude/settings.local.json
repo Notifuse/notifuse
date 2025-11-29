@@ -4,7 +4,9 @@
       "Bash(npx eslint:*)",
       "Bash(npx tsc:*)",
       "Bash(npm test:*)",
-      "Bash(npx playwright test:*)"
+      "Bash(npx playwright test:*)",
+      "Bash(go test:*)",
+      "Bash(INTEGRATION_TESTS=true go test:*)"
     ],
     "deny": [],
     "ask": []

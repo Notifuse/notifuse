@@ -31,13 +31,13 @@ func (h *CustomEventHandler) RegisterRoutes(mux *http.ServeMux) {
 	requireAuth := authMiddleware.RequireAuth()
 
 	// Register RPC-style endpoints with dot notation
-	mux.Handle("/api/customEvent.upsert", requireAuth(http.HandlerFunc(h.UpsertCustomEvent)))
-	mux.Handle("/api/customEvent.import", requireAuth(http.HandlerFunc(h.ImportCustomEvents)))
-	mux.Handle("/api/customEvent.get", requireAuth(http.HandlerFunc(h.GetCustomEvent)))
-	mux.Handle("/api/customEvent.list", requireAuth(http.HandlerFunc(h.ListCustomEvents)))
+	mux.Handle("/api/customEvents.upsert", requireAuth(http.HandlerFunc(h.UpsertCustomEvent)))
+	mux.Handle("/api/customEvents.import", requireAuth(http.HandlerFunc(h.ImportCustomEvents)))
+	mux.Handle("/api/customEvents.get", requireAuth(http.HandlerFunc(h.GetCustomEvent)))
+	mux.Handle("/api/customEvents.list", requireAuth(http.HandlerFunc(h.ListCustomEvents)))
 }
 
-// POST /api/customEvent.upsert - creates or updates a custom event
+// POST /api/customEvents.upsert - creates or updates a custom event
 // Supports goal tracking (goal_name, goal_type, goal_value) and soft-delete (deleted_at)
 func (h *CustomEventHandler) UpsertCustomEvent(w http.ResponseWriter, r *http.Request) {
 	var req domain.UpsertCustomEventRequest
@@ -68,7 +68,7 @@ func (h *CustomEventHandler) UpsertCustomEvent(w http.ResponseWriter, r *http.Re
 	})
 }
 
-// POST /api/customEvent.import
+// POST /api/customEvents.import
 func (h *CustomEventHandler) ImportCustomEvents(w http.ResponseWriter, r *http.Request) {
 	var req domain.ImportCustomEventsRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -99,7 +99,7 @@ func (h *CustomEventHandler) ImportCustomEvents(w http.ResponseWriter, r *http.R
 	})
 }
 
-// GET /api/customEvent.get
+// GET /api/customEvents.get
 func (h *CustomEventHandler) GetCustomEvent(w http.ResponseWriter, r *http.Request) {
 	workspaceID := r.URL.Query().Get("workspace_id")
 	eventName := r.URL.Query().Get("event_name")
@@ -127,7 +127,7 @@ func (h *CustomEventHandler) GetCustomEvent(w http.ResponseWriter, r *http.Reque
 	})
 }
 
-// GET /api/customEvent.list
+// GET /api/customEvents.list
 func (h *CustomEventHandler) ListCustomEvents(w http.ResponseWriter, r *http.Request) {
 	workspaceID := r.URL.Query().Get("workspace_id")
 	email := r.URL.Query().Get("email")

@@ -60,11 +60,11 @@ export interface ListCustomEventsResponse {
 
 export const customEventApi = {
   create: async (params: CreateCustomEventRequest): Promise<CreateCustomEventResponse> => {
-    return api.post('/api/customEvent.create', params)
+    return api.post('/api/customEvents.create', params)
   },
 
   import: async (params: ImportCustomEventsRequest): Promise<ImportCustomEventsResponse> => {
-    return api.post('/api/customEvent.import', params)
+    return api.post('/api/customEvents.import', params)
   },
 
   get: async (params: {
@@ -76,7 +76,7 @@ export const customEventApi = {
     searchParams.append('workspace_id', params.workspace_id)
     searchParams.append('event_name', params.event_name)
     searchParams.append('external_id', params.external_id)
-    return api.get<{ event: CustomEvent }>(`/api/customEvent.get?${searchParams.toString()}`)
+    return api.get<{ event: CustomEvent }>(`/api/customEvents.get?${searchParams.toString()}`)
   },
 
   list: async (params: ListCustomEventsRequest): Promise<ListCustomEventsResponse> => {
@@ -88,6 +88,6 @@ export const customEventApi = {
     if (params.limit) searchParams.append('limit', params.limit.toString())
     if (params.offset) searchParams.append('offset', params.offset.toString())
 
-    return api.get<ListCustomEventsResponse>(`/api/customEvent.list?${searchParams.toString()}`)
+    return api.get<ListCustomEventsResponse>(`/api/customEvents.list?${searchParams.toString()}`)
   }
 }
