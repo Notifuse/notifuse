@@ -224,12 +224,12 @@ func (r *listRepository) GetListStats(ctx context.Context, workspaceID string, i
 	}
 
 	query := `
-		SELECT 
-			SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as total_active,
-			SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as total_pending,
-			SUM(CASE WHEN status = 'unsubscribed' THEN 1 ELSE 0 END) as total_unsubscribed,
-			SUM(CASE WHEN status = 'bounced' THEN 1 ELSE 0 END) as total_bounced,
-			SUM(CASE WHEN status = 'complained' THEN 1 ELSE 0 END) as total_complained
+		SELECT
+			COALESCE(SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END), 0) as total_active,
+			COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) as total_pending,
+			COALESCE(SUM(CASE WHEN status = 'unsubscribed' THEN 1 ELSE 0 END), 0) as total_unsubscribed,
+			COALESCE(SUM(CASE WHEN status = 'bounced' THEN 1 ELSE 0 END), 0) as total_bounced,
+			COALESCE(SUM(CASE WHEN status = 'complained' THEN 1 ELSE 0 END), 0) as total_complained
 		FROM contact_lists
 		WHERE list_id = $1 AND deleted_at IS NULL
 	`
