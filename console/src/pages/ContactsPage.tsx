@@ -399,7 +399,7 @@ export function ContactsPage() {
         style: { backgroundColor: '#F9F9F9' }
       }),
       onCell: () => ({
-        style: { backgroundColor: '#ffffff' }
+        style: { backgroundColor: '#F9F9F9' }
       })
     },
     {
@@ -781,7 +781,7 @@ export function ContactsPage() {
         style: { backgroundColor: '#F9F9F9' }
       }),
       onCell: () => ({
-        style: { backgroundColor: '#ffffff' }
+        style: { backgroundColor: '#F9F9F9' }
       }),
       render: (_: unknown, record: Contact) => {
         const menuItems: MenuProps['items'] = [

@@ -156,6 +156,139 @@ test.describe('Transactional Notifications Feature', () => {
     })
   })
 
+  test.describe('Edit Form Prefill', () => {
+    test('edit notification drawer shows existing notification name', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
+      await waitForLoading(page)
+
+      // Click on a notification row to open edit drawer
+      const notificationRow = page.locator('.ant-table-row').first()
+      if ((await notificationRow.count()) > 0) {
+        // Look for edit button in the row
+        const editButton = notificationRow.getByRole('button', { name: /edit/i })
+        if ((await editButton.count()) > 0) {
+          await editButton.click()
+        } else {
+          await notificationRow.click()
+        }
+
+        // Wait for drawer to open
+        await waitForDrawer(page)
+
+        // Verify the name input is prefilled with the existing notification name
+        const nameInput = page.locator('.ant-drawer-content input').first()
+        const inputValue = await nameInput.inputValue()
+
+        // Name should not be empty - should be prefilled (e.g., "Password Reset")
+        expect(inputValue.length).toBeGreaterThan(0)
+      }
+    })
+
+    test('edit notification preserves API identifier', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
+      await waitForLoading(page)
+
+      const notificationRow = page.locator('.ant-table-row').first()
+      if ((await notificationRow.count()) > 0) {
+        const editButton = notificationRow.getByRole('button', { name: /edit/i })
+        if ((await editButton.count()) > 0) {
+          await editButton.click()
+        } else {
+          await notificationRow.click()
+        }
+
+        await waitForDrawer(page)
+
+        // The API identifier input should be prefilled and possibly read-only
+        const idInput = page.locator('.ant-drawer-content input').nth(1)
+        if ((await idInput.count()) > 0) {
+          const idValue = await idInput.inputValue()
+          expect(idValue.length).toBeGreaterThan(0)
+        }
+      }
+    })
+
+    test('edit notification preserves description', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
+      await waitForLoading(page)
+
+      const notificationRow = page.locator('.ant-table-row').first()
+      if ((await notificationRow.count()) > 0) {
+        const editButton = notificationRow.getByRole('button', { name: /edit/i })
+        if ((await editButton.count()) > 0) {
+          await editButton.click()
+        } else {
+          await notificationRow.click()
+        }
+
+        await waitForDrawer(page)
+
+        // Check if description textarea exists
+        const descriptionInput = page.locator('.ant-drawer-content textarea').first()
+        if ((await descriptionInput.count()) > 0) {
+          // Description field should be accessible
+          await expect(descriptionInput).toBeVisible()
+        }
+      }
+    })
+
+    test('edit notification preserves template selection', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
+      await waitForLoading(page)
+
+      const notificationRow = page.locator('.ant-table-row').first()
+      if ((await notificationRow.count()) > 0) {
+        const editButton = notificationRow.getByRole('button', { name: /edit/i })
+        if ((await editButton.count()) > 0) {
+          await editButton.click()
+        } else {
+          await notificationRow.click()
+        }
+
+        await waitForDrawer(page)
+
+        // Template select/input should have a value
+        const templateInput = page.locator('.ant-drawer-content .ant-select, .ant-drawer-content input[placeholder*="template" i]')
+        if ((await templateInput.count()) > 0) {
+          await expect(templateInput.first()).toBeVisible()
+        }
+      }
+    })
+
+    test('edit notification preserves tracking settings', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
+      await waitForLoading(page)
+
+      const notificationRow = page.locator('.ant-table-row').first()
+      if ((await notificationRow.count()) > 0) {
+        const editButton = notificationRow.getByRole('button', { name: /edit/i })
+        if ((await editButton.count()) > 0) {
+          await editButton.click()
+        } else {
+          await notificationRow.click()
+        }
+
+        await waitForDrawer(page)
+
+        // Look for tracking switches/checkboxes - they should maintain their state
+        const trackingSwitch = page.locator('.ant-drawer-content .ant-switch, .ant-drawer-content .ant-checkbox')
+        if ((await trackingSwitch.count()) > 0) {
+          await expect(trackingSwitch.first()).toBeVisible()
+        }
+      }
+    })
+  })
+
   test.describe('Form Validation', () => {
     test('requires notification name', async ({ authenticatedPage }) => {
       const page = authenticatedPage

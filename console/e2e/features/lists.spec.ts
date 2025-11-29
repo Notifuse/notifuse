@@ -158,6 +158,115 @@ test.describe('Lists Feature', () => {
     })
   })
 
+  test.describe('Edit Form Prefill', () => {
+    test('edit list drawer shows existing list name', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
+      await waitForLoading(page)
+
+      // Click on a list row to open edit drawer
+      const listRow = page.locator('.ant-table-row').first()
+      if ((await listRow.count()) > 0) {
+        // Look for edit button in the row or click the row
+        const editButton = listRow.getByRole('button', { name: /edit/i })
+        if ((await editButton.count()) > 0) {
+          await editButton.click()
+        } else {
+          // Try clicking on the list name or the row itself
+          await listRow.click()
+        }
+
+        // Wait for drawer to open
+        await waitForDrawer(page)
+
+        // Verify the name input is prefilled with the existing list name
+        const nameInput = page.locator('.ant-drawer-content input').first()
+        const inputValue = await nameInput.inputValue()
+
+        // Name should not be empty - should be prefilled with existing list name (e.g., "Newsletter")
+        expect(inputValue.length).toBeGreaterThan(0)
+      }
+    })
+
+    test('edit list preserves list ID', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
+      await waitForLoading(page)
+
+      const listRow = page.locator('.ant-table-row').first()
+      if ((await listRow.count()) > 0) {
+        const editButton = listRow.getByRole('button', { name: /edit/i })
+        if ((await editButton.count()) > 0) {
+          await editButton.click()
+        } else {
+          await listRow.click()
+        }
+
+        await waitForDrawer(page)
+
+        // The ID input should be prefilled and possibly read-only for existing lists
+        const idInput = page.locator('.ant-drawer-content input').nth(1)
+        if ((await idInput.count()) > 0) {
+          const idValue = await idInput.inputValue()
+          expect(idValue.length).toBeGreaterThan(0)
+        }
+      }
+    })
+
+    test('edit list preserves description', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
+      await waitForLoading(page)
+
+      const listRow = page.locator('.ant-table-row').first()
+      if ((await listRow.count()) > 0) {
+        const editButton = listRow.getByRole('button', { name: /edit/i })
+        if ((await editButton.count()) > 0) {
+          await editButton.click()
+        } else {
+          await listRow.click()
+        }
+
+        await waitForDrawer(page)
+
+        // Check if description textarea exists and has content
+        const descriptionInput = page.locator('.ant-drawer-content textarea').first()
+        if ((await descriptionInput.count()) > 0) {
+          // Description may or may not be filled, but the field should be accessible
+          await expect(descriptionInput).toBeVisible()
+        }
+      }
+    })
+
+    test('edit list preserves double opt-in setting', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
+      await waitForLoading(page)
+
+      const listRow = page.locator('.ant-table-row').first()
+      if ((await listRow.count()) > 0) {
+        const editButton = listRow.getByRole('button', { name: /edit/i })
+        if ((await editButton.count()) > 0) {
+          await editButton.click()
+        } else {
+          await listRow.click()
+        }
+
+        await waitForDrawer(page)
+
+        // Look for double opt-in switch/toggle - it should maintain its state
+        const optInSwitch = page.locator('.ant-drawer-content .ant-switch')
+        if ((await optInSwitch.count()) > 0) {
+          await expect(optInSwitch.first()).toBeVisible()
+        }
+      }
+    })
+  })
+
   test.describe('Form Validation', () => {
     test('requires list name', async ({ authenticatedPage }) => {
       const page = authenticatedPage

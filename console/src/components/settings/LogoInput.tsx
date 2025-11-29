@@ -49,7 +49,7 @@ export function LogoInput({
   }
 
   return (
-    <Form.Item name={name} label={label} rules={rules}>
+    <Form.Item label={label}>
       <Space.Compact style={{ width: '100%' }}>
         <Form.Item noStyle shouldUpdate={(prev, current) => prev[name] !== current[name]}>
           {() => {
@@ -73,7 +73,9 @@ export function LogoInput({
             ) : null
           }}
         </Form.Item>
-        <Input placeholder={placeholder} style={{ flex: 1 }} />
+        <Form.Item name={name} noStyle rules={rules}>
+          <Input placeholder={placeholder} style={{ flex: 1 }} />
+        </Form.Item>
         <Button
           icon={<SearchOutlined />}
           onClick={handleDetectIcon}

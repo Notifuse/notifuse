@@ -727,39 +727,41 @@ export const FileManager = (props: FileManagerProps) => {
           ]}
         >
           <Form form={form}>
-            <Form.Item
-              label="Folder name"
-              name="name"
-              rules={[
-                {
-                  required: true,
-                  type: 'string',
-                  validator(_rule, value, callback) {
-                    // alphanumeric, lowercase, underscore, dash
-                    if (!/^[a-z0-9_-]+$/.test(value)) {
-                      callback(
-                        'Only lowercase alphanumeric characters, underscore, and dash are allowed.'
-                      )
-                      return
-                    }
-                    callback()
-                  }
-                }
-              ]}
-            >
+            <Form.Item label="Folder name" required>
               <Space.Compact style={{ width: '100%' }}>
                 <Input
                   style={{ width: 'auto', pointerEvents: 'none' }}
                   value={currentPath !== '/' ? currentPath : '/'}
                   readOnly
                 />
-                <Input
-                  style={{ flex: 1 }}
-                  onChange={(e) => {
-                    // trim spaces
-                    form.setFieldsValue({ folderName: e.target.value.trim() })
-                  }}
-                />
+                <Form.Item
+                  name="name"
+                  noStyle
+                  rules={[
+                    {
+                      required: true,
+                      type: 'string',
+                      validator(_rule, value, callback) {
+                        // alphanumeric, lowercase, underscore, dash
+                        if (!/^[a-z0-9_-]+$/.test(value)) {
+                          callback(
+                            'Only lowercase alphanumeric characters, underscore, and dash are allowed.'
+                          )
+                          return
+                        }
+                        callback()
+                      }
+                    }
+                  ]}
+                >
+                  <Input
+                    style={{ flex: 1 }}
+                    onChange={(e) => {
+                      // trim spaces
+                      form.setFieldsValue({ name: e.target.value.trim() })
+                    }}
+                  />
+                </Form.Item>
               </Space.Compact>
             </Form.Item>
           </Form>

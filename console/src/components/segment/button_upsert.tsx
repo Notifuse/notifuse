@@ -131,14 +131,29 @@ const DrawerSegment = (props: {
     return null
   }, [workspaceId, workspaces])
 
-  // Log the tree when the drawer opens
+  // Auto-preview when editing an existing segment
   useEffect(() => {
-    if (props.segment?.tree) {
-      console.log('Segment tree:', props.segment.tree)
-    } else {
-      console.log('New segment - empty tree')
+    if (props.segment?.tree && workspaceId && HasLeaf(props.segment.tree)) {
+      // Trigger preview automatically for existing segments
+      const autoPreview = async () => {
+        setLoadingPreview(true)
+        const requestData: PreviewSegmentRequest = {
+          workspace_id: workspaceId,
+          tree: props.segment!.tree,
+          limit: 100
+        }
+        setPreviewedData(JSON.stringify(requestData))
+        try {
+          const res = await previewSegment(requestData)
+          setPreviewResponse(res)
+        } catch (error) {
+          console.error('Auto-preview error:', error)
+        }
+        setLoadingPreview(false)
+      }
+      autoPreview()
     }
-  }, [props.segment?.tree])
+  }, [props.segment?.tree, workspaceId])
 
   // Fetch lists for the current workspace
   const { data: listsData } = useQuery({
@@ -288,9 +303,11 @@ const DrawerSegment = (props: {
         >
           <Row gutter={24}>
             <Col span={18}>
-              <Form.Item name="name" label="Name" rules={[{ required: true, type: 'string' }]}>
+              <Form.Item label="Name" required>
                 <Space.Compact style={{ width: '100%' }}>
-                  <Input placeholder="i.e: Big spenders..." style={{ flex: 1 }} />
+                  <Form.Item name="name" noStyle rules={[{ required: true, type: 'string' }]}>
+                    <Input placeholder="i.e: Big spenders..." style={{ flex: 1 }} />
+                  </Form.Item>
                   <Form.Item noStyle name="color">
                     <Select
                       style={{ width: 150 }}
