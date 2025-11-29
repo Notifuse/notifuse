@@ -126,7 +126,7 @@ export function YoutubeNodeView(props: NodeViewProps) {
   const start = node.attrs.start || 0
 
   // Start time input state
-  const [startTimeInput, setStartTimeInput] = useState(start > 0 ? formatSecondsToTime(start) : '')
+  const [startTimeInput, setStartTimeInput] = useState('')
   const [startTimeError, setStartTimeError] = useState<string | null>(null)
 
   // Focus input when node is first created (empty)
@@ -237,14 +237,14 @@ export function YoutubeNodeView(props: NodeViewProps) {
     [updateAttributes]
   )
 
-  // Sync start time input with node attribute
+  // Sync start time input with node attribute when playback popover opens
+  // This effect synchronizes external Tiptap node state with local component state
   useEffect(() => {
-    if (start > 0) {
-      setStartTimeInput(formatSecondsToTime(start))
-    } else if (start === 0) {
-      setStartTimeInput('')
+    if (playbackPopoverOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setStartTimeInput(start > 0 ? formatSecondsToTime(start) : '')
     }
-  }, [start])
+  }, [playbackPopoverOpen, start])
 
   // Focus caption input when caption is activated by user
   useEffect(() => {

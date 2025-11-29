@@ -46,8 +46,9 @@ export function AcceptInvitationPage() {
         const response = await workspaceService.verifyInvitationToken(token)
         setInvitationData(response)
         setError(null)
-      } catch (error: any) {
-        const errorMessage = error?.message || 'Invalid or expired invitation token'
+      } catch (error: unknown) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Invalid or expired invitation token'
         setError(errorMessage)
         message.error(errorMessage)
       } finally {
@@ -75,10 +76,10 @@ export function AcceptInvitationPage() {
 
       // Navigate to the dashboard
       setTimeout(() => {
-        navigate({ to: '/console/' })
+        navigate({ to: '/console' })
       }, 100)
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to accept invitation'
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to accept invitation'
       message.error(errorMessage)
       setError(errorMessage)
     } finally {

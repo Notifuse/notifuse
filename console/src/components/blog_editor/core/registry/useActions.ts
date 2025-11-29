@@ -93,7 +93,6 @@ export function useActions(
   // Update visibility when editor state changes or action IDs change
   useEffect(() => {
     if (!editor) {
-      setVisibilityMap(new Map(actionIds.map((id) => [id, false])))
       return
     }
 

@@ -1,12 +1,8 @@
 import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEnvelope } from '@fortawesome/free-solid-svg-icons'
-import type { MJMLComponentType, EmailBlock } from '../types'
-import {
-  BaseEmailBlock,
-  type OnUpdateAttributesFunction,
-  type PreviewProps
-} from './BaseEmailBlock'
+import type { MJMLComponentType } from '../types'
+import { BaseEmailBlock, type PreviewProps } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
 import PanelLayout from '../panels/PanelLayout'
@@ -31,7 +27,7 @@ export class MjmlBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mjml'] || {}
   }
 
@@ -46,11 +42,7 @@ export class MjmlBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the mjml block
    */
-  renderSettingsPanel(
-    _onUpdate: OnUpdateAttributesFunction,
-    _blockDefaults: Record<string, any>,
-    _emailTree?: EmailBlock
-  ): React.ReactNode {
+  renderSettingsPanel(): React.ReactNode {
     // TODO: Implement settings panel for mjml block
     return <PanelLayout title="Email Attributes">TODO</PanelLayout>
   }
@@ -85,7 +77,7 @@ export class MjmlBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mjml',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown>,
       attributeDefaults
     )
 
@@ -97,7 +89,7 @@ export class MjmlBlock extends BaseEmailBlock {
         key={key}
         style={{
           fontFamily: 'Arial, sans-serif',
-          direction: attrs.dir,
+          direction: attrs.direction as 'ltr' | 'rtl' | undefined,
           ...selectionStyle
         }}
         className={blockClasses}

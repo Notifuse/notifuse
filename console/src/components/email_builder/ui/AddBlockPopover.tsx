@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Popover, Button, Row, Col, Typography, Space, Tabs } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faPlus, faSave } from '@fortawesome/free-solid-svg-icons'
+import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import type { MJMLComponentType, EmailBlock, SavedBlock } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { EmailBlockFactory } from '../blocks/EmailBlockFactory'
@@ -95,7 +95,7 @@ export const AddBlockPopover: React.FC<AddBlockPopoverProps> = ({
             id: 'temp',
             type,
             attributes: {}
-          } as any)
+          } as EmailBlock)
 
           return {
             type,

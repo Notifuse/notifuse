@@ -271,7 +271,7 @@ export const MJ_SOCIAL_ELEMENT_DEFAULTS = {
 /**
  * Comprehensive defaults mapping for all MJML component types
  */
-export const MJML_COMPONENT_DEFAULTS: Record<MJMLComponentType, Record<string, any>> = {
+export const MJML_COMPONENT_DEFAULTS: Record<MJMLComponentType, Record<string, unknown>> = {
   mjml: MJML_DEFAULTS,
   'mj-body': MJ_BODY_DEFAULTS,
   'mj-wrapper': MJ_WRAPPER_DEFAULTS,
@@ -299,7 +299,7 @@ export const MJML_COMPONENT_DEFAULTS: Record<MJMLComponentType, Record<string, a
 /**
  * Get default attributes for a specific MJML component type
  */
-export const getComponentDefaults = (componentType: MJMLComponentType): Record<string, any> => {
+export const getComponentDefaults = (componentType: MJMLComponentType): Record<string, unknown> => {
   return MJML_COMPONENT_DEFAULTS[componentType] || {}
 }
 
@@ -308,8 +308,8 @@ export const getComponentDefaults = (componentType: MJMLComponentType): Record<s
  */
 export const mergeWithDefaults = (
   componentType: MJMLComponentType,
-  attributes: Record<string, any> = {}
-): Record<string, any> => {
+  attributes: Record<string, unknown> = {}
+): Record<string, unknown> => {
   const defaults = getComponentDefaults(componentType)
   return { ...defaults, ...attributes }
 }

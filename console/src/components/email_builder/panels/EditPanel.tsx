@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import type { EmailBlock, SaveOperation, SavedBlock } from '../types'
 import { EmailBlockClass } from '../EmailBlockClass'
-import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
+import { OverlayScrollbarsComponent, type OverlayScrollbarsComponentRef } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
 import { BlockToolbar } from '../ui/BlockToolbar'
 
@@ -12,8 +12,8 @@ interface EditPanelProps {
   onUpdateBlock: (blockId: string, updates: EmailBlock) => void
   onCloneBlock: (blockId: string) => void
   onDeleteBlock: (blockId: string) => void
-  testData?: any
-  onTestDataChange?: (testData: any) => void
+  testData?: Record<string, unknown>
+  onTestDataChange?: (testData: Record<string, unknown>) => void
   onPreview?: () => Promise<void>
   onSaveBlock: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void
   savedBlocks?: SavedBlock[]
@@ -26,12 +26,11 @@ export const EditPanel: React.FC<EditPanelProps> = ({
   onUpdateBlock,
   onCloneBlock,
   onDeleteBlock,
-  testData,
   onSaveBlock,
   savedBlocks
 }) => {
   // Ref to store the OverlayScrollbars instance for scroll position preservation
-  const scrollContainerRef = useRef<any>(null)
+  const scrollContainerRef = useRef<OverlayScrollbarsComponentRef<'div'> | null>(null)
   const savedScrollPosition = useRef<{ scrollTop: number; scrollLeft: number }>({
     scrollTop: 0,
     scrollLeft: 0
@@ -263,7 +262,7 @@ export const EditPanel: React.FC<EditPanelProps> = ({
 
   // Edit mode - render the email builder interface
   const bodyBlock = findBodyBlock(emailTree)
-  const bodyWidth = (bodyBlock?.attributes as any)?.width || '600px'
+  const bodyWidth = ((bodyBlock?.attributes as Record<string, unknown>)?.width as string | undefined) || '600px'
 
   return (
     <div

@@ -27,6 +27,7 @@ import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { Contact, UpsertContactOperationAction } from '../../services/api/contacts'
 import { contactsApi } from '../../services/api/contacts'
 import dayjs from '../../lib/dayjs'
+import type { Dayjs } from 'dayjs'
 import { Workspace } from '../../services/api/types'
 
 const { Option } = Select
@@ -239,18 +240,18 @@ export function ContactUpsertDrawer({
       setSelectedFields(fieldsToShow)
 
       // Format JSON fields for display and convert date strings to dayjs objects
-      const formattedValues = { ...contact }
+      const formattedValues: Record<string, unknown> = { ...contact }
       fieldsToShow.forEach((field) => {
         // Handle JSON fields
         if (field.startsWith('custom_json_')) {
           try {
-            formattedValues[field as keyof Contact] = JSON.stringify(
+            formattedValues[field] = JSON.stringify(
               contact[field as keyof Contact],
               null,
               2
             )
-          } catch (e) {
-            console.error(`Error formatting JSON for field ${field}:`, e)
+          } catch (error) {
+            console.error(`Error formatting JSON for field ${field}:`, error)
           }
         }
 
@@ -258,35 +259,42 @@ export function ContactUpsertDrawer({
         else if (field.startsWith('custom_datetime_')) {
           const dateValue = contact[field as keyof Contact]
           if (dateValue) {
-            formattedValues[field as keyof Contact] = dayjs(dateValue as string)
+            formattedValues[field] = dayjs(dateValue as string)
           }
         }
       })
 
       form.setFieldsValue(formattedValues)
     }
-  }, [contact, form, drawerVisible])
+  }, [contact, form, drawerVisible, optionalFields])
 
   const handleRemoveField = (field: string) => {
     setSelectedFields(selectedFields.filter((f) => f !== field))
     form.setFieldValue(field, undefined)
   }
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: Record<string, unknown>) => {
     try {
       setLoading(true)
-      const contactData = {
-        ...values,
+      const contactData: Partial<Contact> & { workspace_id: string } = {
         workspace_id: workspace.id
       }
+
+      // Copy all values from the form
+      Object.keys(values).forEach((key) => {
+        contactData[key as keyof typeof contactData] = values[key] as never
+      })
 
       // Convert dayjs objects to strings for API submission and parse JSON
       selectedFields.forEach((field) => {
         // Handle JSON fields
         if (field.startsWith('custom_json_')) {
           try {
-            contactData[field] = JSON.parse(values[field])
-          } catch (e) {
+            const fieldValue = values[field]
+            contactData[field as keyof typeof contactData] = JSON.parse(
+              String(fieldValue)
+            ) as never
+          } catch {
             message.error(`Invalid JSON in field ${field}`)
             return
           }
@@ -294,8 +302,11 @@ export function ContactUpsertDrawer({
         // Handle date fields - convert dayjs to ISO string
         else if (field.startsWith('custom_datetime_')) {
           const dateValue = values[field]
-          if (dateValue && dateValue.$d) {
-            contactData[field] = dateValue.toISOString()
+          // Check if it's a Dayjs object
+          if (dateValue && typeof dateValue === 'object' && 'toISOString' in dateValue) {
+            contactData[field as keyof typeof contactData] = (
+              dateValue as Dayjs
+            ).toISOString() as never
           }
         }
       })

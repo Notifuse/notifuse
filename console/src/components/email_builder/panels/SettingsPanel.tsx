@@ -6,48 +6,48 @@ import { EmailBlockFactory } from '../blocks/EmailBlockFactory'
 interface SettingsPanelProps {
   selectedBlock: EmailBlock | null
   onUpdateBlock: (blockId: string, updates: EmailBlock) => void
-  attributeDefaults: Record<string, any>
+  attributeDefaults: Record<string, Record<string, unknown>>
   emailTree: EmailBlock
-  testData?: any
-  onTestDataChange?: (testData: any) => void
+  testData?: Record<string, unknown>
+  onTestDataChange?: (testData: Record<string, unknown>) => void
 }
 
 export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   selectedBlock,
   onUpdateBlock,
   attributeDefaults,
-  emailTree,
-  testData,
-  onTestDataChange
+  emailTree
 }) => {
   const [currentBlockId, setCurrentBlockId] = useState<string | null>(null)
 
   // Update current block ID and force re-render when selected block changes
   useEffect(() => {
     if (selectedBlock?.id !== currentBlockId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCurrentBlockId(selectedBlock?.id || null)
     }
   }, [selectedBlock?.id, currentBlockId])
 
   // Direct mutation approach - accepts object of attribute updates
   const handleDirectUpdate = useCallback(
-    (updates: Record<string, any>) => {
+    (updates: Record<string, unknown>) => {
       if (!selectedBlock) return
 
       // Create a fresh copy to avoid mutation issues
       const updatedBlock = JSON.parse(JSON.stringify(selectedBlock)) as EmailBlock
 
       if (!updatedBlock.attributes) {
-        updatedBlock.attributes = {} as any
+        updatedBlock.attributes = {}
       }
 
       // Apply all updates at once
       Object.entries(updates).forEach(([key, value]) => {
         // Special handling for content property - it goes directly on the block, not in attributes
         if (key === 'content') {
-          ;(updatedBlock as any)[key] = value
+          updatedBlock.content = value as string | undefined
         } else {
-          ;(updatedBlock.attributes as Record<string, any>)[key] = value
+          // TypeScript doesn't know the specific type, so we cast to any for assignment
+          (updatedBlock.attributes as Record<string, unknown>)[key] = value
         }
       })
 
@@ -90,14 +90,14 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
   }
 
   // Try to use the new block class architecture, fallback to old system
-  let blockInstance: any = null
+  let blockInstance: { renderSettingsPanel: (update: (updates: Record<string, unknown>) => void, defaults: Record<string, unknown>, tree: EmailBlock) => React.ReactNode } | null = null
 
   try {
     if (EmailBlockFactory.hasBlockType(selectedBlock.type)) {
-      blockInstance = EmailBlockFactory.createBlock(selectedBlock)
+      blockInstance = EmailBlockFactory.createBlock(selectedBlock) as { renderSettingsPanel: (update: (updates: Record<string, unknown>) => void, defaults: Record<string, unknown>, tree: EmailBlock) => React.ReactNode }
     }
-  } catch (error) {
-    console.warn(`No block class for ${selectedBlock.type}, falling back to legacy system`)
+  } catch (error: unknown) {
+    console.warn(`No block class for ${selectedBlock.type}, falling back to legacy system`, error)
   }
 
   // Fallback to the legacy EmailBlockClass system
@@ -110,7 +110,7 @@ export const SettingsPanel: React.FC<SettingsPanelProps> = ({
 
   // Render the settings panel using the new block architecture
   return blockInstance.renderSettingsPanel(
-    handleDirectUpdate as any, // Type assertion to handle overloaded function
+    handleDirectUpdate,
     blockDefaults,
     emailTree
   )

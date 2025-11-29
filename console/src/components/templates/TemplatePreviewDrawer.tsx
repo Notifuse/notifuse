@@ -12,7 +12,7 @@ const { Text } = Typography
 interface TemplatePreviewDrawerProps {
   record: Template
   workspace: Workspace
-  templateData?: Record<string, any>
+  templateData?: Record<string, unknown>
   messageHistory?: MessageHistory
   children: React.ReactNode
 }
@@ -79,7 +79,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       const req = {
         workspace_id: workspace.id,
         message_id: 'preview',
-        visual_editor_tree: treeObject as any,
+        visual_editor_tree: treeObject,
         test_data: templateData || record.test_data || {},
         tracking_settings: {
           enable_tracking: workspace.settings?.email_tracking_enabled || false,
@@ -104,10 +104,11 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
         setError(null)
         setMjmlError(null)
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Compile Error:', err)
+      const error = err as { response?: { data?: { error?: string } }; message?: string }
       const errorMsg =
-        err.response?.data?.error || err.message || 'Failed to compile template preview.'
+        error.response?.data?.error || error.message || 'Failed to compile template preview.'
       setError(errorMsg)
       setMjmlError(null)
       setPreviewMjml(null)
@@ -146,7 +147,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       } else {
         setProcessedSubject(subject)
       }
-    } catch (_e) {
+    } catch {
       // Fallback to raw subject on any rendering error
       setProcessedSubject(subject)
     }
@@ -374,7 +375,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
   )
 }
 
-const JsonDataViewer = ({ data }: { data: any }) => {
+const JsonDataViewer = ({ data }: { data: Record<string, unknown> }) => {
   const prettyJson = JSON.stringify(data, null, 2)
 
   return (

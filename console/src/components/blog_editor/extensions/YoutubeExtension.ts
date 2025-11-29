@@ -238,19 +238,22 @@ export const YoutubeExtension = Node.create({
     return {
       setYoutubeVideo:
         (options: { src: string; width?: number; height?: number; start?: number }) =>
-        ({ commands }: { commands: any }) => {
+        ({ commands }) => {
           // Extract video ID from any URL format
           const videoId = getYoutubeVideoId(options.src)
           if (!videoId) return false
 
           // Insert with video ID only (not full URL)
-          return commands.insertContent({
-            type: this.name,
-            attrs: {
-              ...options,
-              src: videoId // Store only video ID
-            }
-          })
+          if (typeof commands.insertContent === 'function') {
+            return commands.insertContent({
+              type: this.name,
+              attrs: {
+                ...options,
+                src: videoId // Store only video ID
+              }
+            })
+          }
+          return false
         }
     }
   },

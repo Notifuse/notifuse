@@ -1,11 +1,10 @@
 import React, { useState } from 'react'
 import { Switch, Drawer, Button } from 'antd'
 import { Editor } from '@monaco-editor/react'
-import type { MJMLComponentType, EmailBlock, MJStyleAttributes } from '../types'
+import type { MJMLComponentType, MJStyleAttributes } from '../types'
 import {
   BaseEmailBlock,
-  type OnUpdateAttributesFunction,
-  type PreviewProps
+  type OnUpdateAttributesFunction
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { faCode } from '@fortawesome/free-solid-svg-icons'
@@ -34,7 +33,7 @@ export class MjStyleBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-style'] || {}
   }
 
@@ -46,7 +45,7 @@ export class MjStyleBlock extends BaseEmailBlock {
     return []
   }
 
-  getEdit(_props: PreviewProps): React.ReactNode {
+  getEdit(): React.ReactNode {
     // Style blocks don't render in preview (they're configuration)
     return null
   }
@@ -55,17 +54,17 @@ export class MjStyleBlock extends BaseEmailBlock {
    * Render the settings panel for the style block
    */
   renderSettingsPanel(
-    onUpdate: OnUpdateAttributesFunction,
-    _blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
+    onUpdate: OnUpdateAttributesFunction
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJStyleAttributes
     const CSSEditorComponent = () => {
       const [isDrawerOpen, setIsDrawerOpen] = useState(false)
-      const [tempCssContent, setTempCssContent] = useState((this.block as any).content || '')
+      const blockContent = 'content' in this.block ? (this.block.content as string) : ''
+      const [tempCssContent, setTempCssContent] = useState(blockContent || '')
 
       const handleEditClick = () => {
-        setTempCssContent((this.block as any).content || '')
+        const blockContent = 'content' in this.block ? (this.block.content as string) : ''
+        setTempCssContent(blockContent || '')
         setIsDrawerOpen(true)
       }
 
@@ -75,7 +74,8 @@ export class MjStyleBlock extends BaseEmailBlock {
       }
 
       const handleDrawerCancel = () => {
-        setTempCssContent((this.block as any).content || '')
+        const blockContent = 'content' in this.block ? (this.block.content as string) : ''
+        setTempCssContent(blockContent || '')
         setIsDrawerOpen(false)
       }
 
@@ -101,8 +101,17 @@ export class MjStyleBlock extends BaseEmailBlock {
         }
       }
 
-      const beforeMount = (monaco: any) => {
-        monaco.languages.css.cssDefaults.setOptions({
+      const beforeMount = (monaco: unknown) => {
+        const monacoInstance = monaco as {
+          languages: {
+            css: {
+              cssDefaults: {
+                setOptions: (options: Record<string, unknown>) => void
+              }
+            }
+          }
+        }
+        monacoInstance.languages.css.cssDefaults.setOptions({
           validate: true,
           lint: {
             compatibleVendorPrefixes: 'ignore',
@@ -127,7 +136,7 @@ export class MjStyleBlock extends BaseEmailBlock {
         })
       }
 
-      const cssContent = (this.block as any).content || ''
+      const cssContent = 'content' in this.block ? (this.block.content as string) : ''
       const hasContent = cssContent.trim().length > 0
 
       return (

@@ -25,13 +25,7 @@ export function BlogPage() {
   const { message } = App.useApp()
   const { workspaces } = useAuth()
 
-  // Get the current workspace
-  const workspace = workspaces.find((w) => w.id === workspaceId)
-
-  if (!workspace) {
-    return null // Or handle the case where workspace is not found
-  }
-
+  // All hooks must be called before any conditional returns
   const [categoryDrawerOpen, setCategoryDrawerOpen] = useState(false)
   const [editingCategory, setEditingCategory] = useState<BlogCategory | null>(null)
   const [deleteCategoryModalOpen, setDeleteCategoryModalOpen] = useState(false)
@@ -70,11 +64,18 @@ export function BlogPage() {
         })
       }
     },
-    onError: (error: any) => {
-      const errorMsg = error?.message || 'Failed to delete category'
+    onError: (error: unknown) => {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to delete category'
       message.error(errorMsg)
     }
   })
+
+  // Get the current workspace - conditional check AFTER all hooks
+  const workspace = workspaces.find((w) => w.id === workspaceId)
+
+  if (!workspace) {
+    return null // Or handle the case where workspace is not found
+  }
 
   const handleCategoryChange = (categoryId: string | null) => {
     navigate({

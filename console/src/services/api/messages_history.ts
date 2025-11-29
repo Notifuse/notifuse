@@ -13,8 +13,8 @@ export interface ChannelOptions {
 }
 
 export interface MessageData {
-  data: Record<string, any>
-  metadata?: Record<string, any>
+  data: Record<string, unknown>
+  metadata?: Record<string, unknown>
 }
 
 export interface MessageHistory {

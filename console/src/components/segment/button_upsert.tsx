@@ -29,6 +29,7 @@ import {
   CreateSegmentRequest,
   UpdateSegmentRequest,
   PreviewSegmentRequest,
+  PreviewSegmentResponse,
   TreeNode,
   DimensionFilter
 } from '../../services/api/segment'
@@ -57,7 +58,7 @@ const treeHasRelativeDates = (tree: TreeNode | null | undefined): boolean => {
     // Check contact property filters for relative date operators
     if (tree.leaf?.contact?.filters) {
       const hasRelativeDateFilter = tree.leaf.contact.filters.some(
-        (filter: DimensionFilter) => filter.operator === 'in_the_last_days'
+        (filter: DimensionFilter) => (filter.operator as string) === 'in_the_last_days'
       )
       if (hasRelativeDateFilter) {
         return true
@@ -164,11 +165,7 @@ const DrawerSegment = (props: {
 
     try {
       const res = await previewSegment(requestData)
-      setPreviewResponse({
-        count: res.total_count,
-        sql: res.generated_sql,
-        args: res.sql_args
-      })
+      setPreviewResponse(res)
       setLoadingPreview(false)
     } catch (error) {
       console.error('Preview error:', error)
@@ -498,12 +495,12 @@ const DrawerSegment = (props: {
                         size={150}
                       />
                     )
-                  } else if (previewResponse && previewResponse.count >= 0) {
+                  } else if (previewResponse && previewResponse.total_count >= 0) {
                     const content =
-                      previewResponse.count === 0 ? (
+                      previewResponse.total_count === 0 ? (
                         <>0 contacts</>
                       ) : (
-                        <span className="text-base">{previewResponse.count} contacts</span>
+                        <span className="text-base">{previewResponse.total_count} contacts</span>
                       )
 
                     // Calculate percentage based on total contacts
@@ -511,10 +508,10 @@ const DrawerSegment = (props: {
                     if (
                       props.totalContacts &&
                       props.totalContacts > 0 &&
-                      previewResponse.count > 0
+                      previewResponse.total_count > 0
                     ) {
-                      percent = Math.min(100, (previewResponse.count / props.totalContacts) * 100)
-                    } else if (previewResponse.count > 0) {
+                      percent = Math.min(100, (previewResponse.total_count / props.totalContacts) * 100)
+                    } else if (previewResponse.total_count > 0) {
                       // Fallback to fixed percentage if total is not available
                       percent = 50
                     }
@@ -538,9 +535,9 @@ const DrawerSegment = (props: {
                           content={
                             <div style={{ width: 600, maxHeight: 600, overflow: 'auto' }}>
                               <p>
-                                <strong>Matching contacts:</strong> {previewResponse.count}
+                                <strong>Matching contacts:</strong> {previewResponse.total_count}
                               </p>
-                              {previewResponse.sql && (
+                              {previewResponse.generated_sql && (
                                 <>
                                   <p>
                                     <strong>Generated SQL:</strong>
@@ -555,11 +552,11 @@ const DrawerSegment = (props: {
                                       maxHeight: '200px'
                                     }}
                                   >
-                                    {previewResponse.sql}
+                                    {previewResponse.generated_sql}
                                   </pre>
                                 </>
                               )}
-                              {previewResponse.args && previewResponse.args.length > 0 && (
+                              {previewResponse.sql_args && previewResponse.sql_args.length > 0 && (
                                 <>
                                   <p>
                                     <strong>SQL Arguments:</strong>
@@ -574,7 +571,7 @@ const DrawerSegment = (props: {
                                       maxHeight: '100px'
                                     }}
                                   >
-                                    {JSON.stringify(previewResponse.args, null, 2)}
+                                    {JSON.stringify(previewResponse.sql_args, null, 2)}
                                   </pre>
                                 </>
                               )}

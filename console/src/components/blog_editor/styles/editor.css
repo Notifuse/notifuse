@@ -11,7 +11,8 @@
 /* =====================
    CORE EDITOR STYLES
    ===================== */
-.notifuse-editor.ProseMirror {
+.notifuse-editor.ProseMirror,
+.tiptap.ProseMirror.notifuse-editor {
   white-space: pre-wrap;
   outline: none;
   caret-color: var(--notifuse-editor-cursor-color);

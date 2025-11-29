@@ -725,7 +725,7 @@ export function ContactDetailsDrawer({
                   displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
                   showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
                   technicalName={'technicalName' in field ? field.technicalName : undefined}
-                  value={field.value}
+                  value={field.value as string | number | object | null | undefined}
                   workspace={workspace}
                   onSave={handleFieldUpdate}
                   isLoading={isLoadingContact}
@@ -770,7 +770,7 @@ export function ContactDetailsDrawer({
                   displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
                   showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
                   technicalName={'technicalName' in field ? field.technicalName : undefined}
-                  value={field.value}
+                  value={field.value as string | number | object | null | undefined}
                   workspace={workspace}
                   onSave={handleFieldUpdate}
                   isLoading={isLoadingContact}
@@ -912,7 +912,7 @@ export function ContactDetailsDrawer({
                         displayLabel={'displayLabel' in field ? field.displayLabel : undefined}
                         showTooltip={'showTooltip' in field ? field.showTooltip : undefined}
                         technicalName={'technicalName' in field ? field.technicalName : undefined}
-                        value={field.value}
+                        value={field.value as string | number | object | null | undefined}
                         workspace={workspace}
                         onSave={handleFieldUpdate}
                         isLoading={isLoadingContact}

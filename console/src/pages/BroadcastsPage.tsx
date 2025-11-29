@@ -21,7 +21,7 @@ import {
   Table
 } from 'antd'
 import { useParams } from '@tanstack/react-router'
-import { broadcastApi, Broadcast } from '../services/api/broadcast'
+import { broadcastApi, Broadcast, TestResultsResponse } from '../services/api/broadcast'
 import { listsApi } from '../services/api/list'
 import { taskApi } from '../services/api/task'
 import { listSegments } from '../services/api/segment'
@@ -55,13 +55,20 @@ import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer
 import { BroadcastStats } from '../components/broadcasts/BroadcastStats'
 import { Integration, List, Sender } from '../services/api/types'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
-import { Template } from '../services/api/types'
+import { Workspace, UserPermissions } from '../services/api/types'
+import { Template } from '../services/api/template'
+import { Template as BroadcastTemplate } from '../services/api/broadcast'
 import Subtitle from '../components/common/subtitle'
 
 const { Title, Paragraph, Text } = Typography
 
+// Helper to convert broadcast Template to template Template
+const toTemplateApiType = (template: BroadcastTemplate): Template => {
+  return template as unknown as Template
+}
+
 // Helper function to calculate remaining test time
-const getRemainingTestTime = (broadcast: Broadcast, testResults?: any) => {
+const getRemainingTestTime = (broadcast: Broadcast, testResults?: TestResultsResponse) => {
   if (
     broadcast.status !== 'testing' ||
     !broadcast.test_settings.enabled ||
@@ -72,7 +79,7 @@ const getRemainingTestTime = (broadcast: Broadcast, testResults?: any) => {
 
   // Use test_started_at from testResults if available, otherwise use test_sent_at from broadcast
   const testStartTime = testResults?.test_started_at || broadcast.test_sent_at
-  if (!testStartTime) {
+  if (!testStartTime || typeof testStartTime !== 'string') {
     return null
   }
 
@@ -150,8 +157,8 @@ interface BroadcastCardProps {
   onCancel: (broadcast: Broadcast) => void
   onSchedule: (broadcast: Broadcast) => void
   onRefresh: (broadcast: Broadcast) => void
-  currentWorkspace: any
-  permissions: any
+  currentWorkspace: Workspace | undefined
+  permissions: UserPermissions | null
   isFirst?: boolean
   currentPage: number
   pageSize: number
@@ -399,18 +406,20 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               }
             >
               <div>
-                <UpsertBroadcastDrawer
-                  workspace={currentWorkspace!}
-                  broadcast={broadcast}
-                  lists={lists}
-                  segments={segments}
-                  buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
-                  buttonProps={{
-                    size: 'small',
-                    type: 'text',
-                    disabled: !permissions?.broadcasts?.write
-                  }}
-                />
+                {currentWorkspace && (
+                  <UpsertBroadcastDrawer
+                    workspace={currentWorkspace}
+                    broadcast={broadcast}
+                    lists={lists}
+                    segments={segments}
+                    buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
+                    buttonProps={{
+                      size: 'small',
+                      type: 'text',
+                      disabled: !permissions?.broadcasts?.write
+                    }}
+                  />
+                )}
               </div>
             </Tooltip>
           )}
@@ -636,7 +645,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                           title: 'Opens',
                           key: 'opens',
                           width: 80,
-                          render: (_: any, record: any) => {
+                          render: (_: unknown, record: { metrics?: { open_rate?: number; opens?: number; recipients?: number } }) => {
                             const metrics = record.metrics
                             if (!metrics) {
                               return (
@@ -667,7 +676,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                           title: 'Clicks',
                           key: 'clicks',
                           width: 80,
-                          render: (_: any, record: any) => {
+                          render: (_: unknown, record: { metrics?: { click_rate?: number; clicks?: number; recipients?: number } }) => {
                             const metrics = record.metrics
                             if (!metrics) {
                               return (
@@ -724,7 +733,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                                 icon={
                                   <FontAwesomeIcon icon={faPaperPlane} className="opacity-70" />
                                 }
-                                onClick={() => handleTestTemplate(record.template as Template)}
+                                onClick={() => record.template && handleTestTemplate(toTemplateApiType(record.template))}
                                 disabled={
                                   !(permissions?.templates?.read && permissions?.contacts?.write)
                                 }
@@ -733,9 +742,9 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                           )}
                           <Tooltip title="Preview Template">
                             <>
-                              {record.template ? (
+                              {record.template && currentWorkspace ? (
                                 <TemplatePreviewDrawer
-                                  record={record.template as any}
+                                  record={toTemplateApiType(record.template)}
                                   workspace={currentWorkspace}
                                 >
                                   <Button
@@ -987,12 +996,14 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
       </div>
 
       {/* Test Template Modal */}
-      <SendTemplateModal
-        isOpen={testModalOpen}
-        onClose={() => setTestModalOpen(false)}
-        template={templateToTest}
-        workspace={currentWorkspace}
-      />
+      {currentWorkspace && (
+        <SendTemplateModal
+          isOpen={testModalOpen}
+          onClose={() => setTestModalOpen(false)}
+          template={templateToTest}
+          workspace={currentWorkspace}
+        />
+      )}
     </Card>
   )
 }

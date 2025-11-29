@@ -19,12 +19,20 @@ function escapeHtml(text: string): string {
   return String(text).replace(/[&<>"']/g, (m) => map[m])
 }
 
+interface HastNode {
+  type: string
+  value?: string
+  tagName?: string
+  properties?: Record<string, unknown>
+  children?: HastNode[]
+}
+
 /**
  * Convert lowlight hast tree to HTML string
  * Recursively processes the hast tree nodes and converts them to HTML
  * Based on how @tiptap/extension-code-block-lowlight handles the hast tree
  */
-function hastToHtml(node: any): string {
+function hastToHtml(node: HastNode): string {
   // Handle text nodes
   if (node.type === 'text') {
     return escapeHtml(node.value || '')
@@ -40,12 +48,12 @@ function hastToHtml(node: any): string {
       if (node.properties.className) {
         const classes = Array.isArray(node.properties.className)
           ? node.properties.className.join(' ')
-          : node.properties.className
+          : String(node.properties.className)
         attrs.push(`class="${escapeHtml(classes)}"`)
       }
       // Add other properties if needed
       Object.keys(node.properties).forEach((key) => {
-        if (key !== 'className' && node.properties[key]) {
+        if (key !== 'className' && node.properties && node.properties[key]) {
           attrs.push(`${key}="${escapeHtml(String(node.properties[key]))}"`)
         }
       })
@@ -55,14 +63,14 @@ function hastToHtml(node: any): string {
 
     // Process children
     const children = node.children || []
-    const childrenHtml = children.map((child: any) => hastToHtml(child)).join('')
+    const childrenHtml = children.map((child: HastNode) => hastToHtml(child)).join('')
 
     return `<${tag}${attrsStr}>${childrenHtml}</${tag}>`
   }
 
   // Handle root nodes or unknown types - process children
   if (node.children) {
-    return node.children.map((child: any) => hastToHtml(child)).join('')
+    return node.children.map((child: HastNode) => hastToHtml(child)).join('')
   }
 
   return ''
@@ -165,7 +173,7 @@ export const CodeBlockLowlightExtension = CodeBlockLowlight.extend({
 
     // Build code element attributes with language class
     const language = node.attrs.language || 'plaintext'
-    const codeAttrs: Record<string, any> = {}
+    const codeAttrs: Record<string, string> = {}
     if (language) {
       codeAttrs.class = `language-${language} hljs`
     }

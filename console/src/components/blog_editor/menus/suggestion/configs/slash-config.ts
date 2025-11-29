@@ -34,7 +34,7 @@ const actionToSuggestionItem = (
 /**
  * Filter actions by query string
  */
-const filterActions = (items: SuggestionItem[], query: string): SuggestionItem[] => {
+const filterActions = <T = unknown>(items: SuggestionItem<T>[], query: string): SuggestionItem<T>[] => {
   if (!query.trim()) {
     return items
   }
@@ -64,12 +64,12 @@ const filterActions = (items: SuggestionItem[], query: string): SuggestionItem[]
 /**
  * Slash command configuration for suggestion menu
  */
-export const slashConfig: SuggestionConfig<ActionDefinition> = {
+export const slashConfig: SuggestionConfig<ActionDefinition | { type: string }> = {
   char: '/',
   pluginKey: 'slash-command',
 
   // Get available actions from registry and filter by query
-  getItems: async (query: string, editor: Editor | null) => {
+  getItems: async (query: string, editor: Editor | null): Promise<SuggestionItem<ActionDefinition | { type: string }>[]> => {
     // Get only transform actions (Style section)
     const transformActions = notifuseActionRegistry.getByType('transform')
 
@@ -88,19 +88,19 @@ export const slashConfig: SuggestionConfig<ActionDefinition> = {
       context: { type: 'emoji-picker' }
     }
 
-    const allItems = [...actionItems, emojiItem]
+    const allItems: SuggestionItem<ActionDefinition | { type: string }>[] = [...actionItems, emojiItem]
 
     // Filter by query
     return filterActions(allItems, query)
   },
 
   // Group by action group
-  groupBy: (item: SuggestionItem<ActionDefinition>) => {
+  groupBy: (item: SuggestionItem<ActionDefinition | { type: string }>) => {
     return item.group || 'Actions'
   },
 
   // Handle action selection
-  onSelect: (item: SuggestionItem<any>, editor: Editor | null, range: Range) => {
+  onSelect: (item: SuggestionItem<ActionDefinition | { type: string }>, editor: Editor | null, range: Range) => {
     if (!editor || !item.context) return
 
     // Delete the slash command text

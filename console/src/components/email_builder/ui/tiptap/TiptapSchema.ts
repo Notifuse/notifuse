@@ -276,7 +276,7 @@ export const TextStyleMark = Mark.create({
 
           // Extract specific styles we handle
           const computedStyle = el.style
-          const attrs: Record<string, any> = {}
+          const attrs: Record<string, unknown> = {}
 
           if (computedStyle.color) attrs.color = computedStyle.color
           if (computedStyle.backgroundColor) attrs.backgroundColor = computedStyle.backgroundColor

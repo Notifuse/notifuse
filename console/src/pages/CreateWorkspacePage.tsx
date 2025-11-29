@@ -1,13 +1,11 @@
 import { useState } from 'react'
-import { Form, Input, Button, Typography, Card, Tooltip, App } from 'antd'
+import { Form, Input, Button, Tooltip, App } from 'antd'
 import { useNavigate } from '@tanstack/react-router'
 import { InfoCircleOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { workspaceService } from '../services/api/workspace'
 import { useAuth } from '../contexts/AuthContext'
 import { MainLayout, MainLayoutSidebar } from '../layouts/MainLayout'
 import { getBrowserTimezone } from '../lib/timezoneNormalizer'
-
-const { Title } = Typography
 
 export function CreateWorkspacePage() {
   const navigate = useNavigate()
@@ -78,15 +76,15 @@ export function CreateWorkspacePage() {
           params: { workspaceId: values.id }
         })
       }, 100)
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating workspace:', error)
-      message.error(error.message)
+      message.error(error instanceof Error ? error.message : 'Failed to create workspace')
       setLoading(false)
     }
   }
 
   const handleBackToDashboard = () => {
-    navigate({ to: '/console/' })
+    navigate({ to: '/console' })
   }
 
   return (
@@ -126,7 +124,7 @@ export function CreateWorkspacePage() {
             label={
               <span>
                 Workspace ID &nbsp;
-                <Tooltip title="This ID will be used in URLs and API requests. It can only contain lowercase letters, numbers, and hyphens.">
+                <Tooltip title="This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers.">
                   <InfoCircleOutlined />
                 </Tooltip>
               </span>
@@ -135,13 +133,13 @@ export function CreateWorkspacePage() {
             rules={[
               { required: true, message: 'Workspace ID is required' },
               {
-                pattern: /^[a-z0-9-]+$/,
-                message: 'ID can only contain lowercase letters, numbers, and hyphens'
+                pattern: /^[a-z0-9]+$/,
+                message: 'ID can only contain lowercase letters and numbers'
               }
             ]}
           >
             <Input
-              placeholder="workspace-id"
+              placeholder="workspaceid"
               suffix={
                 <Tooltip title="ID is automatically generated but can be modified if needed">
                   <InfoCircleOutlined style={{ color: 'rgba(0,0,0,.45)' }} />

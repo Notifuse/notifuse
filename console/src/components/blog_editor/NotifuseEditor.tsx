@@ -98,12 +98,27 @@ function escapeHtml(text: string): string {
   return String(text).replace(/[&<>"']/g, (m) => map[m])
 }
 
+interface HastNode {
+  type: string
+  value?: string
+  tagName?: string
+  properties?: {
+    className?: string | string[]
+    [key: string]: unknown
+  }
+  children?: HastNode[]
+}
+
+interface LowlightInstance {
+  highlight: (language: string, code: string) => { children?: HastNode[]; value?: string }
+}
+
 /**
  * Convert lowlight hast tree to HTML string
  * Recursively processes the hast tree nodes and converts them to HTML
  * Based on how @tiptap/extension-code-block-lowlight handles the hast tree
  */
-function hastToHtml(node: any): string {
+function hastToHtml(node: HastNode): string {
   // Handle text nodes
   if (node.type === 'text') {
     return escapeHtml(node.value || '')
@@ -124,7 +139,7 @@ function hastToHtml(node: any): string {
       }
       // Add other properties if needed
       Object.keys(node.properties).forEach((key) => {
-        if (key !== 'className' && node.properties[key]) {
+        if (key !== 'className' && node.properties && node.properties[key]) {
           attrs.push(`${key}="${escapeHtml(String(node.properties[key]))}"`)
         }
       })
@@ -134,14 +149,14 @@ function hastToHtml(node: any): string {
 
     // Process children
     const children = node.children || []
-    const childrenHtml = children.map((child: any) => hastToHtml(child)).join('')
+    const childrenHtml = children.map((child) => hastToHtml(child)).join('')
 
     return `<${tag}${attrsStr}>${childrenHtml}</${tag}>`
   }
 
   // Handle root nodes or unknown types - process children
   if (node.children) {
-    return node.children.map((child: any) => hastToHtml(child)).join('')
+    return node.children.map((child) => hastToHtml(child)).join('')
   }
 
   return ''
@@ -150,7 +165,7 @@ function hastToHtml(node: any): string {
 /**
  * Post-process HTML to add syntax highlighting to code blocks
  */
-function addSyntaxHighlightingToHTML(html: string, lowlight: any): string {
+function addSyntaxHighlightingToHTML(html: string, lowlightInstance: LowlightInstance): string {
   // Create a temporary DOM element to parse the HTML
   const tempDiv = document.createElement('div')
   tempDiv.innerHTML = html
@@ -174,14 +189,14 @@ function addSyntaxHighlightingToHTML(html: string, lowlight: any): string {
 
       try {
         // Highlight the code using lowlight
-        const result = lowlight.highlight(language, code)
+        const result = lowlightInstance.highlight(language, code)
 
         if (result && (result.children || result.value)) {
           // Convert hast tree to HTML
           // lowlight v3 uses .children, v1 used .value
-          const highlightedHtml = result.children ? hastToHtml(result) : result.value
+          const highlightedHtml = result.children ? hastToHtml(result as HastNode) : result.value
           // Replace the plain text with highlighted HTML
-          codeEl.innerHTML = highlightedHtml
+          codeEl.innerHTML = highlightedHtml || ''
         }
       } catch (error) {
         // If highlighting fails, leave the plain text
@@ -200,7 +215,7 @@ function addSyntaxHighlightingToHTML(html: string, lowlight: any): string {
  * Ref API for NotifuseEditor - allows parent components to retrieve content on-demand
  */
 export interface NotifuseEditorRef {
-  getJSON: () => any
+  getJSON: () => Record<string, unknown> | null
   getHTML: () => string
   getCSS: () => string
   undo: () => void
@@ -219,7 +234,7 @@ export interface TOCAnchor {
   isActive: boolean
   isScrolledOver: boolean
   level: number
-  node: any
+  node: unknown
   pos: number
   textContent: string
 }
@@ -299,7 +314,7 @@ export interface NotifuseEditorProps {
   styleConfig?: EditorStyleConfig
   disableH1?: boolean
   showHeader?: boolean
-  onChange?: (json: any) => void
+  onChange?: (json: Record<string, unknown>) => void
   onTableOfContentsUpdate?: (anchors: TOCAnchor[], isCreate?: boolean) => void
 }
 
@@ -309,7 +324,7 @@ export interface EditorProviderProps {
   styleConfig?: EditorStyleConfig
   disableH1?: boolean
   showHeader?: boolean
-  onChange?: (json: any) => void
+  onChange?: (json: Record<string, unknown>) => void
   onTableOfContentsUpdate?: (anchors: TOCAnchor[], isCreate?: boolean) => void
 }
 
@@ -411,7 +426,7 @@ export const EditorProvider = forwardRef<NotifuseEditorRef, EditorProviderProps>
         emptyNodeClass: 'is-empty with-slash'
       }),
       Emoji.configure({
-        emojis: gitHubEmojis.filter((emoji: any) => !emoji.name.includes('regional')),
+        emojis: gitHubEmojis.filter((emoji: { name: string }) => !emoji.name.includes('regional')),
         forceFallbackImages: true
       }),
       TextStyle,
@@ -442,7 +457,7 @@ export const EditorProvider = forwardRef<NotifuseEditorRef, EditorProviderProps>
         if (!editor) return ''
         const html = editor.getHTML()
         // Post-process HTML to add syntax highlighting
-        return addSyntaxHighlightingToHTML(html, lowlight)
+        return addSyntaxHighlightingToHTML(html, lowlight as unknown as LowlightInstance)
       },
       getCSS: () => generateBlogPostCSS(styleConfig),
       undo: () => editor?.chain().focus().undo().run(),

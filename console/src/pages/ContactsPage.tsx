@@ -139,7 +139,7 @@ export function ContactsPage() {
       setDeleteModalVisible(false)
       setContactToDelete(null)
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       message.error(error?.message || 'Failed to delete contact')
     }
   })
@@ -286,7 +286,7 @@ export function ContactsPage() {
           label: field?.label || key
         }
       })
-  }, [search])
+  }, [search, filterFields])
 
   // Force data refresh on mount
   React.useEffect(() => {
@@ -397,6 +397,9 @@ export function ContactsPage() {
       fixed: 'left' as const,
       onHeaderCell: () => ({
         style: { backgroundColor: '#F9F9F9' }
+      }),
+      onCell: () => ({
+        style: { backgroundColor: '#ffffff' }
       })
     },
     {
@@ -776,6 +779,9 @@ export function ContactsPage() {
       align: 'right' as const,
       onHeaderCell: () => ({
         style: { backgroundColor: '#F9F9F9' }
+      }),
+      onCell: () => ({
+        style: { backgroundColor: '#ffffff' }
       }),
       render: (_: unknown, record: Contact) => {
         const menuItems: MenuProps['items'] = [

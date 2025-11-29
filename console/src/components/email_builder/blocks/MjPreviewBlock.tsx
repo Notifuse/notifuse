@@ -1,11 +1,7 @@
 import React from 'react'
 import { Input } from 'antd'
-import type { MJMLComponentType, EmailBlock } from '../types'
-import {
-  BaseEmailBlock,
-  type OnUpdateAttributesFunction,
-  type PreviewProps
-} from './BaseEmailBlock'
+import type { MJMLComponentType } from '../types'
+import { BaseEmailBlock, type OnUpdateAttributesFunction } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { faEye } from '@fortawesome/free-regular-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -34,7 +30,7 @@ export class MjPreviewBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-preview'] || {}
   }
 
@@ -46,7 +42,7 @@ export class MjPreviewBlock extends BaseEmailBlock {
     return []
   }
 
-  getEdit(_props: PreviewProps): React.ReactNode {
+  getEdit(): React.ReactNode {
     // Preview blocks don't render in preview (they're metadata)
     return null
   }
@@ -54,12 +50,8 @@ export class MjPreviewBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the preview block
    */
-  renderSettingsPanel(
-    onUpdate: OnUpdateAttributesFunction,
-    _blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
-  ): React.ReactNode {
-    const currentContent = (this.block as any).content || ''
+  renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
+    const currentContent = (this.block as unknown as Record<string, unknown>).content || ''
 
     const handleContentChange = (value: string) => {
       onUpdate({ content: value })
@@ -73,7 +65,7 @@ export class MjPreviewBlock extends BaseEmailBlock {
           layout="vertical"
         >
           <TextArea
-            value={currentContent}
+            value={currentContent as string}
             onChange={(e) => handleContentChange(e.target.value)}
             placeholder="Enter preview text that appears in email clients..."
             rows={3}

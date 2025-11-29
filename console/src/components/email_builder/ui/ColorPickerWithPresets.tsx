@@ -27,8 +27,8 @@ const ColorPickerWithPresets: React.FC<ColorPickerWithPresetsProps> = ({
   showText = true
 }) => {
   const handleChangeComplete = useCallback(
-    (color: any) => {
-      const hexValue = color?.toHexString()
+    (color: unknown) => {
+      const hexValue = (color as { toHexString?: () => string })?.toHexString?.()
       onChange(hexValue || undefined)
     },
     [onChange]

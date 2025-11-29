@@ -10,6 +10,9 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
     "bundle-liquid": "cp node_modules/liquidjs/dist/liquid.browser.umd.js ../pkg/liquid/liquid.bundle.js"
   },
   "dependencies": {
@@ -25,7 +28,6 @@
     "@fortawesome/react-fontawesome": "^0.2.2",
     "@monaco-editor/react": "^4.7.0",
     "@tanstack/react-query": "^5.18.1",
-    "monaco-editor": "^0.25.0",
     "@tanstack/react-router": "^1.15.7",
     "@tanstack/router-devtools": "^1.114.23",
     "@tiptap/core": "^3.10.5",
@@ -69,6 +71,7 @@
     "lowlight": "^3.3.0",
     "lucide-react": "^0.487.0",
     "mjml-browser": "^4.15.3",
+    "monaco-editor": "^0.25.0",
     "numbro": "^2.5.0",
     "overlayscrollbars": "^2.11.4",
     "overlayscrollbars-react": "^0.5.6",
@@ -95,6 +98,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
+    "@playwright/test": "^1.57.0",
     "@tailwindcss/postcss": "^4.0.17",
     "@tailwindcss/vite": "^4.1.12",
     "@tanstack/router-vite-plugin": "^1.114.23",

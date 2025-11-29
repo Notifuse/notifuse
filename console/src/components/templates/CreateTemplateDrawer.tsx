@@ -15,9 +15,9 @@ import {
   MenuProps
 } from 'antd'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { templatesApi } from '../../services/api/template'
+import { templatesApi, type CreateTemplateRequest, type UpdateTemplateRequest } from '../../services/api/template'
 import { templateBlocksApi } from '../../services/api/template_blocks'
-import type { Template, Workspace, TemplateBlock } from '../../services/api/types'
+import type { Template, Workspace } from '../../services/api/types'
 import EmailBuilder from '../email_builder/EmailBuilder'
 import type { EmailBlock } from '../email_builder/types'
 import type { PreviewRef } from '../email_builder/panels/Preview'
@@ -86,7 +86,7 @@ interface CreateTemplateDrawerProps {
   workspace: Workspace
   template?: Template
   fromTemplate?: Template
-  buttonProps?: any
+  buttonProps?: Record<string, unknown>
   buttonContent?: React.ReactNode
   onClose?: () => void
   forceCategory?: string
@@ -198,11 +198,12 @@ export function CreateTemplateDrawer({
     return createDefaultBlocks()
   })
 
-  // Add Form.useWatch for the email fields
+  // Add Form.useWatch for the email fields - must be called before conditional returns
   const senderID = Form.useWatch(['email', 'sender_id'], form)
   const emailSubject = Form.useWatch(['email', 'subject'], form)
   const emailPreview = Form.useWatch(['email', 'subject_preview'], form)
-  const categoryValue = forceCategory || Form.useWatch(['category'], form)
+  const watchedCategory = Form.useWatch(['category'], form)
+  const categoryValue = forceCategory || watchedCategory
 
   const emailProvider = useMemo(() => {
     const providerId =
@@ -220,17 +221,17 @@ export function CreateTemplateDrawer({
   }, [emailProvider, senderID])
 
   const createTemplateMutation = useMutation({
-    mutationFn: (values: any) => {
+    mutationFn: (values: Record<string, unknown>) => {
       if (template) {
         return templatesApi.update({
-          ...values,
+          ...(values as Omit<UpdateTemplateRequest, 'channel' | 'workspace_id' | 'id'>),
           channel: 'email',
           workspace_id: workspace.id,
           id: template.id
         })
       } else {
         return templatesApi.create({
-          ...values,
+          ...(values as Omit<CreateTemplateRequest, 'channel' | 'workspace_id'>),
           channel: 'email',
           workspace_id: workspace.id
         })
@@ -249,7 +250,7 @@ export function CreateTemplateDrawer({
   })
 
   const defaultTestData = useMemo(() => {
-    const endpoint = workspace.settings?.custom_endpoint_url || window.API_ENDPOINT
+    const endpoint = workspace.settings.custom_endpoint_url || window.API_ENDPOINT
     // These example values show available template variables for preview
     // Note: Preview links (mid=preview) show a "Preview Mode" message in the notification center
     // Real emails use secure HMACs for authentication
@@ -267,7 +268,7 @@ export function CreateTemplateDrawer({
       confirm_subscription_url: `${endpoint}/notification-center?action=confirm&email=john.doe@example.com&lid=newsletter&lname=Newsletter&wid=${workspace.id}&mid=preview&email_hmac=abc123`,
       notification_center_url: `${endpoint}/notification-center?email=john.doe@example.com&email_hmac=abc123&wid=${workspace.id}`
     }
-  }, [workspace.settings?.custom_endpoint_url, workspace.id])
+  }, [workspace.settings.custom_endpoint_url, workspace.id])
 
   const showDrawer = () => {
     if (template) {
@@ -384,9 +385,10 @@ export function CreateTemplateDrawer({
       // Refresh workspaces in AuthContext to immediately update the workspace state
       // This ensures the EmailBuilder shows the saved blocks without requiring a page refresh
       await refreshWorkspaces()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to save template block:', error)
-      message.error(error?.message || 'Failed to save template block')
+      const err = error as Error
+      message.error(err?.message || 'Failed to save template block')
     }
   }
 
@@ -461,7 +463,7 @@ export function CreateTemplateDrawer({
             }}
             onFinishFailed={(info) => {
               if (info.errorFields) {
-                info.errorFields.forEach((field: any) => {
+                info.errorFields.forEach((field) => {
                   // field.name can be an array, so we need to concatenate the array into a string
                   const fieldName = field.name.join('.')
                   if (
@@ -519,7 +521,7 @@ export function CreateTemplateDrawer({
                       <Form.Item name="name" label="Template name" rules={[{ required: true }]}>
                         <Input
                           placeholder="i.e: Welcome Email"
-                          onChange={(e: any) => {
+                          onChange={(e) => {
                             if (!template) {
                               const id = kebabCase(e.target.value)
                               form.setFieldsValue({ id: id })
@@ -548,7 +550,7 @@ export function CreateTemplateDrawer({
                                 try {
                                   await templatesApi.get({ workspace_id: workspace.id, id: value })
                                   return Promise.reject('Template ID already exists')
-                                } catch (error) {
+                                } catch {
                                   return Promise.resolve()
                                 }
                               }
@@ -695,14 +697,17 @@ export function CreateTemplateDrawer({
                       <EmailBuilder
                         tree={visualEditorTree}
                         onTreeChange={setVisualEditorTree}
-                        onCompile={async (tree: EmailBlock, testData?: any, channel?: string) => {
+                        onCompile={async (
+                          tree: EmailBlock,
+                          testData?: Record<string, unknown>
+                        ) => {
                           try {
                             const response = await templatesApi.compile({
                               workspace_id: workspace.id,
                               message_id: 'preview',
-                              visual_editor_tree: tree as any,
+                              visual_editor_tree: tree,
                               test_data: testData || {},
-                              channel: channel || 'email',
+                              channel: 'email',
                               tracking_settings: {
                                 enable_tracking:
                                   workspace.settings?.email_tracking_enabled || false,
@@ -716,7 +721,7 @@ export function CreateTemplateDrawer({
                               return {
                                 html: '',
                                 mjml: response.mjml || '',
-                                errors: [response.error]
+                                errors: [response.error as unknown as Record<string, unknown>]
                               }
                             }
 
@@ -725,12 +730,13 @@ export function CreateTemplateDrawer({
                               mjml: response.mjml || '',
                               errors: []
                             }
-                          } catch (error: any) {
+                          } catch (error) {
                             console.error('Compilation error:', error)
+                            const err = error as Error
                             return {
                               html: '',
                               mjml: '',
-                              errors: [{ message: error.message || 'Compilation failed' }]
+                              errors: [{ message: err.message || 'Compilation failed' }]
                             }
                           }
                         }}
@@ -792,7 +798,8 @@ export function CreateTemplateDrawer({
             onChange={(current) => {
               // Change email builder state based on tour step
               switch (current) {
-                case 2: // Edit panel step (0-indexed)
+                case 2: {
+                  // Edit panel step (0-indexed)
                   // Select the body block to demonstrate block selection
                   const bodyBlock = visualEditorTree.children?.find(
                     (child) => child.type === 'mj-body'
@@ -802,6 +809,7 @@ export function CreateTemplateDrawer({
                   }
                   setForcedViewMode('edit')
                   break
+                }
                 case 4: // Preview step (0-indexed)
                 case 5: // Mobile/Desktop preview step
                   // Automatically switch to preview mode when reaching the preview steps

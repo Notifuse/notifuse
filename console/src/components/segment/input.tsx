@@ -227,7 +227,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
     if (props.onChange) props.onChange(clonedTree)
   }
 
-  const addTreeNode = (path: string, key: number, values: (string | number)[], selectedOptions: CascaderOption[]) => {
+  const addTreeNode = (path: string, key: number, values: (string | number | null)[], selectedOptions: (CascaderOption | undefined)[]) => {
     // console.log('values', values);
     // console.log('selectedOptions', selectedOptions);
     // console.log('path', path);
@@ -264,7 +264,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
 
     // Add leaf
     const leaf = {
-      source: selectedOptions[0].value
+      source: selectedOptions[0]?.value
     } as TreeNodeLeaf
 
     // Initialize based on source type

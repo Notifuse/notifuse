@@ -171,23 +171,25 @@ export const workspaceContactsRoute = createRoute({
   })
 })
 
+const WorkspaceSettingsRedirect = () => {
+  const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/settings' })
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    navigate({
+      to: '/console/workspace/$workspaceId/settings/$section',
+      params: { workspaceId, section: 'team' },
+      replace: true
+    })
+  }, [workspaceId, navigate])
+
+  return null
+}
+
 const workspaceSettingsRedirectRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/settings',
-  component: () => {
-    const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/settings' })
-    const navigate = useNavigate()
-
-    useEffect(() => {
-      navigate({
-        to: '/console/workspace/$workspaceId/settings/$section',
-        params: { workspaceId, section: 'team' },
-        replace: true
-      })
-    }, [workspaceId, navigate])
-
-    return null
-  }
+  component: WorkspaceSettingsRedirect
 })
 
 const workspaceSettingsRoute = createRoute({

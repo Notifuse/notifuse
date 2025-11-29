@@ -50,6 +50,7 @@ export const FailedMessagesTable: React.FC<FailedMessagesTableProps> = ({ worksp
 
   useEffect(() => {
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace.id])
 
   const cardExtra = (

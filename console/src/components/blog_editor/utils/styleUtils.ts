@@ -1,4 +1,4 @@
-import type { EditorStyleConfig, CSSValue } from '../types/EditorStyleConfig'
+import type { EditorStyleConfig } from '../types/EditorStyleConfig'
 import { cssValueToString } from '../types/EditorStyleConfig'
 
 /**

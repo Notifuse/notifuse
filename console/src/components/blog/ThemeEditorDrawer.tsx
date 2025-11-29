@@ -13,6 +13,10 @@ import { ThemePreset, THEME_PRESETS } from './themePresets'
 
 const { TextArea } = Input
 
+interface DraftWindow extends Window {
+  __themeDraft?: DraftState
+}
+
 interface ThemeEditorDrawerProps {
   open: boolean
   onClose: () => void
@@ -78,6 +82,17 @@ export function ThemeEditorDrawer({
   const isPublished = theme?.published_at !== null && theme?.published_at !== undefined
   const localStorageKey = getLocalStorageKey(workspaceId, theme?.version || null)
 
+  // Helper function to load theme data - defined before useEffect that uses it
+  const loadThemeData = () => {
+    if (theme) {
+      setFiles(theme.files)
+      setPreviewFiles(theme.files)
+      setNotes(theme.notes || '')
+      setSelectedFile('home.liquid')
+      setHasUnsavedChanges(false)
+    }
+  }
+
   // Load theme data or draft from localStorage
   useEffect(() => {
     if (!open) return
@@ -92,7 +107,7 @@ export function ThemeEditorDrawer({
           if (draft.timestamp > new Date(theme.updated_at).getTime()) {
             setShowRestorePrompt(true)
             // Temporarily store draft for potential restoration
-            ;(window as any).__themeDraft = draft
+            ;(window as DraftWindow).__themeDraft = draft
           } else {
             // Draft is older, discard it
             localStorage.removeItem(localStorageKey)
@@ -116,20 +131,11 @@ export function ThemeEditorDrawer({
       setSelectedFile('home.liquid')
       setHasUnsavedChanges(false)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [theme, open, localStorageKey, presetData])
 
-  const loadThemeData = () => {
-    if (theme) {
-      setFiles(theme.files)
-      setPreviewFiles(theme.files)
-      setNotes(theme.notes || '')
-      setSelectedFile('home.liquid')
-      setHasUnsavedChanges(false)
-    }
-  }
-
   const handleRestoreDraft = () => {
-    const draft = (window as any).__themeDraft as DraftState
+    const draft = (window as DraftWindow).__themeDraft
     if (draft) {
       setFiles(draft.files)
       setPreviewFiles(draft.files)
@@ -139,13 +145,13 @@ export function ThemeEditorDrawer({
       message.info('Draft restored from local storage')
     }
     setShowRestorePrompt(false)
-    delete (window as any).__themeDraft
+    delete (window as DraftWindow).__themeDraft
   }
 
   const handleDiscardDraft = () => {
     localStorage.removeItem(localStorageKey)
     setShowRestorePrompt(false)
-    delete (window as any).__themeDraft
+    delete (window as DraftWindow).__themeDraft
     loadThemeData()
   }
 
@@ -247,7 +253,7 @@ export function ThemeEditorDrawer({
       queryClient.invalidateQueries({ queryKey: ['blog-themes', workspaceId] })
       onClose()
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       message.error(error?.message || 'Failed to save theme')
     }
   })

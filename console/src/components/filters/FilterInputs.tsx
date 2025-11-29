@@ -35,7 +35,7 @@ export function DateFilterInput({ field, value, onChange, className }: FilterInp
   )
 }
 
-export function BooleanFilterInput({ field, value, onChange, className }: FilterInputProps) {
+export function BooleanFilterInput({ value, onChange, className }: FilterInputProps) {
   return <Switch checked={value as boolean} onChange={onChange} className={className} />
 }
 

@@ -15,7 +15,7 @@ export interface WebhookRegistrationStatus {
   is_registered: boolean
   endpoints?: WebhookEndpointStatus[]
   error?: string
-  provider_details?: Record<string, any>
+  provider_details?: Record<string, unknown>
 }
 
 export interface RegisterWebhookRequest {

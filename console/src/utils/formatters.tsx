@@ -7,7 +7,7 @@ import dayjs from '../lib/dayjs'
  * Smart formatting for all JSON types
  * Handles: booleans (tags), numbers (localized), dates (relative), objects/arrays (tooltips), strings (truncation)
  */
-export const formatValue = (value: any, timezone?: string): React.ReactNode => {
+export const formatValue = (value: unknown, timezone?: string): React.ReactNode => {
   if (value === null || value === undefined) {
     return <span style={{ fontStyle: 'italic', color: '#999' }}>null</span>
   }

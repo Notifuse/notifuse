@@ -1,11 +1,7 @@
 import React from 'react'
 import { Select, InputNumber, Row, Col, Input } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJSocialElementAttributes } from '../types'
-import {
-  BaseEmailBlock,
-  type OnUpdateAttributesFunction,
-  type PreviewProps
-} from './BaseEmailBlock'
+import type { MJMLComponentType, MJSocialElementAttributes } from '../types'
+import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
 import InputLayout from '../ui/InputLayout'
@@ -111,7 +107,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
     return 'content'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-social-element'] || {}
   }
 
@@ -126,12 +122,9 @@ export class MjSocialElementBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the social element block
    */
-  renderSettingsPanel(
-    onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
-    _emailTree?: EmailBlock
-  ): React.ReactNode {
+  renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
     const currentAttributes = this.block.attributes as MJSocialElementAttributes
+    const blockDefaults = this.getDefaults() as MJSocialElementAttributes
 
     return (
       <PanelLayout title="Social Element Attributes">
@@ -613,15 +606,7 @@ export class MjSocialElementBlock extends BaseEmailBlock {
   }
 
   getEdit(props: PreviewProps): React.ReactNode {
-    const {
-      selectedBlockId,
-      onSelectBlock,
-      attributeDefaults,
-      onCloneBlock,
-      onDeleteBlock,
-      onSaveBlock,
-      savedBlocks
-    } = props
+    const { selectedBlockId, onSelectBlock, attributeDefaults } = props
 
     const key = this.block.id
     const isSelected = selectedBlockId === this.block.id
@@ -640,12 +625,13 @@ export class MjSocialElementBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-social-element',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown>,
       attributeDefaults
     )
 
     // Get content (text label) if available
-    const content = (this.block as any).content || ''
+    const blockWithContent = this.block as unknown as Record<string, unknown>
+    const content = typeof blockWithContent.content === 'string' ? blockWithContent.content : ''
 
     // Get icon source URL (either custom src or MageCDN URL)
     const iconSrc = attrs.src || this.getSocialIcon(attrs.name)

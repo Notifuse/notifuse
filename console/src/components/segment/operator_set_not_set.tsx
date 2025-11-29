@@ -1,5 +1,4 @@
-import { FormInstance } from 'antd'
-import { FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
+import { IOperator, Operator } from '../../services/api/segment'
 
 export class OperatorSet implements IOperator {
   type: Operator = 'is_set'
@@ -9,7 +8,7 @@ export class OperatorSet implements IOperator {
     return <span className="opacity-60 pt-0.5">{this.label}</span>
   }
 
-  renderFormItems(_fieldType: FieldTypeValue, _fieldName: string, _form: FormInstance) {
+  renderFormItems() {
     return <></>
   }
 }
@@ -22,7 +21,7 @@ export class OperatorNotSet implements IOperator {
     return <span className="opacity-60 pt-0.5">{this.label}</span>
   }
 
-  renderFormItems(_fieldType: FieldTypeValue, _fieldName: string, _form: FormInstance) {
+  renderFormItems() {
     return <></>
   }
 }

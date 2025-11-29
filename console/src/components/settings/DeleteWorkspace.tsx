@@ -4,7 +4,7 @@ import { Workspace } from '../../services/api/types'
 import { workspaceService } from '../../services/api/workspace'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
 
-const { Text, Title, Paragraph } = Typography
+const { Text } = Typography
 
 interface DeleteWorkspaceSectionProps {
   workspace: Workspace

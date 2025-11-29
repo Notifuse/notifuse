@@ -3,6 +3,7 @@ import { Popover } from 'antd'
 import { Repeat2, ChevronRight } from 'lucide-react'
 import type { MenuProps } from 'antd'
 import { useBlockTransformations } from './useBlockTransformations'
+import type { ActionItemConfig } from './block-actions-types'
 
 /**
  * BlockTransformPopover - Transform options popover for block actions menu
@@ -18,7 +19,7 @@ export function useBlockTransformPopover(
     return null
   }
 
-  const handleTransformClick = (transformation: any) => {
+  const handleTransformClick = (transformation: Omit<ActionItemConfig, 'shortcut'>) => {
     if (!transformation.disabled) {
       // Close popover first
       setOpen(false)

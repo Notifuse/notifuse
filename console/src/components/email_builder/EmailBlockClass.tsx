@@ -1,6 +1,6 @@
 import React from 'react'
 import { v4 as uuidv4 } from 'uuid'
-import type { EmailBlock, MJMLComponentType, SaveOperation, SavedBlock } from './types'
+import type { EmailBlock, MJMLComponentType, SaveOperation, SavedBlock, MergedBlockAttributes, BaseBlock } from './types'
 import { MJML_COMPONENT_DEFAULTS, mergeWithDefaults } from './mjml-defaults'
 import { EmailBlockFactory } from './blocks/EmailBlockFactory'
 import type { OnUpdateAttributesFunction, PreviewProps } from './blocks/BaseEmailBlock'
@@ -261,15 +261,15 @@ export class EmailBlockClass {
    * Render the settings panel using the new block architecture
    */
   getRenderSettingsPanel(
-    currentAttributes: Record<string, any>,
+    _currentAttributes: Record<string, unknown>,
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>
+    blockDefaults: Record<string, unknown>
   ): React.ReactNode {
     // Try to use the new block class architecture first
     try {
       if (EmailBlockFactory.hasBlockType(this.block.type)) {
         const blockInstance = EmailBlockFactory.createBlock(this.block)
-        return blockInstance.renderSettingsPanel(onUpdate, blockDefaults)
+        return blockInstance.renderSettingsPanel(onUpdate, blockDefaults as MergedBlockAttributes)
       }
     } catch (error) {
       console.error(`Error rendering settings panel for ${this.block.type}:`, error)
@@ -281,7 +281,7 @@ export class EmailBlockClass {
   /**
    * Get default attributes for the component type
    */
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS[this.block.type] || {}
   }
 
@@ -319,7 +319,7 @@ export class EmailBlockClass {
         const blockInstance = EmailBlockFactory.createBlock(this.block)
         return blockInstance.canHaveChildren()
       }
-    } catch (error) {
+    } catch {
       // Fall back to legacy implementation
     }
 
@@ -338,7 +338,7 @@ export class EmailBlockClass {
         const blockInstance = EmailBlockFactory.createBlock(this.block)
         return blockInstance.getValidChildTypes()
       }
-    } catch (error) {
+    } catch {
       // Fall back to legacy implementation
     }
 
@@ -433,7 +433,7 @@ export class EmailBlockClass {
     const globalDefaults = MJML_COMPONENT_DEFAULTS[type] || {}
 
     // Extract mj-attributes defaults if emailTree is provided
-    let attributeDefaults: Record<string, any> = {}
+    let attributeDefaults: Record<string, unknown> = {}
     if (emailTree) {
       const mjAttributesDefaults = EmailBlockClass.extractAttributeDefaults(emailTree)
       attributeDefaults = mjAttributesDefaults[type] || {}
@@ -442,8 +442,14 @@ export class EmailBlockClass {
     // Merge defaults: globalDefaults < attributeDefaults
     const mergedAttributes = { ...globalDefaults, ...attributeDefaults }
 
-    // Create base block structure
-    const block: any = {
+    // Create base block structure with mutable type for building
+    const block: {
+      id: string
+      type: MJMLComponentType
+      attributes: Record<string, unknown>
+      children?: BaseBlock[]
+      content?: string
+    } = {
       id: id || EmailBlockClass.generateId(),
       type,
       attributes: mergedAttributes
@@ -487,7 +493,7 @@ export class EmailBlockClass {
 
     // Add default social elements for mj-social blocks
     if (type === 'mj-social') {
-      const defaultSocialElements = [
+      const defaultSocialElements: BaseBlock[] = [
         {
           id: EmailBlockClass.generateId(),
           type: 'mj-social-element' as MJMLComponentType,
@@ -607,15 +613,18 @@ export class EmailBlockClass {
     // Create deep copy to avoid mutation
     const newTree = JSON.parse(JSON.stringify(tree)) as EmailBlock
 
-    const insertBlock = (current: any, targetParentId: string): boolean => {
+    const insertBlock = (current: EmailBlock, targetParentId: string): boolean => {
       if (current.id === targetParentId) {
-        if (!current.children) {
-          current.children = []
-        }
+        // Use a mutable children array for manipulation
+        const children = (current.children || []) as BaseBlock[]
 
         // Ensure position is within bounds
-        const insertPosition = Math.max(0, Math.min(position, current.children.length))
-        current.children.splice(insertPosition, 0, block)
+        const insertPosition = Math.max(0, Math.min(position, children.length))
+        // Use type assertion since EmailBlock children arrays are readonly by type
+        children.splice(insertPosition, 0, block as BaseBlock)
+
+        // Assign back to current
+        ;(current as { children: BaseBlock[] }).children = children
         return true
       }
 
@@ -685,8 +694,8 @@ export class EmailBlockClass {
    */
   static extractAttributeDefaults(
     mjmlTree: EmailBlock
-  ): Partial<Record<MJMLComponentType, Record<string, any>>> {
-    const defaults: Partial<Record<MJMLComponentType, Record<string, any>>> = {}
+  ): Partial<Record<MJMLComponentType, Record<string, unknown>>> {
+    const defaults: Partial<Record<MJMLComponentType, Record<string, unknown>>> = {}
 
     // Find mj-head block
     const mjHead = mjmlTree.children?.find((child) => child.type === 'mj-head')
@@ -699,7 +708,7 @@ export class EmailBlockClass {
     // Extract defaults for each component type
     mjAttributes.children.forEach((attributeBlock) => {
       if (attributeBlock.attributes) {
-        defaults[attributeBlock.type as MJMLComponentType] = attributeBlock.attributes
+        defaults[attributeBlock.type as MJMLComponentType] = attributeBlock.attributes as Record<string, unknown>
       }
     })
 
@@ -711,14 +720,14 @@ export class EmailBlockClass {
    */
   static mergeWithAllDefaults(
     componentType: MJMLComponentType,
-    blockAttributes: Record<string, any> = {},
-    attributeDefaults: Partial<Record<MJMLComponentType, Record<string, any>>> = {}
-  ): Record<string, any> {
+    blockAttributes: Record<string, unknown> | undefined = {},
+    attributeDefaults: Partial<Record<MJMLComponentType, Record<string, unknown>>> = {}
+  ): MergedBlockAttributes {
     const globalDefaults = mergeWithDefaults(componentType, {})
     const customDefaults = attributeDefaults[componentType] || {}
 
     // Priority: blockAttributes > customDefaults > globalDefaults
-    return { ...globalDefaults, ...customDefaults, ...blockAttributes }
+    return { ...globalDefaults, ...customDefaults, ...blockAttributes } as MergedBlockAttributes
   }
 
   /**
@@ -727,7 +736,7 @@ export class EmailBlockClass {
    */
   static renderEmailBlock(
     block: EmailBlock,
-    attributeDefaults: Partial<Record<MJMLComponentType, Record<string, any>>>,
+    attributeDefaults: Partial<Record<MJMLComponentType, Record<string, unknown>>>,
     selectedBlockId: string | null,
     onSelectBlock: (blockId: string) => void,
     emailTree: EmailBlock,
@@ -841,7 +850,7 @@ export class EmailBlockClass {
     const attributes = EmailBlockClass.createBlock('mj-attributes', 'attributes-1')
 
     // Create attribute defaults for each component type
-    const textDefaults = EmailBlockClass.createBlock('mj-text', 'text-defaults-1') as any
+    const textDefaults = EmailBlockClass.createBlock('mj-text', 'text-defaults-1')
     textDefaults.attributes = {
       ...defaults['mj-text'],
       fontSize: '16px',
@@ -855,7 +864,7 @@ export class EmailBlockClass {
       paddingLeft: '25px'
     }
 
-    const buttonDefaults = EmailBlockClass.createBlock('mj-button', 'button-defaults-1') as any
+    const buttonDefaults = EmailBlockClass.createBlock('mj-button', 'button-defaults-1')
     buttonDefaults.attributes = {
       ...defaults['mj-button'],
       backgroundColor: '#007bff',
@@ -876,7 +885,7 @@ export class EmailBlockClass {
       textTransform: 'none'
     }
 
-    const imageDefaults = EmailBlockClass.createBlock('mj-image', 'image-defaults-1') as any
+    const imageDefaults = EmailBlockClass.createBlock('mj-image', 'image-defaults-1')
     imageDefaults.attributes = {
       ...defaults['mj-image'],
       width: '150px',
@@ -884,7 +893,7 @@ export class EmailBlockClass {
       src: 'https://placehold.co/150x60/E3F2FD/1976D2?font=playfair-display&text=LOGO'
     }
 
-    const sectionDefaults = EmailBlockClass.createBlock('mj-section', 'section-defaults-1') as any
+    const sectionDefaults = EmailBlockClass.createBlock('mj-section', 'section-defaults-1')
     sectionDefaults.attributes = {
       ...defaults['mj-section'],
       paddingTop: '20px',
@@ -893,14 +902,14 @@ export class EmailBlockClass {
       fullWidth: 'full-width'
     }
 
-    const columnDefaults = EmailBlockClass.createBlock('mj-column', 'column-defaults-1') as any
+    const columnDefaults = EmailBlockClass.createBlock('mj-column', 'column-defaults-1')
     columnDefaults.attributes = {
       ...defaults['mj-column'],
       width: '100%'
     }
 
     // Add defaults to attributes block
-    ;(attributes as any).children = [
+    ;(attributes as BaseBlock).children = [
       textDefaults,
       buttonDefaults,
       imageDefaults,
@@ -916,19 +925,19 @@ export class EmailBlockClass {
     )
 
     // Add attributes first, then preview to head
-    ;(head as any).children = [attributes, preview]
+    ;(head as BaseBlock).children = [attributes, preview]
 
     // Create body block
     const body = EmailBlockClass.createBlock('mj-body', 'body-1')
-    ;(body as any).attributes = { width: '600px', backgroundColor: '#f8f9fa' }
+    body.attributes = { width: '600px', backgroundColor: '#f8f9fa' }
 
     // Build the email tree so far
-    ;(mjml as any).children = [head, body]
+    ;(mjml as BaseBlock).children = [head, body]
     let emailTree = mjml
 
     // Create wrapper with 20px padding around the sections
     const wrapper = EmailBlockClass.createBlock('mj-wrapper', 'wrapper-1')
-    ;(wrapper as any).attributes = {
+    wrapper.attributes = {
       paddingTop: '20px',
       paddingRight: '20px',
       paddingBottom: '20px',
@@ -940,7 +949,7 @@ export class EmailBlockClass {
 
     // Create full-width hero section with background image (inside wrapper)
     const heroSection = EmailBlockClass.createBlock('mj-section', 'hero-section-1')
-    ;(heroSection as any).attributes = {
+    heroSection.attributes = {
       fullWidth: 'full-width',
       backgroundUrl:
         'https://images.unsplash.com/photo-1495419597644-19934b6b7c40?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8N3x8YmVhY2glMjBwYXN0ZWx8ZW58MHx8MHx8fDA%3D',
@@ -959,15 +968,15 @@ export class EmailBlockClass {
 
     // Create hero column
     const heroColumn = EmailBlockClass.createBlock('mj-column', 'hero-column-1')
-    ;(heroColumn as any).attributes = { width: '100%' }
+    heroColumn.attributes = { width: '100%' }
 
     // Insert hero column into hero section
     emailTree = EmailBlockClass.insertBlockIntoTree(emailTree, 'hero-section-1', heroColumn, 0)!
 
     // Add logo image to hero
     const logo = EmailBlockClass.createBlock('mj-image', 'logo-1', undefined, emailTree)
-    ;(logo as any).attributes = {
-      ...(logo as any).attributes,
+    logo.attributes = {
+      ...logo.attributes,
       src: 'https://placehold.co/150x60/E3F2FD/1976D2?font=playfair-display&text=LOGO',
       width: '150px',
       paddingBottom: '20px'
@@ -975,9 +984,9 @@ export class EmailBlockClass {
 
     // Add hero title with styling moved to attributes
     const heroTitle = EmailBlockClass.createBlock('mj-text', 'hero-title-1', undefined, emailTree)
-    ;(heroTitle as any).content = 'Beautiful Email Templates'
-    ;(heroTitle as any).attributes = {
-      ...(heroTitle as any).attributes,
+    heroTitle.content = 'Beautiful Email Templates'
+    heroTitle.attributes = {
+      ...heroTitle.attributes,
       color: '#ffffff',
       align: 'center',
       paddingBottom: '20px',
@@ -996,10 +1005,10 @@ export class EmailBlockClass {
       undefined,
       emailTree
     )
-    ;(heroSubtitle as any).content =
+    heroSubtitle.content =
       'Create stunning, responsive emails with our powerful MJML builder'
-    ;(heroSubtitle as any).attributes = {
-      ...(heroSubtitle as any).attributes,
+    heroSubtitle.attributes = {
+      ...heroSubtitle.attributes,
       color: '#000000',
       align: 'center',
       paddingBottom: '30px',
@@ -1018,8 +1027,8 @@ export class EmailBlockClass {
       'Get Started Today',
       emailTree
     )
-    ;(heroButton as any).attributes = {
-      ...(heroButton as any).attributes,
+    heroButton.attributes = {
+      ...heroButton.attributes,
       href: '#',
       backgroundColor: '#EC407A',
       color: '#ffffff',
@@ -1047,7 +1056,7 @@ export class EmailBlockClass {
 
     // Create title section
     const titleSection = EmailBlockClass.createBlock('mj-section', 'title-section')
-    ;(titleSection as any).attributes = {
+    titleSection.attributes = {
       backgroundColor: '#ffffff',
       borderRadius: '8px',
       paddingTop: '25px',
@@ -1061,16 +1070,16 @@ export class EmailBlockClass {
 
     // Create column for title section
     const titleColumn = EmailBlockClass.createBlock('mj-column', 'title-column')
-    ;(titleColumn as any).attributes = { width: '100%' }
+    titleColumn.attributes = { width: '100%' }
 
     // Insert column into title section
     emailTree = EmailBlockClass.insertBlockIntoTree(emailTree, 'title-section', titleColumn, 0)!
 
     // Add title text with styling moved to attributes
     const title = EmailBlockClass.createBlock('mj-text', 'title-1', undefined, emailTree)
-    ;(title as any).content = 'Welcome {{name}} to MJML email builder'
-    ;(title as any).attributes = {
-      ...(title as any).attributes,
+    title.content = 'Welcome {{name}} to MJML email builder'
+    title.attributes = {
+      ...title.attributes,
       color: '#EC407A',
       align: 'center',
       paddingBottom: '15px',
@@ -1086,10 +1095,10 @@ export class EmailBlockClass {
       undefined,
       emailTree
     )
-    ;(explanation as any).content =
+    explanation.content =
       "This section demonstrates MJML components. Below you'll see a group that prevents its columns from stacking on mobile devices."
-    ;(explanation as any).attributes = {
-      ...(explanation as any).attributes,
+    explanation.attributes = {
+      ...explanation.attributes,
       align: 'center',
       color: '#666666',
       paddingBottom: '25px'
@@ -1102,8 +1111,8 @@ export class EmailBlockClass {
       'Learn More About MJML',
       emailTree
     )
-    ;(button1 as any).attributes = {
-      ...(button1 as any).attributes,
+    button1.attributes = {
+      ...button1.attributes,
       href: 'https://documentation.mjml.io/',
       backgroundColor: '#EC407A',
       paddingBottom: '30px'
@@ -1116,8 +1125,8 @@ export class EmailBlockClass {
 
     // Add divider block directly to title column with padding for better selectability
     const divider = EmailBlockClass.createBlock('mj-divider', 'divider-1', undefined, emailTree)
-    ;(divider as any).attributes = {
-      ...(divider as any).attributes,
+    divider.attributes = {
+      ...divider.attributes,
       borderColor: '#dee2e6',
       borderStyle: 'solid',
       borderWidth: '2px',
@@ -1134,7 +1143,7 @@ export class EmailBlockClass {
 
     // Create section with group content (removed green borders)
     const section1 = EmailBlockClass.createBlock('mj-section', 'section-1')
-    ;(section1 as any).attributes = {
+    section1.attributes = {
       backgroundColor: '#ffffff',
       borderRadius: '8px',
       paddingTop: '25px',
@@ -1148,7 +1157,7 @@ export class EmailBlockClass {
 
     // Create group to prevent mobile stacking
     const group1 = EmailBlockClass.createBlock('mj-group', 'group-1')
-    ;(group1 as any).attributes = {
+    group1.attributes = {
       width: '100%',
       backgroundColor: '#f8f9fa'
     }
@@ -1156,19 +1165,19 @@ export class EmailBlockClass {
 
     // Add first column to group
     const column2 = EmailBlockClass.createBlock('mj-column', 'column-2')
-    ;(column2 as any).attributes = { width: '50%' }
+    column2.attributes = { width: '50%' }
     emailTree = EmailBlockClass.insertBlockIntoTree(emailTree, 'group-1', column2, 0)!
 
     // Add second column to group
     const column3 = EmailBlockClass.createBlock('mj-column', 'column-3')
-    ;(column3 as any).attributes = { width: '50%' }
+    column3.attributes = { width: '50%' }
     emailTree = EmailBlockClass.insertBlockIntoTree(emailTree, 'group-1', column3, 1)!
 
     // Add content to left column with styling moved to attributes
     const leftTitle = EmailBlockClass.createBlock('mj-text', 'left-title-1', undefined, emailTree)
-    ;(leftTitle as any).content = 'Left Column'
-    ;(leftTitle as any).attributes = {
-      ...(leftTitle as any).attributes,
+    leftTitle.content = 'Left Column'
+    leftTitle.attributes = {
+      ...leftTitle.attributes,
       color: '#EC407A',
       align: 'center',
       paddingBottom: '10px',
@@ -1178,10 +1187,10 @@ export class EmailBlockClass {
     }
 
     const leftText = EmailBlockClass.createBlock('mj-text', 'left-text-1', undefined, emailTree)
-    ;(leftText as any).content =
+    leftText.content =
       'This column stays side-by-side with the right column even on mobile devices because both columns are inside an mj-group element.'
-    ;(leftText as any).attributes = {
-      ...(leftText as any).attributes,
+    leftText.attributes = {
+      ...leftText.attributes,
       align: 'center',
       color: '#666666',
       fontSize: '14px'
@@ -1189,9 +1198,9 @@ export class EmailBlockClass {
 
     // Add content to right column with styling moved to attributes
     const rightTitle = EmailBlockClass.createBlock('mj-text', 'right-title-1', undefined, emailTree)
-    ;(rightTitle as any).content = 'Right Column'
-    ;(rightTitle as any).attributes = {
-      ...(rightTitle as any).attributes,
+    rightTitle.content = 'Right Column'
+    rightTitle.attributes = {
+      ...rightTitle.attributes,
       color: '#EC407A',
       align: 'center',
       paddingBottom: '10px',
@@ -1201,10 +1210,10 @@ export class EmailBlockClass {
     }
 
     const rightText = EmailBlockClass.createBlock('mj-text', 'right-text-1', undefined, emailTree)
-    ;(rightText as any).content =
+    rightText.content =
       'Groups prevent the default mobile stacking behavior. Without a group, these columns would stack vertically on mobile for better readability.'
-    ;(rightText as any).attributes = {
-      ...(rightText as any).attributes,
+    rightText.attributes = {
+      ...rightText.attributes,
       align: 'center',
       color: '#666666',
       fontSize: '14px'
@@ -1218,7 +1227,7 @@ export class EmailBlockClass {
 
     // Add a demo mj-raw block at the end
     const rawBlock = EmailBlockClass.createBlock('mj-raw', 'raw-demo-1', undefined, emailTree)
-    ;(rawBlock as any).content = `<!-- Custom CSS for email clients -->
+    rawBlock.content = `<!-- Custom CSS for email clients -->
 <style type="text/css">
   .custom-highlight {
     background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
@@ -1244,7 +1253,7 @@ export class EmailBlockClass {
 
     // Create social media section at the bottom
     const socialSection = EmailBlockClass.createBlock('mj-section', 'social-section-1')
-    ;(socialSection as any).attributes = {
+    socialSection.attributes = {
       backgroundColor: '#ffffff',
       borderRadius: '8px',
       paddingTop: '25px',
@@ -1258,7 +1267,7 @@ export class EmailBlockClass {
 
     // Create column for social section
     const socialColumn = EmailBlockClass.createBlock('mj-column', 'social-column-1')
-    ;(socialColumn as any).attributes = { width: '100%' }
+    socialColumn.attributes = { width: '100%' }
 
     // Insert column into social section
     emailTree = EmailBlockClass.insertBlockIntoTree(emailTree, 'social-section-1', socialColumn, 0)!
@@ -1270,9 +1279,9 @@ export class EmailBlockClass {
       undefined,
       emailTree
     )
-    ;(socialTitle as any).content = 'Connect With Us'
-    ;(socialTitle as any).attributes = {
-      ...(socialTitle as any).attributes,
+    socialTitle.content = 'Connect With Us'
+    socialTitle.attributes = {
+      ...socialTitle.attributes,
       color: '#EC407A',
       align: 'center',
       paddingBottom: '20px',
@@ -1283,8 +1292,8 @@ export class EmailBlockClass {
 
     // Create mj-social block (will automatically get Facebook, Instagram, and X elements)
     const socialBlock = EmailBlockClass.createBlock('mj-social', 'social-1', undefined, emailTree)
-    ;(socialBlock as any).attributes = {
-      ...(socialBlock as any).attributes,
+    socialBlock.attributes = {
+      ...socialBlock.attributes,
       mode: 'horizontal',
       align: 'center',
       iconSize: '40px',
@@ -1333,7 +1342,7 @@ export class EmailBlockClass {
       if (!column.attributes) {
         column.attributes = {}
       }
-      ;(column.attributes as any).width = equalWidth
+      column.attributes.width = equalWidth
     })
 
     console.log(
@@ -1371,7 +1380,7 @@ export class EmailBlockClass {
             const equalWidth = `${100 / sourceColumns.length}%`
             sourceColumns.forEach((column) => {
               if (!column.attributes) column.attributes = {}
-              ;(column.attributes as any).width = equalWidth
+              column.attributes.width = equalWidth
             })
           }
         } else if (sourceParent.type === 'mj-group') {
@@ -1390,7 +1399,7 @@ export class EmailBlockClass {
           const equalWidth = `${100 / targetColumns.length}%`
           targetColumns.forEach((column) => {
             if (!column.attributes) column.attributes = {}
-            ;(column.attributes as any).width = equalWidth
+            column.attributes.width = equalWidth
           })
         }
       } else if (targetParent.type === 'mj-group') {
@@ -1416,12 +1425,12 @@ export class EmailBlockClass {
     const traverse = (node: EmailBlock): void => {
       // Check if this node has fontFamily attribute that matches the removed font
       if (node.attributes && 'fontFamily' in node.attributes) {
-        const currentFontFamily = (node.attributes as any).fontFamily
+        const currentFontFamily = node.attributes.fontFamily
         if (currentFontFamily === removedFontName) {
           console.log(
             `Resetting fontFamily from "${removedFontName}" to "${defaultFont}" for block ${node.id} (${node.type})`
           )
-          ;(node.attributes as any).fontFamily = defaultFont
+          node.attributes.fontFamily = defaultFont
         }
       }
 

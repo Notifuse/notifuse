@@ -21,12 +21,13 @@ export function FileManagerPage() {
     if (workspaceId && workspaces.length > 0) {
       const workspace = workspaces.find((w) => w.id === workspaceId)
       if (workspace) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setCurrentWorkspace(workspace)
       }
     }
   }, [workspaceId, workspaces])
 
-  const handleError = (error: any) => {
+  const handleError = (error: Error) => {
     console.error('File manager error:', error)
     message.error('An error occurred with the file manager')
   }
@@ -58,7 +59,7 @@ export function FileManagerPage() {
             cdn_endpoint: newSettings.cdn_endpoint,
             force_path_style: newSettings.force_path_style
           }
-        } as any // Use type assertion to bypass the type checking
+        }
       })
 
       // Refresh workspaces to get the updated data

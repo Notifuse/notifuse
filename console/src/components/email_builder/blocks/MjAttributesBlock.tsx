@@ -1,10 +1,6 @@
 import React from 'react'
-import type { MJMLComponentType, EmailBlock } from '../types'
-import {
-  BaseEmailBlock,
-  type OnUpdateAttributesFunction,
-  type PreviewProps
-} from './BaseEmailBlock'
+import type { MJMLComponentType } from '../types'
+import { BaseEmailBlock } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import PanelLayout from '../panels/PanelLayout'
 
@@ -28,7 +24,7 @@ export class MjAttributesBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-attributes'] || {}
   }
 
@@ -44,11 +40,7 @@ export class MjAttributesBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the attributes block
    */
-  renderSettingsPanel(
-    _onUpdate: OnUpdateAttributesFunction,
-    _blockDefaults: Record<string, any>,
-    _emailTree?: EmailBlock
-  ): React.ReactNode {
+  renderSettingsPanel(): React.ReactNode {
     return (
       <PanelLayout title="Default Attributes">
         <div className="text-sm text-gray-500 text-center py-8">
@@ -61,7 +53,7 @@ export class MjAttributesBlock extends BaseEmailBlock {
     )
   }
 
-  getEdit(_props: PreviewProps): React.ReactNode {
+  getEdit(): React.ReactNode {
     // Attributes blocks don't render in preview (they contain configuration)
     return null
   }

@@ -17,8 +17,8 @@ export interface Template {
   utm_source?: string
   utm_medium?: string
   utm_campaign?: string
-  test_data?: Record<string, any>
-  settings?: Record<string, any>
+  test_data?: Record<string, unknown>
+  settings?: Record<string, unknown>
   created_at: string
   updated_at: string
 }
@@ -34,7 +34,7 @@ export interface EmailTemplate {
 }
 
 export interface WebTemplate {
-  content?: any // Tiptap JSON (source of truth)
+  content?: unknown // Tiptap JSON (source of truth)
   html?: string // Pre-rendered HTML for display
   plain_text?: string // Extracted text for search indexing
 }
@@ -63,8 +63,8 @@ export interface CreateTemplateRequest {
   utm_source?: string
   utm_medium?: string
   utm_campaign?: string
-  test_data?: Record<string, any>
-  settings?: Record<string, any>
+  test_data?: Record<string, unknown>
+  settings?: Record<string, unknown>
 }
 
 export interface UpdateTemplateRequest {
@@ -79,8 +79,8 @@ export interface UpdateTemplateRequest {
   utm_source?: string
   utm_medium?: string
   utm_campaign?: string
-  test_data?: Record<string, any>
-  settings?: Record<string, any>
+  test_data?: Record<string, unknown>
+  settings?: Record<string, unknown>
 }
 
 export interface DeleteTemplateRequest {
@@ -137,7 +137,7 @@ export interface CompileTemplateRequest {
   workspace_id: string
   message_id: string
   visual_editor_tree: EmailBlock
-  test_data?: Record<string, any> | null
+  test_data?: Record<string, unknown> | null
   tracking_settings?: TrackingSettings
   channel?: string // "email" or "web" - filters blocks by visibility
 }
@@ -197,7 +197,7 @@ export const templatesApi: TemplatesApi = {
     return response
   },
   get: async (params: GetTemplateRequest): Promise<GetTemplateResponse> => {
-    let url = `/api/templates.get?workspace_id=${params.workspace_id}&id=${params.id}&version=${params.version || 0}`
+    const url = `/api/templates.get?workspace_id=${params.workspace_id}&id=${params.id}&version=${params.version || 0}`
     const response = await api.get<GetTemplateResponse>(url)
     return response
   },

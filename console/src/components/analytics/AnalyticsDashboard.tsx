@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import numbro from 'numbro'
 import { EmailMetricsChart } from './EmailMetricsChart'
 // import { NewContactsTable } from './NewContactsTable'
-import { Workspace } from '../../services/api/types'
+import { Workspace, Integration } from '../../services/api/types'
 import { FailedMessagesTable } from './FailedMessagesTable'
 import { NewContactsTable } from './NewContactsTable'
 import { emailProviders } from '../integrations/EmailProviders'
@@ -78,18 +78,18 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
     ? workspace.integrations?.find((i) => i.id === workspace.settings.marketing_email_provider_id)
     : null
 
-  const getProviderInfo = (provider: any) => {
+  const getProviderInfo = (provider: Integration | null | undefined) => {
     if (!provider) return null
-    return emailProviders.find((p) => p.kind === provider.email_provider.kind)
+    return emailProviders.find((p) => p.kind === provider.email_provider?.kind)
   }
 
   const transactionalProviderInfo = getProviderInfo(transactionalProvider)
   const marketingProviderInfo = getProviderInfo(marketingProvider)
 
-  const getDefaultSender = (provider: any) => {
+  const getDefaultSender = (provider: Integration | null | undefined) => {
     if (!provider?.email_provider?.senders) return null
     return (
-      provider.email_provider.senders.find((s: any) => s.is_default) ||
+      provider.email_provider.senders.find((s) => s.is_default) ||
       provider.email_provider.senders[0]
     )
   }
@@ -125,7 +125,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           <div className="p-4 rounded-lg bg-gray-100" style={{ height: '110px' }}>
             <Statistic
               title="Total Contacts"
-              value={totalContacts}
+              value={totalContacts as number}
               valueStyle={{ fontSize: '24px', fontWeight: 'bold' }}
               formatter={(value) => formatStat(value as number, totalContactsLoading)}
             />
@@ -137,7 +137,7 @@ export const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({
           <div className="bg-gray-100 p-4 rounded-lg" style={{ height: '110px' }}>
             <Statistic
               title="New Contacts"
-              value={newContactsCount}
+              value={newContactsCount as number}
               valueStyle={{ fontSize: '24px', fontWeight: 'bold' }}
               formatter={(value) => formatStat(value as number, newContactsLoading)}
             />

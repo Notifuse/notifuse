@@ -184,9 +184,10 @@ export function WorkspaceLayout() {
       await refreshWorkspaces()
 
       message.success('Workspace settings updated successfully')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error updating workspace settings:', error)
-      message.error(`Failed to update workspace settings: ${error.message}`)
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      message.error(`Failed to update workspace settings: ${errorMessage}`)
     }
   }
 
@@ -355,7 +356,7 @@ export function WorkspaceLayout() {
         </Link>
       )
     }
-  ].filter(Boolean) as any[]
+  ].filter((item) => Boolean(item)) as Array<{ key: string; icon: React.ReactNode; label: React.ReactNode }>
 
   return (
     <ContactsCsvUploadProvider>

@@ -153,11 +153,13 @@ const BorderInput: React.FC<BorderInputProps> = ({
 
   // Auto-detect mode based on current values (only if user hasn't manually set mode)
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (!manualModeSet && internalValue && Object.keys(internalValue).length > 0) {
       setMode(bordersAreEqual(internalValue) ? 'all' : 'separate')
     } else if (!manualModeSet) {
       setMode('all')
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [internalValue, bordersAreEqual, manualModeSet])
 
   // Get unified border value (from first available border)

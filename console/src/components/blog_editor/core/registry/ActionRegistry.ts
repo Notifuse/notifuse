@@ -32,7 +32,7 @@ export interface ActionDefinition {
   checkActive?: (editor: Editor | null) => boolean
 
   /** Execute the action (can be sync or async) */
-  execute: (editor: Editor | null, context?: any) => boolean | Promise<boolean>
+  execute: (editor: Editor | null, context?: Record<string, unknown>) => boolean | Promise<boolean>
 
   /** Group name for organizing in menus */
   group?: string

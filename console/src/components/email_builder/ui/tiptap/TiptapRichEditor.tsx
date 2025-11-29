@@ -57,7 +57,7 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
       const sanitizedContent = sanitizeRichContent(content)
 
       try {
-        editor.commands.setContent(sanitizedContent, false) // false = don't emit update
+        editor.commands.setContent(sanitizedContent, { emitUpdate: false })
       } catch (error) {
         console.error('Error setting content in rich editor:', error)
 
@@ -66,7 +66,7 @@ export const TiptapRichEditor: React.FC<TiptapRichEditorProps> = ({
           const tempDiv = document.createElement('div')
           tempDiv.innerHTML = sanitizedContent
           const textOnly = tempDiv.textContent || tempDiv.innerText || ''
-          editor.commands.setContent(`<p>${textOnly}</p>`, false)
+          editor.commands.setContent(`<p>${textOnly}</p>`, { emitUpdate: false })
           console.warn('Fell back to text-only content due to parsing error')
         } catch (fallbackError) {
           console.error('Fallback content extraction also failed:', fallbackError)

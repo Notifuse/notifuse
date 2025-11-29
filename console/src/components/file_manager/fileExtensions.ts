@@ -816,7 +816,7 @@ const extensions = {
   '.zir': 'application/vnd.zul',
   '.zirz': 'application/vnd.zul',
   '.zmm': 'application/vnd.handheld-entertainment+xml'
-} as any
+} as Record<string, string>
 
 // extract the file extension
 const GetContentType = (filename: string): string => {

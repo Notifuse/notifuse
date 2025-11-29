@@ -13,7 +13,7 @@ const __dirname = dirname(__filename)
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/console/',
-  plugins: [react(), tailwindcss()] as any,
+  plugins: [react(), tailwindcss()],
   server: {
     host: 'notifusedev.com',
     https: {

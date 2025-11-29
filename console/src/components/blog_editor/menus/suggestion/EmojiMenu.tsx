@@ -15,6 +15,7 @@ import { useNotifuseEditor } from '../../hooks/useEditor'
 // --- Local Types and Config ---
 import { emojiConfig } from './configs/emoji-config'
 import type { SuggestionItem } from './types'
+import type { EmojiItem } from '@tiptap/extension-emoji'
 import './suggestion-menu-core.css'
 
 interface EmojiMenuProps {
@@ -31,8 +32,8 @@ export const EmojiMenu = ({ editor: providedEditor }: EmojiMenuProps) => {
 
   const [show, setShow] = useState<boolean>(false)
   const [internalDecorationNode, setInternalDecorationNode] = useState<HTMLElement | null>(null)
-  const [internalCommand, setInternalCommand] = useState<((item: any) => void) | null>(null)
-  const [internalItems, setInternalItems] = useState<SuggestionItem[]>([])
+  const [internalCommand, setInternalCommand] = useState<((item: SuggestionItem<EmojiItem>) => void) | null>(null)
+  const [internalItems, setInternalItems] = useState<SuggestionItem<EmojiItem>[]>([])
   const [internalQuery, setInternalQuery] = useState<string>('')
 
   const configRef = useRef(emojiConfig)
@@ -129,12 +130,12 @@ export const EmojiMenu = ({ editor: providedEditor }: EmojiMenuProps) => {
         }
 
         // Call the config's onSelect handler
-        configRef.current.onSelect(props as any, editorInstance, rangeToUse)
+        configRef.current.onSelect(props as SuggestionItem<EmojiItem>, editorInstance, rangeToUse)
       },
 
       render: () => {
         return {
-          onStart: (props: SuggestionProps<SuggestionItem>) => {
+          onStart: (props: SuggestionProps<SuggestionItem<EmojiItem>>) => {
             setInternalDecorationNode((props.decorationNode as HTMLElement) ?? null)
             setInternalCommand(() => props.command)
             setInternalItems(props.items)
@@ -142,7 +143,7 @@ export const EmojiMenu = ({ editor: providedEditor }: EmojiMenuProps) => {
             setShow(true)
           },
 
-          onUpdate: (props: SuggestionProps<SuggestionItem>) => {
+          onUpdate: (props: SuggestionProps<SuggestionItem<EmojiItem>>) => {
             setInternalDecorationNode((props.decorationNode as HTMLElement) ?? null)
             setInternalCommand(() => props.command)
             setInternalItems(props.items)
@@ -178,7 +179,7 @@ export const EmojiMenu = ({ editor: providedEditor }: EmojiMenuProps) => {
   }, [editor, closePopup])
 
   const onSelect = useCallback(
-    (item: SuggestionItem) => {
+    (item: SuggestionItem<EmojiItem>) => {
       closePopup()
 
       if (internalCommand) {
@@ -196,12 +197,12 @@ export const EmojiMenu = ({ editor: providedEditor }: EmojiMenuProps) => {
   })
 
   // Group items by their group property (emojis typically don't have groups)
-  const groupItems = (items: SuggestionItem[]) => {
+  const groupItems = (items: SuggestionItem<EmojiItem>[]) => {
     if (!items.some((item) => item.group)) {
       return { ungrouped: items }
     }
 
-    const grouped: Record<string, SuggestionItem[]> = {}
+    const grouped: Record<string, SuggestionItem<EmojiItem>[]> = {}
 
     items.forEach((item) => {
       const group: string = emojiConfig.groupBy?.(item) ?? item.group ?? 'ungrouped'

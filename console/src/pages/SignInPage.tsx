@@ -36,10 +36,10 @@ export function SignInPage() {
 
         // Add a small delay to ensure auth state is updated before navigation
         setTimeout(() => {
-          navigate({ to: '/console/' })
+          navigate({ to: '/console' })
         }, 100)
-      } catch (error: any) {
-        const errorMessage = error?.message || 'Failed to verify code'
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to verify code'
         message.error(errorMessage)
       } finally {
         setLoading(false)
@@ -67,8 +67,8 @@ export function SignInPage() {
         setEmail(values.email)
         setShowCodeInput(true)
         message.success('Magic code sent to your email')
-      } catch (error: any) {
-        const errorMessage = error?.message || 'Failed to send magic code'
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to send magic code'
         message.error(errorMessage)
       } finally {
         setLoading(false)
@@ -87,7 +87,7 @@ export function SignInPage() {
     if (search.email) {
       // URL parameter takes priority
       emailToUse = search.email
-    } else if ((window as any).demo === true) {
+    } else if ((window as unknown as Record<string, unknown>).demo === true) {
       // Demo mode fallback
       emailToUse = 'demo@notifuse.com'
     }
@@ -116,8 +116,8 @@ export function SignInPage() {
       }
 
       message.success('New magic code sent to your email')
-    } catch (error: any) {
-      const errorMessage = error?.message || 'Failed to resend magic code'
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to resend magic code'
       message.error(errorMessage)
     } finally {
       setResendLoading(false)

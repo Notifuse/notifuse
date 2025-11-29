@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { blogThemesApi, BlogTheme } from '../../services/api/blog'
+import type { Workspace } from '../../services/api/types'
 import { ThemeEditorDrawer } from './ThemeEditorDrawer'
 import { ThemePreset, THEME_PRESETS } from './themePresets'
 import dayjs from 'dayjs'
@@ -22,7 +23,7 @@ dayjs.extend(timezone)
 
 interface RecentThemesTableProps {
   workspaceId: string
-  workspace: any
+  workspace: Workspace
 }
 
 export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableProps) {
@@ -51,7 +52,7 @@ export function RecentThemesTable({ workspaceId, workspace }: RecentThemesTableP
       message.success('Theme published successfully')
       queryClient.invalidateQueries({ queryKey: ['blog-themes', workspaceId] })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       message.error(error?.message || 'Failed to publish theme')
     }
   })

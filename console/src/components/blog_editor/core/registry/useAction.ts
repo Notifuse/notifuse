@@ -85,15 +85,15 @@ export function useAction(actionId: string, config?: UseActionConfig): ActionSta
   // Update visibility when editor state changes
   useEffect(() => {
     if (!editor || !action) {
-      setIsVisible(false)
       return
     }
 
     const updateVisibility = () => {
       if (hideWhenUnavailable && action.hideWhenUnavailable) {
-        setIsVisible(action.checkAvailability(editor))
+        const newVisible = action.checkAvailability(editor)
+        setIsVisible((prev) => prev !== newVisible ? newVisible : prev)
       } else {
-        setIsVisible(true)
+        setIsVisible((prev) => prev !== true ? true : prev)
       }
     }
 

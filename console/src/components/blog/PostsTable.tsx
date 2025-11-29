@@ -44,13 +44,7 @@ export function PostsTable() {
   const { permissions } = useWorkspacePermissions(workspaceId)
   const { workspaces } = useAuth()
 
-  // Get the current workspace
-  const workspace = workspaces.find((w) => w.id === workspaceId)
-
-  if (!workspace) {
-    return null // Or handle the case where workspace is not found
-  }
-
+  // All hooks must be called before any conditional returns
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null)
   const [deleteModalOpen, setDeleteModalOpen] = useState(false)
@@ -68,11 +62,6 @@ export function PostsTable() {
     queryKey: ['blog-categories', workspaceId],
     queryFn: () => blogCategoriesApi.list(workspaceId)
   })
-
-  // Find the selected category
-  const selectedCategory = categoryId
-    ? (categoriesData?.categories ?? []).find((c) => c.id === categoryId)
-    : null
 
   // Fetch posts
   const { data, isLoading } = useQuery({
@@ -93,7 +82,7 @@ export function PostsTable() {
       setDeleteModalOpen(false)
       setPostToDelete(null)
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       const errorMsg = error?.message || 'Failed to delete post'
       message.error(errorMsg)
     }
@@ -105,11 +94,41 @@ export function PostsTable() {
       message.success('Post unpublished successfully')
       queryClient.invalidateQueries({ queryKey: ['blog-posts', workspaceId] })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       const errorMsg = error?.message || 'Failed to unpublish post'
       message.error(errorMsg)
     }
   })
+
+  const deleteCategoryMutation = useMutation({
+    mutationFn: (id: string) => blogCategoriesApi.delete(workspaceId, { id }),
+    onSuccess: () => {
+      message.success('Category deleted successfully')
+      queryClient.invalidateQueries({ queryKey: ['blog-categories', workspaceId] })
+      setDeleteCategoryModalOpen(false)
+      // Navigate to all posts after deletion
+      navigate({
+        search: (prev) => ({ ...prev, category_id: undefined })
+      })
+    },
+    onError: (error: Error) => {
+      const errorMsg = error?.message || 'Failed to delete category'
+      message.error(errorMsg)
+    }
+  })
+
+  // Get the current workspace
+  const workspace = workspaces.find((w) => w.id === workspaceId)
+
+  // Early return after all hooks
+  if (!workspace) {
+    return null
+  }
+
+  // Find the selected category
+  const selectedCategory = categoryId
+    ? (categoriesData?.categories ?? []).find((c) => c.id === categoryId)
+    : null
 
   const handleEdit = (post: BlogPost) => {
     setEditingPost(post)
@@ -141,23 +160,6 @@ export function PostsTable() {
       search: (prev) => ({ ...prev, status: value as BlogPostStatus })
     })
   }
-
-  const deleteCategoryMutation = useMutation({
-    mutationFn: (id: string) => blogCategoriesApi.delete(workspaceId, { id }),
-    onSuccess: () => {
-      message.success('Category deleted successfully')
-      queryClient.invalidateQueries({ queryKey: ['blog-categories', workspaceId] })
-      setDeleteCategoryModalOpen(false)
-      // Navigate to all posts after deletion
-      navigate({
-        search: (prev) => ({ ...prev, category_id: undefined })
-      })
-    },
-    onError: (error: any) => {
-      const errorMsg = error?.message || 'Failed to delete category'
-      message.error(errorMsg)
-    }
-  })
 
   const getCategoryName = (categoryId?: string | null) => {
     if (!categoryId) return 'Uncategorized'
@@ -212,7 +214,7 @@ export function PostsTable() {
     {
       title: 'Status',
       key: 'status',
-      render: (_: any, record: BlogPost) => (
+      render: (_: unknown, record: BlogPost) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <PostStatusTag post={record} />
           <MissingMetaTagsWarning seo={record.settings.seo} />
@@ -264,7 +266,7 @@ export function PostsTable() {
       title: 'Actions',
       key: 'actions',
       width: 150,
-      render: (_: any, record: BlogPost) => (
+      render: (_: unknown, record: BlogPost) => (
         <Space size="small">
           {record.published_at && (
             <Tooltip title="Open on web" placement="left">

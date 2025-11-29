@@ -2,12 +2,46 @@
  * Utility functions for blog post content processing
  */
 
+interface TiptapMark {
+  type: string
+  attrs?: Record<string, unknown>
+}
+
+interface TiptapNode {
+  type: string
+  text?: string
+  content?: TiptapNode[]
+  marks?: TiptapMark[]
+  attrs?: Record<string, unknown>
+}
+
+interface NodeAttrs {
+  textAlign?: string
+  backgroundColor?: string
+  color?: string
+  level?: number
+  start?: string | number
+  language?: string
+  src?: string
+  alt?: string
+  title?: string
+  width?: number | string
+  height?: number | string
+  align?: string
+  caption?: string
+  showCaption?: boolean | string
+  cc?: boolean | string | number
+  loop?: boolean | string | number
+  controls?: boolean | string | number
+  modestbranding?: boolean | string | number
+}
+
 /**
  * Convert Tiptap JSON to HTML string
  * @param json - Tiptap JSON document
  * @returns HTML string
  */
-export function jsonToHtml(json: any): string {
+export function jsonToHtml(json: TiptapNode | null): string {
   if (!json || !json.content) {
     return ''
   }
@@ -20,7 +54,7 @@ export function jsonToHtml(json: any): string {
  * @param json - Tiptap JSON document
  * @returns Plain text string
  */
-export function extractTextContent(json: any): string {
+export function extractTextContent(json: TiptapNode | null): string {
   if (!json || !json.content) {
     return ''
   }
@@ -31,7 +65,7 @@ export function extractTextContent(json: any): string {
 /**
  * Convert a Tiptap node to HTML string (recursive)
  */
-function convertNodeToHtml(node: any): string {
+function convertNodeToHtml(node: TiptapNode): string {
   if (!node) return ''
 
   // Handle text nodes
@@ -57,20 +91,23 @@ function convertNodeToHtml(node: any): string {
           case 'code':
             text = `<code>${text}</code>`
             break
-          case 'link':
-            const href = escapeHtml(mark.attrs?.href || '#')
-            const target = mark.attrs?.target ? ` target="${escapeHtml(mark.attrs.target)}"` : ''
+          case 'link': {
+            const href = escapeHtml(String(mark.attrs?.href || '#'))
+            const target = mark.attrs?.target ? ` target="${escapeHtml(String(mark.attrs.target))}"` : ''
             text = `<a href="${href}"${target}>${text}</a>`
             break
-          case 'textStyle':
+          }
+          case 'textStyle': {
             if (mark.attrs?.color) {
-              text = `<span style="color: ${escapeHtml(mark.attrs.color)}">${text}</span>`
+              text = `<span style="color: ${escapeHtml(String(mark.attrs.color))}">${text}</span>`
             }
             break
-          case 'highlight':
-            const bgColor = mark.attrs?.color || '#ffff00'
+          }
+          case 'highlight': {
+            const bgColor = String(mark.attrs?.color || '#ffff00')
             text = `<mark style="background-color: ${escapeHtml(bgColor)}">${text}</mark>`
             break
+          }
           case 'subscript':
             text = `<sub>${text}</sub>`
             break
@@ -92,33 +129,40 @@ function convertNodeToHtml(node: any): string {
     case 'doc':
       return content
 
-    case 'paragraph':
-      const pAttrs = buildStyleAttr(attrs)
+    case 'paragraph': {
+      const pAttrs = buildStyleAttr(attrs as NodeAttrs)
       return `<p${pAttrs}>${content || '<br>'}</p>`
+    }
 
-    case 'heading':
-      const level = attrs.level || 2
-      const hAttrs = buildStyleAttr(attrs)
+    case 'heading': {
+      const level = (attrs as NodeAttrs).level || 2
+      const hAttrs = buildStyleAttr(attrs as NodeAttrs)
       return `<h${level}${hAttrs}>${content}</h${level}>`
+    }
 
-    case 'blockquote':
-      const bqAttrs = buildStyleAttr(attrs)
+    case 'blockquote': {
+      const bqAttrs = buildStyleAttr(attrs as NodeAttrs)
       return `<blockquote${bqAttrs}>${content}</blockquote>`
+    }
 
     case 'bulletList':
       return `<ul>${content}</ul>`
 
-    case 'orderedList':
-      const start = attrs.start ? ` start="${attrs.start}"` : ''
-      return `<ol${start}>${content}</ol>`
+    case 'orderedList': {
+      const olAttrs = attrs as NodeAttrs
+      const olStart = olAttrs.start ? ` start="${olAttrs.start}"` : ''
+      return `<ol${olStart}>${content}</ol>`
+    }
 
     case 'listItem':
       return `<li>${content}</li>`
 
-    case 'codeBlock':
-      const language = attrs.language || 'plaintext'
-      const codeContent = node.content ? node.content.map((n: any) => n.text || '').join('\n') : ''
+    case 'codeBlock': {
+      const cbAttrs = attrs as NodeAttrs
+      const language = String(cbAttrs.language || 'plaintext')
+      const codeContent = node.content ? node.content.map((n) => n.text || '').join('\n') : ''
       return `<pre><code class="language-${escapeHtml(language)}">${escapeHtml(codeContent)}</code></pre>`
+    }
 
     case 'horizontalRule':
       return '<hr>'
@@ -126,44 +170,47 @@ function convertNodeToHtml(node: any): string {
     case 'hardBreak':
       return '<br>'
 
-    case 'image':
-      const src = escapeHtml(attrs.src || '')
-      const alt = escapeHtml(attrs.alt || '')
-      const title = attrs.title ? ` title="${escapeHtml(attrs.title)}"` : ''
-      let imgAttrs = `src="${src}" alt="${alt}"${title}`
+    case 'image': {
+      const imgNodeAttrs = attrs as NodeAttrs
+      const src = escapeHtml(String(imgNodeAttrs.src || ''))
+      const alt = escapeHtml(String(imgNodeAttrs.alt || ''))
+      const imgTitle = imgNodeAttrs.title ? ` title="${escapeHtml(String(imgNodeAttrs.title))}"` : ''
+      let imgAttrs = `src="${src}" alt="${alt}"${imgTitle}`
 
       // Add data attributes
-      if (attrs.width) imgAttrs += ` data-width="${attrs.width}"`
-      if (attrs.height) imgAttrs += ` data-height="${attrs.height}"`
-      if (attrs.align) imgAttrs += ` data-align="${escapeHtml(attrs.align)}"`
-      if (attrs.caption) imgAttrs += ` data-caption="${escapeHtml(attrs.caption)}"`
-      if (attrs.showCaption !== undefined) imgAttrs += ` data-show-caption="${attrs.showCaption}"`
+      if (imgNodeAttrs.width) imgAttrs += ` data-width="${imgNodeAttrs.width}"`
+      if (imgNodeAttrs.height) imgAttrs += ` data-height="${imgNodeAttrs.height}"`
+      if (imgNodeAttrs.align) imgAttrs += ` data-align="${escapeHtml(String(imgNodeAttrs.align))}"`
+      if (imgNodeAttrs.caption) imgAttrs += ` data-caption="${escapeHtml(String(imgNodeAttrs.caption))}"`
+      if (imgNodeAttrs.showCaption !== undefined) imgAttrs += ` data-show-caption="${imgNodeAttrs.showCaption}"`
 
       return `<img ${imgAttrs} />`
+    }
 
-    case 'youtube':
-      const videoId = attrs.src || ''
-      const width = attrs.width || 640
-      const height = attrs.height || 360
-      const align = attrs.align || 'left'
+    case 'youtube': {
+      const ytAttrs = attrs as NodeAttrs
+      const videoId = String(ytAttrs.src || '')
+      const width = ytAttrs.width || 640
+      const height = ytAttrs.height || 360
+      const align = String(ytAttrs.align || 'left')
       // Handle boolean attributes that might come as strings, booleans, or numbers
       // YouTube parameters use 0/1, so we need to handle those cases too
-      const cc = attrs.cc === true || attrs.cc === 'true' || attrs.cc === 1 || attrs.cc === '1'
+      const cc = ytAttrs.cc === true || ytAttrs.cc === 'true' || ytAttrs.cc === 1 || ytAttrs.cc === '1'
       const loop =
-        attrs.loop === true || attrs.loop === 'true' || attrs.loop === 1 || attrs.loop === '1'
+        ytAttrs.loop === true || ytAttrs.loop === 'true' || ytAttrs.loop === 1 || ytAttrs.loop === '1'
       const controls =
-        attrs.controls !== false &&
-        attrs.controls !== 'false' &&
-        attrs.controls !== 0 &&
-        attrs.controls !== '0' // default to true
+        ytAttrs.controls !== false &&
+        ytAttrs.controls !== 'false' &&
+        ytAttrs.controls !== 0 &&
+        ytAttrs.controls !== '0' // default to true
       const modestbranding =
-        attrs.modestbranding === true ||
-        attrs.modestbranding === 'true' ||
-        attrs.modestbranding === 1 ||
-        attrs.modestbranding === '1'
-      const startTime = attrs.start ? parseInt(attrs.start.toString()) : 0
-      const showCaption = attrs.showCaption === true || attrs.showCaption === 'true'
-      const caption = attrs.caption || ''
+        ytAttrs.modestbranding === true ||
+        ytAttrs.modestbranding === 'true' ||
+        ytAttrs.modestbranding === 1 ||
+        ytAttrs.modestbranding === '1'
+      const startTime = ytAttrs.start ? parseInt(String(ytAttrs.start)) : 0
+      const showCaption = ytAttrs.showCaption === true || ytAttrs.showCaption === 'true'
+      const caption = String(ytAttrs.caption || '')
 
       // Build iframe URL with playback options
       const params = new URLSearchParams()
@@ -190,6 +237,7 @@ function convertNodeToHtml(node: any): string {
       if (startTime > 0) divAttrs += ` data-start="${startTime}"`
 
       return `<div ${divAttrs}><iframe src="${escapeHtml(iframeSrc)}" width="${width}" height="${height}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe></div>`
+    }
 
     default:
       // Unknown node type, just return the content
@@ -200,7 +248,7 @@ function convertNodeToHtml(node: any): string {
 /**
  * Build style attribute string from node attributes
  */
-function buildStyleAttr(attrs: any): string {
+function buildStyleAttr(attrs: NodeAttrs): string {
   const styles: string[] = []
 
   if (attrs.textAlign && attrs.textAlign !== 'left') {
@@ -221,7 +269,7 @@ function buildStyleAttr(attrs: any): string {
 /**
  * Extract text from a Tiptap node (recursive)
  */
-function extractTextFromNode(node: any): string {
+function extractTextFromNode(node: TiptapNode): string {
   if (!node) return ''
 
   // Handle text nodes

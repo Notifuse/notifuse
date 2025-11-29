@@ -42,7 +42,7 @@ export function CategoryDrawer({ open, onClose, category, workspaceId }: Categor
       onClose()
       form.resetFields()
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       message.error(`Failed to create category: ${error.message}`)
     }
   })
@@ -55,7 +55,7 @@ export function CategoryDrawer({ open, onClose, category, workspaceId }: Categor
       onClose()
       form.resetFields()
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       message.error(`Failed to update category: ${error.message}`)
     }
   })
@@ -73,7 +73,7 @@ export function CategoryDrawer({ open, onClose, category, workspaceId }: Categor
     form.resetFields()
   }
 
-  const onFinish = (values: any) => {
+  const onFinish = (values: { name: string; slug: string; description?: string; seo?: Record<string, unknown> }) => {
     if (isEditMode && category) {
       const request: UpdateBlogCategoryRequest = {
         id: category.id,

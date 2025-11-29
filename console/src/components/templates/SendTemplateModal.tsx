@@ -107,11 +107,15 @@ export default function SendTemplateModal({
       } else {
         message.error(`Failed to send test email: ${response.error || 'Unknown error'}`)
       }
-    } catch (error: any) {
+    } catch (error) {
+      const err = error as {
+        response?: { status?: number; data?: { message?: string } }
+        message?: string
+      }
       const errorMessage =
-        error?.response?.status === 400 && error?.response?.data?.message
-          ? error.response.data.message
-          : error?.message || 'Something went wrong'
+        err?.response?.status === 400 && err?.response?.data?.message
+          ? err.response.data.message
+          : err?.message || 'Something went wrong'
       message.error(`Error: ${errorMessage}`)
     } finally {
       setSendLoading(false)
@@ -185,7 +189,7 @@ export default function SendTemplateModal({
       setAttachments((prev) => [...prev, newAttachment])
       message.success(`File ${file.name} added`)
       return false // Prevent default upload behavior
-    } catch (error) {
+    } catch {
       message.error(`Failed to process file ${file.name}`)
       return false
     }

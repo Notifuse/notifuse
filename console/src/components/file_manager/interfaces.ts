@@ -17,7 +17,7 @@ export interface StorageObject {
 export interface FileManagerProps {
   currentPath?: string
   itemFilters?: ItemFilter[]
-  onError: (error: any) => void
+  onError: (error: Error) => void
   onSelect: (items: StorageObject[]) => void
   height: number
   acceptFileType: string
@@ -32,7 +32,7 @@ export interface FileManagerProps {
 
 export interface ItemFilter {
   key: string // item key
-  value: any
+  value: string | number | boolean
   operator: string // contains equals greaterThan lessThan
 }
 

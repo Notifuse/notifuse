@@ -16,6 +16,7 @@ import { SlashPopoverContent } from './SlashPopoverContent'
 // --- Local Types and Config ---
 import { slashConfig } from './configs/slash-config'
 import type { SuggestionItem } from './types'
+import type { ActionDefinition } from '../../core/registry/ActionRegistry'
 
 interface SlashMenuProps {
   /** Optional editor instance (if not using context) */
@@ -31,8 +32,8 @@ export const SlashMenu = ({ editor: providedEditor }: SlashMenuProps) => {
 
   const [show, setShow] = useState<boolean>(false)
   const [internalDecorationNode, setInternalDecorationNode] = useState<HTMLElement | null>(null)
-  const [internalCommand, setInternalCommand] = useState<((item: any) => void) | null>(null)
-  const [internalItems, setInternalItems] = useState<SuggestionItem[]>([])
+  const [internalCommand, setInternalCommand] = useState<((item: SuggestionItem<unknown>) => void) | null>(null)
+  const [internalItems, setInternalItems] = useState<SuggestionItem<unknown>[]>([])
   const [internalQuery, setInternalQuery] = useState<string>('')
 
   const configRef = useRef(slashConfig)
@@ -132,12 +133,12 @@ export const SlashMenu = ({ editor: providedEditor }: SlashMenuProps) => {
         }
 
         // Call the config's onSelect handler
-        configRef.current.onSelect(props as any, editorInstance, rangeToUse)
+        configRef.current.onSelect(props as SuggestionItem<ActionDefinition | { type: string }>, editorInstance, rangeToUse)
       },
 
       render: () => {
         return {
-          onStart: (props: SuggestionProps<SuggestionItem>) => {
+          onStart: (props: SuggestionProps<SuggestionItem<unknown>>) => {
             setInternalDecorationNode((props.decorationNode as HTMLElement) ?? null)
             setInternalCommand(() => props.command)
             setInternalItems(props.items)
@@ -147,7 +148,7 @@ export const SlashMenu = ({ editor: providedEditor }: SlashMenuProps) => {
             noResultsQueryLengthRef.current = 0
           },
 
-          onUpdate: (props: SuggestionProps<SuggestionItem>) => {
+          onUpdate: (props: SuggestionProps<SuggestionItem<unknown>>) => {
             setInternalDecorationNode((props.decorationNode as HTMLElement) ?? null)
             setInternalCommand(() => props.command)
             setInternalItems(props.items)
@@ -193,7 +194,7 @@ export const SlashMenu = ({ editor: providedEditor }: SlashMenuProps) => {
   }, [editor, closePopup])
 
   const onSelect = useCallback(
-    (item: SuggestionItem) => {
+    (item: SuggestionItem<unknown>) => {
       closePopup()
 
       if (internalCommand) {

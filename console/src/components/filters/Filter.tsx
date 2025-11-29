@@ -107,7 +107,7 @@ export function Filter({ fields, activeFilters, className }: FilterProps) {
     }
   }
 
-  const renderFilterInput = (field: string, isActive: boolean = false) => {
+  const renderFilterInput = (field: string) => {
     const fieldConfig = fields.find((f) => f.key === field)
     if (!fieldConfig) return null
 

@@ -1,5 +1,5 @@
-import { DatePicker, Form, FormInstance, InputNumber, Tag } from 'antd'
-import { DimensionFilter, FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
+import { DatePicker, Form, InputNumber, Tag } from 'antd'
+import { DimensionFilter, IOperator, Operator } from '../../services/api/segment'
 import Messages from './messages'
 import dayjs from 'dayjs'
 
@@ -8,10 +8,10 @@ const formItemDatetime = (
     name={['string_values', 0]}
     dependencies={['operator']}
     rules={[{ required: true, type: 'string', message: Messages.RequiredField }]}
-    getValueProps={(value: any) => {
-      return { value: value ? dayjs(value) : undefined }
+    getValueProps={(value: unknown) => {
+      return { value: value ? dayjs(value as string) : undefined }
     }}
-    getValueFromEvent={(_date: any, dateString: string) => dateString}
+    getValueFromEvent={(_date: unknown, dateString: string) => dateString}
   >
     <DatePicker showTime={{ defaultValue: dayjs().startOf('day') }} />
   </Form.Item>
@@ -22,14 +22,14 @@ const formItemDatetimeRange = (
     name="string_values"
     dependencies={['operator']}
     rules={[{ required: true, type: 'array', message: Messages.RequiredField }]}
-    getValueProps={(values: any[]) => {
+    getValueProps={(values: unknown[]) => {
       return {
         value: values?.map((value) => {
-          return value ? dayjs(value) : undefined
+          return value ? dayjs(value as string) : undefined
         })
       }
     }}
-    getValueFromEvent={(_date: any, dateStrings: string[]) => dateStrings}
+    getValueFromEvent={(_date: unknown, dateStrings: string[]) => dateStrings}
   >
     <DatePicker.RangePicker
       showTime={{
@@ -56,7 +56,7 @@ export class OperatorBeforeDate implements IOperator {
     )
   }
 
-  renderFormItems(_fieldType: FieldTypeValue, _fieldName: string, _form: FormInstance) {
+  renderFormItems() {
     return formItemDatetime
   }
 }
@@ -78,7 +78,7 @@ export class OperatorAfterDate implements IOperator {
     )
   }
 
-  renderFormItems(_fieldType: FieldTypeValue, _fieldName: string, _form: FormInstance) {
+  renderFormItems() {
     return formItemDatetime
   }
 }
@@ -104,7 +104,7 @@ export class OperatorInDateRange implements IOperator {
     )
   }
 
-  renderFormItems(_fieldType: FieldTypeValue, _fieldName: string, _form: FormInstance) {
+  renderFormItems() {
     return formItemDatetimeRange
   }
 }
@@ -130,7 +130,7 @@ export class OperatorNotInDateRange implements IOperator {
     )
   }
 
-  renderFormItems(_fieldType: FieldTypeValue, _fieldName: string, _form: FormInstance) {
+  renderFormItems() {
     return formItemDatetimeRange
   }
 }
@@ -153,7 +153,7 @@ export class OperatorInTheLastDays implements IOperator {
     )
   }
 
-  renderFormItems(_fieldType: FieldTypeValue, _fieldName: string, _form: FormInstance) {
+  renderFormItems() {
     return (
       <>
         <Form.Item
@@ -161,11 +161,11 @@ export class OperatorInTheLastDays implements IOperator {
           dependencies={['operator']}
           rules={[{ required: true, message: Messages.RequiredField }]}
           style={{ display: 'inline-block', marginBottom: 0 }}
-          getValueProps={(value: any) => {
+          getValueProps={(value: unknown) => {
             // Convert string to number for InputNumber
-            return { value: value ? parseInt(value) : undefined }
+            return { value: value ? parseInt(value as string) : undefined }
           }}
-          getValueFromEvent={(value: any) => {
+          getValueFromEvent={(value: unknown) => {
             // Convert number back to string for API
             return value !== null && value !== undefined ? String(value) : undefined
           }}

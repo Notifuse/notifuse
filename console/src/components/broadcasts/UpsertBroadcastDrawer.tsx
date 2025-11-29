@@ -32,7 +32,7 @@ import extractTLD from '../../lib/tld'
 import type { List } from '../../services/api/list'
 
 // Custom component to handle A/B testing configuration
-const ABTestingConfig = ({ form }: { form: any }) => {
+const ABTestingConfig = ({ form }: { form: ReturnType<typeof Form.useForm>[0] }) => {
   const autoSendWinner = Form.useWatch(['test_settings', 'auto_send_winner'], form)
 
   if (!autoSendWinner) return null
@@ -69,7 +69,7 @@ const ABTestingConfig = ({ form }: { form: any }) => {
 interface UpsertBroadcastDrawerProps {
   workspace: Workspace
   broadcast?: Broadcast
-  buttonProps?: any
+  buttonProps?: Record<string, unknown>
   buttonContent?: React.ReactNode
   onClose?: () => void
   lists?: List[]
@@ -647,7 +647,7 @@ export function UpsertBroadcastDrawer({
 
                                                     // Check if this template is used in any other variation
                                                     const duplicates = allVariations.filter(
-                                                      (v: any, i: number) =>
+                                                      (v: { template_id?: string }, i: number) =>
                                                         v?.template_id === value && i !== field.name
                                                     )
 

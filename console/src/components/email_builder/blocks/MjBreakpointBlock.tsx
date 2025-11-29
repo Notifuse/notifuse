@@ -1,11 +1,7 @@
 import React from 'react'
 import { InputNumber } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJBreakpointAttributes } from '../types'
-import {
-  BaseEmailBlock,
-  type OnUpdateAttributesFunction,
-  type PreviewProps
-} from './BaseEmailBlock'
+import type { MJMLComponentType, MJBreakpointAttributes, MergedBlockAttributes } from '../types'
+import { BaseEmailBlock, type OnUpdateAttributesFunction } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { faMobileAlt } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
@@ -32,7 +28,7 @@ export class MjBreakpointBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-breakpoint'] || {}
   }
 
@@ -44,7 +40,7 @@ export class MjBreakpointBlock extends BaseEmailBlock {
     return []
   }
 
-  getEdit(_props: PreviewProps): React.ReactNode {
+  getEdit(): React.ReactNode {
     // Breakpoint blocks don't render in preview (they're configuration)
     return null
   }
@@ -54,8 +50,7 @@ export class MjBreakpointBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
+    blockDefaults: MergedBlockAttributes
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJBreakpointAttributes
     return (

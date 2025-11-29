@@ -158,7 +158,7 @@ function SegmentButton({
       <Space size="small">
         <Popover title={statusBadge.title} content={statusBadge.content}>
           <span>
-            <Badge status={statusBadge.status as any} />
+            <Badge status={statusBadge.status as "success" | "processing" | "error" | "default" | "warning"} />
           </span>
         </Popover>
         <Tag bordered={false} color={segment.color} style={{ margin: 0 }}>
@@ -199,7 +199,7 @@ export function SegmentsFilter({
       message.success('Segment deleted successfully')
       queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       message.error(error?.message || 'Failed to delete segment')
     }
   })
@@ -215,7 +215,7 @@ export function SegmentsFilter({
       message.success(data.message || 'Segment rebuild started successfully')
       queryClient.invalidateQueries({ queryKey: ['segments', workspaceId] })
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       message.error(error?.message || 'Failed to rebuild segment')
     }
   })

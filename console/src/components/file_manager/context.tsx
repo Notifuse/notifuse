@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState } from 'react'
 import { Modal, App, Button } from 'antd'
 import { FileManager } from './fileManager'
 import type { FileManagerSettings, StorageObject } from './interfaces'
@@ -65,7 +65,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
   }
 
   // Handle file manager errors
-  const handleFileManagerError = (error: any) => {
+  const handleFileManagerError = (error: Error) => {
     console.error('File manager error:', error)
     message.error('File manager error: ' + error.toString())
   }

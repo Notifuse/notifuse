@@ -35,14 +35,12 @@ export class OperatorEquals implements IOperator {
         value = filter.string_values?.[0]
         break
       case 'json':
-        // JSON fields store values in string_values, number_values, or time_values
+        // JSON fields store values in string_values or number_values
         // depending on the selected value type
         if (filter.string_values && filter.string_values.length > 0) {
           value = filter.string_values[0]
         } else if (filter.number_values && filter.number_values.length > 0) {
           value = filter.number_values[0]
-        } else if (filter.time_values && filter.time_values.length > 0) {
-          value = filter.time_values[0]
         }
         break
       default:

@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
 import { authService } from '../services/api/auth'
 import { workspaceService } from '../services/api/workspace'
-import { Workspace, WorkspaceMember, UserPermissions } from '../services/api/types'
+import { Workspace, UserPermissions } from '../services/api/types'
 import { isRootUser } from '../services/api/auth'
 
 export interface User {
@@ -26,12 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // Check for existing session on component mount
-    checkAuth()
-  }, [])
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     // console.log('checkAuth')
     try {
       // Check if a token exists in localStorage
@@ -46,14 +41,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(user)
       setWorkspaces(workspaces)
       setLoading(false)
-    } catch (error) {
+    } catch {
       // If there's an error (like an expired token), clear the storage
       localStorage.removeItem('auth_token')
       setUser(null)
       setWorkspaces([])
       setLoading(false)
     }
-  }
+  }, [])
+
+  useEffect(() => {
+    // Check for existing session on component mount
+    void checkAuth()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const signin = async (token: string) => {
     // console.log('signin')
@@ -143,7 +144,8 @@ export function useWorkspacePermissions(workspaceId: string) {
           broadcasts: { read: true, write: true },
           transactional: { read: true, write: true },
           workspace: { read: true, write: true },
-          message_history: { read: true, write: true }
+          message_history: { read: true, write: true },
+          blog: { read: true, write: true }
         })
         setLoading(false)
         return
@@ -164,7 +166,8 @@ export function useWorkspacePermissions(workspaceId: string) {
             broadcasts: { read: false, write: false },
             transactional: { read: false, write: false },
             workspace: { read: false, write: false },
-            message_history: { read: false, write: false }
+            message_history: { read: false, write: false },
+            blog: { read: false, write: false }
           })
         }
       } catch (error) {
@@ -177,7 +180,8 @@ export function useWorkspacePermissions(workspaceId: string) {
           broadcasts: { read: false, write: false },
           transactional: { read: false, write: false },
           workspace: { read: false, write: false },
-          message_history: { read: false, write: false }
+          message_history: { read: false, write: false },
+          blog: { read: false, write: false }
         })
       } finally {
         setLoading(false)

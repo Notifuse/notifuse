@@ -1,6 +1,6 @@
 import React from 'react'
 import { Radio, Tooltip } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJColumnAttributes } from '../types'
+import type { MJMLComponentType, MJColumnAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -20,7 +20,7 @@ import ColorPickerWithPresets from '../ui/ColorPickerWithPresets'
  * Implementation for mj-column blocks
  */
 export class MjColumnBlock extends BaseEmailBlock {
-  getIcon(parentType?: MJMLComponentType): React.ReactNode {
+  getIcon(): React.ReactNode {
     return (
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -52,7 +52,7 @@ export class MjColumnBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-column'] || {}
   }
 
@@ -69,12 +69,11 @@ export class MjColumnBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
+    blockDefaults: MergedBlockAttributes
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJColumnAttributes
 
-    const handleAttributeChange = (key: string, value: any) => {
+    const handleAttributeChange = (key: string, value: unknown) => {
       onUpdate({ [key]: value })
     }
 
@@ -258,7 +257,7 @@ export class MjColumnBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-column',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown>,
       attributeDefaults
     )
 

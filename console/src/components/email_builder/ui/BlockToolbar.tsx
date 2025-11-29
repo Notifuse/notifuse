@@ -61,13 +61,20 @@ export const BlockToolbar: React.FC<BlockToolbarProps> = ({
         const savedAttrs = savedBlock.block.attributes || {}
 
         // Get important attributes to compare (excluding dynamic ones like padding, margins)
-        const getComparableAttrs = (attrs: any) => {
-          const { paddingTop, paddingRight, paddingBottom, paddingLeft, ...comparable } = attrs
+        const getComparableAttrs = (attrs: Record<string, unknown>) => {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          const { paddingTop, paddingRight, paddingBottom, paddingLeft, ...comparable } = attrs as {
+            paddingTop?: unknown
+            paddingRight?: unknown
+            paddingBottom?: unknown
+            paddingLeft?: unknown
+            [key: string]: unknown
+          }
           return comparable
         }
 
-        const currentComparable = JSON.stringify(getComparableAttrs(currentAttrs))
-        const savedComparable = JSON.stringify(getComparableAttrs(savedAttrs))
+        const currentComparable = JSON.stringify(getComparableAttrs(currentAttrs as Record<string, unknown>))
+        const savedComparable = JSON.stringify(getComparableAttrs(savedAttrs as Record<string, unknown>))
 
         return currentComparable === savedComparable
       })

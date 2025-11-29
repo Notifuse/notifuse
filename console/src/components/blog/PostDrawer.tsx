@@ -31,7 +31,30 @@ import { NotifuseEditor, type NotifuseEditorRef, type TOCAnchor } from '../blog_
 import { jsonToHtml, extractTextContent } from './utils'
 import type { Workspace } from '../../services/api/types'
 
+// TiptapNode interface matching the structure expected by utils
+interface TiptapNode {
+  type: string
+  text?: string
+  content?: TiptapNode[]
+  marks?: Array<{
+    type: string
+    attrs?: Record<string, unknown>
+  }>
+  attrs?: Record<string, unknown>
+}
+
 const { TextArea } = Input
+
+interface PostFormValues {
+  title: string
+  slug: string
+  category_id: string
+  excerpt?: string
+  featured_image_url?: string
+  authors: BlogAuthor[]
+  reading_time_minutes?: number
+  seo?: Record<string, unknown>
+}
 
 interface PostDrawerProps {
   open: boolean
@@ -53,7 +76,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   const [currentSlug, setCurrentSlug] = useState<string>('')
 
   // Blog content state (Tiptap JSON)
-  const [blogContent, setBlogContent] = useState<any>(null)
+  const [blogContent, setBlogContent] = useState<TiptapNode | null>(null)
 
   // Template ID for new posts (generated on mount)
   // Generate 32-character ID by removing hyphens from UUID (UUIDs are 36 chars with hyphens, 32 without)
@@ -78,12 +101,12 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   const draftKey = `blog-post-draft-${post?.id || 'new'}-${workspace.id}`
 
   // Check if content is empty
-  const isContentEmpty = (content: any): boolean => {
+  const isContentEmpty = (content: TiptapNode | null): boolean => {
     if (!content) return true
     if (!content.content || content.content.length === 0) return true
 
     // Check if all content nodes are empty paragraphs
-    return content.content.every((node: any) => {
+    return content.content.every((node) => {
       if (node.type === 'paragraph') {
         return !node.content || node.content.length === 0
       }
@@ -94,7 +117,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   // Debounced save to localStorage
   const debouncedLocalSave = useMemo(
     () =>
-      debounce((content: any) => {
+      debounce((content: TiptapNode | null) => {
         // Don't save if content is empty
         if (isContentEmpty(content)) {
           // Remove any existing draft if content becomes empty
@@ -118,8 +141,9 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   )
 
   // Handle content change with auto-save
-  const handleContentChange = (json: any) => {
-    setBlogContent(json)
+  const handleContentChange = (json: Record<string, unknown>) => {
+    const tiptapNode = json as unknown as TiptapNode
+    setBlogContent(tiptapNode)
 
     // Update undo/redo state
     if (editorRef.current) {
@@ -128,8 +152,8 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     }
 
     // Only save if content is not empty
-    if (!isContentEmpty(json)) {
-      debouncedLocalSave(json)
+    if (!isContentEmpty(tiptapNode)) {
+      debouncedLocalSave(tiptapNode)
     }
 
     setFormTouched(true)
@@ -201,9 +225,6 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   // Reset form and content when drawer opens or post changes
   useEffect(() => {
     if (open) {
-      // Reset loading state when drawer opens
-      setLoading(false)
-
       if (post) {
         // Clear any localStorage draft for this post - we want to load from DB, not stale drafts
         localStorage.removeItem(draftKey)
@@ -254,8 +275,11 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
         })
         setCurrentSlug('')
       }
+      // Reset loading state when drawer opens
+      setLoading(false)
     }
-  }, [open, post?.id, form, draftKey, initialCategoryId, message, modal])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, post?.id, form, draftKey, initialCategoryId, modal])
 
   // Load template content when template data is ready
   useEffect(() => {
@@ -270,11 +294,12 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       templateData.template.id === post.settings.template.template_id &&
       templateData.template.version === post.settings.template.template_version
     ) {
-      setBlogContent(templateData.template.web.content)
+      setBlogContent(templateData.template.web.content as TiptapNode)
     } else if (!templateLoading && post && !templateData?.template?.web?.content) {
       // Template failed to load or doesn't exist - ensure content is cleared
       setBlogContent(null)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     open,
     post?.id,
@@ -285,7 +310,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   ])
 
   const createMutation = useMutation({
-    mutationFn: async (values: any) => {
+    mutationFn: async (values: PostFormValues) => {
       // Get HTML and plain text from content
       const html = editorRef.current?.getHTML() || jsonToHtml(blogContent)
       const plainText = extractTextContent(blogContent)
@@ -326,14 +351,14 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       queryClient.invalidateQueries({ queryKey: ['blog-posts', workspace.id] })
       handleClose()
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       message.error(`Failed to create post: ${error.message}`)
       setLoading(false)
     }
   })
 
   const updateMutation = useMutation({
-    mutationFn: async (values: any) => {
+    mutationFn: async (values: PostFormValues) => {
       // Get HTML and plain text from content
       const html = editorRef.current?.getHTML() || jsonToHtml(blogContent)
       const plainText = extractTextContent(blogContent)
@@ -381,7 +406,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       queryClient.invalidateQueries({ queryKey: ['blog-posts', workspace.id] })
       handleClose()
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       message.error(`Failed to update post: ${error.message}`)
       setLoading(false)
     }
@@ -448,7 +473,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     setLoading(false)
   }
 
-  const onFinish = (values: any) => {
+  const onFinish = (values: PostFormValues) => {
     setLoading(true)
 
     // Filter out empty authors

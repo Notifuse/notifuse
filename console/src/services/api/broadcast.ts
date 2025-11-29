@@ -27,7 +27,7 @@ export interface EmailTemplate {
   subject: string
   subject_preview?: string
   compiled_preview: string
-  visual_editor_tree: any
+  visual_editor_tree: Record<string, unknown>
   text?: string
 }
 
@@ -44,8 +44,8 @@ export interface Template {
   utm_source?: string
   utm_medium?: string
   utm_campaign?: string
-  test_data?: Record<string, any>
-  settings?: Record<string, any>
+  test_data?: Record<string, unknown>
+  settings?: Record<string, unknown>
   created_at: string
   updated_at: string
   deleted_at?: string
@@ -107,7 +107,7 @@ export interface Broadcast {
   schedule: ScheduleSettings
   test_settings: BroadcastTestSettings
   utm_parameters?: UTMParameters
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
   channels?: BroadcastChannels // Legacy/frontend-only field
   winning_template?: string
   test_sent_at?: string
@@ -131,7 +131,7 @@ export interface CreateBroadcastRequest {
   test_settings: BroadcastTestSettings
   tracking_enabled?: boolean
   utm_parameters?: UTMParameters
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface UpdateBroadcastRequest {
@@ -143,7 +143,7 @@ export interface UpdateBroadcastRequest {
   test_settings: BroadcastTestSettings
   tracking_enabled?: boolean
   utm_parameters?: UTMParameters
-  metadata?: Record<string, any>
+  metadata?: Record<string, unknown>
 }
 
 export interface ListBroadcastsRequest {

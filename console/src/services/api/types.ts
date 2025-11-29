@@ -33,7 +33,6 @@ export type {
   Integration,
   SupabaseAuthEmailHookSettings,
   SupabaseUserCreatedHookSettings,
-  SupabaseWebhookEndpoints,
   SupabaseIntegrationSettings,
   CreateWorkspaceRequest,
   Workspace,

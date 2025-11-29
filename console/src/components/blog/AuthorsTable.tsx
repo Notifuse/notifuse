@@ -49,7 +49,7 @@ export function AuthorsTable({ value = [], onChange }: AuthorsTableProps) {
       setIsModalOpen(false)
       setEditingIndex(null)
       editForm.resetFields()
-    } catch (error) {
+    } catch {
       // Validation failed
     }
   }
@@ -64,13 +64,13 @@ export function AuthorsTable({ value = [], onChange }: AuthorsTableProps) {
     {
       key: 'avatar',
       width: 60,
-      render: (_: any, record: BlogAuthor) => (
+      render: (_: unknown, record: BlogAuthor) => (
         <Avatar src={record.avatar_url} icon={<UserOutlined />} />
       )
     },
     {
       key: 'name',
-      render: (_: any, record: BlogAuthor) => (
+      render: (_: unknown, record: BlogAuthor) => (
         <div>
           <div className="font-medium">
             {record.name || <em className="text-gray-400">No name</em>}
@@ -89,7 +89,7 @@ export function AuthorsTable({ value = [], onChange }: AuthorsTableProps) {
       key: 'actions',
       width: 100,
       align: 'right' as const,
-      render: (_: any, _record: BlogAuthor, index: number) => (
+      render: (_: unknown, _record: BlogAuthor, index: number) => (
         <Space className="flex justify-end">
           <Button
             type="text"

@@ -17,6 +17,7 @@ const LetterSpacingInput: React.FC<LetterSpacingInputProps> = ({
 
   // Parse incoming value to extract number and unit
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (value && value !== 'none' && value !== 'normal') {
       const match = value.match(/^(-?\d+(?:\.\d+)?)(px|em)$/)
       if (match) {
@@ -37,6 +38,7 @@ const LetterSpacingInput: React.FC<LetterSpacingInputProps> = ({
       setNumericValue(undefined)
       setUnit('px')
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [value])
 
   const handleNumberChange = (newValue: number | null) => {

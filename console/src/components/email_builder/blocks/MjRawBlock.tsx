@@ -65,8 +65,8 @@ const SandboxedIframe: React.FC<{
     const styleBlocks = EmailBlockClass.findAllBlocksByType(emailTree, 'mj-style')
     return styleBlocks
       .map((styleBlock) => {
-        const content = (styleBlock as any).content || ''
-        return content.trim()
+        const content = (styleBlock as unknown as Record<string, unknown>).content || ''
+        return typeof content === 'string' ? content.trim() : ''
       })
       .filter(Boolean)
       .join('\n\n')
@@ -250,7 +250,7 @@ export class MjRawBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-raw'] || {}
   }
 
@@ -265,11 +265,7 @@ export class MjRawBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the raw HTML block
    */
-  renderSettingsPanel(
-    onUpdate: OnUpdateAttributesFunction,
-    _blockDefaults: Record<string, any>,
-    _emailTree?: EmailBlock
-  ): React.ReactNode {
+  renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
     const currentAttributes = this.block.attributes as MJRawAttributes
 
     const handleContentChange = (content: string | undefined) => {
@@ -281,7 +277,9 @@ export class MjRawBlock extends BaseEmailBlock {
     }
 
     // Content is stored on the block itself, not in attributes
-    const htmlContent = (this.block as any).content || ''
+    const blockWithContent = this.block as unknown as Record<string, unknown>
+    const htmlContent =
+      typeof blockWithContent.content === 'string' ? blockWithContent.content : ''
     const hasContent = htmlContent.trim().length > 0
 
     return (
@@ -305,7 +303,7 @@ export class MjRawBlock extends BaseEmailBlock {
               )}
 
               <CodeDrawerInput
-                value={(this.block as any).content || ''}
+                value={htmlContent}
                 onChange={handleContentChange}
                 buttonText={hasContent ? 'Edit HTML Content' : 'Set HTML Content'}
                 title="HTML Content Editor"
@@ -329,16 +327,7 @@ export class MjRawBlock extends BaseEmailBlock {
   }
 
   getEdit(props: PreviewProps): React.ReactNode {
-    const {
-      selectedBlockId,
-      onSelectBlock,
-      attributeDefaults,
-      emailTree,
-      onCloneBlock,
-      onDeleteBlock,
-      onSaveBlock,
-      savedBlocks
-    } = props
+    const { selectedBlockId, onSelectBlock, attributeDefaults, emailTree } = props
 
     const key = this.block.id
     const isSelected = selectedBlockId === this.block.id
@@ -357,12 +346,12 @@ export class MjRawBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-raw',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown> | undefined,
       attributeDefaults
     )
 
-    const rawBlock = this.block as any // Cast to access content property
-    const content = rawBlock.content || ''
+    const rawBlock = this.block as unknown as Record<string, unknown>
+    const content = typeof rawBlock.content === 'string' ? rawBlock.content : ''
 
     // If no content, show placeholder
     if (!content.trim()) {

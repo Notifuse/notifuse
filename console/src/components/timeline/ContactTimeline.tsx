@@ -185,9 +185,9 @@ export function ContactTimeline({
 
     // Extract old and new values if they exist
     const oldStatus =
-      typeof statusChange === 'object' && statusChange?.old ? statusChange.old : null
+      typeof statusChange === 'object' && statusChange !== null && 'old' in statusChange ? String(statusChange.old) : null
     const newStatus =
-      typeof statusChange === 'object' && statusChange?.new ? statusChange.new : statusChange
+      typeof statusChange === 'object' && statusChange !== null && 'new' in statusChange ? String(statusChange.new) : String(statusChange)
 
     // Use entity_data if available to get list name
     const entityData = entry.entity_data as ContactListEntityData | undefined
@@ -376,9 +376,9 @@ export function ContactTimeline({
                     )
                   } else if (typeof value === 'object') {
                     // Check if it's an old/new value object
-                    if (value.old !== undefined || value.new !== undefined) {
-                      const oldVal = value.old
-                      const newVal = value.new
+                    if (value !== null && ('old' in value || 'new' in value)) {
+                      const oldVal = 'old' in value ? value.old : undefined
+                      const newVal = 'new' in value ? value.new : undefined
                       return (
                         <div key={key} className="text-sm">
                           <Text type="secondary" className="font-mono text-xs">
@@ -508,17 +508,17 @@ export function ContactTimeline({
                   <Tooltip title="Preview email">
                     <span>
                       <TemplatePreviewDrawer
-                        record={
-                          {
-                            id: messageData.template_id,
-                            name: messageData.template_name || messageData.template_id,
-                            version: messageData.template_version,
-                            category: messageData.template_category || 'transactional',
-                            channel: messageData.channel,
-                            email: messageData.template_email,
-                            test_data: messageData.message_data || {}
-                          } as Parameters<typeof TemplatePreviewDrawer>[0]['record']
-                        }
+                        record={{
+                          id: messageData.template_id,
+                          name: messageData.template_name || messageData.template_id,
+                          version: messageData.template_version,
+                          category: messageData.template_category || 'transactional',
+                          channel: messageData.channel as 'email' | 'web',
+                          email: messageData.template_email as unknown as Parameters<typeof TemplatePreviewDrawer>[0]['record']['email'],
+                          test_data: messageData.message_data || {},
+                          created_at: '',
+                          updated_at: ''
+                        }}
                         workspace={workspace}
                         templateData={messageData.message_data}
                       >
@@ -541,7 +541,8 @@ export function ContactTimeline({
       case 'webhook_event': {
         const webhookEventData = entry.entity_data as WebhookEventEntityData
         const eventType = webhookEventData?.type
-        const source = webhookEventData?.source || entry.changes?.source?.new
+        const sourceChange = entry.changes?.source
+        const source = webhookEventData?.source || (typeof sourceChange === 'object' && sourceChange !== null && 'new' in sourceChange ? sourceChange.new as string : undefined)
         const bounceType = webhookEventData?.bounce_type
         const bounceCategory = webhookEventData?.bounce_category
         const bounceDiagnostic = webhookEventData?.bounce_diagnostic
@@ -627,9 +628,12 @@ export function ContactTimeline({
         const eventName = customEventData?.event_name || entry.kind
         const externalId = customEventData?.external_id || entry.entity_id
         // Get goal fields from entity_data or from changes (for timeline entries)
-        const goalType = customEventData?.goal_type || (entry.changes?.goal_type?.new as string | undefined)
-        const goalValue = customEventData?.goal_value ?? (entry.changes?.goal_value?.new as number | undefined)
-        const goalName = customEventData?.goal_name || (entry.changes?.goal_name?.new as string | undefined)
+        const goalTypeChange = entry.changes?.goal_type
+        const goalValueChange = entry.changes?.goal_value
+        const goalNameChange = entry.changes?.goal_name
+        const goalType = customEventData?.goal_type || (typeof goalTypeChange === 'object' && goalTypeChange !== null && 'new' in goalTypeChange ? goalTypeChange.new as string : undefined)
+        const goalValue = customEventData?.goal_value ?? (typeof goalValueChange === 'object' && goalValueChange !== null && 'new' in goalValueChange ? goalValueChange.new as number : undefined)
+        const goalName = customEventData?.goal_name || (typeof goalNameChange === 'object' && goalNameChange !== null && 'new' in goalNameChange ? goalNameChange.new as string : undefined)
 
         // Custom events use the event name as the primary identifier (no category label)
         const formattedEventName = formatEventName(eventName)

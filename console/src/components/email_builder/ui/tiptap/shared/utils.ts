@@ -1,7 +1,17 @@
-import { getMarkRange } from '@tiptap/react'
+import { getMarkRange, type Editor } from '@tiptap/react'
+import type { Mark, Node } from '@tiptap/pm/model'
+
+// Extend the ChainedCommands type to include our custom command
+declare module '@tiptap/core' {
+  interface Commands<ReturnType> {
+    customLink: {
+      updateLinkStyle: (attributes: Record<string, unknown>) => ReturnType
+    }
+  }
+}
 
 // Helper function to expand selection to mark range or current node
-export const expandSelectionToNode = (editor: any) => {
+export const expandSelectionToNode = (editor: Editor) => {
   const { state } = editor
   const { selection } = state
 
@@ -25,7 +35,7 @@ export const expandSelectionToNode = (editor: any) => {
     let markEnd = from
     let foundMarkRange = false
 
-    marks.forEach((mark: any) => {
+    marks.forEach((mark: Mark) => {
       try {
         const markRange = getMarkRange($pos, mark.type)
         if (markRange) {
@@ -93,7 +103,7 @@ export const expandSelectionToNode = (editor: any) => {
 }
 
 // Helper function to apply formatting with node selection (for block content)
-export const applyFormattingWithNodeSelection = (editor: any, action: () => void) => {
+export const applyFormattingWithNodeSelection = (editor: Editor, action: () => void) => {
   const wasExpanded = expandSelectionToNode(editor)
   action()
 
@@ -104,7 +114,7 @@ export const applyFormattingWithNodeSelection = (editor: any, action: () => void
 }
 
 // Helper function for inline formatting - more conservative approach
-export const applyInlineFormatting = (editor: any, action: () => void) => {
+export const applyInlineFormatting = (editor: Editor, action: () => void) => {
   const { selection } = editor.state
 
   if (selection.empty) {
@@ -344,7 +354,7 @@ export const getInitialInlineContent = (content: string): string => {
 
   try {
     // First, strip plain spans to avoid TipTap errors
-    let processedContent = stripPlainSpans(content)
+    const processedContent = stripPlainSpans(content)
 
     // Parse the content to check for block elements
     const tempDiv = document.createElement('div')
@@ -390,16 +400,16 @@ export const getInitialInlineContent = (content: string): string => {
 }
 
 // Utility functions for link styling
-export const isSelectionInsideLink = (editor: any): boolean => {
+export const isSelectionInsideLink = (editor: Editor): boolean => {
   return editor.isActive('link')
 }
 
-export const getLinkAttributes = (editor: any): Record<string, any> => {
-  const linkAttrs = editor.getAttributes('link')
+export const getLinkAttributes = (editor: Editor): Record<string, unknown> => {
+  const linkAttrs = editor.getAttributes('link') as Record<string, unknown>
   return linkAttrs || {}
 }
 
-export const updateLinkColor = (editor: any, color: string) => {
+export const updateLinkColor = (editor: Editor, color: string) => {
   if (isSelectionInsideLink(editor)) {
     const currentAttrs = getLinkAttributes(editor)
     const newAttrs = { ...currentAttrs, color }
@@ -415,7 +425,7 @@ export const updateLinkColor = (editor: any, color: string) => {
   return false
 }
 
-export const updateLinkBackgroundColor = (editor: any, backgroundColor: string) => {
+export const updateLinkBackgroundColor = (editor: Editor, backgroundColor: string) => {
   if (isSelectionInsideLink(editor)) {
     const currentAttrs = getLinkAttributes(editor)
     const newAttrs = { ...currentAttrs, backgroundColor }
@@ -431,28 +441,24 @@ export const updateLinkBackgroundColor = (editor: any, backgroundColor: string) 
   return false
 }
 
-export const getCurrentLinkColor = (editor: any): string => {
+export const getCurrentLinkColor = (editor: Editor): string => {
   if (isSelectionInsideLink(editor)) {
     const linkAttrs = getLinkAttributes(editor)
-    return linkAttrs.color || ''
+    return (linkAttrs.color as string) || ''
   }
   return ''
 }
 
-export const getCurrentLinkBackgroundColor = (editor: any): string => {
+export const getCurrentLinkBackgroundColor = (editor: Editor): string => {
   if (isSelectionInsideLink(editor)) {
     const linkAttrs = getLinkAttributes(editor)
-    return linkAttrs.backgroundColor || ''
+    return (linkAttrs.backgroundColor as string) || ''
   }
   return ''
 }
 
 // Enhanced color handling that prioritizes link styling for email compatibility
-export const handleTextColorChange = (
-  editor: any,
-  color: string,
-  mode: 'rich' | 'inline' = 'rich'
-) => {
+export const handleTextColorChange = (editor: Editor, color: string) => {
   // First try to apply to link if selection is inside a link
   if (updateLinkColor(editor, color)) {
     return // Link color updated successfully
@@ -476,11 +482,7 @@ export const handleTextColorChange = (
   }
 }
 
-export const handleBackgroundColorChange = (
-  editor: any,
-  backgroundColor: string,
-  mode: 'rich' | 'inline' = 'rich'
-) => {
+export const handleBackgroundColorChange = (editor: Editor, backgroundColor: string) => {
   // First try to apply to link if selection is inside a link
   if (updateLinkBackgroundColor(editor, backgroundColor)) {
     return // Link background color updated successfully
@@ -505,7 +507,7 @@ export const handleBackgroundColorChange = (
 }
 
 // Get the current effective color (prioritizing link color over textStyle color)
-export const getEffectiveTextColor = (editor: any): string => {
+export const getEffectiveTextColor = (editor: Editor): string => {
   // Check if we're in a link first
   const linkColor = getCurrentLinkColor(editor)
   if (linkColor) {
@@ -513,12 +515,12 @@ export const getEffectiveTextColor = (editor: any): string => {
   }
 
   // Fallback to textStyle color
-  const { color } = editor.getAttributes('textStyle')
-  return color || ''
+  const textStyleAttrs = editor.getAttributes('textStyle') as Record<string, unknown>
+  return (textStyleAttrs.color as string) || ''
 }
 
 // Get the current effective background color (prioritizing link background over textStyle background)
-export const getEffectiveBackgroundColor = (editor: any): string => {
+export const getEffectiveBackgroundColor = (editor: Editor): string => {
   // Check if we're in a link first
   const linkBackgroundColor = getCurrentLinkBackgroundColor(editor)
   if (linkBackgroundColor) {
@@ -526,23 +528,23 @@ export const getEffectiveBackgroundColor = (editor: any): string => {
   }
 
   // Fallback to textStyle background color
-  const { backgroundColor } = editor.getAttributes('textStyle')
-  return backgroundColor || ''
+  const textStyleAttrs = editor.getAttributes('textStyle') as Record<string, unknown>
+  return (textStyleAttrs.backgroundColor as string) || ''
 }
 
 // Debug utility to inspect current marks and their attributes
-export const debugCurrentMarks = (editor: any): void => {
+export const debugCurrentMarks = (editor: Editor): void => {
   const { selection } = editor.state
   const { from, to } = selection
 
   console.log('=== TipTap Mark Debug ===')
   console.log('Selection:', { from, to })
 
-  editor.state.doc.nodesBetween(from, to, (node: any, pos: number) => {
-    if (node.isText) {
+  editor.state.doc.nodesBetween(from, to, (node: Node, pos: number) => {
+    if (node.isText && node.marks) {
       console.log(`Text node at ${pos}:`, {
         text: node.text,
-        marks: node.marks.map((mark: any) => ({
+        marks: node.marks.map((mark: Mark) => ({
           type: mark.type.name,
           attrs: mark.attrs
         }))
@@ -558,7 +560,7 @@ export const debugCurrentMarks = (editor: any): void => {
 }
 
 // Enhanced link creation that ensures style merging
-export const createLinkWithStyleMerging = (editor: any, href: string, linkType: string = 'url') => {
+export const createLinkWithStyleMerging = (editor: Editor, href: string, linkType: string = 'url') => {
   // Format the href based on link type
   let formattedHref = href.trim()
   switch (linkType) {
@@ -581,17 +583,17 @@ export const createLinkWithStyleMerging = (editor: any, href: string, linkType: 
 }
 
 // Utility to check if textStyle and link marks are properly merged
-export const validateLinkStyleMerging = (editor: any): boolean => {
+export const validateLinkStyleMerging = (editor: Editor): boolean => {
   const { selection } = editor.state
   const { from, to } = selection
 
   let hasProperMerging = true
   let hasTextStyleWithLink = false
 
-  editor.state.doc.nodesBetween(from, to, (node: any) => {
-    if (node.isText) {
-      const linkMark = node.marks.find((mark: any) => mark.type.name === 'link')
-      const textStyleMark = node.marks.find((mark: any) => mark.type.name === 'textStyle')
+  editor.state.doc.nodesBetween(from, to, (node: Node) => {
+    if (node.isText && node.marks) {
+      const linkMark = node.marks.find((mark: Mark) => mark.type.name === 'link')
+      const textStyleMark = node.marks.find((mark: Mark) => mark.type.name === 'textStyle')
 
       // If we have both link and textStyle marks, that's not ideal for email HTML
       if (linkMark && textStyleMark) {
@@ -611,7 +613,7 @@ export const validateLinkStyleMerging = (editor: any): boolean => {
 }
 
 // Get a summary of the current HTML structure for debugging
-export const getHtmlStructureSummary = (editor: any): string => {
+export const getHtmlStructureSummary = (editor: Editor): string => {
   const html = editor.getHTML()
 
   // Count different patterns
@@ -631,7 +633,7 @@ ${
 }
 
 // Test link parsing with specific HTML content
-export const testLinkParsing = (editor: any, htmlContent: string): void => {
+export const testLinkParsing = (editor: Editor, htmlContent: string): void => {
   console.log('=== Link Parsing Test ===')
   console.log('Input HTML:', htmlContent)
 
@@ -644,14 +646,14 @@ export const testLinkParsing = (editor: any, htmlContent: string): void => {
 
   // Check what links are detected
   const { doc } = editor.state
-  const links: any[] = []
+  const links: { text?: string; pos: number; attrs: Record<string, unknown> }[] = []
 
-  doc.descendants((node: any, pos: number) => {
-    if (node.isText) {
-      const linkMark = node.marks.find((mark: any) => mark.type.name === 'link')
+  doc.descendants((node: Node, pos: number) => {
+    if (node.isText && node.marks) {
+      const linkMark = node.marks.find((mark: Mark) => mark.type.name === 'link')
       if (linkMark) {
         links.push({
-          text: node.text,
+          text: node.text || undefined,
           pos,
           attrs: linkMark.attrs
         })
@@ -664,7 +666,7 @@ export const testLinkParsing = (editor: any, htmlContent: string): void => {
 }
 
 // Debug specific HTML content with link
-export const debugSpecificContent = (editor: any): void => {
+export const debugSpecificContent = (editor: Editor): void => {
   const testContent =
     '<p>abc abc <a class="editor-link" href="https://mylink.com" style="color: #31c48d">link content</a> abc abc.</p>'
 
@@ -688,7 +690,7 @@ export const debugSpecificContent = (editor: any): void => {
 }
 
 // Comprehensive test for the specific user issue
-export const testUserSpecificContent = (editor: any): boolean => {
+export const testUserSpecificContent = (editor: Editor): boolean => {
   const userContent =
     '<p>abc abc <a class="editor-link" href="https://mylink.com" style="color: #31c48d">link content</a> abc abc.</p>'
 
@@ -740,7 +742,7 @@ export const testUserSpecificContent = (editor: any): boolean => {
 }
 
 // Test after content reload to verify persistence
-export const testContentReloadPersistence = (editor: any): boolean => {
+export const testContentReloadPersistence = (editor: Editor): boolean => {
   const userContent =
     '<p>abc abc <a class="editor-link" href="https://mylink.com" style="color: #31c48d">link content</a> abc abc.</p>'
 
@@ -784,7 +786,7 @@ export const testContentReloadPersistence = (editor: any): boolean => {
 }
 
 // Quick verification function for the main bug
-export const verifyLinkParsingFix = (editor: any): void => {
+export const verifyLinkParsingFix = (editor: Editor): void => {
   console.log('🧪 Verifying Link Parsing Fix for User Issue')
   console.log('==============================================')
 

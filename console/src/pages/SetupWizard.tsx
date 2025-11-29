@@ -31,7 +31,8 @@ export default function SetupWizard() {
 
   useEffect(() => {
     // Get API endpoint from window object
-    setApiEndpoint((window as any).API_ENDPOINT || '')
+    const endpoint = (window as unknown as Record<string, unknown>).API_ENDPOINT
+    setApiEndpoint(typeof endpoint === 'string' ? endpoint : '')
 
     // Fetch setup status
     const fetchStatus = async () => {
@@ -48,7 +49,7 @@ export default function SetupWizard() {
           root_email_configured: status.root_email_configured,
           smtp_relay_configured: status.smtp_relay_configured
         })
-      } catch (error) {
+      } catch {
         message.error('Failed to fetch setup status')
       } finally {
         setStatusLoading(false)
@@ -80,7 +81,7 @@ export default function SetupWizard() {
     }
   }
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: Record<string, unknown>) => {
     setLoading(true)
 
     // console.log('values', values)
@@ -90,45 +91,45 @@ export default function SetupWizard() {
 
       // Root email (only if not configured via env)
       if (!configStatus.root_email_configured) {
-        setupConfig.root_email = values.root_email
+        setupConfig.root_email = typeof values.root_email === 'string' ? values.root_email : undefined
       }
 
       // API endpoint (only if not configured via env)
       if (!configStatus.api_endpoint_configured) {
-        setupConfig.api_endpoint = values.api_endpoint
+        setupConfig.api_endpoint = typeof values.api_endpoint === 'string' ? values.api_endpoint : undefined
       }
 
       // SMTP configuration (only if not configured via env)
       if (!configStatus.smtp_configured) {
-        setupConfig.smtp_host = values.smtp_host
-        setupConfig.smtp_port = values.smtp_port
-        setupConfig.smtp_username = values.smtp_username || ''
-        setupConfig.smtp_password = values.smtp_password || ''
-        setupConfig.smtp_from_email = values.smtp_from_email
-        setupConfig.smtp_from_name = values.smtp_from_name || 'Notifuse'
+        setupConfig.smtp_host = typeof values.smtp_host === 'string' ? values.smtp_host : undefined
+        setupConfig.smtp_port = typeof values.smtp_port === 'number' ? values.smtp_port : undefined
+        setupConfig.smtp_username = typeof values.smtp_username === 'string' ? values.smtp_username : ''
+        setupConfig.smtp_password = typeof values.smtp_password === 'string' ? values.smtp_password : ''
+        setupConfig.smtp_from_email = typeof values.smtp_from_email === 'string' ? values.smtp_from_email : undefined
+        setupConfig.smtp_from_name = typeof values.smtp_from_name === 'string' ? values.smtp_from_name : 'Notifuse'
       }
 
       // SMTP Relay configuration (only if not configured via env)
       if (!configStatus.smtp_relay_configured) {
-        setupConfig.smtp_relay_enabled = values.smtp_relay_enabled || false
+        setupConfig.smtp_relay_enabled = typeof values.smtp_relay_enabled === 'boolean' ? values.smtp_relay_enabled : false
         if (values.smtp_relay_enabled) {
-          setupConfig.smtp_relay_domain = values.smtp_relay_domain
-          setupConfig.smtp_relay_port = values.smtp_relay_port || 587
-          setupConfig.smtp_relay_tls_cert_base64 = values.smtp_relay_tls_cert_base64
-          setupConfig.smtp_relay_tls_key_base64 = values.smtp_relay_tls_key_base64
+          setupConfig.smtp_relay_domain = typeof values.smtp_relay_domain === 'string' ? values.smtp_relay_domain : undefined
+          setupConfig.smtp_relay_port = typeof values.smtp_relay_port === 'number' ? values.smtp_relay_port : 587
+          setupConfig.smtp_relay_tls_cert_base64 = typeof values.smtp_relay_tls_cert_base64 === 'string' ? values.smtp_relay_tls_cert_base64 : undefined
+          setupConfig.smtp_relay_tls_key_base64 = typeof values.smtp_relay_tls_key_base64 === 'string' ? values.smtp_relay_tls_key_base64 : undefined
         }
       }
 
       // Telemetry and check for updates settings
-      setupConfig.telemetry_enabled = values.telemetry_enabled || false
-      setupConfig.check_for_updates = values.check_for_updates || false
+      setupConfig.telemetry_enabled = typeof values.telemetry_enabled === 'boolean' ? values.telemetry_enabled : false
+      setupConfig.check_for_updates = typeof values.check_for_updates === 'boolean' ? values.check_for_updates : false
 
       await setupApi.initialize(setupConfig)
 
       // Subscribe to newsletter if checked (fail silently)
       if (values.subscribe_newsletter && values.root_email) {
         try {
-          const contact: any = {
+          const contact: Record<string, unknown> = {
             email: values.root_email
           }
 
@@ -138,9 +139,8 @@ export default function SetupWizard() {
             if (timezone) {
               contact.timezone = timezone
             }
-          } catch (e) {
+          } catch {
             // Fail silently if timezone detection fails
-            console.error('Failed to detect timezone:', e)
           }
 
           // Only include custom fields if values are available
@@ -168,9 +168,8 @@ export default function SetupWizard() {
               list_ids: ['newsletter']
             })
           })
-        } catch (error) {
+        } catch {
           // Fail silently - don't block setup if newsletter subscription fails
-          console.error('Newsletter subscription failed:', error)
         }
       }
 
@@ -187,7 +186,7 @@ export default function SetupWizard() {
 
       // Wait for server to restart
       // Use the API endpoint from the form values or the already configured endpoint
-      const endpointToCheck = values.api_endpoint || apiEndpoint || window.location.origin
+      const endpointToCheck = typeof values.api_endpoint === 'string' ? values.api_endpoint : (apiEndpoint || window.location.origin)
 
       try {
         await waitForServerRestart(endpointToCheck)
@@ -201,7 +200,7 @@ export default function SetupWizard() {
 
         // Don't redirect automatically - let user click the button
         setLoading(false)
-      } catch (error) {
+      } catch {
         hideRestartMessage()
         message.error({
           content: 'Server restart timeout. Please refresh the page manually.',
@@ -225,7 +224,7 @@ export default function SetupWizard() {
     const delayMs = 1000 // Check every second
 
     // Determine the API endpoint URL - use same logic as api client
-    let apiEndpointUrl = configuredEndpoint
+    const apiEndpointUrl = configuredEndpoint
 
     // Wait for server to start shutting down
     await new Promise((resolve) => setTimeout(resolve, 2000))
@@ -244,7 +243,7 @@ export default function SetupWizard() {
           console.log(`Server restarted successfully after ${i + 1} attempts`)
           return
         }
-      } catch (error) {
+      } catch {
         // Expected during restart - server is down
         console.log(`Waiting for server... attempt ${i + 1}/${maxAttempts}`)
       }

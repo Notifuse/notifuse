@@ -22,7 +22,7 @@ export class FieldTypeNumber implements FieldTypeRenderer {
     new OperatorNumber('lte', 'less than or equal')
   ]
 
-  render(filter: DimensionFilter, _schema?: any, _customFieldLabels?: Record<string, string>) {
+  render(filter: DimensionFilter) {
     const operator = this.operators.find((x) => x.type === filter.operator)
     if (!operator)
       return <Alert type="error" message={'operator not found for: {filter.operator'} />

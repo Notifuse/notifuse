@@ -4,7 +4,7 @@ export interface CustomEvent {
   external_id: string
   email: string
   event_name: string
-  properties: Record<string, any>
+  properties: Record<string, unknown>
   occurred_at: string
   source: string
   integration_id?: string | null
@@ -17,7 +17,7 @@ export interface CreateCustomEventRequest {
   email: string
   event_name: string
   external_id: string
-  properties?: Record<string, any>
+  properties?: Record<string, unknown>
   occurred_at?: string
   source?: string
   integration_id?: string
@@ -33,7 +33,7 @@ export interface ImportCustomEventsRequest {
     email: string
     event_name: string
     external_id: string
-    properties?: Record<string, any>
+    properties?: Record<string, unknown>
     occurred_at?: string
     source?: string
     integration_id?: string

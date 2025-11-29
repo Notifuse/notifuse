@@ -1,6 +1,6 @@
-import { Form, FormInstance, InputNumber, Tag } from 'antd'
+import { Form, InputNumber, Tag } from 'antd'
 import Messages from './messages'
-import { DimensionFilter, FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
+import { DimensionFilter, IOperator, Operator } from '../../services/api/segment'
 
 export type OperatorNumberProps = {
   value: string | undefined
@@ -28,7 +28,7 @@ export class OperatorNumber implements IOperator {
     )
   }
 
-  renderFormItems(_fieldType: FieldTypeValue, _fieldName: string, _form: FormInstance) {
+  renderFormItems() {
     return (
       <Form.Item
         name={['number_values', 0]}

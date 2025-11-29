@@ -57,10 +57,15 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
     }
   }
 
-  const beforeMount = (monaco: any) => {
+  const beforeMount = (monaco: unknown) => {
+    // Type guard for Monaco instance
+    if (!monaco || typeof monaco !== 'object') return
+
+    const monacoInstance = monaco as { languages: { html: { htmlDefaults: { setOptions: (options: unknown) => void } }; css: { cssDefaults: { setOptions: (options: unknown) => void } } } }
+
     // Configure language-specific settings
     if (language === 'html') {
-      monaco.languages.html.htmlDefaults.setOptions({
+      monacoInstance.languages.html.htmlDefaults.setOptions({
         format: {
           tabSize: 2,
           insertSpaces: true,
@@ -78,7 +83,7 @@ const CodeDrawerInput: React.FC<CodeDrawerInputProps> = ({
         suggest: { html5: true }
       })
     } else if (language === 'css') {
-      monaco.languages.css.cssDefaults.setOptions({
+      monacoInstance.languages.css.cssDefaults.setOptions({
         validate: true,
         lint: {
           compatibleVendorPrefixes: 'ignore',

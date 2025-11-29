@@ -1,4 +1,4 @@
-import { Alert, Form, FormInstance, Select, Tag } from 'antd'
+import { Alert, Form, Select, Tag } from 'antd'
 import { Rule } from 'antd/lib/form'
 import Messages from './messages'
 import { DimensionFilter, FieldTypeValue, IOperator, Operator } from '../../services/api/segment'
@@ -41,8 +41,8 @@ export class OperatorContains implements IOperator {
     )
   }
 
-  renderFormItems(fieldType: FieldTypeValue, fieldName: string, _form: FormInstance) {
-    let rule: Rule = { required: true, type: 'array', min: 1, message: Messages.RequiredField }
+  renderFormItems(fieldType: FieldTypeValue, fieldName: string) {
+    const rule: Rule = { required: true, type: 'array', min: 1, message: Messages.RequiredField }
     let input = <Select mode="tags" placeholder="press enter to add a value" />
 
     switch (fieldType) {
@@ -56,8 +56,8 @@ export class OperatorContains implements IOperator {
               mode="multiple"
               placeholder="Select a gender"
               optionFilterProp="children"
-              filterOption={(input: any, option: any) =>
-                option.value.toLowerCase().includes(input.toLowerCase())
+              filterOption={(input: string, option: unknown) =>
+                (option as { value: string }).value.toLowerCase().includes(input.toLowerCase())
               }
               options={[
                 { value: 'male', label: 'Male' },
@@ -74,8 +74,8 @@ export class OperatorContains implements IOperator {
               mode="multiple"
               placeholder="Select a currency"
               optionFilterProp="children"
-              filterOption={(input: any, option: any) =>
-                option.value.toLowerCase().includes(input.toLowerCase())
+              filterOption={(input: string, option: unknown) =>
+                (option as { value: string }).value.toLowerCase().includes(input.toLowerCase())
               }
               options={Currencies.map((c: Currency) => {
                 return { value: c.code, label: c.code + ' - ' + c.currency }
@@ -91,8 +91,8 @@ export class OperatorContains implements IOperator {
               // style={{ width: '200px' }}
               showSearch
               placeholder="Select a country"
-              filterOption={(input: any, option: any) =>
-                option.label.toLowerCase().includes(input.toLowerCase())
+              filterOption={(input: string, option: unknown) =>
+                (option as { label: string }).label.toLowerCase().includes(input.toLowerCase())
               }
               options={CountriesFormOptions}
             />
@@ -107,9 +107,9 @@ export class OperatorContains implements IOperator {
               // style={{ width: '200px' }}
               allowClear={false}
               showSearch={true}
-              filterOption={(searchText: any, option: any) => {
+              filterOption={(searchText: string, option: unknown) => {
                 return (
-                  searchText !== '' && option.name.toLowerCase().includes(searchText.toLowerCase())
+                  searchText !== '' && (option as { name: string }).name.toLowerCase().includes(searchText.toLowerCase())
                 )
               }}
               options={Languages}
@@ -125,9 +125,9 @@ export class OperatorContains implements IOperator {
               placeholder="Select a time zone"
               allowClear={false}
               showSearch={true}
-              filterOption={(searchText: any, option: any) => {
+              filterOption={(searchText: string, option: unknown) => {
                 return (
-                  searchText !== '' && option.name.toLowerCase().includes(searchText.toLowerCase())
+                  searchText !== '' && (option as { name: string }).name.toLowerCase().includes(searchText.toLowerCase())
                 )
               }}
               optionFilterProp="label"

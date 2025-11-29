@@ -168,23 +168,46 @@ export const EmailMetricsChart: React.FC<EmailMetricsChartProps> = ({
 
   useEffect(() => {
     fetchData(messageTypeFilter)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace.id, messageTypeFilter, timeRange, visibleLines])
 
   const handleFilterChange = (value: MessageTypeFilter) => {
     setMessageTypeFilter(value)
   }
 
+  // Define the stats type
+  interface EmailStats {
+    count_sent: number
+    count_delivered: number
+    count_opened: number
+    count_clicked: number
+    count_bounced: number
+    count_complained: number
+    count_unsubscribed: number
+    count_failed: number
+  }
+
+  // Helper function to safely convert unknown to number
+  const toNumber = (value: unknown): number => {
+    if (typeof value === 'number') return value
+    if (typeof value === 'string') {
+      const parsed = parseFloat(value)
+      return isNaN(parsed) ? 0 : parsed
+    }
+    return 0
+  }
+
   // Extract and aggregate stats from the stats response (sum up all daily values)
-  const stats = statsData?.data?.reduce(
+  const stats: EmailStats = statsData?.data?.reduce<EmailStats>(
     (acc, row) => ({
-      count_sent: acc.count_sent + (row.count_sent || 0),
-      count_delivered: acc.count_delivered + (row.count_delivered || 0),
-      count_opened: acc.count_opened + (row.count_opened || 0),
-      count_clicked: acc.count_clicked + (row.count_clicked || 0),
-      count_bounced: acc.count_bounced + (row.count_bounced || 0),
-      count_complained: acc.count_complained + (row.count_complained || 0),
-      count_unsubscribed: acc.count_unsubscribed + (row.count_unsubscribed || 0),
-      count_failed: acc.count_failed + (row.count_failed || 0)
+      count_sent: acc.count_sent + toNumber(row.count_sent),
+      count_delivered: acc.count_delivered + toNumber(row.count_delivered),
+      count_opened: acc.count_opened + toNumber(row.count_opened),
+      count_clicked: acc.count_clicked + toNumber(row.count_clicked),
+      count_bounced: acc.count_bounced + toNumber(row.count_bounced),
+      count_complained: acc.count_complained + toNumber(row.count_complained),
+      count_unsubscribed: acc.count_unsubscribed + toNumber(row.count_unsubscribed),
+      count_failed: acc.count_failed + toNumber(row.count_failed)
     }),
     {
       count_sent: 0,

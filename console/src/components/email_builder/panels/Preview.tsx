@@ -10,9 +10,9 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 interface PreviewProps {
   html: string
   mjml: string
-  errors?: any[]
-  testData?: any
-  onTestDataChange: (testData: any) => void
+  errors?: Array<Record<string, unknown>>
+  testData?: Record<string, unknown>
+  onTestDataChange: (testData: Record<string, unknown>) => void
   mobileDesktopSwitcherRef?: React.RefObject<HTMLDivElement>
 }
 
@@ -20,8 +20,8 @@ export interface PreviewRef {
   openTemplateDataEditor: () => void
   closeTemplateDataEditor: () => void
   isTemplateDataEditorOpen: () => boolean
-  getTemplateData: () => any
-  setTemplateData: (data: any) => void
+  getTemplateData: () => Record<string, unknown> | undefined
+  setTemplateData: (data: Record<string, unknown>) => void
   getTemplateDataTabRef: () => HTMLElement | null
 }
 
@@ -55,7 +55,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
         },
         isTemplateDataEditorOpen: () => isEditingTestData,
         getTemplateData: () => testData,
-        setTemplateData: (data: any) => {
+        setTemplateData: (data) => {
           if (onTestDataChange) {
             onTestDataChange(data)
           }
@@ -96,8 +96,10 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
                   MJML Compilation Warnings
                 </h3>
                 <ul className="text-sm text-amber-700 space-y-1">
-                  {errors.map((error: any, index: number) => (
-                    <li key={index}>{error.message || error.toString()}</li>
+                  {errors.map((error: Record<string, unknown>, index: number) => (
+                    <li key={index}>
+                      {typeof error.message === 'string' ? error.message : String(error)}
+                    </li>
                   ))}
                 </ul>
               </div>
@@ -124,7 +126,7 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
           }
 
           setIsEditingTestData(false)
-        } catch (error) {
+        } catch {
           message.error('Invalid JSON format. Please check your syntax.')
         }
       }
@@ -134,8 +136,10 @@ export const Preview = forwardRef<PreviewRef, PreviewProps>(
         setIsEditingTestData(false)
       }
 
-      const beforeMount = (monaco: any) => {
-        monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+      const beforeMount = (monaco: unknown) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const monacoTyped = monaco as any
+        monacoTyped.languages.json.jsonDefaults.setDiagnosticsOptions({
           validate: true,
           allowComments: false,
           schemas: [],

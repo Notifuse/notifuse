@@ -22,10 +22,12 @@ const LANGUAGES = [
   { value: 'plaintext', label: 'Plain Text', badge: 'TXT' }
 ]
 
+import type { Editor } from '@tiptap/react'
+
 /**
  * Get the bounding rect of a code block node
  */
-function getCodeBlockRect(editor: any): DOMRect | null {
+function getCodeBlockRect(editor: Editor): DOMRect | null {
   if (!editor) return null
 
   const { state, view } = editor
@@ -52,7 +54,7 @@ function getCodeBlockRect(editor: any): DOMRect | null {
 /**
  * Check if cursor is inside a code block
  */
-function isInCodeBlock(editor: any): boolean {
+function isInCodeBlock(editor: Editor): boolean {
   if (!editor || !editor.isEditable) return false
 
   const { state } = editor
@@ -72,7 +74,7 @@ function isInCodeBlock(editor: any): boolean {
 /**
  * Get current language of the code block
  */
-function getCurrentLanguage(editor: any): string {
+function getCurrentLanguage(editor: Editor): string {
   if (!editor) return 'plaintext'
 
   const { state } = editor
@@ -92,7 +94,7 @@ function getCurrentLanguage(editor: any): string {
 /**
  * Get current max-height of the code block
  */
-function getCurrentMaxHeight(editor: any): number {
+function getCurrentMaxHeight(editor: Editor): number {
   if (!editor) return 300
 
   const { state } = editor
@@ -112,7 +114,7 @@ function getCurrentMaxHeight(editor: any): number {
 /**
  * Get current showCaption state of the code block
  */
-function getShowCaption(editor: any): boolean {
+function getShowCaption(editor: Editor): boolean {
   if (!editor) return false
 
   const { state } = editor
@@ -197,7 +199,7 @@ export function CodeBlockToolbar() {
   }, [editor, showCaption])
 
   const getAnchorRect = useCallback(() => {
-    return getCodeBlockRect(editor)
+    return editor ? getCodeBlockRect(editor) : null
   }, [editor])
 
   if (!editor) {

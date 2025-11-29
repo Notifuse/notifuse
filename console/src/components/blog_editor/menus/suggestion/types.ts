@@ -4,7 +4,7 @@ import type React from 'react'
 /**
  * Generic item structure for suggestion menus
  */
-export interface SuggestionItem<TContext = any> {
+export interface SuggestionItem<TContext = unknown> {
   /** Unique identifier for the item */
   id: string
 
@@ -30,7 +30,7 @@ export interface SuggestionItem<TContext = any> {
 /**
  * Configuration for a suggestion menu type
  */
-export interface SuggestionConfig<TContext = any> {
+export interface SuggestionConfig<TContext = unknown> {
   /** Trigger character (e.g., '/', ':', '@') */
   char: string
 

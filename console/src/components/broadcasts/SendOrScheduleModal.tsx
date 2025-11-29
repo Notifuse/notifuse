@@ -45,19 +45,22 @@ export function SendOrScheduleModal({
   const hasMarketingEmailProvider = workspace?.settings?.marketing_email_provider_id
 
   // Helper function to extract error message from API response
-  const getErrorMessage = (error: any, defaultMessage: string): string => {
+  const getErrorMessage = (error: unknown, defaultMessage: string): string => {
     // Try to extract message from various possible response structures
     // Check for 'error' field first (used by WriteJSONError in backend)
-    if (error?.response?.data?.error) {
-      return error.response.data.error
-    }
-    // Check for 'message' field (used by some other handlers)
-    if (error?.response?.data?.message) {
-      return error.response.data.message
+    if (error && typeof error === 'object' && 'response' in error) {
+      const response = (error as { response?: { data?: { error?: string; message?: string } } }).response
+      if (response?.data?.error) {
+        return response.data.error
+      }
+      // Check for 'message' field (used by some other handlers)
+      if (response?.data?.message) {
+        return response.data.message
+      }
     }
     // Fallback to general error message
-    if (error?.message) {
-      return error.message
+    if (error && typeof error === 'object' && 'message' in error && typeof (error as { message: unknown }).message === 'string') {
+      return (error as { message: string }).message
     }
     return defaultMessage
   }
@@ -91,7 +94,7 @@ export function SendOrScheduleModal({
       message.success(`Broadcast "${broadcast.name}" sending started`)
       onSuccess()
       onClose()
-    } catch (error: any) {
+    } catch (error) {
       console.error(error)
       const errorMessage = getErrorMessage(error, 'Failed to send broadcast')
       message.error(errorMessage)
@@ -139,7 +142,7 @@ export function SendOrScheduleModal({
         message.success(`Broadcast "${broadcast.name}" scheduled successfully`)
         onSuccess()
         onClose()
-      } catch (error: any) {
+      } catch (error) {
         console.error(error)
         const errorMessage = getErrorMessage(error, 'Failed to schedule broadcast')
         message.error(errorMessage)

@@ -172,7 +172,7 @@ describe('MJML to JSON Browser Converter', () => {
       const textBlock = columnBlock?.children?.[0]
       expect(textBlock?.type).toBe('mj-text')
       // Plain text should be wrapped in <p> tags for consistency with Tiptap editor
-      expect((textBlock as any)?.content).toBe('<p>Hello World</p>')
+      expect((textBlock as { content?: string })?.content).toBe('<p>Hello World</p>')
     })
 
     test('should handle MJML with attributes', () => {
@@ -191,17 +191,17 @@ describe('MJML to JSON Browser Converter', () => {
       const result = convertMjmlToJsonBrowser(mjmlInput)
 
       const bodyBlock = result.children?.[0]
-      expect((bodyBlock?.attributes as any)?.width).toBe('600px')
-      expect((bodyBlock?.attributes as any)?.backgroundColor).toBe('#ffffff')
+      expect((bodyBlock?.attributes as Record<string, unknown>)?.width).toBe('600px')
+      expect((bodyBlock?.attributes as Record<string, unknown>)?.backgroundColor).toBe('#ffffff')
 
       const sectionBlock = bodyBlock?.children?.[0]
-      expect((sectionBlock?.attributes as any)?.padding).toBe('20px')
+      expect((sectionBlock?.attributes as Record<string, unknown>)?.padding).toBe('20px')
 
       const textBlock = sectionBlock?.children?.[0]?.children?.[0]
-      expect((textBlock?.attributes as any)?.fontSize).toBe('16px')
-      expect((textBlock?.attributes as any)?.color).toBe('#333333')
+      expect((textBlock?.attributes as Record<string, unknown>)?.fontSize).toBe('16px')
+      expect((textBlock?.attributes as Record<string, unknown>)?.color).toBe('#333333')
       // Plain text should be wrapped in <p> tags for consistency with Tiptap editor
-      expect((textBlock as any)?.content).toBe('<p>Styled Text</p>')
+      expect((textBlock as { content?: string })?.content).toBe('<p>Styled Text</p>')
     })
 
     test('should handle self-closing elements', () => {
@@ -225,13 +225,13 @@ describe('MJML to JSON Browser Converter', () => {
 
       const spacerBlock = columnBlock?.children?.[0]
       expect(spacerBlock?.type).toBe('mj-spacer')
-      expect((spacerBlock?.attributes as any)?.height).toBe('20px')
+      expect((spacerBlock?.attributes as Record<string, unknown>)?.height).toBe('20px')
       expect(spacerBlock?.children).toBeUndefined()
 
       const dividerBlock = columnBlock?.children?.[1]
       expect(dividerBlock?.type).toBe('mj-divider')
-      expect((dividerBlock?.attributes as any)?.borderWidth).toBe('1px')
-      expect((dividerBlock?.attributes as any)?.borderColor).toBe('#ccc')
+      expect((dividerBlock?.attributes as Record<string, unknown>)?.borderWidth).toBe('1px')
+      expect((dividerBlock?.attributes as Record<string, unknown>)?.borderColor).toBe('#ccc')
     })
   })
 
@@ -257,8 +257,8 @@ describe('MJML to JSON Browser Converter', () => {
       expect(sectionBlock?.type).toBe('mj-section')
 
       // Should have the last value of background-color
-      expect((sectionBlock?.attributes as any)?.backgroundColor).toBe('#000000')
-      expect((sectionBlock?.attributes as any)?.padding).toBe('20px')
+      expect((sectionBlock?.attributes as Record<string, unknown>)?.backgroundColor).toBe('#000000')
+      expect((sectionBlock?.attributes as Record<string, unknown>)?.padding).toBe('20px')
     })
 
     test('should handle real-world error case from Sentry (line 291 error)', () => {
@@ -282,7 +282,7 @@ describe('MJML to JSON Browser Converter', () => {
       expect(result.type).toBe('mjml')
 
       const sectionBlock = result.children?.[0]?.children?.[0]
-      expect((sectionBlock?.attributes as any)?.backgroundColor).toBe('#000000')
+      expect((sectionBlock?.attributes as Record<string, unknown>)?.backgroundColor).toBe('#000000')
     })
 
     test('should combine ampersand escaping with duplicate attribute removal', () => {
@@ -309,14 +309,14 @@ describe('MJML to JSON Browser Converter', () => {
       expect(result.type).toBe('mjml')
 
       const sectionBlock = result.children?.[0]?.children?.[0]
-      expect((sectionBlock?.attributes as any)?.backgroundColor).toBe('#000')
+      expect((sectionBlock?.attributes as Record<string, unknown>)?.backgroundColor).toBe('#000')
 
       const columnBlock = sectionBlock?.children?.[0]
 
       const imageBlock = columnBlock?.children?.[0]
       // Should use the last src value (with properly escaped ampersands)
-      expect((imageBlock?.attributes as any)?.src).toBe('https://example.com/img2.jpg?a=1&b=2')
-      expect((imageBlock?.attributes as any)?.width).toBe('200px')
+      expect((imageBlock?.attributes as Record<string, unknown>)?.src).toBe('https://example.com/img2.jpg?a=1&b=2')
+      expect((imageBlock?.attributes as Record<string, unknown>)?.width).toBe('200px')
     })
   })
 
@@ -336,7 +336,7 @@ describe('MJML to JSON Browser Converter', () => {
 
       const result = convertMjmlToJsonBrowser(mjmlInput)
       const textBlock = result.children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]
-      expect((textBlock as any)?.content).toBe('<p>Plain text content</p>')
+      expect((textBlock as { content?: string })?.content).toBe('<p>Plain text content</p>')
     })
 
     test('should preserve content already wrapped in HTML tags', () => {
@@ -354,7 +354,7 @@ describe('MJML to JSON Browser Converter', () => {
 
       const result = convertMjmlToJsonBrowser(mjmlInput)
       const textBlock = result.children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]
-      expect((textBlock as any)?.content).toBe('<p>Already wrapped</p>')
+      expect((textBlock as { content?: string })?.content).toBe('<p>Already wrapped</p>')
     })
 
     test('should preserve complex HTML content', () => {
@@ -372,7 +372,7 @@ describe('MJML to JSON Browser Converter', () => {
 
       const result = convertMjmlToJsonBrowser(mjmlInput)
       const textBlock = result.children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]
-      expect((textBlock as any)?.content).toBe('<p>Paragraph 1</p><p>Paragraph 2</p><strong>Bold</strong>')
+      expect((textBlock as { content?: string })?.content).toBe('<p>Paragraph 1</p><p>Paragraph 2</p><strong>Bold</strong>')
     })
 
     test('should not wrap mj-button content in <p> tags', () => {
@@ -392,7 +392,7 @@ describe('MJML to JSON Browser Converter', () => {
       const buttonBlock = result.children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]
       expect(buttonBlock?.type).toBe('mj-button')
       // Button content should NOT be wrapped (normalization only applies to mj-text)
-      expect((buttonBlock as any)?.content).toBe('Click Me')
+      expect((buttonBlock as { content?: string })?.content).toBe('Click Me')
     })
   })
 })

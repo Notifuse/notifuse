@@ -476,7 +476,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
     null
   )
   const [supabaseSaving, setSupabaseSaving] = useState(false)
-  const supabaseFormRef = React.useRef<any>(null)
+  const supabaseFormRef = React.useRef<{ submit: () => void } | null>(null)
 
   // Test email modal state
   const [testModalVisible, setTestModalVisible] = useState(false)
@@ -486,7 +486,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
   const [testingEmailLoading, setTestingEmailLoading] = useState(false)
 
   // Lists state for Supabase integration
-  const [lists, setLists] = useState<any[]>([])
+  const [lists, setLists] = useState<{ id: string; name: string }[]>([])
 
   // Fetch lists for Supabase integration display
   useEffect(() => {
@@ -1095,7 +1095,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                     {hasBeforeUserCreatedHook && addToLists.length > 0 && (
                       <Descriptions.Item label="Auto-subscribe to Lists">
                         {addToLists.map((listId) => {
-                          const list = lists.find((l: any) => l.id === listId)
+                          const list = lists.find((l) => l.id === listId)
                           return (
                             <Tag key={listId} bordered={false} color="blue" className="mb-1">
                               {list?.name || listId}
@@ -1369,7 +1369,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         title: 'Name',
         dataIndex: 'name',
         key: 'name',
-        render: (text: string, record: any) => (
+        render: (text: string, record: { is_default: boolean }) => (
           <span>
             {text}
             {record.is_default && (
@@ -1394,7 +1394,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
           </div>
         ),
         key: 'actions',
-        render: (_: any, record: any, index: number) => (
+        render: (_: unknown, record: { is_default: boolean }, index: number) => (
           <div className="flex justify-end">
             <Space>
               {!record.is_default && (

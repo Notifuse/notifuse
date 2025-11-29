@@ -52,11 +52,11 @@ export interface Contact {
   custom_datetime_4?: string
   custom_datetime_5?: string
 
-  custom_json_1?: any
-  custom_json_2?: any
-  custom_json_3?: any
-  custom_json_4?: any
-  custom_json_5?: any
+  custom_json_1?: unknown
+  custom_json_2?: unknown
+  custom_json_3?: unknown
+  custom_json_4?: unknown
+  custom_json_5?: unknown
 
   created_at: string
   updated_at: string

@@ -92,7 +92,9 @@ export interface BaseBlock {
   id: string
   type: MJMLComponentType
   children?: BaseBlock[]
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attributes?: Record<string, any>
+  content?: string
 }
 
 // MJML Head - Contains head components
@@ -179,7 +181,7 @@ export interface MJFontBlock extends BaseBlock {
 export interface MJHtmlAttributesBlock extends BaseBlock {
   type: 'mj-html-attributes'
   children?: never
-  attributes?: Record<string, any> // Dynamic HTML attributes
+  attributes?: Record<string, unknown> // Dynamic HTML attributes
 }
 
 export interface MJPreviewBlock extends BaseBlock {
@@ -423,7 +425,7 @@ export interface FormField {
   options?: { value: string; label: string }[]
   placeholder?: string
   description?: string
-  defaultValue?: any
+  defaultValue?: unknown
 }
 
 // Specific attribute types for complex blocks
@@ -609,6 +611,88 @@ export interface MJSocialElementBlock extends BaseBlock {
 }
 
 export type SaveOperation = 'create' | 'update'
+
+// Helper type for merged attributes that provides string access with proper typing
+export interface MergedBlockAttributes {
+  // Common attributes
+  cssClass?: string
+  // Padding attributes
+  paddingTop?: string
+  paddingRight?: string
+  paddingBottom?: string
+  paddingLeft?: string
+  padding?: string
+  innerPadding?: string
+  // Border attributes
+  border?: string
+  borderTop?: string
+  borderRight?: string
+  borderBottom?: string
+  borderLeft?: string
+  borderRadius?: string
+  borderColor?: string
+  borderStyle?: string
+  borderWidth?: string
+  // Inner border attributes
+  innerBorderTop?: string
+  innerBorderRight?: string
+  innerBorderBottom?: string
+  innerBorderLeft?: string
+  innerBorderRadius?: string
+  // Background attributes
+  backgroundColor?: string
+  backgroundUrl?: string
+  backgroundRepeat?: string
+  backgroundSize?: string
+  backgroundPosition?: string
+  backgroundPositionX?: string
+  backgroundPositionY?: string
+  containerBackgroundColor?: string
+  fullWidthBackgroundColor?: string
+  innerBackgroundColor?: string
+  // Text attributes
+  align?: string
+  color?: string
+  fontFamily?: string
+  fontSize?: string
+  fontStyle?: string
+  fontWeight?: string
+  letterSpacing?: string
+  lineHeight?: string
+  textAlign?: string
+  textDecoration?: string
+  textTransform?: string
+  verticalAlign?: string
+  // Layout attributes
+  height?: string
+  width?: string
+  direction?: string
+  fullWidth?: string
+  // Link attributes
+  href?: string
+  rel?: string
+  target?: string
+  title?: string
+  // Image attributes
+  alt?: string
+  src?: string
+  srcset?: string
+  sizes?: string
+  fluidOnMobile?: string
+  name?: string
+  usemap?: string
+  // Social attributes
+  iconHeight?: string
+  iconSize?: string
+  iconPadding?: string
+  textPadding?: string
+  mode?: string
+  tableLayout?: string
+  // Other
+  inline?: string
+  content?: string
+  [key: string]: string | undefined
+}
 
 // Saved block interface for storing custom blocks in localStorage
 export interface SavedBlock {

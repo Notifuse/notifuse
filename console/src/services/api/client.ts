@@ -1,18 +1,10 @@
-declare global {
-  interface Window {
-    API_ENDPOINT?: string
-    VERSION?: string
-    ROOT_EMAIL?: string
-  }
-}
-
 import { router } from '../../router'
 
 class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
-    public data?: any
+    public data?: unknown
   ) {
     super(message)
     this.name = 'ApiError'
@@ -30,7 +22,7 @@ async function handleResponse<T>(response: Response): Promise<T> {
     ) {
       localStorage.removeItem('auth_token')
 
-      router.navigate({ to: '/signin' })
+      router.navigate({ to: '/console/signin' })
     }
 
     throw new ApiError(errorData?.error || 'An error occurred', response.status, errorData)
@@ -63,12 +55,12 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
 export const api = {
   get: <T>(endpoint: string) => request<T>(endpoint),
-  post: <T>(endpoint: string, data: any) =>
+  post: <T>(endpoint: string, data: unknown) =>
     request<T>(endpoint, {
       method: 'POST',
       body: JSON.stringify(data)
     }),
-  put: <T>(endpoint: string, data: any) =>
+  put: <T>(endpoint: string, data: unknown) =>
     request<T>(endpoint, {
       method: 'PUT',
       body: JSON.stringify(data)

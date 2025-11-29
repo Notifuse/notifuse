@@ -102,5 +102,12 @@ export const defaultEditorStyles: EditorStyleConfig = {
   link: {
     color: '#3b82f6',
     hoverColor: '#2563eb'
+  },
+
+  // Newsletter settings
+  newsletter: {
+    enabled: false,
+    buttonColor: '#3b82f6',
+    buttonText: 'Subscribe'
   }
 }

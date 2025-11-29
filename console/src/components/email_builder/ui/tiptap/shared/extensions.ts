@@ -4,6 +4,8 @@ import Underline from '@tiptap/extension-underline'
 import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import { Node, Mark, mergeAttributes } from '@tiptap/core'
+import type { Mark as ProseMirrorMark } from '@tiptap/pm/model'
+import type { RawCommands } from '@tiptap/core'
 import { TextStyleMark } from '../TiptapSchema'
 
 // Custom Link extension that supports style attributes for email-friendly HTML
@@ -68,7 +70,7 @@ export const CustomLink = Mark.create({
             if (!style) return null
             const colorMatch = style.match(/color:\s*([^;]+)/i)
             return colorMatch ? colorMatch[1].trim() : null
-          } catch (e) {
+          } catch {
             return null
           }
         }
@@ -81,7 +83,7 @@ export const CustomLink = Mark.create({
             if (!style) return null
             const bgMatch = style.match(/background-color:\s*([^;]+)/i)
             return bgMatch ? bgMatch[1].trim() : null
-          } catch (e) {
+          } catch {
             return null
           }
         }
@@ -110,7 +112,7 @@ export const CustomLink = Mark.create({
 
             if (styles.length === 0) return {}
             return { style: styles.join('; ') }
-          } catch (e) {
+          } catch {
             // Fallback to original style if processing fails
             if (attributes.style) return { style: attributes.style }
             return {}
@@ -134,27 +136,27 @@ export const CustomLink = Mark.create({
             if (!href) return false
 
             // Start with just the href - this ensures basic link recognition
-            const attrs: Record<string, any> = { href }
+            const attrs: Record<string, unknown> = { href }
 
             // Safely parse other attributes - if any fail, we still have the basic link
             try {
               const target = el.getAttribute('target')
               if (target) attrs.target = target
-            } catch (e) {
+            } catch {
               /* ignore */
             }
 
             try {
               const rel = el.getAttribute('rel')
               if (rel) attrs.rel = rel
-            } catch (e) {
+            } catch {
               /* ignore */
             }
 
             try {
               const className = el.getAttribute('class')
               if (className) attrs.class = className
-            } catch (e) {
+            } catch {
               /* ignore */
             }
 
@@ -176,15 +178,15 @@ export const CustomLink = Mark.create({
                 // Always store the complete style attribute
                 attrs.style = style
               }
-            } catch (e) {
+            } catch (error) {
               // Style parsing failed, but we still have the basic link
-              console.warn('Style parsing failed for link, but link will still work:', e)
+              console.warn('Style parsing failed for link, but link will still work:', error)
             }
 
             return attrs
-          } catch (e) {
+          } catch (error) {
             // If everything fails, log error and return false
-            console.error('Link parsing completely failed:', e)
+            console.error('Link parsing completely failed:', error)
             return false
           }
         }
@@ -196,20 +198,22 @@ export const CustomLink = Mark.create({
     return ['a', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
   },
 
-  addCommands() {
+  addCommands(): Partial<RawCommands> {
     return {
       setLink:
-        (attributes: any) =>
-        ({ chain, tr, state }: any) => {
+        (attributes?: Record<string, unknown>) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ({ chain, tr, state }: any): any => {
+          if (!attributes) return false
           const { selection } = state
           const { from, to } = selection
 
           // First, collect any existing textStyle attributes in the selection
-          const existingTextStyleAttrs: Record<string, any> = {}
+          const existingTextStyleAttrs: Record<string, unknown> = {}
 
-          tr.doc.nodesBetween(from, to, (node: any, pos: number) => {
+          tr.doc.nodesBetween(from, to, (node: { isText?: boolean; marks?: { type: { name: string }; attrs: Record<string, unknown> }[] }) => {
             if (node.isText) {
-              const textStyleMark = node.marks.find((mark: any) => mark.type.name === 'textStyle')
+              const textStyleMark = node.marks?.find((mark) => mark.type.name === 'textStyle')
               if (textStyleMark) {
                 // Merge textStyle attributes
                 Object.assign(existingTextStyleAttrs, textStyleMark.attrs)
@@ -228,8 +232,10 @@ export const CustomLink = Mark.create({
         },
 
       toggleLink:
-        (attributes: any) =>
-        ({ chain, tr, state }: any) => {
+        (attributes?: Record<string, unknown>) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ({ chain, tr, state }: any): any => {
+          if (!attributes) return false
           const { selection } = state
           const { from, to } = selection
 
@@ -237,8 +243,8 @@ export const CustomLink = Mark.create({
           const linkMark = this.editor.schema.marks[this.name]
           let hasLinkMark = false
 
-          tr.doc.nodesBetween(from, to, (node: any) => {
-            if (linkMark.isInSet(node.marks)) {
+          tr.doc.nodesBetween(from, to, (node: { marks?: readonly ProseMirrorMark[] }) => {
+            if (node.marks && linkMark.isInSet(node.marks)) {
               hasLinkMark = true
               return false
             }
@@ -246,16 +252,17 @@ export const CustomLink = Mark.create({
 
           if (hasLinkMark) {
             // If removing link, preserve colors as textStyle
-            const existingLinkAttrs: Record<string, any> = {}
+            const existingLinkAttrs: Record<string, unknown> = {}
 
-            tr.doc.nodesBetween(from, to, (node: any) => {
-              const currentLinkMark = linkMark.isInSet(node.marks)
-              if (currentLinkMark) {
+            tr.doc.nodesBetween(from, to, (node: { marks?: readonly ProseMirrorMark[] }) => {
+              const currentLinkMark = node.marks ? linkMark.isInSet(node.marks) : null
+              if (currentLinkMark && typeof currentLinkMark === 'object' && 'attrs' in currentLinkMark) {
                 // Extract color attributes from link
-                if (currentLinkMark.attrs.color)
-                  existingLinkAttrs.color = currentLinkMark.attrs.color
-                if (currentLinkMark.attrs.backgroundColor)
-                  existingLinkAttrs.backgroundColor = currentLinkMark.attrs.backgroundColor
+                const attrs = currentLinkMark.attrs as Record<string, unknown>
+                if (attrs.color)
+                  existingLinkAttrs.color = attrs.color
+                if (attrs.backgroundColor)
+                  existingLinkAttrs.backgroundColor = attrs.backgroundColor
               }
             })
 
@@ -271,11 +278,11 @@ export const CustomLink = Mark.create({
             }
           } else {
             // Adding link - collect existing textStyle attributes
-            const existingTextStyleAttrs: Record<string, any> = {}
+            const existingTextStyleAttrs: Record<string, unknown> = {}
 
-            tr.doc.nodesBetween(from, to, (node: any) => {
+            tr.doc.nodesBetween(from, to, (node: { isText?: boolean; marks?: { type: { name: string }; attrs: Record<string, unknown> }[] }) => {
               if (node.isText) {
-                const textStyleMark = node.marks.find((mark: any) => mark.type.name === 'textStyle')
+                const textStyleMark = node.marks?.find((mark) => mark.type.name === 'textStyle')
                 if (textStyleMark) {
                   Object.assign(existingTextStyleAttrs, textStyleMark.attrs)
                 }
@@ -295,20 +302,22 @@ export const CustomLink = Mark.create({
 
       unsetLink:
         () =>
-        ({ chain, tr, state }: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ({ chain, tr, state }: any): any => {
           const { selection } = state
           const { from, to } = selection
           const linkMark = this.editor.schema.marks[this.name]
 
           // Before removing link, preserve color attributes as textStyle
-          const preservedAttrs: Record<string, any> = {}
+          const preservedAttrs: Record<string, unknown> = {}
 
-          tr.doc.nodesBetween(from, to, (node: any) => {
-            const currentLinkMark = linkMark.isInSet(node.marks)
-            if (currentLinkMark) {
-              if (currentLinkMark.attrs.color) preservedAttrs.color = currentLinkMark.attrs.color
-              if (currentLinkMark.attrs.backgroundColor)
-                preservedAttrs.backgroundColor = currentLinkMark.attrs.backgroundColor
+          tr.doc.nodesBetween(from, to, (node: { marks?: readonly ProseMirrorMark[] }) => {
+            const currentLinkMark = node.marks ? linkMark.isInSet(node.marks) : null
+            if (currentLinkMark && typeof currentLinkMark === 'object' && 'attrs' in currentLinkMark) {
+              const attrs = currentLinkMark.attrs as Record<string, unknown>
+              if (attrs.color) preservedAttrs.color = attrs.color
+              if (attrs.backgroundColor)
+                preservedAttrs.backgroundColor = attrs.backgroundColor
             }
           })
 
@@ -329,8 +338,10 @@ export const CustomLink = Mark.create({
 
       // Custom command to update link styles
       updateLinkStyle:
-        (attributes: Record<string, any>) =>
-        ({ chain, tr, state }: { chain: any; tr: any; state: any }) => {
+        (attributes?: Record<string, unknown>) =>
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        ({ tr, state }: any): any => {
+          if (!attributes) return false
           const { selection } = state
           const markType = this.editor.schema.marks[this.name]
 
@@ -339,15 +350,16 @@ export const CustomLink = Mark.create({
           const { from, to } = selection
           let linkFound = false
 
-          tr.doc.nodesBetween(from, to, (node: any, pos: number) => {
-            const linkMark = markType.isInSet(node.marks)
-            if (linkMark) {
+          tr.doc.nodesBetween(from, to, (node: { nodeSize?: number; marks?: readonly ProseMirrorMark[] }, pos: number) => {
+            const linkMark = node.marks ? markType.isInSet(node.marks) : null
+            if (linkMark && typeof linkMark === 'object' && 'attrs' in linkMark) {
               linkFound = true
               const start = pos
-              const end = pos + node.nodeSize
+              const end = pos + (node.nodeSize || 0)
 
               // Update the link mark with new attributes
-              const newAttrs = { ...linkMark.attrs, ...attributes }
+              const linkAttrs = linkMark.attrs as Record<string, unknown>
+              const newAttrs = { ...linkAttrs, ...attributes }
               tr.removeMark(start, end, markType)
               tr.addMark(start, end, markType.create(newAttrs))
             }
@@ -356,7 +368,7 @@ export const CustomLink = Mark.create({
 
           return linkFound
         }
-    } as any
+    }
   }
 })
 
@@ -379,7 +391,7 @@ export const InlineDocument = Node.create({
         // Preserve all attributes when parsing
         getAttrs: (element) => {
           if (element instanceof HTMLElement) {
-            const attrs: Record<string, any> = {}
+            const attrs: Record<string, unknown> = {}
             // Copy all attributes except data-inline-doc
             Array.from(element.attributes).forEach((attr) => {
               if (attr.name !== 'data-inline-doc') {
@@ -396,7 +408,7 @@ export const InlineDocument = Node.create({
         tag: 'div[data-inline-doc]',
         getAttrs: (element) => {
           if (element instanceof HTMLElement) {
-            const attrs: Record<string, any> = {}
+            const attrs: Record<string, unknown> = {}
             Array.from(element.attributes).forEach((attr) => {
               if (attr.name !== 'data-inline-doc') {
                 attrs[attr.name] = attr.value

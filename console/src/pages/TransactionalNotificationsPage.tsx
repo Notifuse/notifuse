@@ -7,8 +7,7 @@ import {
   message,
   Table,
   Tag,
-  Popconfirm,
-  notification
+  Popconfirm
 } from 'antd'
 import { useParams } from '@tanstack/react-router'
 import {
@@ -26,7 +25,7 @@ import {
 } from '@fortawesome/free-regular-svg-icons'
 import { faTerminal } from '@fortawesome/free-solid-svg-icons'
 import UpsertTransactionalNotificationDrawer from '../components/transactional/UpsertTransactionalNotificationDrawer'
-import React, { useState } from 'react'
+import { useState } from 'react'
 import dayjs from '../lib/dayjs'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
@@ -104,8 +103,6 @@ export function TransactionalNotificationsPage() {
   // Find the current workspace from the workspaces array
   const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
 
-  const [notificationToDelete, setNotificationToDelete] =
-    useState<TransactionalNotification | null>(null)
   const [testModalOpen, setTestModalOpen] = useState(false)
   const [apiModalOpen, setApiModalOpen] = useState(false)
   const [currentApiNotification, setCurrentApiNotification] =
@@ -130,18 +127,14 @@ export function TransactionalNotificationsPage() {
     enabled: !!workspaceId
   })
 
-  const handleDeleteNotification = async (notification?: TransactionalNotification) => {
-    const notificationToRemove = notification || notificationToDelete
-    if (!notificationToRemove) return
-
+  const handleDeleteNotification = async (notification: TransactionalNotification) => {
     try {
       await transactionalNotificationsApi.delete({
         workspace_id: workspaceId as string,
-        id: notificationToRemove.id
+        id: notification.id
       })
 
       message.success('Transactional notification deleted successfully')
-      setNotificationToDelete(null)
 
       // Refresh the list
       queryClient.invalidateQueries({ queryKey: ['transactional-notifications', workspaceId] })
@@ -241,8 +234,8 @@ export function TransactionalNotificationsPage() {
       title: '',
       key: 'actions',
       width: 100,
-      align: 'right',
-      render: (_: any, record: TransactionalNotification) => (
+      align: 'right' as const,
+      render: (_: unknown, record: TransactionalNotification) => (
         <Space>
           {canDelete(record) && (
             <>
@@ -387,8 +380,13 @@ export function TransactionalNotificationsPage() {
           template={
             {
               id: notificationToTest.channels.email.template_id,
-              category: 'transactional'
-            } as any
+              name: notificationToTest.name,
+              version: 0,
+              category: 'transactional',
+              channel: 'email',
+              created_at: '',
+              updated_at: ''
+            }
           }
           workspace={currentWorkspace || null}
           withCCAndBCC={true}

@@ -22,7 +22,7 @@ vi.mock('@tanstack/react-router', async (importOriginal) => {
   return {
     ...actual,
     useNavigate: () => mockNavigate,
-    useSearch: vi.fn((options?: { from?: string }) => mockSearch)
+    useSearch: vi.fn(() => mockSearch)
   }
 })
 
@@ -48,7 +48,11 @@ describe('SignInPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     // Clear any previous mock implementations
-    vi.spyOn(App, 'useApp').mockReturnValue({ message: mockMessage } as any)
+    vi.spyOn(App, 'useApp').mockReturnValue({
+      message: { ...mockMessage, open: vi.fn(), destroy: vi.fn() },
+      notification: {} as any,
+      modal: {} as any
+    } as ReturnType<typeof App.useApp>)
     // Reset search mock
     mockSearch.email = undefined
   })
@@ -188,7 +192,7 @@ describe('SignInPage', () => {
 
   it('auto-fills and submits email from URL parameter', async () => {
     // Set email in URL search params
-    mockSearch.email = 'demo@notifuse.com'
+    (mockSearch as { email: string | undefined }).email = 'demo@notifuse.com'
 
     // Mock successful response
     vi.mocked(authService.authService.signIn).mockResolvedValueOnce({

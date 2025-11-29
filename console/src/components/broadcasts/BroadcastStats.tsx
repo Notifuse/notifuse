@@ -69,7 +69,7 @@ export function BroadcastStats({ workspaceId, broadcastId, workspace }: Broadcas
     }
 
     const url = `/console/workspace/${workspaceId}/logs?${searchParams.toString()}`
-    navigate({ to: url as any })
+    navigate({ to: url as string & {} })
   }
 
   // Formatter function for statistics that handles loading state

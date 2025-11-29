@@ -27,7 +27,7 @@ const generateApiId = (name: string): string => {
 interface UpsertTransactionalNotificationDrawerProps {
   workspace: Workspace
   notification?: TransactionalNotification
-  buttonProps?: any
+  buttonProps?: Record<string, unknown>
   buttonContent?: React.ReactNode
   onClose?: () => void
 }

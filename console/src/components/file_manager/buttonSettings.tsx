@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Col, Form, Input, Modal, Row, Select, Switch, Typography, message } from 'antd'
+import { Alert, Button, Col, Form, Input, Modal, Row, Select, Switch, Typography, message } from 'antd'
 import { useState, useEffect } from 'react'
 import { useForm } from 'antd/lib/form/Form'
 import type { FileManagerSettings } from './interfaces'
@@ -38,6 +38,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
         ? getProviderById(props.settings.provider)
         : null
       const resolvedProvider = existingProvider || getProviderById('other') || null
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedProvider(resolvedProvider)
       setCurrentScreen('settings')
 
@@ -99,7 +100,7 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
   const onFinish = () => {
     form
       .validateFields()
-      .then((values: any) => {
+      .then((values: FileManagerSettings) => {
         if (loading) return
 
         setLoading(true)
@@ -143,13 +144,13 @@ const ButtonFilesSettings = (props: ButtonFilesSettingsProps) => {
                 setLoading(false)
               })
           })
-          .catch((e: any) => {
+          .catch((e: Error) => {
             console.error(e)
             message.error(e.toString())
             setLoading(false)
           })
       })
-      .catch((e: any) => {
+      .catch((e: Error) => {
         console.error(e)
         message.error(e.toString())
         setLoading(false)

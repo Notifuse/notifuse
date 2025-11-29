@@ -1,5 +1,6 @@
 import {
   DimensionFilter,
+  FieldType,
   FieldTypeRendererDictionary,
   TableSchema
 } from '../../services/api/segment'
@@ -37,7 +38,7 @@ export const InputDimensionFilters = (props: {
   value?: DimensionFilter[]
   onChange?: (updatedValue: DimensionFilter[]) => void
   schema: TableSchema
-  btnType?: string
+  btnType?: 'link' | 'text' | 'dashed' | 'default' | 'primary'
   btnGhost?: boolean
   customFieldLabels?: Record<string, string>
 }) => {
@@ -116,9 +117,9 @@ export const InputDimensionFilters = (props: {
 
 const AddFilterButton = (props: {
   existingFilters?: DimensionFilter[]
-  onComplete: any
+  onComplete: (values: DimensionFilter) => void
   schema: TableSchema
-  btnType?: any
+  btnType?: 'link' | 'text' | 'dashed' | 'default' | 'primary'
   btnGhost?: boolean
   customFieldLabels?: Record<string, string>
 }) => {
@@ -163,10 +164,12 @@ const AddFilterButton = (props: {
           onOk={() => {
             form
               .validateFields()
-              .then((values: any) => {
+              .then((values: DimensionFilter) => {
                 form.resetFields()
                 setModalVisible(false)
-                values.field_type = props.schema.fields[values.field_name].type
+                const schemaType = props.schema.fields[values.field_name].type
+                // Map boolean to number for FieldType compatibility
+                values.field_type = schemaType === 'boolean' ? 'number' : (schemaType as FieldType)
                 props.onComplete(values)
               })
               .catch(console.error)
@@ -235,7 +238,9 @@ const AddFilterButton = (props: {
                   if (!field_name) return null
 
                   const selectedField = props.schema.fields[field_name]
-                  const fieldTypeRenderer = fieldTypeRendererDictionary[selectedField.type]
+                  // Map boolean to number for FieldType compatibility
+                  const rendererType = selectedField.type === 'boolean' ? 'number' : selectedField.type
+                  const fieldTypeRenderer = fieldTypeRendererDictionary[rendererType]
 
                   if (!fieldTypeRenderer)
                     return (
@@ -246,7 +251,7 @@ const AddFilterButton = (props: {
                     )
 
                   return fieldTypeRenderer.renderFormItems(
-                    selectedField.type as any,
+                    rendererType as FieldType,
                     field_name,
                     form
                   )

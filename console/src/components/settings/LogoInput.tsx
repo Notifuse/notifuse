@@ -7,14 +7,14 @@ interface LogoInputProps {
   name?: string
   label?: string
   placeholder?: string
-  rules?: any[]
+  rules?: Array<{ type?: 'url'; message?: string }>
 }
 
 export function LogoInput({
   name = 'logo_url',
   label = 'Logo URL',
   placeholder = 'https://example.com/logo.png',
-  rules = [{ type: 'url', message: 'Please enter a valid URL' }]
+  rules = [{ type: 'url' as const, message: 'Please enter a valid URL' }]
 }: LogoInputProps) {
   const [isDetectingIcon, setIsDetectingIcon] = useState(false)
   const { message } = App.useApp()
@@ -40,9 +40,9 @@ export function LogoInput({
       } else {
         message.warning('No icon found')
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error detecting icon:', error)
-      message.error('Failed to detect icon: ' + (error.message || error))
+      message.error('Failed to detect icon: ' + ((error as Error).message || error))
     } finally {
       setIsDetectingIcon(false)
     }

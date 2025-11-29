@@ -1,10 +1,9 @@
 import React from 'react'
 import { Input } from 'antd'
-import type { MJMLComponentType, EmailBlock } from '../types'
+import type { MJMLComponentType } from '../types'
 import {
   BaseEmailBlock,
-  type OnUpdateAttributesFunction,
-  type PreviewProps
+  type OnUpdateAttributesFunction
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { faHeading } from '@fortawesome/free-solid-svg-icons'
@@ -32,7 +31,7 @@ export class MjTitleBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-title'] || {}
   }
 
@@ -44,7 +43,7 @@ export class MjTitleBlock extends BaseEmailBlock {
     return []
   }
 
-  getEdit(_props: PreviewProps): React.ReactNode {
+  getEdit(): React.ReactNode {
     // Title blocks don't render in preview (they're metadata)
     return null
   }
@@ -53,11 +52,9 @@ export class MjTitleBlock extends BaseEmailBlock {
    * Render the settings panel for the title block
    */
   renderSettingsPanel(
-    onUpdate: OnUpdateAttributesFunction,
-    _blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
+    onUpdate: OnUpdateAttributesFunction
   ): React.ReactNode {
-    const currentContent = (this.block as any).content || ''
+    const currentContent = 'content' in this.block ? (this.block.content as string) : ''
 
     const handleContentChange = (value: string) => {
       onUpdate({ content: value })

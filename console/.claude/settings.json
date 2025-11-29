@@ -6,8 +6,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "file_path=\"$CLAUDE_FILE_PATH\"\nif [[ \"$file_path\" == *.ts || \"$file_path\" == *.tsx ]]; then\n  cd /Users/pierre/Sites/notifuse3/code/notifuse/console && npx eslint \"$file_path\" 2>&1\n  cd /Users/pierre/Sites/notifuse3/code/notifuse/console && npx tsc --noEmit 2>&1 | grep -v node_modules | grep -E '(error|Error)' | head -10\nfi",
-            "timeout": 60
+            "command": "file_path=\"$CLAUDE_FILE_PATH\"\nif [[ \"$file_path\" == *.ts || \"$file_path\" == *.tsx ]]; then\n  cd /Users/pierre/Sites/notifuse3/code/notifuse/console && npx eslint \"$file_path\" 2>&1\n  cd /Users/pierre/Sites/notifuse3/code/notifuse/console && npx tsc --noEmit --project tsconfig.app.json 2>&1 | grep -E \"^src/\" | head -20\nfi",
+            "timeout": 120
           }
         ]
       }

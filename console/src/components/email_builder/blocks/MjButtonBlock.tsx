@@ -1,6 +1,6 @@
 import React from 'react'
 import { InputNumber, Row, Col } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJButtonAttributes } from '../types'
+import type { MJMLComponentType, EmailBlock, MJButtonAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -167,7 +167,7 @@ export class MjButtonBlock extends BaseEmailBlock {
     return 'content'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-button'] || {}
   }
 
@@ -184,7 +184,7 @@ export class MjButtonBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
+    blockDefaults: MergedBlockAttributes,
     emailTree?: EmailBlock
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJButtonAttributes
@@ -459,11 +459,7 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
   selectedBlockId,
   onSelectBlock,
   onUpdateBlock,
-  onCloneBlock,
-  onDeleteBlock,
-  attributeDefaults,
-  onSaveBlock: onSave,
-  savedBlocks
+  attributeDefaults
 }) => {
   const key = block.id
   const isSelected = selectedBlockId === block.id
@@ -480,7 +476,7 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
 
   const attrs = EmailBlockClass.mergeWithAllDefaults(
     'mj-button',
-    block.attributes,
+    block.attributes as Record<string, unknown>,
     attributeDefaults
   )
 
@@ -489,7 +485,7 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
     padding: `${attrs.paddingTop || '10px'} ${attrs.paddingRight || '25px'} ${
       attrs.paddingBottom || '10px'
     } ${attrs.paddingLeft || '25px'}`,
-    textAlign: (attrs.align as any) || 'center',
+    textAlign: (attrs.align as React.CSSProperties['textAlign']) || 'center',
     backgroundColor: attrs.containerBackgroundColor,
     fontSize: '0px', // MJML sets font-size to 0 on container
     verticalAlign: 'middle', // MJML uses vertical-align: middle on container
@@ -520,12 +516,12 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
     fontStyle: attrs.fontStyle,
     lineHeight: attrs.lineHeight || '120%', // MJML default is 120%
     letterSpacing: attrs.letterSpacing,
-    textTransform: attrs.textTransform as any,
+    textTransform: attrs.textTransform as React.CSSProperties['textTransform'],
     textDecoration: attrs.textDecoration || 'none',
 
     // Layout and positioning
-    textAlign: attrs.textAlign as any,
-    verticalAlign: attrs.verticalAlign as any,
+    textAlign: attrs.textAlign as React.CSSProperties['textAlign'],
+    verticalAlign: attrs.verticalAlign as React.CSSProperties['verticalAlign'],
     width: attrs.width,
     height: attrs.height,
 
@@ -570,9 +566,9 @@ const MjButtonBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
     fontStyle: attrs.fontStyle,
     lineHeight: attrs.lineHeight || '120%',
     letterSpacing: attrs.letterSpacing,
-    textTransform: attrs.textTransform as any,
+    textTransform: attrs.textTransform as React.CSSProperties['textTransform'],
     textDecoration: attrs.textDecoration || 'none',
-    textAlign: attrs.textAlign as any,
+    textAlign: attrs.textAlign as React.CSSProperties['textAlign'],
     backgroundColor: 'transparent',
     border: 'none',
     outline: 'none',

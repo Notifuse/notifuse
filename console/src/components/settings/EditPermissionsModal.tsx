@@ -56,7 +56,7 @@ export function EditPermissionsModal({
     setPermissions((prev) => ({
       ...prev,
       [resource]: {
-        ...(prev as any)[resource],
+        ...((prev as unknown as Record<string, { read: boolean; write: boolean }>)[resource]),
         [type]: value
       }
     }))
@@ -85,7 +85,7 @@ export function EditPermissionsModal({
       dataIndex: 'read',
       key: 'read',
       width: '30%',
-      render: (value: boolean, record: any) => (
+      render: (value: boolean, record: { key: string }) => (
         <Switch
           checked={value}
           onChange={(checked) => updatePermission(record.key, 'read', checked)}
@@ -98,7 +98,7 @@ export function EditPermissionsModal({
       dataIndex: 'write',
       key: 'write',
       width: '30%',
-      render: (value: boolean, record: any) => (
+      render: (value: boolean, record: { key: string }) => (
         <Switch
           checked={value}
           onChange={(checked) => updatePermission(record.key, 'write', checked)}

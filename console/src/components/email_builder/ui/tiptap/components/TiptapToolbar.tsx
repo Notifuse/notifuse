@@ -37,12 +37,7 @@ import {
   handleBackgroundColorChange as handleBackgroundColorChangeUtil,
   getEffectiveTextColor,
   getEffectiveBackgroundColor,
-  createLinkWithStyleMerging,
-  debugSpecificContent,
-  testLinkParsing,
-  verifyLinkParsingFix,
-  testUserSpecificContent,
-  testContentReloadPersistence
+  createLinkWithStyleMerging
 } from '../shared/utils'
 
 // Toolbar Button Component
@@ -76,8 +71,8 @@ export const ColorButton: React.FC<ColorButtonProps> = ({
   title,
   isActive = false
 }) => {
-  const handleColorChange = (color: any) => {
-    const hexValue = color?.toHexString() || ''
+  const handleColorChange = (color: unknown) => {
+    const hexValue = (color as { toHexString?: () => string })?.toHexString?.() || ''
     onColorChange(hexValue)
   }
 
@@ -194,7 +189,7 @@ export const ColorButton: React.FC<ColorButtonProps> = ({
       >
         <div style={{ position: 'relative' }}>
           <ToolbarButton title={title} isActive={isActive}>
-            <FontAwesomeIcon icon={icon} size="xs" />
+            <FontAwesomeIcon icon={icon as import('@fortawesome/fontawesome-svg-core').IconProp} size="xs" />
           </ToolbarButton>
           <div
             style={{
@@ -220,7 +215,7 @@ export const ToolbarSeparator: React.FC = () => <div className={toolbarSeparator
 export const EmojiButton: React.FC<EmojiButtonProps> = ({ onEmojiSelect, title }) => {
   const [visible, setVisible] = React.useState(false)
 
-  const handleEmojiSelect = (emoji: any) => {
+  const handleEmojiSelect = (emoji: { native?: string }) => {
     onEmojiSelect(emoji)
     setVisible(false)
   }
@@ -448,15 +443,17 @@ export const TiptapToolbar: React.FC<TiptapToolbarProps> = ({ editor, buttons, m
   }
 
   const handleTextColorChange = (color: string) => {
-    handleTextColorChangeUtil(editor, color, mode)
+    handleTextColorChangeUtil(editor, color)
   }
 
   const handleBackgroundColorChange = (color: string) => {
-    handleBackgroundColorChangeUtil(editor, color, mode)
+    handleBackgroundColorChangeUtil(editor, color)
   }
 
-  const handleEmojiSelect = (emoji: any) => {
-    editor.chain().focus().insertContent(emoji.native).run()
+  const handleEmojiSelect = (emoji: { native?: string }) => {
+    if (emoji.native) {
+      editor.chain().focus().insertContent(emoji.native).run()
+    }
   }
 
   const getFormattingHandler = (action: () => void) => {

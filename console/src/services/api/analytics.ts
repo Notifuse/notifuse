@@ -50,12 +50,12 @@ export interface AnalyticsQueryRequest {
 }
 
 export interface AnalyticsResponse {
-  data: Array<Record<string, any>>
+  data: Array<Record<string, unknown>>
   meta: {
     total: number
     executionTime?: number
     query: string // Generated SQL for debugging
-    params: any[] // Database parameters for debugging
+    params: unknown[] // Database parameters for debugging
   }
 }
 
@@ -75,7 +75,7 @@ interface CacheItem {
 interface QueueItem {
   query: AnalyticsQueryRequest
   resolve: (response: AnalyticsResponse) => void
-  reject: (error: any) => void
+  reject: (error: unknown) => void
 }
 
 // Analytics Service Configuration

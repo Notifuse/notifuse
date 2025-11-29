@@ -79,7 +79,7 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
     }
   }
 
-  const getLineChartOption = (chartData: any[], query: AnalyticsQuery) => {
+  const getLineChartOption = (chartData: Record<string, unknown>[], query: AnalyticsQuery) => {
     // Handle time dimension data
     const timeDimension = query.timeDimensions?.[0]?.dimension
     const measures = query.measures
@@ -88,11 +88,11 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
     if (timeDimension) {
       // Time series chart
       // Try different possible field names for time dimension
-      const timeField =
-        `${timeDimension}_${query.timeDimensions?.[0]?.granularity}` || timeDimension
+      const granularity = query.timeDimensions?.[0]?.granularity
+      const timeField = granularity ? `${timeDimension}_${granularity}` : timeDimension
       const xAxisData = chartData.map((item) => {
         const rawDate = item[timeField] || item[timeDimension] || item.created_at
-        return formatDate(rawDate)
+        return formatDate(String(rawDate))
       })
       const series = measures.map((measure) => ({
         name: measure,
@@ -116,13 +116,13 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
           axisPointer: {
             type: 'cross'
           },
-          formatter: (params: any) => {
+          formatter: (params: unknown) => {
             if (!Array.isArray(params)) return ''
 
-            let result = `<div style="margin-bottom: 4px; font-weight: 600;">${params[0]?.axisValue || ''}</div>`
+            let result = `<div style="margin-bottom: 4px; font-weight: 600;">${(params[0] as { axisValue?: string })?.axisValue || ''}</div>`
 
-            params.forEach((param: any) => {
-              const measureName = param.seriesName
+            params.forEach((param: { seriesName?: string; value?: number; color?: string }) => {
+              const measureName = param.seriesName || ''
               const title = measureTitles[measureName] || measureName
               const value = param.value || 0
               const color = param.color || '#000'
@@ -137,11 +137,11 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
             return result
           }
         },
-        ...(showLegend && {
+        ...(showLegend ? {
           legend: {
             data: measures
           }
-        }),
+        } : {}),
         grid: {
           left: '3%',
           right: '4%',
@@ -186,13 +186,13 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
         animation: false, // Remove animations
         tooltip: {
           trigger: 'axis',
-          formatter: (params: any) => {
+          formatter: (params: unknown) => {
             if (!Array.isArray(params)) return ''
 
-            let result = `<div style="margin-bottom: 4px; font-weight: 600;">${params[0]?.axisValue || ''}</div>`
+            let result = `<div style="margin-bottom: 4px; font-weight: 600;">${(params[0] as { axisValue?: string })?.axisValue || ''}</div>`
 
-            params.forEach((param: any) => {
-              const measureName = param.seriesName
+            params.forEach((param: { seriesName?: string; value?: number; color?: string }) => {
+              const measureName = param.seriesName || ''
               const title = measureTitles[measureName] || measureName
               const value = param.value || 0
               const color = param.color || '#000'
@@ -207,11 +207,11 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
             return result
           }
         },
-        ...(showLegend && {
+        ...(showLegend ? {
           legend: {
             data: measures
           }
-        }),
+        } : {}),
         xAxis: {
           type: 'category',
           data: xAxisData
@@ -226,18 +226,18 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
     return {}
   }
 
-  const getBarChartOption = (chartData: any[], query: AnalyticsQuery) => {
+  const getBarChartOption = (chartData: Record<string, unknown>[], query: AnalyticsQuery) => {
     const timeDimension = query.timeDimensions?.[0]?.dimension
     const measures = query.measures
     const dimensions = query.dimensions
 
     if (timeDimension) {
       // Time series stacked bar chart
-      const timeField =
-        `${timeDimension}_${query.timeDimensions?.[0]?.granularity}` || timeDimension
+      const barGranularity = query.timeDimensions?.[0]?.granularity
+      const timeField = barGranularity ? `${timeDimension}_${barGranularity}` : timeDimension
       const xAxisData = chartData.map((item) => {
         const rawDate = item[timeField] || item[timeDimension] || item.created_at
-        return formatDate(rawDate)
+        return formatDate(String(rawDate))
       })
       const series = measures.map((measure) => ({
         name: measure,
@@ -252,11 +252,11 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
             type: 'shadow'
           }
         },
-        ...(showLegend && {
+        ...(showLegend ? {
           legend: {
             data: measures
           }
-        }),
+        } : {}),
         grid: {
           left: '3%',
           right: '4%',
@@ -295,11 +295,11 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
             type: 'shadow'
           }
         },
-        ...(showLegend && {
+        ...(showLegend ? {
           legend: {
             data: measures
           }
-        }),
+        } : {}),
         grid: {
           left: '3%',
           right: '4%',
@@ -320,7 +320,7 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
     return {}
   }
 
-  const getPieChartOption = (chartData: any[], query: AnalyticsQuery) => {
+  const getPieChartOption = (chartData: Record<string, unknown>[], query: AnalyticsQuery) => {
     const dimensions = query.dimensions
     const measures = query.measures
 
@@ -367,9 +367,9 @@ export const ChartVisualization: React.FC<ChartVisualizationProps> = ({
       title: key,
       dataIndex: key,
       key,
-      sorter: (a: any, b: any) => {
+      sorter: (a: Record<string, unknown>, b: Record<string, unknown>) => {
         if (typeof a[key] === 'number' && typeof b[key] === 'number') {
-          return a[key] - b[key]
+          return (a[key] as number) - (b[key] as number)
         }
         return String(a[key]).localeCompare(String(b[key]))
       }

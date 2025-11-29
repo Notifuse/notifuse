@@ -62,7 +62,6 @@ export function ThemePresetPreviewDrawer({
               <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
                 <ThemePreview
                   files={preset.files}
-                  styling={preset.styling}
                   workspace={workspace}
                   view="home"
                 />
@@ -76,7 +75,6 @@ export function ThemePresetPreviewDrawer({
               <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
                 <ThemePreview
                   files={preset.files}
-                  styling={preset.styling}
                   workspace={workspace}
                   view="category"
                 />
@@ -90,7 +88,6 @@ export function ThemePresetPreviewDrawer({
               <div style={{ height: 'calc(100vh - 110px)', overflow: 'auto' }}>
                 <ThemePreview
                   files={preset.files}
-                  styling={preset.styling}
                   workspace={workspace}
                   view="post"
                 />

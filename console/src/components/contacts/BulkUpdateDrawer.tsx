@@ -282,7 +282,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
 
     for (let i = 0; i < emails.length; i++) {
       const email = emails[i]
-      let result: BulkOperationResult = { email, success: false }
+      const result: BulkOperationResult = { email, success: false }
 
       // Check if processing is cancelled using ref (persists across re-renders)
       if (processingRef.current.isCancelled) {
@@ -314,18 +314,19 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
           })
         }
         result.success = true
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Handle specific case where contact is not subscribed to the list
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error'
         if (
           op === 'unsubscribe' &&
-          error.message &&
-          error.message.includes('contact list not found')
+          errorMessage &&
+          errorMessage.includes('contact list not found')
         ) {
           // Contact is not subscribed to this list, which means they're already "unsubscribed"
           result.success = true
           result.error = 'Not subscribed (skipped)'
         } else {
-          result.error = error.message || 'Unknown error'
+          result.error = errorMessage
         }
       }
 

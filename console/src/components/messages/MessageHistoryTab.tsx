@@ -269,7 +269,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
 
         return filters
       },
-      {} as Record<string, any>
+      {} as Record<string, string | boolean>
     )
   }, [activeFilters])
 
@@ -282,6 +282,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
     if (savedState) {
       const parsedState = JSON.parse(savedState)
       // Merge with defaults to ensure all fields exist
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setVisibleColumns({
         ...DEFAULT_VISIBLE_COLUMNS,
         ...parsedState
@@ -316,6 +317,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
     })
 
     if (initialFilters.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveFilters(initialFilters)
     }
   }, [])

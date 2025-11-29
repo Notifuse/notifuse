@@ -98,7 +98,7 @@ export class EmailBlockFactory {
       id: 'temp',
       type: parentType,
       attributes: {}
-    } as any)
+    } as EmailBlock)
 
     const validChildTypes = parentBlock.getValidChildTypes()
 
@@ -110,7 +110,7 @@ export class EmailBlockFactory {
           id: 'temp',
           type,
           attributes: {}
-        } as any)
+        } as EmailBlock)
 
         return {
           type,

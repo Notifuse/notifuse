@@ -133,7 +133,7 @@ export function validateTemplateSecurity(template: string): string[] {
  */
 export async function renderSecureLiquid(
   template: string,
-  data: any
+  data: Record<string, unknown>
 ): Promise<{ html: string; errors: string[] }> {
   const errors: string[] = []
 
@@ -159,8 +159,9 @@ export async function renderSecureLiquid(
     const html = await Promise.race([renderPromise, timeoutPromise])
 
     return { html, errors: [] }
-  } catch (error: any) {
-    errors.push(error.message || 'Template rendering failed')
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : 'Template rendering failed'
+    errors.push(errorMessage)
     return { html: '', errors }
   }
 }

@@ -12,7 +12,7 @@ import TiptapHorizontalRule from '@tiptap/extension-horizontal-rule'
 export const HorizontalRuleExtension = TiptapHorizontalRule.extend({
   name: 'horizontalRule',
 
-  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, any> }) {
+  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
     return ['div', mergeAttributes(HTMLAttributes, { 'data-type': this.name }), ['hr']]
   }
 })

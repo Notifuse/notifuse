@@ -7,7 +7,7 @@ interface FileSrcProps {
   onChange: (value: string | undefined) => void
   placeholder?: string
   acceptFileType?: string
-  acceptItem?: (item: any) => boolean
+  acceptItem?: (item: import('../../file_manager/interfaces').StorageObject) => boolean
   buttonText?: string
   disabled?: boolean
   size?: 'small' | 'middle' | 'large'
@@ -18,7 +18,7 @@ const FileSrcContent: React.FC<FileSrcProps> = ({
   onChange,
   placeholder = 'Enter file URL or use file manager',
   acceptFileType = 'image/*',
-  acceptItem = (item) => !item.is_folder && item.file_info?.content_type?.startsWith('image/'),
+  acceptItem = (item) => !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false),
   buttonText = 'Browse Files',
   disabled = false,
   size = 'small'

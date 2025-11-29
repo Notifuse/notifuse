@@ -46,7 +46,7 @@ export function preprocessMjml(mjmlString: string): string {
 
   // Fix unescaped ampersands in attribute values
   // Use a callback function to process all ampersands within each attribute value
-  processed = processed.replace(/="([^"]*)"/g, (match, attrValue) => {
+  processed = processed.replace(/="([^"]*)"/g, (_match, attrValue) => {
     // Within this attribute value, escape all unescaped ampersands
     // Don't escape if already part of an entity: &amp;, &lt;, &gt;, &quot;, &apos;, &#123;, &#xAB;
     const fixed = attrValue.replace(/&(?!(amp|lt|gt|quot|apos|#\d+|#x[0-9a-fA-F]+);)/g, '&amp;')
@@ -134,13 +134,13 @@ function convertDomNodeToEmailBlock(element: Element): EmailBlock {
 
   const block: EmailBlock = {
     id: generateId(),
-    type: element.tagName.toLowerCase() as any,
+    type: element.tagName.toLowerCase() as EmailBlock['type'],
     attributes: {}
   }
 
   // Extract attributes
   if (element.attributes.length > 0) {
-    const attributes: Record<string, any> = {}
+    const attributes: Record<string, unknown> = {}
     for (let i = 0; i < element.attributes.length; i++) {
       const attr = element.attributes[i]
       // Convert kebab-case to camelCase for React compatibility
@@ -170,7 +170,7 @@ function convertDomNodeToEmailBlock(element: Element): EmailBlock {
         }
       }
 
-      ;(block as any).content = content
+      (block as EmailBlock & { content: string }).content = content
     }
     return block
   }
@@ -196,12 +196,14 @@ function convertDomNodeToEmailBlock(element: Element): EmailBlock {
 
   // If there are child elements, add them
   if (children.length > 0) {
-    ;(block as any).children = children
+    // Type assertion is safe here because we're building from parsed MJML
+    // The children array will contain the appropriate block types based on the parent
+    (block as any).children = children
   }
 
   // If there's text content but no child elements, add it as content
   if (textContent && children.length === 0) {
-    ;(block as any).content = textContent
+    (block as EmailBlock & { content: string }).content = textContent
   }
 
   return block

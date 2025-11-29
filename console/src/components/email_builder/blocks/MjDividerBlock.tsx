@@ -1,6 +1,6 @@
 import React from 'react'
 import { Select, InputNumber, Row, Col } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJDividerAttributes } from '../types'
+import type { MJMLComponentType, MJDividerAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -51,7 +51,7 @@ export class MjDividerBlock extends BaseEmailBlock {
     return 'content'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-divider'] || {}
   }
 
@@ -68,8 +68,7 @@ export class MjDividerBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
-    _emailTree?: EmailBlock
+    blockDefaults: MergedBlockAttributes
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJDividerAttributes
 
@@ -201,15 +200,6 @@ export class MjDividerBlock extends BaseEmailBlock {
     return match ? parseFloat(match[1]) : undefined
   }
 
-  /**
-   * Parse width to get numeric value
-   */
-  private parseWidthNumber(width?: string): number | undefined {
-    if (!width) return undefined
-    const match = width.match(/^(\d+(?:\.\d+)?)px?$/)
-    return match ? parseFloat(match[1]) : undefined
-  }
-
   getEdit(props: PreviewProps): React.ReactNode {
     const { selectedBlockId, onSelectBlock, attributeDefaults } = props
 
@@ -230,7 +220,7 @@ export class MjDividerBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-divider',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown> | undefined,
       attributeDefaults
     )
 
@@ -240,7 +230,7 @@ export class MjDividerBlock extends BaseEmailBlock {
         attrs.paddingBottom || '10px'
       } ${attrs.paddingLeft || '25px'}`,
       backgroundColor: attrs.containerBackgroundColor,
-      textAlign: (attrs.align as any) || 'center',
+      textAlign: (attrs.align as React.CSSProperties['textAlign']) || 'center',
       fontSize: '0px', // MJML sets font-size to 0 on container
       ...selectionStyle
     }

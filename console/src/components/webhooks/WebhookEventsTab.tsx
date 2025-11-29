@@ -134,6 +134,7 @@ export const WebhookEventsTab: React.FC<WebhookEventsTabProps> = ({ workspaceId,
     })
 
     if (initialFilters.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setActiveFilters(initialFilters)
     }
   }, [])
@@ -435,7 +436,7 @@ export const WebhookEventsTab: React.FC<WebhookEventsTabProps> = ({ workspaceId,
     ),
     key: 'actions',
     width: 100,
-    render: null
+    render: undefined
   }
 
   // Additional bounce-specific columns
@@ -469,14 +470,14 @@ export const WebhookEventsTab: React.FC<WebhookEventsTabProps> = ({ workspaceId,
     const hasBouncedEvents = events.some((event) => event.type === 'bounce')
     const hasComplaintEvents = events.some((event) => event.type === 'complaint')
 
-    let additionalColumns: any[] = []
+    const additionalColumns: Array<{ title: string; dataIndex: string; key: string; render: (value: string) => React.ReactNode | false }> = []
 
     if (hasBouncedEvents) {
-      additionalColumns = [...additionalColumns, ...bounceColumns]
+      additionalColumns.push(...bounceColumns)
     }
 
     if (hasComplaintEvents) {
-      additionalColumns = [...additionalColumns, ...complaintColumns]
+      additionalColumns.push(...complaintColumns)
     }
 
     return additionalColumns

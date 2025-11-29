@@ -1,10 +1,6 @@
 import React from 'react'
-import type { MJMLComponentType, EmailBlock, MJSocialAttributes } from '../types'
-import {
-  BaseEmailBlock,
-  type OnUpdateAttributesFunction,
-  type PreviewProps
-} from './BaseEmailBlock'
+import type { MJMLComponentType, MJSocialAttributes } from '../types'
+import { BaseEmailBlock, type OnUpdateAttributesFunction, type PreviewProps } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import { EmailBlockClass } from '../EmailBlockClass'
 import { MjSocialElementBlock } from './MjSocialElementBlock'
@@ -37,7 +33,7 @@ export class MjSocialBlock extends BaseEmailBlock {
     return 'content'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-social'] || {}
   }
 
@@ -52,12 +48,9 @@ export class MjSocialBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the social block
    */
-  renderSettingsPanel(
-    onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
-  ): React.ReactNode {
+  renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
     const currentAttributes = this.block.attributes as MJSocialAttributes
+    const blockDefaults = this.getDefaults() as MJSocialAttributes
 
     return (
       <PanelLayout title="Social Attributes">
@@ -139,15 +132,7 @@ export class MjSocialBlock extends BaseEmailBlock {
   }
 
   getEdit(props: PreviewProps): React.ReactNode {
-    const {
-      selectedBlockId,
-      onSelectBlock,
-      attributeDefaults,
-      onCloneBlock,
-      onDeleteBlock,
-      onSaveBlock,
-      savedBlocks
-    } = props
+    const { selectedBlockId, onSelectBlock, attributeDefaults } = props
 
     const key = this.block.id
     const isSelected = selectedBlockId === this.block.id
@@ -166,7 +151,7 @@ export class MjSocialBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-social',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown>,
       attributeDefaults
     )
 
@@ -200,7 +185,7 @@ export class MjSocialBlock extends BaseEmailBlock {
       padding: `${attrs.paddingTop || '10px'} ${attrs.paddingRight || '25px'} ${
         attrs.paddingBottom || '10px'
       } ${attrs.paddingLeft || '25px'}`,
-      textAlign: (attrs.align as any) || 'center',
+      textAlign: (attrs.align as 'left' | 'center' | 'right' | 'justify') || 'center',
       wordBreak: 'break-word'
     }
 

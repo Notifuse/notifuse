@@ -2,7 +2,7 @@ import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFont } from '@fortawesome/free-solid-svg-icons'
 import { Col, Row } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJTextAttributes } from '../types'
+import type { MJMLComponentType, EmailBlock, MJTextAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -191,7 +191,7 @@ export class MjTextBlock extends BaseEmailBlock {
     return 'content'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     const defaults = MJML_COMPONENT_DEFAULTS['mj-text'] || {}
 
     // Add default HTML content for Tiptap
@@ -216,7 +216,7 @@ export class MjTextBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
+    blockDefaults: MergedBlockAttributes,
     emailTree?: EmailBlock
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJTextAttributes
@@ -368,11 +368,7 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
   selectedBlockId,
   onSelectBlock,
   onUpdateBlock,
-  onCloneBlock,
-  onDeleteBlock,
-  attributeDefaults,
-  onSaveBlock: onSave,
-  savedBlocks
+  attributeDefaults
 }) => {
   const key = block.id
   const isSelected = selectedBlockId === block.id
@@ -387,7 +383,7 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
     }
   }
 
-  const attrs = EmailBlockClass.mergeWithAllDefaults('mj-text', block.attributes, attributeDefaults)
+  const attrs = EmailBlockClass.mergeWithAllDefaults('mj-text', block.attributes as Record<string, unknown>, attributeDefaults)
 
   const textStyle: React.CSSProperties = {
     padding: `${attrs.paddingTop} ${attrs.paddingRight} ${attrs.paddingBottom} ${attrs.paddingLeft}`,
@@ -396,15 +392,15 @@ const MjTextBlockWrapper: React.FC<PreviewProps & { block: EmailBlock }> = ({
     fontFamily: attrs.fontFamily,
     fontWeight: attrs.fontWeight,
     fontStyle: attrs.fontStyle,
-    textAlign: attrs.align as any,
+    textAlign: attrs.align as React.CSSProperties['textAlign'],
     lineHeight: attrs.lineHeight,
     textDecoration: attrs.textDecoration,
-    textTransform: attrs.textTransform as any,
+    textTransform: attrs.textTransform as React.CSSProperties['textTransform'],
     letterSpacing: attrs.letterSpacing,
     backgroundColor: attrs.containerBackgroundColor,
     height: attrs.height,
     width: attrs.width,
-    verticalAlign: attrs.verticalAlign as any,
+    verticalAlign: attrs.verticalAlign as React.CSSProperties['verticalAlign'],
     ...selectionStyle
   }
 

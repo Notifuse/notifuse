@@ -21,6 +21,7 @@ export function AnalyticsPage() {
   // Get browser timezone on component mount (normalized to canonical IANA name)
   useEffect(() => {
     const browserTimezone = getBrowserTimezone()
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedTimezone(browserTimezone)
   }, [])
 

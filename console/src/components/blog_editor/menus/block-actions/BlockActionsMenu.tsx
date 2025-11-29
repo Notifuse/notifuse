@@ -81,11 +81,10 @@ export function BlockActionsMenu() {
   const primaryItems = usePrimaryActionsGroup()
   const removalItems = useRemovalActionGroup()
 
-  if (!editor) return null
+  // Get block name for menu - will be empty string if no editor
+  const blockName = editor ? getNodeDisplayName(editor) : ''
 
-  const blockName = getNodeDisplayName(editor)
-
-  // Build menu items structure
+  // Build menu items structure - must be called before conditional return
   const menuItems: MenuProps['items'] = useMemo(
     () => [
       {
@@ -99,6 +98,8 @@ export function BlockActionsMenu() {
     ],
     [blockName, transformItems, primaryItems, removalItems]
   )
+
+  if (!editor) return null
 
   return (
     <DragHandle

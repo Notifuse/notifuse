@@ -1,9 +1,7 @@
 import React from 'react'
-import type { MJMLComponentType, EmailBlock } from '../types'
+import type { MJMLComponentType } from '../types'
 import {
-  BaseEmailBlock,
-  type OnUpdateAttributesFunction,
-  type PreviewProps
+  BaseEmailBlock
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import PanelLayout from '../panels/PanelLayout'
@@ -28,7 +26,7 @@ export class MjHeadBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-head'] || {}
   }
 
@@ -51,11 +49,7 @@ export class MjHeadBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the head block
    */
-  renderSettingsPanel(
-    _onUpdate: OnUpdateAttributesFunction,
-    _blockDefaults: Record<string, any>,
-    _emailTree?: EmailBlock
-  ): React.ReactNode {
+  renderSettingsPanel(): React.ReactNode {
     return (
       <PanelLayout title="Head Attributes">
         <div className="text-sm text-gray-500 text-center py-8">
@@ -67,7 +61,7 @@ export class MjHeadBlock extends BaseEmailBlock {
     )
   }
 
-  getEdit(_props: PreviewProps): React.ReactNode {
+  getEdit(): React.ReactNode {
     // Head blocks don't render in preview (they contain metadata)
     return null
   }

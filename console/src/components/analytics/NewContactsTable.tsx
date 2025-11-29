@@ -57,6 +57,7 @@ export const NewContactsTable: React.FC<NewContactsTableProps> = ({ workspace })
 
   useEffect(() => {
     fetchData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [workspace.id])
 
   const columns = [

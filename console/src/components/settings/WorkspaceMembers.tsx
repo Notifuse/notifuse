@@ -164,7 +164,7 @@ export function WorkspaceMembers({
             title: '',
             key: 'action',
             width: 100,
-            render: (_: any, record: WorkspaceMember) => {
+            render: (_: unknown, record: WorkspaceMember) => {
               // Don't show remove button for the owner or for the current user
               if (record.role === 'owner') {
                 return null
@@ -295,9 +295,9 @@ export function WorkspaceMembers({
 
       // Refresh the members list
       onMembersChange()
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create API key', error)
-      message.error(error.message || 'Failed to create API key')
+      message.error((error as Error).message || 'Failed to create API key')
     } finally {
       setCreatingApiKey(false)
     }
@@ -449,7 +449,7 @@ export function WorkspaceMembers({
     setInvitePermissions((prev) => ({
       ...prev,
       [resource]: {
-        ...(prev as any)[resource],
+        ...((prev as unknown as Record<string, { read: boolean; write: boolean }>)[resource]),
         [type]: value
       }
     }))
@@ -478,7 +478,7 @@ export function WorkspaceMembers({
       dataIndex: 'read',
       key: 'read',
       width: '30%',
-      render: (value: boolean, record: any) => (
+      render: (value: boolean, record: { key: string }) => (
         <Switch
           checked={value}
           onChange={(checked) => updateInvitePermission(record.key, 'read', checked)}
@@ -491,7 +491,7 @@ export function WorkspaceMembers({
       dataIndex: 'write',
       key: 'write',
       width: '30%',
-      render: (value: boolean, record: any) => (
+      render: (value: boolean, record: { key: string }) => (
         <Switch
           checked={value}
           onChange={(checked) => updateInvitePermission(record.key, 'write', checked)}

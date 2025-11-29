@@ -19,19 +19,19 @@ vi.mock('@tanstack/react-router', () => ({
 describe('RootLayout', () => {
   const mockNavigate = vi.fn()
   const originalLocation = window.location
-  const originalIsInstalled = (window as any).IS_INSTALLED
+  const originalIsInstalled = (window as unknown as { IS_INSTALLED?: boolean }).IS_INSTALLED
 
   beforeEach(() => {
     vi.clearAllMocks()
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useNavigate.mockReturnValue(mockNavigate)
 
     // Mock window.IS_INSTALLED to prevent setup redirect
-    ;(window as any).IS_INSTALLED = true
+    ;(window as unknown as { IS_INSTALLED?: boolean }).IS_INSTALLED = true
 
     // Mock window.location
-    delete (window as any).location
-    window.location = {
+    delete (window as unknown as { location?: Location }).location
+    ;(window as unknown as { location: Location }).location = {
       ...originalLocation,
       pathname: '/console/',
       search: '',
@@ -40,12 +40,12 @@ describe('RootLayout', () => {
   })
 
   afterEach(() => {
-    window.location = originalLocation
-    ;(window as any).IS_INSTALLED = originalIsInstalled
+    ;(window as unknown as { location: Location }).location = originalLocation
+    ;(window as unknown as { IS_INSTALLED?: boolean }).IS_INSTALLED = originalIsInstalled
   })
 
   it('shows loading state when auth is loading', () => {
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useAuth.mockReturnValue({
       isAuthenticated: false,
       loading: true,
@@ -53,7 +53,7 @@ describe('RootLayout', () => {
     })
 
     // Mock all matches as false
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useMatch.mockImplementation(() => false)
 
     const { container } = render(<RootLayout />)
@@ -62,7 +62,7 @@ describe('RootLayout', () => {
   })
 
   it('redirects to signin when not authenticated and not on public route', () => {
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useAuth.mockReturnValue({
       isAuthenticated: false,
       loading: false,
@@ -70,7 +70,7 @@ describe('RootLayout', () => {
     })
 
     // Mock all matches as false
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useMatch.mockImplementation(() => false)
 
     render(<RootLayout />)
@@ -82,7 +82,7 @@ describe('RootLayout', () => {
   })
 
   it('preserves email parameter when redirecting to signin', () => {
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useAuth.mockReturnValue({
       isAuthenticated: false,
       loading: false,
@@ -90,11 +90,11 @@ describe('RootLayout', () => {
     })
 
     // Mock all matches as false
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useMatch.mockImplementation(() => false)
 
     // Set up window.location with email parameter
-    window.location = {
+    ;(window as unknown as { location: Location }).location = {
       ...originalLocation,
       pathname: '/console/',
       search: '?email=demo@notifuse.com',
@@ -110,7 +110,7 @@ describe('RootLayout', () => {
   })
 
   it('does not navigate when already on signin route with email parameter', () => {
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useAuth.mockReturnValue({
       isAuthenticated: false,
       loading: false,
@@ -118,11 +118,11 @@ describe('RootLayout', () => {
     })
 
     // Mock all matches as false (simulating race condition)
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useMatch.mockImplementation(() => false)
 
     // Set up window.location to be on signin route
-    window.location = {
+    ;(window as unknown as { location: Location }).location = {
       ...originalLocation,
       pathname: '/console/signin',
       search: '?email=demo@notifuse.com',
@@ -135,7 +135,7 @@ describe('RootLayout', () => {
   })
 
   it('does not navigate when already on signin route without email parameter', () => {
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useAuth.mockReturnValue({
       isAuthenticated: false,
       loading: false,
@@ -143,11 +143,11 @@ describe('RootLayout', () => {
     })
 
     // Mock all matches as false (simulating race condition)
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useMatch.mockImplementation(() => false)
 
     // Set up window.location to be on signin route
-    window.location = {
+    ;(window as unknown as { location: Location }).location = {
       ...originalLocation,
       pathname: '/console/signin',
       search: '',
@@ -160,7 +160,7 @@ describe('RootLayout', () => {
   })
 
   it('redirects to workspace create when authenticated but has no workspaces', () => {
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useAuth.mockReturnValue({
       isAuthenticated: true,
       loading: false,
@@ -168,7 +168,7 @@ describe('RootLayout', () => {
     })
 
     // Mock all matches as false
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useMatch.mockImplementation(() => false)
 
     render(<RootLayout />)
@@ -176,7 +176,7 @@ describe('RootLayout', () => {
   })
 
   it('renders outlet when authenticated and has workspaces', () => {
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useAuth.mockReturnValue({
       isAuthenticated: true,
       loading: false,
@@ -184,7 +184,7 @@ describe('RootLayout', () => {
     })
 
     // Mock all matches as false
-    // @ts-ignore - we're mocking the return value
+    // @ts-expect-error - we're mocking the return value
     useMatch.mockImplementation(() => false)
 
     render(<RootLayout />)

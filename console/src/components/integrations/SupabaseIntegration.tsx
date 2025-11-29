@@ -9,7 +9,7 @@ interface SupabaseIntegrationProps {
   workspace: Workspace
   onSave: (integration: Integration) => Promise<void>
   isOwner: boolean
-  formRef?: React.RefObject<any>
+  formRef?: React.RefObject<{ submit: () => void } | null>
 }
 
 export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
@@ -24,7 +24,7 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
   // Expose form instance to parent via ref
   React.useEffect(() => {
     if (formRef) {
-      ;(formRef as any).current = form
+      ;(formRef as React.MutableRefObject<{ submit: () => void } | null>).current = form
     }
   }, [form, formRef])
 
@@ -70,28 +70,44 @@ export const SupabaseIntegration: React.FC<SupabaseIntegrationProps> = ({
     }
   }, [integration, form])
 
-  const handleSave = async (values: any) => {
+  const handleSave = async (values: Record<string, unknown>) => {
     if (!isOwner) {
       message.error('Only workspace owners can modify integrations')
       return
     }
 
     try {
+      // Type guard helpers
+      const isString = (value: unknown): value is string => typeof value === 'string'
+      const isStringArray = (value: unknown): value is string[] =>
+        Array.isArray(value) && value.every((item) => typeof item === 'string')
+      const isBoolean = (value: unknown): value is boolean => typeof value === 'boolean'
+
       const supabaseSettings: SupabaseIntegrationSettings = {
         auth_email_hook: {
-          signature_key: values.auth_email_signature_key || undefined
+          signature_key: isString(values.auth_email_signature_key)
+            ? values.auth_email_signature_key
+            : undefined
         },
         before_user_created_hook: {
-          signature_key: values.user_created_signature_key || undefined,
-          add_user_to_lists: values.add_user_created_to_lists || [],
-          custom_json_field: values.user_created_custom_json_field || undefined,
-          reject_disposable_email: values.reject_disposable_email || false
+          signature_key: isString(values.user_created_signature_key)
+            ? values.user_created_signature_key
+            : undefined,
+          add_user_to_lists: isStringArray(values.add_user_created_to_lists)
+            ? values.add_user_created_to_lists
+            : [],
+          custom_json_field: isString(values.user_created_custom_json_field)
+            ? values.user_created_custom_json_field
+            : undefined,
+          reject_disposable_email: isBoolean(values.reject_disposable_email)
+            ? values.reject_disposable_email
+            : false
         }
       }
 
       const integrationData: Integration = {
         id: integration?.id || `int_${Date.now()}`,
-        name: values.name,
+        name: isString(values.name) ? values.name : 'Supabase',
         type: 'supabase',
         supabase_settings: supabaseSettings,
         created_at: integration?.created_at || new Date().toISOString(),

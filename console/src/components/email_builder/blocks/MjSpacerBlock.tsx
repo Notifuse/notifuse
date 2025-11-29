@@ -1,6 +1,6 @@
 import React from 'react'
 import { InputNumber } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJSpacerAttributes } from '../types'
+import type { MJMLComponentType, MJSpacerAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -56,7 +56,7 @@ export class MjSpacerBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-spacer'] || {}
   }
 
@@ -73,8 +73,7 @@ export class MjSpacerBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
-    _emailTree?: EmailBlock
+    blockDefaults: MergedBlockAttributes
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJSpacerAttributes
 
@@ -156,11 +155,7 @@ export class MjSpacerBlock extends BaseEmailBlock {
     const {
       selectedBlockId,
       onSelectBlock,
-      onCloneBlock,
-      onDeleteBlock,
-      attributeDefaults,
-      onSaveBlock: onSave,
-      savedBlocks
+      attributeDefaults
     } = props
 
     const key = this.block.id
@@ -180,7 +175,7 @@ export class MjSpacerBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-spacer',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown>,
       attributeDefaults
     )
 

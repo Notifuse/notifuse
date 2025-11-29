@@ -4,7 +4,8 @@ import { NodeViewWrapper } from '@tiptap/react'
 import { Input, Button, Popover, Tooltip, Divider } from 'antd'
 import type { InputRef } from 'antd'
 import { AlignLeft, AlignCenter, AlignRight, MessageSquare, FileText } from 'lucide-react'
-import { useFileManager } from '@/components/file_manager/context'
+import { useFileManager } from '../../../file_manager/context'
+import type { StorageObject } from '../../../file_manager/interfaces'
 
 import './image-node.css'
 import '../../toolbars/floating-toolbar.css'
@@ -34,7 +35,7 @@ export function ImageNodeView(props: NodeViewProps) {
     handle: null
   })
   const [altPopoverOpen, setAltPopoverOpen] = useState(false)
-  const [altValue, setAltValue] = useState(node.attrs.alt || '')
+  const [altValue, setAltValue] = useState('')
   const inputRef = useRef<InputRef>(null)
   const hasInteractedRef = useRef(false)
   const imgRef = useRef<HTMLImageElement>(null)
@@ -159,10 +160,14 @@ export function ImageNodeView(props: NodeViewProps) {
     [updateAttributes]
   )
 
-  // Sync altValue with node.attrs.alt when it changes
+  // Sync altValue with node.attrs.alt when popover opens
+  // This synchronizes external Tiptap node state with local component state
   useEffect(() => {
-    setAltValue(node.attrs.alt || '')
-  }, [node.attrs.alt])
+    if (altPopoverOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAltValue(node.attrs.alt || '')
+    }
+  }, [altPopoverOpen, node.attrs.alt])
 
   // Focus caption input when caption is activated by user
   useEffect(() => {
@@ -271,7 +276,7 @@ export function ImageNodeView(props: NodeViewProps) {
               <SelectFileButton
                 onSelect={handleFileSelect}
                 acceptFileType="image/*"
-                acceptItem={(item) =>
+                acceptItem={(item: StorageObject) =>
                   !item.is_folder && item.file_info?.content_type?.startsWith('image/')
                 }
                 buttonText="Select image"

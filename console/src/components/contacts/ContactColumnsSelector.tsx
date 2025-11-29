@@ -14,7 +14,7 @@ interface ContactColumnsSelectorProps {
 }
 
 interface JsonViewerProps {
-  json: any
+  json: unknown
   title?: string
 }
 

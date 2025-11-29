@@ -31,8 +31,8 @@ export function PublishModal({ post, visible, onClose, workspaceId, workspace }:
       onClose()
       form.resetFields()
     },
-    onError: (error: any) => {
-      const errorMsg = error?.response?.data?.error || error?.message || 'Failed to publish post'
+    onError: (error: Error) => {
+      const errorMsg = error?.message || 'Failed to publish post'
       message.error(errorMsg)
     }
   })
@@ -48,6 +48,10 @@ export function PublishModal({ post, visible, onClose, workspaceId, workspace }:
         publication_time: '12:00',
         timezone: defaultTimezone
       })
+    }
+    // Reset publish mode to 'now' when modal opens - this is intentional initial state setup
+    if (visible) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPublishMode('now')
     }
   }, [visible, form, workspace])

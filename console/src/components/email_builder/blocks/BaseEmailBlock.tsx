@@ -1,8 +1,8 @@
 import React from 'react'
-import type { EmailBlock, MJMLComponentType, SaveOperation, SavedBlock } from '../types'
+import type { EmailBlock, MJMLComponentType, SaveOperation, SavedBlock, MergedBlockAttributes } from '../types'
 
 // Define the onUpdate function type - accepts object of attributes to update
-export type OnUpdateAttributesFunction = (updates: Record<string, any>) => void
+export type OnUpdateAttributesFunction = (updates: Record<string, unknown>) => void
 
 export interface PreviewProps {
   selectedBlockId: string | null
@@ -10,7 +10,7 @@ export interface PreviewProps {
   onUpdateBlock: (blockId: string, updates: EmailBlock) => void
   onCloneBlock: (blockId: string) => void
   onDeleteBlock: (blockId: string) => void
-  attributeDefaults: Partial<Record<MJMLComponentType, Record<string, any>>>
+  attributeDefaults: Partial<Record<MJMLComponentType, Record<string, unknown>>>
   emailTree: EmailBlock
   onSaveBlock: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void
   savedBlocks?: SavedBlock[]
@@ -55,7 +55,7 @@ export abstract class BaseEmailBlock {
   /**
    * Get default attributes for this block type
    */
-  abstract getDefaults(): Record<string, any>
+  abstract getDefaults(): Record<string, unknown>
 
   /**
    * Check if this block can contain children
@@ -101,7 +101,7 @@ export abstract class BaseEmailBlock {
    */
   abstract renderSettingsPanel(
     onUpdateAttributes: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
+    blockDefaults: MergedBlockAttributes,
     emailTree?: EmailBlock
   ): React.ReactNode
 

@@ -48,9 +48,11 @@ export function LinkPopover({ hideWhenUnavailable = false }: LinkPopoverProps) {
   }, [editor])
 
   // Update link value when popover opens or link state changes
+  // This synchronizes Tiptap editor link state with local form state
   useEffect(() => {
     if (open || isActive) {
       const currentHref = getCurrentLinkHref(editor)
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLinkValue(currentHref)
     }
   }, [open, isActive, editor])

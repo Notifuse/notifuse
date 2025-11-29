@@ -4,8 +4,7 @@ import {
   DimensionFilter,
   FieldTypeRenderer,
   FieldTypeValue,
-  IOperator,
-  FieldSchema
+  IOperator
 } from '../../services/api/segment'
 import { OperatorEquals } from './operator_equals'
 import { OperatorSet, OperatorNotSet } from './operator_set_not_set'
@@ -30,11 +29,7 @@ export class FieldTypeJSON implements FieldTypeRenderer {
     new OperatorInArray()
   ]
 
-  render(
-    filter: DimensionFilter,
-    _schema: FieldSchema,
-    _customFieldLabels?: Record<string, string>
-  ) {
+  render(filter: DimensionFilter) {
     const operator = this.operators.find((x) => x.type === filter.operator)
     if (!operator) {
       return <Alert type="error" message={`operator not found for: ${filter.operator}`} />

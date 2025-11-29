@@ -35,7 +35,14 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
     setFormTouched(false)
   }, [workspace, form, isOwner])
 
-  const handleSaveSettings = async (values: any) => {
+  const handleSaveSettings = async (values: {
+    name: string
+    website_url?: string
+    logo_url?: string
+    timezone: string
+    email_tracking_enabled: boolean
+    custom_endpoint_url?: string
+  }) => {
     if (!workspace) return
 
     setSavingSettings(true)
@@ -46,11 +53,11 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
         settings: {
           ...workspace.settings,
           website_url: values.website_url,
-          logo_url: values.logo_url || null,
+          logo_url: (values.logo_url as string | null | undefined) || null,
           cover_url: workspace?.settings.cover_url || null,
           timezone: values.timezone,
           email_tracking_enabled: values.email_tracking_enabled,
-          custom_endpoint_url: values.custom_endpoint_url || null
+          custom_endpoint_url: (values.custom_endpoint_url as string | undefined) || undefined
         }
       })
 
@@ -62,10 +69,10 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
 
       setFormTouched(false)
       message.success('Workspace settings updated successfully')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update workspace settings', error)
       // Extract the actual error message from the API response
-      const errorMessage = error?.message || 'Failed to update workspace settings'
+      const errorMessage = (error as Error)?.message || 'Failed to update workspace settings'
       message.error(errorMessage)
     } finally {
       setSavingSettings(false)
@@ -161,7 +168,7 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
         <Form.Item
           name="website_url"
           label="Website URL"
-          rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
+          rules={[{ type: 'url' as const, message: 'Please enter a valid URL' }]}
         >
           <Input placeholder="https://example.com" />
         </Form.Item>
@@ -189,7 +196,7 @@ export function GeneralSettings({ workspace, onWorkspaceUpdate, isOwner }: Gener
           name="custom_endpoint_url"
           label="Custom Endpoint URL"
           tooltip="Custom domain for email links (unsubscribe, tracking, notification center). By default, the config API endpoint is used. Leave empty to use the default."
-          rules={[{ type: 'url', message: 'Please enter a valid URL' }]}
+          rules={[{ type: 'url' as const, message: 'Please enter a valid URL' }]}
           help={
             <div className="mb-4">
               <div>

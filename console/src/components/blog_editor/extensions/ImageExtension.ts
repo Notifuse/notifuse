@@ -91,7 +91,7 @@ export const ImageExtension = Image.extend({
 
     // Build the image element with merged attributes
     // The parent Image extension renders as ['img', HTMLAttributes]
-    const imgElement: [string, Record<string, any>] = [
+    const imgElement: [string, Record<string, unknown>] = [
       'img',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes)
     ]

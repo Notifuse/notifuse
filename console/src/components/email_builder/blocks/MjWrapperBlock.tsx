@@ -1,6 +1,6 @@
 import React from 'react'
 import { Switch } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJWrapperAttributes } from '../types'
+import type { MJMLComponentType, MJWrapperAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -64,7 +64,7 @@ export class MjWrapperBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-wrapper'] || {}
   }
 
@@ -81,16 +81,15 @@ export class MjWrapperBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
+    blockDefaults: MergedBlockAttributes
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJWrapperAttributes
 
-    const handleAttributeChange = (key: string, value: any) => {
+    const handleAttributeChange = (key: string, value: unknown) => {
       onUpdate({ [key]: value })
     }
 
-    const handleBackgroundChange = (backgroundValues: any) => {
+    const handleBackgroundChange = (backgroundValues: Record<string, unknown>) => {
       onUpdate(backgroundValues)
     }
 
@@ -237,7 +236,7 @@ export class MjWrapperBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-wrapper',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown>,
       attributeDefaults
     )
 
@@ -258,7 +257,7 @@ export class MjWrapperBlock extends BaseEmailBlock {
       paddingRight: attrs.paddingRight,
       paddingBottom: attrs.paddingBottom,
       paddingLeft: attrs.paddingLeft,
-      textAlign: attrs.textAlign as any,
+      textAlign: attrs.textAlign as React.CSSProperties['textAlign'],
       border: attrs.border !== 'none' ? attrs.border : undefined,
       borderTop: attrs.borderTop !== 'none' ? attrs.borderTop : undefined,
       borderRight: attrs.borderRight !== 'none' ? attrs.borderRight : undefined,

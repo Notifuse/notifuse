@@ -36,6 +36,7 @@ const BackgroundInput: React.FC<BackgroundInputProps> = memo(
 
     useEffect(() => {
       // Update background type when value changes
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setBackgroundType(value.backgroundUrl ? 'image' : 'color')
     }, [value.backgroundUrl])
 
@@ -276,7 +277,7 @@ const BackgroundInput: React.FC<BackgroundInputProps> = memo(
                 placeholder="Enter background image URL"
                 acceptFileType="image/*"
                 acceptItem={(item) =>
-                  !item.is_folder && item.file_info?.content_type?.startsWith('image/')
+                  !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false)
                 }
                 buttonText="Browse Images"
               />

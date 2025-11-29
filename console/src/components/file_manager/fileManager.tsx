@@ -173,12 +173,12 @@ export const FileManager = (props: FileManagerProps) => {
       // console.log('new items', newItems)
       setItems(newItems)
       setIsLoading(false)
-    }).catch((error) => {
+    }).catch((error: unknown) => {
       console.error('Failed to fetch objects:', error)
       message.error('Failed to fetch objects: ' + error)
       setIsLoading(false)
     })
-  }, [props.settings?.bucket, props.settings?.cdn_endpoint, props.settings?.endpoint, message])
+  }, [props.settings, message])
 
   // Initialize or reinitialize S3 client when settings change
   useEffect(() => {
@@ -199,15 +199,9 @@ export const FileManager = (props: FileManagerProps) => {
       forcePathStyle: props.settings.force_path_style ?? false
     })
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchObjects()
-  }, [
-    props.settings?.endpoint,
-    props.settings?.access_key,
-    props.settings?.secret_key,
-    props.settings?.region,
-    props.settings?.force_path_style,
-    fetchObjects
-  ])
+  }, [props.settings, fetchObjects])
 
   const deleteObject = (key: string, isFolder: boolean) => {
     if (!s3ClientRef.current) {
@@ -236,9 +230,9 @@ export const FileManager = (props: FileManagerProps) => {
         // refresh
         fetchObjects()
       })
-      .catch((error) => {
+      .catch((error: unknown) => {
         message.error('Failed to delete file: ' + error)
-        props.onError(error)
+        props.onError(error instanceof Error ? error : new Error(String(error)))
       })
   }
 
@@ -314,16 +308,16 @@ export const FileManager = (props: FileManagerProps) => {
               setNewFolderLoading(false)
               fetchObjects()
             })
-            .catch((error) => {
+            .catch((error: unknown) => {
               message.error('Failed to create folder: ' + error)
               setNewFolderLoading(false)
-              props.onError(error)
+              props.onError(error instanceof Error ? error : new Error(String(error)))
             })
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           message.error('Failed to create folder: ' + error)
           setNewFolderLoading(false)
-          props.onError(error)
+          props.onError(error instanceof Error ? error : new Error(String(error)))
         })
 
       form.resetFields()
@@ -352,7 +346,7 @@ export const FileManager = (props: FileManagerProps) => {
 
     // console.log(e.target.files)
 
-    for (var i = 0; i < e.target.files.length; i++) {
+    for (let i = 0; i < e.target.files.length; i++) {
       setIsUploading(true)
       const file = e.target.files.item(i) as File
 
@@ -376,16 +370,16 @@ export const FileManager = (props: FileManagerProps) => {
               setIsUploading(false)
               fetchObjects()
             })
-            .catch((error) => {
+            .catch((error: unknown) => {
               message.error('Failed to upload file: ' + error)
               setIsUploading(false)
-              props.onError(error)
+              props.onError(error instanceof Error ? error : new Error(String(error)))
             })
         })
-        .catch((error) => {
+        .catch((error: unknown) => {
           message.error('Failed to read file: ' + error)
           setIsUploading(false)
-          props.onError(error)
+          props.onError(error instanceof Error ? error : new Error(String(error)))
         })
     }
   }
@@ -580,11 +574,11 @@ export const FileManager = (props: FileManagerProps) => {
                 ? {
                     type: props.multiple ? 'checkbox' : 'radio',
                     selectedRowKeys: selectedRowKeys,
-                    onChange: (selectedRowKeys: React.Key[], selectedRows: any[]) => {
+                    onChange: (selectedRowKeys: React.Key[], selectedRows: StorageObject[]) => {
                       setSelectedRowKeys(selectedRowKeys)
                       selectItem(selectedRows)
                     },
-                    getCheckboxProps: (record: any) => ({
+                    getCheckboxProps: (record: StorageObject) => ({
                       disabled: !props.acceptItem(record as StorageObject)
                     })
                   }

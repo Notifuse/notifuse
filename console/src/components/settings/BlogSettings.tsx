@@ -56,14 +56,32 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
           og_description: workspace?.settings.blog_settings?.seo?.og_description || '',
           og_image: workspace?.settings.blog_settings?.seo?.og_image || '',
           keywords: workspace?.settings.blog_settings?.seo?.keywords || [],
-          meta_robots: workspace?.settings.blog_settings?.seo?.meta_robots ?? 'index,follow'
+          meta_robots: (workspace?.settings.blog_settings?.seo?.meta_robots ?? 'index,follow') as string
         }
       }
     })
     setFormTouched(false)
   }, [workspace, form, isOwner])
 
-  const handleSaveSettings = async (values: any) => {
+  const handleSaveSettings = async (values: {
+    blog_enabled?: boolean
+    blog_settings?: {
+      title?: string
+      logo_url?: string
+      icon_url?: string
+      home_page_size?: number
+      category_page_size?: number
+      seo?: {
+        meta_title?: string
+        meta_description?: string
+        og_title?: string
+        og_description?: string
+        og_image?: string
+        keywords?: string[]
+        meta_robots?: string
+      }
+    }
+  }) => {
     if (!workspace) return
 
     setSavingSettings(true)
@@ -99,13 +117,13 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
           await queryClient.invalidateQueries({ queryKey: ['blog-themes', workspace.id] })
 
           message.success('Default theme created and published')
-        } catch (themeError: any) {
+        } catch (themeError: unknown) {
           console.error('Failed to create default theme', themeError)
           message.warning('Blog enabled but theme creation failed. Please create a theme manually.')
         }
       }
 
-      const blogSettings = values.blog_settings || null
+      const blogSettings = values.blog_settings || undefined
 
       const updatedSettings = {
         ...workspace.settings,
@@ -129,17 +147,17 @@ export function BlogSettings({ workspace, onWorkspaceUpdate, isOwner }: BlogSett
 
       setFormTouched(false)
       message.success('Blog settings updated successfully')
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update blog settings', error)
       // Extract the actual error message from the API response
-      const errorMessage = error?.message || 'Failed to update blog settings'
+      const errorMessage = (error as Error)?.message || 'Failed to update blog settings'
       message.error(errorMessage)
     } finally {
       setSavingSettings(false)
     }
   }
 
-  const handleFormChange = (changedValues: any) => {
+  const handleFormChange = (changedValues: { blog_enabled?: boolean }) => {
     setFormTouched(true)
 
     // If blog was just enabled and title is empty, set it to workspace name

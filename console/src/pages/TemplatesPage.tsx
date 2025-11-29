@@ -88,6 +88,7 @@ export function TemplatesPage() {
     if (workspaces.length > 0) {
       const currentWorkspace = workspaces.find((w) => w.id === workspaceId)
       if (currentWorkspace) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setWorkspace(currentWorkspace)
       }
     }
@@ -115,7 +116,7 @@ export function TemplatesPage() {
       // Use selectedCategory from search params in invalidation
       queryClient.invalidateQueries({ queryKey: ['templates', workspaceId, selectedCategory] })
     },
-    onError: (error: any) => {
+    onError: (error: Error & { response?: { data?: { error?: string } } }) => {
       const errorMsg = error?.response?.data?.error || error.message
       message.error(`Failed to delete template: ${errorMsg}`)
     }
@@ -174,7 +175,7 @@ export function TemplatesPage() {
     {
       title: 'Sender',
       key: 'sender',
-      render: (_: any, record: Template) => {
+      render: (_: unknown, record: Template) => {
         if (workspace && record.email?.sender_id) {
           const isMarketing = record.category === 'marketing'
           const emailProvider = isMarketing ? marketingEmailProvider : transactionalEmailProvider
@@ -228,7 +229,7 @@ export function TemplatesPage() {
     {
       title: '',
       key: 'actions',
-      render: (_: any, record: Template) => (
+      render: (_: unknown, record: Template) => (
         <Space>
           {workspace && (
             <Tooltip

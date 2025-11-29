@@ -64,7 +64,7 @@ export function InlineEditableField({
       }
     } else if (fieldType === 'datetime' && value) {
       // Convert string to dayjs for DatePicker
-      preparedValue = dayjs(value)
+      preparedValue = dayjs(value as string)
     }
     setEditValue(preparedValue)
     setJsonError(null)

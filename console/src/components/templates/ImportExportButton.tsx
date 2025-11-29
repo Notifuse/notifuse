@@ -9,18 +9,18 @@ import { templatesApi } from '../../services/api/template'
 
 interface ImportExportButtonProps {
   // Import props
-  onImport: (tree: EmailBlock, testData?: any) => void
-  onTestDataImport?: (testData: any) => void
+  onImport: (tree: EmailBlock, testData?: Record<string, unknown>) => void
+  onTestDataImport?: (testData: Record<string, unknown>) => void
   // Export props
   tree: EmailBlock
-  testData?: any
+  testData?: Record<string, unknown>
   // Workspace ID for API calls
   workspaceId: string
 }
 
 interface ImportedData {
   emailTree: EmailBlock
-  testData?: any
+  testData?: Record<string, unknown>
   exportedAt?: string
   version?: string
 }
@@ -50,14 +50,25 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
   }
 
   // Function to validate imported email tree structure
-  const validateEmailTree = (tree: any): { isValid: boolean; errors: string[] } => {
+  const validateEmailTree = (tree: unknown): { isValid: boolean; errors: string[] } => {
     // Basic type and structure validation
     if (!tree || typeof tree !== 'object') {
       return { isValid: false, errors: ['Invalid tree structure: not an object'] }
     }
 
-    // Check required properties
-    if (!tree.id || !tree.type || typeof tree.id !== 'string' || typeof tree.type !== 'string') {
+    // Type guard to check if tree has the required properties
+    const hasRequiredProperties = (
+      obj: object
+    ): obj is { id: unknown; type: unknown; children?: unknown } => {
+      return 'id' in obj && 'type' in obj
+    }
+
+    if (!hasRequiredProperties(tree)) {
+      return { isValid: false, errors: ['Invalid tree structure: missing id or type'] }
+    }
+
+    // Check required properties types
+    if (typeof tree.id !== 'string' || typeof tree.type !== 'string') {
       return { isValid: false, errors: ['Invalid tree structure: missing id or type'] }
     }
 
@@ -125,7 +136,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
 
         // Check if it's the full export format or just a tree
         let emailTree: EmailBlock
-        let testData: any = undefined
+        let testData: Record<string, unknown> | undefined = undefined
 
         if (parsedData.emailTree) {
           // It's the full export format
@@ -283,7 +294,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       const response = await templatesApi.compile({
         workspace_id: workspaceId,
         message_id: 'export',
-        visual_editor_tree: tree as any,
+        visual_editor_tree: tree as EmailBlock,
         test_data: testData || {}
       })
 
@@ -310,7 +321,7 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
       const response = await templatesApi.compile({
         workspace_id: workspaceId,
         message_id: 'export',
-        visual_editor_tree: tree as any,
+        visual_editor_tree: tree as EmailBlock,
         test_data: testData || {}
       })
 

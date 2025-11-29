@@ -2,14 +2,19 @@ import React, { useMemo, useState, useEffect } from 'react'
 import { Button, Space, Segmented, Spin } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faRedoAlt, faUndoAlt } from '@fortawesome/free-solid-svg-icons'
-// @ts-ignore
 import { OverlayScrollbarsComponent } from 'overlayscrollbars-react'
 import 'overlayscrollbars/overlayscrollbars.css'
 import { TreePanel } from './panels/TreePanel'
 import { EditPanel } from './panels/EditPanel'
 import { SettingsPanel } from './panels/SettingsPanel'
 import { Preview, type PreviewRef } from './panels/Preview'
-import type { EmailBlock, EmailBuilderState, SavedBlock, SaveOperation } from './types'
+import type {
+  EmailBlock,
+  EmailBuilderState,
+  SavedBlock,
+  SaveOperation,
+  MJMLComponentType
+} from './types'
 import { EmailBlockClass } from './EmailBlockClass'
 
 interface EmailBuilderProps {
@@ -17,10 +22,10 @@ interface EmailBuilderProps {
   onTreeChange: (tree: EmailBlock) => void
   onCompile: (
     tree: EmailBlock,
-    testData?: any
-  ) => Promise<{ errors?: any[]; html: string; mjml: string }>
-  testData?: any
-  onTestDataChange: (testData: any) => void
+    testData?: Record<string, unknown>
+  ) => Promise<{ errors?: Array<Record<string, unknown>>; html: string; mjml: string }>
+  testData?: Record<string, unknown>
+  onTestDataChange: (testData: Record<string, unknown>) => void
   toolbarActions?: React.ReactNode
   savedBlocks?: SavedBlock[]
   onSaveBlock: (block: EmailBlock, operation: SaveOperation, nameOrId: string) => void
@@ -107,7 +112,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
   const effectiveSelectedBlockId = externalSelectedBlockId ?? state.selectedBlockId
 
   const [compilationResults, setCompilationResults] = useState<{
-    errors?: any[]
+    errors?: Array<Record<string, unknown>>
     html: string
     mjml: string
   } | null>(null)
@@ -211,6 +216,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     if (effectiveViewMode === 'preview') {
       compileEmail()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testData, effectiveViewMode])
 
   // Handle forced view mode changes from tour
@@ -220,6 +226,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     } else if (forcedViewMode === 'edit') {
       setCompilationResults(null)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forcedViewMode])
 
   const updateTreeWithHistory = (updatedTree: EmailBlock) => {
@@ -264,7 +271,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
       // If updating the root block, merge the updates but preserve the children
       const currentChildren = updatedTree.children
       Object.assign(updatedTree, updates)
-      ;(updatedTree as any).children = currentChildren
+      updatedTree.children = currentChildren
     } else {
       replaceBlock(updatedTree, blockId, updates)
     }
@@ -273,7 +280,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     // console.log('Block updated successfully:', blockId)
   }
 
-  const handleAddBlock = (parentId: string, blockType: any, position?: number) => {
+  const handleAddBlock = (parentId: string, blockType: string, position?: number) => {
     // Check if trying to add mj-breakpoint when one already exists
     if (blockType === 'mj-breakpoint') {
       const existingBreakpoint = EmailBlockClass.findBlockByType(tree, 'mj-breakpoint')
@@ -285,7 +292,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
 
     // Create new block with UUID and inherit mj-attributes defaults
     const newBlock = EmailBlockClass.createBlock(
-      blockType,
+      blockType as MJMLComponentType,
       undefined,
       'New ' + blockType.replace('mj-', ''),
       tree // Pass the current email tree to inherit mj-attributes defaults
@@ -312,7 +319,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
           if (!newBlock.children) {
             newBlock.children = []
           }
-          ;(newBlock.children as any).push(...sectionsToWrap)
+          ;(newBlock.children as EmailBlock[]).push(...sectionsToWrap)
 
           // Remove the original sections from the body and insert the wrapper
           let updatedTree = tree
@@ -366,7 +373,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               if (!column.attributes) {
                 column.attributes = {}
               }
-              ;(column.attributes as any).width = equalWidth
+              ;(column.attributes as { width?: string }).width = equalWidth
             })
 
             // Add a default text element to the new column
@@ -388,7 +395,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               if (!newColumn.children) {
                 newColumn.children = []
               }
-              ;(newColumn.children as any).push(textBlock)
+              ;(newColumn.children as EmailBlock[]).push(textBlock)
             }
           } else if (parentContainer.type === 'mj-group') {
             // Use the new utility function to redistribute column widths in the group
@@ -413,7 +420,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               if (!newColumn.children) {
                 newColumn.children = []
               }
-              ;(newColumn.children as any).push(textBlock)
+              ;(newColumn.children as EmailBlock[]).push(textBlock)
             }
           }
         }
@@ -443,7 +450,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
             if (!columnBlock.attributes) {
               columnBlock.attributes = {}
             }
-            ;(columnBlock.attributes as any).width = '100%'
+            ;(columnBlock.attributes as { width?: string }).width = '100%'
 
             // Create a text block for the section
             const textBlock = EmailBlockClass.createBlock(
@@ -457,13 +464,13 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
             if (!columnBlock.children) {
               columnBlock.children = []
             }
-            ;(columnBlock.children as any).push(textBlock)
+            ;(columnBlock.children as EmailBlock[]).push(textBlock)
 
             // Add the column as a child of the new section
             if (!newSection.children) {
               newSection.children = []
             }
-            ;(newSection.children as any).push(columnBlock)
+            ;(newSection.children as EmailBlock[]).push(columnBlock)
           }
         }
       }
@@ -549,7 +556,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                 if (!column.attributes) {
                   column.attributes = {}
                 }
-                ;(column.attributes as any).width = equalWidth
+                ;(column.attributes as { width?: string }).width = equalWidth
               })
             }
           }
@@ -639,7 +646,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
               if (!column.attributes) {
                 column.attributes = {}
               }
-              ;(column.attributes as any).width = equalWidth
+              ;(column.attributes as { width?: string }).width = equalWidth
             })
           }
         } else if (parentInfo.parent.type === 'mj-group') {
@@ -714,7 +721,7 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     const blockWithNewIds = EmailBlockClass.regenerateIds(blockCopy)
 
     // Insert the block into the tree
-    let updatedTree = EmailBlockClass.insertBlockIntoTree(
+    const updatedTree = EmailBlockClass.insertBlockIntoTree(
       tree,
       parentId,
       blockWithNewIds,
@@ -849,7 +856,6 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                   savedBlocks={savedBlocks}
                   expandedKeys={expandedKeys}
                   onTreeExpand={handleTreeExpand}
-                  onExpandBlock={expandBlock}
                   hiddenBlocks={hiddenBlocks}
                 />
               </OverlayScrollbarsComponent>

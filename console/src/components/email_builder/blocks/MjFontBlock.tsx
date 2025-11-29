@@ -1,11 +1,10 @@
 import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFont } from '@fortawesome/free-solid-svg-icons'
-import type { MJMLComponentType, EmailBlock, MJFontAttributes } from '../types'
+import type { MJMLComponentType, MJFontAttributes } from '../types'
 import {
   BaseEmailBlock,
-  type OnUpdateAttributesFunction,
-  type PreviewProps
+  type OnUpdateAttributesFunction
 } from './BaseEmailBlock'
 import { MJML_COMPONENT_DEFAULTS } from '../mjml-defaults'
 import PanelLayout from '../panels/PanelLayout'
@@ -34,7 +33,7 @@ export class MjFontBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-font'] || {}
   }
 
@@ -46,7 +45,7 @@ export class MjFontBlock extends BaseEmailBlock {
     return []
   }
 
-  getEdit(_props: PreviewProps): React.ReactNode {
+  getEdit(): React.ReactNode {
     // Font blocks don't render in preview (they're configuration)
     return null
   }
@@ -55,9 +54,7 @@ export class MjFontBlock extends BaseEmailBlock {
    * Render the settings panel for the font block
    */
   renderSettingsPanel(
-    onUpdate: OnUpdateAttributesFunction,
-    _blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
+    onUpdate: OnUpdateAttributesFunction
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJFontAttributes
     return (

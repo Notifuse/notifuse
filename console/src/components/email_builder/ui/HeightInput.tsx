@@ -9,14 +9,14 @@ interface HeightInputProps {
 
 const HeightInput: React.FC<HeightInputProps> = ({
   value,
-  onChange,
-  placeholder = 'Enter height'
+  onChange
 }) => {
   const [mode, setMode] = useState<'auto' | 'custom'>('auto')
   const [numericValue, setNumericValue] = useState<number | undefined>()
 
   // Parse incoming value to determine mode and numeric value
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (value === 'auto' || !value) {
       setMode('auto')
       setNumericValue(undefined)
@@ -38,9 +38,10 @@ const HeightInput: React.FC<HeightInputProps> = ({
         }
       }
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [value])
 
-  const handleModeChange = (e: any) => {
+  const handleModeChange = (e: import('antd').RadioChangeEvent) => {
     const modeValue = e.target.value as 'auto' | 'custom'
     setMode(modeValue)
 

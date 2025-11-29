@@ -31,7 +31,7 @@ export const emojiConfig: SuggestionConfig<EmojiItem> = {
   pluginKey: 'emoji-suggestion',
 
   // Get and filter emoji items
-  getItems: async (query: string, _editor: Editor | null) => {
+  getItems: async (query: string) => {
     // Use the existing filtering utility
     const filtered = getFilteredEmojis({ query, emojis: availableEmojis })
 

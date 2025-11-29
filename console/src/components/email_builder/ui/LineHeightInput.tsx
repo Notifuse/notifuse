@@ -17,6 +17,7 @@ const LineHeightInput: React.FC<LineHeightInputProps> = ({
 
   // Parse incoming value to extract number and unit
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     if (value && value !== 'normal') {
       const match = value.match(/^(\d+(?:\.\d+)?)(px|%)$/)
       if (match) {
@@ -37,6 +38,7 @@ const LineHeightInput: React.FC<LineHeightInputProps> = ({
       setNumericValue(undefined)
       setUnit('%')
     }
+    /* eslint-enable react-hooks/set-state-in-effect */
   }, [value])
 
   const handleNumberChange = (newValue: number | null) => {

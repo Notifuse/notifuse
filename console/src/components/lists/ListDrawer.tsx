@@ -108,12 +108,12 @@ export function CreateListDrawer({
     form.resetFields()
   }
 
-  const onFinish = (values: any) => {
+  const onFinish = (values: Record<string, unknown>) => {
     // Convert template ID to proper template reference if needed
     let doubleOptInTemplate: TemplateReference | undefined = undefined
     if (values.is_double_optin && values.double_optin_template_id) {
       doubleOptInTemplate = {
-        id: values.double_optin_template_id,
+        id: String(values.double_optin_template_id),
         version: 1 // Using default version
       }
     }
@@ -121,7 +121,7 @@ export function CreateListDrawer({
     let welcomeTemplate: TemplateReference | undefined = undefined
     if (values.welcome_template_id) {
       welcomeTemplate = {
-        id: values.welcome_template_id,
+        id: String(values.welcome_template_id),
         version: 1 // Using default version
       }
     }
@@ -129,7 +129,7 @@ export function CreateListDrawer({
     let unsubscribeTemplate: TemplateReference | undefined = undefined
     if (values.unsubscribe_template_id) {
       unsubscribeTemplate = {
-        id: values.unsubscribe_template_id,
+        id: String(values.unsubscribe_template_id),
         version: 1 // Using default version
       }
     }
@@ -138,10 +138,10 @@ export function CreateListDrawer({
       const request: UpdateListRequest = {
         workspace_id: workspaceId,
         id: list.id,
-        name: values.name,
-        is_double_optin: values.is_double_optin || false,
-        is_public: values.is_public || false,
-        description: values.description,
+        name: String(values.name),
+        is_double_optin: Boolean(values.is_double_optin),
+        is_public: Boolean(values.is_public),
+        description: values.description ? String(values.description) : undefined,
         double_optin_template: doubleOptInTemplate,
         welcome_template: welcomeTemplate,
         unsubscribe_template: unsubscribeTemplate
@@ -150,11 +150,11 @@ export function CreateListDrawer({
     } else {
       const request: CreateListRequest = {
         workspace_id: workspaceId,
-        id: values.id,
-        name: values.name,
-        is_double_optin: values.is_double_optin || false,
-        is_public: values.is_public || false,
-        description: values.description,
+        id: String(values.id),
+        name: String(values.name),
+        is_double_optin: Boolean(values.is_double_optin),
+        is_public: Boolean(values.is_public),
+        description: values.description ? String(values.description) : undefined,
         double_optin_template: doubleOptInTemplate,
         welcome_template: welcomeTemplate,
         unsubscribe_template: unsubscribeTemplate

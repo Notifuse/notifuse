@@ -2,7 +2,7 @@ import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faLock, faArrowLeft, faArrowRight } from '@fortawesome/free-solid-svg-icons'
 import { Select, Radio, Tooltip } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJGroupAttributes } from '../types'
+import type { MJMLComponentType, MJGroupAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -94,7 +94,7 @@ export class MjGroupBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-group'] || {}
   }
 
@@ -111,16 +111,15 @@ export class MjGroupBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
+    blockDefaults: MergedBlockAttributes
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJGroupAttributes
 
-    const handleAttributeChange = (key: string, value: any) => {
+    const handleAttributeChange = (key: string, value: unknown) => {
       onUpdate({ [key]: value })
     }
 
-    const handleBackgroundChange = (backgroundValues: any) => {
+    const handleBackgroundChange = (backgroundValues: Record<string, unknown>) => {
       onUpdate(backgroundValues)
     }
 
@@ -237,7 +236,7 @@ export class MjGroupBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-group',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown>,
       attributeDefaults
     )
 
@@ -245,7 +244,7 @@ export class MjGroupBlock extends BaseEmailBlock {
       display: 'flex',
       flexDirection: attrs.direction === 'rtl' ? 'row-reverse' : 'row',
       width: attrs.width,
-      verticalAlign: attrs.verticalAlign as any,
+      verticalAlign: attrs.verticalAlign as React.CSSProperties['verticalAlign'],
       backgroundColor: attrs.backgroundColor,
       alignItems:
         attrs.verticalAlign === 'middle'

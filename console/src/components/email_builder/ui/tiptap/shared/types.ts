@@ -1,4 +1,5 @@
 import React from 'react'
+import type { Editor } from '@tiptap/react'
 
 // Base props shared by all Tiptap editor variants
 export interface BaseTiptapProps {
@@ -12,18 +13,20 @@ export interface BaseTiptapProps {
 }
 
 // Props specific to the rich text editor
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface TiptapRichEditorProps extends BaseTiptapProps {
   // Additional props specific to rich editor can be added here
 }
 
 // Props specific to the inline editor
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface TiptapInlineEditorProps extends BaseTiptapProps {
   // Additional props specific to inline editor can be added here
 }
 
 // Toolbar props
 export interface TiptapToolbarProps {
-  editor: any
+  editor: Editor | null
   buttons?: string[]
   mode?: 'rich' | 'inline'
 }
@@ -39,7 +42,7 @@ export interface ToolbarButtonProps {
 
 // Color button props
 export interface ColorButtonProps {
-  icon: any
+  icon: unknown
   currentColor?: string
   onColorChange: (color: string) => void
   title: string
@@ -48,13 +51,13 @@ export interface ColorButtonProps {
 
 // Emoji button props
 export interface EmojiButtonProps {
-  onEmojiSelect: (emoji: any) => void
+  onEmojiSelect: (emoji: { native?: string }) => void
   title: string
 }
 
 // Link button props
 export interface LinkButtonProps {
-  editor: any
+  editor: Editor
   title: string
 }
 

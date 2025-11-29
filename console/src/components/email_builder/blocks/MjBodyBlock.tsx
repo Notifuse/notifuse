@@ -1,6 +1,6 @@
 import React from 'react'
 import { Alert } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJBodyAttributes } from '../types'
+import type { MJMLComponentType, MJBodyAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -34,7 +34,7 @@ export class MjBodyBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-body'] || {}
   }
 
@@ -51,8 +51,7 @@ export class MjBodyBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
+    blockDefaults: MergedBlockAttributes
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJBodyAttributes
 
@@ -136,7 +135,7 @@ export class MjBodyBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-body',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown>,
       attributeDefaults
     )
 

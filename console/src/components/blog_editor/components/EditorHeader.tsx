@@ -21,7 +21,7 @@ export function EditorHeader() {
         canRedo: ctx.editor.can().redo()
       }
     }
-  })
+  }) || { canUndo: false, canRedo: false }
 
   if (!editor) {
     return null

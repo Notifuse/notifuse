@@ -31,7 +31,7 @@ const hasLiquidTagsInSection = (block: EmailBlock): boolean => {
 
     // Check text in attributes (for mj-text content attribute)
     if (b.attributes) {
-      const attrs = b.attributes as any
+      const attrs = b.attributes as Record<string, unknown>
       if (attrs.content && typeof attrs.content === 'string' && liquidRegex.test(attrs.content)) {
         return true
       }
@@ -86,7 +86,7 @@ export class MjSectionBlock extends BaseEmailBlock {
     return 'layout'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-section'] || {}
   }
 
@@ -101,18 +101,15 @@ export class MjSectionBlock extends BaseEmailBlock {
   /**
    * Render the settings panel for the section block
    */
-  renderSettingsPanel(
-    onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
-    _emailTree?: EmailBlock
-  ): React.ReactNode {
+  renderSettingsPanel(onUpdate: OnUpdateAttributesFunction): React.ReactNode {
     const currentAttributes = this.block.attributes as MJSectionAttributes
+    const blockDefaults = this.getDefaults() as MJSectionAttributes
 
-    const handleAttributeChange = (key: string, value: any) => {
+    const handleAttributeChange = (key: string, value: unknown) => {
       onUpdate({ [key]: value })
     }
 
-    const handleBackgroundChange = (backgroundValues: any) => {
+    const handleBackgroundChange = (backgroundValues: Record<string, unknown>) => {
       onUpdate(backgroundValues)
     }
 
@@ -232,13 +229,16 @@ export class MjSectionBlock extends BaseEmailBlock {
           </InputLayout>
 
           {/* Visibility / Channel Selector */}
-          <InputLayout 
-            label="Visibility" 
+          <InputLayout
+            label="Visibility"
             help="Control which channels can see this section"
           >
             <Select
               size="small"
-              value={(currentAttributes as any).visibility || 'all'}
+              value={
+                (currentAttributes as Record<string, unknown>).visibility as string | undefined ||
+                'all'
+              }
               onChange={(value) => handleAttributeChange('visibility', value)}
               style={{ width: '100%' }}
               options={[
@@ -250,8 +250,8 @@ export class MjSectionBlock extends BaseEmailBlock {
           </InputLayout>
 
           {/* Warning for Liquid tags in web-visible sections */}
-          {hasLiquidTagsInSection(this.block) && 
-           (currentAttributes as any).visibility !== 'email_only' && (
+          {hasLiquidTagsInSection(this.block) &&
+           (currentAttributes as Record<string, unknown>).visibility !== 'email_only' && (
             <Alert
               type="warning"
               message="Personalization Not Available for Web"
@@ -305,7 +305,7 @@ export class MjSectionBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-section',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown>,
       attributeDefaults
     )
 
@@ -339,12 +339,12 @@ export class MjSectionBlock extends BaseEmailBlock {
 
     // MJML td style - handles padding, direction, text-align
     const cellStyle: React.CSSProperties = {
-      direction: attrs.direction as any,
+      direction: (attrs.direction as 'ltr' | 'rtl') || 'ltr',
       fontSize: '0px', // MJML sets this to 0 to prevent spacing issues
       padding: `${attrs.paddingTop || '20px'} ${attrs.paddingRight || '0'} ${
         attrs.paddingBottom || '20px'
       } ${attrs.paddingLeft || '0'}`,
-      textAlign: attrs.textAlign as any
+      textAlign: (attrs.textAlign as 'left' | 'center' | 'right' | 'justify') || 'left'
     }
 
     // Check if section has no columns or groups

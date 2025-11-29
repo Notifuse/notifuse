@@ -167,8 +167,11 @@ export function useMenuKeyboard<T>({
     return undefined
   }, [editor, containerRef, items, selectedIndex, onSelect, onClose, orientation])
 
+  // Reset selected index when query changes
+  // This synchronizes external query state with internal selection index
   useEffect(() => {
-    if (query) {
+    if (query !== undefined) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setSelectedIndex(autoSelectFirstItem ? 0 : -1)
     }
   }, [query, autoSelectFirstItem])

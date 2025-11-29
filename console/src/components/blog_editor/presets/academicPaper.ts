@@ -99,5 +99,12 @@ export const academicPaperPreset: EditorStyleConfig = {
   link: {
     color: '#0000ee', // Classic blue underline
     hoverColor: '#551a8b' // Visited purple
+  },
+
+  // Newsletter settings
+  newsletter: {
+    enabled: false,
+    buttonColor: '#0000ee',
+    buttonText: 'Subscribe'
   }
 }

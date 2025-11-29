@@ -101,10 +101,10 @@ function createLiquidEngineWithTemplates(files: BlogThemeFiles): Liquid {
           'scripts'
         ].includes(fileName)
       },
-      resolve: (_root: string, file: string, _ext: string) => {
+      resolve: (_root: string, file: string) => {
         return file
       }
-    } as any // Type assertion needed due to incomplete TypeScript definitions
+    } as unknown as { readFileSync: (file: string) => string; readFile: (file: string) => Promise<string>; existsSync: (file: string) => boolean; exists: (file: string) => Promise<boolean>; resolve: (root: string, file: string) => string } // Type assertion needed due to incomplete TypeScript definitions
   })
 
   return liquid
@@ -141,7 +141,7 @@ export async function renderBlogPage(
     // Prepare data based on view
     // Note: MockBlogData already includes post and category fields set by getMockDataForView
     // This matches the backend BlogTemplateDataRequest structure
-    let renderData = { ...data }
+    const renderData = { ...data }
 
     // SECURITY: Timeout protection
     const timeoutPromise = new Promise<never>((_, reject) => {
@@ -156,19 +156,20 @@ export async function renderBlogPage(
       success: true,
       html
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Liquid rendering error:', error)
 
     // Try to extract line number from error
     let errorLine: number | undefined
-    const lineMatch = error.message?.match(/line (\d+)/i)
+    const errorMessage = error instanceof Error ? error.message : 'Failed to render template'
+    const lineMatch = errorMessage.match(/line (\d+)/i)
     if (lineMatch) {
       errorLine = parseInt(lineMatch[1], 10)
     }
 
     return {
       success: false,
-      error: error.message || 'Failed to render template',
+      error: errorMessage,
       errorLine
     }
   }
@@ -203,16 +204,17 @@ export async function validateLiquidSyntax(
 
     await liquid.parse(template)
     return { success: true }
-  } catch (error: any) {
+  } catch (error: unknown) {
     let errorLine: number | undefined
-    const lineMatch = error.message?.match(/line (\d+)/i)
+    const errorMessage = error instanceof Error ? error.message : 'Syntax error'
+    const lineMatch = errorMessage.match(/line (\d+)/i)
     if (lineMatch) {
       errorLine = parseInt(lineMatch[1], 10)
     }
 
     return {
       success: false,
-      error: error.message || 'Syntax error',
+      error: errorMessage,
       errorLine
     }
   }

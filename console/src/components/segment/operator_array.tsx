@@ -1,6 +1,6 @@
-import { FormInstance, Form, Input } from 'antd'
+import { Form, Input } from 'antd'
 import Messages from './messages'
-import { DimensionFilter, FieldTypeValue, IOperator } from '../../services/api/segment'
+import { DimensionFilter, IOperator } from '../../services/api/segment'
 
 // Operator for checking if a value is in a JSON array
 export class OperatorInArray implements IOperator {
@@ -21,7 +21,7 @@ export class OperatorInArray implements IOperator {
     )
   }
 
-  renderFormItems(_fieldType: FieldTypeValue, _fieldName: string, _form: FormInstance) {
+  renderFormItems() {
     return (
       <Form.Item
         name="string_values"

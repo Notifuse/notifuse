@@ -28,7 +28,7 @@ interface TemplatePreviewButtonProps {
   templateId: string
   templateVersion?: number
   workspace: Workspace
-  templateData: Record<string, any>
+  templateData: Record<string, unknown>
   messageHistory: MessageHistory
 }
 
@@ -377,7 +377,7 @@ export function MessageHistoryTable({
     key: 'actions',
     width: 100,
     align: 'right' as const,
-    render: (record: MessageHistory) => {
+    render: (_: unknown, record: MessageHistory) => {
       if (!record.template_id) {
         return null
       }
@@ -402,7 +402,7 @@ export function MessageHistoryTable({
     : [...baseColumns, actionsColumn]
 
   // Filter out hidden columns
-  const columns = allTableColumns.filter((col) => !col.hidden)
+  const columns = allTableColumns.filter((col) => !('hidden' in col && col.hidden))
 
   if (loading && !isLoadingMore) {
     return (

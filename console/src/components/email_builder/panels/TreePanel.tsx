@@ -19,7 +19,6 @@ interface TreePanelProps {
   savedBlocks?: SavedBlock[]
   expandedKeys?: string[]
   onTreeExpand?: (keys: string[]) => void
-  onExpandBlock?: (blockId: string) => void
   hiddenBlocks?: string[]
 }
 
@@ -162,7 +161,7 @@ const DragHandle: React.FC = () => (
     <Tooltip
       title="Drag to move this block in the tree"
       trigger={['hover']}
-      onOpenChange={(open) => {
+      onOpenChange={() => {
         // Tooltip will close automatically on click due to trigger configuration
       }}
     >
@@ -353,7 +352,7 @@ const convertToTreeNode = (
             savedBlocks={savedBlocks}
             hiddenBlocks={hiddenBlocks}
           />
-        ) as any,
+        ) as React.ReactNode,
         icon: null,
         blockType: 'mj-text', // dummy type
         isLeaf: true,
@@ -385,7 +384,7 @@ const convertToTreeNode = (
           savedBlocks={savedBlocks}
           hiddenBlocks={hiddenBlocks}
         />
-      ) as any,
+      ) as React.ReactNode,
       icon: null,
       blockType: 'mj-text', // dummy type
       isLeaf: true,
@@ -408,12 +407,13 @@ const allowDrop = (dragType: MJMLComponentType, dropType: MJMLComponentType): bo
 }
 
 // Tree utility functions
-const findParentId = (nodes: any[], pos: string): string | null => {
+const findParentId = (nodes: TreeNode[], pos: string): string | null => {
   for (const node of nodes) {
-    if (node.pos === pos) {
-      return node.key
+    const nodeWithPos = node as TreeNode & { pos?: string }
+    if (nodeWithPos.pos === pos) {
+      return typeof nodeWithPos.key === 'string' ? nodeWithPos.key : null
     }
-    if (node.children) {
+    if (Array.isArray(node.children)) {
       const found = findParentId(node.children, pos)
       if (found) return found
     }
@@ -421,12 +421,17 @@ const findParentId = (nodes: any[], pos: string): string | null => {
   return null
 }
 
-const getNodesWithPos = (nodes: any[], parentPos = '0'): any[] => {
+const getNodesWithPos = (
+  nodes: TreeNode[],
+  parentPos = '0'
+): Array<TreeNode & { pos: string }> => {
   return nodes.map((node, index) => ({
     ...node,
     pos: `${parentPos}-${index}`,
-    children: node.children ? getNodesWithPos(node.children, `${parentPos}-${index}`) : undefined
-  }))
+    children: Array.isArray(node.children)
+      ? getNodesWithPos(node.children, `${parentPos}-${index}`)
+      : undefined
+  })) as Array<TreeNode & { pos: string }>
 }
 
 export const TreePanel: React.FC<TreePanelProps> = ({
@@ -441,7 +446,6 @@ export const TreePanel: React.FC<TreePanelProps> = ({
   savedBlocks,
   expandedKeys = [],
   onTreeExpand,
-  onExpandBlock,
   hiddenBlocks
 }) => {
   // Find Head and Body blocks
@@ -522,21 +526,23 @@ export const TreePanel: React.FC<TreePanelProps> = ({
     }
   }
 
-  const handleDrop = (info: any) => {
-    const dropKey = info.node.key
-    const dragKey = info.dragNode.key
-    const dropPos = info.node.pos.split('-')
-    const dropPosition = info.dropPosition - Number(dropPos[dropPos.length - 1])
+  const handleDrop = (info: Record<string, unknown>) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const infoTyped = info as any
+    const dropKey = infoTyped.node.key
+    const dragKey = infoTyped.dragNode.key
+    const dropPos = infoTyped.node.pos.split('-')
+    const dropPosition = infoTyped.dropPosition - Number(dropPos[dropPos.length - 1])
 
-    const dragNode = info.dragNode
-    const dropNode = info.node
+    const dragNode = infoTyped.dragNode
+    const dropNode = infoTyped.node
 
     let targetParentId: string
     let targetPosition: number
 
-    if (info.dropToGap) {
+    if (infoTyped.dropToGap) {
       // Dropping between siblings
-      const dropNodePos = info.node.pos.split('-')
+      const dropNodePos = infoTyped.node.pos.split('-')
       const dropNodeParentPos = dropNodePos.slice(0, -1).join('-')
 
       const treeWithPos = getNodesWithPos(bodyTreeData)

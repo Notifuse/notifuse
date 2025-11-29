@@ -2,7 +2,7 @@ import React from 'react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faImage } from '@fortawesome/free-solid-svg-icons'
 import { Switch } from 'antd'
-import type { MJMLComponentType, EmailBlock, MJImageAttributes } from '../types'
+import type { MJMLComponentType, MJImageAttributes, MergedBlockAttributes } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction,
@@ -75,7 +75,7 @@ export class MjImageBlock extends BaseEmailBlock {
     return 'content'
   }
 
-  getDefaults(): Record<string, any> {
+  getDefaults(): Record<string, unknown> {
     return MJML_COMPONENT_DEFAULTS['mj-image'] || {}
   }
 
@@ -91,11 +91,7 @@ export class MjImageBlock extends BaseEmailBlock {
     const {
       selectedBlockId,
       onSelectBlock,
-      onCloneBlock,
-      onDeleteBlock,
-      attributeDefaults,
-      onSaveBlock: onSave,
-      savedBlocks
+      attributeDefaults
     } = props
 
     const key = this.block.id
@@ -115,7 +111,7 @@ export class MjImageBlock extends BaseEmailBlock {
 
     const attrs = EmailBlockClass.mergeWithAllDefaults(
       'mj-image',
-      this.block.attributes,
+      this.block.attributes as Record<string, unknown> | undefined,
       attributeDefaults
     )
 
@@ -127,7 +123,7 @@ export class MjImageBlock extends BaseEmailBlock {
       } ${attrs.paddingLeft || '25px'}`,
       wordBreak: 'break-word',
       backgroundColor: attrs.containerBackgroundColor,
-      textAlign: attrs.align as any, // This handles the image alignment
+      textAlign: attrs.align as React.CSSProperties['textAlign'], // This handles the image alignment
       ...selectionStyle
     }
 
@@ -216,8 +212,7 @@ export class MjImageBlock extends BaseEmailBlock {
    */
   renderSettingsPanel(
     onUpdate: OnUpdateAttributesFunction,
-    blockDefaults: Record<string, any>,
-    emailTree?: EmailBlock
+    blockDefaults: MergedBlockAttributes
   ): React.ReactNode {
     const currentAttributes = this.block.attributes as MJImageAttributes
     return (
@@ -230,7 +225,7 @@ export class MjImageBlock extends BaseEmailBlock {
             placeholder="Enter image URL"
             acceptFileType="image/*"
             acceptItem={(item) =>
-              !item.is_folder && item.file_info?.content_type?.startsWith('image/')
+              !item.is_folder && (item.file_info?.content_type?.startsWith('image/') ?? false)
             }
             buttonText="Browse Images"
           />

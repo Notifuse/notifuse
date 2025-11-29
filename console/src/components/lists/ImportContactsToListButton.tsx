@@ -3,7 +3,6 @@ import { Button, Tooltip } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
 import { useContactsCsvUpload } from '../contacts/ContactsCsvUploadProvider'
 import { List } from '../../services/api/types'
-import { useQueryClient } from '@tanstack/react-query'
 
 interface ImportContactsToListButtonProps {
   list: List
@@ -27,7 +26,6 @@ export function ImportContactsToListButton({
   disabled = false
 }: ImportContactsToListButtonProps) {
   const { openDrawerWithSelectedList } = useContactsCsvUpload()
-  const queryClient = useQueryClient()
 
   const handleClick = () => {
     // Pass true for refreshOnClose to refresh contacts data
