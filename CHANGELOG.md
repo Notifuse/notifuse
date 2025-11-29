@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [18.1] - 2025-11-29
+
+### Enhancements
+
+- **File Manager**: Added support for modern image formats (WebP, AVIF, JPEG XL)
+  - `.webp` files now display with proper image previews
+  - `.avif` files now display with proper image previews
+  - `.jxl` (JPEG XL) files now display with proper image previews
+
 ## [18.0] - 2025-11-29
 
 ### Database Schema Changes

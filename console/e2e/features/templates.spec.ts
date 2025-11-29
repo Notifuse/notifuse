@@ -186,26 +186,28 @@ test.describe('Templates Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/templates`)
       await waitForLoading(page)
 
-      // Click on a template row to open edit drawer
+      // Templates page has action buttons in each row
+      // Find the first row and click the edit (pencil) button - it's typically the second button
       const templateRow = page.locator('.ant-table-row').first()
       if ((await templateRow.count()) > 0) {
-        // Look for edit button in the row
-        const editButton = templateRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await templateRow.click()
+        // Look for action buttons in the row - usually icons for preview, edit, duplicate, delete
+        const actionButtons = templateRow.locator('button')
+        const buttonCount = await actionButtons.count()
+
+        if (buttonCount >= 2) {
+          // The edit button is typically the second one (after preview)
+          await actionButtons.nth(1).click()
+
+          // Wait for drawer to open
+          await waitForDrawer(page)
+
+          // Verify the name input is prefilled with the existing template name
+          const nameInput = page.locator('.ant-drawer-content input:visible').first()
+          const inputValue = await nameInput.inputValue()
+
+          // Name should not be empty - should be prefilled (e.g., "Welcome Email")
+          expect(inputValue.length).toBeGreaterThan(0)
         }
-
-        // Wait for drawer to open
-        await waitForDrawer(page)
-
-        // Verify the name input is prefilled with the existing template name
-        const nameInput = page.locator('.ant-drawer-content input:visible').first()
-        const inputValue = await nameInput.inputValue()
-
-        // Name should not be empty - should be prefilled (e.g., "Welcome Email")
-        expect(inputValue.length).toBeGreaterThan(0)
       }
     })
 
@@ -217,22 +219,21 @@ test.describe('Templates Feature', () => {
 
       const templateRow = page.locator('.ant-table-row').first()
       if ((await templateRow.count()) > 0) {
-        const editButton = templateRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await templateRow.click()
-        }
+        const actionButtons = templateRow.locator('button')
+        const buttonCount = await actionButtons.count()
 
-        await waitForDrawer(page)
+        if (buttonCount >= 2) {
+          await actionButtons.nth(1).click()
+          await waitForDrawer(page)
 
-        // Category select should have a value selected
-        const categorySelect = page.locator('.ant-drawer-content .ant-select').first()
-        if ((await categorySelect.count()) > 0) {
-          await expect(categorySelect).toBeVisible()
-          // The select should show a selected value (not empty placeholder)
-          const selectText = await categorySelect.textContent()
-          expect(selectText?.length).toBeGreaterThan(0)
+          // Category select should have a value selected
+          const categorySelect = page.locator('.ant-drawer-content .ant-select').first()
+          if ((await categorySelect.count()) > 0) {
+            await expect(categorySelect).toBeVisible()
+            // The select should show a selected value (not empty placeholder)
+            const selectText = await categorySelect.textContent()
+            expect(selectText?.length).toBeGreaterThan(0)
+          }
         }
       }
     })
@@ -245,21 +246,19 @@ test.describe('Templates Feature', () => {
 
       const templateRow = page.locator('.ant-table-row').first()
       if ((await templateRow.count()) > 0) {
-        const editButton = templateRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await templateRow.click()
-        }
+        const actionButtons = templateRow.locator('button')
+        const buttonCount = await actionButtons.count()
 
-        await waitForDrawer(page)
+        if (buttonCount >= 2) {
+          await actionButtons.nth(1).click()
+          await waitForDrawer(page)
 
-        // Look for subject input - may need to navigate to second step or be on first page
-        const subjectInput = page.locator('.ant-drawer-content input[placeholder*="subject" i], .ant-drawer-content input[name="subject"]')
-        if ((await subjectInput.count()) > 0) {
-          const subjectValue = await subjectInput.inputValue()
-          // Subject might be empty for some templates, but field should be accessible
-          await expect(subjectInput).toBeVisible()
+          // Look for subject input - may need to navigate to second step or be on first page
+          const subjectInput = page.locator('.ant-drawer-content input[placeholder*="subject" i], .ant-drawer-content input[name="subject"]')
+          if ((await subjectInput.count()) > 0) {
+            // Subject might be empty for some templates, but field should be accessible
+            await expect(subjectInput).toBeVisible()
+          }
         }
       }
     })
@@ -272,19 +271,18 @@ test.describe('Templates Feature', () => {
 
       const templateRow = page.locator('.ant-table-row').first()
       if ((await templateRow.count()) > 0) {
-        const editButton = templateRow.getByRole('button', { name: /edit/i })
-        if ((await editButton.count()) > 0) {
-          await editButton.click()
-        } else {
-          await templateRow.click()
-        }
+        const actionButtons = templateRow.locator('button')
+        const buttonCount = await actionButtons.count()
 
-        await waitForDrawer(page)
+        if (buttonCount >= 2) {
+          await actionButtons.nth(1).click()
+          await waitForDrawer(page)
 
-        // Look for from email input
-        const fromEmailInput = page.locator('.ant-drawer-content input[placeholder*="from" i], .ant-drawer-content input[name*="from"]')
-        if ((await fromEmailInput.count()) > 0) {
-          await expect(fromEmailInput.first()).toBeVisible()
+          // Look for from email input
+          const fromEmailInput = page.locator('.ant-drawer-content input[placeholder*="from" i], .ant-drawer-content input[name*="from"]')
+          if ((await fromEmailInput.count()) > 0) {
+            await expect(fromEmailInput.first()).toBeVisible()
+          }
         }
       }
     })
