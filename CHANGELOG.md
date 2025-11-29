@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [18.0] - 2025-11-27
+## [18.0] - 2025-11-29
 
 ### Database Schema Changes
 
@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 - **Custom Events API**: Track user behavior and conversion goals
+
   - `POST /api/customEvent.upsert` - Create or update a single event
   - `POST /api/customEvent.import` - Batch import up to 50 events
   - `GET /api/customEvent.get` - Retrieve event by workspace, event name, and external ID
