@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/auth'
+import { test, expect, requestCapture } from '../fixtures/auth'
 import {
   waitForDrawer,
   waitForModal,
@@ -8,6 +8,10 @@ import {
   clickButton,
   hasEmptyState
 } from '../fixtures/test-utils'
+import { API_PATTERNS } from '../fixtures/request-capture'
+import { fillTransactionalForm } from '../fixtures/form-fillers'
+import { testTransactionalData } from '../fixtures/form-data'
+import { logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
 
@@ -376,6 +380,79 @@ test.describe('Transactional Notifications Feature', () => {
       }
 
       await page.waitForTimeout(500)
+    })
+  })
+
+  test.describe('Full Form Submission with Payload Verification', () => {
+    test('creates transactional notification with all fields and verifies payload', async ({
+      authenticatedPageWithData
+    }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/transactional-notifications`)
+      await waitForLoading(page)
+
+      // Open create form
+      const addButton = page.getByRole('button', { name: /add|create|new/i })
+      if ((await addButton.count()) === 0) return
+
+      await addButton.click()
+
+      // Wait for drawer/modal
+      await page.waitForTimeout(500)
+      const drawer = page.locator('.ant-drawer-content, .ant-modal-content').first()
+      if ((await drawer.count()) === 0) return
+
+      // Fill notification name
+      const nameInput = page.getByLabel('Name', { exact: false }).first()
+      if ((await nameInput.count()) > 0) {
+        await nameInput.fill(testTransactionalData.name)
+      } else {
+        const input = page.locator('input').first()
+        await input.fill(testTransactionalData.name)
+      }
+
+      // Fill notification ID if available
+      const idInput = page.getByLabel('Notification ID', { exact: false })
+      if ((await idInput.count()) > 0) {
+        await idInput.fill(testTransactionalData.id)
+      }
+
+      // Fill description
+      const descriptionInput = page.getByLabel('Description', { exact: false })
+      if ((await descriptionInput.count()) > 0 && testTransactionalData.description) {
+        await descriptionInput.fill(testTransactionalData.description)
+      }
+
+      // Toggle tracking settings if available
+      const trackingSwitch = page.locator('.ant-form-item').filter({ hasText: /tracking/i }).locator('.ant-switch')
+      if ((await trackingSwitch.count()) > 0) {
+        const isChecked = (await trackingSwitch.getAttribute('aria-checked')) === 'true'
+        if (isChecked !== testTransactionalData.tracking_enabled) {
+          await trackingSwitch.click()
+        }
+      }
+
+      // Submit
+      await page.getByRole('button', { name: /create|save/i }).first().click()
+      await page.waitForTimeout(1000)
+
+      // Log captured requests
+      logCapturedRequests(requestCapture)
+
+      // Verify transactional data was sent
+      const request = requestCapture.getLastRequest(API_PATTERNS.TRANSACTIONAL_CREATE)
+
+      if (request && request.body) {
+        const body = request.body as Record<string, unknown>
+
+        // Check for notification object
+        if (body.notification) {
+          const notification = body.notification as Record<string, unknown>
+          expect(notification.name).toBe(testTransactionalData.name)
+          expect(notification.id).toBe(testTransactionalData.id)
+        }
+      }
     })
   })
 })

@@ -27,7 +27,12 @@ import { SEOSettingsForm } from '../seo/SEOSettingsForm'
 import { ImageURLInput } from '../common/ImageURLInput'
 import { templatesApi } from '../../services/api/template'
 import { AuthorsTable } from './AuthorsTable'
-import { NotifuseEditor, type NotifuseEditorRef, type TOCAnchor } from '../blog_editor'
+import {
+  NotifuseEditor,
+  type NotifuseEditorRef,
+  type TOCAnchor,
+  DEFAULT_INITIAL_CONTENT
+} from '../blog_editor'
 import { jsonToHtml, extractTextContent } from './utils'
 import type { Workspace } from '../../services/api/types'
 
@@ -657,7 +662,13 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
                     key={`editor-${post?.id || 'new'}-${post?.settings.template.template_id || 'no-template'}-${post?.settings.template.template_version || 0}`}
                     ref={editorRef}
                     placeholder="Start writing your blog post..."
-                    initialContent={blogContent ? jsonToHtml(blogContent) : ''}
+                    initialContent={
+                      blogContent
+                        ? jsonToHtml(blogContent)
+                        : !post && import.meta.env.DEV
+                          ? DEFAULT_INITIAL_CONTENT
+                          : ''
+                    }
                     disableH1={true}
                     showHeader={false}
                     onChange={handleContentChange}
@@ -754,9 +765,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
               <ImageURLInput />
             </Form.Item>
 
-            <Form.Item name="seo" noStyle>
-              <SEOSettingsForm namePrefix={[]} />
-            </Form.Item>
+            <SEOSettingsForm namePrefix={['seo']} />
           </div>
         </div>
       </Form>

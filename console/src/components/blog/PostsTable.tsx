@@ -11,7 +11,8 @@ import {
   Empty,
   Segmented,
   Popconfirm,
-  Tooltip
+  Tooltip,
+  Popover
 } from 'antd'
 import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
 import { blogPostsApi, blogCategoriesApi, BlogPost, BlogPostStatus } from '../../services/api/blog'
@@ -191,11 +192,38 @@ export function PostsTable() {
       dataIndex: ['settings', 'title'],
       key: 'title',
       render: (title: string, record: BlogPost) => (
-        <div>
-          <div className="font-medium">{title}</div>
-          <div className="text-xs text-gray-500 mt-1">
-            <code>{record.slug}</code>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <div className="font-medium">{title}</div>
+            <div className="text-xs text-gray-500 mt-1">
+              <code>{record.slug}</code>
+            </div>
           </div>
+          {record.settings.featured_image_url && (
+            <Popover
+              content={
+                <img
+                  src={record.settings.featured_image_url}
+                  alt="Featured"
+                  style={{ maxWidth: 400, maxHeight: 300, objectFit: 'contain' }}
+                />
+              }
+              trigger="hover"
+              placement="right"
+            >
+              <img
+                src={record.settings.featured_image_url}
+                alt="Featured"
+                style={{
+                  height: 40,
+                  objectFit: 'cover',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  marginLeft: 12
+                }}
+              />
+            </Popover>
+          )}
         </div>
       )
     },

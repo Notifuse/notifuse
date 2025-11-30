@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [18.3] - 2025-11-30
+
+- Fix: SEO settings not being persisted when creating a new blog post
+- Enhancement: Featured image thumbnail now displays in the Title column with a popover for full-size preview in the blog posts list
+
 ## [18.2] - 2025-11-29
 
 ### Changes

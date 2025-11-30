@@ -1,5 +1,10 @@
 import { test as base, Page, Route } from '@playwright/test'
 import {
+  RequestCaptureStore,
+  parseRequestBody,
+  getPatternFromUrl
+} from './request-capture'
+import {
   mockUserMeResponse,
   mockWorkspace,
   mockWorkspaceMembers,
@@ -43,6 +48,9 @@ const jsonResponse = (data: unknown) => ({
   body: JSON.stringify(data)
 })
 
+// Global request capture store - shared across tests
+export const requestCapture = new RequestCaptureStore()
+
 // Configuration options for API mocks
 export interface MockConfig {
   // Set to true to return data instead of empty responses
@@ -68,13 +76,28 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
 
   // Intercept all requests to the API backend (localapi.notifuse.com:4000)
   // Only intercept XHR/fetch requests, not script/module requests
-  await page.route('https://localapi.notifuse.com:4000/**', (route: Route) => {
+  await page.route('https://localapi.notifuse.com:4000/**', async (route: Route) => {
     const url = route.request().url()
+    const method = route.request().method()
     const resourceType = route.request().resourceType()
 
     // Only mock fetch/xhr requests, let other resource types pass through
     if (resourceType !== 'fetch' && resourceType !== 'xhr') {
       return route.continue()
+    }
+
+    // Capture POST/PUT/PATCH requests for payload verification
+    if (method === 'POST' || method === 'PUT' || method === 'PATCH') {
+      const pattern = getPatternFromUrl(url)
+      if (pattern) {
+        const body = await parseRequestBody(route.request())
+        requestCapture.capture(pattern, {
+          url,
+          method,
+          body,
+          timestamp: Date.now()
+        })
+      }
     }
 
     // ============================================
@@ -178,7 +201,22 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       return route.fulfill(jsonResponse(withData ? mockTemplatesResponse : mockEmptyTemplates))
     }
     if (url.includes('/api/template.get') || url.includes('/api/templates.get')) {
-      return route.fulfill(jsonResponse({ template: mockTemplatesResponse.templates[0] }))
+      // Check if it's a validation call for a new template (ID check)
+      // If the ID matches a known template, return it; otherwise return 404 for validation to pass
+      const urlObj = new URL(url)
+      const templateId = urlObj.searchParams.get('id')
+
+      // Return existing template only for known IDs (from mock data)
+      if (templateId && mockTemplatesResponse.templates.some(t => t.id === templateId)) {
+        return route.fulfill(jsonResponse({ template: mockTemplatesResponse.templates[0] }))
+      }
+
+      // For unknown IDs (new templates), return 404 so validation passes
+      return route.fulfill({
+        status: 404,
+        contentType: 'application/json',
+        body: JSON.stringify({ error: 'Template not found' })
+      })
     }
     if (url.includes('/api/template.create') || url.includes('/api/templates.create')) {
       return route.fulfill(jsonResponse(mockTemplateCreateResponse))
@@ -281,31 +319,31 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     }
 
     // ============================================
-    // BLOG
+    // BLOG (supports blogPosts.*, blog.post.*, and blog_post.* patterns)
     // ============================================
-    if (url.includes('/api/blog.post.list') || url.includes('/api/blog_post.list')) {
+    if (url.includes('/api/blogPosts.list') || url.includes('/api/blog.post.list') || url.includes('/api/blog_post.list')) {
       return route.fulfill(jsonResponse(mockBlogPostsResponse))
     }
-    if (url.includes('/api/blog.post.get') || url.includes('/api/blog_post.get')) {
+    if (url.includes('/api/blogPosts.get') || url.includes('/api/blog.post.get') || url.includes('/api/blog_post.get')) {
       return route.fulfill(jsonResponse({ post: mockBlogPostsResponse.posts[0] }))
     }
-    if (url.includes('/api/blog.post.create') || url.includes('/api/blog_post.create')) {
+    if (url.includes('/api/blogPosts.create') || url.includes('/api/blog.post.create') || url.includes('/api/blog_post.create')) {
       return route.fulfill(jsonResponse(mockBlogPostCreateResponse))
     }
-    if (url.includes('/api/blog.post.update') || url.includes('/api/blog_post.update')) {
+    if (url.includes('/api/blogPosts.update') || url.includes('/api/blog.post.update') || url.includes('/api/blog_post.update')) {
       return route.fulfill(jsonResponse(mockBlogPostCreateResponse))
     }
-    if (url.includes('/api/blog.post.delete') || url.includes('/api/blog_post.delete')) {
+    if (url.includes('/api/blogPosts.delete') || url.includes('/api/blog.post.delete') || url.includes('/api/blog_post.delete')) {
       return route.fulfill(jsonResponse(mockSuccessResponse))
     }
-    if (url.includes('/api/blog.post.publish') || url.includes('/api/blog_post.publish')) {
+    if (url.includes('/api/blogPosts.publish') || url.includes('/api/blog.post.publish') || url.includes('/api/blog_post.publish')) {
       return route.fulfill(
         jsonResponse({
           post: { ...mockBlogPostsResponse.posts[0], status: 'published' }
         })
       )
     }
-    if (url.includes('/api/blog.post.unpublish') || url.includes('/api/blog_post.unpublish')) {
+    if (url.includes('/api/blogPosts.unpublish') || url.includes('/api/blog.post.unpublish') || url.includes('/api/blog_post.unpublish')) {
       return route.fulfill(
         jsonResponse({
           post: { ...mockBlogPostsResponse.posts[0], status: 'draft' }
@@ -313,32 +351,32 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
       )
     }
 
-    if (url.includes('/api/blog.category.list') || url.includes('/api/blog_category.list')) {
+    if (url.includes('/api/blogCategories.list') || url.includes('/api/blog.category.list') || url.includes('/api/blog_category.list')) {
       return route.fulfill(jsonResponse(mockBlogCategoriesResponse))
     }
-    if (url.includes('/api/blog.category.get') || url.includes('/api/blog_category.get')) {
+    if (url.includes('/api/blogCategories.get') || url.includes('/api/blog.category.get') || url.includes('/api/blog_category.get')) {
       return route.fulfill(jsonResponse({ category: mockBlogCategoriesResponse.categories[0] }))
     }
-    if (url.includes('/api/blog.category.create') || url.includes('/api/blog_category.create')) {
+    if (url.includes('/api/blogCategories.create') || url.includes('/api/blog.category.create') || url.includes('/api/blog_category.create')) {
       return route.fulfill(jsonResponse(mockBlogCategoryCreateResponse))
     }
-    if (url.includes('/api/blog.category.update') || url.includes('/api/blog_category.update')) {
+    if (url.includes('/api/blogCategories.update') || url.includes('/api/blog.category.update') || url.includes('/api/blog_category.update')) {
       return route.fulfill(jsonResponse(mockBlogCategoryCreateResponse))
     }
-    if (url.includes('/api/blog.category.delete') || url.includes('/api/blog_category.delete')) {
+    if (url.includes('/api/blogCategories.delete') || url.includes('/api/blog.category.delete') || url.includes('/api/blog_category.delete')) {
       return route.fulfill(jsonResponse(mockSuccessResponse))
     }
 
-    if (url.includes('/api/blog.theme.list') || url.includes('/api/blog_theme.list')) {
+    if (url.includes('/api/blogThemes.list') || url.includes('/api/blog.theme.list') || url.includes('/api/blog_theme.list')) {
       return route.fulfill(jsonResponse(mockBlogThemesResponse))
     }
-    if (url.includes('/api/blog.theme.get') || url.includes('/api/blog_theme.get')) {
+    if (url.includes('/api/blogThemes.get') || url.includes('/api/blogThemes.getPublished') || url.includes('/api/blog.theme.get') || url.includes('/api/blog_theme.get')) {
       return route.fulfill(jsonResponse({ theme: mockBlogThemesResponse.themes[0] }))
     }
-    if (url.includes('/api/blog.theme.update') || url.includes('/api/blog_theme.update')) {
+    if (url.includes('/api/blogThemes.update') || url.includes('/api/blog.theme.update') || url.includes('/api/blog_theme.update')) {
       return route.fulfill(jsonResponse({ theme: mockBlogThemesResponse.themes[0] }))
     }
-    if (url.includes('/api/blog.theme.publish') || url.includes('/api/blog_theme.publish')) {
+    if (url.includes('/api/blogThemes.publish') || url.includes('/api/blog.theme.publish') || url.includes('/api/blog_theme.publish')) {
       return route.fulfill(jsonResponse(mockSuccessResponse))
     }
 
@@ -423,6 +461,9 @@ export const test = base.extend<{
   authenticatedPageWithData: Page
 }>({
   authenticatedPage: async ({ page }, use) => {
+    // Clear request capture store before each test
+    requestCapture.clear()
+
     // Setup API mocks before any navigation (empty data)
     await setupApiMocks(page, { withData: false })
 
@@ -435,6 +476,9 @@ export const test = base.extend<{
   },
 
   authenticatedPageWithData: async ({ page }, use) => {
+    // Clear request capture store before each test
+    requestCapture.clear()
+
     // Setup API mocks before any navigation (with mock data)
     await setupApiMocks(page, { withData: true })
 

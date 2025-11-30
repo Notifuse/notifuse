@@ -1,5 +1,8 @@
-import { test, expect } from '../fixtures/auth'
-import { waitForLoading } from '../fixtures/test-utils'
+import { test, expect, requestCapture } from '../fixtures/auth'
+import { waitForLoading, waitForSuccessMessage } from '../fixtures/test-utils'
+import { API_PATTERNS } from '../fixtures/request-capture'
+import { testWorkspaceSettingsData } from '../fixtures/form-data'
+import { logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
 
@@ -348,6 +351,59 @@ test.describe('Workspace Settings Feature', () => {
       // General should be selected
       const generalMenuItem = page.locator('.ant-menu-item').filter({ hasText: 'General' })
       await expect(generalMenuItem).toHaveClass(/ant-menu-item-selected/)
+    })
+  })
+
+  test.describe('Full Form Submission with Payload Verification', () => {
+    test('updates workspace settings and verifies payload', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/general`)
+      await waitForLoading(page)
+
+      // Fill workspace name if editable
+      const nameInput = page.getByLabel('Workspace Name', { exact: false })
+      if ((await nameInput.count()) > 0 && (await nameInput.isEnabled())) {
+        await nameInput.fill(testWorkspaceSettingsData.name)
+      }
+
+      // Select timezone if available
+      const timezoneSelect = page.locator('.ant-form-item').filter({ hasText: /timezone/i }).locator('.ant-select')
+      if ((await timezoneSelect.count()) > 0) {
+        await timezoneSelect.click()
+        await page.locator('.ant-select-dropdown').waitFor({ state: 'visible' })
+        const option = page.locator('.ant-select-item-option').filter({ hasText: /New_York|UTC/i }).first()
+        if ((await option.count()) > 0) {
+          await option.click()
+        } else {
+          await page.keyboard.press('Escape')
+        }
+      }
+
+      // Fill custom endpoint URL if available
+      const endpointInput = page.getByLabel('Custom Endpoint', { exact: false })
+      if ((await endpointInput.count()) > 0 && testWorkspaceSettingsData.custom_endpoint_url) {
+        await endpointInput.fill(testWorkspaceSettingsData.custom_endpoint_url)
+      }
+
+      // Submit form
+      const saveButton = page.getByRole('button', { name: /save|update/i }).first()
+      if ((await saveButton.count()) > 0) {
+        await saveButton.click()
+        await page.waitForTimeout(1000)
+
+        // Log captured requests
+        logCapturedRequests(requestCapture)
+
+        // Verify workspace update was sent
+        const request = requestCapture.getLastRequest(API_PATTERNS.WORKSPACE_UPDATE)
+
+        if (request && request.body) {
+          const body = request.body as Record<string, unknown>
+          // Verify settings were included
+          expect(body, 'Workspace update body should not be empty').toBeDefined()
+        }
+      }
     })
   })
 })

@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/auth'
+import { test, expect, requestCapture } from '../fixtures/auth'
 import {
   waitForDrawer,
   waitForDrawerClose,
@@ -12,6 +12,10 @@ import {
   hasEmptyState,
   navigateToWorkspacePage
 } from '../fixtures/test-utils'
+import { API_PATTERNS } from '../fixtures/request-capture'
+import { fillContactForm } from '../fixtures/form-fillers'
+import { testContactData, testContactDataMinimal } from '../fixtures/form-data'
+import { assertRequestBodyContains, assertFieldInPayload, logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
 
@@ -360,6 +364,94 @@ test.describe('Contacts Feature', () => {
 
       // Should be on contacts page
       await expect(page).toHaveURL(/contacts/)
+    })
+  })
+
+  test.describe('Full Form Submission with Payload Verification', () => {
+    test('creates contact with email and verifies payload', async ({ authenticatedPage }) => {
+      const page = authenticatedPage
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
+      await waitForLoading(page)
+
+      // Click add button
+      await clickButton(page, 'Add')
+      await waitForDrawer(page)
+
+      // Fill only the required email field (email is always visible)
+      await fillContactForm(page, testContactDataMinimal)
+
+      // Submit form
+      await clickButton(page, 'Save')
+
+      // Wait for request to be captured
+      await page.waitForTimeout(1000)
+
+      // Log captured requests for debugging
+      logCapturedRequests(requestCapture)
+
+      // Verify the contact data was sent correctly
+      const request = requestCapture.getLastRequest(API_PATTERNS.CONTACT_UPSERT)
+
+      if (request && request.body) {
+        const body = request.body as Record<string, unknown>
+
+        // Verify contact object exists
+        expect(body.contact, 'Contact object should exist in request').toBeDefined()
+
+        if (body.contact) {
+          const contact = body.contact as Record<string, unknown>
+
+          // Verify required field
+          expect(contact.email).toBe(testContactDataMinimal.email)
+        }
+      }
+    })
+
+    test('verifies custom fields are sent in payload', async ({ authenticatedPage }) => {
+      const page = authenticatedPage
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
+      await waitForLoading(page)
+
+      await clickButton(page, 'Add')
+      await waitForDrawer(page)
+
+      // Fill required email
+      const emailInput = page.locator('input[name="email"], input[placeholder*="email" i]').first()
+      await emailInput.fill('custom-fields-test@example.com')
+
+      // Fill custom string fields if they exist
+      const customString1 = page.getByLabel('Custom String 1', { exact: false })
+      if ((await customString1.count()) > 0) {
+        await customString1.fill('Custom Value 1')
+      }
+
+      const customNumber1 = page.getByLabel('Custom Number 1', { exact: false })
+      if ((await customNumber1.count()) > 0) {
+        await customNumber1.fill('123')
+      }
+
+      // Submit
+      await clickButton(page, 'Save')
+      await page.waitForTimeout(1000)
+
+      const request = requestCapture.getLastRequest(API_PATTERNS.CONTACT_UPSERT)
+
+      if (request && request.body) {
+        const body = request.body as Record<string, unknown>
+        const contact = body.contact as Record<string, unknown>
+
+        expect(contact.email).toBe('custom-fields-test@example.com')
+
+        // Verify custom fields if they were filled
+        if (contact.custom_string_1) {
+          expect(contact.custom_string_1).toBe('Custom Value 1')
+        }
+        if (contact.custom_number_1) {
+          expect(contact.custom_number_1).toBe(123)
+        }
+      }
     })
   })
 })

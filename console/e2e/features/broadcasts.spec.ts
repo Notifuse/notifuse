@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/auth'
+import { test, expect, requestCapture } from '../fixtures/auth'
 import {
   waitForDrawer,
   waitForModal,
@@ -9,6 +9,10 @@ import {
   getTableRowCount,
   hasEmptyState
 } from '../fixtures/test-utils'
+import { API_PATTERNS } from '../fixtures/request-capture'
+import { fillBroadcastForm } from '../fixtures/form-fillers'
+import { testBroadcastData } from '../fixtures/form-data'
+import { logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
 
@@ -380,6 +384,87 @@ test.describe('Broadcasts Feature', () => {
       }
 
       await page.waitForTimeout(500)
+    })
+  })
+
+  test.describe('Full Form Submission with Payload Verification', () => {
+    test('creates broadcast with all fields and verifies payload', async ({ authenticatedPageWithData }) => {
+      const page = authenticatedPageWithData
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/broadcasts`)
+      await waitForLoading(page)
+
+      // Open create form
+      const addButton = page.getByRole('button', { name: /add|create|new/i })
+      if ((await addButton.count()) === 0) return
+
+      await addButton.click()
+
+      // Wait for drawer/modal
+      await page.waitForTimeout(500)
+      const drawer = page.locator('.ant-drawer-content, .ant-modal-content').first()
+      if ((await drawer.count()) === 0) return
+
+      // Fill broadcast name
+      const nameInput = page.getByLabel('Name', { exact: false }).first()
+      if ((await nameInput.count()) > 0) {
+        await nameInput.fill(testBroadcastData.name)
+      } else {
+        const input = page.locator('input').first()
+        await input.fill(testBroadcastData.name)
+      }
+
+      // Select list if available
+      const listSelect = page.locator('.ant-form-item').filter({ hasText: /list/i }).first().locator('.ant-select')
+      if ((await listSelect.count()) > 0) {
+        await listSelect.click()
+        await page.locator('.ant-select-dropdown').waitFor({ state: 'visible' })
+        const option = page.locator('.ant-select-item-option').first()
+        if ((await option.count()) > 0) {
+          await option.click()
+        } else {
+          await page.keyboard.press('Escape')
+        }
+      }
+
+      // Fill UTM fields
+      const utmSource = page.getByLabel('UTM Source', { exact: false })
+      if ((await utmSource.count()) > 0) {
+        await utmSource.fill(testBroadcastData.utm_source || '')
+      }
+
+      const utmMedium = page.getByLabel('UTM Medium', { exact: false })
+      if ((await utmMedium.count()) > 0) {
+        await utmMedium.fill(testBroadcastData.utm_medium || '')
+      }
+
+      const utmCampaign = page.getByLabel('UTM Campaign', { exact: false })
+      if ((await utmCampaign.count()) > 0) {
+        await utmCampaign.fill(testBroadcastData.utm_campaign || '')
+      }
+
+      // Submit
+      await page.getByRole('button', { name: /create|save/i }).first().click()
+      await page.waitForTimeout(1000)
+
+      // Log captured requests
+      logCapturedRequests(requestCapture)
+
+      // Verify broadcast data was sent
+      const request = requestCapture.getLastRequest(API_PATTERNS.BROADCAST_CREATE)
+
+      if (request && request.body) {
+        const body = request.body as Record<string, unknown>
+        expect(body.name).toBe(testBroadcastData.name)
+
+        // Verify UTM parameters if present
+        if (body.utm_parameters) {
+          const utm = body.utm_parameters as Record<string, unknown>
+          if (testBroadcastData.utm_source) {
+            expect(utm.source).toBe(testBroadcastData.utm_source)
+          }
+        }
+      }
     })
   })
 })

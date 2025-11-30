@@ -516,34 +516,43 @@ export const mockEmptySegments = {
 export const mockBlogCategories = [
   {
     id: 'cat-1',
-    name: 'Engineering',
     slug: 'engineering',
-    description: 'Technical articles and tutorials',
-    seo_title: 'Engineering Blog',
-    seo_description: 'Technical articles about our engineering practices',
-    post_count: 5,
+    settings: {
+      name: 'Engineering',
+      description: 'Technical articles and tutorials',
+      seo: {
+        meta_title: 'Engineering Blog',
+        meta_description: 'Technical articles about our engineering practices'
+      }
+    },
     created_at: '2024-01-01T00:00:00Z',
     updated_at: '2024-01-10T00:00:00Z'
   },
   {
     id: 'cat-2',
-    name: 'Product Updates',
     slug: 'product-updates',
-    description: 'New features and improvements',
-    seo_title: 'Product Updates',
-    seo_description: 'Latest product news and feature announcements',
-    post_count: 8,
+    settings: {
+      name: 'Product Updates',
+      description: 'New features and improvements',
+      seo: {
+        meta_title: 'Product Updates',
+        meta_description: 'Latest product news and feature announcements'
+      }
+    },
     created_at: '2024-01-02T00:00:00Z',
     updated_at: '2024-01-15T00:00:00Z'
   },
   {
     id: 'cat-3',
-    name: 'Company News',
     slug: 'company-news',
-    description: 'Company announcements and news',
-    seo_title: 'Company News',
-    seo_description: 'Stay updated with company announcements',
-    post_count: 3,
+    settings: {
+      name: 'Company News',
+      description: 'Company announcements and news',
+      seo: {
+        meta_title: 'Company News',
+        meta_description: 'Stay updated with company announcements'
+      }
+    },
     created_at: '2024-01-05T00:00:00Z',
     updated_at: '2024-01-12T00:00:00Z'
   }
@@ -552,69 +561,77 @@ export const mockBlogCategories = [
 export const mockBlogPosts = [
   {
     id: 'post-1',
-    title: 'Getting Started with Email Marketing',
     slug: 'getting-started-email-marketing',
-    excerpt: 'Learn the basics of email marketing and how to get started.',
-    content: '<h1>Getting Started</h1><p>Email marketing is a powerful tool...</p>',
     category_id: 'cat-1',
-    status: 'published',
-    author_id: 'test-user-id',
-    author_name: 'Test User',
-    featured_image: 'https://example.com/images/post-1.jpg',
-    seo_title: 'Getting Started with Email Marketing - Guide',
-    seo_description: 'Complete guide to getting started with email marketing',
+    settings: {
+      title: 'Getting Started with Email Marketing',
+      excerpt: 'Learn the basics of email marketing and how to get started.',
+      featured_image_url: 'https://example.com/images/post-1.jpg',
+      authors: [{ name: 'Test User', avatar_url: null }],
+      reading_time_minutes: 5,
+      template: { template_id: 'tpl-1', template_version: 1 },
+      seo: {
+        meta_title: 'Getting Started with Email Marketing - Guide',
+        meta_description: 'Complete guide to getting started with email marketing'
+      }
+    },
     published_at: '2024-01-10T10:00:00Z',
     created_at: '2024-01-05T00:00:00Z',
     updated_at: '2024-01-10T10:00:00Z'
   },
   {
     id: 'post-2',
-    title: 'New Feature: A/B Testing',
     slug: 'new-feature-ab-testing',
-    excerpt: 'Introducing our powerful new A/B testing capabilities.',
-    content: '<h1>A/B Testing</h1><p>Test your subject lines...</p>',
     category_id: 'cat-2',
-    status: 'published',
-    author_id: 'test-user-id',
-    author_name: 'Test User',
-    featured_image: null,
-    seo_title: 'New Feature: A/B Testing for Email Campaigns',
-    seo_description: 'Learn about our new A/B testing feature',
+    settings: {
+      title: 'New Feature: A/B Testing',
+      excerpt: 'Introducing our powerful new A/B testing capabilities.',
+      featured_image_url: null,
+      authors: [{ name: 'Test User', avatar_url: null }],
+      reading_time_minutes: 3,
+      template: { template_id: 'tpl-1', template_version: 1 },
+      seo: {
+        meta_title: 'New Feature: A/B Testing for Email Campaigns',
+        meta_description: 'Learn about our new A/B testing feature'
+      }
+    },
     published_at: '2024-01-15T14:00:00Z',
     created_at: '2024-01-12T00:00:00Z',
     updated_at: '2024-01-15T14:00:00Z'
   },
   {
     id: 'post-3',
-    title: 'Draft Post',
     slug: 'draft-post',
-    excerpt: 'This is a draft post that is not yet published.',
-    content: '<h1>Draft</h1><p>Work in progress...</p>',
     category_id: 'cat-3',
-    status: 'draft',
-    author_id: 'test-user-id',
-    author_name: 'Test User',
-    featured_image: null,
-    seo_title: null,
-    seo_description: null,
+    settings: {
+      title: 'Draft Post',
+      excerpt: 'This is a draft post that is not yet published.',
+      featured_image_url: null,
+      authors: [{ name: 'Test User', avatar_url: null }],
+      reading_time_minutes: 2,
+      template: { template_id: 'tpl-1', template_version: 1 },
+      seo: {}
+    },
     published_at: null,
     created_at: '2024-01-20T00:00:00Z',
     updated_at: '2024-01-22T00:00:00Z'
   },
   {
     id: 'post-4',
-    title: 'Scheduled Post',
     slug: 'scheduled-post',
-    excerpt: 'This post is scheduled for future publication.',
-    content: '<h1>Coming Soon</h1><p>Stay tuned...</p>',
     category_id: 'cat-2',
-    status: 'scheduled',
-    author_id: 'test-user-id',
-    author_name: 'Test User',
-    featured_image: 'https://example.com/images/post-4.jpg',
-    seo_title: 'Upcoming Feature Announcement',
-    seo_description: 'Big news coming soon',
-    scheduled_at: '2024-02-01T09:00:00Z',
+    settings: {
+      title: 'Scheduled Post',
+      excerpt: 'This post is scheduled for future publication.',
+      featured_image_url: 'https://example.com/images/post-4.jpg',
+      authors: [{ name: 'Test User', avatar_url: null }],
+      reading_time_minutes: 4,
+      template: { template_id: 'tpl-1', template_version: 1 },
+      seo: {
+        meta_title: 'Upcoming Feature Announcement',
+        meta_description: 'Big news coming soon'
+      }
+    },
     published_at: null,
     created_at: '2024-01-25T00:00:00Z',
     updated_at: '2024-01-25T00:00:00Z'

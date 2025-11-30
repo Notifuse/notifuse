@@ -443,21 +443,18 @@ UpsertContactRequest:
 UpsertContactResponse:
   type: object
   properties:
+    email:
+      type: string
+      format: email
+      description: Email address of the contact
+      example: user@example.com
     action:
       type: string
       enum:
-        - created
-        - updated
-        - unchanged
-      description: The action that was performed on the contact
-      example: created
-    contact:
-      $ref: '#/Contact'
-    error:
-      type: string
-      nullable: true
-      description: Error message if the operation failed
-      example: null
+        - create
+        - update
+      description: "The action that was performed: 'create' for new contacts, 'update' for existing contacts"
+      example: create
 
 DeleteContactRequest:
   type: object

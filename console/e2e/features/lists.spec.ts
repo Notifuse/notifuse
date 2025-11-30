@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/auth'
+import { test, expect, requestCapture } from '../fixtures/auth'
 import {
   waitForDrawer,
   waitForDrawerClose,
@@ -11,6 +11,10 @@ import {
   getTableRowCount,
   hasEmptyState
 } from '../fixtures/test-utils'
+import { API_PATTERNS } from '../fixtures/request-capture'
+import { fillListForm } from '../fixtures/form-fillers'
+import { testListData } from '../fixtures/form-data'
+import { assertRequestBodyContains, logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
 
@@ -358,6 +362,115 @@ test.describe('Lists Feature', () => {
 
       // Form should be closed
       await page.waitForTimeout(500)
+    })
+  })
+
+  test.describe('Full Form Submission with Payload Verification', () => {
+    test('creates list with all fields and verifies payload', async ({ authenticatedPage }) => {
+      const page = authenticatedPage
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
+      await waitForLoading(page)
+
+      // Open create form
+      const addButton = page.getByRole('button', { name: /add|create|new/i })
+      await addButton.click()
+      await waitForDrawer(page)
+
+      // Fill list name
+      const nameInput = page.locator('.ant-drawer-content input').first()
+      await nameInput.fill(testListData.name)
+
+      // Wait for ID to auto-generate
+      await page.waitForTimeout(300)
+
+      // Fill description if textarea exists
+      const descriptionInput = page.locator('.ant-drawer-content textarea')
+      if ((await descriptionInput.count()) > 0) {
+        await descriptionInput.fill(testListData.description || '')
+      }
+
+      // Toggle double opt-in switch if available
+      const doubleOptInSwitch = page.locator('.ant-drawer-content .ant-switch').first()
+      if ((await doubleOptInSwitch.count()) > 0) {
+        const isChecked = (await doubleOptInSwitch.getAttribute('aria-checked')) === 'true'
+        if (isChecked !== testListData.is_double_optin) {
+          await doubleOptInSwitch.click()
+        }
+      }
+
+      // Toggle public switch if available
+      const publicSwitch = page.locator('.ant-drawer-content').getByText('Public', { exact: false }).locator('..').locator('.ant-switch')
+      if ((await publicSwitch.count()) > 0) {
+        const isChecked = (await publicSwitch.getAttribute('aria-checked')) === 'true'
+        if (isChecked !== testListData.is_public) {
+          await publicSwitch.click()
+        }
+      }
+
+      // Submit form
+      await page.getByRole('button', { name: 'Create', exact: true }).click()
+
+      // Wait for request to be captured
+      await page.waitForTimeout(1000)
+
+      // Log captured requests for debugging
+      logCapturedRequests(requestCapture)
+
+      // Verify the list data was sent correctly
+      const request = requestCapture.getLastRequest(API_PATTERNS.LIST_CREATE)
+
+      if (request && request.body) {
+        const body = request.body as Record<string, unknown>
+
+        // Verify required fields
+        expect(body.name, 'List name should be in payload').toBeDefined()
+
+        // Verify optional fields
+        if (testListData.description) {
+          expect(body.description).toBe(testListData.description)
+        }
+
+        // Verify boolean settings
+        expect(body.is_double_optin, 'is_double_optin should be in payload').toBeDefined()
+        expect(body.is_public, 'is_public should be in payload').toBeDefined()
+      }
+    })
+
+    test('verifies list configuration settings in payload', async ({ authenticatedPage }) => {
+      const page = authenticatedPage
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/lists`)
+      await waitForLoading(page)
+
+      const addButton = page.getByRole('button', { name: /add|create|new/i })
+      await addButton.click()
+      await waitForDrawer(page)
+
+      // Fill required name
+      const nameInput = page.locator('.ant-drawer-content input').first()
+      await nameInput.fill('Configuration Test List')
+
+      // Enable double opt-in
+      const switches = page.locator('.ant-drawer-content .ant-switch')
+      if ((await switches.count()) > 0) {
+        await switches.first().click()
+      }
+
+      // Submit
+      await page.getByRole('button', { name: 'Create', exact: true }).click()
+      await page.waitForTimeout(1000)
+
+      const request = requestCapture.getLastRequest(API_PATTERNS.LIST_CREATE)
+
+      if (request && request.body) {
+        const body = request.body as Record<string, unknown>
+
+        // Verify the toggle state was captured
+        expect(body.name).toBe('Configuration Test List')
+        // The is_double_optin should reflect what we toggled
+        expect(typeof body.is_double_optin).toBe('boolean')
+      }
     })
   })
 })

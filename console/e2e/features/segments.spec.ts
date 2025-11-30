@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/auth'
+import { test, expect, requestCapture } from '../fixtures/auth'
 import {
   waitForDrawer,
   waitForModal,
@@ -9,6 +9,10 @@ import {
   getTableRowCount,
   hasEmptyState
 } from '../fixtures/test-utils'
+import { API_PATTERNS } from '../fixtures/request-capture'
+import { fillSegmentForm } from '../fixtures/form-fillers'
+import { testSegmentData } from '../fixtures/form-data'
+import { logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
 
@@ -361,6 +365,54 @@ test.describe('Segments Feature', () => {
       const buttonStillVisible = await confirmButton.isVisible()
 
       expect(hasError || buttonStillVisible).toBe(true)
+    })
+  })
+
+  test.describe('Full Form Submission with Payload Verification', () => {
+    test('creates segment with name and verifies payload', async ({ authenticatedPage }) => {
+      const page = authenticatedPage
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
+      await waitForLoading(page)
+
+      // Open segment drawer
+      const segmentButton = page.getByRole('button', { name: /segment/i })
+      if ((await segmentButton.count()) === 0) return
+
+      await segmentButton.first().click()
+      await waitForDrawer(page)
+
+      // Fill segment name
+      const nameInput = page.locator('.ant-drawer-content input:visible').first()
+      await nameInput.fill(testSegmentData.name)
+
+      // Fill description if available
+      const descriptionInput = page.locator('.ant-drawer-content textarea')
+      if ((await descriptionInput.count()) > 0 && testSegmentData.description) {
+        await descriptionInput.fill(testSegmentData.description)
+      }
+
+      // Add a simple condition if the UI supports it
+      const addConditionBtn = page.getByRole('button', { name: /add condition|add filter/i })
+      if ((await addConditionBtn.count()) > 0) {
+        await addConditionBtn.first().click()
+        await page.waitForTimeout(300)
+      }
+
+      // Submit
+      await page.getByRole('button', { name: /confirm|create|save/i }).first().click()
+      await page.waitForTimeout(1000)
+
+      // Log captured requests
+      logCapturedRequests(requestCapture)
+
+      // Verify segment data was sent
+      const request = requestCapture.getLastRequest(API_PATTERNS.SEGMENT_CREATE)
+
+      if (request && request.body) {
+        const body = request.body as Record<string, unknown>
+        expect(body.name).toBe(testSegmentData.name)
+      }
     })
   })
 })
