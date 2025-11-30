@@ -2410,6 +2410,828 @@
         }
       }
     },
+    "/api/webhook_subscription.create": {
+      "post": {
+        "summary": "Create a webhook subscription",
+        "description": "Creates a new webhook subscription to receive HTTP callbacks when specified events occur in the workspace.",
+        "operationId": "createWebhookSubscription",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateWebhookSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Webhook subscription created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateWebhookSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "invalidUrl": {
+                    "value": {
+                      "error": "url must be a valid HTTPS URL"
+                    }
+                  },
+                  "emptyEventTypes": {
+                    "value": {
+                      "error": "at least one event type is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhook_subscription.list": {
+      "get": {
+        "summary": "List webhook subscriptions",
+        "description": "Returns all webhook subscriptions for the specified workspace.",
+        "operationId": "listWebhookSubscriptions",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of webhook subscriptions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListWebhookSubscriptionsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing workspace_id",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "workspace_id is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhook_subscription.get": {
+      "get": {
+        "summary": "Get a webhook subscription",
+        "description": "Retrieves a specific webhook subscription by ID.",
+        "operationId": "getWebhookSubscription",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the webhook subscription",
+            "example": "whsub_a1b2c3d4e5f6"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Webhook subscription found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetWebhookSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "missingId": {
+                    "value": {
+                      "error": "id is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Webhook subscription not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Webhook subscription not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhook_subscription.update": {
+      "post": {
+        "summary": "Update a webhook subscription",
+        "description": "Updates an existing webhook subscription with new configuration.",
+        "operationId": "updateWebhookSubscription",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateWebhookSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook subscription updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdateWebhookSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation failed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "missingId": {
+                    "value": {
+                      "error": "id is required"
+                    }
+                  },
+                  "invalidUrl": {
+                    "value": {
+                      "error": "url must be a valid HTTPS URL"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Webhook subscription not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhook_subscription.delete": {
+      "post": {
+        "summary": "Delete a webhook subscription",
+        "description": "Permanently deletes a webhook subscription. This action cannot be undone.",
+        "operationId": "deleteWebhookSubscription",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteWebhookSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook subscription deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "missingId": {
+                    "value": {
+                      "error": "id is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhook_subscription.toggle": {
+      "post": {
+        "summary": "Toggle webhook subscription enabled state",
+        "description": "Enables or disables a webhook subscription. Disabled subscriptions will not receive events.",
+        "operationId": "toggleWebhookSubscription",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ToggleWebhookSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook subscription toggled successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ToggleWebhookSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "missingId": {
+                    "value": {
+                      "error": "id is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhook_subscription.regenerate_secret": {
+      "post": {
+        "summary": "Regenerate webhook secret",
+        "description": "Generates a new signing secret for the webhook subscription. The old secret will immediately become invalid.",
+        "operationId": "regenerateWebhookSecret",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegenerateWebhookSecretRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook secret regenerated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegenerateWebhookSecretResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "missingId": {
+                    "value": {
+                      "error": "id is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhook_subscription.deliveries": {
+      "get": {
+        "summary": "Get webhook delivery history",
+        "description": "Returns the delivery history for a webhook subscription, including status and response information.",
+        "operationId": "getWebhookDeliveries",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "workspace_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          {
+            "name": "subscription_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "The ID of the webhook subscription",
+            "example": "whsub_a1b2c3d4e5f6"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            },
+            "description": "Number of deliveries to return (1-100)",
+            "example": 20
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            },
+            "description": "Offset for pagination",
+            "example": 0
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of webhook deliveries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListWebhookDeliveriesResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "missingSubscriptionId": {
+                    "value": {
+                      "error": "subscription_id is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhook_subscription.test": {
+      "post": {
+        "summary": "Send a test webhook",
+        "description": "Sends a test webhook to the subscription's URL to verify connectivity and configuration.",
+        "operationId": "testWebhookSubscription",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TestWebhookRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Test webhook sent (check response for success/failure)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TestWebhookResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingWorkspaceId": {
+                    "value": {
+                      "error": "workspace_id is required"
+                    }
+                  },
+                  "missingId": {
+                    "value": {
+                      "error": "id is required"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Webhook subscription not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Webhook subscription not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/webhook_subscription.event_types": {
+      "get": {
+        "summary": "List available event types",
+        "description": "Returns a list of all available webhook event types that can be subscribed to.",
+        "operationId": "listWebhookEventTypes",
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of available event types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListWebhookEventTypesResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid or missing authentication token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/subscribe": {
       "post": {
         "summary": "Subscribe to email lists",
@@ -4752,6 +5574,556 @@
             "type": "integer",
             "description": "Number of events created",
             "example": 2
+          }
+        }
+      },
+      "WebhookSubscription": {
+        "type": "object",
+        "description": "A webhook subscription that receives HTTP callbacks when events occur",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the subscription",
+            "example": "whsub_a1b2c3d4e5f6"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name for the subscription",
+            "example": "Production Webhook"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The HTTPS URL to receive webhook events",
+            "example": "https://api.example.com/webhooks/notifuse"
+          },
+          "secret": {
+            "type": "string",
+            "description": "Secret key for signing webhook payloads (Standard Webhooks spec)",
+            "example": "whsec_a1b2c3d4e5f6g7h8i9j0"
+          },
+          "event_types": {
+            "type": "array",
+            "description": "List of event types this subscription is subscribed to",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "contact.created",
+              "contact.updated",
+              "email.sent"
+            ]
+          },
+          "custom_event_filters": {
+            "$ref": "#/components/schemas/CustomEventFilters"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the subscription is currently active",
+            "example": true
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional description of the subscription",
+            "example": "Sends events to our CRM system"
+          },
+          "last_delivery_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "Timestamp of the last delivery attempt",
+            "example": "2024-01-15T10:30:00Z"
+          },
+          "success_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of successful deliveries",
+            "example": 150
+          },
+          "failure_count": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Number of failed deliveries",
+            "example": 3
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the subscription was created",
+            "example": "2024-01-01T00:00:00Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the subscription was last updated",
+            "example": "2024-01-15T10:30:00Z"
+          }
+        }
+      },
+      "WebhookDelivery": {
+        "type": "object",
+        "description": "A record of a webhook delivery attempt",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique identifier for the delivery",
+            "example": "whdel_x1y2z3"
+          },
+          "subscription_id": {
+            "type": "string",
+            "description": "ID of the subscription this delivery belongs to",
+            "example": "whsub_a1b2c3d4e5f6"
+          },
+          "event_type": {
+            "type": "string",
+            "description": "Type of event that triggered the delivery",
+            "example": "contact.created"
+          },
+          "payload": {
+            "type": "object",
+            "description": "The JSON payload sent in the webhook",
+            "additionalProperties": true
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "delivering",
+              "delivered",
+              "failed"
+            ],
+            "description": "Current status of the delivery",
+            "example": "delivered"
+          },
+          "attempts": {
+            "type": "integer",
+            "description": "Number of delivery attempts made",
+            "example": 1
+          },
+          "max_attempts": {
+            "type": "integer",
+            "description": "Maximum number of retry attempts",
+            "example": 10
+          },
+          "next_attempt_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the next retry will be attempted",
+            "example": "2024-01-15T10:35:00Z"
+          },
+          "last_attempt_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the last attempt was made",
+            "example": "2024-01-15T10:30:00Z"
+          },
+          "delivered_at": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true,
+            "description": "When the delivery was successfully completed",
+            "example": "2024-01-15T10:30:00Z"
+          },
+          "last_response_status": {
+            "type": "integer",
+            "nullable": true,
+            "description": "HTTP status code from the last attempt",
+            "example": 200
+          },
+          "last_response_body": {
+            "type": "string",
+            "nullable": true,
+            "description": "Response body from the last attempt (truncated)",
+            "example": "{\"received\": true}"
+          },
+          "last_error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Error message from the last failed attempt",
+            "example": null
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the delivery was created",
+            "example": "2024-01-15T10:30:00Z"
+          }
+        }
+      },
+      "WebhookEventType": {
+        "type": "string",
+        "description": "Available webhook event types",
+        "enum": [
+          "contact.created",
+          "contact.updated",
+          "contact.deleted",
+          "list.subscribed",
+          "list.unsubscribed",
+          "list.confirmed",
+          "list.resubscribed",
+          "list.bounced",
+          "list.complained",
+          "list.pending",
+          "list.removed",
+          "segment.joined",
+          "segment.left",
+          "email.sent",
+          "email.delivered",
+          "email.opened",
+          "email.clicked",
+          "email.bounced",
+          "email.complained",
+          "email.unsubscribed",
+          "custom_event.created",
+          "custom_event.updated",
+          "custom_event.deleted"
+        ]
+      },
+      "CustomEventFilters": {
+        "type": "object",
+        "nullable": true,
+        "description": "Optional filters for custom_event.* event types",
+        "properties": {
+          "goal_types": {
+            "type": "array",
+            "nullable": true,
+            "description": "Filter by goal type (e.g., purchase, subscription, lead)",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "purchase",
+              "subscription"
+            ]
+          },
+          "event_names": {
+            "type": "array",
+            "nullable": true,
+            "description": "Filter by event name (e.g., orders/fulfilled, payment.succeeded)",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "orders/fulfilled",
+              "payment.succeeded"
+            ]
+          }
+        }
+      },
+      "CreateWebhookSubscriptionRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "name",
+          "url",
+          "event_types"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          "name": {
+            "type": "string",
+            "description": "Human-readable name for the subscription",
+            "example": "Production Webhook",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The HTTPS URL to receive webhook events",
+            "example": "https://api.example.com/webhooks/notifuse"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Optional description",
+            "example": "Sends events to our CRM system"
+          },
+          "event_types": {
+            "type": "array",
+            "description": "List of event types to subscribe to",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "example": [
+              "contact.created",
+              "contact.updated"
+            ]
+          },
+          "custom_event_filters": {
+            "$ref": "#/components/schemas/CustomEventFilters"
+          }
+        }
+      },
+      "CreateWebhookSubscriptionResponse": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/WebhookSubscription"
+          }
+        }
+      },
+      "UpdateWebhookSubscriptionRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "id",
+          "name",
+          "url",
+          "event_types"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the subscription to update",
+            "example": "whsub_a1b2c3d4e5f6"
+          },
+          "name": {
+            "type": "string",
+            "description": "Updated name",
+            "example": "Production Webhook Updated"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Updated URL",
+            "example": "https://api.example.com/webhooks/notifuse/v2"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true,
+            "description": "Updated description",
+            "example": "Updated description"
+          },
+          "event_types": {
+            "type": "array",
+            "description": "Updated list of event types",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "contact.created",
+              "contact.updated",
+              "contact.deleted"
+            ]
+          },
+          "custom_event_filters": {
+            "$ref": "#/components/schemas/CustomEventFilters"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether the subscription is enabled",
+            "example": true
+          }
+        }
+      },
+      "UpdateWebhookSubscriptionResponse": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/WebhookSubscription"
+          }
+        }
+      },
+      "DeleteWebhookSubscriptionRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "id"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the subscription to delete",
+            "example": "whsub_a1b2c3d4e5f6"
+          }
+        }
+      },
+      "ToggleWebhookSubscriptionRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "id",
+          "enabled"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the subscription",
+            "example": "whsub_a1b2c3d4e5f6"
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "Whether to enable or disable the subscription",
+            "example": true
+          }
+        }
+      },
+      "ToggleWebhookSubscriptionResponse": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/WebhookSubscription"
+          }
+        }
+      },
+      "RegenerateWebhookSecretRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "id"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the subscription",
+            "example": "whsub_a1b2c3d4e5f6"
+          }
+        }
+      },
+      "RegenerateWebhookSecretResponse": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/WebhookSubscription"
+          }
+        }
+      },
+      "ListWebhookSubscriptionsResponse": {
+        "type": "object",
+        "properties": {
+          "subscriptions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookSubscription"
+            }
+          }
+        }
+      },
+      "GetWebhookSubscriptionResponse": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/WebhookSubscription"
+          }
+        }
+      },
+      "ListWebhookDeliveriesResponse": {
+        "type": "object",
+        "properties": {
+          "deliveries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookDelivery"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "description": "Total number of deliveries",
+            "example": 150
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of deliveries per page",
+            "example": 20
+          },
+          "offset": {
+            "type": "integer",
+            "description": "Offset for pagination",
+            "example": 0
+          }
+        }
+      },
+      "TestWebhookRequest": {
+        "type": "object",
+        "required": [
+          "workspace_id",
+          "id"
+        ],
+        "properties": {
+          "workspace_id": {
+            "type": "string",
+            "description": "The ID of the workspace",
+            "example": "ws_1234567890"
+          },
+          "id": {
+            "type": "string",
+            "description": "The ID of the subscription to test",
+            "example": "whsub_a1b2c3d4e5f6"
+          }
+        }
+      },
+      "TestWebhookResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Whether the test webhook was delivered successfully",
+            "example": true
+          },
+          "status_code": {
+            "type": "integer",
+            "description": "HTTP status code returned by the webhook endpoint",
+            "example": 200
+          },
+          "response_body": {
+            "type": "string",
+            "description": "Response body from the webhook endpoint",
+            "example": "{\"received\": true}"
+          },
+          "error": {
+            "type": "string",
+            "nullable": true,
+            "description": "Error message if the test failed",
+            "example": null
+          }
+        }
+      },
+      "ListWebhookEventTypesResponse": {
+        "type": "object",
+        "properties": {
+          "event_types": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "contact.created",
+              "contact.updated",
+              "contact.deleted",
+              "list.subscribed",
+              "list.unsubscribed",
+              "email.sent",
+              "email.delivered"
+            ]
           }
         }
       }

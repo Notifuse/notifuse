@@ -235,6 +235,18 @@ func TestNotificationCenterHandler_handleSubscribe(t *testing.T) {
 			expectedResponse:   `{"error":"Failed to subscribe to lists"}`,
 		},
 		{
+			name:        "service returns non-public list error",
+			method:      http.MethodPost,
+			requestBody: validRequest,
+			setupMock: func() {
+				mockListService.EXPECT().
+					SubscribeToLists(gomock.Any(), gomock.Any(), false).
+					Return(errors.New("list is not public"))
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedResponse:   `{"error":"list is not public"}`,
+		},
+		{
 			name:        "successful request",
 			method:      http.MethodPost,
 			requestBody: validRequest,

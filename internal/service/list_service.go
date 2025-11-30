@@ -301,8 +301,9 @@ func (s *ListService) SubscribeToLists(ctx context.Context, payload *domain.Subs
 			return fmt.Errorf("list not found")
 		}
 
-		// reject if the list is not public and the request is not coming from the API
-		if !list.IsPublic && !hasBearerToken {
+		// reject if the list is not public and the request is not authenticated
+		// (authenticated = bearer token OR valid HMAC from notification center)
+		if !list.IsPublic && !isAuthenticated {
 			return fmt.Errorf("list is not public")
 		}
 

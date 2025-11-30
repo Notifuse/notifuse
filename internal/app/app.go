@@ -110,6 +110,8 @@ type App struct {
 	blogPostRepo                  domain.BlogPostRepository
 	blogThemeRepo                 domain.BlogThemeRepository
 	customEventRepo               domain.CustomEventRepository
+	webhookSubscriptionRepo       domain.WebhookSubscriptionRepository
+	webhookDeliveryRepo           domain.WebhookDeliveryRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -141,6 +143,8 @@ type App struct {
 	taskScheduler                    *service.TaskScheduler
 	dnsVerificationService           *service.DNSVerificationService
 	customEventService               *service.CustomEventService
+	webhookSubscriptionService       *service.WebhookSubscriptionService
+	webhookDeliveryWorker            *service.WebhookDeliveryWorker
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -407,6 +411,8 @@ func (a *App) InitRepositories() error {
 	a.blogPostRepo = repository.NewBlogPostRepository(a.workspaceRepo)
 	a.blogThemeRepo = repository.NewBlogThemeRepository(a.workspaceRepo)
 	a.customEventRepo = repository.NewCustomEventRepository(a.workspaceRepo)
+	a.webhookSubscriptionRepo = repository.NewWebhookSubscriptionRepository(a.workspaceRepo)
+	a.webhookDeliveryRepo = repository.NewWebhookDeliveryRepository(a.workspaceRepo)
 
 	// Initialize setting service
 	a.settingService = service.NewSettingService(a.settingRepo)
@@ -850,6 +856,23 @@ func (a *App) InitServices() error {
 		a.config.TaskScheduler.MaxTasks,
 	)
 
+	// Initialize webhook subscription service
+	a.webhookSubscriptionService = service.NewWebhookSubscriptionService(
+		a.webhookSubscriptionRepo,
+		a.webhookDeliveryRepo,
+		a.authService,
+		a.logger,
+	)
+
+	// Initialize webhook delivery worker
+	a.webhookDeliveryWorker = service.NewWebhookDeliveryWorker(
+		a.webhookSubscriptionRepo,
+		a.webhookDeliveryRepo,
+		a.workspaceRepo,
+		a.logger,
+		httpClient,
+	)
+
 	// Initialize SMTP relay handler service
 	a.smtpRelayHandlerService = service.NewSMTPRelayHandlerService(
 		a.authService,
@@ -1013,6 +1036,12 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
+	webhookSubscriptionHandler := httpHandler.NewWebhookSubscriptionHandler(
+		a.webhookSubscriptionService,
+		a.webhookDeliveryWorker,
+		getJWTSecret,
+		a.logger,
+	)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -1043,6 +1072,7 @@ func (a *App) InitHandlers() error {
 	contactTimelineHandler.RegisterRoutes(a.mux)
 	segmentHandler.RegisterRoutes(a.mux)
 	customEventHandler.RegisterRoutes(a.mux)
+	webhookSubscriptionHandler.RegisterRoutes(a.mux)
 
 	return nil
 }
@@ -1129,6 +1159,30 @@ func (a *App) Start() error {
 			a.logger.Info("Starting SMTP relay server...")
 			if err := a.smtpRelayServer.Start(); err != nil {
 				a.logger.WithField("error", err.Error()).Error("SMTP relay server error")
+			}
+		}()
+	}
+
+	// Start webhook delivery worker (with 30 second delay like task scheduler)
+	if a.webhookDeliveryWorker != nil {
+		go func() {
+			a.logger.Info("Webhook delivery worker will start in 30 seconds...")
+
+			ctx := a.GetShutdownContext()
+
+			// Use a timer that respects the shutdown context
+			select {
+			case <-time.After(30 * time.Second):
+				// Check if we're shutting down before starting
+				if ctx.Err() != nil {
+					a.logger.Info("Server shutting down, webhook delivery worker will not start")
+					return
+				}
+				a.logger.Info("Starting webhook delivery worker now")
+				a.webhookDeliveryWorker.Start(ctx)
+			case <-ctx.Done():
+				a.logger.Info("Server shutdown initiated during webhook worker delay, worker will not start")
+				return
 			}
 		}()
 	}

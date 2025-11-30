@@ -1,0 +1,506 @@
+/api/webhook_subscription.create:
+  post:
+    summary: Create a webhook subscription
+    description: Creates a new webhook subscription to receive HTTP callbacks when specified events occur in the workspace.
+    operationId: createWebhookSubscription
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/webhook-subscription.yaml#/CreateWebhookSubscriptionRequest'
+    responses:
+      '201':
+        description: Webhook subscription created successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/webhook-subscription.yaml#/CreateWebhookSubscriptionResponse'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              invalidUrl:
+                value:
+                  error: url must be a valid HTTPS URL
+              emptyEventTypes:
+                value:
+                  error: at least one event type is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/webhook_subscription.list:
+  get:
+    summary: List webhook subscriptions
+    description: Returns all webhook subscriptions for the specified workspace.
+    operationId: listWebhookSubscriptions
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+    responses:
+      '200':
+        description: List of webhook subscriptions
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/webhook-subscription.yaml#/ListWebhookSubscriptionsResponse'
+      '400':
+        description: Bad request - missing workspace_id
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: workspace_id is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/webhook_subscription.get:
+  get:
+    summary: Get a webhook subscription
+    description: Retrieves a specific webhook subscription by ID.
+    operationId: getWebhookSubscription
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the webhook subscription
+        example: whsub_a1b2c3d4e5f6
+    responses:
+      '200':
+        description: Webhook subscription found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/webhook-subscription.yaml#/GetWebhookSubscriptionResponse'
+      '400':
+        description: Bad request - missing parameters
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              missingId:
+                value:
+                  error: id is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Webhook subscription not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Webhook subscription not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/webhook_subscription.update:
+  post:
+    summary: Update a webhook subscription
+    description: Updates an existing webhook subscription with new configuration.
+    operationId: updateWebhookSubscription
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/webhook-subscription.yaml#/UpdateWebhookSubscriptionRequest'
+    responses:
+      '200':
+        description: Webhook subscription updated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/webhook-subscription.yaml#/UpdateWebhookSubscriptionResponse'
+      '400':
+        description: Bad request - validation failed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              missingId:
+                value:
+                  error: id is required
+              invalidUrl:
+                value:
+                  error: url must be a valid HTTPS URL
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Webhook subscription not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/webhook_subscription.delete:
+  post:
+    summary: Delete a webhook subscription
+    description: Permanently deletes a webhook subscription. This action cannot be undone.
+    operationId: deleteWebhookSubscription
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/webhook-subscription.yaml#/DeleteWebhookSubscriptionRequest'
+    responses:
+      '200':
+        description: Webhook subscription deleted successfully
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                  example: true
+      '400':
+        description: Bad request - missing parameters
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              missingId:
+                value:
+                  error: id is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/webhook_subscription.toggle:
+  post:
+    summary: Toggle webhook subscription enabled state
+    description: Enables or disables a webhook subscription. Disabled subscriptions will not receive events.
+    operationId: toggleWebhookSubscription
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/webhook-subscription.yaml#/ToggleWebhookSubscriptionRequest'
+    responses:
+      '200':
+        description: Webhook subscription toggled successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/webhook-subscription.yaml#/ToggleWebhookSubscriptionResponse'
+      '400':
+        description: Bad request - missing parameters
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              missingId:
+                value:
+                  error: id is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/webhook_subscription.regenerate_secret:
+  post:
+    summary: Regenerate webhook secret
+    description: Generates a new signing secret for the webhook subscription. The old secret will immediately become invalid.
+    operationId: regenerateWebhookSecret
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/webhook-subscription.yaml#/RegenerateWebhookSecretRequest'
+    responses:
+      '200':
+        description: Webhook secret regenerated successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/webhook-subscription.yaml#/RegenerateWebhookSecretResponse'
+      '400':
+        description: Bad request - missing parameters
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              missingId:
+                value:
+                  error: id is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/webhook_subscription.deliveries:
+  get:
+    summary: Get webhook delivery history
+    description: Returns the delivery history for a webhook subscription, including status and response information.
+    operationId: getWebhookDeliveries
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: subscription_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the webhook subscription
+        example: whsub_a1b2c3d4e5f6
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: Number of deliveries to return (1-100)
+        example: 20
+      - name: offset
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
+        description: Offset for pagination
+        example: 0
+    responses:
+      '200':
+        description: List of webhook deliveries
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/webhook-subscription.yaml#/ListWebhookDeliveriesResponse'
+      '400':
+        description: Bad request - missing parameters
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              missingSubscriptionId:
+                value:
+                  error: subscription_id is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/webhook_subscription.test:
+  post:
+    summary: Send a test webhook
+    description: Sends a test webhook to the subscription's URL to verify connectivity and configuration.
+    operationId: testWebhookSubscription
+    security:
+      - BearerAuth: []
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/webhook-subscription.yaml#/TestWebhookRequest'
+    responses:
+      '200':
+        description: Test webhook sent (check response for success/failure)
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/webhook-subscription.yaml#/TestWebhookResponse'
+      '400':
+        description: Bad request - missing parameters
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              missingId:
+                value:
+                  error: id is required
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '404':
+        description: Webhook subscription not found
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Webhook subscription not found
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/webhook_subscription.event_types:
+  get:
+    summary: List available event types
+    description: Returns a list of all available webhook event types that can be subscribed to.
+    operationId: listWebhookEventTypes
+    security:
+      - BearerAuth: []
+    responses:
+      '200':
+        description: List of available event types
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/webhook-subscription.yaml#/ListWebhookEventTypesResponse'
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'

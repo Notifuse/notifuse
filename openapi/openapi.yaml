@@ -67,6 +67,26 @@ paths:
     $ref: './paths/templates.yaml#/~1api~1templates.compile'
   /api/customEvents.import:
     $ref: './paths/custom-events.yaml#/~1api~1customEvents.import'
+  /api/webhook_subscription.create:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.create'
+  /api/webhook_subscription.list:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.list'
+  /api/webhook_subscription.get:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.get'
+  /api/webhook_subscription.update:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.update'
+  /api/webhook_subscription.delete:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.delete'
+  /api/webhook_subscription.toggle:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.toggle'
+  /api/webhook_subscription.regenerate_secret:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.regenerate_secret'
+  /api/webhook_subscription.deliveries:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.deliveries'
+  /api/webhook_subscription.test:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.test'
+  /api/webhook_subscription.event_types:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.event_types'
   /subscribe:
     $ref: './paths/subscribe.yaml#/~1subscribe'
 components:
@@ -166,3 +186,41 @@ components:
       $ref: './components/schemas/custom-event.yaml#/ImportCustomEventsRequest'
     ImportCustomEventsResponse:
       $ref: './components/schemas/custom-event.yaml#/ImportCustomEventsResponse'
+    WebhookSubscription:
+      $ref: './components/schemas/webhook-subscription.yaml#/WebhookSubscription'
+    WebhookDelivery:
+      $ref: './components/schemas/webhook-subscription.yaml#/WebhookDelivery'
+    WebhookEventType:
+      $ref: './components/schemas/webhook-subscription.yaml#/WebhookEventType'
+    CustomEventFilters:
+      $ref: './components/schemas/webhook-subscription.yaml#/CustomEventFilters'
+    CreateWebhookSubscriptionRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/CreateWebhookSubscriptionRequest'
+    CreateWebhookSubscriptionResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/CreateWebhookSubscriptionResponse'
+    UpdateWebhookSubscriptionRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/UpdateWebhookSubscriptionRequest'
+    UpdateWebhookSubscriptionResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/UpdateWebhookSubscriptionResponse'
+    DeleteWebhookSubscriptionRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/DeleteWebhookSubscriptionRequest'
+    ToggleWebhookSubscriptionRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/ToggleWebhookSubscriptionRequest'
+    ToggleWebhookSubscriptionResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/ToggleWebhookSubscriptionResponse'
+    RegenerateWebhookSecretRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/RegenerateWebhookSecretRequest'
+    RegenerateWebhookSecretResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/RegenerateWebhookSecretResponse'
+    ListWebhookSubscriptionsResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/ListWebhookSubscriptionsResponse'
+    GetWebhookSubscriptionResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/GetWebhookSubscriptionResponse'
+    ListWebhookDeliveriesResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/ListWebhookDeliveriesResponse'
+    TestWebhookRequest:
+      $ref: './components/schemas/webhook-subscription.yaml#/TestWebhookRequest'
+    TestWebhookResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/TestWebhookResponse'
+    ListWebhookEventTypesResponse:
+      $ref: './components/schemas/webhook-subscription.yaml#/ListWebhookEventTypesResponse'

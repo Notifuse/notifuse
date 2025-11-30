@@ -136,6 +136,13 @@ func (h *NotificationCenterHandler) handleSubscribe(w http.ResponseWriter, r *ht
 
 	if err := h.listService.SubscribeToLists(r.Context(), &req, fromAPI); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to subscribe to lists")
+
+		// Return specific error for non-public lists (matches OpenAPI spec)
+		if strings.Contains(err.Error(), "list is not public") {
+			WriteJSONError(w, "list is not public", http.StatusBadRequest)
+			return
+		}
+
 		WriteJSONError(w, "Failed to subscribe to lists", http.StatusInternalServerError)
 		return
 	}

@@ -1,7 +1,12 @@
 /subscribe:
   post:
     summary: Subscribe to email lists
-    description: Subscribe a contact to one or more email lists. This is a public endpoint that doesn't require authentication. If the list has double opt-in enabled, a confirmation email will be sent.
+    description: |
+      Subscribe a contact to one or more email lists. This is a public endpoint that doesn't require authentication.
+
+      **Important:** For unauthenticated requests, only **public lists** can be subscribed to. If you need to subscribe to private lists, provide a valid `email_hmac` in the contact object (used by the notification center for re-subscribing after unsubscribing).
+
+      If the list has double opt-in enabled, a confirmation email will be sent.
     operationId: subscribeToLists
     security: []
     requestBody:

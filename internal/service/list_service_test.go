@@ -796,9 +796,23 @@ func TestListService_SubscribeToLists(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to subscribe to list")
 	})
 
-	t.Run("error - non-public list", func(t *testing.T) {
-		// Test case for a non-public list with unauthenticated request
+	t.Run("error - non-public list with unauthenticated request", func(t *testing.T) {
+		// Test case for a non-public list with unauthenticated request (no valid HMAC)
+		// Create payload WITHOUT valid HMAC to simulate truly unauthenticated request
+		unauthPayload := &domain.SubscribeToListsRequest{
+			WorkspaceID: workspaceID,
+			Contact: domain.Contact{
+				Email:     "test@example.com",
+				EmailHMAC: "", // No HMAC = unauthenticated
+				FirstName: &domain.NullableString{String: "Test", IsNull: false},
+				LastName:  &domain.NullableString{String: "User", IsNull: false},
+			},
+			ListIDs: []string{"list123"},
+		}
+
 		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspace, nil)
+		// For unauthenticated requests, service checks if contact exists first
+		mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(nil, nil)
 		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
 
 		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{
@@ -811,9 +825,51 @@ func TestListService_SubscribeToLists(t *testing.T) {
 			},
 		}, nil)
 
-		err := service.SubscribeToLists(ctx, payload, false) // hasBearerToken=false
+		err := service.SubscribeToLists(ctx, unauthPayload, false) // hasBearerToken=false, no HMAC
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "list is not public")
+	})
+
+	t.Run("success - non-public list with HMAC authentication", func(t *testing.T) {
+		// Create workspace with secret key
+		workspaceWithSecret := &domain.Workspace{
+			ID: workspaceID,
+			Settings: domain.WorkspaceSettings{
+				SecretKey: "test-secret-key",
+			},
+		}
+
+		// Compute valid HMAC for the email
+		validHMAC := domain.ComputeEmailHMAC("test@example.com", "test-secret-key")
+
+		// Create payload with valid HMAC (simulates notification center request)
+		hmacPayload := &domain.SubscribeToListsRequest{
+			WorkspaceID: workspaceID,
+			Contact: domain.Contact{
+				Email:     "test@example.com",
+				EmailHMAC: validHMAC,
+				FirstName: &domain.NullableString{String: "Test", IsNull: false},
+				LastName:  &domain.NullableString{String: "User", IsNull: false},
+			},
+			ListIDs: []string{"list123"},
+		}
+
+		mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), workspaceID).Return(workspaceWithSecret, nil)
+		mockContactRepo.EXPECT().UpsertContact(gomock.Any(), workspaceID, gomock.Any()).Return(true, nil)
+		mockRepo.EXPECT().GetLists(gomock.Any(), workspaceID).Return([]*domain.List{
+			{
+				ID:        "list123",
+				Name:      "Private List",
+				IsPublic:  false, // Private list should work with HMAC auth
+				CreatedAt: time.Now(),
+				UpdatedAt: time.Now(),
+			},
+		}, nil)
+		mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+		workspaceWithSecret.Settings.MarketingEmailProviderID = "" // No marketing provider
+
+		err := service.SubscribeToLists(ctx, hmacPayload, false) // hasBearerToken=false but HMAC is valid
+		assert.NoError(t, err)                                   // Should succeed because isAuthenticated=true via HMAC
 	})
 
 	t.Run("error - upsert contact failure", func(t *testing.T) {

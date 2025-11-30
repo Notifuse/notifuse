@@ -218,8 +218,8 @@ func TestInitializeWorkspaceDatabase_Comprehensive(t *testing.T) {
 		defer func() { _ = db.Close() }()
 
 		// Mock all SQL statements - tables, indexes, trigger functions, and triggers
-		// Current count: ~34 table/index queries + ~34 trigger queries = 68 total
-		for i := 0; i < 80; i++ { // Allow for many SQL statements with buffer
+		// Increased to accommodate all workspace tables, indexes, and webhook-related triggers
+		for i := 0; i < 150; i++ { // Allow for many SQL statements with buffer
 			mock.ExpectExec(".+").WillReturnResult(sqlmock.NewResult(0, 0))
 		}
 

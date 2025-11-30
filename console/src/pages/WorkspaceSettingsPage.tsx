@@ -9,6 +9,7 @@ import { SMTPRelaySettings } from '../components/settings/SMTPRelaySettings'
 import { Integrations } from '../components/settings/Integrations'
 import { CustomFieldsConfiguration } from '../components/settings/CustomFieldsConfiguration'
 import { BlogSettings } from '../components/settings/BlogSettings'
+import { WebhooksSettings } from '../components/settings/WebhooksSettings'
 import { useAuth } from '../contexts/AuthContext'
 import { DeleteWorkspaceSection } from '../components/settings/DeleteWorkspace'
 import { SettingsSidebar, SettingsSection } from '../components/settings/SettingsSidebar'
@@ -30,6 +31,7 @@ export function WorkspaceSettingsPage() {
   const validSections: SettingsSection[] = [
     'team',
     'integrations',
+    'webhooks',
     'custom-fields',
     'smtp-relay',
     'general',
@@ -118,6 +120,8 @@ export function WorkspaceSettingsPage() {
             isOwner={isOwner}
           />
         )
+      case 'webhooks':
+        return workspace ? <WebhooksSettings workspaceId={workspace.id} /> : null
       case 'custom-fields':
         return (
           <CustomFieldsConfiguration

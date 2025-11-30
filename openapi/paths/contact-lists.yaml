@@ -1,7 +1,10 @@
 /api/contactLists.updateStatus:
   post:
     summary: Update contact list subscription status
-    description: Updates the subscription status of a contact in a specific list. Can set status to active, pending, unsubscribed, bounced, or complained.
+    description: |
+      Updates the subscription status of a contact in a specific list. Can set status to active, pending, unsubscribed, bounced, or complained.
+
+      **Note:** This endpoint only modifies **existing** list memberships. It does not add a contact to a list. To add a contact to a list, use the `/subscribe` endpoint (for public lists) or the `/api/contacts.import` endpoint (for any list, requires authentication).
     operationId: updateContactListStatus
     security:
       - BearerAuth: []

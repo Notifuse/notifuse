@@ -25,3 +25,5 @@ coverage-internal-pkg.out
 coverage-report.txt
 
 .claude/settings.local.json
+
+console/.claude/settings.local.json

@@ -6,7 +6,10 @@
       "Bash(npm test:*)",
       "Bash(npx playwright test:*)",
       "Bash(go test:*)",
-      "Bash(INTEGRATION_TESTS=true go test:*)"
+      "Bash(INTEGRATION_TESTS=true go test:*)",
+      "Bash(make test-service:*)",
+      "Bash(make test-http:*)",
+      "Bash(make test-unit:*)"
     ],
     "deny": [],
     "ask": []
