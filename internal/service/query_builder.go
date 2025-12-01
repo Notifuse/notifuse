@@ -948,18 +948,19 @@ func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.Dimen
 	}
 
 	// For regular value comparisons, extract and cast the JSON value
-	// Extract as text first, then cast to target type
+	// Use ->> operator to extract as text directly (avoids quoted strings like "4" vs 4)
+	jsonPathText := qb.buildJSONPathText(dbColumn, filter.JSONPath)
 	var fieldExpr string
 	switch filter.FieldType {
 	case "string", "json":
-		// Extract as text
-		fieldExpr = fmt.Sprintf("%s::text", jsonPath)
+		// Extract as text using ->>
+		fieldExpr = jsonPathText
 	case "number":
-		// Extract as text, then cast to numeric
-		fieldExpr = fmt.Sprintf("(%s::text)::numeric", jsonPath)
+		// Extract as text using ->>, then cast to numeric
+		fieldExpr = fmt.Sprintf("(%s)::numeric", jsonPathText)
 	case "time":
-		// Extract as text, then cast to timestamptz
-		fieldExpr = fmt.Sprintf("(%s::text)::timestamptz", jsonPath)
+		// Extract as text using ->>, then cast to timestamptz
+		fieldExpr = fmt.Sprintf("(%s)::timestamptz", jsonPathText)
 	default:
 		return "", nil, argIndex, fmt.Errorf("invalid field_type for JSON field: %s", filter.FieldType)
 	}
@@ -1035,6 +1036,7 @@ func (qb *QueryBuilder) buildJSONCondition(dbColumn string, filter *domain.Dimen
 
 // buildJSONPath constructs a PostgreSQL JSONB path expression using subscript notation
 // Detects numeric strings and uses them as array indices
+// Returns JSONB type (use buildJSONPathText for text extraction)
 func (qb *QueryBuilder) buildJSONPath(dbColumn string, path []string) string {
 	if len(path) == 0 {
 		return dbColumn
@@ -1051,6 +1053,46 @@ func (qb *QueryBuilder) buildJSONPath(dbColumn string, path []string) string {
 			// Escape single quotes in keys
 			escapedSegment := strings.ReplaceAll(segment, "'", "''")
 			result = fmt.Sprintf("%s['%s']", result, escapedSegment)
+		}
+	}
+	return result
+}
+
+// buildJSONPathText constructs a PostgreSQL JSONB path expression that extracts text
+// Uses -> for intermediate navigation and ->> for the final segment to extract as text
+// This avoids the issue where jsonb['key']::text returns quoted strings like "4" instead of 4
+func (qb *QueryBuilder) buildJSONPathText(dbColumn string, path []string) string {
+	if len(path) == 0 {
+		return dbColumn
+	}
+
+	if len(path) == 1 {
+		// Single segment: use ->> directly
+		segment := path[0]
+		if qb.isNumeric(segment) {
+			return fmt.Sprintf("%s->>%s", dbColumn, segment)
+		}
+		escapedSegment := strings.ReplaceAll(segment, "'", "''")
+		return fmt.Sprintf("%s->>'%s'", dbColumn, escapedSegment)
+	}
+
+	// Multiple segments: use -> for all but last, ->> for last
+	result := dbColumn
+	for i, segment := range path {
+		isLast := i == len(path)-1
+		if qb.isNumeric(segment) {
+			if isLast {
+				result = fmt.Sprintf("%s->>%s", result, segment)
+			} else {
+				result = fmt.Sprintf("%s->%s", result, segment)
+			}
+		} else {
+			escapedSegment := strings.ReplaceAll(segment, "'", "''")
+			if isLast {
+				result = fmt.Sprintf("%s->>'%s'", result, escapedSegment)
+			} else {
+				result = fmt.Sprintf("%s->'%s'", result, escapedSegment)
+			}
 		}
 	}
 	return result

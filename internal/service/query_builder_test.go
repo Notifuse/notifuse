@@ -1322,7 +1322,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_1['name']::text = $1")
+		assert.Contains(t, sql, "custom_json_1->>'name' = $1")
 		assert.Equal(t, []interface{}{"John"}, args)
 	})
 
@@ -1347,7 +1347,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_1['user']['profile']['country']::text = $1")
+		assert.Contains(t, sql, "custom_json_1->'user'->'profile'->>'country' = $1")
 		assert.Equal(t, []interface{}{"US"}, args)
 	})
 
@@ -1372,7 +1372,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_2['items'][0]['name']::text = $1")
+		assert.Contains(t, sql, "custom_json_2->'items'->0->>'name' = $1")
 		assert.Equal(t, []interface{}{"Product A"}, args)
 	})
 
@@ -1397,7 +1397,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "(custom_json_1['user']['age']::text)::numeric > $1")
+		assert.Contains(t, sql, "(custom_json_1->'user'->>'age')::numeric > $1")
 		assert.Equal(t, []interface{}{25.0}, args)
 	})
 
@@ -1422,7 +1422,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "(custom_json_3['last_login']::text)::timestamptz < $1")
+		assert.Contains(t, sql, "(custom_json_3->>'last_login')::timestamptz < $1")
 		assert.Len(t, args, 1)
 	})
 
@@ -1447,7 +1447,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_1['description']::text ILIKE $1")
+		assert.Contains(t, sql, "custom_json_1->>'description' ILIKE $1")
 		assert.Equal(t, []interface{}{"%premium%"}, args)
 	})
 
@@ -1521,7 +1521,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
 		// Should escape single quotes
-		assert.Contains(t, sql, "custom_json_1['user''s name']::text = $1")
+		assert.Contains(t, sql, "custom_json_1->>'user''s name' = $1")
 		assert.Equal(t, []interface{}{"John"}, args)
 	})
 
@@ -1578,8 +1578,8 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_1['type']::text = $1")
-		assert.Contains(t, sql, "(custom_json_1['score']::text)::numeric >= $2")
+		assert.Contains(t, sql, "custom_json_1->>'type' = $1")
+		assert.Contains(t, sql, "(custom_json_1->>'score')::numeric >= $2")
 		assert.Contains(t, sql, " AND ")
 		assert.Equal(t, []interface{}{"premium", 100.0}, args)
 	})
@@ -1612,7 +1612,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
 		assert.Contains(t, sql, "country = $1")
-		assert.Contains(t, sql, "custom_json_1['subscription']['tier']::text = $2")
+		assert.Contains(t, sql, "custom_json_1->'subscription'->>'tier' = $2")
 		assert.Contains(t, sql, " AND ")
 		assert.Equal(t, []interface{}{"US", "gold"}, args)
 	})
@@ -1638,7 +1638,7 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 
 		sql, args, err := qb.BuildSQL(tree)
 		require.NoError(t, err)
-		assert.Contains(t, sql, "custom_json_5['users'][0]['profile']['tags'][1]::text = $1")
+		assert.Contains(t, sql, "custom_json_5->'users'->0->'profile'->'tags'->>1 = $1")
 		assert.Equal(t, []interface{}{"verified"}, args)
 	})
 }
