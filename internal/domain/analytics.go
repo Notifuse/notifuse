@@ -465,6 +465,55 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 			},
 		},
 	},
+	"webhook_deliveries": {
+		Name: "webhook_deliveries",
+		Measures: map[string]analytics.MeasureDefinition{
+			"count": {
+				Type:        "count",
+				Title:       "Total Deliveries",
+				SQL:         "*",
+				Description: "Total number of webhook deliveries",
+			},
+			"count_delivered": {
+				Type:        "count",
+				Title:       "Delivered",
+				SQL:         "*",
+				Description: "Successfully delivered webhooks",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "status = 'delivered'"},
+				},
+			},
+			"count_failed": {
+				Type:        "count",
+				Title:       "Failed",
+				SQL:         "*",
+				Description: "Failed webhook deliveries",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "status = 'failed'"},
+				},
+			},
+		},
+		Dimensions: map[string]analytics.DimensionDefinition{
+			"created_at": {
+				Type:        "time",
+				Title:       "Created At",
+				SQL:         "created_at",
+				Description: "Delivery creation timestamp",
+			},
+			"subscription_id": {
+				Type:        "string",
+				Title:       "Subscription ID",
+				SQL:         "subscription_id",
+				Description: "Associated webhook subscription",
+			},
+			"status": {
+				Type:        "string",
+				Title:       "Status",
+				SQL:         "status",
+				Description: "Delivery status",
+			},
+		},
+	},
 }
 
 // AnalyticsService defines the analytics business logic interface

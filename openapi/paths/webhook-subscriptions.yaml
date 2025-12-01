@@ -1,4 +1,4 @@
-/api/webhook_subscription.create:
+/api/webhookSubscriptions.create:
   post:
     summary: Create a webhook subscription
     description: Creates a new webhook subscription to receive HTTP callbacks when specified events occur in the workspace.
@@ -47,7 +47,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
-/api/webhook_subscription.list:
+/api/webhookSubscriptions.list:
   get:
     summary: List webhook subscriptions
     description: Returns all webhook subscriptions for the specified workspace.
@@ -90,7 +90,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
-/api/webhook_subscription.get:
+/api/webhookSubscriptions.get:
   get:
     summary: Get a webhook subscription
     description: Retrieves a specific webhook subscription by ID.
@@ -153,7 +153,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
-/api/webhook_subscription.update:
+/api/webhookSubscriptions.update:
   post:
     summary: Update a webhook subscription
     description: Updates an existing webhook subscription with new configuration.
@@ -208,7 +208,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
-/api/webhook_subscription.delete:
+/api/webhookSubscriptions.delete:
   post:
     summary: Delete a webhook subscription
     description: Permanently deletes a webhook subscription. This action cannot be undone.
@@ -258,7 +258,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
-/api/webhook_subscription.toggle:
+/api/webhookSubscriptions.toggle:
   post:
     summary: Toggle webhook subscription enabled state
     description: Enables or disables a webhook subscription. Disabled subscriptions will not receive events.
@@ -304,7 +304,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
-/api/webhook_subscription.regenerate_secret:
+/api/webhookSubscriptions.regenerateSecret:
   post:
     summary: Regenerate webhook secret
     description: Generates a new signing secret for the webhook subscription. The old secret will immediately become invalid.
@@ -350,7 +350,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
-/api/webhook_subscription.deliveries:
+/api/webhookSubscriptions.deliveries:
   get:
     summary: Get webhook delivery history
     description: Returns the delivery history for a webhook subscription, including status and response information.
@@ -424,7 +424,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
-/api/webhook_subscription.test:
+/api/webhookSubscriptions.test:
   post:
     summary: Send a test webhook
     description: Sends a test webhook to the subscription's URL to verify connectivity and configuration.
@@ -478,7 +478,7 @@
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
 
-/api/webhook_subscription.event_types:
+/api/webhookSubscriptions.eventTypes:
   get:
     summary: List available event types
     description: Returns a list of all available webhook event types that can be subscribed to.

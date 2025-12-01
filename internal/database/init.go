@@ -352,21 +352,17 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			name VARCHAR(255) NOT NULL,
 			url TEXT NOT NULL,
 			secret VARCHAR(64) NOT NULL,
-			event_types TEXT[] NOT NULL,
-			custom_event_filters JSONB,
+			settings JSONB NOT NULL DEFAULT '{}'::jsonb,
 			enabled BOOLEAN DEFAULT true,
-			description TEXT,
 			created_at TIMESTAMPTZ DEFAULT NOW(),
 			updated_at TIMESTAMPTZ DEFAULT NOW(),
-			last_delivery_at TIMESTAMPTZ,
-			success_count BIGINT DEFAULT 0,
-			failure_count BIGINT DEFAULT 0
+			last_delivery_at TIMESTAMPTZ
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_webhook_subscriptions_enabled ON webhook_subscriptions(enabled) WHERE enabled = true`,
 		// Webhook deliveries table
 		`CREATE TABLE IF NOT EXISTS webhook_deliveries (
-			id VARCHAR(32) PRIMARY KEY,
-			subscription_id VARCHAR(32) NOT NULL REFERENCES webhook_subscriptions(id) ON DELETE CASCADE,
+			id VARCHAR(36) PRIMARY KEY,
+			subscription_id VARCHAR(32) NOT NULL,
 			event_type VARCHAR(100) NOT NULL,
 			payload JSONB NOT NULL,
 			status VARCHAR(20) DEFAULT 'pending',
@@ -769,10 +765,10 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			-- Insert webhook deliveries for matching subscriptions
 			FOR sub IN
 				SELECT id FROM webhook_subscriptions
-				WHERE enabled = true AND event_kind = ANY(event_types)
+				WHERE enabled = true AND event_kind = ANY(ARRAY(SELECT jsonb_array_elements_text(settings->'event_types')))
 			LOOP
 				INSERT INTO webhook_deliveries (id, subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at)
-				VALUES (encode(gen_random_bytes(16), 'hex'), sub.id, event_kind, payload, 'pending', 0, 10, NOW());
+				VALUES (gen_random_uuid()::text, sub.id, event_kind, payload, 'pending', 0, 10, NOW());
 			END LOOP;
 			RETURN COALESCE(NEW, OLD);
 		END;
@@ -838,10 +834,10 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			-- Insert webhook deliveries for matching subscriptions
 			FOR sub IN
 				SELECT id FROM webhook_subscriptions
-				WHERE enabled = true AND event_kind = ANY(event_types)
+				WHERE enabled = true AND event_kind = ANY(ARRAY(SELECT jsonb_array_elements_text(settings->'event_types')))
 			LOOP
 				INSERT INTO webhook_deliveries (id, subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at)
-				VALUES (encode(gen_random_bytes(16), 'hex'), sub.id, event_kind, payload, 'pending', 0, 10, NOW());
+				VALUES (gen_random_uuid()::text, sub.id, event_kind, payload, 'pending', 0, 10, NOW());
 			END LOOP;
 			RETURN NEW;
 		END;
@@ -882,10 +878,10 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			-- Insert webhook deliveries for matching subscriptions
 			FOR sub IN
 				SELECT id FROM webhook_subscriptions
-				WHERE enabled = true AND event_kind = ANY(event_types)
+				WHERE enabled = true AND event_kind = ANY(ARRAY(SELECT jsonb_array_elements_text(settings->'event_types')))
 			LOOP
 				INSERT INTO webhook_deliveries (id, subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at)
-				VALUES (encode(gen_random_bytes(16), 'hex'), sub.id, event_kind, payload, 'pending', 0, 10, NOW());
+				VALUES (gen_random_uuid()::text, sub.id, event_kind, payload, 'pending', 0, 10, NOW());
 			END LOOP;
 
 			IF TG_OP = 'DELETE' THEN
@@ -949,10 +945,10 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			-- Insert webhook deliveries for matching subscriptions
 			FOR sub IN
 				SELECT id FROM webhook_subscriptions
-				WHERE enabled = true AND event_kind = ANY(event_types)
+				WHERE enabled = true AND event_kind = ANY(ARRAY(SELECT jsonb_array_elements_text(settings->'event_types')))
 			LOOP
 				INSERT INTO webhook_deliveries (id, subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at)
-				VALUES (encode(gen_random_bytes(16), 'hex'), sub.id, event_kind, payload, 'pending', 0, 10, NOW());
+				VALUES (gen_random_uuid()::text, sub.id, event_kind, payload, 'pending', 0, 10, NOW());
 			END LOOP;
 			RETURN NEW;
 		END;
@@ -1006,11 +1002,11 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 
 			-- Find matching subscriptions with the correct event type
 			FOR sub IN
-				SELECT id, custom_event_filters FROM webhook_subscriptions
-				WHERE enabled = true AND subscribed_event_type = ANY(event_types)
+				SELECT id, settings FROM webhook_subscriptions
+				WHERE enabled = true AND subscribed_event_type = ANY(ARRAY(SELECT jsonb_array_elements_text(settings->'event_types')))
 			LOOP
 				should_deliver := true;
-				custom_filters := sub.custom_event_filters;
+				custom_filters := sub.settings->'custom_event_filters';
 
 				-- Apply goal_types filter if specified
 				IF custom_filters IS NOT NULL AND custom_filters ? 'goal_types'
@@ -1034,7 +1030,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 
 				IF should_deliver THEN
 					INSERT INTO webhook_deliveries (id, subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at)
-					VALUES (encode(gen_random_bytes(16), 'hex'), sub.id, event_kind, payload, 'pending', 0, 10, NOW());
+					VALUES (gen_random_uuid()::text, sub.id, event_kind, payload, 'pending', 0, 10, NOW());
 				END IF;
 			END LOOP;
 			RETURN NEW;

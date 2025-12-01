@@ -68,20 +68,19 @@ func TestWebhookSubscription_Fields(t *testing.T) {
 	lastDelivery := now.Add(-1 * time.Hour)
 
 	sub := WebhookSubscription{
-		ID:          "sub_123",
-		Name:        "My Webhook",
-		URL:         "https://example.com/webhook",
-		Secret:      "whsec_abc123def456",
-		EventTypes:  []string{"contact.created", "contact.updated"},
-		CustomEventFilters: &CustomEventFilters{
-			GoalTypes:  []string{"purchase", "subscription"},
-			EventNames: []string{"orders/fulfilled"},
+		ID:     "sub_123",
+		Name:   "My Webhook",
+		URL:    "https://example.com/webhook",
+		Secret: "whsec_abc123def456",
+		Settings: WebhookSubscriptionSettings{
+			EventTypes: []string{"contact.created", "contact.updated"},
+			CustomEventFilters: &CustomEventFilters{
+				GoalTypes:  []string{"purchase", "subscription"},
+				EventNames: []string{"orders/fulfilled"},
+			},
 		},
 		Enabled:        true,
-		Description:    "Test webhook subscription",
 		LastDeliveryAt: &lastDelivery,
-		SuccessCount:   100,
-		FailureCount:   5,
 		CreatedAt:      now,
 		UpdatedAt:      now,
 	}
@@ -90,29 +89,28 @@ func TestWebhookSubscription_Fields(t *testing.T) {
 	assert.Equal(t, "My Webhook", sub.Name)
 	assert.Equal(t, "https://example.com/webhook", sub.URL)
 	assert.Equal(t, "whsec_abc123def456", sub.Secret)
-	assert.Equal(t, []string{"contact.created", "contact.updated"}, sub.EventTypes)
-	assert.NotNil(t, sub.CustomEventFilters)
-	assert.Equal(t, []string{"purchase", "subscription"}, sub.CustomEventFilters.GoalTypes)
-	assert.Equal(t, []string{"orders/fulfilled"}, sub.CustomEventFilters.EventNames)
+	assert.Equal(t, []string{"contact.created", "contact.updated"}, sub.Settings.EventTypes)
+	assert.NotNil(t, sub.Settings.CustomEventFilters)
+	assert.Equal(t, []string{"purchase", "subscription"}, sub.Settings.CustomEventFilters.GoalTypes)
+	assert.Equal(t, []string{"orders/fulfilled"}, sub.Settings.CustomEventFilters.EventNames)
 	assert.True(t, sub.Enabled)
-	assert.Equal(t, "Test webhook subscription", sub.Description)
 	assert.NotNil(t, sub.LastDeliveryAt)
-	assert.Equal(t, int64(100), sub.SuccessCount)
-	assert.Equal(t, int64(5), sub.FailureCount)
 }
 
 func TestWebhookSubscription_NilCustomEventFilters(t *testing.T) {
 	sub := WebhookSubscription{
-		ID:                 "sub_123",
-		Name:               "Simple Webhook",
-		URL:                "https://example.com/webhook",
-		Secret:             "whsec_abc123",
-		EventTypes:         []string{"contact.created"},
-		CustomEventFilters: nil,
-		Enabled:            true,
+		ID:     "sub_123",
+		Name:   "Simple Webhook",
+		URL:    "https://example.com/webhook",
+		Secret: "whsec_abc123",
+		Settings: WebhookSubscriptionSettings{
+			EventTypes:         []string{"contact.created"},
+			CustomEventFilters: nil,
+		},
+		Enabled: true,
 	}
 
-	assert.Nil(t, sub.CustomEventFilters)
+	assert.Nil(t, sub.Settings.CustomEventFilters)
 }
 
 func TestCustomEventFilters_Fields(t *testing.T) {
@@ -267,12 +265,14 @@ func TestWebhookDeliveryWithSubscription_Fields(t *testing.T) {
 	}
 
 	subscription := &WebhookSubscription{
-		ID:         "sub_456",
-		Name:       "Test Webhook",
-		URL:        "https://example.com/webhook",
-		Secret:     "whsec_test",
-		EventTypes: []string{"contact.deleted"},
-		Enabled:    true,
+		ID:     "sub_456",
+		Name:   "Test Webhook",
+		URL:    "https://example.com/webhook",
+		Secret: "whsec_test",
+		Settings: WebhookSubscriptionSettings{
+			EventTypes: []string{"contact.deleted"},
+		},
+		Enabled: true,
 	}
 
 	withSub := WebhookDeliveryWithSubscription{

@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [19.0] - 2025-12-01
+
+### Features
+
+- **Outgoing Webhooks**: Subscribe to workspace events and receive HTTP notifications
+  - CRUD API for webhook subscriptions (`/api/webhookSubscriptions.*`)
+  - Event types: `contact.*`, `email.*`, `list.*`, `segment.*`, `custom_event.*`
+  - HMAC-SHA256 signature verification (Standard Webhooks spec)
+  - Automatic retries with exponential backoff (up to 10 attempts over 24h)
+  - Custom event filters for fine-grained subscription control
+  - Test webhook endpoint for integration debugging
+  - Delivery logs with 7-day retention
+
 ## [18.3] - 2025-11-30
 
 - Fix: SEO settings not being persisted when creating a new blog post

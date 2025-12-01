@@ -654,6 +654,12 @@ func (s *MailgunService) sendEmailSimple(ctx context.Context, apiURL string, req
 		form.Add("h:Reply-To", request.EmailOptions.ReplyTo)
 	}
 
+	// Add RFC-8058 List-Unsubscribe headers for one-click unsubscribe
+	if request.EmailOptions.ListUnsubscribeURL != "" {
+		form.Add("h:List-Unsubscribe", fmt.Sprintf("<%s>", request.EmailOptions.ListUnsubscribeURL))
+		form.Add("h:List-Unsubscribe-Post", "List-Unsubscribe=One-Click")
+	}
+
 	// Add messageID as a custom variable for tracking
 	form.Add("v:notifuse_message_id", request.MessageID)
 
@@ -727,6 +733,16 @@ func (s *MailgunService) sendEmailWithAttachments(ctx context.Context, apiURL st
 	if request.EmailOptions.ReplyTo != "" {
 		if err := writer.WriteField("h:Reply-To", request.EmailOptions.ReplyTo); err != nil {
 			return fmt.Errorf("failed to write reply-to field: %w", err)
+		}
+	}
+
+	// Add RFC-8058 List-Unsubscribe headers for one-click unsubscribe
+	if request.EmailOptions.ListUnsubscribeURL != "" {
+		if err := writer.WriteField("h:List-Unsubscribe", fmt.Sprintf("<%s>", request.EmailOptions.ListUnsubscribeURL)); err != nil {
+			return fmt.Errorf("failed to write list-unsubscribe field: %w", err)
+		}
+		if err := writer.WriteField("h:List-Unsubscribe-Post", "List-Unsubscribe=One-Click"); err != nil {
+			return fmt.Errorf("failed to write list-unsubscribe-post field: %w", err)
 		}
 	}
 

@@ -65,7 +65,6 @@ func TestWebhookSubscriptionService_Create(t *testing.T) {
 		workspaceID        string
 		webhookName        string
 		webhookURL         string
-		description        string
 		eventTypes         []string
 		customEventFilters *domain.CustomEventFilters
 		setupMocks         func(*mocks.MockWebhookSubscriptionRepository)
@@ -77,7 +76,6 @@ func TestWebhookSubscriptionService_Create(t *testing.T) {
 			workspaceID: "workspace123",
 			webhookName: "Test Webhook",
 			webhookURL:  "https://example.com/webhook",
-			description: "Test webhook description",
 			eventTypes:  []string{"contact.created", "contact.updated"},
 			setupMocks: func(mockRepo *mocks.MockWebhookSubscriptionRepository) {
 				mockRepo.EXPECT().
@@ -90,9 +88,7 @@ func TestWebhookSubscriptionService_Create(t *testing.T) {
 						require.Equal(t, "https://example.com/webhook", sub.URL)
 						require.NotEmpty(t, sub.Secret)
 						require.True(t, sub.Enabled)
-						require.Equal(t, []string{"contact.created", "contact.updated"}, sub.EventTypes)
-						require.Equal(t, int64(0), sub.SuccessCount)
-						require.Equal(t, int64(0), sub.FailureCount)
+						require.Equal(t, []string{"contact.created", "contact.updated"}, sub.Settings.EventTypes)
 						return nil
 					})
 			},
@@ -109,7 +105,6 @@ func TestWebhookSubscriptionService_Create(t *testing.T) {
 			workspaceID: "workspace123",
 			webhookName: "Custom Event Webhook",
 			webhookURL:  "https://example.com/webhook",
-			description: "Webhook with filters",
 			eventTypes:  []string{"custom_event.created"},
 			customEventFilters: &domain.CustomEventFilters{
 				GoalTypes:  []string{"conversion"},
@@ -119,16 +114,16 @@ func TestWebhookSubscriptionService_Create(t *testing.T) {
 				mockRepo.EXPECT().
 					Create(gomock.Any(), "workspace123", gomock.Any()).
 					DoAndReturn(func(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription) error {
-						require.NotNil(t, sub.CustomEventFilters)
-						require.Equal(t, []string{"conversion"}, sub.CustomEventFilters.GoalTypes)
-						require.Equal(t, []string{"purchase", "signup"}, sub.CustomEventFilters.EventNames)
+						require.NotNil(t, sub.Settings.CustomEventFilters)
+						require.Equal(t, []string{"conversion"}, sub.Settings.CustomEventFilters.GoalTypes)
+						require.Equal(t, []string{"purchase", "signup"}, sub.Settings.CustomEventFilters.EventNames)
 						return nil
 					})
 			},
 			expectError: false,
 			validateResult: func(t *testing.T, sub *domain.WebhookSubscription) {
 				require.NotNil(t, sub)
-				require.NotNil(t, sub.CustomEventFilters)
+				require.NotNil(t, sub.Settings.CustomEventFilters)
 			},
 		},
 		{
@@ -238,7 +233,6 @@ func TestWebhookSubscriptionService_Create(t *testing.T) {
 				tc.workspaceID,
 				tc.webhookName,
 				tc.webhookURL,
-				tc.description,
 				tc.eventTypes,
 				tc.customEventFilters,
 			)
@@ -405,7 +399,6 @@ func TestWebhookSubscriptionService_Update(t *testing.T) {
 		subID              string
 		webhookName        string
 		webhookURL         string
-		description        string
 		eventTypes         []string
 		customEventFilters *domain.CustomEventFilters
 		enabled            bool
@@ -419,7 +412,6 @@ func TestWebhookSubscriptionService_Update(t *testing.T) {
 			subID:       "sub123",
 			webhookName: "Updated Webhook",
 			webhookURL:  "https://updated.example.com/webhook",
-			description: "Updated description",
 			eventTypes:  []string{"contact.updated", "contact.deleted"},
 			enabled:     true,
 			setupMocks: func(mockRepo *mocks.MockWebhookSubscriptionRepository) {
@@ -437,9 +429,8 @@ func TestWebhookSubscriptionService_Update(t *testing.T) {
 					DoAndReturn(func(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription) error {
 						require.Equal(t, "Updated Webhook", sub.Name)
 						require.Equal(t, "https://updated.example.com/webhook", sub.URL)
-						require.Equal(t, "Updated description", sub.Description)
 						require.True(t, sub.Enabled)
-						require.Equal(t, []string{"contact.updated", "contact.deleted"}, sub.EventTypes)
+						require.Equal(t, []string{"contact.updated", "contact.deleted"}, sub.Settings.EventTypes)
 						return nil
 					})
 			},
@@ -567,7 +558,6 @@ func TestWebhookSubscriptionService_Update(t *testing.T) {
 				tc.subID,
 				tc.webhookName,
 				tc.webhookURL,
-				tc.description,
 				tc.eventTypes,
 				tc.customEventFilters,
 				tc.enabled,
@@ -853,11 +843,12 @@ func TestWebhookSubscriptionService_RegenerateSecret(t *testing.T) {
 
 func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 	now := time.Now()
+	subID := "sub123"
 
 	testCases := []struct {
 		name           string
 		workspaceID    string
-		subscriptionID string
+		subscriptionID *string
 		limit          int
 		offset         int
 		setupMocks     func(*mocks.MockWebhookDeliveryRepository)
@@ -868,12 +859,12 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 		{
 			name:           "successful retrieval with deliveries",
 			workspaceID:    "workspace123",
-			subscriptionID: "sub123",
+			subscriptionID: &subID,
 			limit:          10,
 			offset:         0,
 			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
 				mockDeliveryRepo.EXPECT().
-					ListBySubscription(gomock.Any(), "workspace123", "sub123", 10, 0).
+					ListAll(gomock.Any(), "workspace123", gomock.Any(), 10, 0).
 					Return([]*domain.WebhookDelivery{
 						{
 							ID:             "delivery1",
@@ -898,12 +889,12 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 		{
 			name:           "empty deliveries list",
 			workspaceID:    "workspace123",
-			subscriptionID: "sub123",
+			subscriptionID: &subID,
 			limit:          10,
 			offset:         0,
 			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
 				mockDeliveryRepo.EXPECT().
-					ListBySubscription(gomock.Any(), "workspace123", "sub123", 10, 0).
+					ListAll(gomock.Any(), "workspace123", gomock.Any(), 10, 0).
 					Return([]*domain.WebhookDelivery{}, 0, nil)
 			},
 			expectError:   false,
@@ -913,12 +904,12 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 		{
 			name:           "pagination with offset",
 			workspaceID:    "workspace123",
-			subscriptionID: "sub123",
+			subscriptionID: &subID,
 			limit:          5,
 			offset:         10,
 			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
 				mockDeliveryRepo.EXPECT().
-					ListBySubscription(gomock.Any(), "workspace123", "sub123", 5, 10).
+					ListAll(gomock.Any(), "workspace123", gomock.Any(), 5, 10).
 					Return([]*domain.WebhookDelivery{
 						{ID: "delivery11", SubscriptionID: "sub123"},
 						{ID: "delivery12", SubscriptionID: "sub123"},
@@ -929,14 +920,32 @@ func TestWebhookSubscriptionService_GetDeliveries(t *testing.T) {
 			expectedCount: 2,
 		},
 		{
-			name:           "repository error",
+			name:           "all deliveries without subscription filter",
 			workspaceID:    "workspace123",
-			subscriptionID: "sub123",
+			subscriptionID: nil,
 			limit:          10,
 			offset:         0,
 			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
 				mockDeliveryRepo.EXPECT().
-					ListBySubscription(gomock.Any(), "workspace123", "sub123", 10, 0).
+					ListAll(gomock.Any(), "workspace123", nil, 10, 0).
+					Return([]*domain.WebhookDelivery{
+						{ID: "delivery1", SubscriptionID: "sub123"},
+						{ID: "delivery2", SubscriptionID: "sub456"},
+					}, 2, nil)
+			},
+			expectError:   false,
+			expectedTotal: 2,
+			expectedCount: 2,
+		},
+		{
+			name:           "repository error",
+			workspaceID:    "workspace123",
+			subscriptionID: &subID,
+			limit:          10,
+			offset:         0,
+			setupMocks: func(mockDeliveryRepo *mocks.MockWebhookDeliveryRepository) {
+				mockDeliveryRepo.EXPECT().
+					ListAll(gomock.Any(), "workspace123", gomock.Any(), 10, 0).
 					Return(nil, 0, errors.New("database error"))
 			},
 			expectError: true,
@@ -1203,7 +1212,6 @@ func TestWebhookSubscriptionService_Create_SecretGeneration(t *testing.T) {
 			"workspace123",
 			fmt.Sprintf("Webhook %d", i),
 			"https://example.com/webhook",
-			"",
 			[]string{"contact.created"},
 			nil,
 		)
@@ -1238,7 +1246,6 @@ func TestWebhookSubscriptionService_Create_IDGeneration(t *testing.T) {
 			"workspace123",
 			fmt.Sprintf("Webhook %d", i),
 			"https://example.com/webhook",
-			"",
 			[]string{"contact.created"},
 			nil,
 		)
@@ -1265,8 +1272,6 @@ func TestWebhookSubscriptionService_Create_DefaultValues(t *testing.T) {
 		DoAndReturn(func(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription) error {
 			// Verify default values
 			assert.True(t, sub.Enabled, "Webhook should be enabled by default")
-			assert.Equal(t, int64(0), sub.SuccessCount, "Success count should be 0")
-			assert.Equal(t, int64(0), sub.FailureCount, "Failure count should be 0")
 			assert.Nil(t, sub.LastDeliveryAt, "LastDeliveryAt should be nil")
 			return nil
 		})
@@ -1276,7 +1281,6 @@ func TestWebhookSubscriptionService_Create_DefaultValues(t *testing.T) {
 		"workspace123",
 		"Test Webhook",
 		"https://example.com/webhook",
-		"Description",
 		[]string{"contact.created"},
 		nil,
 	)
@@ -1311,7 +1315,6 @@ func TestWebhookSubscriptionService_Update_PreservesSecret(t *testing.T) {
 		"sub123",
 		"Updated Name",
 		"https://new.example.com/webhook",
-		"New description",
 		[]string{"contact.updated"},
 		nil,
 		true,

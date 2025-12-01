@@ -39,6 +39,8 @@ func TestNewWebhookDeliveryWorker(t *testing.T) {
 		assert.Equal(t, mockLogger, worker.logger)
 		assert.Equal(t, 10*time.Second, worker.pollInterval)
 		assert.Equal(t, 100, worker.batchSize)
+		assert.Equal(t, 1*time.Hour, worker.cleanupInterval)
+		assert.Equal(t, 7, worker.retentionDays)
 	})
 
 	t.Run("creates worker with default HTTP client when nil provided", func(t *testing.T) {
@@ -111,10 +113,12 @@ func TestWebhookDeliveryWorker_processDeliveries(t *testing.T) {
 	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
 	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
 
-	worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, nil)
 	ctx := context.Background()
 
 	t.Run("successfully processes deliveries for multiple workspaces", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, nil)
+		worker.lastCleanupTime = time.Now() // Prevent cleanup from running during this test
+
 		workspaces := []*domain.Workspace{
 			{ID: "workspace1", Name: "Workspace 1"},
 			{ID: "workspace2", Name: "Workspace 2"},
@@ -128,6 +132,9 @@ func TestWebhookDeliveryWorker_processDeliveries(t *testing.T) {
 	})
 
 	t.Run("handles workspace list error", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, nil)
+		worker.lastCleanupTime = time.Now() // Prevent cleanup from running during this test
+
 		mockWorkspaceRepo.EXPECT().List(ctx).Return(nil, errors.New("database error"))
 
 		worker.processDeliveries(ctx)
@@ -135,6 +142,9 @@ func TestWebhookDeliveryWorker_processDeliveries(t *testing.T) {
 	})
 
 	t.Run("continues processing other workspaces on error", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, nil)
+		worker.lastCleanupTime = time.Now() // Prevent cleanup from running during this test
+
 		workspaces := []*domain.Workspace{
 			{ID: "workspace1", Name: "Workspace 1"},
 			{ID: "workspace2", Name: "Workspace 2"},
@@ -303,7 +313,6 @@ func TestWebhookDeliveryWorker_processWorkspaceDeliveries(t *testing.T) {
 		// Expect delivery success for both
 		mockDeliveryRepo.EXPECT().MarkDelivered(ctx, workspaceID, "delivery1", gomock.Any(), gomock.Any()).Return(nil)
 		mockDeliveryRepo.EXPECT().MarkDelivered(ctx, workspaceID, "delivery2", gomock.Any(), gomock.Any()).Return(nil)
-		mockSubRepo.EXPECT().IncrementStats(ctx, workspaceID, "sub1", true).Return(nil).Times(2)
 		mockSubRepo.EXPECT().UpdateLastDeliveryAt(ctx, workspaceID, "sub1", gomock.Any()).Return(nil).Times(2)
 
 		err := worker.processWorkspaceDeliveries(ctx, workspaceID)
@@ -368,7 +377,6 @@ func TestWebhookDeliveryWorker_deliverWebhook(t *testing.T) {
 		}
 
 		mockDeliveryRepo.EXPECT().MarkDelivered(ctx, workspaceID, "delivery1", http.StatusOK, "OK").Return(nil)
-		mockSubRepo.EXPECT().IncrementStats(ctx, workspaceID, "sub1", true).Return(nil)
 		mockSubRepo.EXPECT().UpdateLastDeliveryAt(ctx, workspaceID, "sub1", gomock.Any()).Return(nil)
 
 		worker.processDelivery(ctx, workspaceID, delivery, subscription)
@@ -465,7 +473,6 @@ func TestWebhookDeliveryWorker_deliverWebhook(t *testing.T) {
 		mockDeliveryRepo.EXPECT().MarkFailed(
 			ctx, workspaceID, "delivery1", 10, gomock.Any(), &statusCode, &responseBody,
 		).Return(nil)
-		mockSubRepo.EXPECT().IncrementStats(ctx, workspaceID, "sub1", false).Return(nil)
 
 		worker.processDelivery(ctx, workspaceID, delivery, subscription)
 	})
@@ -696,7 +703,6 @@ func TestWebhookDeliveryWorker_handleDeliverySuccess(t *testing.T) {
 		subscription := &domain.WebhookSubscription{ID: "sub1"}
 
 		mockDeliveryRepo.EXPECT().MarkDelivered(ctx, workspaceID, "delivery1", 200, "OK").Return(nil)
-		mockSubRepo.EXPECT().IncrementStats(ctx, workspaceID, "sub1", true).Return(nil)
 		mockSubRepo.EXPECT().UpdateLastDeliveryAt(ctx, workspaceID, "sub1", gomock.Any()).Return(nil)
 
 		worker.handleDeliverySuccess(ctx, workspaceID, delivery, subscription, 200, "OK")
@@ -712,23 +718,11 @@ func TestWebhookDeliveryWorker_handleDeliverySuccess(t *testing.T) {
 		worker.handleDeliverySuccess(ctx, workspaceID, delivery, subscription, 200, "OK")
 	})
 
-	t.Run("continues even if IncrementStats fails", func(t *testing.T) {
-		delivery := &domain.WebhookDelivery{ID: "delivery1"}
-		subscription := &domain.WebhookSubscription{ID: "sub1"}
-
-		mockDeliveryRepo.EXPECT().MarkDelivered(ctx, workspaceID, "delivery1", 200, "OK").Return(nil)
-		mockSubRepo.EXPECT().IncrementStats(ctx, workspaceID, "sub1", true).Return(errors.New("error"))
-		mockSubRepo.EXPECT().UpdateLastDeliveryAt(ctx, workspaceID, "sub1", gomock.Any()).Return(nil)
-
-		worker.handleDeliverySuccess(ctx, workspaceID, delivery, subscription, 200, "OK")
-	})
-
 	t.Run("continues even if UpdateLastDeliveryAt fails", func(t *testing.T) {
 		delivery := &domain.WebhookDelivery{ID: "delivery1"}
 		subscription := &domain.WebhookSubscription{ID: "sub1"}
 
 		mockDeliveryRepo.EXPECT().MarkDelivered(ctx, workspaceID, "delivery1", 200, "OK").Return(nil)
-		mockSubRepo.EXPECT().IncrementStats(ctx, workspaceID, "sub1", true).Return(nil)
 		mockSubRepo.EXPECT().UpdateLastDeliveryAt(ctx, workspaceID, "sub1", gomock.Any()).
 			Return(errors.New("error"))
 
@@ -786,7 +780,6 @@ func TestWebhookDeliveryWorker_handleDeliveryFailure(t *testing.T) {
 		mockDeliveryRepo.EXPECT().MarkFailed(
 			ctx, workspaceID, "delivery1", 10, "HTTP 500", &statusCode, &responseBody,
 		).Return(nil)
-		mockSubRepo.EXPECT().IncrementStats(ctx, workspaceID, "sub1", false).Return(nil)
 
 		worker.handleDeliveryFailure(ctx, workspaceID, delivery, subscription, &statusCode, responseBody, "HTTP 500")
 	})
@@ -876,7 +869,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 			Enabled: true,
 		}
 
-		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription)
+		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription, "contact.created")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, statusCode)
@@ -888,9 +881,9 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 		assert.NotEmpty(t, receivedHeaders.Get("webhook-timestamp"))
 		assert.NotEmpty(t, receivedHeaders.Get("webhook-signature"))
 
-		// Verify payload
-		assert.Contains(t, string(receivedBody), "test")
-		assert.Contains(t, string(receivedBody), "This is a test webhook from Notifuse")
+		// Verify payload contains contact event data
+		assert.Contains(t, string(receivedBody), "contact.created")
+		assert.Contains(t, string(receivedBody), "test@example.com")
 		assert.Contains(t, string(receivedBody), workspaceID)
 	})
 
@@ -908,7 +901,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 			Enabled: true,
 		}
 
-		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription)
+		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription, "email.sent")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusInternalServerError, statusCode)
@@ -923,7 +916,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 			Enabled: true,
 		}
 
-		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription)
+		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription, "list.subscribed")
 
 		require.Error(t, err)
 		assert.Equal(t, 0, statusCode)
@@ -939,7 +932,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 			Enabled: true,
 		}
 
-		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription)
+		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription, "segment.joined")
 
 		require.Error(t, err)
 		assert.Equal(t, 0, statusCode)
@@ -968,7 +961,7 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 		customClient := &http.Client{Timeout: 1 * time.Second}
 		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, customClient)
 
-		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription)
+		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription, "custom_event.created")
 
 		require.Error(t, err)
 		assert.Equal(t, 0, statusCode)
@@ -993,10 +986,134 @@ func TestWebhookDeliveryWorker_SendTestWebhook(t *testing.T) {
 			Enabled: true,
 		}
 
-		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription)
+		statusCode, responseBody, err := worker.SendTestWebhook(ctx, workspaceID, subscription, "email.delivered")
 
 		require.NoError(t, err)
 		assert.Equal(t, http.StatusOK, statusCode)
 		assert.LessOrEqual(t, len(responseBody), 1024, "Response body should be limited to 1KB")
+	})
+
+	t.Run("uses default event type when empty", func(t *testing.T) {
+		var receivedBody []byte
+
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			receivedBody, _ = io.ReadAll(r.Body)
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer server.Close()
+
+		subscription := &domain.WebhookSubscription{
+			ID:      "sub1",
+			URL:     server.URL,
+			Secret:  "secret123",
+			Enabled: true,
+		}
+
+		statusCode, _, err := worker.SendTestWebhook(ctx, workspaceID, subscription, "")
+
+		require.NoError(t, err)
+		assert.Equal(t, http.StatusOK, statusCode)
+		assert.Contains(t, string(receivedBody), `"type":"test"`)
+	})
+}
+
+func TestWebhookDeliveryWorker_cleanupOldDeliveries(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockSubRepo := mocks.NewMockWebhookSubscriptionRepository(ctrl)
+	mockDeliveryRepo := mocks.NewMockWebhookDeliveryRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Configure logger
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+
+	ctx := context.Background()
+
+	t.Run("skips cleanup when interval has not passed", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, nil)
+		worker.lastCleanupTime = time.Now() // Set to now so interval hasn't passed
+
+		// Should not call List or CleanupOldDeliveries
+		worker.cleanupOldDeliveries(ctx)
+	})
+
+	t.Run("runs cleanup when interval has passed", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, nil)
+		worker.lastCleanupTime = time.Now().Add(-2 * time.Hour) // Set to 2 hours ago
+
+		workspaces := []*domain.Workspace{
+			{ID: "workspace1", Name: "Workspace 1"},
+			{ID: "workspace2", Name: "Workspace 2"},
+		}
+
+		mockWorkspaceRepo.EXPECT().List(ctx).Return(workspaces, nil)
+		mockDeliveryRepo.EXPECT().CleanupOldDeliveries(ctx, "workspace1", 7).Return(int64(5), nil)
+		mockDeliveryRepo.EXPECT().CleanupOldDeliveries(ctx, "workspace2", 7).Return(int64(3), nil)
+
+		worker.cleanupOldDeliveries(ctx)
+
+		// Verify lastCleanupTime was updated
+		assert.WithinDuration(t, time.Now(), worker.lastCleanupTime, time.Second)
+	})
+
+	t.Run("handles workspace list error", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, nil)
+		worker.lastCleanupTime = time.Now().Add(-2 * time.Hour)
+
+		mockWorkspaceRepo.EXPECT().List(ctx).Return(nil, errors.New("database error"))
+
+		worker.cleanupOldDeliveries(ctx)
+		// Should log error but not panic
+	})
+
+	t.Run("continues cleanup for other workspaces on error", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, nil)
+		worker.lastCleanupTime = time.Now().Add(-2 * time.Hour)
+
+		workspaces := []*domain.Workspace{
+			{ID: "workspace1", Name: "Workspace 1"},
+			{ID: "workspace2", Name: "Workspace 2"},
+		}
+
+		mockWorkspaceRepo.EXPECT().List(ctx).Return(workspaces, nil)
+		mockDeliveryRepo.EXPECT().CleanupOldDeliveries(ctx, "workspace1", 7).Return(int64(0), errors.New("cleanup error"))
+		mockDeliveryRepo.EXPECT().CleanupOldDeliveries(ctx, "workspace2", 7).Return(int64(10), nil)
+
+		worker.cleanupOldDeliveries(ctx)
+	})
+
+	t.Run("does not log when no records deleted", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, nil)
+		worker.lastCleanupTime = time.Now().Add(-2 * time.Hour)
+
+		workspaces := []*domain.Workspace{
+			{ID: "workspace1", Name: "Workspace 1"},
+		}
+
+		mockWorkspaceRepo.EXPECT().List(ctx).Return(workspaces, nil)
+		mockDeliveryRepo.EXPECT().CleanupOldDeliveries(ctx, "workspace1", 7).Return(int64(0), nil)
+
+		worker.cleanupOldDeliveries(ctx)
+		// Info log should not be called for 0 deleted records
+	})
+
+	t.Run("runs on first call (zero lastCleanupTime)", func(t *testing.T) {
+		worker := NewWebhookDeliveryWorker(mockSubRepo, mockDeliveryRepo, mockWorkspaceRepo, mockLogger, nil)
+		// lastCleanupTime is zero value
+
+		workspaces := []*domain.Workspace{
+			{ID: "workspace1", Name: "Workspace 1"},
+		}
+
+		mockWorkspaceRepo.EXPECT().List(ctx).Return(workspaces, nil)
+		mockDeliveryRepo.EXPECT().CleanupOldDeliveries(ctx, "workspace1", 7).Return(int64(0), nil)
+
+		worker.cleanupOldDeliveries(ctx)
 	})
 }

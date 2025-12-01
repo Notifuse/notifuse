@@ -67,34 +67,55 @@ func (r *webhookDeliveryRepository) GetPendingForWorkspace(ctx context.Context, 
 	return deliveries, nil
 }
 
-// ListBySubscription retrieves deliveries for a specific subscription with pagination
-func (r *webhookDeliveryRepository) ListBySubscription(ctx context.Context, workspaceID, subscriptionID string, limit, offset int) ([]*WebhookDelivery, int, error) {
+// ListAll retrieves all deliveries for a workspace with optional subscription filter and pagination
+func (r *webhookDeliveryRepository) ListAll(ctx context.Context, workspaceID string, subscriptionID *string, limit, offset int) ([]*WebhookDelivery, int, error) {
 	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get workspace connection: %w", err)
 	}
 
-	// Get total count
-	countQuery := `SELECT COUNT(*) FROM webhook_deliveries WHERE subscription_id = $1`
 	var total int
-	err = workspaceDB.QueryRowContext(ctx, countQuery, subscriptionID).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count deliveries: %w", err)
+	var rows *sql.Rows
+
+	if subscriptionID != nil && *subscriptionID != "" {
+		// With subscription filter
+		countQuery := `SELECT COUNT(*) FROM webhook_deliveries WHERE subscription_id = $1`
+		err = workspaceDB.QueryRowContext(ctx, countQuery, *subscriptionID).Scan(&total)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to count deliveries: %w", err)
+		}
+
+		query := `
+			SELECT
+				id, subscription_id, event_type, payload, status,
+				attempts, max_attempts, next_attempt_at, last_attempt_at,
+				delivered_at, last_response_status, last_response_body, last_error, created_at
+			FROM webhook_deliveries
+			WHERE subscription_id = $1
+			ORDER BY created_at DESC
+			LIMIT $2 OFFSET $3
+		`
+		rows, err = workspaceDB.QueryContext(ctx, query, *subscriptionID, limit, offset)
+	} else {
+		// Without subscription filter - all deliveries
+		countQuery := `SELECT COUNT(*) FROM webhook_deliveries`
+		err = workspaceDB.QueryRowContext(ctx, countQuery).Scan(&total)
+		if err != nil {
+			return nil, 0, fmt.Errorf("failed to count deliveries: %w", err)
+		}
+
+		query := `
+			SELECT
+				id, subscription_id, event_type, payload, status,
+				attempts, max_attempts, next_attempt_at, last_attempt_at,
+				delivered_at, last_response_status, last_response_body, last_error, created_at
+			FROM webhook_deliveries
+			ORDER BY created_at DESC
+			LIMIT $1 OFFSET $2
+		`
+		rows, err = workspaceDB.QueryContext(ctx, query, limit, offset)
 	}
 
-	// Get deliveries
-	query := `
-		SELECT
-			id, subscription_id, event_type, payload, status,
-			attempts, max_attempts, next_attempt_at, last_attempt_at,
-			delivered_at, last_response_status, last_response_body, last_error, created_at
-		FROM webhook_deliveries
-		WHERE subscription_id = $1
-		ORDER BY created_at DESC
-		LIMIT $2 OFFSET $3
-	`
-
-	rows, err := workspaceDB.QueryContext(ctx, query, subscriptionID, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to query deliveries: %w", err)
 	}
@@ -271,6 +292,28 @@ func (r *webhookDeliveryRepository) Create(ctx context.Context, workspaceID stri
 	}
 
 	return nil
+}
+
+// CleanupOldDeliveries deletes deliveries older than the specified retention period
+func (r *webhookDeliveryRepository) CleanupOldDeliveries(ctx context.Context, workspaceID string, retentionDays int) (int64, error) {
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	query := `DELETE FROM webhook_deliveries WHERE created_at < NOW() - INTERVAL '1 day' * $1`
+
+	result, err := workspaceDB.ExecContext(ctx, query, retentionDays)
+	if err != nil {
+		return 0, fmt.Errorf("failed to cleanup old deliveries: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	return rowsAffected, nil
 }
 
 // scanWebhookDeliveryFromRows scans a row from sql.Rows into a WebhookDelivery

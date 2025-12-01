@@ -806,12 +806,13 @@ func (s *SparkPostService) SendEmail(ctx context.Context, request domain.SendEma
 	}
 
 	type Content struct {
-		From         From          `json:"from"`
-		Subject      string        `json:"subject"`
-		ReplyTo      string        `json:"reply_to,omitempty"`
-		HTML         string        `json:"html"`
-		Attachments  []Attachment  `json:"attachments,omitempty"`
-		InlineImages []InlineImage `json:"inline_images,omitempty"`
+		From         From              `json:"from"`
+		Subject      string            `json:"subject"`
+		ReplyTo      string            `json:"reply_to,omitempty"`
+		HTML         string            `json:"html"`
+		Headers      map[string]string `json:"headers,omitempty"`
+		Attachments  []Attachment      `json:"attachments,omitempty"`
+		InlineImages []InlineImage     `json:"inline_images,omitempty"`
 	}
 
 	type EmailRequest struct {
@@ -854,6 +855,14 @@ func (s *SparkPostService) SendEmail(ctx context.Context, request domain.SendEma
 	// Add replyTo if specified
 	if request.EmailOptions.ReplyTo != "" {
 		emailReq.Content.ReplyTo = request.EmailOptions.ReplyTo
+	}
+
+	// Add RFC-8058 List-Unsubscribe headers for one-click unsubscribe
+	if request.EmailOptions.ListUnsubscribeURL != "" {
+		emailReq.Content.Headers = map[string]string{
+			"List-Unsubscribe":      fmt.Sprintf("<%s>", request.EmailOptions.ListUnsubscribeURL),
+			"List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+		}
 	}
 
 	// Add CC recipients if specified

@@ -216,7 +216,7 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 	client := suite.APIClient
 
 	t.Run("Test SMTP Connection - Success", func(t *testing.T) {
-		// Test with valid MailHog settings (running in Docker Compose)
+		// Test with valid Mailpit settings (running in Docker Compose)
 		testReq := map[string]interface{}{
 			"smtp_host": "localhost",
 			"smtp_port": 1025,
@@ -226,15 +226,15 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { _ = resp.Body.Close() }()
 
-		// MailHog may not be available in all test environments, so we accept both success and failure
+		// Mailpit may not be available in all test environments, so we accept both success and failure
 		// The important thing is that the endpoint is working and returning proper responses
 		if resp.StatusCode == http.StatusOK {
 			var testResp map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&testResp)
 			require.NoError(t, err)
-			assert.True(t, testResp["success"].(bool), "SMTP test should succeed when MailHog is available")
+			assert.True(t, testResp["success"].(bool), "SMTP test should succeed when Mailpit is available")
 		} else {
-			// MailHog might not be available, which is okay
+			// Mailpit might not be available, which is okay
 			assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "Should return bad request when SMTP is unavailable")
 		}
 	})

@@ -1,36 +1,13 @@
 import { useState, useEffect } from 'react'
-import {
-  Card,
-  Button,
-  Table,
-  Tag,
-  Space,
-  Modal,
-  Form,
-  Input,
-  Switch,
-  Select,
-  message,
-  Tooltip,
-  Popconfirm,
-  Drawer,
-  Descriptions,
-  Alert
-} from 'antd'
-import {
-  faPlus,
-  faCheck,
-  faTimes,
-  faExclamationTriangle,
-  faRefresh
-} from '@fortawesome/free-solid-svg-icons'
-import { faPenToSquare, faTrashCan, faCopy, faEye } from '@fortawesome/free-regular-svg-icons'
+import { Card, Button, Space, Form, Input, Select, Checkbox, message, Drawer, Row, Col } from 'antd'
+import { faPlus } from '@fortawesome/free-solid-svg-icons'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { SettingsSectionHeader } from './SettingsSectionHeader'
+import { WebhookCard } from './WebhookCard'
+import Subtitle from '../common/subtitle'
 import {
   webhookSubscriptionApi,
   WebhookSubscription,
-  WebhookDelivery,
   CustomEventFilters
 } from '../../services/api/webhook_subscription'
 
@@ -46,26 +23,6 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
   const [editingSubscription, setEditingSubscription] = useState<WebhookSubscription | null>(null)
   const [form] = Form.useForm()
   const [saving, setSaving] = useState(false)
-  const [testingId, setTestingId] = useState<string | null>(null)
-  const [testResult, setTestResult] = useState<{
-    success: boolean
-    statusCode: number
-    responseBody: string
-    error?: string
-  } | null>(null)
-  const [testModalVisible, setTestModalVisible] = useState(false)
-
-  // Deliveries drawer state
-  const [deliveriesDrawerVisible, setDeliveriesDrawerVisible] = useState(false)
-  const [selectedSubscription, setSelectedSubscription] = useState<WebhookSubscription | null>(null)
-  const [deliveries, setDeliveries] = useState<WebhookDelivery[]>([])
-  const [deliveriesLoading, setDeliveriesLoading] = useState(false)
-  const [deliveriesTotal, setDeliveriesTotal] = useState(0)
-  const [deliveriesPage, setDeliveriesPage] = useState(1)
-  const [deliveriesPageSize] = useState(10)
-
-  // Secret visibility state
-  const [visibleSecrets, setVisibleSecrets] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     fetchSubscriptions()
@@ -109,10 +66,10 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
     form.setFieldsValue({
       name: subscription.name,
       url: subscription.url,
-      description: subscription.description,
-      event_types: subscription.event_types,
+      event_types: subscription.settings.event_types,
       enabled: subscription.enabled,
-      custom_event_filters: subscription.custom_event_filters
+      custom_event_goal_types: subscription.custom_event_filters?.goal_types,
+      custom_event_names: subscription.custom_event_filters?.event_names
     })
     setDrawerVisible(true)
   }
@@ -126,9 +83,11 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
       let customEventFilters: CustomEventFilters | undefined
       const hasCustomEvent = values.event_types?.some((t: string) => t.startsWith('custom_event.'))
       if (hasCustomEvent) {
-        if (values.custom_event_goal_type || values.custom_event_names?.length) {
+        if (values.custom_event_goal_types?.length || values.custom_event_names?.length) {
           customEventFilters = {
-            goal_type: values.custom_event_goal_type || undefined,
+            goal_types: values.custom_event_goal_types?.length
+              ? values.custom_event_goal_types
+              : undefined,
             event_names: values.custom_event_names?.length ? values.custom_event_names : undefined
           }
         }
@@ -140,7 +99,6 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
           id: editingSubscription.id,
           name: values.name,
           url: values.url,
-          description: values.description || '',
           event_types: values.event_types,
           custom_event_filters: customEventFilters,
           enabled: values.enabled
@@ -151,7 +109,6 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
           workspace_id: workspaceId,
           name: values.name,
           url: values.url,
-          description: values.description || '',
           event_types: values.event_types,
           custom_event_filters: customEventFilters
         })
@@ -194,274 +151,14 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
     }
   }
 
-  const handleTest = async (id: string) => {
-    try {
-      setTestingId(id)
-      const result = await webhookSubscriptionApi.test(workspaceId, id)
-      setTestResult({
-        success: result.success,
-        statusCode: result.status_code,
-        responseBody: result.response_body,
-        error: result.error
-      })
-      setTestModalVisible(true)
-    } catch (error) {
-      console.error('Failed to test webhook:', error)
-      message.error('Failed to send test webhook')
-    } finally {
-      setTestingId(null)
-    }
-  }
-
-  const handleRegenerateSecret = async (id: string) => {
-    try {
-      await webhookSubscriptionApi.regenerateSecret(workspaceId, id)
-      message.success('Webhook secret regenerated')
-      fetchSubscriptions()
-    } catch (error) {
-      console.error('Failed to regenerate secret:', error)
-      message.error('Failed to regenerate webhook secret')
-    }
-  }
-
-  const handleViewDeliveries = async (subscription: WebhookSubscription) => {
-    setSelectedSubscription(subscription)
-    setDeliveriesPage(1)
-    setDeliveriesDrawerVisible(true)
-    await fetchDeliveries(subscription.id, 1)
-  }
-
-  const fetchDeliveries = async (subscriptionId: string, page: number) => {
-    try {
-      setDeliveriesLoading(true)
-      const offset = (page - 1) * deliveriesPageSize
-      const response = await webhookSubscriptionApi.getDeliveries(
-        workspaceId,
-        subscriptionId,
-        deliveriesPageSize,
-        offset
-      )
-      setDeliveries(response.deliveries || [])
-      setDeliveriesTotal(response.total)
-    } catch (error) {
-      console.error('Failed to fetch deliveries:', error)
-      message.error('Failed to load delivery history')
-    } finally {
-      setDeliveriesLoading(false)
-    }
-  }
-
-  const toggleSecretVisibility = (id: string) => {
-    const newVisibleSecrets = new Set(visibleSecrets)
-    if (newVisibleSecrets.has(id)) {
-      newVisibleSecrets.delete(id)
-    } else {
-      newVisibleSecrets.add(id)
-    }
-    setVisibleSecrets(newVisibleSecrets)
-  }
-
-  const copyToClipboard = (text: string, label: string) => {
-    navigator.clipboard.writeText(text)
-    message.success(`${label} copied to clipboard`)
-  }
-
   const formatEventType = (eventType: string) => {
     return eventType
-      .split('_')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ')
   }
-
-  const getStatusTag = (status: string) => {
-    switch (status) {
-      case 'delivered':
-        return (
-          <Tag color="green">
-            <FontAwesomeIcon icon={faCheck} className="mr-1" /> Delivered
-          </Tag>
-        )
-      case 'pending':
-        return (
-          <Tag color="blue">
-            <FontAwesomeIcon icon={faRefresh} className="mr-1" /> Pending
-          </Tag>
-        )
-      case 'failed':
-        return (
-          <Tag color="red">
-            <FontAwesomeIcon icon={faTimes} className="mr-1" /> Failed
-          </Tag>
-        )
-      default:
-        return <Tag>{status}</Tag>
-    }
-  }
-
-  const columns = [
-    {
-      title: 'Name',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text: string, record: WebhookSubscription) => (
-        <div>
-          <div className="font-medium">{text}</div>
-          {record.description && (
-            <div className="text-xs text-gray-500">{record.description}</div>
-          )}
-        </div>
-      )
-    },
-    {
-      title: 'URL',
-      dataIndex: 'url',
-      key: 'url',
-      render: (text: string) => (
-        <Tooltip title={text}>
-          <span className="text-xs font-mono truncate block max-w-[200px]">{text}</span>
-        </Tooltip>
-      )
-    },
-    {
-      title: 'Events',
-      dataIndex: 'event_types',
-      key: 'event_types',
-      render: (types: string[]) => (
-        <div>
-          {types.slice(0, 2).map((type) => (
-            <Tag key={type} className="mb-1">
-              {formatEventType(type)}
-            </Tag>
-          ))}
-          {types.length > 2 && <Tag>+{types.length - 2} more</Tag>}
-        </div>
-      )
-    },
-    {
-      title: 'Status',
-      key: 'status',
-      render: (_: unknown, record: WebhookSubscription) => (
-        <Space direction="vertical" size="small">
-          <Switch
-            checked={record.enabled}
-            onChange={(checked) => handleToggle(record.id, checked)}
-            checkedChildren="On"
-            unCheckedChildren="Off"
-          />
-          {record.failure_count > 0 && (
-            <Tooltip title={`${record.failure_count} failed deliveries`}>
-              <Tag color="orange">
-                <FontAwesomeIcon icon={faExclamationTriangle} className="mr-1" />
-                {record.failure_count} failed
-              </Tag>
-            </Tooltip>
-          )}
-        </Space>
-      )
-    },
-    {
-      title: 'Stats',
-      key: 'stats',
-      render: (_: unknown, record: WebhookSubscription) => (
-        <div className="text-xs">
-          <div className="text-green-600">{record.success_count} delivered</div>
-          <div className="text-red-500">{record.failure_count} failed</div>
-        </div>
-      )
-    },
-    {
-      title: 'Actions',
-      key: 'actions',
-      render: (_: unknown, record: WebhookSubscription) => (
-        <Space>
-          <Tooltip title="Edit">
-            <Button type="text" size="small" onClick={() => handleEdit(record)}>
-              <FontAwesomeIcon icon={faPenToSquare} />
-            </Button>
-          </Tooltip>
-          <Tooltip title="View Deliveries">
-            <Button type="text" size="small" onClick={() => handleViewDeliveries(record)}>
-              <FontAwesomeIcon icon={faEye} />
-            </Button>
-          </Tooltip>
-          <Tooltip title="Test Webhook">
-            <Button
-              type="text"
-              size="small"
-              onClick={() => handleTest(record.id)}
-              loading={testingId === record.id}
-            >
-              Send Test
-            </Button>
-          </Tooltip>
-          <Popconfirm
-            title="Delete this webhook?"
-            description="This action cannot be undone."
-            onConfirm={() => handleDelete(record.id)}
-            okText="Yes"
-            cancelText="No"
-          >
-            <Tooltip title="Delete">
-              <Button type="text" size="small" danger>
-                <FontAwesomeIcon icon={faTrashCan} />
-              </Button>
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      )
-    }
-  ]
-
-  const deliveryColumns = [
-    {
-      title: 'Event',
-      dataIndex: 'event_type',
-      key: 'event_type',
-      render: (type: string) => <Tag>{formatEventType(type)}</Tag>
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: (status: string) => getStatusTag(status)
-    },
-    {
-      title: 'Attempts',
-      key: 'attempts',
-      render: (_: unknown, record: WebhookDelivery) => (
-        <span>
-          {record.attempts}/{record.max_attempts}
-        </span>
-      )
-    },
-    {
-      title: 'Response',
-      key: 'response',
-      render: (_: unknown, record: WebhookDelivery) => (
-        <div className="text-xs">
-          {record.last_response_status && (
-            <Tag color={record.last_response_status >= 200 && record.last_response_status < 300 ? 'green' : 'red'}>
-              HTTP {record.last_response_status}
-            </Tag>
-          )}
-          {record.last_error && (
-            <Tooltip title={record.last_error}>
-              <span className="text-red-500 truncate block max-w-[150px]">{record.last_error}</span>
-            </Tooltip>
-          )}
-        </div>
-      )
-    },
-    {
-      title: 'Created',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (date: string) => new Date(date).toLocaleString()
-    }
-  ]
 
   const selectedEventTypes = Form.useWatch('event_types', form)
-  const showCustomEventFilters = selectedEventTypes?.some((t: string) => t.startsWith('custom_event.'))
+  const showCustomEventFilters = selectedEventTypes?.some((t: string) =>
+    t.startsWith('custom_event.')
+  )
 
   return (
     <>
@@ -470,23 +167,36 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
         description="Configure outgoing webhooks to receive real-time notifications when events occur in your workspace."
       />
 
-      <div className="mb-4 text-right">
-        <Button type="primary" onClick={handleCreate}>
-          <FontAwesomeIcon icon={faPlus} className="mr-2" />
-          Add Webhook
-        </Button>
-      </div>
+      {subscriptions.length === 0 && !loading ? (
+        <Card className="text-center py-8">
+          <p className="text-gray-500 mb-4">No webhook subscriptions configured</p>
+          <Button type="primary" onClick={handleCreate}>
+            <FontAwesomeIcon icon={faPlus} className="mr-2" />
+            Create Webhook
+          </Button>
+        </Card>
+      ) : (
+        <>
+          <div className="mb-4 text-right">
+            <Button type="primary" onClick={handleCreate}>
+              <FontAwesomeIcon icon={faPlus} className="mr-2" />
+              Add Webhook
+            </Button>
+          </div>
 
-      <Card>
-        <Table
-          dataSource={subscriptions}
-          columns={columns}
-          rowKey="id"
-          loading={loading}
-          pagination={false}
-          locale={{ emptyText: 'No webhook subscriptions configured' }}
-        />
-      </Card>
+          {subscriptions.map((webhook) => (
+            <WebhookCard
+              key={webhook.id}
+              webhook={webhook}
+              workspaceId={workspaceId}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onToggle={handleToggle}
+              onRefresh={fetchSubscriptions}
+            />
+          ))}
+        </>
+      )}
 
       {/* Create/Edit Drawer */}
       <Drawer
@@ -525,38 +235,75 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
             <Input placeholder="https://example.com/webhook" />
           </Form.Item>
 
-          <Form.Item name="description" label="Description">
-            <Input.TextArea rows={2} placeholder="Optional description" />
-          </Form.Item>
-
           <Form.Item
             name="event_types"
-            label="Event Types"
+            label={
+              <div className="flex justify-between w-full">
+                <span>Event Types</span>
+                <a
+                  onClick={(e) => {
+                    e.preventDefault()
+                    form.setFieldsValue({ event_types: eventTypes })
+                  }}
+                >
+                  Select all
+                </a>
+              </div>
+            }
             rules={[{ required: true, message: 'Please select at least one event type' }]}
+            className="[&_.ant-form-item-label]:w-full [&_.ant-form-item-label>label]:w-full [&_.ant-form-item-label>label]:inline-flex"
           >
-            <Select
-              mode="multiple"
-              placeholder="Select events to receive"
-              options={eventTypes.map((type) => ({
-                label: formatEventType(type),
-                value: type
-              }))}
-            />
+            <Checkbox.Group className="w-full">
+              <Row>
+                <Col span={12}>
+                  {eventTypes
+                    .filter((type) => {
+                      const entity = type.split('.')[0]
+                      return ['contact', 'list', 'segment'].includes(entity)
+                    })
+                    .map((type) => (
+                      <div key={type} className="mb-2">
+                        <Checkbox value={type}>{formatEventType(type)}</Checkbox>
+                      </div>
+                    ))}
+                </Col>
+                <Col span={12}>
+                  {eventTypes
+                    .filter((type) => {
+                      const entity = type.split('.')[0]
+                      return !['contact', 'list', 'segment'].includes(entity)
+                    })
+                    .map((type) => (
+                      <div key={type} className="mb-2">
+                        <Checkbox value={type}>{formatEventType(type)}</Checkbox>
+                      </div>
+                    ))}
+                </Col>
+              </Row>
+            </Checkbox.Group>
           </Form.Item>
 
           {showCustomEventFilters && (
             <>
-              <Alert
-                message="Custom Event Filters"
-                description="Optionally filter which custom events trigger this webhook."
-                type="info"
-                showIcon
-                className="mb-4"
-              />
-              <Form.Item name="custom_event_goal_type" label="Goal Type (optional)">
-                <Input placeholder="e.g., conversion, engagement" />
+              <Subtitle className="mb-6" borderBottom primary>
+                Custom Event Filters (optional)
+              </Subtitle>
+              <Form.Item name="custom_event_goal_types" label="Goal Types">
+                <Select
+                  mode="multiple"
+                  placeholder="Select goal types to filter"
+                  options={[
+                    { value: 'purchase', label: 'Purchase' },
+                    { value: 'subscription', label: 'Subscription' },
+                    { value: 'lead', label: 'Lead' },
+                    { value: 'signup', label: 'Signup' },
+                    { value: 'booking', label: 'Booking' },
+                    { value: 'trial', label: 'Trial' },
+                    { value: 'other', label: 'Other' }
+                  ]}
+                />
               </Form.Item>
-              <Form.Item name="custom_event_names" label="Event Names (optional)">
+              <Form.Item name="custom_event_names" label="Event Names">
                 <Select
                   mode="tags"
                   placeholder="Enter event names to filter"
@@ -565,146 +312,7 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
               </Form.Item>
             </>
           )}
-
-          {editingSubscription && (
-            <>
-              <Form.Item name="enabled" label="Enabled" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-
-              <Form.Item label="Signing Secret">
-                <Input.Group compact>
-                  <Input
-                    style={{ width: 'calc(100% - 120px)' }}
-                    value={
-                      visibleSecrets.has(editingSubscription.id)
-                        ? editingSubscription.secret
-                        : '••••••••••••••••••••••••'
-                    }
-                    readOnly
-                  />
-                  <Tooltip title={visibleSecrets.has(editingSubscription.id) ? 'Hide' : 'Show'}>
-                    <Button
-                      onClick={() => toggleSecretVisibility(editingSubscription.id)}
-                    >
-                      <FontAwesomeIcon icon={faEye} />
-                    </Button>
-                  </Tooltip>
-                  <Tooltip title="Copy">
-                    <Button
-                      onClick={() => copyToClipboard(editingSubscription.secret, 'Secret')}
-                    >
-                      <FontAwesomeIcon icon={faCopy} />
-                    </Button>
-                  </Tooltip>
-                </Input.Group>
-                <div className="mt-2">
-                  <Popconfirm
-                    title="Regenerate secret?"
-                    description="This will invalidate the current secret. You'll need to update your webhook receiver."
-                    onConfirm={() => handleRegenerateSecret(editingSubscription.id)}
-                    okText="Yes"
-                    cancelText="No"
-                  >
-                    <Button size="small" type="link">
-                      Regenerate Secret
-                    </Button>
-                  </Popconfirm>
-                </div>
-              </Form.Item>
-            </>
-          )}
         </Form>
-
-        {editingSubscription && (
-          <Alert
-            message="Webhook Signature"
-            description={
-              <div className="text-xs">
-                <p>Webhooks are signed using HMAC-SHA256 per the Standard Webhooks specification.</p>
-                <p className="mt-2">Headers sent:</p>
-                <ul className="list-disc ml-4 mt-1">
-                  <li><code>webhook-id</code>: Unique delivery ID</li>
-                  <li><code>webhook-timestamp</code>: Unix timestamp</li>
-                  <li><code>webhook-signature</code>: v1,{'{base64-signature}'}</li>
-                </ul>
-              </div>
-            }
-            type="info"
-            showIcon
-            className="mt-4"
-          />
-        )}
-      </Drawer>
-
-      {/* Test Result Modal */}
-      <Modal
-        title="Test Webhook Result"
-        open={testModalVisible}
-        onCancel={() => setTestModalVisible(false)}
-        footer={
-          <Button onClick={() => setTestModalVisible(false)}>Close</Button>
-        }
-      >
-        {testResult && (
-          <Descriptions bordered column={1} size="small">
-            <Descriptions.Item label="Status">
-              {testResult.success ? (
-                <Tag color="green">
-                  <FontAwesomeIcon icon={faCheck} className="mr-1" /> Success
-                </Tag>
-              ) : (
-                <Tag color="red">
-                  <FontAwesomeIcon icon={faTimes} className="mr-1" /> Failed
-                </Tag>
-              )}
-            </Descriptions.Item>
-            <Descriptions.Item label="HTTP Status">
-              <Tag color={testResult.statusCode >= 200 && testResult.statusCode < 300 ? 'green' : 'red'}>
-                {testResult.statusCode || 'N/A'}
-              </Tag>
-            </Descriptions.Item>
-            {testResult.error && (
-              <Descriptions.Item label="Error">
-                <span className="text-red-500">{testResult.error}</span>
-              </Descriptions.Item>
-            )}
-            {testResult.responseBody && (
-              <Descriptions.Item label="Response Body">
-                <pre className="text-xs bg-gray-100 p-2 rounded overflow-auto max-h-40">
-                  {testResult.responseBody}
-                </pre>
-              </Descriptions.Item>
-            )}
-          </Descriptions>
-        )}
-      </Modal>
-
-      {/* Deliveries Drawer */}
-      <Drawer
-        title={`Delivery History - ${selectedSubscription?.name || ''}`}
-        width={700}
-        open={deliveriesDrawerVisible}
-        onClose={() => setDeliveriesDrawerVisible(false)}
-      >
-        <Table
-          dataSource={deliveries}
-          columns={deliveryColumns}
-          rowKey="id"
-          loading={deliveriesLoading}
-          pagination={{
-            current: deliveriesPage,
-            pageSize: deliveriesPageSize,
-            total: deliveriesTotal,
-            onChange: (page) => {
-              setDeliveriesPage(page)
-              if (selectedSubscription) {
-                fetchDeliveries(selectedSubscription.id, page)
-              }
-            }
-          }}
-          locale={{ emptyText: 'No deliveries yet' }}
-        />
       </Drawer>
     </>
   )

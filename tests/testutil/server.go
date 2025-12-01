@@ -57,7 +57,7 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 	cfg := &config.Config{
 		Environment: "test",
 		RootEmail:   "test@example.com",
-		APIEndpoint: "",   // Empty to trigger direct task execution (no HTTP callbacks)
+		APIEndpoint: "", // Empty to trigger direct task execution instead of HTTP callbacks
 		IsInstalled: true, // Mark as installed for tests
 		Server: config.ServerConfig{
 			Host: "127.0.0.1",

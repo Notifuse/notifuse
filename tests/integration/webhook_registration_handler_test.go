@@ -361,9 +361,9 @@ func TestWebhookRegistrationWithDifferentProviders(t *testing.T) {
 		})
 	})
 
-	t.Run("Mailhog Provider (Unsupported)", func(t *testing.T) {
+	t.Run("Mailpit Provider (Unsupported)", func(t *testing.T) {
 		testWebhookRegistrationWithUnsupportedProvider(t, client, factory, workspace.ID, func(workspaceID string) (*domain.Integration, error) {
-			return factory.CreateMailhogSMTPIntegration(workspaceID)
+			return factory.CreateMailpitSMTPIntegration(workspaceID)
 		})
 	})
 }

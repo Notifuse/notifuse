@@ -67,28 +67,30 @@ paths:
     $ref: './paths/templates.yaml#/~1api~1templates.compile'
   /api/customEvents.import:
     $ref: './paths/custom-events.yaml#/~1api~1customEvents.import'
-  /api/webhook_subscription.create:
-    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.create'
-  /api/webhook_subscription.list:
-    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.list'
-  /api/webhook_subscription.get:
-    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.get'
-  /api/webhook_subscription.update:
-    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.update'
-  /api/webhook_subscription.delete:
-    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.delete'
-  /api/webhook_subscription.toggle:
-    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.toggle'
-  /api/webhook_subscription.regenerate_secret:
-    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.regenerate_secret'
-  /api/webhook_subscription.deliveries:
-    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.deliveries'
-  /api/webhook_subscription.test:
-    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.test'
-  /api/webhook_subscription.event_types:
-    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhook_subscription.event_types'
+  /api/webhookSubscriptions.create:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.create'
+  /api/webhookSubscriptions.list:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.list'
+  /api/webhookSubscriptions.get:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.get'
+  /api/webhookSubscriptions.update:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.update'
+  /api/webhookSubscriptions.delete:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.delete'
+  /api/webhookSubscriptions.toggle:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.toggle'
+  /api/webhookSubscriptions.regenerateSecret:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.regenerateSecret'
+  /api/webhookSubscriptions.deliveries:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.deliveries'
+  /api/webhookSubscriptions.test:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.test'
+  /api/webhookSubscriptions.eventTypes:
+    $ref: './paths/webhook-subscriptions.yaml#/~1api~1webhookSubscriptions.eventTypes'
   /subscribe:
     $ref: './paths/subscribe.yaml#/~1subscribe'
+  /api/lists.subscribe:
+    $ref: './paths/subscribe.yaml#/~1api~1lists.subscribe'
 components:
   securitySchemes:
     BearerAuth:
@@ -104,6 +106,8 @@ components:
       $ref: './components/schemas/contact.yaml#/Contact'
     ContactList:
       $ref: './components/schemas/contact.yaml#/ContactList'
+    ContactSegment:
+      $ref: './components/schemas/contact.yaml#/ContactSegment'
     SubscribeToListsRequest:
       $ref: './components/schemas/contact.yaml#/SubscribeToListsRequest'
     SubscriptionContact:
@@ -194,6 +198,8 @@ components:
       $ref: './components/schemas/webhook-subscription.yaml#/WebhookEventType'
     CustomEventFilters:
       $ref: './components/schemas/webhook-subscription.yaml#/CustomEventFilters'
+    WebhookSubscriptionSettings:
+      $ref: './components/schemas/webhook-subscription.yaml#/WebhookSubscriptionSettings'
     CreateWebhookSubscriptionRequest:
       $ref: './components/schemas/webhook-subscription.yaml#/CreateWebhookSubscriptionRequest'
     CreateWebhookSubscriptionResponse:

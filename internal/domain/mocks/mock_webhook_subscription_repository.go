@@ -79,20 +79,6 @@ func (mr *MockWebhookSubscriptionRepositoryMockRecorder) GetByID(arg0, arg1, arg
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetByID", reflect.TypeOf((*MockWebhookSubscriptionRepository)(nil).GetByID), arg0, arg1, arg2)
 }
 
-// IncrementStats mocks base method.
-func (m *MockWebhookSubscriptionRepository) IncrementStats(arg0 context.Context, arg1, arg2 string, arg3 bool) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IncrementStats", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// IncrementStats indicates an expected call of IncrementStats.
-func (mr *MockWebhookSubscriptionRepositoryMockRecorder) IncrementStats(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementStats", reflect.TypeOf((*MockWebhookSubscriptionRepository)(nil).IncrementStats), arg0, arg1, arg2, arg3)
-}
-
 // List mocks base method.
 func (m *MockWebhookSubscriptionRepository) List(arg0 context.Context, arg1 string) ([]*domain.WebhookSubscription, error) {
 	m.ctrl.T.Helper()

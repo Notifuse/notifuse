@@ -36,6 +36,21 @@ func (m *MockWebhookDeliveryRepository) EXPECT() *MockWebhookDeliveryRepositoryM
 	return m.recorder
 }
 
+// CleanupOldDeliveries mocks base method.
+func (m *MockWebhookDeliveryRepository) CleanupOldDeliveries(arg0 context.Context, arg1 string, arg2 int) (int64, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CleanupOldDeliveries", arg0, arg1, arg2)
+	ret0, _ := ret[0].(int64)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CleanupOldDeliveries indicates an expected call of CleanupOldDeliveries.
+func (mr *MockWebhookDeliveryRepositoryMockRecorder) CleanupOldDeliveries(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanupOldDeliveries", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).CleanupOldDeliveries), arg0, arg1, arg2)
+}
+
 // Create mocks base method.
 func (m *MockWebhookDeliveryRepository) Create(arg0 context.Context, arg1 string, arg2 *domain.WebhookDelivery) error {
 	m.ctrl.T.Helper()
@@ -65,20 +80,20 @@ func (mr *MockWebhookDeliveryRepositoryMockRecorder) GetPendingForWorkspace(arg0
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPendingForWorkspace", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).GetPendingForWorkspace), arg0, arg1, arg2)
 }
 
-// ListBySubscription mocks base method.
-func (m *MockWebhookDeliveryRepository) ListBySubscription(arg0 context.Context, arg1, arg2 string, arg3, arg4 int) ([]*domain.WebhookDelivery, int, error) {
+// ListAll mocks base method.
+func (m *MockWebhookDeliveryRepository) ListAll(arg0 context.Context, arg1 string, arg2 *string, arg3, arg4 int) ([]*domain.WebhookDelivery, int, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ListBySubscription", arg0, arg1, arg2, arg3, arg4)
+	ret := m.ctrl.Call(m, "ListAll", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].([]*domain.WebhookDelivery)
 	ret1, _ := ret[1].(int)
 	ret2, _ := ret[2].(error)
 	return ret0, ret1, ret2
 }
 
-// ListBySubscription indicates an expected call of ListBySubscription.
-func (mr *MockWebhookDeliveryRepositoryMockRecorder) ListBySubscription(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
+// ListAll indicates an expected call of ListAll.
+func (mr *MockWebhookDeliveryRepositoryMockRecorder) ListAll(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBySubscription", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).ListBySubscription), arg0, arg1, arg2, arg3, arg4)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListAll", reflect.TypeOf((*MockWebhookDeliveryRepository)(nil).ListAll), arg0, arg1, arg2, arg3, arg4)
 }
 
 // MarkDelivered mocks base method.

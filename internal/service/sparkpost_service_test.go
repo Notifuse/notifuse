@@ -2733,6 +2733,119 @@ func TestSparkPostService_SendEmail_AdditionalCases(t *testing.T) {
 
 		assert.NoError(t, err)
 	})
+
+	t.Run("with RFC-8058 List-Unsubscribe headers", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify RFC-8058 List-Unsubscribe headers in request
+				body, _ := io.ReadAll(req.Body)
+				var emailReq map[string]interface{}
+				_ = json.Unmarshal(body, &emailReq)
+
+				content := emailReq["content"].(map[string]interface{})
+				headers, ok := content["headers"].(map[string]interface{})
+				assert.True(t, ok, "headers should be present")
+
+				listUnsubscribe, ok := headers["List-Unsubscribe"].(string)
+				assert.True(t, ok, "List-Unsubscribe header should be present")
+				assert.Equal(t, "<https://example.com/unsubscribe/abc123>", listUnsubscribe)
+
+				listUnsubscribePost, ok := headers["List-Unsubscribe-Post"].(string)
+				assert.True(t, ok, "List-Unsubscribe-Post header should be present")
+				assert.Equal(t, "List-Unsubscribe=One-Click", listUnsubscribePost)
+
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				ListUnsubscribeURL: "https://example.com/unsubscribe/abc123",
+			},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
+
+	t.Run("with RFC-8058 List-Unsubscribe headers and attachments", func(t *testing.T) {
+		ctx := context.Background()
+
+		provider := &domain.EmailProvider{
+			SparkPost: &domain.SparkPostSettings{
+				Endpoint: "https://api.sparkpost.test",
+				APIKey:   "test-api-key",
+			},
+		}
+
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify RFC-8058 List-Unsubscribe headers in request
+				body, _ := io.ReadAll(req.Body)
+				var emailReq map[string]interface{}
+				_ = json.Unmarshal(body, &emailReq)
+
+				content := emailReq["content"].(map[string]interface{})
+
+				// Verify headers
+				headers, ok := content["headers"].(map[string]interface{})
+				assert.True(t, ok, "headers should be present")
+				assert.Contains(t, headers, "List-Unsubscribe")
+				assert.Contains(t, headers, "List-Unsubscribe-Post")
+
+				// Verify attachment
+				attachments, ok := content["attachments"].([]interface{})
+				assert.True(t, ok, "attachments should be present")
+				assert.Len(t, attachments, 1)
+
+				return mockHTTPResponse(http.StatusOK, `{"results":{"id":"test-id"}}`), nil
+			})
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   "workspace-123",
+			IntegrationID: "integration-123",
+			MessageID:     "message-123",
+			FromAddress:   "sender@example.com",
+			FromName:      "Test Sender",
+			To:            "recipient@example.com",
+			Subject:       "Test Subject",
+			Content:       "<p>Test Content</p>",
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "test.txt",
+						Content:     "SGVsbG8gV29ybGQ=", // base64 of "Hello World"
+						ContentType: "text/plain",
+						Disposition: "attachment",
+					},
+				},
+				ListUnsubscribeURL: "https://example.com/unsubscribe/xyz789",
+			},
+		}
+		err := sparkPostService.SendEmail(ctx, request)
+
+		assert.NoError(t, err)
+	})
 }
 
 // Test additional edge cases for better coverage

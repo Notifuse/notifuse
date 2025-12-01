@@ -39,6 +39,7 @@ type DemoService struct {
 	webhookEventRepo                 domain.WebhookEventRepository
 	broadcastRepo                    domain.BroadcastRepository
 	customEventRepo                  domain.CustomEventRepository
+	webhookSubscriptionService       *WebhookSubscriptionService
 }
 
 // Sample data arrays for contact generation
@@ -113,6 +114,7 @@ func NewDemoService(
 	webhookEventRepo domain.WebhookEventRepository,
 	broadcastRepo domain.BroadcastRepository,
 	customEventRepo domain.CustomEventRepository,
+	webhookSubscriptionService *WebhookSubscriptionService,
 ) *DemoService {
 	return &DemoService{
 		logger:                           logger,
@@ -138,6 +140,7 @@ func NewDemoService(
 		webhookEventRepo:                 webhookEventRepo,
 		broadcastRepo:                    broadcastRepo,
 		customEventRepo:                  customEventRepo,
+		webhookSubscriptionService:       webhookSubscriptionService,
 	}
 }
 
@@ -249,6 +252,23 @@ func (s *DemoService) createDemoWorkspace(ctx context.Context) error {
 	}
 
 	s.logger.WithField("workspace_id", workspace.ID).Info("Demo workspace created successfully")
+
+	// Create webhook subscription to generate webhook deliveries for demo data
+	// Must be created BEFORE sample data so DB triggers can fire
+	_, err = s.webhookSubscriptionService.Create(
+		authenticatedCtx,
+		workspace.ID,
+		"Demo Webhook",
+		"https://webhook.site/demo",
+		domain.WebhookEventTypes, // Subscribe to all event types
+		nil,
+	)
+	if err != nil {
+		s.logger.WithField("workspace_id", workspace.ID).WithField("error", err.Error()).Warn("Failed to create demo webhook subscription")
+		// Non-fatal - continue with demo setup
+	} else {
+		s.logger.WithField("workspace_id", workspace.ID).Info("Demo webhook subscription created")
+	}
 
 	// Create SMTP integration for demo emails
 	if err := s.createDemoSMTPIntegration(authenticatedCtx, workspace.ID); err != nil {

@@ -7,7 +7,7 @@ This directory contains the integration testing framework for the Notifuse API, 
 ```
 tests/
 ├── README.md                    # This file
-├── compose.test.yaml            # Test infrastructure (PostgreSQL, MailHog)
+├── compose.test.yaml            # Test infrastructure (PostgreSQL, Mailpit)
 ├── testdata/                    # Test data and fixtures
 │   └── certs/                   # Test TLS certificates
 │       ├── test_cert.pem        # Self-signed certificate for localhost
@@ -100,24 +100,31 @@ The test database includes several optimizations:
 - **Password**: test_password
 - **Database**: Created dynamically per test
 
-### Email Testing (MailHog)
+### Email Testing (Mailpit)
 
 - **SMTP**: localhost:1025
 - **Web UI**: http://localhost:8025
 
-The integration tests now include proper SMTP email provider configuration using MailHog for testing email functionality. This eliminates the need to skip email-related tests and provides comprehensive testing of broadcast sending, scheduling, and A/B testing features.
+The integration tests now include proper SMTP email provider configuration using Mailpit for testing email functionality. This eliminates the need to skip email-related tests and provides comprehensive testing of broadcast sending, scheduling, and A/B testing features.
 
-#### MailHog Configuration in Tests
+Mailpit is an actively maintained email testing tool that replaced the deprecated MailHog. It provides:
+- Better RFC 5322 compliance (properly handles folded headers)
+- Active maintenance and security updates
+- Same ports as MailHog for drop-in compatibility
+- Improved API (v1 with better JSON structure)
 
-The test suite automatically configures a MailHog SMTP provider for each workspace:
+#### Mailpit Configuration in Tests
+
+The test suite automatically configures a Mailpit SMTP provider for each workspace:
 
 - **Host**: localhost
 - **Port**: 1025 (SMTP)
-- **Authentication**: None (MailHog doesn't require auth)
+- **Web UI Port**: 8025
+- **Authentication**: None (Mailpit doesn't require auth)
 - **TLS**: Disabled (for local testing)
 - **Default Sender**: noreply@notifuse.test
 
-You can view sent emails by accessing the MailHog web UI at http://localhost:8025 during test execution.
+You can view sent emails by accessing the Mailpit web UI at http://localhost:8025 during test execution.
 
 ## Test Components
 

@@ -39,19 +39,19 @@ func (h *WebhookSubscriptionHandler) RegisterRoutes(mux *http.ServeMux) {
 	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)
 	requireAuth := authMiddleware.RequireAuth()
 
-	mux.Handle("/api/webhook_subscription.create", requireAuth(http.HandlerFunc(h.handleCreate)))
-	mux.Handle("/api/webhook_subscription.list", requireAuth(http.HandlerFunc(h.handleList)))
-	mux.Handle("/api/webhook_subscription.get", requireAuth(http.HandlerFunc(h.handleGet)))
-	mux.Handle("/api/webhook_subscription.update", requireAuth(http.HandlerFunc(h.handleUpdate)))
-	mux.Handle("/api/webhook_subscription.delete", requireAuth(http.HandlerFunc(h.handleDelete)))
-	mux.Handle("/api/webhook_subscription.toggle", requireAuth(http.HandlerFunc(h.handleToggle)))
-	mux.Handle("/api/webhook_subscription.regenerate_secret", requireAuth(http.HandlerFunc(h.handleRegenerateSecret)))
-	mux.Handle("/api/webhook_subscription.deliveries", requireAuth(http.HandlerFunc(h.handleGetDeliveries)))
-	mux.Handle("/api/webhook_subscription.test", requireAuth(http.HandlerFunc(h.handleTest)))
-	mux.Handle("/api/webhook_subscription.event_types", requireAuth(http.HandlerFunc(h.handleGetEventTypes)))
+	mux.Handle("/api/webhookSubscriptions.create", requireAuth(http.HandlerFunc(h.handleCreate)))
+	mux.Handle("/api/webhookSubscriptions.list", requireAuth(http.HandlerFunc(h.handleList)))
+	mux.Handle("/api/webhookSubscriptions.get", requireAuth(http.HandlerFunc(h.handleGet)))
+	mux.Handle("/api/webhookSubscriptions.update", requireAuth(http.HandlerFunc(h.handleUpdate)))
+	mux.Handle("/api/webhookSubscriptions.delete", requireAuth(http.HandlerFunc(h.handleDelete)))
+	mux.Handle("/api/webhookSubscriptions.toggle", requireAuth(http.HandlerFunc(h.handleToggle)))
+	mux.Handle("/api/webhookSubscriptions.regenerateSecret", requireAuth(http.HandlerFunc(h.handleRegenerateSecret)))
+	mux.Handle("/api/webhookSubscriptions.deliveries", requireAuth(http.HandlerFunc(h.handleGetDeliveries)))
+	mux.Handle("/api/webhookSubscriptions.test", requireAuth(http.HandlerFunc(h.handleTest)))
+	mux.Handle("/api/webhookSubscriptions.eventTypes", requireAuth(http.HandlerFunc(h.handleGetEventTypes)))
 }
 
-// handleCreate handles POST /api/webhook_subscription.create
+// handleCreate handles POST /api/webhookSubscriptions.create
 func (h *WebhookSubscriptionHandler) handleCreate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -59,12 +59,11 @@ func (h *WebhookSubscriptionHandler) handleCreate(w http.ResponseWriter, r *http
 	}
 
 	var req struct {
-		WorkspaceID        string                      `json:"workspace_id"`
-		Name               string                      `json:"name"`
-		URL                string                      `json:"url"`
-		Description        string                      `json:"description"`
-		EventTypes         []string                    `json:"event_types"`
-		CustomEventFilters *domain.CustomEventFilters  `json:"custom_event_filters,omitempty"`
+		WorkspaceID        string                     `json:"workspace_id"`
+		Name               string                     `json:"name"`
+		URL                string                     `json:"url"`
+		EventTypes         []string                   `json:"event_types"`
+		CustomEventFilters *domain.CustomEventFilters `json:"custom_event_filters,omitempty"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -77,7 +76,7 @@ func (h *WebhookSubscriptionHandler) handleCreate(w http.ResponseWriter, r *http
 		return
 	}
 
-	sub, err := h.service.Create(r.Context(), req.WorkspaceID, req.Name, req.URL, req.Description, req.EventTypes, req.CustomEventFilters)
+	sub, err := h.service.Create(r.Context(), req.WorkspaceID, req.Name, req.URL, req.EventTypes, req.CustomEventFilters)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create webhook subscription")
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
@@ -89,7 +88,7 @@ func (h *WebhookSubscriptionHandler) handleCreate(w http.ResponseWriter, r *http
 	})
 }
 
-// handleList handles GET /api/webhook_subscription.list
+// handleList handles GET /api/webhookSubscriptions.list
 func (h *WebhookSubscriptionHandler) handleList(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -114,7 +113,7 @@ func (h *WebhookSubscriptionHandler) handleList(w http.ResponseWriter, r *http.R
 	})
 }
 
-// handleGet handles GET /api/webhook_subscription.get
+// handleGet handles GET /api/webhookSubscriptions.get
 func (h *WebhookSubscriptionHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -145,7 +144,7 @@ func (h *WebhookSubscriptionHandler) handleGet(w http.ResponseWriter, r *http.Re
 	})
 }
 
-// handleUpdate handles POST /api/webhook_subscription.update
+// handleUpdate handles POST /api/webhookSubscriptions.update
 func (h *WebhookSubscriptionHandler) handleUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -153,14 +152,13 @@ func (h *WebhookSubscriptionHandler) handleUpdate(w http.ResponseWriter, r *http
 	}
 
 	var req struct {
-		WorkspaceID        string                      `json:"workspace_id"`
-		ID                 string                      `json:"id"`
-		Name               string                      `json:"name"`
-		URL                string                      `json:"url"`
-		Description        string                      `json:"description"`
-		EventTypes         []string                    `json:"event_types"`
-		CustomEventFilters *domain.CustomEventFilters  `json:"custom_event_filters,omitempty"`
-		Enabled            bool                        `json:"enabled"`
+		WorkspaceID        string                     `json:"workspace_id"`
+		ID                 string                     `json:"id"`
+		Name               string                     `json:"name"`
+		URL                string                     `json:"url"`
+		EventTypes         []string                   `json:"event_types"`
+		CustomEventFilters *domain.CustomEventFilters `json:"custom_event_filters,omitempty"`
+		Enabled            bool                       `json:"enabled"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -177,7 +175,7 @@ func (h *WebhookSubscriptionHandler) handleUpdate(w http.ResponseWriter, r *http
 		return
 	}
 
-	sub, err := h.service.Update(r.Context(), req.WorkspaceID, req.ID, req.Name, req.URL, req.Description, req.EventTypes, req.CustomEventFilters, req.Enabled)
+	sub, err := h.service.Update(r.Context(), req.WorkspaceID, req.ID, req.Name, req.URL, req.EventTypes, req.CustomEventFilters, req.Enabled)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update webhook subscription")
 		WriteJSONError(w, err.Error(), http.StatusBadRequest)
@@ -189,7 +187,7 @@ func (h *WebhookSubscriptionHandler) handleUpdate(w http.ResponseWriter, r *http
 	})
 }
 
-// handleDelete handles POST /api/webhook_subscription.delete
+// handleDelete handles POST /api/webhookSubscriptions.delete
 func (h *WebhookSubscriptionHandler) handleDelete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -226,7 +224,7 @@ func (h *WebhookSubscriptionHandler) handleDelete(w http.ResponseWriter, r *http
 	})
 }
 
-// handleToggle handles POST /api/webhook_subscription.toggle
+// handleToggle handles POST /api/webhookSubscriptions.toggle
 func (h *WebhookSubscriptionHandler) handleToggle(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -265,7 +263,7 @@ func (h *WebhookSubscriptionHandler) handleToggle(w http.ResponseWriter, r *http
 	})
 }
 
-// handleRegenerateSecret handles POST /api/webhook_subscription.regenerate_secret
+// handleRegenerateSecret handles POST /api/webhookSubscriptions.regenerateSecret
 func (h *WebhookSubscriptionHandler) handleRegenerateSecret(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -303,7 +301,7 @@ func (h *WebhookSubscriptionHandler) handleRegenerateSecret(w http.ResponseWrite
 	})
 }
 
-// handleGetDeliveries handles GET /api/webhook_subscription.deliveries
+// handleGetDeliveries handles GET /api/webhookSubscriptions.deliveries
 func (h *WebhookSubscriptionHandler) handleGetDeliveries(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -317,9 +315,11 @@ func (h *WebhookSubscriptionHandler) handleGetDeliveries(w http.ResponseWriter, 
 		WriteJSONError(w, "workspace_id is required", http.StatusBadRequest)
 		return
 	}
-	if subscriptionID == "" {
-		WriteJSONError(w, "subscription_id is required", http.StatusBadRequest)
-		return
+
+	// subscription_id is optional - if not provided, returns all deliveries
+	var subscriptionIDPtr *string
+	if subscriptionID != "" {
+		subscriptionIDPtr = &subscriptionID
 	}
 
 	limit := 20
@@ -337,7 +337,7 @@ func (h *WebhookSubscriptionHandler) handleGetDeliveries(w http.ResponseWriter, 
 		}
 	}
 
-	deliveries, total, err := h.service.GetDeliveries(r.Context(), workspaceID, subscriptionID, limit, offset)
+	deliveries, total, err := h.service.GetDeliveries(r.Context(), workspaceID, subscriptionIDPtr, limit, offset)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get webhook deliveries")
 		WriteJSONError(w, "Failed to get webhook deliveries", http.StatusInternalServerError)
@@ -352,7 +352,7 @@ func (h *WebhookSubscriptionHandler) handleGetDeliveries(w http.ResponseWriter, 
 	})
 }
 
-// handleTest handles POST /api/webhook_subscription.test
+// handleTest handles POST /api/webhookSubscriptions.test
 func (h *WebhookSubscriptionHandler) handleTest(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -362,6 +362,7 @@ func (h *WebhookSubscriptionHandler) handleTest(w http.ResponseWriter, r *http.R
 	var req struct {
 		WorkspaceID string `json:"workspace_id"`
 		ID          string `json:"id"`
+		EventType   string `json:"event_type"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -386,8 +387,8 @@ func (h *WebhookSubscriptionHandler) handleTest(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	// Send test webhook
-	statusCode, responseBody, err := h.worker.SendTestWebhook(r.Context(), req.WorkspaceID, sub)
+	// Send test webhook with event type
+	statusCode, responseBody, err := h.worker.SendTestWebhook(r.Context(), req.WorkspaceID, sub, req.EventType)
 	if err != nil {
 		writeJSON(w, http.StatusOK, map[string]interface{}{
 			"success":       false,
@@ -407,7 +408,7 @@ func (h *WebhookSubscriptionHandler) handleTest(w http.ResponseWriter, r *http.R
 	})
 }
 
-// handleGetEventTypes handles GET /api/webhook_subscription.event_types
+// handleGetEventTypes handles GET /api/webhookSubscriptions.eventTypes
 func (h *WebhookSubscriptionHandler) handleGetEventTypes(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)

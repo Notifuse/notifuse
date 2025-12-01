@@ -135,9 +135,9 @@ test-integration-health:
 	@echo "Checking test infrastructure health..."
 	@echo "Checking PostgreSQL..."
 	@timeout 5s bash -c 'until nc -z localhost 5433; do sleep 1; done' && echo "✅ PostgreSQL is ready" || echo "❌ PostgreSQL is not ready"
-	@echo "Checking MailHog..."
-	@timeout 5s bash -c 'until nc -z localhost 1025; do sleep 1; done' && echo "✅ MailHog SMTP is ready" || echo "❌ MailHog SMTP is not ready"
-	@timeout 5s bash -c 'until nc -z localhost 8025; do sleep 1; done' && echo "✅ MailHog Web UI is ready" || echo "❌ MailHog Web UI is not ready"
+	@echo "Checking Mailpit..."
+	@timeout 5s bash -c 'until nc -z localhost 1025; do sleep 1; done' && echo "✅ Mailpit SMTP is ready" || echo "❌ Mailpit SMTP is not ready"
+	@timeout 5s bash -c 'until nc -z localhost 8025; do sleep 1; done' && echo "✅ Mailpit Web UI is ready" || echo "❌ Mailpit Web UI is not ready"
 
 # View test infrastructure logs
 test-integration-logs:

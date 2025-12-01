@@ -1,13 +1,15 @@
 import { Typography, Tabs } from 'antd'
-import { useParams } from '@tanstack/react-router'
+import { useParams, useSearch } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { MessageHistoryTab } from '../components/messages/MessageHistoryTab'
 import { WebhookEventsTab } from '../components/webhooks/WebhookEventsTab'
+import { OutgoingWebhooksTab } from '../components/webhooks/OutgoingWebhooksTab'
 
 const { Text } = Typography
 
 export function LogsPage() {
   const { workspaceId } = useParams({ strict: false })
+  const search = useSearch({ strict: false }) as { tab?: string }
   const queryClient = useQueryClient()
 
   if (!workspaceId) {
@@ -26,7 +28,7 @@ export function LogsPage() {
       </div>
 
       <Tabs
-        defaultActiveKey="messages"
+        defaultActiveKey={search.tab || 'messages'}
         items={[
           {
             key: 'messages',
@@ -34,11 +36,16 @@ export function LogsPage() {
             children: <MessageHistoryTab workspaceId={workspaceId} />
           },
           {
-            key: 'webhooks',
-            label: 'Webhooks',
+            key: 'incoming-webhooks',
+            label: 'Incoming Webhooks',
             children: (
               <WebhookEventsTab workspaceId={workspaceId} onRefresh={handleRefreshWebhookEvents} />
             )
+          },
+          {
+            key: 'outgoing-webhooks',
+            label: 'Outgoing Webhooks',
+            children: <OutgoingWebhooksTab workspaceId={workspaceId} />
           }
         ]}
       />

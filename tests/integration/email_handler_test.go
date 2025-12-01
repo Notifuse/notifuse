@@ -269,8 +269,8 @@ func testEmailHandlerTestProvider(t *testing.T, suite *testutil.IntegrationTestS
 				},
 				SMTP: &domain.SMTPSettings{
 					Host:     "localhost",
-					Port:     1025, // MailHog port
-					Username: "",   // No auth for MailHog
+					Port:     1025, // Mailpit port
+					Username: "",   // No auth for Mailpit
 					Password: "",
 					UseTLS:   false,
 				},

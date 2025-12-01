@@ -800,6 +800,14 @@ func (a *App) InitServices() error {
 	)
 	a.taskService.RegisterProcessor(contactSegmentQueueTaskProcessor)
 
+	// Initialize webhook subscription service (before demo service so it can create subscriptions)
+	a.webhookSubscriptionService = service.NewWebhookSubscriptionService(
+		a.webhookSubscriptionRepo,
+		a.webhookDeliveryRepo,
+		a.authService,
+		a.logger,
+	)
+
 	// Initialize demo service
 	a.demoService = service.NewDemoService(
 		a.logger,
@@ -825,6 +833,7 @@ func (a *App) InitServices() error {
 		a.webhookEventRepo,
 		a.broadcastRepo,
 		a.customEventRepo,
+		a.webhookSubscriptionService,
 	)
 
 	// Initialize telemetry service
@@ -854,14 +863,6 @@ func (a *App) InitServices() error {
 		a.logger,
 		a.config.TaskScheduler.Interval,
 		a.config.TaskScheduler.MaxTasks,
-	)
-
-	// Initialize webhook subscription service
-	a.webhookSubscriptionService = service.NewWebhookSubscriptionService(
-		a.webhookSubscriptionRepo,
-		a.webhookDeliveryRepo,
-		a.authService,
-		a.logger,
 	)
 
 	// Initialize webhook delivery worker
@@ -1164,7 +1165,8 @@ func (a *App) Start() error {
 	}
 
 	// Start webhook delivery worker (with 30 second delay like task scheduler)
-	if a.webhookDeliveryWorker != nil {
+	// Disabled in demo mode to prevent sending webhooks to external endpoints
+	if a.webhookDeliveryWorker != nil && !a.config.IsDemo() {
 		go func() {
 			a.logger.Info("Webhook delivery worker will start in 30 seconds...")
 

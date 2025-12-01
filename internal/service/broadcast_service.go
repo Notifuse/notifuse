@@ -870,7 +870,7 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		WorkspaceSecretKey: workspace.Settings.SecretKey,
 		ContactWithList: domain.ContactWithList{
 			Contact:  contact,
-			ListID:   "",
+			ListID:   broadcast.Audience.List, // Use list from broadcast audience for unsubscribe URL
 			ListName: "",
 		},
 		MessageID:        messageID,
@@ -927,6 +927,11 @@ func (s *BroadcastService) SendToIndividual(ctx context.Context, request *domain
 		EmailOptions: domain.EmailOptions{
 			ReplyTo: template.Email.ReplyTo,
 		},
+	}
+
+	// Extract List-Unsubscribe URL from template data for RFC-8058 compliance
+	if unsubscribeURL, ok := templateData["oneclick_unsubscribe_url"].(string); ok && unsubscribeURL != "" {
+		emailRequest.EmailOptions.ListUnsubscribeURL = unsubscribeURL
 	}
 
 	// Send the email

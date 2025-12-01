@@ -111,6 +111,10 @@ EmailTemplate:
       example:
         type: mjml
         children: []
+    text:
+      type: string
+      nullable: true
+      description: Plain text version of the email
   required:
     - subject
     - compiled_preview

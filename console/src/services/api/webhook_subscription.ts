@@ -1,8 +1,13 @@
 import { api } from './client'
 
 export interface CustomEventFilters {
-  goal_type?: string
+  goal_types?: string[]
   event_names?: string[]
+}
+
+export interface WebhookSubscriptionSettings {
+  event_types: string[]
+  custom_event_filters?: CustomEventFilters
 }
 
 export interface WebhookSubscription {
@@ -10,12 +15,11 @@ export interface WebhookSubscription {
   name: string
   url: string
   secret: string
-  event_types: string[]
+  settings: WebhookSubscriptionSettings
+  // Flattened from settings by backend MarshalJSON
+  event_types?: string[]
   custom_event_filters?: CustomEventFilters
   enabled: boolean
-  description: string
-  success_count: number
-  failure_count: number
   last_delivery_at?: string
   created_at: string
   updated_at: string
@@ -42,7 +46,6 @@ export interface CreateWebhookSubscriptionRequest {
   workspace_id: string
   name: string
   url: string
-  description?: string
   event_types: string[]
   custom_event_filters?: CustomEventFilters
 }
@@ -52,7 +55,6 @@ export interface UpdateWebhookSubscriptionRequest {
   id: string
   name: string
   url: string
-  description?: string
   event_types: string[]
   custom_event_filters?: CustomEventFilters
   enabled: boolean
@@ -82,14 +84,14 @@ export const webhookSubscriptionApi = {
   create: async (
     params: CreateWebhookSubscriptionRequest
   ): Promise<{ subscription: WebhookSubscription }> => {
-    return api.post('/api/webhook_subscription.create', params)
+    return api.post('/api/webhookSubscriptions.create', params)
   },
 
   list: async (workspaceId: string): Promise<{ subscriptions: WebhookSubscription[] }> => {
     const searchParams = new URLSearchParams()
     searchParams.append('workspace_id', workspaceId)
     return api.get<{ subscriptions: WebhookSubscription[] }>(
-      `/api/webhook_subscription.list?${searchParams.toString()}`
+      `/api/webhookSubscriptions.list?${searchParams.toString()}`
     )
   },
 
@@ -101,18 +103,18 @@ export const webhookSubscriptionApi = {
     searchParams.append('workspace_id', workspaceId)
     searchParams.append('id', id)
     return api.get<{ subscription: WebhookSubscription }>(
-      `/api/webhook_subscription.get?${searchParams.toString()}`
+      `/api/webhookSubscriptions.get?${searchParams.toString()}`
     )
   },
 
   update: async (
     params: UpdateWebhookSubscriptionRequest
   ): Promise<{ subscription: WebhookSubscription }> => {
-    return api.post('/api/webhook_subscription.update', params)
+    return api.post('/api/webhookSubscriptions.update', params)
   },
 
   delete: async (workspaceId: string, id: string): Promise<{ success: boolean }> => {
-    return api.post('/api/webhook_subscription.delete', {
+    return api.post('/api/webhookSubscriptions.delete', {
       workspace_id: workspaceId,
       id
     })
@@ -121,14 +123,14 @@ export const webhookSubscriptionApi = {
   toggle: async (
     params: ToggleWebhookSubscriptionRequest
   ): Promise<{ subscription: WebhookSubscription }> => {
-    return api.post('/api/webhook_subscription.toggle', params)
+    return api.post('/api/webhookSubscriptions.toggle', params)
   },
 
   regenerateSecret: async (
     workspaceId: string,
     id: string
   ): Promise<{ subscription: WebhookSubscription }> => {
-    return api.post('/api/webhook_subscription.regenerate_secret', {
+    return api.post('/api/webhookSubscriptions.regenerateSecret', {
       workspace_id: workspaceId,
       id
     })
@@ -136,28 +138,33 @@ export const webhookSubscriptionApi = {
 
   getDeliveries: async (
     workspaceId: string,
-    subscriptionId: string,
+    subscriptionId?: string,
     limit?: number,
     offset?: number
   ): Promise<GetDeliveriesResponse> => {
     const searchParams = new URLSearchParams()
     searchParams.append('workspace_id', workspaceId)
-    searchParams.append('subscription_id', subscriptionId)
+    if (subscriptionId) searchParams.append('subscription_id', subscriptionId)
     if (limit !== undefined) searchParams.append('limit', limit.toString())
     if (offset !== undefined) searchParams.append('offset', offset.toString())
     return api.get<GetDeliveriesResponse>(
-      `/api/webhook_subscription.deliveries?${searchParams.toString()}`
+      `/api/webhookSubscriptions.deliveries?${searchParams.toString()}`
     )
   },
 
-  test: async (workspaceId: string, id: string): Promise<TestWebhookResponse> => {
-    return api.post('/api/webhook_subscription.test', {
+  test: async (
+    workspaceId: string,
+    id: string,
+    eventType: string
+  ): Promise<TestWebhookResponse> => {
+    return api.post('/api/webhookSubscriptions.test', {
       workspace_id: workspaceId,
-      id
+      id,
+      event_type: eventType
     })
   },
 
   getEventTypes: async (): Promise<{ event_types: string[] }> => {
-    return api.get<{ event_types: string[] }>('/api/webhook_subscription.event_types')
+    return api.get<{ event_types: string[] }>('/api/webhookSubscriptions.eventTypes')
   }
 }

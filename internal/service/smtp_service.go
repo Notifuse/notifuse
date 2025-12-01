@@ -142,6 +142,12 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 	// Add message ID tracking header
 	msg.SetGenHeader("X-Message-ID", request.MessageID)
 
+	// Add RFC-8058 List-Unsubscribe headers for one-click unsubscribe
+	if request.EmailOptions.ListUnsubscribeURL != "" {
+		msg.SetGenHeader("List-Unsubscribe", fmt.Sprintf("<%s>", request.EmailOptions.ListUnsubscribeURL))
+		msg.SetGenHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click")
+	}
+
 	// Remove User-Agent and X-Mailer headers
 	// msg.SetUserAgent("")
 

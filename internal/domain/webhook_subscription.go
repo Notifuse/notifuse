@@ -5,24 +5,42 @@ package domain
 
 import (
 	"context"
+	"encoding/json"
 	"time"
 )
 
-// WebhookSubscription represents an outgoing webhook subscription configuration
-type WebhookSubscription struct {
-	ID                 string              `json:"id"`
-	Name               string              `json:"name"`
-	URL                string              `json:"url"`
-	Secret             string              `json:"secret"`
+// WebhookSubscriptionSettings contains event subscription configuration
+type WebhookSubscriptionSettings struct {
 	EventTypes         []string            `json:"event_types"`
 	CustomEventFilters *CustomEventFilters `json:"custom_event_filters,omitempty"`
-	Enabled            bool                `json:"enabled"`
-	Description        string              `json:"description,omitempty"`
-	LastDeliveryAt     *time.Time          `json:"last_delivery_at,omitempty"`
-	SuccessCount       int64               `json:"success_count"`
-	FailureCount       int64               `json:"failure_count"`
-	CreatedAt          time.Time           `json:"created_at"`
-	UpdatedAt          time.Time           `json:"updated_at"`
+}
+
+// WebhookSubscription represents an outgoing webhook subscription configuration
+type WebhookSubscription struct {
+	ID             string                      `json:"id"`
+	Name           string                      `json:"name"`
+	URL            string                      `json:"url"`
+	Secret         string                      `json:"secret"`
+	Settings       WebhookSubscriptionSettings `json:"settings"`
+	Enabled        bool                        `json:"enabled"`
+	LastDeliveryAt *time.Time                  `json:"last_delivery_at,omitempty"`
+	CreatedAt      time.Time                   `json:"created_at"`
+	UpdatedAt      time.Time                   `json:"updated_at"`
+}
+
+// MarshalJSON implements custom JSON marshaling to flatten settings into top-level fields
+// This maintains backward-compatible API responses while using nested internal structure
+func (w WebhookSubscription) MarshalJSON() ([]byte, error) {
+	type Alias WebhookSubscription
+	return json.Marshal(&struct {
+		Alias
+		EventTypes         []string            `json:"event_types"`
+		CustomEventFilters *CustomEventFilters `json:"custom_event_filters,omitempty"`
+	}{
+		Alias:              Alias(w),
+		EventTypes:         w.Settings.EventTypes,
+		CustomEventFilters: w.Settings.CustomEventFilters,
+	})
 }
 
 // CustomEventFilters defines filters for custom event subscriptions
@@ -96,19 +114,19 @@ type WebhookSubscriptionRepository interface {
 	List(ctx context.Context, workspaceID string) ([]*WebhookSubscription, error)
 	Update(ctx context.Context, workspaceID string, sub *WebhookSubscription) error
 	Delete(ctx context.Context, workspaceID, id string) error
-	IncrementStats(ctx context.Context, workspaceID, id string, success bool) error
 	UpdateLastDeliveryAt(ctx context.Context, workspaceID, id string, deliveredAt time.Time) error
 }
 
 // WebhookDeliveryRepository defines the interface for webhook delivery data access
 type WebhookDeliveryRepository interface {
 	GetPendingForWorkspace(ctx context.Context, workspaceID string, limit int) ([]*WebhookDelivery, error)
-	ListBySubscription(ctx context.Context, workspaceID, subscriptionID string, limit, offset int) ([]*WebhookDelivery, int, error)
+	ListAll(ctx context.Context, workspaceID string, subscriptionID *string, limit, offset int) ([]*WebhookDelivery, int, error)
 	UpdateStatus(ctx context.Context, workspaceID, id string, status string, attempts int, responseStatus *int, responseBody, lastError *string) error
 	MarkDelivered(ctx context.Context, workspaceID, id string, responseStatus int, responseBody string) error
 	ScheduleRetry(ctx context.Context, workspaceID, id string, nextAttempt time.Time, attempts int, responseStatus *int, responseBody, lastError *string) error
 	MarkFailed(ctx context.Context, workspaceID, id string, attempts int, lastError string, responseStatus *int, responseBody *string) error
 	Create(ctx context.Context, workspaceID string, delivery *WebhookDelivery) error
+	CleanupOldDeliveries(ctx context.Context, workspaceID string, retentionDays int) (int64, error)
 }
 
 // WebhookDeliveryWithSubscription contains a delivery with its associated subscription

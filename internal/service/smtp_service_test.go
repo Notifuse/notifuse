@@ -1712,4 +1712,96 @@ func TestSMTPService_SendEmail_WithAttachments(t *testing.T) {
 		require.Error(t, err)
 		// Empty content will decode successfully (to empty bytes) but may fail at send stage
 	})
+
+	t.Run("with RFC-8058 List-Unsubscribe headers", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		unsubscribeURL := "https://api.example.com/unsubscribe-oneclick?email=test@example.com&wid=ws1&mid=msg1"
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				ListUnsubscribeURL: unsubscribeURL,
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DialAndSend stage, but message composition with List-Unsubscribe headers should succeed
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to send email")
+	})
+
+	t.Run("with List-Unsubscribe and other options", func(t *testing.T) {
+		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+		realFactory := &defaultGoMailFactory{}
+		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
+
+		mockFactory.EXPECT().CreateClient(
+			validProvider.SMTP.Host,
+			validProvider.SMTP.Port,
+			validProvider.SMTP.Username,
+			validProvider.SMTP.Password,
+			validProvider.SMTP.UseTLS,
+		).Return(mockClient, nil)
+
+		service := &SMTPService{
+			logger:        mockLogger,
+			clientFactory: mockFactory,
+		}
+
+		unsubscribeURL := "https://api.example.com/unsubscribe-oneclick?email=test@example.com&wid=ws1&mid=msg1"
+		attachment := domain.Attachment{
+			Filename:    "document.pdf",
+			Content:     "VGVzdCBmaWxlIGNvbnRlbnQ=", // "Test file content" in base64
+			ContentType: "application/pdf",
+			Disposition: "attachment",
+		}
+
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      validProvider,
+			EmailOptions: domain.EmailOptions{
+				CC:                 []string{"cc@example.com"},
+				BCC:                []string{"bcc@example.com"},
+				ReplyTo:            "reply@example.com",
+				Attachments:        []domain.Attachment{attachment},
+				ListUnsubscribeURL: unsubscribeURL,
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Should fail at DialAndSend stage, but all processing including List-Unsubscribe should succeed
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to send email")
+	})
 }

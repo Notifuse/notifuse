@@ -24,7 +24,7 @@ type testWebhookSubscriptionService struct {
 	deleteFunc            func(ctx context.Context, workspaceID, id string) error
 	toggleFunc            func(ctx context.Context, workspaceID, id string, enabled bool) (*domain.WebhookSubscription, error)
 	regenerateSecretFunc  func(ctx context.Context, workspaceID, id string) (*domain.WebhookSubscription, error)
-	getDeliveriesFunc     func(ctx context.Context, workspaceID, subscriptionID string, limit, offset int) ([]*domain.WebhookDelivery, int, error)
+	getDeliveriesFunc     func(ctx context.Context, workspaceID string, subscriptionID *string, limit, offset int) ([]*domain.WebhookDelivery, int, error)
 	getEventTypesFunc     func() []string
 }
 
@@ -77,7 +77,7 @@ func (s *testWebhookSubscriptionService) RegenerateSecret(ctx context.Context, w
 	return nil, errors.New("not implemented")
 }
 
-func (s *testWebhookSubscriptionService) GetDeliveries(ctx context.Context, workspaceID, subscriptionID string, limit, offset int) ([]*domain.WebhookDelivery, int, error) {
+func (s *testWebhookSubscriptionService) GetDeliveries(ctx context.Context, workspaceID string, subscriptionID *string, limit, offset int) ([]*domain.WebhookDelivery, int, error) {
 	if s.getDeliveriesFunc != nil {
 		return s.getDeliveriesFunc(ctx, workspaceID, subscriptionID, limit, offset)
 	}
@@ -93,12 +93,12 @@ func (s *testWebhookSubscriptionService) GetEventTypes() []string {
 
 // testWebhookDeliveryWorker is a test double for WebhookDeliveryWorker
 type testWebhookDeliveryWorker struct {
-	sendTestWebhookFunc func(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription) (int, string, error)
+	sendTestWebhookFunc func(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription, eventType string) (int, string, error)
 }
 
-func (w *testWebhookDeliveryWorker) SendTestWebhook(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription) (int, string, error) {
+func (w *testWebhookDeliveryWorker) SendTestWebhook(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription, eventType string) (int, string, error) {
 	if w.sendTestWebhookFunc != nil {
-		return w.sendTestWebhookFunc(ctx, workspaceID, sub)
+		return w.sendTestWebhookFunc(ctx, workspaceID, sub, eventType)
 	}
 	return 0, "", errors.New("not implemented")
 }
@@ -173,7 +173,7 @@ func TestWebhookSubscriptionHandler_HandleCreate_ValidationErrors(t *testing.T) 
 				json.NewEncoder(&reqBody).Encode(tc.reqBody)
 			}
 
-			req := httptest.NewRequest(tc.method, "/api/webhook_subscription.create", &reqBody)
+			req := httptest.NewRequest(tc.method, "/api/webhookSubscriptions.create", &reqBody)
 			rr := httptest.NewRecorder()
 
 			handler.handleCreate(rr, req)
@@ -227,7 +227,7 @@ func TestWebhookSubscriptionHandler_HandleGet_ValidationErrors(t *testing.T) {
 				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
 			}
 
-			req := httptest.NewRequest(tc.method, "/api/webhook_subscription.get?"+tc.queryParams, nil)
+			req := httptest.NewRequest(tc.method, "/api/webhookSubscriptions.get?"+tc.queryParams, nil)
 			rr := httptest.NewRecorder()
 
 			handler.handleGet(rr, req)
@@ -274,7 +274,7 @@ func TestWebhookSubscriptionHandler_HandleList_ValidationErrors(t *testing.T) {
 				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
 			}
 
-			req := httptest.NewRequest(tc.method, "/api/webhook_subscription.list?"+tc.queryParams, nil)
+			req := httptest.NewRequest(tc.method, "/api/webhookSubscriptions.list?"+tc.queryParams, nil)
 			rr := httptest.NewRecorder()
 
 			handler.handleList(rr, req)
@@ -342,7 +342,7 @@ func TestWebhookSubscriptionHandler_HandleUpdate_ValidationErrors(t *testing.T) 
 				json.NewEncoder(&reqBody).Encode(tc.reqBody)
 			}
 
-			req := httptest.NewRequest(tc.method, "/api/webhook_subscription.update", &reqBody)
+			req := httptest.NewRequest(tc.method, "/api/webhookSubscriptions.update", &reqBody)
 			rr := httptest.NewRecorder()
 
 			handler.handleUpdate(rr, req)
@@ -410,7 +410,7 @@ func TestWebhookSubscriptionHandler_HandleDelete_ValidationErrors(t *testing.T) 
 				json.NewEncoder(&reqBody).Encode(tc.reqBody)
 			}
 
-			req := httptest.NewRequest(tc.method, "/api/webhook_subscription.delete", &reqBody)
+			req := httptest.NewRequest(tc.method, "/api/webhookSubscriptions.delete", &reqBody)
 			rr := httptest.NewRecorder()
 
 			handler.handleDelete(rr, req)
@@ -478,7 +478,7 @@ func TestWebhookSubscriptionHandler_HandleToggle_ValidationErrors(t *testing.T) 
 				json.NewEncoder(&reqBody).Encode(tc.reqBody)
 			}
 
-			req := httptest.NewRequest(tc.method, "/api/webhook_subscription.toggle", &reqBody)
+			req := httptest.NewRequest(tc.method, "/api/webhookSubscriptions.toggle", &reqBody)
 			rr := httptest.NewRecorder()
 
 			handler.handleToggle(rr, req)
@@ -546,7 +546,7 @@ func TestWebhookSubscriptionHandler_HandleRegenerateSecret_ValidationErrors(t *t
 				json.NewEncoder(&reqBody).Encode(tc.reqBody)
 			}
 
-			req := httptest.NewRequest(tc.method, "/api/webhook_subscription.regenerate_secret", &reqBody)
+			req := httptest.NewRequest(tc.method, "/api/webhookSubscriptions.regenerateSecret", &reqBody)
 			rr := httptest.NewRecorder()
 
 			handler.handleRegenerateSecret(rr, req)
@@ -582,13 +582,7 @@ func TestWebhookSubscriptionHandler_HandleGetDeliveries_ValidationErrors(t *test
 			expectedStatus: http.StatusBadRequest,
 			expectedError:  "workspace_id is required",
 		},
-		{
-			name:           "Missing Subscription ID",
-			method:         http.MethodGet,
-			queryParams:    "workspace_id=ws123",
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  "subscription_id is required",
-		},
+		// Note: subscription_id is now optional, so "Missing Subscription ID" is no longer an error
 	}
 
 	for _, tc := range testCases {
@@ -600,7 +594,7 @@ func TestWebhookSubscriptionHandler_HandleGetDeliveries_ValidationErrors(t *test
 				getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
 			}
 
-			req := httptest.NewRequest(tc.method, "/api/webhook_subscription.deliveries?"+tc.queryParams, nil)
+			req := httptest.NewRequest(tc.method, "/api/webhookSubscriptions.deliveries?"+tc.queryParams, nil)
 			rr := httptest.NewRecorder()
 
 			handler.handleGetDeliveries(rr, req)
@@ -668,7 +662,7 @@ func TestWebhookSubscriptionHandler_HandleTest_ValidationErrors(t *testing.T) {
 				json.NewEncoder(&reqBody).Encode(tc.reqBody)
 			}
 
-			req := httptest.NewRequest(tc.method, "/api/webhook_subscription.test", &reqBody)
+			req := httptest.NewRequest(tc.method, "/api/webhookSubscriptions.test", &reqBody)
 			rr := httptest.NewRecorder()
 
 			handler.handleTest(rr, req)
@@ -690,7 +684,7 @@ func TestWebhookSubscriptionHandler_HandleGetEventTypes_Success(t *testing.T) {
 		getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
 	}
 
-	req := httptest.NewRequest(http.MethodGet, "/api/webhook_subscription.event_types", nil)
+	req := httptest.NewRequest(http.MethodGet, "/api/webhookSubscriptions.eventTypes", nil)
 	rr := httptest.NewRecorder()
 
 	handler.handleGetEventTypes(rr, req)
@@ -714,7 +708,7 @@ func TestWebhookSubscriptionHandler_HandleGetEventTypes_MethodNotAllowed(t *test
 		getJWTSecret: func() ([]byte, error) { return []byte("test"), nil },
 	}
 
-	req := httptest.NewRequest(http.MethodPost, "/api/webhook_subscription.event_types", nil)
+	req := httptest.NewRequest(http.MethodPost, "/api/webhookSubscriptions.eventTypes", nil)
 	rr := httptest.NewRecorder()
 
 	handler.handleGetEventTypes(rr, req)

@@ -188,6 +188,39 @@ Contact:
           created_at: '2023-01-15T10:30:00Z'
           updated_at: '2023-01-15T10:30:00Z'
           deleted_at: null
+    contact_segments:
+      type: array
+      description: Segments the contact belongs to (only included in GET endpoints)
+      items:
+        $ref: '#/ContactSegment'
+
+ContactSegment:
+  type: object
+  properties:
+    email:
+      type: string
+      format: email
+      description: Email address of the contact
+      example: user@example.com
+    segment_id:
+      type: string
+      description: ID of the segment
+      example: premium_users
+    version:
+      type: integer
+      format: int64
+      description: Version of the segment computation
+      example: 1
+    matched_at:
+      type: string
+      format: date-time
+      description: When the contact was matched to this segment
+      example: '2023-01-15T10:30:00Z'
+    computed_at:
+      type: string
+      format: date-time
+      description: When the segment was last computed
+      example: '2023-01-15T10:30:00Z'
 
 ContactList:
   type: object
@@ -453,8 +486,14 @@ UpsertContactResponse:
       enum:
         - create
         - update
-      description: "The action that was performed: 'create' for new contacts, 'update' for existing contacts"
+        - error
+      description: "The action that was performed: 'create' for new contacts, 'update' for existing contacts, 'error' if validation failed"
       example: create
+    error:
+      type: string
+      nullable: true
+      description: Error message if the operation failed
+      example: null
 
 DeleteContactRequest:
   type: object

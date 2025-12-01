@@ -12,7 +12,6 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/golang/mock/gomock"
-	"github.com/lib/pq"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,33 +40,27 @@ func TestWebhookSubscriptionRepository_Create(t *testing.T) {
 		{
 			name: "Success - with custom event filters",
 			subscription: &domain.WebhookSubscription{
-				ID:                 "sub-1",
-				Name:               "Test Subscription",
-				URL:                "https://example.com/webhook",
-				Secret:             "secret-key",
-				EventTypes:         []string{"email.delivered", "email.bounced"},
-				CustomEventFilters: customFilters,
-				Enabled:            true,
-				Description:        "Test description",
-				SuccessCount:       0,
-				FailureCount:       0,
+				ID:     "sub-1",
+				Name:   "Test Subscription",
+				URL:    "https://example.com/webhook",
+				Secret: "secret-key",
+				Settings: domain.WebhookSubscriptionSettings{
+					EventTypes:         []string{"email.delivered", "email.bounced"},
+					CustomEventFilters: customFilters,
+				},
+				Enabled: true,
 			},
 			setupMock: func(mock *sqlmock.Sqlmock) {
-				customFiltersJSON, _ := json.Marshal(customFilters)
 				(*mock).ExpectExec(`INSERT INTO webhook_subscriptions`).
 					WithArgs(
 						"sub-1",
 						"Test Subscription",
 						"https://example.com/webhook",
 						"secret-key",
-						sqlmock.AnyArg(), // event_types - pq.Array doesn't match well with sqlmock
-						customFiltersJSON,
+						sqlmock.AnyArg(), // settings JSON
 						true,
-						"Test description",
 						sqlmock.AnyArg(), // created_at
 						sqlmock.AnyArg(), // updated_at
-						int64(0),         // success_count
-						int64(0),         // failure_count
 					).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 			},
@@ -76,16 +69,15 @@ func TestWebhookSubscriptionRepository_Create(t *testing.T) {
 		{
 			name: "Success - without custom event filters",
 			subscription: &domain.WebhookSubscription{
-				ID:                 "sub-2",
-				Name:               "Simple Subscription",
-				URL:                "https://example.com/webhook2",
-				Secret:             "secret-key-2",
-				EventTypes:         []string{"email.delivered"},
-				CustomEventFilters: nil,
-				Enabled:            false,
-				Description:        "",
-				SuccessCount:       0,
-				FailureCount:       0,
+				ID:     "sub-2",
+				Name:   "Simple Subscription",
+				URL:    "https://example.com/webhook2",
+				Secret: "secret-key-2",
+				Settings: domain.WebhookSubscriptionSettings{
+					EventTypes:         []string{"email.delivered"},
+					CustomEventFilters: nil,
+				},
+				Enabled: false,
 			},
 			setupMock: func(mock *sqlmock.Sqlmock) {
 				(*mock).ExpectExec(`INSERT INTO webhook_subscriptions`).
@@ -94,14 +86,10 @@ func TestWebhookSubscriptionRepository_Create(t *testing.T) {
 						"Simple Subscription",
 						"https://example.com/webhook2",
 						"secret-key-2",
-						sqlmock.AnyArg(), // event_types - pq.Array doesn't match well with sqlmock
-						sqlmock.AnyArg(), // custom_event_filters can be nil or empty bytes
+						sqlmock.AnyArg(), // settings JSON
 						false,
-						"",
 						sqlmock.AnyArg(),
 						sqlmock.AnyArg(),
-						int64(0),
-						int64(0),
 					).
 					WillReturnResult(sqlmock.NewResult(1, 1))
 			},
@@ -149,12 +137,14 @@ func TestWebhookSubscriptionRepository_Create_Errors(t *testing.T) {
 	workspaceID := "ws-123"
 
 	sub := &domain.WebhookSubscription{
-		ID:         "sub-1",
-		Name:       "Test",
-		URL:        "https://example.com",
-		Secret:     "secret",
-		EventTypes: []string{"email.delivered"},
-		Enabled:    true,
+		ID:     "sub-1",
+		Name:   "Test",
+		URL:    "https://example.com",
+		Secret: "secret",
+		Settings: domain.WebhookSubscriptionSettings{
+			EventTypes: []string{"email.delivered"},
+		},
+		Enabled: true,
 	}
 
 	t.Run("Workspace connection error", func(t *testing.T) {
@@ -199,11 +189,14 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 	now := time.Now().UTC()
 	lastDelivery := now.Add(-1 * time.Hour)
 
-	customFilters := &domain.CustomEventFilters{
-		GoalTypes:  []string{"goal1"},
-		EventNames: []string{"event1"},
+	settings := domain.WebhookSubscriptionSettings{
+		EventTypes: []string{"email.delivered", "email.bounced"},
+		CustomEventFilters: &domain.CustomEventFilters{
+			GoalTypes:  []string{"goal1"},
+			EventNames: []string{"event1"},
+		},
 	}
-	customFiltersJSON, _ := json.Marshal(customFilters)
+	settingsJSON, _ := json.Marshal(settings)
 
 	t.Run("Success - with custom filters and last delivery", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
@@ -215,23 +208,19 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "name", "url", "secret", "event_types", "custom_event_filters",
-			"enabled", "description", "created_at", "updated_at",
-			"last_delivery_at", "success_count", "failure_count",
+			"id", "name", "url", "secret", "settings",
+			"enabled", "created_at", "updated_at",
+			"last_delivery_at",
 		}).AddRow(
 			subscriptionID,
 			"Test Subscription",
 			"https://example.com/webhook",
 			"secret-key",
-			pq.Array([]string{"email.delivered", "email.bounced"}),
-			customFiltersJSON,
+			settingsJSON,
 			true,
-			"Test description",
 			now,
 			now,
 			lastDelivery,
-			int64(10),
-			int64(2),
 		)
 
 		mock.ExpectQuery(`SELECT .+ FROM webhook_subscriptions WHERE id = \$1`).
@@ -245,16 +234,13 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 		assert.Equal(t, "Test Subscription", result.Name)
 		assert.Equal(t, "https://example.com/webhook", result.URL)
 		assert.Equal(t, "secret-key", result.Secret)
-		assert.Equal(t, []string{"email.delivered", "email.bounced"}, result.EventTypes)
-		assert.NotNil(t, result.CustomEventFilters)
-		assert.Equal(t, []string{"goal1"}, result.CustomEventFilters.GoalTypes)
-		assert.Equal(t, []string{"event1"}, result.CustomEventFilters.EventNames)
+		assert.Equal(t, []string{"email.delivered", "email.bounced"}, result.Settings.EventTypes)
+		assert.NotNil(t, result.Settings.CustomEventFilters)
+		assert.Equal(t, []string{"goal1"}, result.Settings.CustomEventFilters.GoalTypes)
+		assert.Equal(t, []string{"event1"}, result.Settings.CustomEventFilters.EventNames)
 		assert.True(t, result.Enabled)
-		assert.Equal(t, "Test description", result.Description)
 		assert.NotNil(t, result.LastDeliveryAt)
 		assert.Equal(t, lastDelivery.Unix(), result.LastDeliveryAt.Unix())
-		assert.Equal(t, int64(10), result.SuccessCount)
-		assert.Equal(t, int64(2), result.FailureCount)
 
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
@@ -268,24 +254,25 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
+		simpleSettings := domain.WebhookSubscriptionSettings{
+			EventTypes: []string{"email.delivered"},
+		}
+		simpleSettingsJSON, _ := json.Marshal(simpleSettings)
+
 		rows := sqlmock.NewRows([]string{
-			"id", "name", "url", "secret", "event_types", "custom_event_filters",
-			"enabled", "description", "created_at", "updated_at",
-			"last_delivery_at", "success_count", "failure_count",
+			"id", "name", "url", "secret", "settings",
+			"enabled", "created_at", "updated_at",
+			"last_delivery_at",
 		}).AddRow(
 			subscriptionID,
 			"Simple Subscription",
 			"https://example.com/webhook",
 			"secret-key",
-			pq.Array([]string{"email.delivered"}),
-			nil, // no custom filters
+			simpleSettingsJSON,
 			false,
-			"",
 			now,
 			now,
 			nil, // no last delivery
-			int64(0),
-			int64(0),
 		)
 
 		mock.ExpectQuery(`SELECT .+ FROM webhook_subscriptions WHERE id = \$1`).
@@ -295,7 +282,7 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 		result, err := repo.GetByID(ctx, workspaceID, subscriptionID)
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
-		assert.Nil(t, result.CustomEventFilters)
+		assert.Nil(t, result.Settings.CustomEventFilters)
 		assert.Nil(t, result.LastDeliveryAt)
 
 		assert.NoError(t, mock.ExpectationsWereMet())
@@ -331,7 +318,7 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to get workspace connection")
 	})
 
-	t.Run("Invalid custom filters JSON", func(t *testing.T) {
+	t.Run("Invalid settings JSON", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
@@ -341,23 +328,19 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "name", "url", "secret", "event_types", "custom_event_filters",
-			"enabled", "description", "created_at", "updated_at",
-			"last_delivery_at", "success_count", "failure_count",
+			"id", "name", "url", "secret", "settings",
+			"enabled", "created_at", "updated_at",
+			"last_delivery_at",
 		}).AddRow(
 			subscriptionID,
 			"Test",
 			"https://example.com",
 			"secret",
-			pq.Array([]string{"email.delivered"}),
 			[]byte("{invalid json}"), // invalid JSON
 			true,
-			"",
 			now,
 			now,
 			nil,
-			int64(0),
-			int64(0),
 		)
 
 		mock.ExpectQuery(`SELECT .+ FROM webhook_subscriptions WHERE id = \$1`).
@@ -367,7 +350,7 @@ func TestWebhookSubscriptionRepository_GetByID(t *testing.T) {
 		result, err := repo.GetByID(ctx, workspaceID, subscriptionID)
 		assert.Error(t, err)
 		assert.Nil(t, result)
-		assert.Contains(t, err.Error(), "failed to unmarshal custom event filters")
+		assert.Contains(t, err.Error(), "failed to unmarshal settings")
 	})
 }
 
@@ -382,10 +365,18 @@ func TestWebhookSubscriptionRepository_List(t *testing.T) {
 	workspaceID := "ws-123"
 	now := time.Now().UTC()
 
-	customFilters := &domain.CustomEventFilters{
-		GoalTypes: []string{"goal1"},
+	settings1 := domain.WebhookSubscriptionSettings{
+		EventTypes: []string{"email.delivered"},
+		CustomEventFilters: &domain.CustomEventFilters{
+			GoalTypes: []string{"goal1"},
+		},
 	}
-	customFiltersJSON, _ := json.Marshal(customFilters)
+	settings1JSON, _ := json.Marshal(settings1)
+
+	settings2 := domain.WebhookSubscriptionSettings{
+		EventTypes: []string{"email.bounced"},
+	}
+	settings2JSON, _ := json.Marshal(settings2)
 
 	t.Run("Success - multiple subscriptions", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
@@ -397,39 +388,31 @@ func TestWebhookSubscriptionRepository_List(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "name", "url", "secret", "event_types", "custom_event_filters",
-			"enabled", "description", "created_at", "updated_at",
-			"last_delivery_at", "success_count", "failure_count",
+			"id", "name", "url", "secret", "settings",
+			"enabled", "created_at", "updated_at",
+			"last_delivery_at",
 		}).
 			AddRow(
 				"sub-1",
 				"Subscription 1",
 				"https://example.com/webhook1",
 				"secret1",
-				pq.Array([]string{"email.delivered"}),
-				customFiltersJSON,
+				settings1JSON,
 				true,
-				"Description 1",
 				now,
 				now,
 				now,
-				int64(5),
-				int64(1),
 			).
 			AddRow(
 				"sub-2",
 				"Subscription 2",
 				"https://example.com/webhook2",
 				"secret2",
-				pq.Array([]string{"email.bounced"}),
-				nil,
+				settings2JSON,
 				false,
-				"Description 2",
 				now,
 				now,
 				nil,
-				int64(0),
-				int64(0),
 			)
 
 		mock.ExpectQuery(`SELECT .+ FROM webhook_subscriptions ORDER BY created_at DESC`).
@@ -443,13 +426,13 @@ func TestWebhookSubscriptionRepository_List(t *testing.T) {
 		// Verify first subscription
 		assert.Equal(t, "sub-1", result[0].ID)
 		assert.Equal(t, "Subscription 1", result[0].Name)
-		assert.NotNil(t, result[0].CustomEventFilters)
+		assert.NotNil(t, result[0].Settings.CustomEventFilters)
 		assert.NotNil(t, result[0].LastDeliveryAt)
 
 		// Verify second subscription
 		assert.Equal(t, "sub-2", result[1].ID)
 		assert.Equal(t, "Subscription 2", result[1].Name)
-		assert.Nil(t, result[1].CustomEventFilters)
+		assert.Nil(t, result[1].Settings.CustomEventFilters)
 		assert.Nil(t, result[1].LastDeliveryAt)
 
 		assert.NoError(t, mock.ExpectationsWereMet())
@@ -465,9 +448,9 @@ func TestWebhookSubscriptionRepository_List(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "name", "url", "secret", "event_types", "custom_event_filters",
-			"enabled", "description", "created_at", "updated_at",
-			"last_delivery_at", "success_count", "failure_count",
+			"id", "name", "url", "secret", "settings",
+			"enabled", "created_at", "updated_at",
+			"last_delivery_at",
 		})
 
 		mock.ExpectQuery(`SELECT .+ FROM webhook_subscriptions ORDER BY created_at DESC`).
@@ -541,14 +524,14 @@ func TestWebhookSubscriptionRepository_List(t *testing.T) {
 			Return(db, nil)
 
 		rows := sqlmock.NewRows([]string{
-			"id", "name", "url", "secret", "event_types", "custom_event_filters",
-			"enabled", "description", "created_at", "updated_at",
-			"last_delivery_at", "success_count", "failure_count",
+			"id", "name", "url", "secret", "settings",
+			"enabled", "created_at", "updated_at",
+			"last_delivery_at",
 		}).
 			AddRow(
 				"sub-1", "Test", "https://example.com", "secret",
-				pq.Array([]string{"email.delivered"}), nil, true, "",
-				now, now, nil, int64(0), int64(0),
+				settings1JSON, true,
+				now, now, nil,
 			).
 			RowError(0, errors.New("rows iteration error"))
 
@@ -579,16 +562,17 @@ func TestWebhookSubscriptionRepository_Update(t *testing.T) {
 
 	now := time.Now().UTC()
 	sub := &domain.WebhookSubscription{
-		ID:                 "sub-1",
-		Name:               "Updated Subscription",
-		URL:                "https://example.com/webhook-updated",
-		Secret:             "new-secret",
-		EventTypes:         []string{"email.delivered", "email.opened"},
-		CustomEventFilters: customFilters,
-		Enabled:            false,
-		Description:        "Updated description",
-		CreatedAt:          now.Add(-24 * time.Hour),
-		UpdatedAt:          now.Add(-1 * time.Hour),
+		ID:     "sub-1",
+		Name:   "Updated Subscription",
+		URL:    "https://example.com/webhook-updated",
+		Secret: "new-secret",
+		Settings: domain.WebhookSubscriptionSettings{
+			EventTypes:         []string{"email.delivered", "email.opened"},
+			CustomEventFilters: customFilters,
+		},
+		Enabled:     false,
+		CreatedAt:   now.Add(-24 * time.Hour),
+		UpdatedAt:   now.Add(-1 * time.Hour),
 	}
 
 	t.Run("Success - with custom filters", func(t *testing.T) {
@@ -600,18 +584,14 @@ func TestWebhookSubscriptionRepository_Update(t *testing.T) {
 			GetConnection(gomock.Any(), workspaceID).
 			Return(db, nil)
 
-		customFiltersJSON, _ := json.Marshal(customFilters)
-
-		mock.ExpectExec(`UPDATE webhook_subscriptions SET name = \$2, url = \$3, secret = \$4, event_types = \$5, custom_event_filters = \$6, enabled = \$7, description = \$8, updated_at = \$9 WHERE id = \$1`).
+		mock.ExpectExec(`UPDATE webhook_subscriptions SET name = \$2, url = \$3, secret = \$4, settings = \$5, enabled = \$6, updated_at = \$7 WHERE id = \$1`).
 			WithArgs(
 				"sub-1",
 				"Updated Subscription",
 				"https://example.com/webhook-updated",
 				"new-secret",
-				sqlmock.AnyArg(), // event_types
-				customFiltersJSON,
+				sqlmock.AnyArg(), // settings JSON
 				false,
-				"Updated description",
 				sqlmock.AnyArg(),
 			).
 			WillReturnResult(sqlmock.NewResult(0, 1))
@@ -634,26 +614,25 @@ func TestWebhookSubscriptionRepository_Update(t *testing.T) {
 			Return(db, nil)
 
 		subNoFilters := &domain.WebhookSubscription{
-			ID:                 "sub-2",
-			Name:               "Simple Update",
-			URL:                "https://example.com/simple",
-			Secret:             "secret",
-			EventTypes:         []string{"email.delivered"},
-			CustomEventFilters: nil,
-			Enabled:            true,
-			Description:        "",
+			ID:     "sub-2",
+			Name:   "Simple Update",
+			URL:    "https://example.com/simple",
+			Secret: "secret",
+			Settings: domain.WebhookSubscriptionSettings{
+				EventTypes:         []string{"email.delivered"},
+				CustomEventFilters: nil,
+			},
+			Enabled:     true,
 		}
 
-		mock.ExpectExec(`UPDATE webhook_subscriptions SET name = \$2, url = \$3, secret = \$4, event_types = \$5, custom_event_filters = \$6, enabled = \$7, description = \$8, updated_at = \$9 WHERE id = \$1`).
+		mock.ExpectExec(`UPDATE webhook_subscriptions SET name = \$2, url = \$3, secret = \$4, settings = \$5, enabled = \$6, updated_at = \$7 WHERE id = \$1`).
 			WithArgs(
 				"sub-2",
 				"Simple Update",
 				"https://example.com/simple",
 				"secret",
-				sqlmock.AnyArg(), // event_types
-				sqlmock.AnyArg(), // custom_event_filters can be nil or empty bytes
+				sqlmock.AnyArg(), // settings JSON
 				true,
-				"",
 				sqlmock.AnyArg(),
 			).
 			WillReturnResult(sqlmock.NewResult(0, 1))
@@ -818,102 +797,6 @@ func TestWebhookSubscriptionRepository_Delete(t *testing.T) {
 		err := repo.Delete(ctx, workspaceID, subscriptionID)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to get rows affected")
-	})
-}
-
-func TestWebhookSubscriptionRepository_IncrementStats(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	repo := NewWebhookSubscriptionRepository(mockWorkspaceRepo)
-
-	ctx := context.Background()
-	workspaceID := "ws-123"
-	subscriptionID := "sub-1"
-
-	t.Run("Success - increment success count", func(t *testing.T) {
-		db, mock, err := sqlmock.New()
-		require.NoError(t, err)
-		defer func() { _ = db.Close() }()
-
-		mockWorkspaceRepo.EXPECT().
-			GetConnection(gomock.Any(), workspaceID).
-			Return(db, nil)
-
-		mock.ExpectExec(`UPDATE webhook_subscriptions SET success_count = success_count \+ 1 WHERE id = \$1`).
-			WithArgs(subscriptionID).
-			WillReturnResult(sqlmock.NewResult(0, 1))
-
-		err = repo.IncrementStats(ctx, workspaceID, subscriptionID, true)
-		assert.NoError(t, err)
-
-		assert.NoError(t, mock.ExpectationsWereMet())
-	})
-
-	t.Run("Success - increment failure count", func(t *testing.T) {
-		db, mock, err := sqlmock.New()
-		require.NoError(t, err)
-		defer func() { _ = db.Close() }()
-
-		mockWorkspaceRepo.EXPECT().
-			GetConnection(gomock.Any(), workspaceID).
-			Return(db, nil)
-
-		mock.ExpectExec(`UPDATE webhook_subscriptions SET failure_count = failure_count \+ 1 WHERE id = \$1`).
-			WithArgs(subscriptionID).
-			WillReturnResult(sqlmock.NewResult(0, 1))
-
-		err = repo.IncrementStats(ctx, workspaceID, subscriptionID, false)
-		assert.NoError(t, err)
-
-		assert.NoError(t, mock.ExpectationsWereMet())
-	})
-
-	t.Run("Workspace connection error", func(t *testing.T) {
-		mockWorkspaceRepo.EXPECT().
-			GetConnection(gomock.Any(), workspaceID).
-			Return(nil, errors.New("connection error"))
-
-		err := repo.IncrementStats(ctx, workspaceID, subscriptionID, true)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to get workspace connection")
-	})
-
-	t.Run("SQL execution error - success increment", func(t *testing.T) {
-		db, mock, err := sqlmock.New()
-		require.NoError(t, err)
-		defer func() { _ = db.Close() }()
-
-		mockWorkspaceRepo.EXPECT().
-			GetConnection(gomock.Any(), workspaceID).
-			Return(db, nil)
-
-		mock.ExpectExec(`UPDATE webhook_subscriptions SET success_count = success_count \+ 1 WHERE id = \$1`).
-			WithArgs(subscriptionID).
-			WillReturnError(errors.New("database error"))
-
-		err = repo.IncrementStats(ctx, workspaceID, subscriptionID, true)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to increment webhook stats")
-	})
-
-	t.Run("SQL execution error - failure increment", func(t *testing.T) {
-		db, mock, err := sqlmock.New()
-		require.NoError(t, err)
-		defer func() { _ = db.Close() }()
-
-		mockWorkspaceRepo.EXPECT().
-			GetConnection(gomock.Any(), workspaceID).
-			Return(db, nil)
-
-		mock.ExpectExec(`UPDATE webhook_subscriptions SET failure_count = failure_count \+ 1 WHERE id = \$1`).
-			WithArgs(subscriptionID).
-			WillReturnError(errors.New("database error"))
-
-		err = repo.IncrementStats(ctx, workspaceID, subscriptionID, false)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to increment webhook stats")
 	})
 }
 

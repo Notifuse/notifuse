@@ -9,9 +9,20 @@
       "Bash(INTEGRATION_TESTS=true go test:*)",
       "Bash(make test-service:*)",
       "Bash(make test-http:*)",
-      "Bash(make test-unit:*)"
+      "Bash(make test-unit:*)",
+      "Bash(npm run lint:*)",
+      "Bash(make test-domain:*)",
+      "Bash(make test-repo:*)",
+      "Bash(go generate:*)",
+      "Bash(go build:*)",
+      "Bash(cat:*)",
+      "Bash(go run:*)",
+      "Bash(find:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "model": "opus",
+  "alwaysThinkingEnabled": true
 }

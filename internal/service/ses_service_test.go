@@ -2820,3 +2820,113 @@ func TestSendEmail_VerifyMIMEStructureWithAttachments(t *testing.T) {
 
 	assert.NoError(t, err)
 }
+
+// Test SendEmail - with List-Unsubscribe headers (RFC-8058)
+func TestSendEmail_WithListUnsubscribeHeaders(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			assert.NotNil(t, input.RawMessage)
+			rawData := string(input.RawMessage.Data)
+
+			// Verify RFC-8058 List-Unsubscribe headers are present
+			assert.Contains(t, rawData, "List-Unsubscribe: <https://example.com/unsubscribe/abc123>")
+			assert.Contains(t, rawData, "List-Unsubscribe-Post: List-Unsubscribe=One-Click")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "<html><body>Content</body></html>",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			ListUnsubscribeURL: "https://example.com/unsubscribe/abc123",
+		},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
+// Test SendEmail - with List-Unsubscribe headers and attachments
+func TestSendEmail_WithListUnsubscribeAndAttachments(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "test.txt",
+			Content:     "SGVsbG8gV29ybGQ=", // "Hello World" in base64
+			ContentType: "text/plain",
+			Disposition: "attachment",
+		},
+	}
+
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			assert.NotNil(t, input.RawMessage)
+			rawData := string(input.RawMessage.Data)
+
+			// Verify RFC-8058 List-Unsubscribe headers are present
+			assert.Contains(t, rawData, "List-Unsubscribe: <https://example.com/unsubscribe/xyz789>")
+			assert.Contains(t, rawData, "List-Unsubscribe-Post: List-Unsubscribe=One-Click")
+
+			// Verify attachment is also present
+			assert.Contains(t, rawData, "test.txt")
+			assert.Contains(t, rawData, "Content-Disposition: attachment")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "<html><body>Content</body></html>",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			Attachments:        attachments,
+			ListUnsubscribeURL: "https://example.com/unsubscribe/xyz789",
+		},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}

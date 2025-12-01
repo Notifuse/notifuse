@@ -1139,4 +1139,174 @@ func TestMailjetService_SendEmail(t *testing.T) {
 		// Assertions
 		require.NoError(t, err)
 	})
+
+	t.Run("with RFC-8058 List-Unsubscribe headers", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailjet: &domain.MailjetSettings{
+				APIKey:    "test-api-key",
+				SecretKey: "test-secret-key",
+			},
+		}
+
+		// Expected response from Mailjet API
+		expectedResponse := map[string]interface{}{
+			"Messages": []map[string]interface{}{
+				{
+					"Status": "success",
+					"To": []map[string]interface{}{
+						{
+							"Email":       to,
+							"MessageID":   "message-id-123",
+							"MessageUUID": "uuid-123",
+						},
+					},
+					"CustomID": messageID,
+				},
+			},
+		}
+
+		// Setup mock expectations
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request body
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+
+				var emailReq map[string]interface{}
+				err = json.Unmarshal(body, &emailReq)
+				require.NoError(t, err)
+
+				messages, ok := emailReq["Messages"].([]interface{})
+				assert.True(t, ok)
+				message := messages[0].(map[string]interface{})
+
+				// Verify RFC-8058 List-Unsubscribe headers
+				headers, ok := message["Headers"].(map[string]interface{})
+				assert.True(t, ok, "Headers should be present")
+
+				listUnsubscribe, ok := headers["List-Unsubscribe"].(string)
+				assert.True(t, ok, "List-Unsubscribe header should be present")
+				assert.Equal(t, "<https://example.com/unsubscribe/abc123>", listUnsubscribe)
+
+				listUnsubscribePost, ok := headers["List-Unsubscribe-Post"].(string)
+				assert.True(t, ok, "List-Unsubscribe-Post header should be present")
+				assert.Equal(t, "List-Unsubscribe=One-Click", listUnsubscribePost)
+
+				return mockHTTPResponse(t, http.StatusOK, expectedResponse), nil
+			})
+
+		// Call the service method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				ListUnsubscribeURL: "https://example.com/unsubscribe/abc123",
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Assertions
+		require.NoError(t, err)
+	})
+
+	t.Run("with RFC-8058 List-Unsubscribe headers and attachments", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailjet: &domain.MailjetSettings{
+				APIKey:    "test-api-key",
+				SecretKey: "test-secret-key",
+			},
+		}
+
+		// base64 of "Hello World"
+		textContent := "SGVsbG8gV29ybGQ="
+
+		// Expected response from Mailjet API
+		expectedResponse := map[string]interface{}{
+			"Messages": []map[string]interface{}{
+				{
+					"Status": "success",
+					"To": []map[string]interface{}{
+						{
+							"Email":       to,
+							"MessageID":   "message-id-123",
+							"MessageUUID": "uuid-123",
+						},
+					},
+					"CustomID": messageID,
+				},
+			},
+		}
+
+		// Setup mock expectations
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request body
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+
+				var emailReq map[string]interface{}
+				err = json.Unmarshal(body, &emailReq)
+				require.NoError(t, err)
+
+				messages, ok := emailReq["Messages"].([]interface{})
+				assert.True(t, ok)
+				message := messages[0].(map[string]interface{})
+
+				// Verify RFC-8058 List-Unsubscribe headers
+				headers, ok := message["Headers"].(map[string]interface{})
+				assert.True(t, ok, "Headers should be present")
+				assert.Contains(t, headers, "List-Unsubscribe")
+				assert.Contains(t, headers, "List-Unsubscribe-Post")
+
+				// Verify attachment
+				attachments, ok := message["Attachments"].([]interface{})
+				assert.True(t, ok, "Attachments should be present")
+				assert.Len(t, attachments, 1)
+
+				return mockHTTPResponse(t, http.StatusOK, expectedResponse), nil
+			})
+
+		// Call the service method
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     messageID,
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "test.txt",
+						Content:     textContent,
+						ContentType: "text/plain",
+						Disposition: "attachment",
+					},
+				},
+				ListUnsubscribeURL: "https://example.com/unsubscribe/xyz789",
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Assertions
+		require.NoError(t, err)
+	})
 }

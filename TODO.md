@@ -1,5 +1,8 @@
 # TODO
 
+- docs: blog setup / theme / post
+- docs: custom events + segments for goals
+
 - create notifuse blog
 - pages on homepage for:
   - rich contact profiles with custom events + segments
@@ -7,19 +10,10 @@
   - transactional API
   - blog posts
 
-## custom events
-
-- remove:
-  CREATE INDEX IF NOT EXISTS idx_custom_events_integration_id
-  ON custom_events(integration_id)
-  WHERE integration_id IS NOT NULL;
-
 ## Content
 
 - send newsletter to all contacts+previous customers
 - post supabase on twitter and facebook
-- page vs phplist
-- page vs sendy
 - page vs mailerlite
 - page vs mautic
 

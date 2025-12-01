@@ -1286,4 +1286,152 @@ func TestMailgunService_SendEmail(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "API returned non-OK status code 413")
 	})
+
+	t.Run("with RFC-8058 List-Unsubscribe headers", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{
+				Domain: "example.com",
+				APIKey: "test-api-key",
+				Region: "US",
+			},
+		}
+
+		// Mock successful response
+		responseBody := `{
+			"id": "<message-id>",
+			"message": "Queued. Thank you."
+		}`
+
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(responseBody)),
+		}
+
+		// Set expectation for HTTP request
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request
+				assert.Equal(t, "POST", req.Method)
+
+				// Verify Content-Type header is form-urlencoded (not multipart) when no attachments
+				assert.Equal(t, "application/x-www-form-urlencoded", req.Header.Get("Content-Type"))
+
+				// Read and verify form data
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+				formData := string(body)
+
+				// Verify RFC-8058 List-Unsubscribe headers are included
+				assert.Contains(t, formData, "h%3AList-Unsubscribe="+url.QueryEscape("<https://example.com/unsubscribe/abc123>"))
+				assert.Contains(t, formData, "h%3AList-Unsubscribe-Post="+url.QueryEscape("List-Unsubscribe=One-Click"))
+
+				return resp, nil
+			})
+
+		// Call the service
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				ListUnsubscribeURL: "https://example.com/unsubscribe/abc123",
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Verify results
+		require.NoError(t, err)
+	})
+
+	t.Run("with RFC-8058 List-Unsubscribe headers and attachments", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create provider config
+		provider := &domain.EmailProvider{
+			Mailgun: &domain.MailgunSettings{
+				Domain: "example.com",
+				APIKey: "test-api-key",
+				Region: "US",
+			},
+		}
+
+		// Create attachment
+		textContent := "SGVsbG8gV29ybGQ=" // base64 of "Hello World"
+
+		// Mock successful response
+		responseBody := `{
+			"id": "<message-id>",
+			"message": "Queued. Thank you."
+		}`
+
+		resp := &http.Response{
+			StatusCode: http.StatusOK,
+			Body:       io.NopCloser(strings.NewReader(responseBody)),
+		}
+
+		// Set expectation for HTTP request
+		mockHTTPClient.EXPECT().
+			Do(gomock.Any()).
+			DoAndReturn(func(req *http.Request) (*http.Response, error) {
+				// Verify request
+				assert.Equal(t, "POST", req.Method)
+
+				// Verify Content-Type is multipart when attachments present
+				assert.Contains(t, req.Header.Get("Content-Type"), "multipart/form-data")
+
+				// Read and verify form data
+				body, err := io.ReadAll(req.Body)
+				require.NoError(t, err)
+				formData := string(body)
+
+				// Verify RFC-8058 List-Unsubscribe headers are included
+				assert.Contains(t, formData, "h:List-Unsubscribe")
+				assert.Contains(t, formData, "https://example.com/unsubscribe/xyz789")
+				assert.Contains(t, formData, "h:List-Unsubscribe-Post")
+				assert.Contains(t, formData, "List-Unsubscribe=One-Click")
+
+				// Verify attachment is also present
+				assert.Contains(t, formData, "test.txt")
+
+				return resp, nil
+			})
+
+		// Call the service
+		request := domain.SendEmailProviderRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: "test-integration-id",
+			MessageID:     "test-message-id",
+			FromAddress:   fromAddress,
+			FromName:      fromName,
+			To:            to,
+			Subject:       subject,
+			Content:       content,
+			Provider:      provider,
+			EmailOptions: domain.EmailOptions{
+				Attachments: []domain.Attachment{
+					{
+						Filename:    "test.txt",
+						Content:     textContent,
+						ContentType: "text/plain",
+						Disposition: "attachment",
+					},
+				},
+				ListUnsubscribeURL: "https://example.com/unsubscribe/xyz789",
+			},
+		}
+		err := service.SendEmail(ctx, request)
+
+		// Verify results
+		require.NoError(t, err)
+	})
 }

@@ -27,3 +27,5 @@ coverage-report.txt
 .claude/settings.local.json
 
 console/.claude/settings.local.json
+
+service.test

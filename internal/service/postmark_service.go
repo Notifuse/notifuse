@@ -586,6 +586,14 @@ func (s *PostmarkService) SendEmail(ctx context.Context, request domain.SendEmai
 		requestBody["ReplyTo"] = request.EmailOptions.ReplyTo
 	}
 
+	// Add RFC-8058 List-Unsubscribe headers for one-click unsubscribe
+	if request.EmailOptions.ListUnsubscribeURL != "" {
+		requestBody["Headers"] = []map[string]string{
+			{"Name": "List-Unsubscribe-Post", "Value": "List-Unsubscribe=One-Click"},
+			{"Name": "List-Unsubscribe", "Value": fmt.Sprintf("<%s>", request.EmailOptions.ListUnsubscribeURL)},
+		}
+	}
+
 	// Add attachments if specified
 	// Postmark supports up to 50 MB payload size, including attachments
 	// https://postmarkapp.com/developer/api/email-api

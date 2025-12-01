@@ -19,6 +19,45 @@ WebhookSubscription:
       type: string
       description: Secret key for signing webhook payloads (Standard Webhooks spec)
       example: whsec_a1b2c3d4e5f6g7h8i9j0
+    settings:
+      $ref: '#/WebhookSubscriptionSettings'
+    event_types:
+      type: array
+      description: List of event types this subscription is subscribed to (flattened from settings for convenience)
+      items:
+        type: string
+      example:
+        - contact.created
+        - contact.updated
+        - email.sent
+    custom_event_filters:
+      $ref: '#/CustomEventFilters'
+      description: Optional filters for custom_event.* event types (flattened from settings for convenience)
+    enabled:
+      type: boolean
+      description: Whether the subscription is currently active
+      example: true
+    last_delivery_at:
+      type: string
+      format: date-time
+      nullable: true
+      description: Timestamp of the last delivery attempt
+      example: '2024-01-15T10:30:00Z'
+    created_at:
+      type: string
+      format: date-time
+      description: When the subscription was created
+      example: '2024-01-01T00:00:00Z'
+    updated_at:
+      type: string
+      format: date-time
+      description: When the subscription was last updated
+      example: '2024-01-15T10:30:00Z'
+
+WebhookSubscriptionSettings:
+  type: object
+  description: Settings for webhook subscription
+  properties:
     event_types:
       type: array
       description: List of event types this subscription is subscribed to
@@ -30,41 +69,6 @@ WebhookSubscription:
         - email.sent
     custom_event_filters:
       $ref: '#/CustomEventFilters'
-    enabled:
-      type: boolean
-      description: Whether the subscription is currently active
-      example: true
-    description:
-      type: string
-      nullable: true
-      description: Optional description of the subscription
-      example: Sends events to our CRM system
-    last_delivery_at:
-      type: string
-      format: date-time
-      nullable: true
-      description: Timestamp of the last delivery attempt
-      example: '2024-01-15T10:30:00Z'
-    success_count:
-      type: integer
-      format: int64
-      description: Number of successful deliveries
-      example: 150
-    failure_count:
-      type: integer
-      format: int64
-      description: Number of failed deliveries
-      example: 3
-    created_at:
-      type: string
-      format: date-time
-      description: When the subscription was created
-      example: '2024-01-01T00:00:00Z'
-    updated_at:
-      type: string
-      format: date-time
-      description: When the subscription was last updated
-      example: '2024-01-15T10:30:00Z'
 
 CustomEventFilters:
   type: object
@@ -224,11 +228,6 @@ CreateWebhookSubscriptionRequest:
       format: uri
       description: The HTTPS URL to receive webhook events
       example: https://api.example.com/webhooks/notifuse
-    description:
-      type: string
-      nullable: true
-      description: Optional description
-      example: Sends events to our CRM system
     event_types:
       type: array
       description: List of event types to subscribe to
@@ -273,11 +272,6 @@ UpdateWebhookSubscriptionRequest:
       format: uri
       description: Updated URL
       example: https://api.example.com/webhooks/notifuse/v2
-    description:
-      type: string
-      nullable: true
-      description: Updated description
-      example: Updated description
     event_types:
       type: array
       description: Updated list of event types

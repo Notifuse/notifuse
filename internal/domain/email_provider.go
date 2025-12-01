@@ -266,11 +266,12 @@ func (e *EmailProvider) DecryptSecretKeys(passphrase string) error {
 }
 
 type EmailOptions struct {
-	FromName    *string      `json:"from_name,omitempty"` // Override default sender from name
-	CC          []string     `json:"cc,omitempty"`
-	BCC         []string     `json:"bcc,omitempty"`
-	ReplyTo     string       `json:"reply_to,omitempty"`
-	Attachments []Attachment `json:"attachments,omitempty"`
+	FromName           *string      `json:"from_name,omitempty"` // Override default sender from name
+	CC                 []string     `json:"cc,omitempty"`
+	BCC                []string     `json:"bcc,omitempty"`
+	ReplyTo            string       `json:"reply_to,omitempty"`
+	Attachments        []Attachment `json:"attachments,omitempty"`
+	ListUnsubscribeURL string       `json:"list_unsubscribe_url,omitempty"` // RFC-8058 one-click unsubscribe URL
 }
 
 // IsEmpty returns true if no email options are set

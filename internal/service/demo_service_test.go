@@ -156,6 +156,7 @@ func TestNewDemoService_Constructs(t *testing.T) {
 		nil, // webhookEventRepo
 		nil, // broadcastRepo
 		nil, // customEventRepo
+		nil, // webhookSubscriptionService
 	)
 	assert.NotNil(t, svc)
 }
@@ -577,6 +578,7 @@ func TestNewDemoService_AllFields(t *testing.T) {
 		nil, // webhookEventRepo
 		nil, // broadcastRepo
 		nil, // customEventRepo
+		nil, // webhookSubscriptionService
 	)
 
 	assert.NotNil(t, svc)

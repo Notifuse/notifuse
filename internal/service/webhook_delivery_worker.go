@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -25,6 +26,9 @@ type WebhookDeliveryWorker struct {
 	httpClient       *http.Client
 	pollInterval     time.Duration
 	batchSize        int
+	lastCleanupTime  time.Time
+	cleanupInterval  time.Duration
+	retentionDays    int
 }
 
 // Aggressive retry delays as per Standard Webhooks spec
@@ -63,6 +67,8 @@ func NewWebhookDeliveryWorker(
 		httpClient:       httpClient,
 		pollInterval:     10 * time.Second,
 		batchSize:        100,
+		cleanupInterval:  1 * time.Hour,
+		retentionDays:    7,
 	}
 }
 
@@ -86,6 +92,9 @@ func (w *WebhookDeliveryWorker) Start(ctx context.Context) {
 
 // processDeliveries processes pending deliveries across all workspaces
 func (w *WebhookDeliveryWorker) processDeliveries(ctx context.Context) {
+	// Run cleanup of old deliveries (method handles timing internally)
+	w.cleanupOldDeliveries(ctx)
+
 	// Get all workspaces
 	workspaces, err := w.workspaceRepo.List(ctx)
 	if err != nil {
@@ -154,6 +163,38 @@ func (w *WebhookDeliveryWorker) processWorkspaceDeliveries(ctx context.Context, 
 	}
 
 	return nil
+}
+
+// cleanupOldDeliveries removes webhook deliveries older than the retention period
+func (w *WebhookDeliveryWorker) cleanupOldDeliveries(ctx context.Context) {
+	// Skip if not enough time has passed since last cleanup
+	if time.Since(w.lastCleanupTime) < w.cleanupInterval {
+		return
+	}
+	w.lastCleanupTime = time.Now()
+
+	workspaces, err := w.workspaceRepo.List(ctx)
+	if err != nil {
+		w.logger.WithField("error", err.Error()).Error("Failed to list workspaces for webhook cleanup")
+		return
+	}
+
+	for _, workspace := range workspaces {
+		deleted, err := w.deliveryRepo.CleanupOldDeliveries(ctx, workspace.ID, w.retentionDays)
+		if err != nil {
+			w.logger.WithFields(map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"error":        err.Error(),
+			}).Error("Failed to cleanup old webhook deliveries")
+			continue
+		}
+		if deleted > 0 {
+			w.logger.WithFields(map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"deleted":      deleted,
+			}).Info("Cleaned up old webhook deliveries")
+		}
+	}
 }
 
 // processDelivery sends a single webhook delivery
@@ -231,14 +272,6 @@ func (w *WebhookDeliveryWorker) handleDeliverySuccess(ctx context.Context, works
 		return
 	}
 
-	// Update subscription stats
-	if err := w.subscriptionRepo.IncrementStats(ctx, workspaceID, sub.ID, true); err != nil {
-		w.logger.WithFields(map[string]interface{}{
-			"subscription_id": sub.ID,
-			"error":           err.Error(),
-		}).Error("Failed to increment success stats")
-	}
-
 	// Update last delivery timestamp
 	if err := w.subscriptionRepo.UpdateLastDeliveryAt(ctx, workspaceID, sub.ID, now); err != nil {
 		w.logger.WithFields(map[string]interface{}{
@@ -267,14 +300,6 @@ func (w *WebhookDeliveryWorker) handleDeliveryFailure(ctx context.Context, works
 				"error":       err.Error(),
 			}).Error("Failed to mark delivery as permanently failed")
 			return
-		}
-
-		// Update subscription failure stats
-		if err := w.subscriptionRepo.IncrementStats(ctx, workspaceID, sub.ID, false); err != nil {
-			w.logger.WithFields(map[string]interface{}{
-				"subscription_id": sub.ID,
-				"error":           err.Error(),
-			}).Error("Failed to increment failure stats")
 		}
 
 		w.logger.WithFields(map[string]interface{}{
@@ -321,18 +346,105 @@ func signPayload(msgID string, timestamp int64, payload []byte, secret []byte) s
 	return fmt.Sprintf("v1,%s", signature)
 }
 
+// buildTestPayload generates a realistic test payload based on event type
+func buildTestPayload(eventType string) map[string]interface{} {
+	now := time.Now().UTC().Format(time.RFC3339)
+
+	// Parse the event category (e.g., "contact" from "contact.created")
+	parts := strings.Split(eventType, ".")
+	category := parts[0]
+
+	switch category {
+	case "contact":
+		return map[string]interface{}{
+			"email":      "test@example.com",
+			"id":         "test_contact_123",
+			"external_id": "ext_456",
+			"first_name": "Test",
+			"last_name":  "User",
+			"tags":       []string{"test", "webhook"},
+			"created_at": now,
+			"updated_at": now,
+		}
+	case "list":
+		return map[string]interface{}{
+			"email":      "test@example.com",
+			"contact_id": "test_contact_123",
+			"list_id":    "test_list_456",
+			"list_name":  "Test Newsletter",
+			"status":     "subscribed",
+			"created_at": now,
+		}
+	case "segment":
+		return map[string]interface{}{
+			"email":        "test@example.com",
+			"contact_id":   "test_contact_123",
+			"segment_id":   "test_segment_789",
+			"segment_name": "Test Segment",
+			"created_at":   now,
+		}
+	case "email":
+		payload := map[string]interface{}{
+			"message_id":   "test_msg_789",
+			"email":        "test@example.com",
+			"subject":      "Test Email Subject",
+			"broadcast_id": "test_broadcast_012",
+			"template_id":  "test_template_345",
+			"created_at":   now,
+		}
+		// Add event-specific fields
+		if len(parts) > 1 {
+			switch parts[1] {
+			case "clicked":
+				payload["url"] = "https://example.com/test-link"
+			case "bounced":
+				payload["bounce_type"] = "hard"
+				payload["bounce_reason"] = "Test bounce reason"
+			case "complained":
+				payload["complaint_type"] = "abuse"
+			}
+		}
+		return payload
+	case "custom_event":
+		return map[string]interface{}{
+			"event_id":   "test_event_012",
+			"event_name": "test_purchase",
+			"goal_type":  "conversion",
+			"contact_id": "test_contact_123",
+			"email":      "test@example.com",
+			"properties": map[string]interface{}{
+				"product_id": "prod_123",
+				"amount":     99.99,
+				"currency":   "USD",
+			},
+			"created_at": now,
+		}
+	default:
+		// Fallback for unknown event types
+		return map[string]interface{}{
+			"message":    "This is a test webhook from Notifuse",
+			"event_type": eventType,
+			"created_at": now,
+		}
+	}
+}
+
 // SendTestWebhook sends a test webhook to verify the endpoint
-func (w *WebhookDeliveryWorker) SendTestWebhook(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription) (int, string, error) {
+func (w *WebhookDeliveryWorker) SendTestWebhook(ctx context.Context, workspaceID string, sub *domain.WebhookSubscription, eventType string) (int, string, error) {
 	// Build test payload
 	testID := fmt.Sprintf("test_%d", time.Now().UnixNano())
+
+	// Use provided event type or default to "test"
+	if eventType == "" {
+		eventType = "test"
+	}
+
 	envelope := map[string]interface{}{
 		"id":           testID,
-		"type":         "test",
+		"type":         eventType,
 		"workspace_id": workspaceID,
 		"timestamp":    time.Now().UTC().Format(time.RFC3339),
-		"data": map[string]interface{}{
-			"message": "This is a test webhook from Notifuse",
-		},
+		"data":         buildTestPayload(eventType),
 	}
 
 	payloadBytes, err := json.Marshal(envelope)

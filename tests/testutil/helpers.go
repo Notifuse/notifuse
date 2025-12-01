@@ -779,38 +779,70 @@ func WaitForBuildTaskCreated(t *testing.T, client *APIClient, workspaceID, segme
 	return "", fmt.Errorf("timeout waiting for build task to be created for segment %s after %v", segmentID, timeout)
 }
 
-// MailhogMessage represents a simplified email message from Mailhog API
-type MailhogMessage struct {
-	ID   string `json:"ID"`
-	From struct {
-		Mailbox string `json:"Mailbox"`
-		Domain  string `json:"Domain"`
+// MailpitMessageSummary represents a message summary from Mailpit API list endpoint
+type MailpitMessageSummary struct {
+	ID        string `json:"ID"`
+	MessageID string `json:"MessageID"`
+	From      struct {
+		Name    string `json:"Name"`
+		Address string `json:"Address"`
 	} `json:"From"`
 	To []struct {
-		Mailbox string `json:"Mailbox"`
-		Domain  string `json:"Domain"`
+		Name    string `json:"Name"`
+		Address string `json:"Address"`
 	} `json:"To"`
-	Content struct {
-		Headers map[string][]string `json:"Headers"`
-		Body    string              `json:"Body"`
-	} `json:"Content"`
+	Cc []struct {
+		Name    string `json:"Name"`
+		Address string `json:"Address"`
+	} `json:"Cc"`
+	Bcc []struct {
+		Name    string `json:"Name"`
+		Address string `json:"Address"`
+	} `json:"Bcc"`
+	Subject string    `json:"Subject"`
 	Created time.Time `json:"Created"`
+	Size    int       `json:"Size"`
 }
 
-// MailhogAPIResponse represents the response from Mailhog's messages API
-type MailhogAPIResponse struct {
-	Total int              `json:"total"`
-	Count int              `json:"count"`
-	Start int              `json:"start"`
-	Items []MailhogMessage `json:"items"`
+// MailpitMessage represents a full message from Mailpit API (with headers and content)
+type MailpitMessage struct {
+	ID        string `json:"ID"`
+	MessageID string `json:"MessageID"`
+	From      struct {
+		Name    string `json:"Name"`
+		Address string `json:"Address"`
+	} `json:"From"`
+	To []struct {
+		Name    string `json:"Name"`
+		Address string `json:"Address"`
+	} `json:"To"`
+	Cc []struct {
+		Name    string `json:"Name"`
+		Address string `json:"Address"`
+	} `json:"Cc"`
+	Subject string              `json:"Subject"`
+	Date    time.Time           `json:"Date"`
+	Text    string              `json:"Text"`
+	HTML    string              `json:"HTML"`
+	Size    int                 `json:"Size"`
+	Headers map[string][]string `json:"Headers,omitempty"`
 }
 
-// CheckMailhogForRecipients checks if an email was sent to all expected recipients via Mailhog
+// MailpitMessagesResponse represents the response from Mailpit's messages API
+type MailpitMessagesResponse struct {
+	Total         int                     `json:"total"`
+	Count         int                     `json:"count"`
+	MessagesCount int                     `json:"messages_count"`
+	Start         int                     `json:"start"`
+	Messages      []MailpitMessageSummary `json:"messages"`
+}
+
+// CheckMailpitForRecipients checks if an email was sent to all expected recipients via Mailpit
 // Returns a map of recipient email addresses to whether they received the email
-func CheckMailhogForRecipients(t *testing.T, subject string, expectedRecipients []string, timeout time.Duration) (map[string]bool, error) {
+func CheckMailpitForRecipients(t *testing.T, subject string, expectedRecipients []string, timeout time.Duration) (map[string]bool, error) {
 	deadline := time.Now().Add(timeout)
 	pollInterval := 500 * time.Millisecond
-	mailhogURL := "http://localhost:8025/api/v2/messages"
+	mailpitURL := "http://localhost:8025/api/v1/messages"
 
 	results := make(map[string]bool)
 	for _, recipient := range expectedRecipients {
@@ -820,38 +852,33 @@ func CheckMailhogForRecipients(t *testing.T, subject string, expectedRecipients 
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 
 	for time.Now().Before(deadline) {
-		resp, err := httpClient.Get(mailhogURL)
+		resp, err := httpClient.Get(mailpitURL)
 		if err != nil {
-			t.Logf("Failed to connect to Mailhog API: %v", err)
+			t.Logf("Failed to connect to Mailpit API: %v", err)
 			time.Sleep(pollInterval)
 			continue
 		}
 
-		var apiResp MailhogAPIResponse
+		var apiResp MailpitMessagesResponse
 		err = json.NewDecoder(resp.Body).Decode(&apiResp)
 		resp.Body.Close()
 
 		if err != nil {
-			t.Logf("Failed to decode Mailhog response: %v", err)
+			t.Logf("Failed to decode Mailpit response: %v", err)
 			time.Sleep(pollInterval)
 			continue
 		}
 
 		// Check each message for matching subject and recipients
-		for _, msg := range apiResp.Items {
-			subjectHeaders := msg.Content.Headers["Subject"]
-			if len(subjectHeaders) == 0 {
-				continue
-			}
-
+		for _, msg := range apiResp.Messages {
 			// Check if this message matches our subject
-			if !strings.Contains(subjectHeaders[0], subject) {
+			if !strings.Contains(msg.Subject, subject) {
 				continue
 			}
 
 			// Check To recipients
 			for _, to := range msg.To {
-				email := strings.ToLower(fmt.Sprintf("%s@%s", to.Mailbox, to.Domain))
+				email := strings.ToLower(to.Address)
 				for _, expected := range expectedRecipients {
 					if strings.ToLower(expected) == email {
 						results[expected] = true
@@ -861,14 +888,12 @@ func CheckMailhogForRecipients(t *testing.T, subject string, expectedRecipients 
 			}
 
 			// Check CC recipients
-			if ccHeaders, ok := msg.Content.Headers["Cc"]; ok {
-				for _, ccHeader := range ccHeaders {
-					email := strings.ToLower(extractEmailFromHeader(ccHeader))
-					for _, expected := range expectedRecipients {
-						if strings.ToLower(expected) == email {
-							results[expected] = true
-							t.Logf("Found email for CC recipient: %s", expected)
-						}
+			for _, cc := range msg.Cc {
+				email := strings.ToLower(cc.Address)
+				for _, expected := range expectedRecipients {
+					if strings.ToLower(expected) == email {
+						results[expected] = true
+						t.Logf("Found email for CC recipient: %s", expected)
 					}
 				}
 			}
@@ -911,8 +936,8 @@ func extractEmailFromHeader(header string) string {
 	return strings.TrimSpace(header)
 }
 
-// ClearMailhogMessages deletes all messages from Mailhog
-func ClearMailhogMessages(t *testing.T) error {
+// ClearMailpitMessages deletes all messages from Mailpit
+func ClearMailpitMessages(t *testing.T) error {
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	req, err := http.NewRequest("DELETE", "http://localhost:8025/api/v1/messages", nil)
 	if err != nil {
@@ -921,14 +946,50 @@ func ClearMailhogMessages(t *testing.T) error {
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("failed to clear Mailhog messages: %w", err)
+		return fmt.Errorf("failed to clear Mailpit messages: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code from Mailhog: %d", resp.StatusCode)
+		return fmt.Errorf("unexpected status code from Mailpit: %d", resp.StatusCode)
 	}
 
-	t.Log("Cleared all Mailhog messages")
+	t.Log("Cleared all Mailpit messages")
 	return nil
+}
+
+// GetMailpitMessage fetches a single message with full headers from Mailpit
+func GetMailpitMessage(t *testing.T, messageID string) (*MailpitMessage, error) {
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+
+	// Fetch message details
+	resp, err := httpClient.Get(fmt.Sprintf("http://localhost:8025/api/v1/message/%s", messageID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get message from Mailpit: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("unexpected status code from Mailpit: %d", resp.StatusCode)
+	}
+
+	var msg MailpitMessage
+	if err := json.NewDecoder(resp.Body).Decode(&msg); err != nil {
+		return nil, fmt.Errorf("failed to decode Mailpit message: %w", err)
+	}
+
+	// Fetch headers from separate endpoint (Mailpit requires this)
+	headersResp, err := httpClient.Get(fmt.Sprintf("http://localhost:8025/api/v1/message/%s/headers", messageID))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get headers from Mailpit: %w", err)
+	}
+	defer headersResp.Body.Close()
+
+	if headersResp.StatusCode == http.StatusOK {
+		if err := json.NewDecoder(headersResp.Body).Decode(&msg.Headers); err != nil {
+			t.Logf("Warning: failed to decode Mailpit headers: %v", err)
+		}
+	}
+
+	return &msg, nil
 }

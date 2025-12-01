@@ -1,9 +1,19 @@
 package integration
 
 import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"net/http/httptest"
+	"strconv"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/app"
@@ -80,11 +90,11 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 			"event_types":  []string{"contact.created", "contact.updated", "email.sent"},
 		}
 
-		resp, err := client.Post("/api/webhook_subscriptions.create", createReq)
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
 		var response map[string]interface{}
 		err = json.NewDecoder(resp.Body).Decode(&response)
@@ -112,7 +122,7 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 
 	// READ - Test getting a webhook subscription
 	t.Run("Get Webhook Subscription", func(t *testing.T) {
-		resp, err := client.Get("/api/webhook_subscriptions.get", map[string]string{
+		resp, err := client.Get("/api/webhookSubscriptions.get", map[string]string{
 			"workspace_id": workspaceID,
 			"id":           subscriptionID,
 		})
@@ -132,7 +142,7 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 
 	// LIST - Test listing webhook subscriptions
 	t.Run("List Webhook Subscriptions", func(t *testing.T) {
-		resp, err := client.Get("/api/webhook_subscriptions.list", map[string]string{
+		resp, err := client.Get("/api/webhookSubscriptions.list", map[string]string{
 			"workspace_id": workspaceID,
 		})
 		require.NoError(t, err)
@@ -172,7 +182,7 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 			"enabled":      true,
 		}
 
-		resp, err := client.Post("/api/webhook_subscriptions.update", updateReq)
+		resp, err := client.Post("/api/webhookSubscriptions.update", updateReq)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -204,7 +214,7 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 			"enabled":      false,
 		}
 
-		resp, err := client.Post("/api/webhook_subscriptions.toggle", toggleReq)
+		resp, err := client.Post("/api/webhookSubscriptions.toggle", toggleReq)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -219,7 +229,7 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 
 		// Re-enable the webhook
 		toggleReq["enabled"] = true
-		resp, err = client.Post("/api/webhook_subscriptions.toggle", toggleReq)
+		resp, err = client.Post("/api/webhookSubscriptions.toggle", toggleReq)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -237,7 +247,7 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 			"id":           subscriptionID,
 		}
 
-		resp, err := client.Post("/api/webhook_subscriptions.regenerate_secret", regenerateReq)
+		resp, err := client.Post("/api/webhookSubscriptions.regenerateSecret", regenerateReq)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -257,7 +267,7 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 
 	// GET EVENT TYPES - Test getting available event types
 	t.Run("Get Event Types", func(t *testing.T) {
-		resp, err := client.Get("/api/webhook_subscriptions.event_types", map[string]string{
+		resp, err := client.Get("/api/webhookSubscriptions.eventTypes", map[string]string{
 			"workspace_id": workspaceID,
 		})
 		require.NoError(t, err)
@@ -292,14 +302,14 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 			"id":           subscriptionID,
 		}
 
-		resp, err := client.Post("/api/webhook_subscriptions.delete", deleteReq)
+		resp, err := client.Post("/api/webhookSubscriptions.delete", deleteReq)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
 
 		// Verify it's deleted
-		getResp, err := client.Get("/api/webhook_subscriptions.get", map[string]string{
+		getResp, err := client.Get("/api/webhookSubscriptions.get", map[string]string{
 			"workspace_id": workspaceID,
 			"id":           subscriptionID,
 		})
@@ -320,7 +330,7 @@ func testWebhookSubscriptionValidation(t *testing.T, client *testutil.APIClient,
 			"event_types":  []string{"contact.created"},
 		}
 
-		resp, err := client.Post("/api/webhook_subscriptions.create", createReq)
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -344,7 +354,7 @@ func testWebhookSubscriptionValidation(t *testing.T, client *testutil.APIClient,
 				"event_types":  []string{"contact.created"},
 			}
 
-			resp, err := client.Post("/api/webhook_subscriptions.create", createReq)
+			resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
@@ -360,7 +370,7 @@ func testWebhookSubscriptionValidation(t *testing.T, client *testutil.APIClient,
 			"event_types":  []string{},
 		}
 
-		resp, err := client.Post("/api/webhook_subscriptions.create", createReq)
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -375,7 +385,7 @@ func testWebhookSubscriptionValidation(t *testing.T, client *testutil.APIClient,
 			"event_types":  []string{"contact.created", "invalid.event.type"},
 		}
 
-		resp, err := client.Post("/api/webhook_subscriptions.create", createReq)
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
@@ -398,11 +408,11 @@ func testWebhookSubscriptionValidation(t *testing.T, client *testutil.APIClient,
 				"event_types":  []string{"contact.created"},
 			}
 
-			resp, err := client.Post("/api/webhook_subscriptions.create", createReq)
+			resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
-			assert.Equal(t, http.StatusOK, resp.StatusCode, "Should accept valid URL: %s", validURL)
+			assert.Equal(t, http.StatusCreated, resp.StatusCode, "Should accept valid URL: %s", validURL)
 
 			// Clean up
 			var response map[string]interface{}
@@ -413,7 +423,7 @@ func testWebhookSubscriptionValidation(t *testing.T, client *testutil.APIClient,
 					"workspace_id": workspaceID,
 					"id":           subID,
 				}
-				delResp, _ := client.Post("/api/webhook_subscriptions.delete", deleteReq)
+				delResp, _ := client.Post("/api/webhookSubscriptions.delete", deleteReq)
 				if delResp != nil {
 					delResp.Body.Close()
 				}
@@ -437,11 +447,11 @@ func testWebhookSubscriptionCustomFilters(t *testing.T, client *testutil.APIClie
 			},
 		}
 
-		resp, err := client.Post("/api/webhook_subscriptions.create", createReq)
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
 		require.NoError(t, err)
 		defer resp.Body.Close()
 
-		assert.Equal(t, http.StatusOK, resp.StatusCode)
+		assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
 		var response map[string]interface{}
 		err = json.NewDecoder(resp.Body).Decode(&response)
@@ -470,7 +480,7 @@ func testWebhookSubscriptionCustomFilters(t *testing.T, client *testutil.APIClie
 			"workspace_id": workspaceID,
 			"id":           subscriptionID,
 		}
-		delResp, _ := client.Post("/api/webhook_subscriptions.delete", deleteReq)
+		delResp, _ := client.Post("/api/webhookSubscriptions.delete", deleteReq)
 		if delResp != nil {
 			delResp.Body.Close()
 		}
@@ -490,11 +500,11 @@ func testMultipleWebhookSubscriptions(t *testing.T, client *testutil.APIClient, 
 				"event_types":  []string{"contact.created"},
 			}
 
-			resp, err := client.Post("/api/webhook_subscriptions.create", createReq)
+			resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
-			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			assert.Equal(t, http.StatusCreated, resp.StatusCode)
 
 			var response map[string]interface{}
 			err = json.NewDecoder(resp.Body).Decode(&response)
@@ -506,7 +516,7 @@ func testMultipleWebhookSubscriptions(t *testing.T, client *testutil.APIClient, 
 	})
 
 	t.Run("List All Subscriptions", func(t *testing.T) {
-		resp, err := client.Get("/api/webhook_subscriptions.list", map[string]string{
+		resp, err := client.Get("/api/webhookSubscriptions.list", map[string]string{
 			"workspace_id": workspaceID,
 		})
 		require.NoError(t, err)
@@ -541,7 +551,7 @@ func testMultipleWebhookSubscriptions(t *testing.T, client *testutil.APIClient, 
 		secrets := make(map[string]bool)
 
 		for _, subID := range subscriptionIDs {
-			resp, err := client.Get("/api/webhook_subscriptions.get", map[string]string{
+			resp, err := client.Get("/api/webhookSubscriptions.get", map[string]string{
 				"workspace_id": workspaceID,
 				"id":           subID,
 			})
@@ -571,7 +581,7 @@ func testMultipleWebhookSubscriptions(t *testing.T, client *testutil.APIClient, 
 				"id":           subID,
 			}
 
-			resp, err := client.Post("/api/webhook_subscriptions.delete", deleteReq)
+			resp, err := client.Post("/api/webhookSubscriptions.delete", deleteReq)
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
@@ -580,7 +590,7 @@ func testMultipleWebhookSubscriptions(t *testing.T, client *testutil.APIClient, 
 
 		// Verify all deleted
 		for _, subID := range subscriptionIDs {
-			resp, err := client.Get("/api/webhook_subscriptions.get", map[string]string{
+			resp, err := client.Get("/api/webhookSubscriptions.get", map[string]string{
 				"workspace_id": workspaceID,
 				"id":           subID,
 			})
@@ -590,4 +600,345 @@ func testMultipleWebhookSubscriptions(t *testing.T, client *testutil.APIClient, 
 			assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 		}
 	})
+}
+
+// TestWebhookPayloadAndSignatureVerification tests the complete webhook delivery flow
+// including payload structure and HMAC signature verification from the receiver's perspective.
+// This test demonstrates how a webhook consumer should verify incoming webhooks.
+func TestWebhookPayloadAndSignatureVerification(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+	factory := suite.DataFactory
+
+	// Create test user and workspace
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+
+	// Add user to workspace as owner
+	err = factory.AddUserToWorkspace(user.ID, workspace.ID, "owner")
+	require.NoError(t, err)
+
+	// Set up authentication
+	err = client.Login(user.Email, "password")
+	require.NoError(t, err)
+	client.SetWorkspaceID(workspace.ID)
+
+	t.Run("Verify Webhook Signature and Payload Structure", func(t *testing.T) {
+		// Channel to capture webhook data
+		type webhookCapture struct {
+			headers http.Header
+			body    []byte
+		}
+		captured := make(chan webhookCapture, 1)
+
+		// Create a test HTTP server that simulates a webhook receiver
+		testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, err := io.ReadAll(r.Body)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			captured <- webhookCapture{
+				headers: r.Header.Clone(),
+				body:    body,
+			}
+
+			w.WriteHeader(http.StatusOK)
+			w.Write([]byte("OK"))
+		}))
+		defer testServer.Close()
+
+		// Create a webhook subscription pointing to our test server
+		createReq := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"name":         "Signature Test Webhook",
+			"url":          testServer.URL,
+			"event_types":  []string{"contact.created"},
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var createResponse map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&createResponse)
+		require.NoError(t, err)
+
+		subscription := createResponse["subscription"].(map[string]interface{})
+		subscriptionID := subscription["id"].(string)
+		secret := subscription["secret"].(string)
+
+		// Clean up at the end
+		defer func() {
+			deleteReq := map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"id":           subscriptionID,
+			}
+			delResp, _ := client.Post("/api/webhookSubscriptions.delete", deleteReq)
+			if delResp != nil {
+				delResp.Body.Close()
+			}
+		}()
+
+		// Send a test webhook
+		testReq := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           subscriptionID,
+			"event_type":   "contact.created",
+		}
+
+		testResp, err := client.Post("/api/webhookSubscriptions.test", testReq)
+		require.NoError(t, err)
+		defer testResp.Body.Close()
+		require.Equal(t, http.StatusOK, testResp.StatusCode)
+
+		// Wait for webhook to be captured
+		var cap webhookCapture
+		select {
+		case cap = <-captured:
+		case <-time.After(5 * time.Second):
+			t.Fatal("Timeout waiting for webhook delivery")
+		}
+
+		// === VERIFY HEADERS ===
+		t.Run("Headers Present", func(t *testing.T) {
+			assert.Equal(t, "application/json", cap.headers.Get("Content-Type"), "Content-Type should be application/json")
+			assert.NotEmpty(t, cap.headers.Get("Webhook-Id"), "webhook-id header should be present")
+			assert.NotEmpty(t, cap.headers.Get("Webhook-Timestamp"), "webhook-timestamp header should be present")
+			assert.NotEmpty(t, cap.headers.Get("Webhook-Signature"), "webhook-signature header should be present")
+		})
+
+		// === VERIFY PAYLOAD STRUCTURE ===
+		t.Run("Payload Structure", func(t *testing.T) {
+			var payload map[string]interface{}
+			err := json.Unmarshal(cap.body, &payload)
+			require.NoError(t, err, "Payload should be valid JSON")
+
+			// Verify required envelope fields
+			assert.NotEmpty(t, payload["id"], "Payload should have 'id' field")
+			assert.Equal(t, "contact.created", payload["type"], "Payload should have correct 'type' field")
+			assert.Equal(t, workspace.ID, payload["workspace_id"], "Payload should have correct 'workspace_id' field")
+			assert.NotEmpty(t, payload["timestamp"], "Payload should have 'timestamp' field")
+			assert.NotNil(t, payload["data"], "Payload should have 'data' field")
+
+			// Verify timestamp is valid RFC3339
+			timestampStr, ok := payload["timestamp"].(string)
+			require.True(t, ok, "Timestamp should be a string")
+			_, err = time.Parse(time.RFC3339, timestampStr)
+			assert.NoError(t, err, "Timestamp should be valid RFC3339 format")
+
+			// Verify data contains expected test contact fields
+			data, ok := payload["data"].(map[string]interface{})
+			require.True(t, ok, "Data should be an object")
+			assert.NotEmpty(t, data["email"], "Data should contain email field")
+		})
+
+		// === VERIFY SIGNATURE (RECEIVER'S PERSPECTIVE) ===
+		t.Run("Signature Verification", func(t *testing.T) {
+			webhookID := cap.headers.Get("Webhook-Id")
+			timestampStr := cap.headers.Get("Webhook-Timestamp")
+			signatureHeader := cap.headers.Get("Webhook-Signature")
+
+			// Parse timestamp
+			timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+			require.NoError(t, err, "Timestamp should be a valid integer")
+
+			// Verify timestamp is not too old (within 5 minutes for test)
+			now := time.Now().Unix()
+			assert.LessOrEqual(t, now-timestamp, int64(300), "Timestamp should be within 5 minutes")
+
+			// Extract signature from header (format: "v1,<base64_signature>")
+			assert.True(t, strings.HasPrefix(signatureHeader, "v1,"), "Signature should start with 'v1,'")
+			receivedSignature := strings.TrimPrefix(signatureHeader, "v1,")
+
+			// Compute expected signature using the same algorithm as Notifuse
+			// signedContent = "{msgID}.{timestamp}.{payload}"
+			signedContent := fmt.Sprintf("%s.%d.%s", webhookID, timestamp, string(cap.body))
+			h := hmac.New(sha256.New, []byte(secret))
+			h.Write([]byte(signedContent))
+			expectedSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+			// Verify signatures match
+			assert.Equal(t, expectedSignature, receivedSignature, "HMAC signature should match")
+
+			// Also verify using constant-time comparison (recommended for production)
+			decodedReceived, err := base64.StdEncoding.DecodeString(receivedSignature)
+			require.NoError(t, err, "Received signature should be valid base64")
+			decodedExpected, err := base64.StdEncoding.DecodeString(expectedSignature)
+			require.NoError(t, err, "Expected signature should be valid base64")
+			assert.True(t, hmac.Equal(decodedReceived, decodedExpected), "Signatures should match using constant-time comparison")
+		})
+
+		// === VERIFY SIGNATURE FAILS WITH WRONG SECRET ===
+		t.Run("Signature Fails With Wrong Secret", func(t *testing.T) {
+			webhookID := cap.headers.Get("Webhook-Id")
+			timestampStr := cap.headers.Get("Webhook-Timestamp")
+			signatureHeader := cap.headers.Get("Webhook-Signature")
+
+			timestamp, _ := strconv.ParseInt(timestampStr, 10, 64)
+			receivedSignature := strings.TrimPrefix(signatureHeader, "v1,")
+
+			// Compute signature with wrong secret
+			wrongSecret := "wrong-secret-12345"
+			signedContent := fmt.Sprintf("%s.%d.%s", webhookID, timestamp, string(cap.body))
+			h := hmac.New(sha256.New, []byte(wrongSecret))
+			h.Write([]byte(signedContent))
+			wrongSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+			assert.NotEqual(t, wrongSignature, receivedSignature, "Signature with wrong secret should not match")
+		})
+
+		// === VERIFY SIGNATURE FAILS WITH TAMPERED PAYLOAD ===
+		t.Run("Signature Fails With Tampered Payload", func(t *testing.T) {
+			webhookID := cap.headers.Get("Webhook-Id")
+			timestampStr := cap.headers.Get("Webhook-Timestamp")
+			signatureHeader := cap.headers.Get("Webhook-Signature")
+
+			timestamp, _ := strconv.ParseInt(timestampStr, 10, 64)
+			receivedSignature := strings.TrimPrefix(signatureHeader, "v1,")
+
+			// Compute signature with tampered payload
+			tamperedPayload := `{"id":"tampered","type":"contact.created","data":{"email":"hacker@evil.com"}}`
+			signedContent := fmt.Sprintf("%s.%d.%s", webhookID, timestamp, tamperedPayload)
+			h := hmac.New(sha256.New, []byte(secret))
+			h.Write([]byte(signedContent))
+			tamperedSignature := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+			assert.NotEqual(t, tamperedSignature, receivedSignature, "Signature with tampered payload should not match")
+		})
+	})
+
+	t.Run("Verify Multiple Event Types Have Correct Payloads", func(t *testing.T) {
+		// Track received webhooks
+		var mu sync.Mutex
+		receivedWebhooks := make(map[string]map[string]interface{})
+
+		testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			body, _ := io.ReadAll(r.Body)
+			var payload map[string]interface{}
+			json.Unmarshal(body, &payload)
+
+			mu.Lock()
+			if eventType, ok := payload["type"].(string); ok {
+				receivedWebhooks[eventType] = payload
+			}
+			mu.Unlock()
+
+			w.WriteHeader(http.StatusOK)
+		}))
+		defer testServer.Close()
+
+		// Create webhook subscription for multiple event types
+		createReq := map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"name":         "Multi-Event Webhook",
+			"url":          testServer.URL,
+			"event_types":  []string{"contact.created", "email.sent", "list.subscribed"},
+		}
+
+		resp, err := client.Post("/api/webhookSubscriptions.create", createReq)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+		require.Equal(t, http.StatusCreated, resp.StatusCode)
+
+		var createResponse map[string]interface{}
+		json.NewDecoder(resp.Body).Decode(&createResponse)
+		subscription := createResponse["subscription"].(map[string]interface{})
+		subscriptionID := subscription["id"].(string)
+
+		defer func() {
+			deleteReq := map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"id":           subscriptionID,
+			}
+			delResp, _ := client.Post("/api/webhookSubscriptions.delete", deleteReq)
+			if delResp != nil {
+				delResp.Body.Close()
+			}
+		}()
+
+		// Test each event type
+		eventTypes := []string{"contact.created", "email.sent", "list.subscribed"}
+		for _, eventType := range eventTypes {
+			testReq := map[string]interface{}{
+				"workspace_id": workspace.ID,
+				"id":           subscriptionID,
+				"event_type":   eventType,
+			}
+
+			testResp, err := client.Post("/api/webhookSubscriptions.test", testReq)
+			require.NoError(t, err)
+			testResp.Body.Close()
+
+			// Give time for webhook to be delivered
+			time.Sleep(100 * time.Millisecond)
+		}
+
+		// Wait a bit more for all webhooks to arrive
+		time.Sleep(500 * time.Millisecond)
+
+		// Verify each event type was received with correct structure
+		mu.Lock()
+		defer mu.Unlock()
+
+		for _, eventType := range eventTypes {
+			payload, exists := receivedWebhooks[eventType]
+			assert.True(t, exists, "Should have received webhook for event type: %s", eventType)
+			if exists {
+				assert.Equal(t, eventType, payload["type"], "Event type should match")
+				assert.NotEmpty(t, payload["id"], "Payload should have ID")
+				assert.Equal(t, workspace.ID, payload["workspace_id"], "Workspace ID should match")
+				assert.NotNil(t, payload["data"], "Payload should have data")
+			}
+		}
+	})
+}
+
+// verifyWebhookSignature is a helper function demonstrating how to verify webhook signatures.
+// This can be used as a reference implementation for webhook consumers.
+func verifyWebhookSignature(webhookID, timestampStr, signatureHeader, secret string, payload []byte) (bool, error) {
+	// Parse timestamp
+	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+	if err != nil {
+		return false, fmt.Errorf("invalid timestamp: %w", err)
+	}
+
+	// Check timestamp is not too old (5 minutes tolerance)
+	now := time.Now().Unix()
+	if now-timestamp > 300 {
+		return false, fmt.Errorf("webhook timestamp too old")
+	}
+
+	// Extract signature
+	if !strings.HasPrefix(signatureHeader, "v1,") {
+		return false, fmt.Errorf("invalid signature format")
+	}
+	receivedSig := strings.TrimPrefix(signatureHeader, "v1,")
+
+	// Compute expected signature
+	signedContent := fmt.Sprintf("%s.%d.%s", webhookID, timestamp, string(payload))
+	h := hmac.New(sha256.New, []byte(secret))
+	h.Write([]byte(signedContent))
+	expectedSig := base64.StdEncoding.EncodeToString(h.Sum(nil))
+
+	// Constant-time comparison
+	decodedReceived, err := base64.StdEncoding.DecodeString(receivedSig)
+	if err != nil {
+		return false, fmt.Errorf("invalid signature encoding: %w", err)
+	}
+	decodedExpected, _ := base64.StdEncoding.DecodeString(expectedSig)
+
+	return hmac.Equal(decodedReceived, decodedExpected), nil
 }

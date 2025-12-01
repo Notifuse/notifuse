@@ -20,16 +20,16 @@ fi
 
 # Get container IPs
 POSTGRES_IP=$(docker inspect tests-postgres-test-1 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
-MAILHOG_IP=$(docker inspect tests-mailhog-1 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
+MAILPIT_IP=$(docker inspect tests-mailpit-1 --format='{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}')
 echo "📊 PostgreSQL container IP: $POSTGRES_IP"
-echo "📬 MailHog container IP: $MAILHOG_IP"
+echo "📬 Mailpit container IP: $MAILPIT_IP"
 
 # Export environment variables for tests
 export TEST_DB_HOST="$POSTGRES_IP"
 export TEST_DB_PORT="5432"
 export TEST_DB_USER="notifuse_test"
 export TEST_DB_PASSWORD="test_password"
-export TEST_SMTP_HOST="$MAILHOG_IP"
+export TEST_SMTP_HOST="$MAILPIT_IP"
 export ENVIRONMENT="test"
 export INTEGRATION_TESTS="true"
 

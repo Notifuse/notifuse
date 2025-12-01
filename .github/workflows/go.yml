@@ -72,10 +72,8 @@ jobs:
         ports:
           - 5433:5432
 
-      mailhog:
-        image: mailhog/mailhog:latest
-        env:
-          MH_STORAGE: memory
+      mailpit:
+        image: axllent/mailpit:latest
         options: >-
           --health-cmd "wget --quiet --tries=1 --spider http://localhost:8025/ || exit 1"
           --health-interval 10s
@@ -134,14 +132,14 @@ jobs:
           echo "Waiting for PostgreSQL to be ready..."
           sleep 10
 
-          # Wait for Mailhog to be ready
-          echo "Waiting for Mailhog to be ready..."
+          # Wait for Mailpit to be ready
+          echo "Waiting for Mailpit to be ready..."
           for i in {1..30}; do
             if curl -f http://localhost:8025/ > /dev/null 2>&1; then
-              echo "Mailhog is ready!"
+              echo "Mailpit is ready!"
               break
             fi
-            echo "Waiting for Mailhog... ($i/30)"
+            echo "Waiting for Mailpit... ($i/30)"
             sleep 2
           done
 

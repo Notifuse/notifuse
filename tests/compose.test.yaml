@@ -21,13 +21,11 @@ services:
       timeout: 5s
       retries: 5
 
-  mailhog:
-    image: mailhog/mailhog:latest
+  mailpit:
+    image: axllent/mailpit:latest
     ports:
       - '1025:1025' # SMTP server
       - '8025:8025' # Web UI
-    environment:
-      MH_STORAGE: memory
     healthcheck:
       test: ['CMD', 'wget', '--quiet', '--tries=1', '--spider', 'http://localhost:8025/']
       interval: 10s

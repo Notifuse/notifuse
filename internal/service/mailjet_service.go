@@ -565,6 +565,12 @@ func (s *MailjetService) SendEmail(ctx context.Context, request domain.SendEmail
 		message.Headers["Reply-To"] = request.EmailOptions.ReplyTo
 	}
 
+	// Add RFC-8058 List-Unsubscribe headers for one-click unsubscribe
+	if request.EmailOptions.ListUnsubscribeURL != "" {
+		message.Headers["List-Unsubscribe"] = fmt.Sprintf("<%s>", request.EmailOptions.ListUnsubscribeURL)
+		message.Headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
+	}
+
 	// Add attachments if specified
 	// Mailjet uses separate arrays for regular attachments and inline images
 	// https://dev.mailjet.com/email/guides/send-api-v31/#send-with-attached-files

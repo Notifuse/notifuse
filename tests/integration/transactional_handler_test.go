@@ -664,10 +664,10 @@ func TestTransactionalMethodValidation(t *testing.T) {
 // testTransactionalSendWithCCAndBCC verifies that emails are sent to all CC and BCC recipients
 func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
 	t.Run("should send email to all recipients including CC and BCC", func(t *testing.T) {
-		// Clear Mailhog before test
-		err := testutil.ClearMailhogMessages(t)
+		// Clear Mailpit before test
+		err := testutil.ClearMailpitMessages(t)
 		if err != nil {
-			t.Logf("Warning: Could not clear Mailhog messages: %v", err)
+			t.Logf("Warning: Could not clear Mailpit messages: %v", err)
 		}
 
 		// Create a template
@@ -738,56 +738,51 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		t.Logf("Email sent successfully with message ID: %s", messageID)
 
 		// Wait for SMTP server to process all emails
-		t.Log("Waiting for emails to be delivered to MailHog...")
+		t.Log("Waiting for emails to be delivered to Mailpit...")
 		time.Sleep(3 * time.Second)
 
-		// Check MailHog to verify all 7 emails were received
-		t.Log("Checking MailHog API for email count...")
-		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
-		require.NoError(t, err, "Failed to connect to MailHog API")
-		defer func() { _ = mailhogResp.Body.Close() }()
+		// Check Mailpit to verify all 7 emails were received
+		t.Log("Checking Mailpit API for email count...")
+		mailpitResp, err := http.Get("http://localhost:8025/api/v1/messages")
+		require.NoError(t, err, "Failed to connect to Mailpit API")
+		defer func() { _ = mailpitResp.Body.Close() }()
 
-		var mailhogData struct {
-			Total int `json:"total"`
-			Items []struct {
-				To []struct {
-					Mailbox string `json:"Mailbox"`
-					Domain  string `json:"Domain"`
+		var mailpitData struct {
+			Total    int `json:"total"`
+			Messages []struct {
+				Subject string `json:"Subject"`
+				To      []struct {
+					Address string `json:"Address"`
 				} `json:"To"`
-				Content struct {
-					Headers map[string][]string `json:"Headers"`
-				} `json:"Content"`
-			} `json:"items"`
+			} `json:"messages"`
 		}
 
-		err = json.NewDecoder(mailhogResp.Body).Decode(&mailhogData)
-		require.NoError(t, err, "Failed to decode MailHog response")
+		err = json.NewDecoder(mailpitResp.Body).Decode(&mailpitData)
+		require.NoError(t, err, "Failed to decode Mailpit response")
 
-		t.Logf("MailHog reports %d total emails", mailhogData.Total)
+		t.Logf("Mailpit reports %d total emails", mailpitData.Total)
 
 		// Count emails that match our message (by checking for the Test Email Subject)
 		emailsForOurMessage := 0
 		recipientsFound := make(map[string]bool)
 
-		for _, msg := range mailhogData.Items {
+		for _, msg := range mailpitData.Messages {
 			// Check if this is our email by looking at the subject
-			subjects := msg.Content.Headers["Subject"]
-			if len(subjects) > 0 && strings.Contains(subjects[0], "Test Email Subject") {
+			if strings.Contains(msg.Subject, "Test Email Subject") {
 				emailsForOurMessage++
 
 				// Track which recipient received this
 				for _, to := range msg.To {
-					recipientEmail := to.Mailbox + "@" + to.Domain
-					recipientsFound[recipientEmail] = true
-					t.Logf("  Found email to: %s", recipientEmail)
+					recipientsFound[to.Address] = true
+					t.Logf("  Found email to: %s", to.Address)
 				}
 			}
 		}
 
-		t.Logf("Found %d email(s) with our subject in MailHog", emailsForOurMessage)
+		t.Logf("Found %d email(s) with our subject in Mailpit", emailsForOurMessage)
 
 		// Verify we have exactly 1 email (SMTP sends 1 message to multiple recipients, not separate messages)
-		assert.Equal(t, 1, emailsForOurMessage, "Expected 1 email in MailHog with 7 recipients")
+		assert.Equal(t, 1, emailsForOurMessage, "Expected 1 email in Mailpit with 7 recipients")
 
 		// Verify all 7 expected recipients are present in that 1 email
 		t.Log("\n=== Recipient Verification ===")
@@ -827,7 +822,7 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 		// Final summary
 		t.Log("\n=== Final Test Summary ===")
 		t.Logf("✅ API accepted the request and returned message ID: %s", messageID)
-		t.Logf("✅ MailHog received 1 email with 7 recipients (1 main + 3 CC + 3 BCC)")
+		t.Logf("✅ Mailpit received 1 email with 7 recipients (1 main + 3 CC + 3 BCC)")
 		t.Logf("✅ All 7 recipients are included in the email envelope")
 		t.Logf("✅ Message history created for primary recipient")
 		t.Log("\nNote: SMTP sends 1 email to multiple recipients, not separate emails.")
@@ -928,10 +923,10 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 // testTransactionalSendWithCustomFromName verifies that the from_name override works correctly
 func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIClient, factory *testutil.TestDataFactory, workspaceID string) {
 	t.Run("should send email with custom from_name", func(t *testing.T) {
-		// Clear Mailhog before test
-		err := testutil.ClearMailhogMessages(t)
+		// Clear Mailpit before test
+		err := testutil.ClearMailpitMessages(t)
 		if err != nil {
-			t.Logf("Warning: Could not clear Mailhog messages: %v", err)
+			t.Logf("Warning: Could not clear Mailpit messages: %v", err)
 		}
 
 		// Create a template
@@ -992,44 +987,37 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		t.Logf("Email sent successfully with message ID: %s", messageID)
 
 		// Wait for SMTP server to process email
-		t.Log("Waiting for email to be delivered to MailHog...")
+		t.Log("Waiting for email to be delivered to Mailpit...")
 		time.Sleep(3 * time.Second)
 
-		// Check MailHog to verify the From header contains custom from_name
-		t.Log("Checking MailHog API for email with custom from_name...")
-		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
-		require.NoError(t, err, "Failed to connect to MailHog API")
-		defer func() { _ = mailhogResp.Body.Close() }()
+		// Check Mailpit to verify the From header contains custom from_name
+		t.Log("Checking Mailpit API for email with custom from_name...")
+		mailpitResp, err := http.Get("http://localhost:8025/api/v1/messages")
+		require.NoError(t, err, "Failed to connect to Mailpit API")
+		defer func() { _ = mailpitResp.Body.Close() }()
 
-		var mailhogData struct {
-			Total int `json:"total"`
-			Items []struct {
-				From struct {
-					Mailbox string `json:"Mailbox"`
-					Domain  string `json:"Domain"`
-					Params  string `json:"Params"`
-				} `json:"From"`
-				Content struct {
-					Headers map[string][]string `json:"Headers"`
-				} `json:"Content"`
-			} `json:"items"`
-		}
+		var mailpitData testutil.MailpitMessagesResponse
+		err = json.NewDecoder(mailpitResp.Body).Decode(&mailpitData)
+		require.NoError(t, err, "Failed to decode Mailpit response")
 
-		err = json.NewDecoder(mailhogResp.Body).Decode(&mailhogData)
-		require.NoError(t, err, "Failed to decode MailHog response")
-
-		t.Logf("MailHog reports %d total emails", mailhogData.Total)
+		t.Logf("Mailpit reports %d total emails", mailpitData.Total)
 
 		// Find our email and verify the From header
 		foundEmail := false
-		for _, msg := range mailhogData.Items {
+		for _, msgSummary := range mailpitData.Messages {
+			// Get full message to check headers
+			fullMsg, err := testutil.GetMailpitMessage(t, msgSummary.ID)
+			if err != nil {
+				t.Logf("Failed to get full message: %v", err)
+				continue
+			}
 			// Check if this is our email by looking at the subject
-			subjects := msg.Content.Headers["Subject"]
+			subjects := fullMsg.Headers["Subject"]
 			if len(subjects) > 0 && strings.Contains(subjects[0], "Test Email Subject") {
 				foundEmail = true
 
 				// Check the From header - it should contain the custom from_name
-				fromHeaders := msg.Content.Headers["From"]
+				fromHeaders := fullMsg.Headers["From"]
 				require.NotEmpty(t, fromHeaders, "From header should be present")
 
 				fromHeader := fromHeaders[0]
@@ -1045,7 +1033,7 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 			}
 		}
 
-		assert.True(t, foundEmail, "Should find the sent email in MailHog")
+		assert.True(t, foundEmail, "Should find the sent email in Mailpit")
 
 		// Verify message history was created
 		messageResp, err := client.Get("/api/messages.list?workspace_id=" + workspaceID + "&id=" + messageID)
@@ -1069,15 +1057,15 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		t.Log("\n=== Test Summary ===")
 		t.Logf("✅ API accepted the request with custom from_name")
 		t.Logf("✅ Email sent with message ID: %s", messageID)
-		t.Logf("✅ MailHog received email with custom from_name in From header")
+		t.Logf("✅ Mailpit received email with custom from_name in From header")
 		t.Logf("✅ Message history created correctly")
 	})
 
 	t.Run("should use default from_name when not provided", func(t *testing.T) {
-		// Clear Mailhog before test
-		err := testutil.ClearMailhogMessages(t)
+		// Clear Mailpit before test
+		err := testutil.ClearMailpitMessages(t)
 		if err != nil {
-			t.Logf("Warning: Could not clear Mailhog messages: %v", err)
+			t.Logf("Warning: Could not clear Mailpit messages: %v", err)
 		}
 
 		// Create a template
@@ -1132,45 +1120,41 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		// Wait for email delivery
 		time.Sleep(3 * time.Second)
 
-		// Check MailHog to verify email was sent (with default from_name)
-		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
+		// Check Mailpit to verify email was sent (with default from_name)
+		mailpitResp, err := http.Get("http://localhost:8025/api/v1/messages")
 		require.NoError(t, err)
-		defer func() { _ = mailhogResp.Body.Close() }()
+		defer func() { _ = mailpitResp.Body.Close() }()
 
-		var mailhogData struct {
-			Total int `json:"total"`
-			Items []struct {
-				Content struct {
-					Headers map[string][]string `json:"Headers"`
-				} `json:"Content"`
-			} `json:"items"`
-		}
-
-		err = json.NewDecoder(mailhogResp.Body).Decode(&mailhogData)
+		var mailpitData testutil.MailpitMessagesResponse
+		err = json.NewDecoder(mailpitResp.Body).Decode(&mailpitData)
 		require.NoError(t, err)
 
 		// Verify at least one email was sent
 		foundEmail := false
-		for _, msg := range mailhogData.Items {
-			subjects := msg.Content.Headers["Subject"]
+		for _, msgSummary := range mailpitData.Messages {
+			fullMsg, err := testutil.GetMailpitMessage(t, msgSummary.ID)
+			if err != nil {
+				continue
+			}
+			subjects := fullMsg.Headers["Subject"]
 			if len(subjects) > 0 && strings.Contains(subjects[0], "Test Email Subject") {
 				foundEmail = true
-				fromHeaders := msg.Content.Headers["From"]
+				fromHeaders := fullMsg.Headers["From"]
 				require.NotEmpty(t, fromHeaders, "From header should be present")
 				t.Logf("From header (default): %s", fromHeaders[0])
 				break
 			}
 		}
 
-		assert.True(t, foundEmail, "Should find the sent email in MailHog")
+		assert.True(t, foundEmail, "Should find the sent email in Mailpit")
 		t.Log("✅ Email sent successfully with default from_name")
 	})
 
 	t.Run("should use default from_name when empty string provided", func(t *testing.T) {
-		// Clear Mailhog before test
-		err := testutil.ClearMailhogMessages(t)
+		// Clear Mailpit before test
+		err := testutil.ClearMailpitMessages(t)
 		if err != nil {
-			t.Logf("Warning: Could not clear Mailhog messages: %v", err)
+			t.Logf("Warning: Could not clear Mailpit messages: %v", err)
 		}
 
 		// Create a template
@@ -1228,18 +1212,15 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		time.Sleep(3 * time.Second)
 
 		// Verify email was sent
-		mailhogResp, err := http.Get("http://localhost:8025/api/v2/messages")
+		mailpitResp, err := http.Get("http://localhost:8025/api/v1/messages")
 		require.NoError(t, err)
-		defer func() { _ = mailhogResp.Body.Close() }()
+		defer func() { _ = mailpitResp.Body.Close() }()
 
-		var mailhogData struct {
-			Total int `json:"total"`
-		}
-
-		err = json.NewDecoder(mailhogResp.Body).Decode(&mailhogData)
+		var mailpitData testutil.MailpitMessagesResponse
+		err = json.NewDecoder(mailpitResp.Body).Decode(&mailpitData)
 		require.NoError(t, err)
 
-		assert.Greater(t, mailhogData.Total, 0, "Should have sent at least one email")
+		assert.Greater(t, mailpitData.Total, 0, "Should have sent at least one email")
 		t.Log("✅ Email sent successfully - empty from_name correctly falls back to default")
 	})
 }

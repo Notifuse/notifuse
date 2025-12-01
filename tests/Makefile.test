@@ -27,8 +27,8 @@ start:
 	@sleep 8
 	@echo "✅ Test infrastructure is ready!"
 	@echo "   - PostgreSQL: localhost:5433"
-	@echo "   - MailHog SMTP: localhost:1025"
-	@echo "   - MailHog Web UI: http://localhost:8025"
+	@echo "   - Mailpit SMTP: localhost:1025"
+	@echo "   - Mailpit Web UI: http://localhost:8025"
 
 # Stop test infrastructure
 stop:
@@ -60,10 +60,10 @@ health:
 	@echo "🏥 Checking test infrastructure health..."
 	@echo "PostgreSQL:"
 	@timeout 5s bash -c 'until nc -z localhost 5433; do sleep 1; done' && echo "✅ PostgreSQL is ready" || echo "❌ PostgreSQL is not ready"
-	@echo "MailHog SMTP:"
-	@timeout 5s bash -c 'until nc -z localhost 1025; do sleep 1; done' && echo "✅ MailHog SMTP is ready" || echo "❌ MailHog SMTP is not ready"
-	@echo "MailHog Web UI:"
-	@timeout 5s bash -c 'until nc -z localhost 8025; do sleep 1; done' && echo "✅ MailHog Web UI is ready" || echo "❌ MailHog Web UI is not ready"
+	@echo "Mailpit SMTP:"
+	@timeout 5s bash -c 'until nc -z localhost 1025; do sleep 1; done' && echo "✅ Mailpit SMTP is ready" || echo "❌ Mailpit SMTP is not ready"
+	@echo "Mailpit Web UI:"
+	@timeout 5s bash -c 'until nc -z localhost 8025; do sleep 1; done' && echo "✅ Mailpit Web UI is ready" || echo "❌ Mailpit Web UI is not ready"
 
 # Run integration tests
 test:

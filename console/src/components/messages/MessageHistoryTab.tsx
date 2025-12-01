@@ -434,6 +434,7 @@ export const MessageHistoryTab: React.FC<MessageHistoryTabProps> = ({ workspaceI
         <Popover
           key={option.key}
           trigger="click"
+          placement="bottom"
           open={openPopovers[option.key]}
           onOpenChange={(visible) => {
             // Initialize temp value when opening

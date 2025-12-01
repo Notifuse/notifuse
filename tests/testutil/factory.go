@@ -413,36 +413,36 @@ func (tdf *TestDataFactory) CreateSESIntegration(workspaceID string, opts ...Int
 	return tdf.CreateIntegration(workspaceID, sesOpts...)
 }
 
-// CreateMailhogSMTPIntegration creates an SMTP integration configured for Mailhog
-func (tdf *TestDataFactory) CreateMailhogSMTPIntegration(workspaceID string, opts ...IntegrationOption) (*domain.Integration, error) {
-	mailhogOpts := []IntegrationOption{
-		WithIntegrationName("Mailhog SMTP"),
+// CreateMailpitSMTPIntegration creates an SMTP integration configured for Mailpit
+func (tdf *TestDataFactory) CreateMailpitSMTPIntegration(workspaceID string, opts ...IntegrationOption) (*domain.Integration, error) {
+	mailpitOpts := []IntegrationOption{
+		WithIntegrationName("Mailpit SMTP"),
 		WithIntegrationEmailProvider(domain.EmailProvider{
 			Kind: domain.EmailProviderKindSMTP,
 			Senders: []domain.EmailSender{
 				domain.NewEmailSender("noreply@notifuse.test", "Notifuse Test"),
 			},
 			SMTP: &domain.SMTPSettings{
-				Host:     "localhost", // Mailhog SMTP server
-				Port:     1025,        // Mailhog SMTP port
-				Username: "",          // Mailhog doesn't require auth
+				Host:     "localhost", // Mailpit SMTP server
+				Port:     1025,        // Mailpit SMTP port
+				Username: "",          // Mailpit doesn't require auth
 				Password: "",
-				UseTLS:   false, // Mailhog doesn't use TLS by default
+				UseTLS:   false, // Mailpit doesn't use TLS by default
 			},
 			RateLimitPerMinute: 25,
 		}),
 	}
 
 	// Append user-provided options
-	mailhogOpts = append(mailhogOpts, opts...)
+	mailpitOpts = append(mailpitOpts, opts...)
 
-	return tdf.CreateIntegration(workspaceID, mailhogOpts...)
+	return tdf.CreateIntegration(workspaceID, mailpitOpts...)
 }
 
 // SetupWorkspaceWithSMTPProvider creates a workspace with an SMTP email provider and sets it as the marketing and transactional provider
 func (tdf *TestDataFactory) SetupWorkspaceWithSMTPProvider(workspaceID string, opts ...IntegrationOption) (*domain.Integration, error) {
-	// Create Mailhog SMTP integration
-	integration, err := tdf.CreateMailhogSMTPIntegration(workspaceID, opts...)
+	// Create Mailpit SMTP integration
+	integration, err := tdf.CreateMailpitSMTPIntegration(workspaceID, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create SMTP integration: %w", err)
 	}

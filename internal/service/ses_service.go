@@ -800,9 +800,10 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 		}
 	}
 
-	// If there are attachments, use SendRawEmail instead
-	if len(request.EmailOptions.Attachments) > 0 {
-		return s.sendRawEmailWithAttachments(ctx, sesEmailClient, request, configSetName)
+	// Use SendRawEmail when attachments or List-Unsubscribe headers are needed
+	// (AWS SES V1 SendEmail API doesn't support custom headers)
+	if len(request.EmailOptions.Attachments) > 0 || request.EmailOptions.ListUnsubscribeURL != "" {
+		return s.sendRawEmail(ctx, sesEmailClient, request, configSetName)
 	}
 
 	// Add custom messageID as a tag
@@ -827,10 +828,10 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 	return nil
 }
 
-// sendRawEmailWithAttachments sends email with attachments using SendRawEmail
+// sendRawEmail sends email using SendRawEmail for attachments or custom headers
 // Following AWS SES raw MIME message construction as documented at:
 // https://docs.aws.amazon.com/ses/latest/dg/attachments.html
-func (s *SESService) sendRawEmailWithAttachments(ctx context.Context, sesClient domain.SESClient, request domain.SendEmailProviderRequest, configSetName string) error {
+func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESClient, request domain.SendEmailProviderRequest, configSetName string) error {
 	var buf bytes.Buffer
 
 	// Write email headers
@@ -848,6 +849,13 @@ func (s *SESService) sendRawEmailWithAttachments(ctx context.Context, sesClient 
 
 	buf.WriteString(fmt.Sprintf("Subject: %s\r\n", request.Subject))
 	buf.WriteString(fmt.Sprintf("X-Message-ID: %s\r\n", request.MessageID))
+
+	// Add RFC-8058 List-Unsubscribe headers for one-click unsubscribe
+	if request.EmailOptions.ListUnsubscribeURL != "" {
+		buf.WriteString(fmt.Sprintf("List-Unsubscribe: <%s>\r\n", request.EmailOptions.ListUnsubscribeURL))
+		buf.WriteString("List-Unsubscribe-Post: List-Unsubscribe=One-Click\r\n")
+	}
+
 	buf.WriteString("MIME-Version: 1.0\r\n")
 
 	// Create multipart writer

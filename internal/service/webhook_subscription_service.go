@@ -93,7 +93,7 @@ func validateEventTypes(eventTypes []string) error {
 }
 
 // Create creates a new webhook subscription
-func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID string, name, webhookURL, description string, eventTypes []string, customEventFilters *domain.CustomEventFilters) (*domain.WebhookSubscription, error) {
+func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID string, name, webhookURL string, eventTypes []string, customEventFilters *domain.CustomEventFilters) (*domain.WebhookSubscription, error) {
 	// Validate inputs
 	if name == "" {
 		return nil, fmt.Errorf("name is required")
@@ -114,16 +114,15 @@ func (s *WebhookSubscriptionService) Create(ctx context.Context, workspaceID str
 	}
 
 	sub := &domain.WebhookSubscription{
-		ID:                 generateWebhookID(),
-		Name:               name,
-		URL:                webhookURL,
-		Secret:             secret,
-		EventTypes:         eventTypes,
-		CustomEventFilters: customEventFilters,
-		Enabled:            true,
-		Description:        description,
-		SuccessCount:       0,
-		FailureCount:       0,
+		ID:     generateWebhookID(),
+		Name:   name,
+		URL:    webhookURL,
+		Secret: secret,
+		Settings: domain.WebhookSubscriptionSettings{
+			EventTypes:         eventTypes,
+			CustomEventFilters: customEventFilters,
+		},
+		Enabled: true,
 	}
 
 	if err := s.repo.Create(ctx, workspaceID, sub); err != nil {
@@ -158,7 +157,7 @@ func (s *WebhookSubscriptionService) List(ctx context.Context, workspaceID strin
 }
 
 // Update updates an existing webhook subscription
-func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID string, id, name, webhookURL, description string, eventTypes []string, customEventFilters *domain.CustomEventFilters, enabled bool) (*domain.WebhookSubscription, error) {
+func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID string, id, name, webhookURL string, eventTypes []string, customEventFilters *domain.CustomEventFilters, enabled bool) (*domain.WebhookSubscription, error) {
 	// Get existing subscription
 	existing, err := s.repo.GetByID(ctx, workspaceID, id)
 	if err != nil {
@@ -181,9 +180,10 @@ func (s *WebhookSubscriptionService) Update(ctx context.Context, workspaceID str
 	// Update fields
 	existing.Name = name
 	existing.URL = webhookURL
-	existing.Description = description
-	existing.EventTypes = eventTypes
-	existing.CustomEventFilters = customEventFilters
+	existing.Settings = domain.WebhookSubscriptionSettings{
+		EventTypes:         eventTypes,
+		CustomEventFilters: customEventFilters,
+	}
 	existing.Enabled = enabled
 
 	if err := s.repo.Update(ctx, workspaceID, existing); err != nil {
@@ -264,9 +264,9 @@ func (s *WebhookSubscriptionService) RegenerateSecret(ctx context.Context, works
 	return existing, nil
 }
 
-// GetDeliveries retrieves delivery history for a subscription
-func (s *WebhookSubscriptionService) GetDeliveries(ctx context.Context, workspaceID, subscriptionID string, limit, offset int) ([]*domain.WebhookDelivery, int, error) {
-	deliveries, total, err := s.deliveryRepo.ListBySubscription(ctx, workspaceID, subscriptionID, limit, offset)
+// GetDeliveries retrieves delivery history, optionally filtered by subscription
+func (s *WebhookSubscriptionService) GetDeliveries(ctx context.Context, workspaceID string, subscriptionID *string, limit, offset int) ([]*domain.WebhookDelivery, int, error) {
+	deliveries, total, err := s.deliveryRepo.ListAll(ctx, workspaceID, subscriptionID, limit, offset)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to get webhook deliveries: %w", err)
 	}
