@@ -15,7 +15,7 @@ type ContactService struct {
 	workspaceRepo       domain.WorkspaceRepository
 	authService         domain.AuthService
 	messageHistoryRepo  domain.MessageHistoryRepository
-	webhookEventRepo    domain.WebhookEventRepository
+	inboundWebhookEventRepo    domain.InboundWebhookEventRepository
 	contactListRepo     domain.ContactListRepository
 	contactTimelineRepo domain.ContactTimelineRepository
 	logger              logger.Logger
@@ -26,7 +26,7 @@ func NewContactService(
 	workspaceRepo domain.WorkspaceRepository,
 	authService domain.AuthService,
 	messageHistoryRepo domain.MessageHistoryRepository,
-	webhookEventRepo domain.WebhookEventRepository,
+	inboundWebhookEventRepo domain.InboundWebhookEventRepository,
 	contactListRepo domain.ContactListRepository,
 	contactTimelineRepo domain.ContactTimelineRepository,
 	logger logger.Logger,
@@ -36,7 +36,7 @@ func NewContactService(
 		workspaceRepo:       workspaceRepo,
 		authService:         authService,
 		messageHistoryRepo:  messageHistoryRepo,
-		webhookEventRepo:    webhookEventRepo,
+		inboundWebhookEventRepo:    inboundWebhookEventRepo,
 		contactListRepo:     contactListRepo,
 		contactTimelineRepo: contactTimelineRepo,
 		logger:              logger,
@@ -154,7 +154,7 @@ func (s *ContactService) DeleteContact(ctx context.Context, workspaceID string, 
 		return fmt.Errorf("failed to delete message history: %w", err)
 	}
 
-	if err := s.webhookEventRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
+	if err := s.inboundWebhookEventRepo.DeleteForEmail(ctx, workspaceID, email); err != nil {
 		s.logger.WithField("email", email).Error(fmt.Sprintf("Failed to delete webhook events: %v", err))
 		return fmt.Errorf("failed to delete webhook events: %w", err)
 	}

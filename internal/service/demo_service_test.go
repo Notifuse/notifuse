@@ -260,10 +260,10 @@ func TestDemoService_SubscribeContactsToList_Success(t *testing.T) {
 
 	// Services
 	mockMessageHistoryRepo := domainmocks.NewMockMessageHistoryRepository(ctrl)
-	mockWebhookEventRepo := domainmocks.NewMockWebhookEventRepository(ctrl)
+	mockInboundWebhookEventRepo := domainmocks.NewMockInboundWebhookEventRepository(ctrl)
 	mockContactTimelineRepo := domainmocks.NewMockContactTimelineRepository(ctrl)
 	mockCache := pkgmocks.NewMockCache(ctrl)
-	contactSvc := NewContactService(mockContactRepo, mockWorkspaceRepo, mockAuth, mockMessageHistoryRepo, mockWebhookEventRepo, mockContactListRepo, mockContactTimelineRepo, logger.NewLoggerWithLevel("disabled"))
+	contactSvc := NewContactService(mockContactRepo, mockWorkspaceRepo, mockAuth, mockMessageHistoryRepo, mockInboundWebhookEventRepo, mockContactListRepo, mockContactTimelineRepo, logger.NewLoggerWithLevel("disabled"))
 	listSvc := NewListService(mockListRepo, mockWorkspaceRepo, mockContactListRepo, mockContactRepo, mockAuth, mockEmail, logger.NewLoggerWithLevel("disabled"), "https://api.test", mockCache)
 
 	svc := &DemoService{
@@ -510,7 +510,7 @@ func TestDemoService_GenerateMessagesPerContact(t *testing.T) {
 	svc := &DemoService{
 		logger:             logger.NewLoggerWithLevel("disabled"),
 		messageHistoryRepo: mockMessageHistoryRepo,
-		webhookEventRepo:   nil, // Won't be called in this test
+		inboundWebhookEventRepo:   nil, // Won't be called in this test
 		workspaceService:   nil, // Won't be called in this test
 	}
 

@@ -2,7 +2,7 @@ import { Typography, Tabs } from 'antd'
 import { useParams, useSearch } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { MessageHistoryTab } from '../components/messages/MessageHistoryTab'
-import { WebhookEventsTab } from '../components/webhooks/WebhookEventsTab'
+import { InboundWebhookEventsTab } from '../components/webhooks/InboundWebhookEventsTab'
 import { OutgoingWebhooksTab } from '../components/webhooks/OutgoingWebhooksTab'
 
 const { Text } = Typography
@@ -16,8 +16,8 @@ export function LogsPage() {
     return <div>Loading...</div>
   }
 
-  const handleRefreshWebhookEvents = () => {
-    queryClient.invalidateQueries({ queryKey: ['webhook-events', workspaceId] })
+  const handleRefreshInboundWebhookEvents = () => {
+    queryClient.invalidateQueries({ queryKey: ['inbound-webhook-events', workspaceId] })
   }
 
   return (
@@ -39,7 +39,7 @@ export function LogsPage() {
             key: 'incoming-webhooks',
             label: 'Incoming Webhooks',
             children: (
-              <WebhookEventsTab workspaceId={workspaceId} onRefresh={handleRefreshWebhookEvents} />
+              <InboundWebhookEventsTab workspaceId={workspaceId} onRefresh={handleRefreshInboundWebhookEvents} />
             )
           },
           {

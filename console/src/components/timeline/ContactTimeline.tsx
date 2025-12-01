@@ -16,7 +16,7 @@ import {
   ContactTimelineEntry,
   ContactListEntityData,
   MessageHistoryEntityData,
-  WebhookEventEntityData,
+  InboundWebhookEventEntityData,
   CustomEventEntityData
 } from '../../services/api/contact_timeline'
 import type { Workspace } from '../../services/api/types'
@@ -124,8 +124,8 @@ export function ContactTimeline({
           return faMousePointer
         }
         return faPaperPlane
-      case 'webhook_event': {
-        const webhookData = entry.entity_data as WebhookEventEntityData | undefined
+      case 'inbound_webhook_event': {
+        const webhookData = entry.entity_data as InboundWebhookEventEntityData | undefined
         const eventType = webhookData?.type
         if (eventType === 'bounce') {
           return faCircleExclamation
@@ -538,8 +538,8 @@ export function ContactTimeline({
         )
       }
 
-      case 'webhook_event': {
-        const webhookEventData = entry.entity_data as WebhookEventEntityData
+      case 'inbound_webhook_event': {
+        const webhookEventData = entry.entity_data as InboundWebhookEventEntityData
         const eventType = webhookEventData?.type
         const sourceChange = entry.changes?.source
         const source = webhookEventData?.source || (typeof sourceChange === 'object' && sourceChange !== null && 'new' in sourceChange ? sourceChange.new as string : undefined)

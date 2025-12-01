@@ -100,7 +100,7 @@ type App struct {
 	taskRepo                      domain.TaskRepository
 	transactionalNotificationRepo domain.TransactionalNotificationRepository
 	messageHistoryRepo            domain.MessageHistoryRepository
-	webhookEventRepo              domain.WebhookEventRepository
+	inboundWebhookEventRepo       domain.InboundWebhookEventRepository
 	telemetryRepo                 domain.TelemetryRepository
 	analyticsRepo                 domain.AnalyticsRepository
 	contactTimelineRepo           domain.ContactTimelineRepository
@@ -127,7 +127,7 @@ type App struct {
 	taskService                      *service.TaskService
 	transactionalNotificationService *service.TransactionalNotificationService
 	systemNotificationService        *service.SystemNotificationService
-	webhookEventService              *service.WebhookEventService
+	inboundWebhookEventService       *service.InboundWebhookEventService
 	webhookRegistrationService       *service.WebhookRegistrationService
 	messageHistoryService            *service.MessageHistoryService
 	notificationCenterService        *service.NotificationCenterService
@@ -401,7 +401,7 @@ func (a *App) InitRepositories() error {
 	a.broadcastRepo = repository.NewBroadcastRepository(a.workspaceRepo)
 	a.transactionalNotificationRepo = repository.NewTransactionalNotificationRepository(a.workspaceRepo)
 	a.messageHistoryRepo = repository.NewMessageHistoryRepository(a.workspaceRepo)
-	a.webhookEventRepo = repository.NewWebhookEventRepository(a.workspaceRepo)
+	a.inboundWebhookEventRepo = repository.NewInboundWebhookEventRepository(a.workspaceRepo)
 	a.telemetryRepo = repository.NewTelemetryRepository(a.workspaceRepo)
 	a.analyticsRepo = repository.NewAnalyticsRepository(a.workspaceRepo, a.logger)
 	a.contactTimelineRepo = repository.NewContactTimelineRepository(a.workspaceRepo)
@@ -521,7 +521,7 @@ func (a *App) InitServices() error {
 		a.workspaceRepo,
 		a.authService,
 		a.messageHistoryRepo,
-		a.webhookEventRepo,
+		a.inboundWebhookEventRepo,
 		a.contactListRepo,
 		a.contactTimelineRepo,
 		a.logger,
@@ -631,8 +631,8 @@ func (a *App) InitServices() error {
 		a.config.APIEndpoint,
 	)
 
-	a.webhookEventService = service.NewWebhookEventService(
-		a.webhookEventRepo,
+	a.inboundWebhookEventService = service.NewInboundWebhookEventService(
+		a.inboundWebhookEventRepo,
 		a.authService,
 		a.logger,
 		a.workspaceRepo,
@@ -650,7 +650,7 @@ func (a *App) InitServices() error {
 		a.templateService,
 		a.transactionalNotificationRepo,
 		a.transactionalNotificationService,
-		a.webhookEventRepo,
+		a.inboundWebhookEventRepo,
 		a.logger,
 	)
 
@@ -822,7 +822,7 @@ func (a *App) InitServices() error {
 		a.broadcastService,
 		a.taskService,
 		a.transactionalNotificationService,
-		a.webhookEventService,
+		a.inboundWebhookEventService,
 		a.webhookRegistrationService,
 		a.messageHistoryService,
 		a.notificationCenterService,
@@ -830,7 +830,7 @@ func (a *App) InitServices() error {
 		a.workspaceRepo,
 		a.taskRepo,
 		a.messageHistoryRepo,
-		a.webhookEventRepo,
+		a.inboundWebhookEventRepo,
 		a.broadcastRepo,
 		a.customEventRepo,
 		a.webhookSubscriptionService,
@@ -1001,7 +1001,7 @@ func (a *App) InitHandlers() error {
 		a.config.Security.SecretKey,
 	)
 	transactionalHandler := httpHandler.NewTransactionalNotificationHandler(a.transactionalNotificationService, getJWTSecret, a.logger, a.config.IsDemo())
-	webhookEventHandler := httpHandler.NewWebhookEventHandler(a.webhookEventService, getJWTSecret, a.logger)
+	inboundWebhookEventHandler := httpHandler.NewInboundWebhookEventHandler(a.inboundWebhookEventService, getJWTSecret, a.logger)
 	webhookRegistrationHandler := httpHandler.NewWebhookRegistrationHandler(a.webhookRegistrationService, getJWTSecret, a.logger)
 	supabaseWebhookHandler := httpHandler.NewSupabaseWebhookHandler(a.supabaseService, a.logger)
 	messageHistoryHandler := httpHandler.NewMessageHistoryHandler(
@@ -1064,7 +1064,7 @@ func (a *App) InitHandlers() error {
 	blogThemeHandler.RegisterRoutes(a.mux)
 	taskHandler.RegisterRoutes(a.mux)
 	transactionalHandler.RegisterRoutes(a.mux)
-	webhookEventHandler.RegisterRoutes(a.mux)
+	inboundWebhookEventHandler.RegisterRoutes(a.mux)
 	webhookRegistrationHandler.RegisterRoutes(a.mux)
 	supabaseWebhookHandler.RegisterRoutes(a.mux)
 	messageHistoryHandler.RegisterRoutes(a.mux)

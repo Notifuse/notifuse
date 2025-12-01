@@ -28,7 +28,7 @@ type DemoService struct {
 	broadcastService                 *BroadcastService
 	taskService                      *TaskService
 	transactionalNotificationService *TransactionalNotificationService
-	webhookEventService              *WebhookEventService
+	inboundWebhookEventService              *InboundWebhookEventService
 	webhookRegistrationService       *WebhookRegistrationService
 	messageHistoryService            *MessageHistoryService
 	notificationCenterService        *NotificationCenterService
@@ -36,7 +36,7 @@ type DemoService struct {
 	workspaceRepo                    domain.WorkspaceRepository
 	taskRepo                         domain.TaskRepository
 	messageHistoryRepo               domain.MessageHistoryRepository
-	webhookEventRepo                 domain.WebhookEventRepository
+	inboundWebhookEventRepo                 domain.InboundWebhookEventRepository
 	broadcastRepo                    domain.BroadcastRepository
 	customEventRepo                  domain.CustomEventRepository
 	webhookSubscriptionService       *WebhookSubscriptionService
@@ -103,7 +103,7 @@ func NewDemoService(
 	broadcastService *BroadcastService,
 	taskService *TaskService,
 	transactionalNotificationService *TransactionalNotificationService,
-	webhookEventService *WebhookEventService,
+	inboundWebhookEventService *InboundWebhookEventService,
 	webhookRegistrationService *WebhookRegistrationService,
 	messageHistoryService *MessageHistoryService,
 	notificationCenterService *NotificationCenterService,
@@ -111,7 +111,7 @@ func NewDemoService(
 	workspaceRepo domain.WorkspaceRepository,
 	taskRepo domain.TaskRepository,
 	messageHistoryRepo domain.MessageHistoryRepository,
-	webhookEventRepo domain.WebhookEventRepository,
+	inboundWebhookEventRepo domain.InboundWebhookEventRepository,
 	broadcastRepo domain.BroadcastRepository,
 	customEventRepo domain.CustomEventRepository,
 	webhookSubscriptionService *WebhookSubscriptionService,
@@ -129,7 +129,7 @@ func NewDemoService(
 		broadcastService:                 broadcastService,
 		taskService:                      taskService,
 		transactionalNotificationService: transactionalNotificationService,
-		webhookEventService:              webhookEventService,
+		inboundWebhookEventService:              inboundWebhookEventService,
 		webhookRegistrationService:       webhookRegistrationService,
 		messageHistoryService:            messageHistoryService,
 		notificationCenterService:        notificationCenterService,
@@ -137,7 +137,7 @@ func NewDemoService(
 		workspaceRepo:                    workspaceRepo,
 		taskRepo:                         taskRepo,
 		messageHistoryRepo:               messageHistoryRepo,
-		webhookEventRepo:                 webhookEventRepo,
+		inboundWebhookEventRepo:                 inboundWebhookEventRepo,
 		broadcastRepo:                    broadcastRepo,
 		customEventRepo:                  customEventRepo,
 		webhookSubscriptionService:       webhookSubscriptionService,
@@ -1494,9 +1494,9 @@ func (s *DemoService) generateMessagesPerContact(ctx context.Context, workspaceI
 		}
 
 		// Apply engagement events sequentially to simulate realistic event flow
-		// 1. First, generate webhook events for delivered messages
-		if err := s.generateDeliveredWebhookEventsForBatch(ctx, workspaceID, messagesWithEngagement); err != nil {
-			s.logger.WithField("error", err.Error()).Debug("Failed to generate delivered webhook events")
+		// 1. First, generate inbound webhook events for delivered messages
+		if err := s.generateDeliveredInboundWebhookEventsForBatch(ctx, workspaceID, messagesWithEngagement); err != nil {
+			s.logger.WithField("error", err.Error()).Debug("Failed to generate delivered inbound webhook events")
 		}
 
 		// 2. Then, update message_history for opened messages (triggers timeline entries)
@@ -1520,11 +1520,11 @@ type messageEngagementData struct {
 	engagement messageEngagement
 }
 
-// generateDeliveredWebhookEventsForBatch creates webhook events for delivered messages
-func (s *DemoService) generateDeliveredWebhookEventsForBatch(ctx context.Context, workspaceID string, messagesData []messageEngagementData) error {
-	// Skip if workspace service or webhook event repo is not available
-	if s.workspaceService == nil || s.webhookEventRepo == nil {
-		s.logger.Debug("Workspace service or webhook event repo not available, skipping webhook events")
+// generateDeliveredInboundWebhookEventsForBatch creates inbound webhook events for delivered messages
+func (s *DemoService) generateDeliveredInboundWebhookEventsForBatch(ctx context.Context, workspaceID string, messagesData []messageEngagementData) error {
+	// Skip if workspace service or inbound webhook event repo is not available
+	if s.workspaceService == nil || s.inboundWebhookEventRepo == nil {
+		s.logger.Debug("Workspace service or inbound webhook event repo not available, skipping inbound webhook events")
 		return nil
 	}
 
@@ -1536,23 +1536,23 @@ func (s *DemoService) generateDeliveredWebhookEventsForBatch(ctx context.Context
 
 	integrationID := workspace.Settings.TransactionalEmailProviderID
 	if integrationID == "" {
-		s.logger.WithField("workspace_id", workspaceID).Debug("No transactional email provider configured, skipping webhook events")
+		s.logger.WithField("workspace_id", workspaceID).Debug("No transactional email provider configured, skipping inbound webhook events")
 		return nil
 	}
 
-	// Collect webhook events for delivered messages
-	var webhookEvents []*domain.WebhookEvent
+	// Collect inbound webhook events for delivered messages
+	var inboundWebhookEvents []*domain.InboundWebhookEvent
 	for _, data := range messagesData {
 		if !data.engagement.shouldDeliver {
 			continue
 		}
 
-		webhookEventID := uuid.New().String()
+		inboundWebhookEventID := uuid.New().String()
 		rawPayload := fmt.Sprintf(`{"event":"delivered","message_id":"%s","recipient":"%s","timestamp":"%s"}`,
 			data.message.ID, data.message.ContactEmail, data.engagement.deliveredTime.Format(time.RFC3339))
 
-		webhookEvent := &domain.WebhookEvent{
-			ID:             webhookEventID,
+		inboundWebhookEvent := &domain.InboundWebhookEvent{
+			ID:             inboundWebhookEventID,
 			Type:           domain.EmailEventDelivered,
 			Source:         domain.WebhookSourceSMTP,
 			IntegrationID:  integrationID,
@@ -1563,15 +1563,15 @@ func (s *DemoService) generateDeliveredWebhookEventsForBatch(ctx context.Context
 			CreatedAt:      data.engagement.deliveredTime,
 		}
 
-		webhookEvents = append(webhookEvents, webhookEvent)
+		inboundWebhookEvents = append(inboundWebhookEvents, inboundWebhookEvent)
 	}
 
-	// Store webhook events
-	if len(webhookEvents) > 0 {
-		if err := s.webhookEventRepo.StoreEvents(ctx, workspaceID, webhookEvents); err != nil {
-			return fmt.Errorf("failed to store webhook events: %w", err)
+	// Store inbound webhook events
+	if len(inboundWebhookEvents) > 0 {
+		if err := s.inboundWebhookEventRepo.StoreEvents(ctx, workspaceID, inboundWebhookEvents); err != nil {
+			return fmt.Errorf("failed to store inbound webhook events: %w", err)
 		}
-		s.logger.WithField("count", len(webhookEvents)).Debug("Generated delivered webhook events")
+		s.logger.WithField("count", len(inboundWebhookEvents)).Debug("Generated delivered inbound webhook events")
 	}
 
 	return nil

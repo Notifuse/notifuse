@@ -25,7 +25,7 @@ type SupabaseService struct {
 	templateService      domain.TemplateService
 	transactionalRepo    domain.TransactionalNotificationRepository
 	transactionalService domain.TransactionalNotificationService
-	webhookEventRepo     domain.WebhookEventRepository
+	inboundWebhookEventRepo     domain.InboundWebhookEventRepository
 	logger               logger.Logger
 }
 
@@ -40,7 +40,7 @@ func NewSupabaseService(
 	templateService domain.TemplateService,
 	transactionalRepo domain.TransactionalNotificationRepository,
 	transactionalService domain.TransactionalNotificationService,
-	webhookEventRepo domain.WebhookEventRepository,
+	inboundWebhookEventRepo domain.InboundWebhookEventRepository,
 	logger logger.Logger,
 ) *SupabaseService {
 	return &SupabaseService{
@@ -53,7 +53,7 @@ func NewSupabaseService(
 		templateService:      templateService,
 		transactionalRepo:    transactionalRepo,
 		transactionalService: transactionalService,
-		webhookEventRepo:     webhookEventRepo,
+		inboundWebhookEventRepo:     inboundWebhookEventRepo,
 		logger:               logger,
 	}
 }
@@ -459,8 +459,8 @@ func (s *SupabaseService) storeSupabaseWebhook(ctx context.Context, workspaceID,
 		timestamp = time.Now().UTC()
 	}
 
-	// Create webhook event
-	event := &domain.WebhookEvent{
+	// Create inbound webhook event
+	event := &domain.InboundWebhookEvent{
 		ID:             uuid.New().String(),
 		Type:           domain.EmailEventType(eventType),
 		Source:         domain.WebhookSourceSupabase,
@@ -473,5 +473,5 @@ func (s *SupabaseService) storeSupabaseWebhook(ctx context.Context, workspaceID,
 	}
 
 	// Store via repository
-	return s.webhookEventRepo.StoreEvents(ctx, workspaceID, []*domain.WebhookEvent{event})
+	return s.inboundWebhookEventRepo.StoreEvents(ctx, workspaceID, []*domain.InboundWebhookEvent{event})
 }

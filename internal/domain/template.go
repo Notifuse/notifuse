@@ -772,8 +772,8 @@ func BuildTemplateData(req TemplateDataRequest) (MapOfAny, error) {
 		}
 	}
 
-	// Add list data and unsubscribe link if available
-	if req.ContactWithList.ListID != "" && req.WorkspaceID != "" {
+	// Add list data and unsubscribe link if available (requires contact for email-based unsubscribe URLs)
+	if req.ContactWithList.ListID != "" && req.WorkspaceID != "" && req.ContactWithList.Contact != nil {
 
 		templateData["list"] = MapOfAny{
 			"id":   req.ContactWithList.ListID,

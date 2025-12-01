@@ -610,7 +610,7 @@ func TestSupabaseService_storeSupabaseWebhook(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockWebhookEventRepo := mocks.NewMockWebhookEventRepository(ctrl)
+	mockInboundWebhookEventRepo := mocks.NewMockInboundWebhookEventRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	service := NewSupabaseService(
@@ -623,7 +623,7 @@ func TestSupabaseService_storeSupabaseWebhook(t *testing.T) {
 		nil, // templateService
 		nil, // transactionalRepo
 		nil, // transactionalService
-		mockWebhookEventRepo,
+		mockInboundWebhookEventRepo,
 		mockLogger,
 	)
 
@@ -636,9 +636,9 @@ func TestSupabaseService_storeSupabaseWebhook(t *testing.T) {
 	webhookTimestamp := "2024-01-01T12:00:00Z"
 
 	t.Run("Success - Stores webhook event", func(t *testing.T) {
-		mockWebhookEventRepo.EXPECT().
+		mockInboundWebhookEventRepo.EXPECT().
 			StoreEvents(ctx, workspaceID, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, workspaceID string, events []*domain.WebhookEvent) error {
+			DoAndReturn(func(ctx context.Context, workspaceID string, events []*domain.InboundWebhookEvent) error {
 				assert.Len(t, events, 1)
 				assert.Equal(t, domain.EmailEventType(eventType), events[0].Type)
 				assert.Equal(t, domain.WebhookSourceSupabase, events[0].Source)
@@ -652,7 +652,7 @@ func TestSupabaseService_storeSupabaseWebhook(t *testing.T) {
 	})
 
 	t.Run("Error - Repository error", func(t *testing.T) {
-		mockWebhookEventRepo.EXPECT().
+		mockInboundWebhookEventRepo.EXPECT().
 			StoreEvents(ctx, workspaceID, gomock.Any()).
 			Return(errors.New("repository error"))
 
@@ -661,9 +661,9 @@ func TestSupabaseService_storeSupabaseWebhook(t *testing.T) {
 	})
 
 	t.Run("Success - Invalid timestamp uses current time", func(t *testing.T) {
-		mockWebhookEventRepo.EXPECT().
+		mockInboundWebhookEventRepo.EXPECT().
 			StoreEvents(ctx, workspaceID, gomock.Any()).
-			DoAndReturn(func(ctx context.Context, workspaceID string, events []*domain.WebhookEvent) error {
+			DoAndReturn(func(ctx context.Context, workspaceID string, events []*domain.InboundWebhookEvent) error {
 				assert.NotNil(t, events[0].Timestamp)
 				return nil
 			})

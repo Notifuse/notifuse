@@ -216,7 +216,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			deleted_at TIMESTAMP WITH TIME ZONE
 		)`,
-		`CREATE TABLE IF NOT EXISTS webhook_events (
+		`CREATE TABLE IF NOT EXISTS inbound_webhook_events (
 			id UUID PRIMARY KEY,
 			type VARCHAR(50) NOT NULL,
 			source VARCHAR(50) NOT NULL,
@@ -231,10 +231,10 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			complaint_feedback_type VARCHAR(100),
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL
 		)`,
-		`CREATE INDEX IF NOT EXISTS webhook_events_message_id_idx ON webhook_events (message_id)`,
-		`CREATE INDEX IF NOT EXISTS webhook_events_type_idx ON webhook_events (type)`,
-		`CREATE INDEX IF NOT EXISTS webhook_events_timestamp_idx ON webhook_events (timestamp DESC)`,
-		`CREATE INDEX IF NOT EXISTS webhook_events_recipient_email_idx ON webhook_events (recipient_email)`,
+		`CREATE INDEX IF NOT EXISTS inbound_webhook_events_message_id_idx ON inbound_webhook_events (message_id)`,
+		`CREATE INDEX IF NOT EXISTS inbound_webhook_events_type_idx ON inbound_webhook_events (type)`,
+		`CREATE INDEX IF NOT EXISTS inbound_webhook_events_timestamp_idx ON inbound_webhook_events (timestamp DESC)`,
+		`CREATE INDEX IF NOT EXISTS inbound_webhook_events_recipient_email_idx ON inbound_webhook_events (recipient_email)`,
 		`CREATE INDEX IF NOT EXISTS idx_broadcasts_status_testing ON broadcasts(status) WHERE status IN ('testing', 'test_completed', 'winner_selected')`,
 		`CREATE TABLE IF NOT EXISTS contact_timeline (
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -520,23 +520,23 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
-		// Webhook event changes trigger function
-		`CREATE OR REPLACE FUNCTION track_webhook_event_changes()
+		// Inbound webhook event changes trigger function
+		`CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes()
 		RETURNS TRIGGER AS $$
 		DECLARE
 			changes_json JSONB := '{}'::jsonb;
 			entity_id_value VARCHAR(255);
 		BEGIN
-			-- Use message_id if available, otherwise use webhook event id
+			-- Use message_id if available, otherwise use inbound webhook event id
 			entity_id_value := COALESCE(NEW.message_id, NEW.id::text);
-			
+
 			changes_json := jsonb_build_object('type', jsonb_build_object('new', NEW.type), 'source', jsonb_build_object('new', NEW.source));
 			IF NEW.bounce_type IS NOT NULL AND NEW.bounce_type != '' THEN changes_json := changes_json || jsonb_build_object('bounce_type', jsonb_build_object('new', NEW.bounce_type)); END IF;
 			IF NEW.bounce_category IS NOT NULL AND NEW.bounce_category != '' THEN changes_json := changes_json || jsonb_build_object('bounce_category', jsonb_build_object('new', NEW.bounce_category)); END IF;
 			IF NEW.bounce_diagnostic IS NOT NULL AND NEW.bounce_diagnostic != '' THEN changes_json := changes_json || jsonb_build_object('bounce_diagnostic', jsonb_build_object('new', NEW.bounce_diagnostic)); END IF;
 			IF NEW.complaint_feedback_type IS NOT NULL AND NEW.complaint_feedback_type != '' THEN changes_json := changes_json || jsonb_build_object('complaint_feedback_type', jsonb_build_object('new', NEW.complaint_feedback_type)); END IF;
-			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-			VALUES (NEW.recipient_email, 'insert', 'webhook_event', 'insert_webhook_event', entity_id_value, changes_json, CURRENT_TIMESTAMP);
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+			VALUES (NEW.recipient_email, 'insert', 'inbound_webhook_event', 'insert_inbound_webhook_event', entity_id_value, changes_json, CURRENT_TIMESTAMP);
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
@@ -688,8 +688,8 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TRIGGER contact_list_changes_trigger AFTER INSERT OR UPDATE ON contact_lists FOR EACH ROW EXECUTE FUNCTION track_contact_list_changes()`,
 		`DROP TRIGGER IF EXISTS message_history_changes_trigger ON message_history`,
 		`CREATE TRIGGER message_history_changes_trigger AFTER INSERT OR UPDATE ON message_history FOR EACH ROW EXECUTE FUNCTION track_message_history_changes()`,
-		`DROP TRIGGER IF EXISTS webhook_event_changes_trigger ON webhook_events`,
-		`CREATE TRIGGER webhook_event_changes_trigger AFTER INSERT ON webhook_events FOR EACH ROW EXECUTE FUNCTION track_webhook_event_changes()`,
+		`DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger ON inbound_webhook_events`,
+		`CREATE TRIGGER inbound_webhook_event_changes_trigger AFTER INSERT ON inbound_webhook_events FOR EACH ROW EXECUTE FUNCTION track_inbound_webhook_event_changes()`,
 		`DROP TRIGGER IF EXISTS contact_segment_changes_trigger ON contact_segments`,
 		`CREATE TRIGGER contact_segment_changes_trigger AFTER INSERT OR DELETE ON contact_segments FOR EACH ROW EXECUTE FUNCTION track_contact_segment_changes()`,
 		`DROP TRIGGER IF EXISTS contact_timeline_queue_trigger ON contact_timeline`,
@@ -1059,9 +1059,9 @@ func CleanDatabase(db *sql.DB) error {
 		}
 	}
 
-	// Drop the webhook_events table
-	if _, err := db.Exec("DROP TABLE IF EXISTS webhook_events CASCADE"); err != nil {
-		return fmt.Errorf("failed to drop webhook_events table: %w", err)
+	// Drop the inbound_webhook_events table
+	if _, err := db.Exec("DROP TABLE IF EXISTS inbound_webhook_events CASCADE"); err != nil {
+		return fmt.Errorf("failed to drop inbound_webhook_events table: %w", err)
 	}
 
 	return nil

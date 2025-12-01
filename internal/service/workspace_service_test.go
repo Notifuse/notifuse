@@ -2860,7 +2860,7 @@ func TestWorkspaceService_deleteSupabaseIntegrationResources(t *testing.T) {
 	// Create a real SupabaseService with mocked dependencies
 	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
 	mockTransactionalRepo := mocks.NewMockTransactionalNotificationRepository(ctrl)
-	mockWebhookEventRepo := mocks.NewMockWebhookEventRepository(ctrl)
+	mockInboundWebhookEventRepo := mocks.NewMockInboundWebhookEventRepository(ctrl)
 	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
@@ -2878,7 +2878,7 @@ func TestWorkspaceService_deleteSupabaseIntegrationResources(t *testing.T) {
 		mockTemplateService,
 		mockTransactionalRepo,
 		nil, // transactionalService
-		mockWebhookEventRepo,
+		mockInboundWebhookEventRepo,
 		mockLogger,
 	)
 

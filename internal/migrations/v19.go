@@ -38,10 +38,108 @@ func (m *V19Migration) UpdateSystem(ctx context.Context, config *config.Config, 
 
 func (m *V19Migration) UpdateWorkspace(ctx context.Context, config *config.Config, workspace *domain.Workspace, db DBExecutor) error {
 	// ========================================================================
+	// PART 0: Rename webhook_events to inbound_webhook_events
+	// ========================================================================
+
+	// Rename the table if it exists with old name
+	_, err := db.ExecContext(ctx, `
+		DO $$
+		BEGIN
+			-- Check if old table exists and new table does not
+			IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'webhook_events')
+			   AND NOT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'inbound_webhook_events') THEN
+				-- Rename the table
+				ALTER TABLE webhook_events RENAME TO inbound_webhook_events;
+
+				-- Rename indexes
+				ALTER INDEX IF EXISTS webhook_events_message_id_idx RENAME TO inbound_webhook_events_message_id_idx;
+				ALTER INDEX IF EXISTS webhook_events_type_idx RENAME TO inbound_webhook_events_type_idx;
+				ALTER INDEX IF EXISTS webhook_events_timestamp_idx RENAME TO inbound_webhook_events_timestamp_idx;
+				ALTER INDEX IF EXISTS webhook_events_recipient_email_idx RENAME TO inbound_webhook_events_recipient_email_idx;
+			END IF;
+		END $$
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to rename webhook_events to inbound_webhook_events: %w", err)
+	}
+
+	// Update trigger function name and entity types
+	_, err = db.ExecContext(ctx, `
+		DO $$
+		BEGIN
+			-- Drop old trigger if exists
+			DROP TRIGGER IF EXISTS webhook_event_changes_trigger ON inbound_webhook_events;
+
+			-- Drop old function if exists
+			DROP FUNCTION IF EXISTS track_webhook_event_changes();
+		END $$
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to cleanup old webhook_event trigger: %w", err)
+	}
+
+	// Create the new inbound webhook event trigger function
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			changes_json JSONB := '{}'::jsonb;
+			entity_id_value VARCHAR(255);
+		BEGIN
+			-- Use message_id if available, otherwise use inbound webhook event id
+			entity_id_value := COALESCE(NEW.message_id, NEW.id::text);
+
+			changes_json := jsonb_build_object('type', jsonb_build_object('new', NEW.type), 'source', jsonb_build_object('new', NEW.source));
+			IF NEW.bounce_type IS NOT NULL AND NEW.bounce_type != '' THEN changes_json := changes_json || jsonb_build_object('bounce_type', jsonb_build_object('new', NEW.bounce_type)); END IF;
+			IF NEW.bounce_category IS NOT NULL AND NEW.bounce_category != '' THEN changes_json := changes_json || jsonb_build_object('bounce_category', jsonb_build_object('new', NEW.bounce_category)); END IF;
+			IF NEW.bounce_diagnostic IS NOT NULL AND NEW.bounce_diagnostic != '' THEN changes_json := changes_json || jsonb_build_object('bounce_diagnostic', jsonb_build_object('new', NEW.bounce_diagnostic)); END IF;
+			IF NEW.complaint_feedback_type IS NOT NULL AND NEW.complaint_feedback_type != '' THEN changes_json := changes_json || jsonb_build_object('complaint_feedback_type', jsonb_build_object('new', NEW.complaint_feedback_type)); END IF;
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+			VALUES (NEW.recipient_email, 'insert', 'inbound_webhook_event', 'insert_inbound_webhook_event', entity_id_value, changes_json, CURRENT_TIMESTAMP);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create track_inbound_webhook_event_changes function: %w", err)
+	}
+
+	// Create the new trigger on inbound_webhook_events table
+	_, err = db.ExecContext(ctx, `
+		DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger ON inbound_webhook_events;
+		CREATE TRIGGER inbound_webhook_event_changes_trigger AFTER INSERT ON inbound_webhook_events
+		FOR EACH ROW EXECUTE FUNCTION track_inbound_webhook_event_changes()
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create inbound_webhook_event_changes_trigger: %w", err)
+	}
+
+	// Update existing contact_timeline entries to use new entity_type name
+	_, err = db.ExecContext(ctx, `
+		UPDATE contact_timeline
+		SET entity_type = 'inbound_webhook_event'
+		WHERE entity_type = 'webhook_event'
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to update contact_timeline entity_type: %w", err)
+	}
+
+	// Update any segment trees that reference the old entity type
+	// Segments store their tree structure in JSONB, so we need to update the JSON
+	_, err = db.ExecContext(ctx, `
+		UPDATE segments
+		SET tree = REPLACE(tree::text, '"entity_type":"webhook_event"', '"entity_type":"inbound_webhook_event"')::jsonb
+		WHERE tree::text LIKE '%"entity_type":"webhook_event"%'
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to update segment trees with new entity_type: %w", err)
+	}
+
+	// ========================================================================
 	// PART 1: Create webhook_subscriptions table
 	// ========================================================================
 
-	_, err := db.ExecContext(ctx, `
+	_, err = db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS webhook_subscriptions (
 			id VARCHAR(32) PRIMARY KEY,
 			name VARCHAR(255) NOT NULL,

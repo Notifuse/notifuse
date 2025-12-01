@@ -59,6 +59,24 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
 
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update segment trees
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
 		// PART 1: webhook_subscriptions table
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -113,6 +131,24 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
 
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update segment trees
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnError(assert.AnError)
 
@@ -125,6 +161,24 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update segment trees
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -140,6 +194,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -157,6 +228,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -176,6 +264,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -197,6 +302,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -220,6 +342,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -245,6 +384,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -272,6 +428,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -301,6 +474,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -332,6 +522,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -365,6 +572,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -400,6 +624,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -437,6 +678,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -476,6 +734,23 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
+
+		// PART 0: Rename webhook_events to inbound_webhook_events
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DO \\$\\$ BEGIN").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger function
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_inbound_webhook_event_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Create new inbound webhook event trigger
+		mock.ExpectExec("DROP TRIGGER IF EXISTS inbound_webhook_event_changes_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		// Update contact_timeline entity_type
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE segments").
+			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		mock.ExpectExec("CREATE TABLE IF NOT EXISTS webhook_subscriptions").
 			WillReturnResult(sqlmock.NewResult(0, 0))

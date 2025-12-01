@@ -349,7 +349,7 @@ export const ContactTimelineTableSchema: TableSchema = {
         { value: 'contact', label: 'Contact' },
         { value: 'contact_list', label: 'Contact List' },
         { value: 'message_history', label: 'Message History' },
-        { value: 'webhook_event', label: 'Webhook Event' }
+        { value: 'inbound_webhook_event', label: 'Inbound Webhook Event' }
       ]
     },
     entity_id: {

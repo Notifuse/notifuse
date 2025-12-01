@@ -252,7 +252,7 @@ func (dm *DatabaseManager) CleanupTestData() error {
 		"lists",
 		"contacts",
 		"transactional_notifications",
-		"webhook_events",
+		"inbound_webhook_events",
 		"tasks",
 		"workspaces",
 		"users",

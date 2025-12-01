@@ -23,7 +23,7 @@ func TestCleanDatabase(t *testing.T) {
 		}
 
 		// Expect the webhook_events table drop
-		mock.ExpectExec("DROP TABLE IF EXISTS webhook_events CASCADE").WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("DROP TABLE IF EXISTS inbound_webhook_events CASCADE").WillReturnResult(sqlmock.NewResult(0, 0))
 
 		// Execute the function
 		err = CleanDatabase(db)
