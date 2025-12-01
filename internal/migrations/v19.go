@@ -39,11 +39,24 @@ func (m *V19Migration) UpdateSystem(ctx context.Context, config *config.Config, 
 
 func (m *V19Migration) UpdateWorkspace(ctx context.Context, config *config.Config, workspace *domain.Workspace, db DBExecutor) error {
 	// ========================================================================
-	// PART 0: Rename webhook_events to inbound_webhook_events
+	// PART 0a: Expand entity_type column size for contact_timeline
+	// Required because 'inbound_webhook_event' is 21 characters but the column was VARCHAR(20)
+	// ========================================================================
+
+	_, err := db.ExecContext(ctx, `
+		ALTER TABLE contact_timeline
+		ALTER COLUMN entity_type TYPE VARCHAR(50)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to expand entity_type column: %w", err)
+	}
+
+	// ========================================================================
+	// PART 0b: Rename webhook_events to inbound_webhook_events
 	// ========================================================================
 
 	// Rename the table if it exists with old name
-	_, err := db.ExecContext(ctx, `
+	_, err = db.ExecContext(ctx, `
 		DO $$
 		BEGIN
 			-- Check if old table exists and new table does not
@@ -208,100 +221,16 @@ func (m *V19Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		return fmt.Errorf("failed to create webhook_deliveries subscription index: %w", err)
 	}
 
-	// ========================================================================
-	// PART 3: Create webhook trigger for contacts table
-	// ========================================================================
-
 	_, err = db.ExecContext(ctx, `
-		CREATE OR REPLACE FUNCTION webhook_contacts_trigger()
-		RETURNS TRIGGER AS $$
-		DECLARE
-			sub RECORD;
-			event_kind VARCHAR(50);
-			payload JSONB;
-			contact_record RECORD;
-		BEGIN
-			-- Determine event kind and which record to use
-			IF TG_OP = 'INSERT' THEN
-				event_kind := 'contact.created';
-				contact_record := NEW;
-			ELSIF TG_OP = 'UPDATE' THEN
-				event_kind := 'contact.updated';
-				contact_record := NEW;
-				-- Skip if nothing changed (compare all relevant fields)
-				IF NEW.external_id IS NOT DISTINCT FROM OLD.external_id AND
-				   NEW.timezone IS NOT DISTINCT FROM OLD.timezone AND
-				   NEW.language IS NOT DISTINCT FROM OLD.language AND
-				   NEW.first_name IS NOT DISTINCT FROM OLD.first_name AND
-				   NEW.last_name IS NOT DISTINCT FROM OLD.last_name AND
-				   NEW.phone IS NOT DISTINCT FROM OLD.phone AND
-				   NEW.address_line_1 IS NOT DISTINCT FROM OLD.address_line_1 AND
-				   NEW.address_line_2 IS NOT DISTINCT FROM OLD.address_line_2 AND
-				   NEW.country IS NOT DISTINCT FROM OLD.country AND
-				   NEW.postcode IS NOT DISTINCT FROM OLD.postcode AND
-				   NEW.state IS NOT DISTINCT FROM OLD.state AND
-				   NEW.job_title IS NOT DISTINCT FROM OLD.job_title AND
-				   NEW.custom_string_1 IS NOT DISTINCT FROM OLD.custom_string_1 AND
-				   NEW.custom_string_2 IS NOT DISTINCT FROM OLD.custom_string_2 AND
-				   NEW.custom_string_3 IS NOT DISTINCT FROM OLD.custom_string_3 AND
-				   NEW.custom_string_4 IS NOT DISTINCT FROM OLD.custom_string_4 AND
-				   NEW.custom_string_5 IS NOT DISTINCT FROM OLD.custom_string_5 AND
-				   NEW.custom_number_1 IS NOT DISTINCT FROM OLD.custom_number_1 AND
-				   NEW.custom_number_2 IS NOT DISTINCT FROM OLD.custom_number_2 AND
-				   NEW.custom_number_3 IS NOT DISTINCT FROM OLD.custom_number_3 AND
-				   NEW.custom_number_4 IS NOT DISTINCT FROM OLD.custom_number_4 AND
-				   NEW.custom_number_5 IS NOT DISTINCT FROM OLD.custom_number_5 AND
-				   NEW.custom_datetime_1 IS NOT DISTINCT FROM OLD.custom_datetime_1 AND
-				   NEW.custom_datetime_2 IS NOT DISTINCT FROM OLD.custom_datetime_2 AND
-				   NEW.custom_datetime_3 IS NOT DISTINCT FROM OLD.custom_datetime_3 AND
-				   NEW.custom_datetime_4 IS NOT DISTINCT FROM OLD.custom_datetime_4 AND
-				   NEW.custom_datetime_5 IS NOT DISTINCT FROM OLD.custom_datetime_5 AND
-				   NEW.custom_json_1 IS NOT DISTINCT FROM OLD.custom_json_1 AND
-				   NEW.custom_json_2 IS NOT DISTINCT FROM OLD.custom_json_2 AND
-				   NEW.custom_json_3 IS NOT DISTINCT FROM OLD.custom_json_3 AND
-				   NEW.custom_json_4 IS NOT DISTINCT FROM OLD.custom_json_4 AND
-				   NEW.custom_json_5 IS NOT DISTINCT FROM OLD.custom_json_5 THEN
-					RETURN NEW;
-				END IF;
-			ELSIF TG_OP = 'DELETE' THEN
-				event_kind := 'contact.deleted';
-				contact_record := OLD;
-			ELSE
-				RETURN COALESCE(NEW, OLD);
-			END IF;
-
-			-- Build payload with full contact object
-			payload := jsonb_build_object(
-				'contact', to_jsonb(contact_record)
-			);
-
-			-- Insert webhook deliveries for matching subscriptions
-			FOR sub IN
-				SELECT id FROM webhook_subscriptions
-				WHERE enabled = true AND event_kind = ANY(ARRAY(SELECT jsonb_array_elements_text(settings->'event_types')))
-			LOOP
-				INSERT INTO webhook_deliveries (id, subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at)
-				VALUES (gen_random_uuid()::text, sub.id, event_kind, payload, 'pending', 0, 10, NOW());
-			END LOOP;
-			RETURN COALESCE(NEW, OLD);
-		END;
-		$$ LANGUAGE plpgsql
+		CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status
+		ON webhook_deliveries(status)
 	`)
 	if err != nil {
-		return fmt.Errorf("failed to create webhook_contacts_trigger function: %w", err)
-	}
-
-	_, err = db.ExecContext(ctx, `
-		DROP TRIGGER IF EXISTS webhook_contacts ON contacts;
-		CREATE TRIGGER webhook_contacts AFTER INSERT OR UPDATE OR DELETE ON contacts
-		FOR EACH ROW EXECUTE FUNCTION webhook_contacts_trigger()
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to create webhook_contacts trigger: %w", err)
+		return fmt.Errorf("failed to create webhook_deliveries status index: %w", err)
 	}
 
 	// ========================================================================
-	// PART 4: Create webhook trigger for contact_lists table
+	// PART 3: Create webhook trigger for contact_lists table
 	// ========================================================================
 
 	_, err = db.ExecContext(ctx, `
@@ -786,6 +715,15 @@ func (m *V19Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to update webhook_contacts_trigger function: %w", err)
+	}
+
+	_, err = db.ExecContext(ctx, `
+		DROP TRIGGER IF EXISTS webhook_contacts ON contacts;
+		CREATE TRIGGER webhook_contacts AFTER INSERT OR UPDATE OR DELETE ON contacts
+		FOR EACH ROW EXECUTE FUNCTION webhook_contacts_trigger()
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create webhook_contacts trigger: %w", err)
 	}
 
 	return nil

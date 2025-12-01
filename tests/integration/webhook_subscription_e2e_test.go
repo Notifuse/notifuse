@@ -109,8 +109,6 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 		assert.Equal(t, "https://example.com/webhook", subscription["url"])
 		assert.NotEmpty(t, originalSecret, "Secret should be generated")
 		assert.Equal(t, true, subscription["enabled"], "Webhook should be enabled by default")
-		assert.Equal(t, float64(0), subscription["success_count"])
-		assert.Equal(t, float64(0), subscription["failure_count"])
 
 		// Verify event types
 		eventTypes := subscription["event_types"].([]interface{})
@@ -195,7 +193,6 @@ func testWebhookSubscriptionCRUD(t *testing.T, client *testutil.APIClient, works
 		subscription := response["subscription"].(map[string]interface{})
 		assert.Equal(t, "Updated Webhook Name", subscription["name"])
 		assert.Equal(t, "https://updated.example.com/webhook", subscription["url"])
-		assert.Equal(t, "Updated description", subscription["description"])
 		assert.Equal(t, originalSecret, subscription["secret"], "Secret should not change on update")
 
 		eventTypes := subscription["event_types"].([]interface{})

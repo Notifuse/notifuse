@@ -241,7 +241,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 			email VARCHAR(255) NOT NULL,
 			operation VARCHAR(20) NOT NULL,
-			entity_type VARCHAR(20) NOT NULL,
+			entity_type VARCHAR(50) NOT NULL,
 			kind VARCHAR(50) NOT NULL DEFAULT '',
 			changes JSONB,
 			entity_id VARCHAR(255),
