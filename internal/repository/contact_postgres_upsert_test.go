@@ -69,7 +69,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update that returns no rows
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnError(sql.ErrNoRows)
 
@@ -155,7 +155,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update returning the existing contact
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnRows(rows)
 
@@ -266,7 +266,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select with error
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnError(errors.New("query error"))
 
@@ -311,7 +311,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update that returns no rows
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnError(sql.ErrNoRows)
 
@@ -380,7 +380,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update returning the existing contact
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnRows(rows)
 
@@ -429,7 +429,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update that returns no rows
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnError(sql.ErrNoRows)
 
@@ -488,7 +488,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update that returns no rows
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnError(sql.ErrNoRows)
 
@@ -563,7 +563,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update that returns existing contact
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnRows(rows)
 
@@ -656,7 +656,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update that returns no rows
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnError(sql.ErrNoRows)
 
@@ -716,7 +716,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update that returns no rows
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnError(sql.ErrNoRows)
 
@@ -797,7 +797,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update returning the existing contact
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnRows(rows)
 
@@ -910,7 +910,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update returning the existing contact
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnRows(rows)
 
@@ -1011,7 +1011,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update returning the existing contact
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnRows(rows)
 
@@ -1090,7 +1090,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update returning the existing contact
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnRows(rows)
 
@@ -1164,7 +1164,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update returning the existing contact
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnRows(rows)
 
@@ -1238,7 +1238,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update returning the existing contact
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnRows(rows)
 
@@ -1312,7 +1312,7 @@ func TestUpsertContact(t *testing.T) {
 		newMock.ExpectBegin()
 
 		// Expect select for update returning the existing contact
-		newMock.ExpectQuery(`SELECT c\.\* FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
+		newMock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c WHERE c\.email = \$1 FOR UPDATE`).
 			WithArgs(email).
 			WillReturnRows(rows)
 

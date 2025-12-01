@@ -19,6 +19,30 @@ type contactRepository struct {
 	workspaceRepo domain.WorkspaceRepository
 }
 
+// contactColumns defines the explicit column list for contacts table.
+// IMPORTANT: This order MUST match the ScanContact function in domain/contact.go.
+// Using explicit columns instead of SELECT * ensures consistent ordering
+// regardless of how columns were added to the table (CREATE TABLE vs ALTER TABLE).
+var contactColumns = []string{
+	"email", "external_id", "timezone", "language",
+	"first_name", "last_name", "full_name", "phone", "address_line_1", "address_line_2",
+	"country", "postcode", "state", "job_title",
+	"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
+	"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
+	"custom_datetime_1", "custom_datetime_2", "custom_datetime_3", "custom_datetime_4", "custom_datetime_5",
+	"custom_json_1", "custom_json_2", "custom_json_3", "custom_json_4", "custom_json_5",
+	"created_at", "updated_at", "db_created_at", "db_updated_at",
+}
+
+// contactColumnsWithPrefix returns contact columns prefixed with a table alias
+func contactColumnsWithPrefix(prefix string) []string {
+	cols := make([]string, len(contactColumns))
+	for i, col := range contactColumns {
+		cols[i] = prefix + "." + col
+	}
+	return cols
+}
+
 // NewContactRepository creates a new PostgreSQL contact repository
 func NewContactRepository(workspaceRepo domain.WorkspaceRepository) domain.ContactRepository {
 	return &contactRepository{
@@ -44,7 +68,7 @@ func (r *contactRepository) fetchContact(ctx context.Context, workspaceID string
 	}
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	query, args, err := psql.Select("c.*").
+	query, args, err := psql.Select(contactColumnsWithPrefix("c")...).
 		From("contacts c").
 		Where(filter).
 		ToSql()
@@ -156,7 +180,7 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 	}
 
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
-	sb := psql.Select("c.*").From("contacts c")
+	sb := psql.Select(contactColumnsWithPrefix("c")...).From("contacts c")
 
 	// Add filters using squirrel
 	if req.Email != "" {
@@ -481,7 +505,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 	defer func() { _ = tx.Rollback() }() // Rollback if there's a panic or error
 
 	// Check if contact exists with FOR UPDATE lock using squirrel
-	selectQuery, selectArgs, err := psql.Select("c.*").
+	selectQuery, selectArgs, err := psql.Select(contactColumnsWithPrefix("c")...).
 		From("contacts c").
 		Where(sq.Eq{"c.email": contact.Email}).
 		Suffix("FOR UPDATE").
@@ -1344,7 +1368,9 @@ func (r *contactRepository) GetContactsForBroadcast(
 	// If we're filtering by list, include list_id in the result
 	if audience.List != "" {
 		includeListID = true
-		query = psql.Select("c.*", "cl.list_id", "l.name as list_name").
+		// Build column list: all contact columns plus list_id and list_name
+		selectCols := append(contactColumnsWithPrefix("c"), "cl.list_id", "l.name as list_name")
+		query = psql.Select(selectCols...).
 			From("contacts c").
 			Join("contact_lists cl ON c.email = cl.email").
 			Join("lists l ON cl.list_id = l.id"). // Join with lists table to get the name
@@ -1363,7 +1389,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 	} else {
 		// For non-list based audiences (e.g., segments in the future)
 		includeListID = false
-		query = psql.Select("c.*").
+		query = psql.Select(contactColumnsWithPrefix("c")...).
 			From("contacts c").
 			Limit(uint64(limit)).
 			Offset(uint64(offset)).
@@ -1382,7 +1408,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 			// No list filtering, so we're filtering by segments only
 			// We need to select from contacts and join with contact_segments
 			includeListID = false
-			query = psql.Select("c.*").
+			query = psql.Select(contactColumnsWithPrefix("c")...).
 				From("contacts c").
 				Join("contact_segments cs ON c.email = cs.email").
 				Where(sq.Eq{"cs.segment_id": audience.Segments}).
