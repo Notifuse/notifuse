@@ -379,6 +379,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_pending ON webhook_deliveries(next_attempt_at) WHERE status IN ('pending', 'failed') AND attempts < max_attempts`,
 		`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_subscription ON webhook_deliveries(subscription_id, created_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status ON webhook_deliveries(status)`,
 	}
 
 	// Run all table creation queries
