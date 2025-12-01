@@ -111,6 +111,7 @@ export const API_PATTERNS = {
   SEGMENT_CREATE: 'segment.create',
   SEGMENT_UPDATE: 'segment.update',
   SEGMENT_DELETE: 'segment.delete',
+  SEGMENT_PREVIEW: 'segment.preview',
 
   // Transactional
   TRANSACTIONAL_CREATE: 'transactional.create',
@@ -203,6 +204,9 @@ export function getPatternFromUrl(url: string): ApiPattern | null {
   }
   if (url.includes('/api/segment.delete') || url.includes('/api/segments.delete')) {
     return API_PATTERNS.SEGMENT_DELETE
+  }
+  if (url.includes('/api/segment.preview') || url.includes('/api/segments.preview')) {
+    return API_PATTERNS.SEGMENT_PREVIEW
   }
 
   // Transactional endpoints

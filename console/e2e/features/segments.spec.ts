@@ -368,6 +368,112 @@ test.describe('Segments Feature', () => {
     })
   })
 
+  test.describe('JSON Field Type Handling (Issue #140)', () => {
+    test('preserves number field_type for JSON fields (not overwritten to json)', async ({
+      authenticatedPage
+    }) => {
+      const page = authenticatedPage
+
+      await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
+      await waitForLoading(page)
+
+      // Add a contact condition
+      const conditionBtn = page.getByRole('button', { name: /condition/i })
+      await expect(conditionBtn).toBeVisible({ timeout: 5000 })
+      await conditionBtn.click()
+
+      const cascaderMenu = page.locator('.ant-cascader-menu')
+      await expect(cascaderMenu.first()).toBeVisible({ timeout: 3000 })
+
+      const contactsOption = page.locator('.ant-cascader-menu-item').filter({ hasText: /contact/i }).first()
+      await contactsOption.click()
+      await page.waitForTimeout(500)
+
+      // Click "+ Add filter" button
+      const addFilterBtn = page.getByRole('button', { name: /add filter/i })
+      await expect(addFilterBtn.first()).toBeVisible({ timeout: 5000 })
+      await addFilterBtn.first().click()
+      await waitForModal(page)
+
+      // Select Custom JSON 1 field - type to search
+      const fieldSelect = page.locator('.ant-modal .ant-select').first()
+      await fieldSelect.click()
+      await page.waitForTimeout(300)
+      await page.keyboard.type('json')
+      await page.waitForTimeout(500)
+
+      const jsonFieldOption = page.locator('.ant-select-item-option').filter({ hasText: /Custom JSON 1/i }).first()
+      await expect(jsonFieldOption).toBeVisible({ timeout: 5000 })
+      await jsonFieldOption.click()
+      await page.waitForTimeout(800)
+
+      // Click "Add path" button
+      const addPathBtn = page.locator('.ant-modal').getByRole('button', { name: /add path/i })
+      await expect(addPathBtn).toBeVisible({ timeout: 5000 })
+      await addPathBtn.click()
+      await page.waitForTimeout(300)
+
+      // Fill JSON path
+      const jsonPathInput = page.locator('.ant-modal .ant-input').first()
+      await jsonPathInput.fill('test_number')
+      await page.waitForTimeout(200)
+
+      // Select "Number" as the value type - THIS IS THE KEY STEP
+      const numberRadio = page.locator('.ant-modal .ant-radio-button-wrapper').filter({ hasText: /Number/i })
+      await expect(numberRadio).toBeVisible({ timeout: 3000 })
+      await numberRadio.click()
+      await page.waitForTimeout(500)
+
+      // Select equals operator
+      const operatorSelect = page.locator('.ant-modal .ant-select').last()
+      await operatorSelect.click()
+      await page.waitForTimeout(300)
+      const equalsOption = page.locator('.ant-select-item-option').filter({ hasText: /^equals$/i }).first()
+      if ((await equalsOption.count()) > 0) {
+        await equalsOption.click()
+        await page.waitForTimeout(300)
+      } else {
+        await page.keyboard.press('Escape')
+      }
+
+      // Fill number value
+      const numberInput = page.locator('.ant-modal .ant-input-number input')
+      await expect(numberInput).toBeVisible({ timeout: 5000 })
+      await numberInput.fill('42')
+      await page.waitForTimeout(200)
+
+      // Confirm the filter modal
+      const confirmBtn = page.locator('.ant-modal').getByRole('button', { name: /Confirm/i })
+      await confirmBtn.click()
+      await expect(page.locator('.ant-modal-content')).toBeHidden({ timeout: 5000 })
+
+      // Confirm the leaf condition form
+      const leafConfirmBtn = page.getByRole('button', { name: /Confirm/i }).first()
+      await expect(leafConfirmBtn).toBeVisible({ timeout: 5000 })
+      await leafConfirmBtn.click()
+      await page.waitForTimeout(500)
+
+      // Verify the JSON output
+      const jsonPreview = page.locator('pre')
+      await expect(jsonPreview).toBeVisible({ timeout: 5000 })
+      const jsonText = await jsonPreview.textContent()
+      expect(jsonText).toBeTruthy()
+
+      const tree = JSON.parse(jsonText!)
+      const filter = tree?.branch?.leaves?.[0]?.leaf?.contact?.filters?.[0]
+
+      // KEY ASSERTION: field_type should be "number" (NOT "json")
+      // Before the fix, this would be "json" because input_dimension_filters.tsx
+      // always overwrote field_type with the schema type.
+      // After the fix, JSON fields preserve the user-selected field_type.
+      expect(filter).toBeDefined()
+      expect(filter.field_type).toBe('number')
+      expect(filter.number_values).toBeDefined()
+      expect(filter.number_values).toContain(42)
+      expect(filter.json_path).toContain('test_number')
+    })
+  })
+
   test.describe('Full Form Submission with Payload Verification', () => {
     test('creates segment with name and verifies payload', async ({ authenticatedPage }) => {
       const page = authenticatedPage

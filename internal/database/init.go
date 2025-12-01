@@ -79,6 +79,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			language VARCHAR(50),
 			first_name VARCHAR(255),
 			last_name VARCHAR(255),
+			full_name VARCHAR(255),
 			phone VARCHAR(50),
 			address_line_1 VARCHAR(255),
 			address_line_2 VARCHAR(255),
@@ -406,6 +407,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				IF OLD.language IS DISTINCT FROM NEW.language THEN changes_json := changes_json || jsonb_build_object('language', jsonb_build_object('old', OLD.language, 'new', NEW.language)); END IF;
 				IF OLD.first_name IS DISTINCT FROM NEW.first_name THEN changes_json := changes_json || jsonb_build_object('first_name', jsonb_build_object('old', OLD.first_name, 'new', NEW.first_name)); END IF;
 				IF OLD.last_name IS DISTINCT FROM NEW.last_name THEN changes_json := changes_json || jsonb_build_object('last_name', jsonb_build_object('old', OLD.last_name, 'new', NEW.last_name)); END IF;
+				IF OLD.full_name IS DISTINCT FROM NEW.full_name THEN changes_json := changes_json || jsonb_build_object('full_name', jsonb_build_object('old', OLD.full_name, 'new', NEW.full_name)); END IF;
 				IF OLD.phone IS DISTINCT FROM NEW.phone THEN changes_json := changes_json || jsonb_build_object('phone', jsonb_build_object('old', OLD.phone, 'new', NEW.phone)); END IF;
 				IF OLD.address_line_1 IS DISTINCT FROM NEW.address_line_1 THEN changes_json := changes_json || jsonb_build_object('address_line_1', jsonb_build_object('old', OLD.address_line_1, 'new', NEW.address_line_1)); END IF;
 				IF OLD.address_line_2 IS DISTINCT FROM NEW.address_line_2 THEN changes_json := changes_json || jsonb_build_object('address_line_2', jsonb_build_object('old', OLD.address_line_2, 'new', NEW.address_line_2)); END IF;
@@ -436,11 +438,11 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				IF changes_json = '{}'::jsonb THEN RETURN NEW; END IF;
 			END IF;
 		IF TG_OP = 'INSERT' THEN
-			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at)
 			VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.created_at);
 		ELSE
-			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at) 
-			VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.updated_at);
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at)
+			VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, CURRENT_TIMESTAMP);
 		END IF;
 			RETURN NEW;
 		END;
@@ -721,6 +723,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				   NEW.language IS NOT DISTINCT FROM OLD.language AND
 				   NEW.first_name IS NOT DISTINCT FROM OLD.first_name AND
 				   NEW.last_name IS NOT DISTINCT FROM OLD.last_name AND
+				   NEW.full_name IS NOT DISTINCT FROM OLD.full_name AND
 				   NEW.phone IS NOT DISTINCT FROM OLD.phone AND
 				   NEW.address_line_1 IS NOT DISTINCT FROM OLD.address_line_1 AND
 				   NEW.address_line_2 IS NOT DISTINCT FROM OLD.address_line_2 AND

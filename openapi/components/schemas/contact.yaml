@@ -33,6 +33,11 @@ Contact:
       nullable: true
       description: Last name of the contact
       example: Doe
+    full_name:
+      type: string
+      nullable: true
+      description: Full name of the contact (for systems that don't have separate first/last names)
+      example: John Doe
     phone:
       type: string
       nullable: true
@@ -327,6 +332,11 @@ SubscriptionContact:
       nullable: true
       description: Last name of the contact
       example: Doe
+    full_name:
+      type: string
+      nullable: true
+      description: Full name of the contact (for systems that don't have separate first/last names)
+      example: John Doe
     phone:
       type: string
       nullable: true

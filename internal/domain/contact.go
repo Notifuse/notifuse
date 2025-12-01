@@ -33,6 +33,7 @@ type Contact struct {
 	Language     *NullableString `json:"language,omitempty" valid:"optional"`
 	FirstName    *NullableString `json:"first_name,omitempty" valid:"optional"`
 	LastName     *NullableString `json:"last_name,omitempty" valid:"optional"`
+	FullName     *NullableString `json:"full_name,omitempty" valid:"optional"`
 	Phone        *NullableString `json:"phone,omitempty" valid:"optional"`
 	AddressLine1 *NullableString `json:"address_line_1,omitempty" valid:"optional"`
 	AddressLine2 *NullableString `json:"address_line_2,omitempty" valid:"optional"`
@@ -117,6 +118,7 @@ type dbContact struct {
 
 	FirstName    sql.NullString
 	LastName     sql.NullString
+	FullName     sql.NullString
 	Phone        sql.NullString
 	AddressLine1 sql.NullString
 	AddressLine2 sql.NullString
@@ -169,6 +171,7 @@ func ScanContact(scanner interface {
 		&dbc.Language,
 		&dbc.FirstName,
 		&dbc.LastName,
+		&dbc.FullName,
 		&dbc.Phone,
 		&dbc.AddressLine1,
 		&dbc.AddressLine2,
@@ -231,6 +234,10 @@ func ScanContact(scanner interface {
 
 	if dbc.LastName.Valid {
 		c.LastName = &NullableString{String: dbc.LastName.String, IsNull: false}
+	}
+
+	if dbc.FullName.Valid {
+		c.FullName = &NullableString{String: dbc.FullName.String, IsNull: false}
 	}
 
 	if dbc.Phone.Valid {
@@ -366,6 +373,7 @@ type GetContactsRequest struct {
 	ExternalID        string   `json:"external_id,omitempty" valid:"optional"`
 	FirstName         string   `json:"first_name,omitempty" valid:"optional"`
 	LastName          string   `json:"last_name,omitempty" valid:"optional"`
+	FullName          string   `json:"full_name,omitempty" valid:"optional"`
 	Phone             string   `json:"phone,omitempty" valid:"optional"`
 	Country           string   `json:"country,omitempty" valid:"optional"`
 	Language          string   `json:"language,omitempty" valid:"optional"`
@@ -388,6 +396,7 @@ func (r *GetContactsRequest) FromQueryParams(params url.Values) error {
 	r.ExternalID = params.Get("external_id")
 	r.FirstName = params.Get("first_name")
 	r.LastName = params.Get("last_name")
+	r.FullName = params.Get("full_name")
 	r.Phone = params.Get("phone")
 	r.Country = params.Get("country")
 	r.Language = params.Get("language")
@@ -676,6 +685,9 @@ func FromJSON(data interface{}) (*Contact, error) {
 	if err := parseNullableString(jsonResult, "last_name", &contact.LastName); err != nil {
 		return nil, err
 	}
+	if err := parseNullableString(jsonResult, "full_name", &contact.FullName); err != nil {
+		return nil, err
+	}
 	if err := parseNullableString(jsonResult, "phone", &contact.Phone); err != nil {
 		return nil, err
 	}
@@ -868,6 +880,9 @@ func (c *Contact) Merge(other *Contact) {
 	}
 	if other.LastName != nil {
 		c.LastName = other.LastName
+	}
+	if other.FullName != nil {
+		c.FullName = other.FullName
 	}
 	if other.Phone != nil {
 		c.Phone = other.Phone

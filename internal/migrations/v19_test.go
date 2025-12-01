@@ -121,6 +121,16 @@ func TestV19Migration_UpdateWorkspace(t *testing.T) {
 		mock.ExpectExec("DROP TRIGGER IF EXISTS webhook_custom_events ON custom_events").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
+		// PART 8: Add full_name column
+		mock.ExpectExec("ALTER TABLE contacts ADD COLUMN IF NOT EXISTS full_name").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// PART 9: Update track_contact_changes and webhook_contacts_trigger
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_contact_changes").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION webhook_contacts_trigger").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
 		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
 		assert.NoError(t, err)
 		assert.NoError(t, mock.ExpectationsWereMet())

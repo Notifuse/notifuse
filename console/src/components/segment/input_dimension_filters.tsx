@@ -169,7 +169,11 @@ const AddFilterButton = (props: {
                 setModalVisible(false)
                 const schemaType = props.schema.fields[values.field_name].type
                 // Map boolean to number for FieldType compatibility
-                values.field_type = schemaType === 'boolean' ? 'number' : (schemaType as FieldType)
+                // For JSON fields, preserve the user-selected field_type (string/number/time)
+                // which indicates how to cast the JSON value for comparison
+                if (schemaType !== 'json') {
+                  values.field_type = schemaType === 'boolean' ? 'number' : (schemaType as FieldType)
+                }
                 props.onComplete(values)
               })
               .catch(console.error)

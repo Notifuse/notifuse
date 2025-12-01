@@ -406,8 +406,8 @@ export function ContactDetailsDrawer({
     })
   }
 
-  // Create name from first and last name
-  const fullName = [contact?.first_name, contact?.last_name].filter(Boolean).join(' ') || ''
+  // Create name from full_name, or fallback to first_name + last_name
+  const fullName = contact?.full_name || [contact?.first_name, contact?.last_name].filter(Boolean).join(' ') || ''
 
   // Format date using dayjs
   const formatDate = (dateString: string | undefined): string => {
@@ -436,6 +436,9 @@ export function ContactDetailsDrawer({
 
   // Editable fields configuration
   const editableFields = [
+    { key: 'first_name', label: 'First Name', value: contact?.first_name },
+    { key: 'last_name', label: 'Last Name', value: contact?.last_name },
+    { key: 'full_name', label: 'Full Name', value: contact?.full_name },
     { key: 'phone', label: 'Phone', value: contact?.phone },
     { key: 'address_line_1', label: 'Address Line 1', value: contact?.address_line_1 },
     { key: 'address_line_2', label: 'Address Line 2', value: contact?.address_line_2 },

@@ -162,6 +162,7 @@ func TestScanContact(t *testing.T) {
 			sql.NullString{String: "en-US", Valid: true},        // Language
 			sql.NullString{String: "John", Valid: true},         // FirstName
 			sql.NullString{String: "Doe", Valid: true},          // LastName
+			sql.NullString{String: "John Doe", Valid: true},     // FullName
 			sql.NullString{String: "+1234567890", Valid: true},  // Phone
 			sql.NullString{String: "123 Main St", Valid: true},  // AddressLine1
 			sql.NullString{String: "Apt 4B", Valid: true},       // AddressLine2
@@ -208,6 +209,8 @@ func TestScanContact(t *testing.T) {
 	assert.False(t, contact.FirstName.IsNull)
 	assert.Equal(t, "Doe", contact.LastName.String)
 	assert.False(t, contact.LastName.IsNull)
+	assert.Equal(t, "John Doe", contact.FullName.String)
+	assert.False(t, contact.FullName.IsNull)
 	assert.Equal(t, "+1234567890", contact.Phone.String)
 	assert.False(t, contact.Phone.IsNull)
 	assert.Equal(t, "123 Main St", contact.AddressLine1.String)
@@ -2499,6 +2502,7 @@ func TestScanContact_SetsDBTimestamps(t *testing.T) {
 			sql.NullString{String: "", Valid: false},      // Language
 			sql.NullString{String: "", Valid: false},      // FirstName
 			sql.NullString{String: "", Valid: false},      // LastName
+			sql.NullString{String: "", Valid: false},      // FullName
 			sql.NullString{String: "", Valid: false},      // Phone
 			sql.NullString{String: "", Valid: false},      // AddressLine1
 			sql.NullString{String: "", Valid: false},      // AddressLine2

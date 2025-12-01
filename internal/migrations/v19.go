@@ -13,6 +13,7 @@ import (
 // 1. webhook_subscriptions table for storing webhook endpoint configurations
 // 2. webhook_deliveries table for queuing and tracking webhook deliveries
 // 3. 5 trigger functions for capturing events from: contacts, contact_lists, contact_segments, message_history, custom_events
+// 4. full_name contact field + fix timeline timestamps to use CURRENT_TIMESTAMP
 type V19Migration struct{}
 
 func (m *V19Migration) GetMajorVersion() float64 {
@@ -626,6 +627,165 @@ func (m *V19Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create webhook_custom_events trigger: %w", err)
+	}
+
+	// ========================================================================
+	// PART 8: Add full_name column to contacts table
+	// ========================================================================
+
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE contacts ADD COLUMN IF NOT EXISTS full_name VARCHAR(255)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add full_name column: %w", err)
+	}
+
+	// ========================================================================
+	// PART 9: Fix track_contact_changes trigger to use CURRENT_TIMESTAMP for updates
+	// and add full_name field tracking
+	// ========================================================================
+
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION track_contact_changes()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			changes_json JSONB := '{}'::jsonb;
+			op VARCHAR(20);
+		BEGIN
+			IF TG_OP = 'INSERT' THEN
+				op := 'insert';
+				changes_json := NULL;
+			ELSIF TG_OP = 'UPDATE' THEN
+				op := 'update';
+				IF OLD.external_id IS DISTINCT FROM NEW.external_id THEN changes_json := changes_json || jsonb_build_object('external_id', jsonb_build_object('old', OLD.external_id, 'new', NEW.external_id)); END IF;
+				IF OLD.timezone IS DISTINCT FROM NEW.timezone THEN changes_json := changes_json || jsonb_build_object('timezone', jsonb_build_object('old', OLD.timezone, 'new', NEW.timezone)); END IF;
+				IF OLD.language IS DISTINCT FROM NEW.language THEN changes_json := changes_json || jsonb_build_object('language', jsonb_build_object('old', OLD.language, 'new', NEW.language)); END IF;
+				IF OLD.first_name IS DISTINCT FROM NEW.first_name THEN changes_json := changes_json || jsonb_build_object('first_name', jsonb_build_object('old', OLD.first_name, 'new', NEW.first_name)); END IF;
+				IF OLD.last_name IS DISTINCT FROM NEW.last_name THEN changes_json := changes_json || jsonb_build_object('last_name', jsonb_build_object('old', OLD.last_name, 'new', NEW.last_name)); END IF;
+				IF OLD.full_name IS DISTINCT FROM NEW.full_name THEN changes_json := changes_json || jsonb_build_object('full_name', jsonb_build_object('old', OLD.full_name, 'new', NEW.full_name)); END IF;
+				IF OLD.phone IS DISTINCT FROM NEW.phone THEN changes_json := changes_json || jsonb_build_object('phone', jsonb_build_object('old', OLD.phone, 'new', NEW.phone)); END IF;
+				IF OLD.address_line_1 IS DISTINCT FROM NEW.address_line_1 THEN changes_json := changes_json || jsonb_build_object('address_line_1', jsonb_build_object('old', OLD.address_line_1, 'new', NEW.address_line_1)); END IF;
+				IF OLD.address_line_2 IS DISTINCT FROM NEW.address_line_2 THEN changes_json := changes_json || jsonb_build_object('address_line_2', jsonb_build_object('old', OLD.address_line_2, 'new', NEW.address_line_2)); END IF;
+				IF OLD.country IS DISTINCT FROM NEW.country THEN changes_json := changes_json || jsonb_build_object('country', jsonb_build_object('old', OLD.country, 'new', NEW.country)); END IF;
+				IF OLD.postcode IS DISTINCT FROM NEW.postcode THEN changes_json := changes_json || jsonb_build_object('postcode', jsonb_build_object('old', OLD.postcode, 'new', NEW.postcode)); END IF;
+				IF OLD.state IS DISTINCT FROM NEW.state THEN changes_json := changes_json || jsonb_build_object('state', jsonb_build_object('old', OLD.state, 'new', NEW.state)); END IF;
+				IF OLD.job_title IS DISTINCT FROM NEW.job_title THEN changes_json := changes_json || jsonb_build_object('job_title', jsonb_build_object('old', OLD.job_title, 'new', NEW.job_title)); END IF;
+				IF OLD.custom_string_1 IS DISTINCT FROM NEW.custom_string_1 THEN changes_json := changes_json || jsonb_build_object('custom_string_1', jsonb_build_object('old', OLD.custom_string_1, 'new', NEW.custom_string_1)); END IF;
+				IF OLD.custom_string_2 IS DISTINCT FROM NEW.custom_string_2 THEN changes_json := changes_json || jsonb_build_object('custom_string_2', jsonb_build_object('old', OLD.custom_string_2, 'new', NEW.custom_string_2)); END IF;
+				IF OLD.custom_string_3 IS DISTINCT FROM NEW.custom_string_3 THEN changes_json := changes_json || jsonb_build_object('custom_string_3', jsonb_build_object('old', OLD.custom_string_3, 'new', NEW.custom_string_3)); END IF;
+				IF OLD.custom_string_4 IS DISTINCT FROM NEW.custom_string_4 THEN changes_json := changes_json || jsonb_build_object('custom_string_4', jsonb_build_object('old', OLD.custom_string_4, 'new', NEW.custom_string_4)); END IF;
+				IF OLD.custom_string_5 IS DISTINCT FROM NEW.custom_string_5 THEN changes_json := changes_json || jsonb_build_object('custom_string_5', jsonb_build_object('old', OLD.custom_string_5, 'new', NEW.custom_string_5)); END IF;
+				IF OLD.custom_number_1 IS DISTINCT FROM NEW.custom_number_1 THEN changes_json := changes_json || jsonb_build_object('custom_number_1', jsonb_build_object('old', OLD.custom_number_1, 'new', NEW.custom_number_1)); END IF;
+				IF OLD.custom_number_2 IS DISTINCT FROM NEW.custom_number_2 THEN changes_json := changes_json || jsonb_build_object('custom_number_2', jsonb_build_object('old', OLD.custom_number_2, 'new', NEW.custom_number_2)); END IF;
+				IF OLD.custom_number_3 IS DISTINCT FROM NEW.custom_number_3 THEN changes_json := changes_json || jsonb_build_object('custom_number_3', jsonb_build_object('old', OLD.custom_number_3, 'new', NEW.custom_number_3)); END IF;
+				IF OLD.custom_number_4 IS DISTINCT FROM NEW.custom_number_4 THEN changes_json := changes_json || jsonb_build_object('custom_number_4', jsonb_build_object('old', OLD.custom_number_4, 'new', NEW.custom_number_4)); END IF;
+				IF OLD.custom_number_5 IS DISTINCT FROM NEW.custom_number_5 THEN changes_json := changes_json || jsonb_build_object('custom_number_5', jsonb_build_object('old', OLD.custom_number_5, 'new', NEW.custom_number_5)); END IF;
+				IF OLD.custom_datetime_1 IS DISTINCT FROM NEW.custom_datetime_1 THEN changes_json := changes_json || jsonb_build_object('custom_datetime_1', jsonb_build_object('old', OLD.custom_datetime_1, 'new', NEW.custom_datetime_1)); END IF;
+				IF OLD.custom_datetime_2 IS DISTINCT FROM NEW.custom_datetime_2 THEN changes_json := changes_json || jsonb_build_object('custom_datetime_2', jsonb_build_object('old', OLD.custom_datetime_2, 'new', NEW.custom_datetime_2)); END IF;
+				IF OLD.custom_datetime_3 IS DISTINCT FROM NEW.custom_datetime_3 THEN changes_json := changes_json || jsonb_build_object('custom_datetime_3', jsonb_build_object('old', OLD.custom_datetime_3, 'new', NEW.custom_datetime_3)); END IF;
+				IF OLD.custom_datetime_4 IS DISTINCT FROM NEW.custom_datetime_4 THEN changes_json := changes_json || jsonb_build_object('custom_datetime_4', jsonb_build_object('old', OLD.custom_datetime_4, 'new', NEW.custom_datetime_4)); END IF;
+				IF OLD.custom_datetime_5 IS DISTINCT FROM NEW.custom_datetime_5 THEN changes_json := changes_json || jsonb_build_object('custom_datetime_5', jsonb_build_object('old', OLD.custom_datetime_5, 'new', NEW.custom_datetime_5)); END IF;
+				IF OLD.custom_json_1 IS DISTINCT FROM NEW.custom_json_1 THEN changes_json := changes_json || jsonb_build_object('custom_json_1', jsonb_build_object('old', OLD.custom_json_1, 'new', NEW.custom_json_1)); END IF;
+				IF OLD.custom_json_2 IS DISTINCT FROM NEW.custom_json_2 THEN changes_json := changes_json || jsonb_build_object('custom_json_2', jsonb_build_object('old', OLD.custom_json_2, 'new', NEW.custom_json_2)); END IF;
+				IF OLD.custom_json_3 IS DISTINCT FROM NEW.custom_json_3 THEN changes_json := changes_json || jsonb_build_object('custom_json_3', jsonb_build_object('old', OLD.custom_json_3, 'new', NEW.custom_json_3)); END IF;
+				IF OLD.custom_json_4 IS DISTINCT FROM NEW.custom_json_4 THEN changes_json := changes_json || jsonb_build_object('custom_json_4', jsonb_build_object('old', OLD.custom_json_4, 'new', NEW.custom_json_4)); END IF;
+				IF OLD.custom_json_5 IS DISTINCT FROM NEW.custom_json_5 THEN changes_json := changes_json || jsonb_build_object('custom_json_5', jsonb_build_object('old', OLD.custom_json_5, 'new', NEW.custom_json_5)); END IF;
+				IF changes_json = '{}'::jsonb THEN RETURN NEW; END IF;
+			END IF;
+			IF TG_OP = 'INSERT' THEN
+				INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at)
+				VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.created_at);
+			ELSE
+				INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at)
+				VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, CURRENT_TIMESTAMP);
+			END IF;
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to update track_contact_changes function: %w", err)
+	}
+
+	// Also update the webhook_contacts_trigger to include full_name in the change detection
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION webhook_contacts_trigger()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			sub RECORD;
+			event_kind VARCHAR(50);
+			payload JSONB;
+			contact_record RECORD;
+		BEGIN
+			-- Determine event kind and which record to use
+			IF TG_OP = 'INSERT' THEN
+				event_kind := 'contact.created';
+				contact_record := NEW;
+			ELSIF TG_OP = 'UPDATE' THEN
+				event_kind := 'contact.updated';
+				contact_record := NEW;
+				-- Skip if nothing changed (compare all relevant fields)
+				IF NEW.external_id IS NOT DISTINCT FROM OLD.external_id AND
+				   NEW.timezone IS NOT DISTINCT FROM OLD.timezone AND
+				   NEW.language IS NOT DISTINCT FROM OLD.language AND
+				   NEW.first_name IS NOT DISTINCT FROM OLD.first_name AND
+				   NEW.last_name IS NOT DISTINCT FROM OLD.last_name AND
+				   NEW.full_name IS NOT DISTINCT FROM OLD.full_name AND
+				   NEW.phone IS NOT DISTINCT FROM OLD.phone AND
+				   NEW.address_line_1 IS NOT DISTINCT FROM OLD.address_line_1 AND
+				   NEW.address_line_2 IS NOT DISTINCT FROM OLD.address_line_2 AND
+				   NEW.country IS NOT DISTINCT FROM OLD.country AND
+				   NEW.postcode IS NOT DISTINCT FROM OLD.postcode AND
+				   NEW.state IS NOT DISTINCT FROM OLD.state AND
+				   NEW.job_title IS NOT DISTINCT FROM OLD.job_title AND
+				   NEW.custom_string_1 IS NOT DISTINCT FROM OLD.custom_string_1 AND
+				   NEW.custom_string_2 IS NOT DISTINCT FROM OLD.custom_string_2 AND
+				   NEW.custom_string_3 IS NOT DISTINCT FROM OLD.custom_string_3 AND
+				   NEW.custom_string_4 IS NOT DISTINCT FROM OLD.custom_string_4 AND
+				   NEW.custom_string_5 IS NOT DISTINCT FROM OLD.custom_string_5 AND
+				   NEW.custom_number_1 IS NOT DISTINCT FROM OLD.custom_number_1 AND
+				   NEW.custom_number_2 IS NOT DISTINCT FROM OLD.custom_number_2 AND
+				   NEW.custom_number_3 IS NOT DISTINCT FROM OLD.custom_number_3 AND
+				   NEW.custom_number_4 IS NOT DISTINCT FROM OLD.custom_number_4 AND
+				   NEW.custom_number_5 IS NOT DISTINCT FROM OLD.custom_number_5 AND
+				   NEW.custom_datetime_1 IS NOT DISTINCT FROM OLD.custom_datetime_1 AND
+				   NEW.custom_datetime_2 IS NOT DISTINCT FROM OLD.custom_datetime_2 AND
+				   NEW.custom_datetime_3 IS NOT DISTINCT FROM OLD.custom_datetime_3 AND
+				   NEW.custom_datetime_4 IS NOT DISTINCT FROM OLD.custom_datetime_4 AND
+				   NEW.custom_datetime_5 IS NOT DISTINCT FROM OLD.custom_datetime_5 AND
+				   NEW.custom_json_1 IS NOT DISTINCT FROM OLD.custom_json_1 AND
+				   NEW.custom_json_2 IS NOT DISTINCT FROM OLD.custom_json_2 AND
+				   NEW.custom_json_3 IS NOT DISTINCT FROM OLD.custom_json_3 AND
+				   NEW.custom_json_4 IS NOT DISTINCT FROM OLD.custom_json_4 AND
+				   NEW.custom_json_5 IS NOT DISTINCT FROM OLD.custom_json_5 THEN
+					RETURN NEW;
+				END IF;
+			ELSIF TG_OP = 'DELETE' THEN
+				event_kind := 'contact.deleted';
+				contact_record := OLD;
+			ELSE
+				RETURN COALESCE(NEW, OLD);
+			END IF;
+
+			-- Build payload with full contact object
+			payload := jsonb_build_object(
+				'contact', to_jsonb(contact_record)
+			);
+
+			-- Insert webhook deliveries for matching subscriptions
+			FOR sub IN
+				SELECT id FROM webhook_subscriptions
+				WHERE enabled = true AND event_kind = ANY(ARRAY(SELECT jsonb_array_elements_text(settings->'event_types')))
+			LOOP
+				INSERT INTO webhook_deliveries (id, subscription_id, event_type, payload, status, attempts, max_attempts, next_attempt_at)
+				VALUES (gen_random_uuid()::text, sub.id, event_kind, payload, 'pending', 0, 10, NOW());
+			END LOOP;
+			RETURN COALESCE(NEW, OLD);
+		END;
+		$$ LANGUAGE plpgsql
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to update webhook_contacts_trigger function: %w", err)
 	}
 
 	return nil

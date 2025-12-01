@@ -36,6 +36,7 @@ export const ApiCommandModal: React.FC<ApiCommandModalProps> = ({
       "email": "recipient@example.com",
       "first_name": "John",
       "last_name": "Doe",
+      "full_name": "John Doe",
       "external_id": "user-123",
       "timezone": "America/New_York",
       "language": "en",
@@ -89,6 +90,7 @@ export const ApiCommandModal: React.FC<ApiCommandModalProps> = ({
   language?: string;
   first_name?: string;
   last_name?: string;
+  full_name?: string;
   phone?: string;
   address_line_1?: string;
   address_line_2?: string;
@@ -156,6 +158,7 @@ const sendNotification = async (): Promise<void> => {
         email: "recipient@example.com",
         first_name: "John",
         last_name: "Doe",
+        full_name: "John Doe",
         external_id: "user-123",
         timezone: "America/New_York",
         language: "en",
@@ -244,6 +247,7 @@ def send_notification():
                 "email": "recipient@example.com",
                 "first_name": "John",
                 "last_name": "Doe",
+                "full_name": "John Doe",
                 "external_id": "user-123",
                 "timezone": "America/New_York",
                 "language": "en",
@@ -325,6 +329,7 @@ type Contact struct {
     Language      string   \`json:"language,omitempty"\`
     FirstName     string   \`json:"first_name,omitempty"\`
     LastName      string   \`json:"last_name,omitempty"\`
+    FullName      string   \`json:"full_name,omitempty"\`
     Phone         string   \`json:"phone,omitempty"\`
     AddressLine1  string   \`json:"address_line_1,omitempty"\`
     AddressLine2  string   \`json:"address_line_2,omitempty"\`
@@ -393,6 +398,7 @@ func sendNotification() error {
                 Email:         "recipient@example.com",
                 FirstName:     "John",
                 LastName:      "Doe",
+                FullName:      "John Doe",
                 ExternalID:    "user-123",
                 Timezone:      "America/New_York",
                 Language:      "en",
@@ -484,6 +490,7 @@ func main() {
       "email": "recipient@example.com",
       "first_name": "John",
       "last_name": "Doe",
+      "full_name": "John Doe",
       "external_id": "user-123",
       "timezone": "America/New_York",
       "language": "en"
@@ -585,6 +592,8 @@ public class NotificationSender {
         public String firstName;
         @JsonProperty("last_name")
         public String lastName;
+        @JsonProperty("full_name")
+        public String fullName;
         public String phone;
         @JsonProperty("address_line_1")
         public String addressLine1;
@@ -704,6 +713,7 @@ public class NotificationSender {
         contact.externalId = "user-123";
         contact.timezone = "America/New_York";
         contact.language = "en";
+        contact.fullName = "John Doe";
         contact.phone = "+1234567890";
         contact.addressLine1 = "123 Main St";
         contact.addressLine2 = "Apt 4B";

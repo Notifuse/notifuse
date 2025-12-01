@@ -125,7 +125,7 @@ func TestUpsertContact(t *testing.T) {
 
 		// Prepare mock for existing contact
 		rows := sqlmock.NewRows([]string{
-			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
+			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
 						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
@@ -134,7 +134,7 @@ func TestUpsertContact(t *testing.T) {
 			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
-				existingContact.Email, "old-ext", nil, nil, "Old", "Name", nil,
+				existingContact.Email, "old-ext", nil, nil, "Old", "Name", nil, nil,
 				nil, nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -358,7 +358,7 @@ func TestUpsertContact(t *testing.T) {
 
 		// Create a mock for existing contact
 		rows := sqlmock.NewRows([]string{
-			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
+			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
 						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
@@ -367,7 +367,7 @@ func TestUpsertContact(t *testing.T) {
 			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
-				email, "old-ext", nil, nil, "Old", "Name", nil,
+				email, "old-ext", nil, nil, "Old", "Name", nil, nil,
 				nil, nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -531,7 +531,7 @@ func TestUpsertContact(t *testing.T) {
 
 		// Create an existing contact
 		rows := sqlmock.NewRows([]string{
-			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
+			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
 						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
@@ -540,7 +540,7 @@ func TestUpsertContact(t *testing.T) {
 			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
-				email, "ext123", nil, nil, "John", "Doe", nil,
+				email, "ext123", nil, nil, "John", "Doe", nil, nil,
 				nil, nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -762,7 +762,7 @@ func TestUpsertContact(t *testing.T) {
 
 		// Create an existing contact
 		rows := sqlmock.NewRows([]string{
-			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
+			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
 						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
@@ -771,7 +771,7 @@ func TestUpsertContact(t *testing.T) {
 			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
-				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
+				email, "old-ext", "UTC", "en-US", "Old", "Name", nil, nil,
 				nil, nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -843,7 +843,7 @@ func TestUpsertContact(t *testing.T) {
 
 		// Create existing contact with all fields populated
 		rows := sqlmock.NewRows([]string{
-			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
+			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
 						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
@@ -852,7 +852,7 @@ func TestUpsertContact(t *testing.T) {
 			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
-				email, "old-ext", "UTC", "en-US", "Old", "Name", "+1234567000",
+				email, "old-ext", "UTC", "en-US", "Old", "Name", "Old Name", "+1234567000",
 				"Old Address 1", "Old Address 2", "Old Country", "Old Postcode", "Old State", "Old Job Title",
 				"Old Custom 1", "Old Custom 2", "Old Custom 3", "Old Custom 4", "Old Custom 5",
 				1.1, 2.2, 3.3, 4.4, 5.5,
@@ -957,7 +957,7 @@ func TestUpsertContact(t *testing.T) {
 
 		// Create existing contact with all fields populated
 		rows := sqlmock.NewRows([]string{
-			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
+			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
 						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
@@ -966,7 +966,7 @@ func TestUpsertContact(t *testing.T) {
 			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
-				email, "ext123", "UTC", "en-US", "John", "Doe", "+1234567890",
+				email, "ext123", "UTC", "en-US", "John", "Doe", "John Doe", "+1234567890",
 				"Address 1", "Address 2", "Country", "Postcode", "State", "Job Title",
 				"Custom 1", "Custom 2", "Custom 3", "Custom 4", "Custom 5",
 				1.1, 2.2, 3.3, 4.4, 5.5,
@@ -1058,7 +1058,7 @@ func TestUpsertContact(t *testing.T) {
 
 		// Create an existing contact
 		rows := sqlmock.NewRows([]string{
-			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
+			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
 						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
@@ -1067,7 +1067,7 @@ func TestUpsertContact(t *testing.T) {
 			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
-				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
+				email, "old-ext", "UTC", "en-US", "Old", "Name", nil, nil,
 				nil, nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -1133,7 +1133,7 @@ func TestUpsertContact(t *testing.T) {
 
 		// Create an existing contact
 		rows := sqlmock.NewRows([]string{
-			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
+			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
 						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
@@ -1142,7 +1142,7 @@ func TestUpsertContact(t *testing.T) {
 			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
-				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
+				email, "old-ext", "UTC", "en-US", "Old", "Name", nil, nil,
 				nil, nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -1207,7 +1207,7 @@ func TestUpsertContact(t *testing.T) {
 
 		// Create an existing contact
 		rows := sqlmock.NewRows([]string{
-			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
+			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
 						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
@@ -1216,7 +1216,7 @@ func TestUpsertContact(t *testing.T) {
 			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
-				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
+				email, "old-ext", "UTC", "en-US", "Old", "Name", nil, nil,
 				nil, nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
@@ -1281,7 +1281,7 @@ func TestUpsertContact(t *testing.T) {
 
 		// Create an existing contact
 		rows := sqlmock.NewRows([]string{
-			"email", "external_id", "timezone", "language", "first_name", "last_name", "phone",
+			"email", "external_id", "timezone", "language", "first_name", "last_name", "full_name", "phone",
 			"address_line_1", "address_line_2", "country", "postcode", "state", "job_title",
 						"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 			"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
@@ -1290,7 +1290,7 @@ func TestUpsertContact(t *testing.T) {
 			"created_at", "updated_at", "db_created_at", "db_updated_at",
 		}).
 			AddRow(
-				email, "old-ext", "UTC", "en-US", "Old", "Name", nil,
+				email, "old-ext", "UTC", "en-US", "Old", "Name", nil, nil,
 				nil, nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil,

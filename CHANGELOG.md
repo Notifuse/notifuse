@@ -14,6 +14,16 @@ All notable changes to this project will be documented in this file.
   - Custom event filters for fine-grained subscription control
   - Test webhook endpoint for integration debugging
   - Delivery logs with 7-day retention
+- **Contact `full_name` field**: Native field for systems without separate first/last names
+
+### Bug Fixes
+
+- Fixed timeline timestamps showing incorrect times (now uses `CURRENT_TIMESTAMP` in triggers)
+- Fixed JSON field filters with number/time values failing validation (#140)
+
+### Breaking Changes
+
+- Renamed `webhook_events` table to `inbound_webhook_events` to distinguish from outgoing webhooks
 
 ## [18.3] - 2025-11-30
 

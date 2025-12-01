@@ -171,6 +171,9 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 	if req.LastName != "" {
 		sb = sb.Where(sq.ILike{"c.last_name": "%" + req.LastName + "%"})
 	}
+	if req.FullName != "" {
+		sb = sb.Where(sq.ILike{"c.full_name": "%" + req.FullName + "%"})
+	}
 	if req.Phone != "" {
 		sb = sb.Where(sq.ILike{"c.phone": "%" + req.Phone + "%"})
 	}
@@ -506,7 +509,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 
 		// Convert domain nullable types to SQL nullable types
 		var externalIDSQL, timezoneSQL, languageSQL sql.NullString
-		var firstNameSQL, lastNameSQL, phoneSQL, addressLine1SQL, addressLine2SQL sql.NullString
+		var firstNameSQL, lastNameSQL, fullNameSQL, phoneSQL, addressLine1SQL, addressLine2SQL sql.NullString
 		var countrySQL, postcodeSQL, stateSQL, jobTitleSQL sql.NullString
 		var customString1SQL, customString2SQL, customString3SQL, customString4SQL, customString5SQL sql.NullString
 		var customNumber1SQL, customNumber2SQL, customNumber3SQL, customNumber4SQL, customNumber5SQL sql.NullFloat64
@@ -547,6 +550,13 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 				lastNameSQL = sql.NullString{String: contact.LastName.String, Valid: true}
 			} else {
 				lastNameSQL = sql.NullString{Valid: false}
+			}
+		}
+		if contact.FullName != nil {
+			if !contact.FullName.IsNull {
+				fullNameSQL = sql.NullString{String: contact.FullName.String, Valid: true}
+			} else {
+				fullNameSQL = sql.NullString{Valid: false}
 			}
 		}
 		if contact.Phone != nil {
@@ -781,7 +791,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		insertBuilder := psql.Insert("contacts").
 			Columns(
 				"email", "external_id", "timezone", "language",
-				"first_name", "last_name", "phone", "address_line_1", "address_line_2",
+				"first_name", "last_name", "full_name", "phone", "address_line_1", "address_line_2",
 				"country", "postcode", "state", "job_title",
 				"custom_string_1", "custom_string_2", "custom_string_3", "custom_string_4", "custom_string_5",
 				"custom_number_1", "custom_number_2", "custom_number_3", "custom_number_4", "custom_number_5",
@@ -791,7 +801,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 			).
 			Values(
 				contact.Email, externalIDSQL, timezoneSQL, languageSQL,
-				firstNameSQL, lastNameSQL, phoneSQL, addressLine1SQL, addressLine2SQL,
+				firstNameSQL, lastNameSQL, fullNameSQL, phoneSQL, addressLine1SQL, addressLine2SQL,
 				countrySQL, postcodeSQL, stateSQL, jobTitleSQL,
 				customString1SQL, customString2SQL, customString3SQL, customString4SQL, customString5SQL,
 				customNumber1SQL, customNumber2SQL, customNumber3SQL, customNumber4SQL, customNumber5SQL,
@@ -824,7 +834,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 
 		// Convert domain nullable types to SQL nullable types for the update
 		var externalIDSQL, timezoneSQL, languageSQL sql.NullString
-		var firstNameSQL, lastNameSQL, phoneSQL, addressLine1SQL, addressLine2SQL sql.NullString
+		var firstNameSQL, lastNameSQL, fullNameSQL, phoneSQL, addressLine1SQL, addressLine2SQL sql.NullString
 		var countrySQL, postcodeSQL, stateSQL, jobTitleSQL sql.NullString
 		var customString1SQL, customString2SQL, customString3SQL, customString4SQL, customString5SQL sql.NullString
 		var customNumber1SQL, customNumber2SQL, customNumber3SQL, customNumber4SQL, customNumber5SQL sql.NullFloat64
@@ -857,6 +867,11 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 		if existingContact.LastName != nil {
 			if !existingContact.LastName.IsNull {
 				lastNameSQL = sql.NullString{String: existingContact.LastName.String, Valid: true}
+			}
+		}
+		if existingContact.FullName != nil {
+			if !existingContact.FullName.IsNull {
+				fullNameSQL = sql.NullString{String: existingContact.FullName.String, Valid: true}
 			}
 		}
 		if existingContact.Phone != nil {
@@ -1030,6 +1045,7 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 			"language":          languageSQL,
 			"first_name":        firstNameSQL,
 			"last_name":         lastNameSQL,
+			"full_name":         fullNameSQL,
 			"phone":             phoneSQL,
 			"address_line_1":    addressLine1SQL,
 			"address_line_2":    addressLine2SQL,
@@ -1060,9 +1076,12 @@ func (r *contactRepository) UpsertContact(ctx context.Context, workspaceID strin
 			"db_updated_at":     existingContact.DBUpdatedAt,
 		}
 
-		// Only update updated_at if provided (not zero)
-		if !existingContact.UpdatedAt.IsZero() {
-			updateMap["updated_at"] = existingContact.UpdatedAt.UTC()
+		// Always update updated_at to current time for updates
+		// If the incoming contact provided an updated_at, use it; otherwise use NOW()
+		if !contact.UpdatedAt.IsZero() {
+			updateMap["updated_at"] = contact.UpdatedAt.UTC()
+		} else {
+			updateMap["updated_at"] = time.Now().UTC()
 		}
 
 		updateBuilder := psql.Update("contacts").
@@ -1115,12 +1134,12 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 	// Build the multi-row INSERT statement
 	// We'll use a raw SQL query because squirrel doesn't handle complex ON CONFLICT well
 	var queryBuilder strings.Builder
-	args := make([]interface{}, 0, len(contacts)*35) // 35 fields per contact (db_created_at and db_updated_at are managed by DB)
+	args := make([]interface{}, 0, len(contacts)*36) // 36 fields per contact (db_created_at and db_updated_at are managed by DB)
 	argIndex := 1
 
 	queryBuilder.WriteString(`INSERT INTO contacts (
 		email, external_id, timezone, language,
-		first_name, last_name, phone, address_line_1, address_line_2,
+		first_name, last_name, full_name, phone, address_line_1, address_line_2,
 		country, postcode, state, job_title,
 		custom_string_1, custom_string_2, custom_string_3, custom_string_4, custom_string_5,
 		custom_number_1, custom_number_2, custom_number_3, custom_number_4, custom_number_5,
@@ -1136,8 +1155,8 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 		}
 		queryBuilder.WriteString("(")
 
-		// Add 35 placeholders for contact fields (excluding db_created_at and db_updated_at)
-		for j := 0; j < 35; j++ {
+		// Add 36 placeholders for contact fields (excluding db_created_at and db_updated_at)
+		for j := 0; j < 36; j++ {
 			if j > 0 {
 				queryBuilder.WriteString(", ")
 			}
@@ -1195,35 +1214,36 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 			toNullString(contact.Language),       // 4
 			toNullString(contact.FirstName),      // 5
 			toNullString(contact.LastName),       // 6
-			toNullString(contact.Phone),          // 7
-			toNullString(contact.AddressLine1),   // 8
-			toNullString(contact.AddressLine2),   // 9
-			toNullString(contact.Country),        // 10
-			toNullString(contact.Postcode),       // 11
-			toNullString(contact.State),          // 12
-			toNullString(contact.JobTitle),       // 13
-			toNullString(contact.CustomString1),  // 14
-			toNullString(contact.CustomString2),  // 15
-			toNullString(contact.CustomString3),  // 16
-			toNullString(contact.CustomString4),  // 17
-			toNullString(contact.CustomString5),  // 18
-			toNullFloat64(contact.CustomNumber1), // 19
-			toNullFloat64(contact.CustomNumber2), // 20
-			toNullFloat64(contact.CustomNumber3), // 21
-			toNullFloat64(contact.CustomNumber4), // 22
-			toNullFloat64(contact.CustomNumber5), // 23
-			toNullTime(contact.CustomDatetime1),  // 24
-			toNullTime(contact.CustomDatetime2),  // 25
-			toNullTime(contact.CustomDatetime3),  // 26
-			toNullTime(contact.CustomDatetime4),  // 27
-			toNullTime(contact.CustomDatetime5),  // 28
-			toNullJSON(contact.CustomJSON1),      // 29
-			toNullJSON(contact.CustomJSON2),      // 30
-			toNullJSON(contact.CustomJSON3),      // 31
-			toNullJSON(contact.CustomJSON4),      // 32
-			toNullJSON(contact.CustomJSON5),      // 33
-			createdAt,                            // 34 - application-level timestamp
-			updatedAt,                            // 35 - application-level timestamp
+			toNullString(contact.FullName),       // 7
+			toNullString(contact.Phone),          // 8
+			toNullString(contact.AddressLine1),   // 9
+			toNullString(contact.AddressLine2),   // 10
+			toNullString(contact.Country),        // 11
+			toNullString(contact.Postcode),       // 12
+			toNullString(contact.State),          // 13
+			toNullString(contact.JobTitle),       // 14
+			toNullString(contact.CustomString1),  // 15
+			toNullString(contact.CustomString2),  // 16
+			toNullString(contact.CustomString3),  // 17
+			toNullString(contact.CustomString4),  // 18
+			toNullString(contact.CustomString5),  // 19
+			toNullFloat64(contact.CustomNumber1), // 20
+			toNullFloat64(contact.CustomNumber2), // 21
+			toNullFloat64(contact.CustomNumber3), // 22
+			toNullFloat64(contact.CustomNumber4), // 23
+			toNullFloat64(contact.CustomNumber5), // 24
+			toNullTime(contact.CustomDatetime1),  // 25
+			toNullTime(contact.CustomDatetime2),  // 26
+			toNullTime(contact.CustomDatetime3),  // 27
+			toNullTime(contact.CustomDatetime4),  // 28
+			toNullTime(contact.CustomDatetime5),  // 29
+			toNullJSON(contact.CustomJSON1),      // 30
+			toNullJSON(contact.CustomJSON2),      // 31
+			toNullJSON(contact.CustomJSON3),      // 32
+			toNullJSON(contact.CustomJSON4),      // 33
+			toNullJSON(contact.CustomJSON5),      // 34
+			createdAt,                            // 35 - application-level timestamp
+			updatedAt,                            // 36 - application-level timestamp
 		)
 	}
 
@@ -1237,6 +1257,7 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 		language = CASE WHEN EXCLUDED.language IS NOT NULL THEN EXCLUDED.language ELSE contacts.language END,
 		first_name = CASE WHEN EXCLUDED.first_name IS NOT NULL THEN EXCLUDED.first_name ELSE contacts.first_name END,
 		last_name = CASE WHEN EXCLUDED.last_name IS NOT NULL THEN EXCLUDED.last_name ELSE contacts.last_name END,
+		full_name = CASE WHEN EXCLUDED.full_name IS NOT NULL THEN EXCLUDED.full_name ELSE contacts.full_name END,
 		phone = CASE WHEN EXCLUDED.phone IS NOT NULL THEN EXCLUDED.phone ELSE contacts.phone END,
 		address_line_1 = CASE WHEN EXCLUDED.address_line_1 IS NOT NULL THEN EXCLUDED.address_line_1 ELSE contacts.address_line_1 END,
 		address_line_2 = CASE WHEN EXCLUDED.address_line_2 IS NOT NULL THEN EXCLUDED.address_line_2 ELSE contacts.address_line_2 END,
@@ -1397,7 +1418,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 			// We need to scan all columns at once since we selected c.*, cl.list_id, l.name
 			// Create all the scan destinations for contact fields plus list_id and list_name
 			var email, externalID, timezone, language sql.NullString
-			var firstName, lastName, phone, addressLine1, addressLine2 sql.NullString
+			var firstName, lastName, fullName, phone, addressLine1, addressLine2 sql.NullString
 			var country, postcode, state, jobTitle sql.NullString
 			var customString1, customString2, customString3, customString4, customString5 sql.NullString
 			var customNumber1, customNumber2, customNumber3, customNumber4, customNumber5 sql.NullFloat64
@@ -1408,7 +1429,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 			// Scan all columns including contact fields + list_id + list_name
 			scanErr = rows.Scan(
 				&email, &externalID, &timezone, &language,
-				&firstName, &lastName, &phone, &addressLine1, &addressLine2,
+				&firstName, &lastName, &fullName, &phone, &addressLine1, &addressLine2,
 				&country, &postcode, &state, &jobTitle,
 				&customString1, &customString2, &customString3, &customString4, &customString5,
 				&customNumber1, &customNumber2, &customNumber3, &customNumber4, &customNumber5,
@@ -1445,6 +1466,9 @@ func (r *contactRepository) GetContactsForBroadcast(
 			}
 			if lastName.Valid {
 				contact.LastName = &domain.NullableString{String: lastName.String, IsNull: false}
+			}
+			if fullName.Valid {
+				contact.FullName = &domain.NullableString{String: fullName.String, IsNull: false}
 			}
 			if phone.Valid {
 				contact.Phone = &domain.NullableString{String: phone.String, IsNull: false}

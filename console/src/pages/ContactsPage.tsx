@@ -37,7 +37,9 @@ import { getCustomFieldLabel } from '../hooks/useCustomFieldLabel'
 const STORAGE_KEY = 'contact_columns_visibility'
 
 const DEFAULT_VISIBLE_COLUMNS = {
-  name: true,
+  first_name: true,
+  last_name: true,
+  full_name: false,
   language: true,
   timezone: true,
   country: true,
@@ -185,6 +187,7 @@ export function ContactsPage() {
     { key: 'external_id', label: 'External ID', type: 'string' as const },
     { key: 'first_name', label: 'First Name', type: 'string' as const },
     { key: 'last_name', label: 'Last Name', type: 'string' as const },
+    { key: 'full_name', label: 'Full Name', type: 'string' as const },
     { key: 'phone', label: 'Phone', type: 'string' as const },
     { key: 'language', label: 'Language', type: 'string' as const, options: Languages },
     { key: 'country', label: 'Country', type: 'string' as const, options: CountriesFormOptions },
@@ -237,7 +240,9 @@ export function ContactsPage() {
   const allColumns: { key: string; title: string }[] = [
     { key: 'lists', title: 'Lists' },
     { key: 'segments', title: 'Segments' },
-    { key: 'name', title: 'Name' },
+    { key: 'first_name', title: 'First Name' },
+    { key: 'last_name', title: 'Last Name' },
+    { key: 'full_name', title: 'Full Name' },
     { key: 'phone', title: 'Phone' },
     { key: 'country', title: 'Country' },
     { key: 'language', title: 'Language' },
@@ -311,6 +316,7 @@ export function ContactsPage() {
         external_id: search.external_id,
         first_name: search.first_name,
         last_name: search.last_name,
+        full_name: search.full_name,
         phone: search.phone,
         country: search.country,
         language: search.language,
@@ -362,6 +368,7 @@ export function ContactsPage() {
     search.external_id,
     search.first_name,
     search.last_name,
+    search.full_name,
     search.phone,
     search.country,
     search.language,
@@ -532,11 +539,25 @@ export function ContactsPage() {
       hidden: !visibleColumns.segments
     },
     {
-      title: 'Name',
-      key: 'name',
-      render: (_: unknown, record: Contact) =>
-        `${record.first_name || ''} ${record.last_name || ''}`,
-      hidden: !visibleColumns.name
+      title: 'First Name',
+      dataIndex: 'first_name',
+      key: 'first_name',
+      render: (_: unknown, record: Contact) => record.first_name || '-',
+      hidden: !visibleColumns.first_name
+    },
+    {
+      title: 'Last Name',
+      dataIndex: 'last_name',
+      key: 'last_name',
+      render: (_: unknown, record: Contact) => record.last_name || '-',
+      hidden: !visibleColumns.last_name
+    },
+    {
+      title: 'Full Name',
+      dataIndex: 'full_name',
+      key: 'full_name',
+      render: (_: unknown, record: Contact) => record.full_name || '-',
+      hidden: !visibleColumns.full_name
     },
     {
       title: 'Phone',
