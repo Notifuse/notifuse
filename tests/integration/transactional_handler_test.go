@@ -754,6 +754,12 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 				To      []struct {
 					Address string `json:"Address"`
 				} `json:"To"`
+				Cc []struct {
+					Address string `json:"Address"`
+				} `json:"Cc"`
+				Bcc []struct {
+					Address string `json:"Address"`
+				} `json:"Bcc"`
 			} `json:"messages"`
 		}
 
@@ -771,10 +777,20 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 			if strings.Contains(msg.Subject, "Test Email Subject") {
 				emailsForOurMessage++
 
-				// Track which recipient received this
+				// Track To recipients
 				for _, to := range msg.To {
 					recipientsFound[to.Address] = true
 					t.Logf("  Found email to: %s", to.Address)
+				}
+				// Track CC recipients
+				for _, cc := range msg.Cc {
+					recipientsFound[cc.Address] = true
+					t.Logf("  Found email cc: %s", cc.Address)
+				}
+				// Track BCC recipients
+				for _, bcc := range msg.Bcc {
+					recipientsFound[bcc.Address] = true
+					t.Logf("  Found email bcc: %s", bcc.Address)
 				}
 			}
 		}

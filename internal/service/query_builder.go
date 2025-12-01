@@ -804,8 +804,8 @@ func (qb *QueryBuilder) parseTimelineFilter(filter *domain.DimensionFilter, argI
 		fieldPath = fmt.Sprintf("(%s)::numeric", fieldPath)
 	case "time":
 		values, err = qb.getTimeValues(filter)
-		// For time comparisons in JSONB, cast to timestamp
-		fieldPath = fmt.Sprintf("(%s)::timestamp", fieldPath)
+		// For time comparisons in JSONB, cast to timestamptz
+		fieldPath = fmt.Sprintf("(%s)::timestamptz", fieldPath)
 	default:
 		return "", nil, argIndex, fmt.Errorf("invalid field type: %s", filter.FieldType)
 	}
