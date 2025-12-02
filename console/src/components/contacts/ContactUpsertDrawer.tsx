@@ -221,8 +221,8 @@ export function ContactUpsertDrawer({
   const [loading, setLoading] = React.useState(false)
   const { message } = App.useApp()
 
-  // Get optional fields with custom labels
-  const optionalFields = getOptionalFields(workspace)
+  // Get optional fields with custom labels - memoize to prevent useEffect from running on every render
+  const optionalFields = React.useMemo(() => getOptionalFields(workspace), [workspace])
 
   // Use external open state if provided, otherwise use internal state
   const isControlled = externalOpen !== undefined

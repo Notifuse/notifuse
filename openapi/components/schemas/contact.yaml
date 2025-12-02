@@ -1,3 +1,180 @@
+# ContactInput is used for create/update operations (POST requests)
+# It contains only the fields that are accepted by the API
+ContactInput:
+  type: object
+  required:
+    - email
+  properties:
+    email:
+      type: string
+      format: email
+      description: Email address of the contact
+      example: user@example.com
+    external_id:
+      type: string
+      nullable: true
+      description: External identifier for the contact
+      example: user_12345
+    timezone:
+      type: string
+      nullable: true
+      description: Timezone of the contact
+      example: America/New_York
+    language:
+      type: string
+      nullable: true
+      description: Preferred language of the contact
+      example: en-US
+    first_name:
+      type: string
+      nullable: true
+      description: First name of the contact
+      example: John
+    last_name:
+      type: string
+      nullable: true
+      description: Last name of the contact
+      example: Doe
+    full_name:
+      type: string
+      nullable: true
+      description: Full name of the contact (for systems that don't have separate first/last names)
+      example: John Doe
+    phone:
+      type: string
+      nullable: true
+      description: Phone number of the contact
+      example: '+15551234567'
+    address_line_1:
+      type: string
+      nullable: true
+      description: First line of address
+      example: 123 Main St
+    address_line_2:
+      type: string
+      nullable: true
+      description: Second line of address
+      example: Apt 4B
+    country:
+      type: string
+      nullable: true
+      description: Country of the contact
+      example: US
+    postcode:
+      type: string
+      nullable: true
+      description: Postal code
+      example: '10001'
+    state:
+      type: string
+      nullable: true
+      description: State or province
+      example: NY
+    job_title:
+      type: string
+      nullable: true
+      description: Job title of the contact
+      example: Software Engineer
+    custom_string_1:
+      type: string
+      nullable: true
+      description: Custom string field 1
+      example: Premium tier
+    custom_string_2:
+      type: string
+      nullable: true
+      description: Custom string field 2
+    custom_string_3:
+      type: string
+      nullable: true
+      description: Custom string field 3
+    custom_string_4:
+      type: string
+      nullable: true
+      description: Custom string field 4
+    custom_string_5:
+      type: string
+      nullable: true
+      description: Custom string field 5
+    custom_number_1:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 1
+      example: 42
+    custom_number_2:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 2
+    custom_number_3:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 3
+    custom_number_4:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 4
+    custom_number_5:
+      type: number
+      format: float
+      nullable: true
+      description: Custom number field 5
+    custom_datetime_1:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 1
+      example: '2023-06-01T09:00:00Z'
+    custom_datetime_2:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 2
+    custom_datetime_3:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 3
+    custom_datetime_4:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 4
+    custom_datetime_5:
+      type: string
+      format: date-time
+      nullable: true
+      description: Custom datetime field 5
+    custom_json_1:
+      type: object
+      nullable: true
+      description: Custom JSON field 1 (must be a JSON object or array)
+      example:
+        preferences:
+          theme: dark
+          notifications: true
+    custom_json_2:
+      type: object
+      nullable: true
+      description: Custom JSON field 2 (must be a JSON object or array)
+    custom_json_3:
+      type: object
+      nullable: true
+      description: Custom JSON field 3 (must be a JSON object or array)
+    custom_json_4:
+      type: object
+      nullable: true
+      description: Custom JSON field 4 (must be a JSON object or array)
+    custom_json_5:
+      type: object
+      nullable: true
+      description: Custom JSON field 5 (must be a JSON object or array)
+
+# Contact is used for response objects (GET requests)
+# It includes read-only fields like timestamps, contact_lists, and contact_segments
 Contact:
   type: object
   required:
@@ -173,16 +350,19 @@ Contact:
     created_at:
       type: string
       format: date-time
-      description: When the contact was created
+      readOnly: true
+      description: When the contact was created (read-only, set by server)
       example: '2023-01-15T10:30:00Z'
     updated_at:
       type: string
       format: date-time
-      description: When the contact was last updated
+      readOnly: true
+      description: When the contact was last updated (read-only, set by server)
       example: '2023-04-22T15:45:00Z'
     contact_lists:
       type: array
-      description: Lists the contact is subscribed to (only included in GET endpoints)
+      readOnly: true
+      description: Lists the contact is subscribed to (read-only, included in GET responses only)
       items:
         $ref: '#/ContactList'
       example:
@@ -195,7 +375,8 @@ Contact:
           deleted_at: null
     contact_segments:
       type: array
-      description: Segments the contact belongs to (only included in GET endpoints)
+      readOnly: true
+      description: Segments the contact belongs to (read-only, included in GET responses only)
       items:
         $ref: '#/ContactSegment'
 
@@ -481,7 +662,7 @@ UpsertContactRequest:
       description: The ID of the workspace
       example: ws_1234567890
     contact:
-      $ref: '#/Contact'
+      $ref: '#/ContactInput'
 
 UpsertContactResponse:
   type: object
@@ -535,7 +716,7 @@ BatchImportContactsRequest:
       type: array
       description: Array of contacts to import (create or update)
       items:
-        $ref: '#/Contact'
+        $ref: '#/ContactInput'
       minItems: 1
       example:
         - email: user1@example.com

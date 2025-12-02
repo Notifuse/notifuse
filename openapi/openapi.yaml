@@ -104,6 +104,8 @@ components:
       $ref: './components/schemas/transactional.yaml#/TransactionalNotificationSendParams'
     Contact:
       $ref: './components/schemas/contact.yaml#/Contact'
+    ContactInput:
+      $ref: './components/schemas/contact.yaml#/ContactInput'
     ContactList:
       $ref: './components/schemas/contact.yaml#/ContactList'
     ContactSegment:
