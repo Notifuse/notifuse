@@ -3596,6 +3596,12 @@
             "description": "Last name of the contact",
             "example": "Doe"
           },
+          "full_name": {
+            "type": "string",
+            "nullable": true,
+            "description": "Full name of the contact (for systems that don't have separate first/last names)",
+            "example": "John Doe"
+          },
           "phone": {
             "type": "string",
             "nullable": true,
@@ -3958,6 +3964,12 @@
             "nullable": true,
             "description": "Last name of the contact",
             "example": "Doe"
+          },
+          "full_name": {
+            "type": "string",
+            "nullable": true,
+            "description": "Full name of the contact (for systems that don't have separate first/last names)",
+            "example": "John Doe"
           },
           "phone": {
             "type": "string",
@@ -5776,18 +5788,6 @@
             "nullable": true,
             "description": "Timestamp of the last delivery attempt",
             "example": "2024-01-15T10:30:00Z"
-          },
-          "success_count": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Number of successful deliveries",
-            "example": 150
-          },
-          "failure_count": {
-            "type": "integer",
-            "format": "int64",
-            "description": "Number of failed deliveries",
-            "example": 3
           },
           "created_at": {
             "type": "string",

@@ -150,6 +150,7 @@ const formatCustomFieldLabel = (fieldKey: string, workspace: Workspace): string 
 const getOptionalFields = (workspace: Workspace) => [
   { key: 'first_name', label: 'First Name' },
   { key: 'last_name', label: 'Last Name' },
+  { key: 'full_name', label: 'Full Name' },
   { key: 'phone', label: 'Phone' },
   { key: 'country', label: 'Country' },
   { key: 'external_id', label: 'External ID' },

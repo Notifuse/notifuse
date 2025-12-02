@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [19.1] - 2025-12-02
+
+- Enhancement: Added `full_name` field to the Add Contact drawer
+
 ## [19.0] - 2025-12-01
 
 ### Features
@@ -20,6 +24,7 @@ All notable changes to this project will be documented in this file.
 
 - Fixed timeline timestamps showing incorrect times (now uses `CURRENT_TIMESTAMP` in triggers)
 - Fixed JSON field filters with number/time values failing validation (#140)
+- Fixed contact scan error on migrated databases due to column ordering mismatch (replaced `SELECT *` with explicit column list)
 
 ### Breaking Changes
 
