@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [19.2] - 2025-12-04
+
+- fix update contact form
+- fix non-ASCII characters in SES
+
 ## [19.1] - 2025-12-02
 
 - Enhancement: Added `full_name` field to the Add Contact drawer
