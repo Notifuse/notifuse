@@ -42,7 +42,7 @@ func TestSetupWizardFlow(t *testing.T) {
 	})
 
 	t.Run("Initialize System", func(t *testing.T) {
-		// Initialize the system
+		// Initialize the system with TLS disabled (Mailpit doesn't use TLS)
 		initReq := map[string]interface{}{
 			"root_email":      "admin@example.com",
 			"api_endpoint":    suite.ServerManager.GetURL(),
@@ -50,6 +50,7 @@ func TestSetupWizardFlow(t *testing.T) {
 			"smtp_port":       1025,
 			"smtp_from_email": "test@example.com",
 			"smtp_from_name":  "Test Notifuse",
+			"smtp_use_tls":    false, // Mailpit doesn't use TLS
 		}
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
@@ -90,6 +91,7 @@ func TestSetupWizardFlow(t *testing.T) {
 			"smtp_port":       1025,
 			"smtp_from_email": "test@example.com",
 			"smtp_from_name":  "Test Notifuse",
+			"smtp_use_tls":    false,
 		}
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
@@ -127,6 +129,7 @@ func TestSetupWizardWithJWT(t *testing.T) {
 			"smtp_port":       1025,
 			"smtp_from_email": "test@example.com",
 			"smtp_from_name":  "Test Notifuse",
+			"smtp_use_tls":    false, // Mailpit doesn't use TLS
 		}
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
@@ -218,8 +221,9 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 	t.Run("Test SMTP Connection - Success", func(t *testing.T) {
 		// Test with valid Mailpit settings (running in Docker Compose)
 		testReq := map[string]interface{}{
-			"smtp_host": "localhost",
-			"smtp_port": 1025,
+			"smtp_host":    "localhost",
+			"smtp_port":    1025,
+			"smtp_use_tls": false, // Mailpit doesn't use TLS
 		}
 
 		resp, err := client.Post("/api/setup.testSmtp", testReq)
@@ -240,10 +244,11 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 	})
 
 	t.Run("Test SMTP Connection - Invalid Host", func(t *testing.T) {
-		// Test with invalid SMTP settings
+		// Test with invalid SMTP settings (TLS enabled by default)
 		testReq := map[string]interface{}{
-			"smtp_host": "invalid-host-that-does-not-exist.com",
-			"smtp_port": 587,
+			"smtp_host":    "invalid-host-that-does-not-exist.com",
+			"smtp_port":    587,
+			"smtp_use_tls": true,
 		}
 
 		resp, err := client.Post("/api/setup.testSmtp", testReq)
@@ -268,6 +273,7 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 			"smtp_port":       1025,
 			"smtp_from_email": "test@example.com",
 			"smtp_from_name":  "Test Notifuse",
+			"smtp_use_tls":    false, // Mailpit doesn't use TLS
 		}
 
 		resp, err := client.Post("/api/setup.initialize", initReq)
@@ -276,8 +282,9 @@ func TestSetupWizardSMTPTest(t *testing.T) {
 
 		// Now try to test SMTP - should be forbidden
 		testReq := map[string]interface{}{
-			"smtp_host": "localhost",
-			"smtp_port": 1025,
+			"smtp_host":    "localhost",
+			"smtp_port":    1025,
+			"smtp_use_tls": false,
 		}
 
 		resp, err = client.Post("/api/setup.testSmtp", testReq)
@@ -331,6 +338,7 @@ func TestSetupWizardWithServerRestart(t *testing.T) {
 			"smtp_password":   "testpass",
 			"smtp_from_email": "noreply@example.com", // Important: non-empty from email
 			"smtp_from_name":  "Test System",
+			"smtp_use_tls":    false, // Mailpit doesn't use TLS
 		}
 
 		resp, err := client.Post("/api/setup.initialize", initReq)

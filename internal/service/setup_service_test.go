@@ -27,13 +27,26 @@ func TestSetupService_ValidateSetupConfig(t *testing.T) {
 		wantError string
 	}{
 		{
-			name: "valid config",
+			name: "valid config with TLS enabled",
 			config: &service.SetupConfig{
 				RootEmail:     "admin@example.com",
 				APIEndpoint:   "https://api.example.com",
 				SMTPHost:      "smtp.example.com",
 				SMTPPort:      587,
 				SMTPFromEmail: "noreply@example.com",
+				SMTPUseTLS:    true,
+			},
+			wantError: "",
+		},
+		{
+			name: "valid config with TLS disabled",
+			config: &service.SetupConfig{
+				RootEmail:     "admin@example.com",
+				APIEndpoint:   "https://api.example.com",
+				SMTPHost:      "smtp.example.com",
+				SMTPPort:      25,
+				SMTPFromEmail: "noreply@example.com",
+				SMTPUseTLS:    false,
 			},
 			wantError: "",
 		},
@@ -153,6 +166,34 @@ func TestSetupService_TestSMTPConnection(t *testing.T) {
 		err := setupService.TestSMTPConnection(ctx, config)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "SMTP port is required")
+	})
+
+	t.Run("Error - Connection fails with TLS enabled", func(t *testing.T) {
+		config := &service.SMTPTestConfig{
+			Host:     "invalid-host.example.com",
+			Port:     587,
+			Username: "user",
+			Password: "pass",
+			UseTLS:   true,
+		}
+
+		err := setupService.TestSMTPConnection(ctx, config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to connect to SMTP server")
+	})
+
+	t.Run("Error - Connection fails with TLS disabled", func(t *testing.T) {
+		config := &service.SMTPTestConfig{
+			Host:     "invalid-host.example.com",
+			Port:     25,
+			Username: "user",
+			Password: "pass",
+			UseTLS:   false,
+		}
+
+		err := setupService.TestSMTPConnection(ctx, config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to connect to SMTP server")
 	})
 
 	// Note: Actual SMTP connection test would require a real SMTP server or more complex mocking

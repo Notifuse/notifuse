@@ -22,6 +22,7 @@ type SetupConfig struct {
 	SMTPPassword           string
 	SMTPFromEmail          string
 	SMTPFromName           string
+	SMTPUseTLS             bool
 	TelemetryEnabled       bool
 	CheckForUpdates        bool
 	SMTPRelayEnabled       bool
@@ -37,6 +38,7 @@ type SMTPTestConfig struct {
 	Port     int
 	Username string
 	Password string
+	UseTLS   bool
 }
 
 // ConfigurationStatus represents which configuration groups are set via environment
@@ -68,6 +70,7 @@ type EnvironmentConfig struct {
 	SMTPPassword           string
 	SMTPFromEmail          string
 	SMTPFromName           string
+	SMTPUseTLS             string // "true", "false", or "" (empty = not set, defaults to true)
 	SMTPRelayEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
 	SMTPRelayDomain        string
 	SMTPRelayPort          int
@@ -183,6 +186,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 	// Handle SMTP configuration
 	var smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string
 	var smtpPort int
+	var smtpUseTLS bool
 
 	if status.SMTPConfigured {
 		// Use env-configured SMTP
@@ -192,6 +196,8 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		smtpPassword = s.envConfig.SMTPPassword
 		smtpFromEmail = s.envConfig.SMTPFromEmail
 		smtpFromName = s.envConfig.SMTPFromName
+		// TLS defaults to true unless explicitly set to false via env var
+		smtpUseTLS = s.envConfig.SMTPUseTLS != "false"
 	} else {
 		// Use user-provided SMTP
 		smtpHost = config.SMTPHost
@@ -200,6 +206,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		smtpPassword = config.SMTPPassword
 		smtpFromEmail = config.SMTPFromEmail
 		smtpFromName = config.SMTPFromName
+		smtpUseTLS = config.SMTPUseTLS
 	}
 
 	// Handle SMTP Relay configuration
@@ -234,6 +241,7 @@ func (s *SetupService) Initialize(ctx context.Context, config *SetupConfig) erro
 		SMTPPassword:           smtpPassword,
 		SMTPFromEmail:          smtpFromEmail,
 		SMTPFromName:           smtpFromName,
+		SMTPUseTLS:             smtpUseTLS,
 		TelemetryEnabled:       config.TelemetryEnabled,
 		CheckForUpdates:        config.CheckForUpdates,
 		SMTPRelayEnabled:       smtpRelayEnabled,
@@ -290,10 +298,16 @@ func (s *SetupService) TestSMTPConnection(ctx context.Context, config *SMTPTestC
 		return fmt.Errorf("SMTP port is required")
 	}
 
+	// Determine TLS policy based on config
+	tlsPolicy := mail.TLSMandatory
+	if !config.UseTLS {
+		tlsPolicy = mail.NoTLS
+	}
+
 	// Build client options
 	clientOptions := []mail.Option{
 		mail.WithPort(config.Port),
-		mail.WithTLSPolicy(mail.TLSMandatory),
+		mail.WithTLSPolicy(tlsPolicy),
 	}
 
 	// Only add authentication if username and password are provided

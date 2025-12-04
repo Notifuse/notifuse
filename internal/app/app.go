@@ -473,7 +473,7 @@ func (a *App) InitServices() error {
 
 	// Initialize setup service with environment config from config loader
 	// Config tracks which values came from actual env vars (not database, not generated)
-	rootEmail, apiEndpoint, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName, smtpPort, smtpRelayEnabled, smtpRelayDomain, smtpRelayTLSCertBase64, smtpRelayTLSKeyBase64, smtpRelayPort := a.config.GetEnvValues()
+	rootEmail, apiEndpoint, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName, smtpPort, smtpUseTLS, smtpRelayEnabled, smtpRelayDomain, smtpRelayTLSCertBase64, smtpRelayTLSKeyBase64, smtpRelayPort := a.config.GetEnvValues()
 	envConfig := &service.EnvironmentConfig{
 		RootEmail:              rootEmail,
 		APIEndpoint:            apiEndpoint,
@@ -483,6 +483,7 @@ func (a *App) InitServices() error {
 		SMTPPassword:           smtpPassword,
 		SMTPFromEmail:          smtpFromEmail,
 		SMTPFromName:           smtpFromName,
+		SMTPUseTLS:             smtpUseTLS,
 		SMTPRelayEnabled:       smtpRelayEnabled,
 		SMTPRelayDomain:        smtpRelayDomain,
 		SMTPRelayPort:          smtpRelayPort,

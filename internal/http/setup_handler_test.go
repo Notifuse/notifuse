@@ -204,6 +204,9 @@ func TestSetupHandler_Status(t *testing.T) {
 }
 
 func TestSetupHandler_TestSMTP(t *testing.T) {
+	tlsTrue := true
+	tlsFalse := false
+
 	tests := []struct {
 		name           string
 		method         string
@@ -212,7 +215,33 @@ func TestSetupHandler_TestSMTP(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name:        "Valid SMTP config but connection fails (expected)",
+			name:        "Valid SMTP config with TLS but connection fails (expected)",
+			method:      http.MethodPost,
+			isInstalled: false,
+			requestBody: TestSMTPRequest{
+				SMTPHost:     "invalid-host.example.com",
+				SMTPPort:     587,
+				SMTPUsername: "user",
+				SMTPPassword: "pass",
+				SMTPUseTLS:   &tlsTrue,
+			},
+			expectedStatus: http.StatusBadRequest, // Will fail to connect
+		},
+		{
+			name:        "Valid SMTP config without TLS but connection fails (expected)",
+			method:      http.MethodPost,
+			isInstalled: false,
+			requestBody: TestSMTPRequest{
+				SMTPHost:     "invalid-host.example.com",
+				SMTPPort:     25,
+				SMTPUsername: "user",
+				SMTPPassword: "pass",
+				SMTPUseTLS:   &tlsFalse,
+			},
+			expectedStatus: http.StatusBadRequest, // Will fail to connect
+		},
+		{
+			name:        "Valid SMTP config without TLS field (defaults to true)",
 			method:      http.MethodPost,
 			isInstalled: false,
 			requestBody: TestSMTPRequest{
@@ -292,6 +321,9 @@ func TestSetupHandler_TestSMTP(t *testing.T) {
 }
 
 func TestSetupHandler_Initialize(t *testing.T) {
+	tlsTrue := true
+	tlsFalse := false
+
 	tests := []struct {
 		name           string
 		method         string
@@ -300,7 +332,37 @@ func TestSetupHandler_Initialize(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name:        "Valid initialization request",
+			name:        "Valid initialization request with TLS enabled",
+			method:      http.MethodPost,
+			isInstalled: false,
+			requestBody: InitializeRequest{
+				RootEmail:     "admin@example.com",
+				APIEndpoint:   "https://api.example.com",
+				SMTPHost:      "smtp.example.com",
+				SMTPPort:      587,
+				SMTPFromEmail: "noreply@example.com",
+				SMTPFromName:  "Test",
+				SMTPUseTLS:    &tlsTrue,
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Valid initialization request with TLS disabled",
+			method:      http.MethodPost,
+			isInstalled: false,
+			requestBody: InitializeRequest{
+				RootEmail:     "admin@example.com",
+				APIEndpoint:   "https://api.example.com",
+				SMTPHost:      "smtp.example.com",
+				SMTPPort:      25,
+				SMTPFromEmail: "noreply@example.com",
+				SMTPFromName:  "Test",
+				SMTPUseTLS:    &tlsFalse,
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:        "Valid initialization request without TLS field (defaults to true)",
 			method:      http.MethodPost,
 			isInstalled: false,
 			requestBody: InitializeRequest{

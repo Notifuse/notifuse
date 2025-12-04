@@ -69,7 +69,8 @@ export default function SetupWizard() {
         smtp_host: values.smtp_host,
         smtp_port: values.smtp_port,
         smtp_username: values.smtp_username || '',
-        smtp_password: values.smtp_password || ''
+        smtp_password: values.smtp_password || '',
+        smtp_use_tls: values.smtp_use_tls ?? true
       }
 
       const result = await setupApi.testSmtp(testConfig)
@@ -107,6 +108,7 @@ export default function SetupWizard() {
         setupConfig.smtp_password = typeof values.smtp_password === 'string' ? values.smtp_password : ''
         setupConfig.smtp_from_email = typeof values.smtp_from_email === 'string' ? values.smtp_from_email : undefined
         setupConfig.smtp_from_name = typeof values.smtp_from_name === 'string' ? values.smtp_from_name : 'Notifuse'
+        setupConfig.smtp_use_tls = typeof values.smtp_use_tls === 'boolean' ? values.smtp_use_tls : true
       }
 
       // SMTP Relay configuration (only if not configured via env)
@@ -322,6 +324,7 @@ export default function SetupWizard() {
                   onFinish={handleSubmit}
                   initialValues={{
                     smtp_port: 587,
+                    smtp_use_tls: true,
                     smtp_from_name: 'Notifuse',
                     subscribe_newsletter: true,
                     telemetry_enabled: true,
@@ -419,7 +422,7 @@ export default function SetupWizard() {
                       </div>
 
                       <Row gutter={16}>
-                        <Col span={12}>
+                        <Col span={10}>
                           <Form.Item
                             label="SMTP Host"
                             name="smtp_host"
@@ -428,7 +431,7 @@ export default function SetupWizard() {
                             <Input placeholder="smtp.example.com" />
                           </Form.Item>
                         </Col>
-                        <Col span={12}>
+                        <Col span={8}>
                           <Form.Item
                             label="SMTP Port"
                             name="smtp_port"
@@ -441,6 +444,16 @@ export default function SetupWizard() {
                               placeholder="587"
                               style={{ width: '100%' }}
                             />
+                          </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                          <Form.Item
+                            name="smtp_use_tls"
+                            valuePropName="checked"
+                            label="Use TLS"
+                            tooltip="Enable TLS encryption for SMTP connection"
+                          >
+                            <Switch defaultChecked />
                           </Form.Item>
                         </Col>
                       </Row>

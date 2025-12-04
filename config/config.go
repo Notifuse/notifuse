@@ -50,6 +50,7 @@ type EnvValues struct {
 	SMTPPassword           string
 	SMTPFromEmail          string
 	SMTPFromName           string
+	SMTPUseTLS             string // "true", "false", or "" (empty = not set, defaults to true)
 	SMTPRelayEnabled       string // "true", "false", or "" (empty = not set, allows setup wizard to configure)
 	SMTPRelayDomain        string
 	SMTPRelayPort          int
@@ -140,6 +141,7 @@ type SMTPConfig struct {
 	Password  string
 	FromEmail string
 	FromName  string
+	UseTLS    bool
 }
 
 type SMTPRelayConfig struct {
@@ -177,6 +179,7 @@ type SystemSettings struct {
 	SMTPPassword           string
 	SMTPFromEmail          string
 	SMTPFromName           string
+	SMTPUseTLS             bool
 	TelemetryEnabled       bool
 	CheckForUpdates        bool
 	SMTPRelayEnabled       bool
@@ -227,6 +230,7 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 	settings := &SystemSettings{
 		IsInstalled: false, // Default to false if not found
 		SMTPPort:    587,   // Default SMTP port
+		SMTPUseTLS:  true,  // Default to TLS enabled
 	}
 
 	// Load all settings from database
@@ -267,6 +271,11 @@ func loadSystemSettings(db *sql.DB, secretKey string) (*SystemSettings, error) {
 		}
 		settings.SMTPFromEmail = settingsMap["smtp_from_email"]
 		settings.SMTPFromName = settingsMap["smtp_from_name"]
+
+		// Load SMTP TLS setting (default to true if not set)
+		if smtpUseTLS, ok := settingsMap["smtp_use_tls"]; ok {
+			settings.SMTPUseTLS = smtpUseTLS != "false"
+		}
 
 		// Decrypt SMTP username if present
 		if encryptedUsername, ok := settingsMap["encrypted_smtp_username"]; ok && encryptedUsername != "" {
@@ -476,6 +485,11 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 
 	// Track env var values from viper (before any database fallbacks are applied)
 	// Note: These come from environment variables or .env file, not from defaults or database
+	var smtpUseTLSStr string
+	if v.IsSet("SMTP_USE_TLS") {
+		smtpUseTLSStr = v.GetString("SMTP_USE_TLS")
+	} // else: leave empty string (not set, defaults to true)
+
 	var smtpRelayEnabledStr string
 	if v.IsSet("SMTP_RELAY_ENABLED") {
 		smtpRelayEnabledStr = v.GetString("SMTP_RELAY_ENABLED")
@@ -490,6 +504,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		SMTPPassword:           v.GetString("SMTP_PASSWORD"),
 		SMTPFromEmail:          v.GetString("SMTP_FROM_EMAIL"),
 		SMTPFromName:           v.GetString("SMTP_FROM_NAME"),
+		SMTPUseTLS:             smtpUseTLSStr, // "true", "false", or "" (empty = not set, defaults to true)
 		SMTPRelayEnabled:       smtpRelayEnabledStr, // "true", "false", or "" (empty = not set)
 		SMTPRelayDomain:        v.GetString("SMTP_RELAY_DOMAIN"),
 		SMTPRelayPort:          v.GetInt("SMTP_RELAY_PORT"),
@@ -540,6 +555,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			Password:  envVals.SMTPPassword,
 			FromEmail: envVals.SMTPFromEmail,
 			FromName:  envVals.SMTPFromName,
+			UseTLS:    envVals.SMTPUseTLS != "false", // Default to true unless explicitly set to false
 		}
 
 		// Use database values as fallback
@@ -566,6 +582,10 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		}
 		if smtpConfig.FromName == "" {
 			smtpConfig.FromName = "Notifuse" // Default
+		}
+		// Use database value for TLS if env var is not set
+		if envVals.SMTPUseTLS == "" {
+			smtpConfig.UseTLS = systemSettings.SMTPUseTLS
 		}
 
 		// SMTP Relay settings - env vars override database
@@ -609,6 +629,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			Password:  envVals.SMTPPassword,
 			FromEmail: envVals.SMTPFromEmail,
 			FromName:  envVals.SMTPFromName,
+			UseTLS:    envVals.SMTPUseTLS != "false", // Default to true unless explicitly set to false
 		}
 		// Apply defaults for first-run
 		if smtpConfig.Port == 0 {
@@ -756,7 +777,7 @@ func (c *Config) IsProduction() bool {
 
 // GetEnvValues returns configuration values that came from actual environment variables
 // This is used by the setup service to determine which settings are already configured
-func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string, smtpPort int, smtpRelayEnabled string, smtpRelayDomain, smtpRelayTLSCertBase64, smtpRelayTLSKeyBase64 string, smtpRelayPort int) {
+func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, smtpHost, smtpUsername, smtpPassword, smtpFromEmail, smtpFromName string, smtpPort int, smtpUseTLS string, smtpRelayEnabled string, smtpRelayDomain, smtpRelayTLSCertBase64, smtpRelayTLSKeyBase64 string, smtpRelayPort int) {
 	return c.EnvValues.RootEmail,
 		c.EnvValues.APIEndpoint,
 		c.EnvValues.SMTPHost,
@@ -765,6 +786,7 @@ func (c *Config) GetEnvValues() (rootEmail, apiEndpoint, smtpHost, smtpUsername,
 		c.EnvValues.SMTPFromEmail,
 		c.EnvValues.SMTPFromName,
 		c.EnvValues.SMTPPort,
+		c.EnvValues.SMTPUseTLS,
 		c.EnvValues.SMTPRelayEnabled,
 		c.EnvValues.SMTPRelayDomain,
 		c.EnvValues.SMTPRelayTLSCertBase64,

@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 - fix update contact form
 - fix non-ASCII characters in SES
+- fix team table overflow when email is too long (#149)
+- add TLS switch to setup wizard SMTP settings
 
 ## [19.1] - 2025-12-02
 

@@ -74,11 +74,7 @@ export function WorkspaceMembers({
       dataIndex: 'email',
       key: 'email',
       render: (email: string) => {
-        return (
-          <Space>
-            <Text ellipsis>{email}</Text>
-          </Space>
-        )
+        return <Text className="break-all">{email}</Text>
       }
     },
     {

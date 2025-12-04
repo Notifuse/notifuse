@@ -20,6 +20,7 @@ type SystemConfig struct {
 	SMTPPassword           string
 	SMTPFromEmail          string
 	SMTPFromName           string
+	SMTPUseTLS             bool
 	TelemetryEnabled       bool
 	CheckForUpdates        bool
 	SMTPRelayEnabled       bool
@@ -45,7 +46,8 @@ func NewSettingService(repo domain.SettingRepository) *SettingService {
 func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) (*SystemConfig, error) {
 	config := &SystemConfig{
 		IsInstalled: false,
-		SMTPPort:    587, // Default
+		SMTPPort:    587,  // Default
+		SMTPUseTLS:  true, // Default to TLS enabled
 	}
 
 	// Check if system is installed
@@ -90,6 +92,11 @@ func (s *SettingService) GetSystemConfig(ctx context.Context, secretKey string) 
 
 	if setting, err := s.repo.Get(ctx, "smtp_from_name"); err == nil {
 		config.SMTPFromName = setting.Value
+	}
+
+	// Load SMTP TLS setting (default to true if not set)
+	if setting, err := s.repo.Get(ctx, "smtp_use_tls"); err == nil {
+		config.SMTPUseTLS = setting.Value != "false"
 	}
 
 	// Load and decrypt SMTP username
@@ -204,6 +211,15 @@ func (s *SettingService) SetSystemConfig(ctx context.Context, config *SystemConf
 		if err := s.repo.Set(ctx, "smtp_from_name", config.SMTPFromName); err != nil {
 			return fmt.Errorf("failed to set smtp_from_name: %w", err)
 		}
+	}
+
+	// Set SMTP TLS setting
+	smtpUseTLSValue := "true"
+	if !config.SMTPUseTLS {
+		smtpUseTLSValue = "false"
+	}
+	if err := s.repo.Set(ctx, "smtp_use_tls", smtpUseTLSValue); err != nil {
+		return fmt.Errorf("failed to set smtp_use_tls: %w", err)
 	}
 
 	// Encrypt and store SMTP username
