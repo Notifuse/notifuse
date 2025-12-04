@@ -817,3 +817,25 @@ UpdateContactListStatusResponse:
       type: boolean
       description: Whether the contact was found in the list
       example: true
+
+ListContactsResponse:
+  type: object
+  properties:
+    contacts:
+      type: array
+      description: Array of contacts matching the query
+      items:
+        $ref: '#/Contact'
+    next_cursor:
+      type: string
+      nullable: true
+      description: Cursor for fetching the next page of results. Null if no more results.
+      example: MjAyMy0wMS0xNVQxMDozMDowMFp+dXNlckBleGFtcGxlLmNvbQ==
+
+CountContactsResponse:
+  type: object
+  properties:
+    total_contacts:
+      type: integer
+      description: Total number of contacts in the workspace
+      example: 1523

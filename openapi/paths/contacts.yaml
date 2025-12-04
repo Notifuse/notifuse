@@ -1,3 +1,220 @@
+/api/contacts.list:
+  get:
+    summary: List contacts with filtering and pagination
+    description: |
+      Retrieves a paginated list of contacts with optional filtering. All contact fields are always returned.
+
+      **Filtering**: Use filters to search for contacts. Text filters (email, external_id, first_name, last_name, full_name, phone, country, language) use case-insensitive partial matching (ILIKE).
+
+      **List filtering**: Use `list_id` and/or `contact_list_status` to filter contacts by list membership.
+
+      **Segment filtering**: Use `segments[]` to filter contacts that belong to specific segments.
+
+      **Contact lists**: By default, `contact_lists` is not included in the response. Set `with_contact_lists=true` to include the contact's list subscriptions.
+
+      **Pagination**: Uses cursor-based pagination. Use the `next_cursor` from the response to fetch the next page.
+    operationId: listContacts
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+      - name: email
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filter by email (case-insensitive partial match)
+        example: user@example
+      - name: external_id
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filter by external ID (case-insensitive partial match)
+        example: user_123
+      - name: first_name
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filter by first name (case-insensitive partial match)
+        example: John
+      - name: last_name
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filter by last name (case-insensitive partial match)
+        example: Doe
+      - name: full_name
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filter by full name (case-insensitive partial match)
+        example: John Doe
+      - name: phone
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filter by phone number (case-insensitive partial match)
+        example: '+1555'
+      - name: country
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filter by country (case-insensitive partial match)
+        example: US
+      - name: language
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filter by language (case-insensitive partial match)
+        example: en
+      - name: list_id
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Filter by list membership (contacts subscribed to this list)
+        example: newsletter
+      - name: contact_list_status
+        in: query
+        required: false
+        schema:
+          type: string
+          enum:
+            - active
+            - pending
+            - unsubscribed
+            - bounced
+            - complained
+        description: Filter by subscription status within the list
+        example: active
+      - name: segments[]
+        in: query
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+        description: Filter by segment membership (contacts in any of these segments)
+        example:
+          - premium_users
+          - active_buyers
+      - name: with_contact_lists
+        in: query
+        required: false
+        schema:
+          type: boolean
+          default: false
+        description: Include contact list subscriptions in the response
+        example: true
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+        description: Maximum number of contacts to return (1-100)
+        example: 50
+      - name: cursor
+        in: query
+        required: false
+        schema:
+          type: string
+        description: Pagination cursor from previous response
+        example: MjAyMy0wMS0xNVQxMDozMDowMFp+dXNlckBleGFtcGxlLmNvbQ==
+    responses:
+      '200':
+        description: Contacts retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/contact.yaml#/ListContactsResponse'
+      '400':
+        description: Bad request - invalid parameters
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingWorkspaceId:
+                value:
+                  error: workspace_id is required
+              invalidLimit:
+                value:
+                  error: limit must be between 1 and 100
+              invalidCursor:
+                value:
+                  error: invalid cursor encoding
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
+/api/contacts.count:
+  get:
+    summary: Count contacts in a workspace
+    description: Returns the total number of contacts in a workspace.
+    operationId: countContacts
+    security:
+      - BearerAuth: []
+    parameters:
+      - name: workspace_id
+        in: query
+        required: true
+        schema:
+          type: string
+        description: The ID of the workspace
+        example: ws_1234567890
+    responses:
+      '200':
+        description: Contact count retrieved successfully
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/contact.yaml#/CountContactsResponse'
+      '400':
+        description: Bad request - missing workspace ID
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: Missing workspace ID
+      '401':
+        description: Unauthorized - invalid or missing authentication token
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+      '500':
+        description: Internal server error
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+
 /api/contacts.upsert:
   post:
     summary: Create or update a contact

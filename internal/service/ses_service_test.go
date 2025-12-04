@@ -2930,3 +2930,302 @@ func TestSendEmail_WithListUnsubscribeAndAttachments(t *testing.T) {
 
 	assert.NoError(t, err)
 }
+
+// Tests for RFC 2047 encoding helper functions
+
+func TestIsASCII(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected bool
+	}{
+		{"empty string", "", true},
+		{"ASCII only", "Hello World", true},
+		{"ASCII with numbers", "test123", true},
+		{"ASCII with special chars", "test@example.com", true},
+		{"Spanish characters", "José", false},
+		{"German characters", "München", false},
+		{"Japanese characters", "田中太郎", false},
+		{"Mixed ASCII and non-ASCII", "Hello José", false},
+		{"Emoji", "Hello 👋", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := isASCII(tc.input)
+			assert.Equal(t, tc.expected, result)
+		})
+	}
+}
+
+func TestEncodeRFC2047(t *testing.T) {
+	tests := []struct {
+		name           string
+		input          string
+		shouldBeASCII  bool
+		expectedPrefix string
+	}{
+		{"empty string", "", true, ""},
+		{"ASCII only", "Hello World", true, "Hello World"},
+		{"ASCII email name", "John Doe", true, "John Doe"},
+		{"Spanish name", "José García", false, "=?UTF-8?b?"},
+		{"German name", "Müller", false, "=?UTF-8?b?"},
+		{"Japanese name", "田中太郎", false, "=?UTF-8?b?"},
+		{"French name", "François", false, "=?UTF-8?b?"},
+		{"Russian name", "Иван Петров", false, "=?UTF-8?b?"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result := encodeRFC2047(tc.input)
+			if tc.shouldBeASCII {
+				assert.Equal(t, tc.input, result, "ASCII strings should remain unchanged")
+			} else {
+				assert.True(t, len(result) > 0, "Result should not be empty")
+				assert.Contains(t, result, tc.expectedPrefix, "Non-ASCII should be RFC 2047 encoded")
+				assert.Contains(t, result, "?=", "RFC 2047 encoded strings should end with ?=")
+			}
+		})
+	}
+}
+
+func TestEncodeEmailAddress(t *testing.T) {
+	tests := []struct {
+		name        string
+		input       string
+		expected    string
+		expectError bool
+	}{
+		{"regular ASCII email", "user@example.com", "user@example.com", false},
+		{"email with subdomain", "user@mail.example.com", "user@mail.example.com", false},
+		{"international domain German", "user@münchen.de", "user@xn--mnchen-3ya.de", false},
+		{"international domain Japanese", "user@日本.jp", "user@xn--wgv71a.jp", false},
+		{"international domain Chinese", "user@中国.cn", "user@xn--fiqs8s.cn", false},
+		{"email without @", "invalid-email", "invalid-email", false}, // Returns as-is
+		{"email with plus", "user+tag@example.com", "user+tag@example.com", false},
+		{"email with dots in local", "first.last@example.com", "first.last@example.com", false},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := encodeEmailAddress(tc.input)
+			if tc.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expected, result)
+			}
+		})
+	}
+}
+
+func TestFormatFromHeader(t *testing.T) {
+	tests := []struct {
+		name        string
+		fromName    string
+		fromAddress string
+		expected    string
+		expectError bool
+	}{
+		{
+			name:        "ASCII name and address",
+			fromName:    "John Doe",
+			fromAddress: "john@example.com",
+			expected:    "John Doe <john@example.com>",
+			expectError: false,
+		},
+		{
+			name:        "empty name",
+			fromName:    "",
+			fromAddress: "john@example.com",
+			expected:    "john@example.com",
+			expectError: false,
+		},
+		{
+			name:        "non-ASCII name",
+			fromName:    "José García",
+			fromAddress: "jose@example.com",
+			expected:    "", // Will verify contains encoded name
+			expectError: false,
+		},
+		{
+			name:        "international domain",
+			fromName:    "User",
+			fromAddress: "user@münchen.de",
+			expected:    "User <user@xn--mnchen-3ya.de>",
+			expectError: false,
+		},
+		{
+			name:        "non-ASCII name with international domain",
+			fromName:    "José García",
+			fromAddress: "jose@münchen.de",
+			expected:    "", // Will verify contains encoded name and punycode domain
+			expectError: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := formatFromHeader(tc.fromName, tc.fromAddress)
+			if tc.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+				if tc.expected != "" {
+					assert.Equal(t, tc.expected, result)
+				} else {
+					// For non-ASCII names, verify encoding
+					if tc.fromName == "José García" {
+						assert.Contains(t, result, "=?UTF-8?b?")
+						assert.Contains(t, result, "?=")
+					}
+					// For international domains, verify punycode
+					if tc.fromAddress == "user@münchen.de" || tc.fromAddress == "jose@münchen.de" {
+						assert.Contains(t, result, "xn--mnchen-3ya.de")
+					}
+				}
+			}
+		})
+	}
+}
+
+func TestSendEmail_WithNonASCIIFromName(t *testing.T) {
+	service, mockSES, _, _, _ := createMockSESService(t)
+
+	provider := domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	// Expect ListConfigurationSets call
+	mockSES.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{
+			ConfigurationSets: []*ses.ConfigurationSet{},
+		}, nil)
+
+	// Capture and verify the SendEmail input
+	mockSES.EXPECT().
+		SendEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+			// Verify From header is RFC 2047 encoded
+			source := *input.Source
+			assert.Contains(t, source, "=?UTF-8?b?")
+			assert.Contains(t, source, "?=")
+			assert.Contains(t, source, "<jose@example.com>")
+
+			return &ses.SendEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "jose@example.com",
+		FromName:      "José García", // Non-ASCII name
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<html><body>Test</body></html>",
+		Provider:      &provider,
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	assert.NoError(t, err)
+}
+
+func TestSendEmail_WithInternationalDomain(t *testing.T) {
+	service, mockSES, _, _, _ := createMockSESService(t)
+
+	provider := domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	// Expect ListConfigurationSets call
+	mockSES.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{
+			ConfigurationSets: []*ses.ConfigurationSet{},
+		}, nil)
+
+	// Capture and verify the SendEmail input
+	mockSES.EXPECT().
+		SendEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendEmailInput, _ ...request.Option) (*ses.SendEmailOutput, error) {
+			// Verify To address has Punycode domain
+			toAddress := *input.Destination.ToAddresses[0]
+			assert.Equal(t, "user@xn--mnchen-3ya.de", toAddress)
+
+			return &ses.SendEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "Sender",
+		To:            "user@münchen.de", // International domain
+		Subject:       "Test Subject",
+		Content:       "<html><body>Test</body></html>",
+		Provider:      &provider,
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	assert.NoError(t, err)
+}
+
+func TestSendRawEmail_WithNonASCIISubject(t *testing.T) {
+	service, mockSES, _, _, _ := createMockSESService(t)
+
+	provider := domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	// Expect ListConfigurationSets call
+	mockSES.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{
+			ConfigurationSets: []*ses.ConfigurationSet{},
+		}, nil)
+
+	// Capture and verify the SendRawEmail input
+	mockSES.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			rawData := string(input.RawMessage.Data)
+
+			// Verify Subject is RFC 2047 encoded (Go's mime package uses lowercase 'b')
+			assert.Contains(t, rawData, "Subject: =?UTF-8?b?")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "Sender",
+		To:            "to@example.com",
+		Subject:       "Asunto en español: ¡Hola!", // Non-ASCII subject
+		Content:       "<html><body>Test</body></html>",
+		Provider:      &provider,
+		EmailOptions: domain.EmailOptions{
+			ListUnsubscribeURL: "https://example.com/unsubscribe", // Forces raw email
+		},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	assert.NoError(t, err)
+}

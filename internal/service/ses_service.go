@@ -5,11 +5,14 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"mime"
 	"mime/multipart"
 	"net/textproto"
 	"strings"
+	"unicode"
 
 	"github.com/Notifuse/notifuse/internal/domain"
+	"golang.org/x/net/idna"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
@@ -25,6 +28,59 @@ var (
 	ErrInvalidSNSDestination = fmt.Errorf("SNS destination and Topic ARN are required")
 	ErrInvalidSESConfig      = fmt.Errorf("SES configuration is missing or invalid")
 )
+
+// isASCII checks if a string contains only ASCII characters
+func isASCII(s string) bool {
+	for _, r := range s {
+		if r > unicode.MaxASCII {
+			return false
+		}
+	}
+	return true
+}
+
+// encodeRFC2047 encodes a string for use in email headers if it contains non-ASCII characters
+func encodeRFC2047(s string) string {
+	if isASCII(s) {
+		return s
+	}
+	return mime.BEncoding.Encode("UTF-8", s)
+}
+
+// encodeEmailAddress encodes an email address for SES compatibility
+// Domain part is converted to Punycode (IDNA) for international domains
+func encodeEmailAddress(email string) (string, error) {
+	atIndex := strings.LastIndex(email, "@")
+	if atIndex == -1 {
+		return email, nil // Invalid email format, return as-is
+	}
+
+	local := email[:atIndex]
+	domain := email[atIndex+1:]
+
+	// Convert international domain to Punycode
+	asciiDomain, err := idna.ToASCII(domain)
+	if err != nil {
+		return "", fmt.Errorf("failed to encode domain: %w", err)
+	}
+
+	return local + "@" + asciiDomain, nil
+}
+
+// formatFromHeader formats the From header with proper RFC 2047 encoding
+func formatFromHeader(name, address string) (string, error) {
+	encodedAddr, err := encodeEmailAddress(address)
+	if err != nil {
+		return "", err
+	}
+
+	if name == "" {
+		return encodedAddr, nil
+	}
+
+	encodedName := encodeRFC2047(name)
+	return fmt.Sprintf("%s <%s>", encodedName, encodedAddr), nil
+}
 
 // SESService implements the domain.SESServiceInterface
 type SESService struct {
@@ -730,20 +786,33 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 
 	sesEmailClient := s.sesEmailClientFactory(sess)
 
-	// Format the "From" header with name and email
-	fromHeader := fmt.Sprintf("%s <%s>", request.FromName, request.FromAddress)
+	// Format the "From" header with name and email (RFC 2047 encoded for non-ASCII)
+	fromHeader, err := formatFromHeader(request.FromName, request.FromAddress)
+	if err != nil {
+		return fmt.Errorf("failed to encode from header: %w", err)
+	}
+
+	// Encode the To address (Punycode for international domains)
+	encodedTo, err := encodeEmailAddress(request.To)
+	if err != nil {
+		return fmt.Errorf("failed to encode recipient: %w", err)
+	}
 
 	// Create the destination with required addresses
 	destination := &ses.Destination{
-		ToAddresses: []*string{aws.String(request.To)},
+		ToAddresses: []*string{aws.String(encodedTo)},
 	}
 
-	// Add CC addresses if provided
+	// Add CC addresses if provided (encode for international domains)
 	if len(request.EmailOptions.CC) > 0 {
 		var ccAddresses []*string
 		for _, ccAddress := range request.EmailOptions.CC {
 			if ccAddress != "" {
-				ccAddresses = append(ccAddresses, aws.String(ccAddress))
+				encodedCC, err := encodeEmailAddress(ccAddress)
+				if err != nil {
+					return fmt.Errorf("failed to encode CC recipient: %w", err)
+				}
+				ccAddresses = append(ccAddresses, aws.String(encodedCC))
 			}
 		}
 		if len(ccAddresses) > 0 {
@@ -751,12 +820,16 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 		}
 	}
 
-	// Add BCC addresses if provided
+	// Add BCC addresses if provided (encode for international domains)
 	if len(request.EmailOptions.BCC) > 0 {
 		var bccAddresses []*string
 		for _, bccAddress := range request.EmailOptions.BCC {
 			if bccAddress != "" {
-				bccAddresses = append(bccAddresses, aws.String(bccAddress))
+				encodedBCC, err := encodeEmailAddress(bccAddress)
+				if err != nil {
+					return fmt.Errorf("failed to encode BCC recipient: %w", err)
+				}
+				bccAddresses = append(bccAddresses, aws.String(encodedBCC))
 			}
 		}
 		if len(bccAddresses) > 0 {
@@ -782,9 +855,13 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 		Source: aws.String(fromHeader),
 	}
 
-	// Add ReplyTo if provided
+	// Add ReplyTo if provided (encode for international domains)
 	if request.EmailOptions.ReplyTo != "" {
-		input.ReplyToAddresses = []*string{aws.String(request.EmailOptions.ReplyTo)}
+		encodedReplyTo, err := encodeEmailAddress(request.EmailOptions.ReplyTo)
+		if err != nil {
+			return fmt.Errorf("failed to encode reply-to address: %w", err)
+		}
+		input.ReplyToAddresses = []*string{aws.String(encodedReplyTo)}
 	}
 
 	// Add configuration set if it exists - use integrationID instead of workspaceID
@@ -834,20 +911,49 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESClient, request domain.SendEmailProviderRequest, configSetName string) error {
 	var buf bytes.Buffer
 
-	// Write email headers
-	buf.WriteString(fmt.Sprintf("From: %s <%s>\r\n", request.FromName, request.FromAddress))
-	buf.WriteString(fmt.Sprintf("To: %s\r\n", request.To))
+	// Encode From header (RFC 2047 for non-ASCII names, Punycode for domains)
+	fromHeader, err := formatFromHeader(request.FromName, request.FromAddress)
+	if err != nil {
+		return fmt.Errorf("failed to encode from header: %w", err)
+	}
+	buf.WriteString(fmt.Sprintf("From: %s\r\n", fromHeader))
 
+	// Encode To address
+	encodedTo, err := encodeEmailAddress(request.To)
+	if err != nil {
+		return fmt.Errorf("failed to encode recipient: %w", err)
+	}
+	buf.WriteString(fmt.Sprintf("To: %s\r\n", encodedTo))
+
+	// Encode CC addresses
 	if len(request.EmailOptions.CC) > 0 {
-		ccList := strings.Join(request.EmailOptions.CC, ", ")
-		buf.WriteString(fmt.Sprintf("Cc: %s\r\n", ccList))
+		var encodedCCs []string
+		for _, cc := range request.EmailOptions.CC {
+			if cc != "" {
+				encodedCC, err := encodeEmailAddress(cc)
+				if err != nil {
+					return fmt.Errorf("failed to encode CC recipient: %w", err)
+				}
+				encodedCCs = append(encodedCCs, encodedCC)
+			}
+		}
+		if len(encodedCCs) > 0 {
+			buf.WriteString(fmt.Sprintf("Cc: %s\r\n", strings.Join(encodedCCs, ", ")))
+		}
 	}
 
+	// Encode Reply-To address
 	if request.EmailOptions.ReplyTo != "" {
-		buf.WriteString(fmt.Sprintf("Reply-To: %s\r\n", request.EmailOptions.ReplyTo))
+		encodedReplyTo, err := encodeEmailAddress(request.EmailOptions.ReplyTo)
+		if err != nil {
+			return fmt.Errorf("failed to encode reply-to address: %w", err)
+		}
+		buf.WriteString(fmt.Sprintf("Reply-To: %s\r\n", encodedReplyTo))
 	}
 
-	buf.WriteString(fmt.Sprintf("Subject: %s\r\n", request.Subject))
+	// Encode Subject (RFC 2047 for non-ASCII)
+	encodedSubject := encodeRFC2047(request.Subject)
+	buf.WriteString(fmt.Sprintf("Subject: %s\r\n", encodedSubject))
 	buf.WriteString(fmt.Sprintf("X-Message-ID: %s\r\n", request.MessageID))
 
 	// Add RFC-8058 List-Unsubscribe headers for one-click unsubscribe
@@ -953,10 +1059,14 @@ func (s *SESService) sendRawEmail(ctx context.Context, sesClient domain.SESClien
 	// Add BCC addresses if provided (not in raw message headers for privacy)
 	if len(request.EmailOptions.BCC) > 0 {
 		var destinations []*string
-		destinations = append(destinations, aws.String(request.To))
+		destinations = append(destinations, aws.String(encodedTo))
 		for _, bcc := range request.EmailOptions.BCC {
 			if bcc != "" {
-				destinations = append(destinations, aws.String(bcc))
+				encodedBCC, err := encodeEmailAddress(bcc)
+				if err != nil {
+					return fmt.Errorf("failed to encode BCC recipient: %w", err)
+				}
+				destinations = append(destinations, aws.String(encodedBCC))
 			}
 		}
 		rawInput.Destinations = destinations

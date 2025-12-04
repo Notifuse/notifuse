@@ -17,6 +17,10 @@ servers:
 paths:
   /api/transactional.send:
     $ref: './paths/transactional.yaml#/~1api~1transactional.send'
+  /api/contacts.list:
+    $ref: './paths/contacts.yaml#/~1api~1contacts.list'
+  /api/contacts.count:
+    $ref: './paths/contacts.yaml#/~1api~1contacts.count'
   /api/contacts.upsert:
     $ref: './paths/contacts.yaml#/~1api~1contacts.upsert'
   /api/contacts.getByEmail:
@@ -130,6 +134,10 @@ components:
       $ref: './components/schemas/contact.yaml#/UpdateContactListStatusRequest'
     UpdateContactListStatusResponse:
       $ref: './components/schemas/contact.yaml#/UpdateContactListStatusResponse'
+    ListContactsResponse:
+      $ref: './components/schemas/contact.yaml#/ListContactsResponse'
+    CountContactsResponse:
+      $ref: './components/schemas/contact.yaml#/CountContactsResponse'
     EmailAttachment:
       $ref: './components/schemas/transactional.yaml#/EmailAttachment'
     Broadcast:
