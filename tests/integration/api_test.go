@@ -94,7 +94,8 @@ func TestDatabaseIntegrationWithAPI(t *testing.T) {
 	require.NotNil(t, config, "Config should not be nil")
 
 	// Verify database configuration
-	assert.Equal(t, "test", config.Environment)
+	// Note: Environment is "development" to enable features like returning invitation tokens in responses
+	assert.Equal(t, "development", config.Environment)
 	assert.Equal(t, suite.DBManager.GetConfig().Host, config.Database.Host)
 	assert.Equal(t, suite.DBManager.GetConfig().Port, config.Database.Port)
 }
