@@ -48,6 +48,7 @@ func encodeRFC2047(s string) string {
 }
 
 // encodeEmailAddress encodes an email address for SES compatibility
+// Local part is encoded using RFC 2047 B encoding if it contains non-ASCII characters
 // Domain part is converted to Punycode (IDNA) for international domains
 func encodeEmailAddress(email string) (string, error) {
 	atIndex := strings.LastIndex(email, "@")
@@ -57,6 +58,11 @@ func encodeEmailAddress(email string) (string, error) {
 
 	local := email[:atIndex]
 	domain := email[atIndex+1:]
+
+	// Encode local part using RFC 2047 B encoding if it contains non-ASCII characters
+	if !isASCII(local) {
+		local = mime.BEncoding.Encode("UTF-8", local)
+	}
 
 	// Convert international domain to Punycode
 	asciiDomain, err := idna.ToASCII(domain)

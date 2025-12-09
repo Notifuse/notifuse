@@ -54,8 +54,9 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 	jwtSecret := []byte("test-jwt-secret-key-for-integration-tests-only-32bytes")
 
 	// Create test configuration
+	// Use "development" to enable features like returning invitation tokens in responses
 	cfg := &config.Config{
-		Environment: "test",
+		Environment: "development",
 		RootEmail:   "test@example.com",
 		APIEndpoint: "", // Empty to trigger direct task execution instead of HTTP callbacks
 		IsInstalled: true, // Mark as installed for tests

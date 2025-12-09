@@ -542,6 +542,169 @@ func TestWorkspaceInviteMemberFlow(t *testing.T) {
 	})
 }
 
+func TestWorkspaceInvitationAcceptanceFlow(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+
+	// Create authenticated user (owner) - use root user for owner operations
+	ownerEmail := "test@example.com" // Root user can perform owner operations
+	token := performCompleteSignInFlow(t, client, ownerEmail)
+	client.SetToken(token)
+
+	workspaceID := createTestWorkspace(t, client, "Invite Accept Test WS")
+
+	t.Run("complete invitation acceptance flow for new user", func(t *testing.T) {
+		newUserEmail := "acceptance-test-user@example.com"
+
+		// Step 1: Create invitation
+		inviteReq := domain.InviteMemberRequest{
+			WorkspaceID: workspaceID,
+			Email:       newUserEmail,
+		}
+
+		resp, err := client.Post("/api/workspaces.inviteMember", inviteReq)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var inviteResponse map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&inviteResponse)
+		require.NoError(t, err)
+
+		assert.Equal(t, "success", inviteResponse["status"])
+		assert.Equal(t, "Invitation sent", inviteResponse["message"])
+		assert.Contains(t, inviteResponse, "token")
+
+		invitationToken := inviteResponse["token"].(string)
+		assert.NotEmpty(t, invitationToken)
+
+		// Step 2: Verify the invitation token (simulating what the frontend does)
+		client.SetToken("") // Clear auth token - verification doesn't require auth
+		verifyReq := map[string]string{"token": invitationToken}
+
+		verifyResp, err := client.Post("/api/workspaces.verifyInvitationToken", verifyReq)
+		require.NoError(t, err)
+		defer func() { _ = verifyResp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, verifyResp.StatusCode)
+
+		var verifyResponse map[string]interface{}
+		err = json.NewDecoder(verifyResp.Body).Decode(&verifyResponse)
+		require.NoError(t, err)
+
+		assert.Equal(t, "success", verifyResponse["status"])
+		assert.Equal(t, true, verifyResponse["valid"])
+		assert.Contains(t, verifyResponse, "invitation")
+		assert.Contains(t, verifyResponse, "workspace")
+
+		// Verify workspace details
+		workspaceData := verifyResponse["workspace"].(map[string]interface{})
+		assert.Equal(t, workspaceID, workspaceData["id"])
+		assert.Equal(t, "Invite Accept Test WS", workspaceData["name"])
+
+		// Verify invitation details
+		invitationData := verifyResponse["invitation"].(map[string]interface{})
+		assert.Equal(t, newUserEmail, invitationData["email"])
+		assert.Equal(t, workspaceID, invitationData["workspace_id"])
+
+		// Step 3: Accept the invitation
+		acceptReq := map[string]string{"token": invitationToken}
+
+		acceptResp, err := client.Post("/api/workspaces.acceptInvitation", acceptReq)
+		require.NoError(t, err)
+		defer func() { _ = acceptResp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, acceptResp.StatusCode)
+
+		var acceptResponse map[string]interface{}
+		err = json.NewDecoder(acceptResp.Body).Decode(&acceptResponse)
+		require.NoError(t, err)
+
+		assert.Equal(t, "success", acceptResponse["status"])
+		assert.Equal(t, "Invitation accepted successfully", acceptResponse["message"])
+		assert.Equal(t, workspaceID, acceptResponse["workspace_id"])
+		assert.Equal(t, newUserEmail, acceptResponse["email"])
+		assert.Contains(t, acceptResponse, "token")
+		assert.Contains(t, acceptResponse, "user")
+		assert.Contains(t, acceptResponse, "expires_at")
+
+		// Verify user was created and added to workspace
+		userAuthToken := acceptResponse["token"].(string)
+		assert.NotEmpty(t, userAuthToken)
+
+		userData := acceptResponse["user"].(map[string]interface{})
+		assert.Equal(t, newUserEmail, userData["email"])
+		newUserID := userData["id"].(string)
+		assert.NotEmpty(t, newUserID)
+
+		// Verify in database - user exists
+		db := suite.DBManager.GetDB()
+		var count int
+		err = db.QueryRow("SELECT COUNT(*) FROM users WHERE email = $1", newUserEmail).Scan(&count)
+		require.NoError(t, err)
+		assert.Equal(t, 1, count, "User should be created in database")
+
+		// Verify in database - user is member of workspace
+		err = db.QueryRow("SELECT COUNT(*) FROM user_workspaces WHERE user_id = $1 AND workspace_id = $2", newUserID, workspaceID).Scan(&count)
+		require.NoError(t, err)
+		assert.Equal(t, 1, count, "User should be added to workspace")
+
+		// Verify invitation was deleted
+		err = db.QueryRow("SELECT COUNT(*) FROM workspace_invitations WHERE workspace_id = $1 AND email = $2", workspaceID, newUserEmail).Scan(&count)
+		require.NoError(t, err)
+		assert.Equal(t, 0, count, "Invitation should be deleted after acceptance")
+
+		// Step 4: Verify the new user can access the workspace
+		client.SetToken(userAuthToken)
+
+		getResp, err := client.Get("/api/workspaces.get", map[string]string{
+			"id": workspaceID,
+		})
+		require.NoError(t, err)
+		defer func() { _ = getResp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, getResp.StatusCode)
+
+		var getResponse map[string]interface{}
+		err = json.NewDecoder(getResp.Body).Decode(&getResponse)
+		require.NoError(t, err)
+
+		workspaceResult := getResponse["workspace"].(map[string]interface{})
+		assert.Equal(t, workspaceID, workspaceResult["id"])
+	})
+
+	t.Run("accept invitation with invalid token", func(t *testing.T) {
+		client.SetToken("") // No auth required for accept
+
+		acceptReq := map[string]string{"token": "invalid-token"}
+
+		resp, err := client.Post("/api/workspaces.acceptInvitation", acceptReq)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	})
+
+	t.Run("verify invitation with invalid token", func(t *testing.T) {
+		client.SetToken("") // No auth required for verify
+
+		verifyReq := map[string]string{"token": "invalid-token"}
+
+		resp, err := client.Post("/api/workspaces.verifyInvitationToken", verifyReq)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	})
+}
+
 func TestWorkspaceIntegrationsFlow(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()

@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [19.3] - 2025-12-09
+
+- Fix SES non-ASCII characters in email local part (e.g., `Añejandramendo@gmail.com`) now encoded with RFC 2047
+
 ## [19.2] - 2025-12-04
 
 - fix update contact form

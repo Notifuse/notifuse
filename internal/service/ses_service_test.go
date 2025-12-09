@@ -3004,6 +3004,12 @@ func TestEncodeEmailAddress(t *testing.T) {
 		{"email without @", "invalid-email", "invalid-email", false}, // Returns as-is
 		{"email with plus", "user+tag@example.com", "user+tag@example.com", false},
 		{"email with dots in local", "first.last@example.com", "first.last@example.com", false},
+		// Non-ASCII local parts - RFC 2047 B encoding (Go's mime package uses lowercase 'b')
+		{"non-ASCII local Spanish", "Jesús.dan@gmail.com", "=?UTF-8?b?SmVzw7pzLmRhbg==?=@gmail.com", false},
+		{"non-ASCII local Spanish ñ", "Añejandramendo@gmail.com", "=?UTF-8?b?QcOxZWphbmRyYW1lbmRv?=@gmail.com", false},
+		{"non-ASCII local German", "müller@example.com", "=?UTF-8?b?bcO8bGxlcg==?=@example.com", false},
+		// Both non-ASCII local and international domain
+		{"non-ASCII local and domain", "Jesús@münchen.de", "=?UTF-8?b?SmVzw7pz?=@xn--mnchen-3ya.de", false},
 	}
 
 	for _, tc := range tests {
