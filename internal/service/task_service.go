@@ -254,6 +254,22 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 
 	tracing.AddAttribute(ctx, "execution_mode", "http")
 
+	// Create HTTP client with timeout (shared across all tasks for connection reuse)
+	httpClient := &http.Client{
+		Timeout: 53 * time.Second, // 53 seconds timeout as requested
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true, // Skip TLS verification
+			},
+		},
+	}
+
+	// Wrap with OpenCensus tracing
+	httpClient = tracing.WrapHTTPClient(httpClient)
+
 	// Use a wait group to wait for all HTTP requests to complete
 	var wg sync.WaitGroup
 
@@ -292,19 +308,6 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 					Error("Failed to marshal task execution request")
 				return
 			}
-
-			// Create HTTP client with timeout
-			httpClient := &http.Client{
-				Timeout: 53 * time.Second, // 53 seconds timeout as requested
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true, // Skip TLS verification
-					},
-				},
-			}
-
-			// Wrap with OpenCensus tracing
-			httpClient = tracing.WrapHTTPClient(httpClient)
 
 			// Create request with tracing context
 			endpoint := fmt.Sprintf("%s/api/tasks.execute", s.apiEndpoint)
