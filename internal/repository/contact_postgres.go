@@ -268,7 +268,7 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 			return nil, fmt.Errorf("invalid cursor format: expected timestamp~email")
 		}
 
-		cursorTime, err := time.Parse(time.RFC3339, cursorParts[0])
+		cursorTime, err := time.Parse(time.RFC3339Nano, cursorParts[0])
 		if err != nil {
 			return nil, fmt.Errorf("invalid cursor timestamp format: %w", err)
 		}
@@ -328,7 +328,8 @@ func (r *contactRepository) GetContacts(ctx context.Context, req *domain.GetCont
 		contacts = contacts[:req.Limit]
 
 		// Create a compound cursor with timestamp and email using tilde as separator
-		cursorStr := fmt.Sprintf("%s~%s", lastContact.CreatedAt.Format(time.RFC3339), lastContact.Email)
+		// Use RFC3339Nano to preserve nanosecond precision and avoid skipping contacts created within the same second
+		cursorStr := fmt.Sprintf("%s~%s", lastContact.CreatedAt.Format(time.RFC3339Nano), lastContact.Email)
 
 		// Base64 encode the cursor to make it URL-friendly
 		nextCursor = base64.StdEncoding.EncodeToString([]byte(cursorStr))
@@ -1639,9 +1640,13 @@ func (r *contactRepository) CountContactsForBroadcast(
 	if audience.List != "" {
 		// Join with contact_lists table to filter by list membership and status
 		query = query.Join("contact_lists cl ON c.email = cl.email")
+		// Join with lists table to filter by list deletion status (matches GetContactsForBroadcast)
+		query = query.Join("lists l ON cl.list_id = l.id")
 
 		// Filter by the specified list
 		query = query.Where(sq.Eq{"cl.list_id": audience.List})
+		// Filter out soft-deleted lists (matches GetContactsForBroadcast)
+		query = query.Where(sq.Eq{"l.deleted_at": nil})
 
 		// Exclude unsubscribed contacts if required
 		if audience.ExcludeUnsubscribed {

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [19.4] - 2025-12-12
+
+- Fix: Broadcast recipient count mismatch - `CountContactsForBroadcast` now filters soft-deleted lists consistently with `GetContactsForBroadcast`
+- Fix: Contact list pagination now uses nanosecond precision timestamps to prevent skipping contacts created within the same second (#159)
+
 ## [19.3] - 2025-12-09
 
 - Fix SES non-ASCII characters in email local part (e.g., `Añejandramendo@gmail.com`) now encoded with RFC 2047

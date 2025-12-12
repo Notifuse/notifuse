@@ -257,6 +257,22 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 	// Use a wait group to wait for all HTTP requests to complete
 	var wg sync.WaitGroup
 
+	// Create HTTP client with connection pooling for reuse across tasks
+	// Per Go docs: "Clients and Transports are safe for concurrent use by multiple
+	// goroutines and for efficiency should only be created once and re-used."
+	httpClient := &http.Client{
+		Timeout: 53 * time.Second,
+		Transport: &http.Transport{
+			MaxIdleConns:        100,
+			MaxIdleConnsPerHost: 100,
+			IdleConnTimeout:     90 * time.Second,
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
+	}
+	httpClient = tracing.WrapHTTPClient(httpClient)
+
 	// Execute tasks using HTTP roundtrips
 	for _, task := range tasks {
 		// Add to wait group before launching goroutine
@@ -292,19 +308,6 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 					Error("Failed to marshal task execution request")
 				return
 			}
-
-			// Create HTTP client with timeout
-			httpClient := &http.Client{
-				Timeout: 53 * time.Second, // 53 seconds timeout as requested
-				Transport: &http.Transport{
-					TLSClientConfig: &tls.Config{
-						InsecureSkipVerify: true, // Skip TLS verification
-					},
-				},
-			}
-
-			// Wrap with OpenCensus tracing
-			httpClient = tracing.WrapHTTPClient(httpClient)
 
 			// Create request with tracing context
 			endpoint := fmt.Sprintf("%s/api/tasks.execute", s.apiEndpoint)

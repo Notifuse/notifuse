@@ -587,14 +587,14 @@ func TestGetContacts(t *testing.T) {
 			)
 		}
 
-		// Truncate time to seconds to match the expected format
-		cursorTime := time.Now().Truncate(time.Second)
+		// Use nanosecond precision to match the cursor format
+		cursorTime := time.Now()
 		cursorEmail := "previous@example.com"
-		cursorStr := fmt.Sprintf("%s~%s", cursorTime.Format(time.RFC3339), cursorEmail)
+		cursorStr := fmt.Sprintf("%s~%s", cursorTime.Format(time.RFC3339Nano), cursorEmail)
 		encodedCursor := base64.StdEncoding.EncodeToString([]byte(cursorStr))
 
 		// Parse the time back from the string to ensure it matches exactly what the test expects
-		parsedTime, _ := time.Parse(time.RFC3339, cursorTime.Format(time.RFC3339))
+		parsedTime, _ := time.Parse(time.RFC3339Nano, cursorTime.Format(time.RFC3339Nano))
 
 		// The query should have compound condition for cursor-based pagination
 		// Use a simpler regex pattern that's more forgiving of whitespace variations
@@ -676,10 +676,10 @@ func TestGetContacts(t *testing.T) {
 		cursorParts := strings.Split(string(decodedBytes), "~")
 		require.Len(t, cursorParts, 2)
 
-		_, err = time.Parse(time.RFC3339, cursorParts[0])
+		_, err = time.Parse(time.RFC3339Nano, cursorParts[0])
 		require.NoError(t, err)
 
-		// The 11th contact email should be in the cursor
+		// The 10th contact email should be in the cursor (last item of the returned page)
 		assert.Equal(t, "test10@example.com", cursorParts[1])
 	})
 
@@ -1616,9 +1616,9 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		// Set up expectations for the count query
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(25)
 
-		// Expect query with JOINS for list filtering and excludeUnsubscribed
+		// Expect query with JOINS for list filtering, soft-deleted lists filtering, and excludeUnsubscribed
 		// Note: SkipDuplicateEmails is false, so we expect COUNT(*) not COUNT(DISTINCT)
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email WHERE cl\.list_id = \$1 AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4`).
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1791,9 +1791,9 @@ func TestCountContactsForBroadcast(t *testing.T) {
 		// Set up expectations for the count query
 		rows := sqlmock.NewRows([]string{"count"}).AddRow(15)
 
-		// Expect query with JOINs for both list and segment filtering
-		// The query should join contact_lists, then also join contact_segments
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id = \$1 AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND cs\.segment_id IN \(\$5\)`).
+		// Expect query with JOINs for both list, lists table (for soft-delete filter), and segment filtering
+		// The query should join contact_lists, lists, then also join contact_segments
+		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id JOIN contact_segments cs ON c\.email = cs\.email WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 AND cs\.segment_id IN \(\$5\)`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
