@@ -132,37 +132,46 @@ const (
 
 ### Supported Timeline Event Kinds
 
+> **Note:** Event kinds were standardized to semantic naming in v18. The automation system uses the same event kinds as the contact_timeline table.
+
 | Event Kind | Description | When Created |
 |------------|-------------|--------------|
-| **insert_contact** | New contact created | Contact API, form submission |
-| **update_contact** | Contact properties changed | Contact update API, form update |
-| **insert_message_history** | Email sent to contact | Email broadcast, template send |
-| **email_delivered** | Email successfully delivered | Webhook from email provider |
-| **email_opened** | Contact opened email | Webhook from email provider |
-| **email_clicked** | Contact clicked email link | Webhook from email provider |
-| **email_bounced** | Email bounced | Webhook from email provider |
-| **email_complained** | Spam complaint | Webhook from email provider |
-| **insert_contact_list** | Added to list | List management API |
-| **delete_contact_list** | Removed from list | List management API |
-| **enter_segment** | Contact enters segment | Segment recomputation |
-| **exit_segment** | Contact exits segment | Segment recomputation |
-| **custom_event** | Custom business event | Custom events API |
+| **contact.created** | New contact created | Contact API, form submission |
+| **contact.updated** | Contact properties changed | Contact update API, form update |
+| **list.subscribed** | Subscribed to list (active status) | List management API, subscribe form |
+| **list.pending** | Added to list with pending status | Double opt-in flow |
+| **list.confirmed** | Double opt-in confirmed | Email confirmation click |
+| **list.resubscribed** | Re-subscribed after being unsubscribed/bounced | List management API |
+| **list.unsubscribed** | Unsubscribed from list | Unsubscribe link, API |
+| **list.bounced** | Email bounced on list | Webhook from email provider |
+| **list.complained** | Spam complaint on list | Webhook from email provider |
+| **list.removed** | Removed from list (soft delete) | List management API |
+| **segment.joined** | Contact enters segment | Segment recomputation |
+| **segment.left** | Contact exits segment | Segment recomputation |
+| **email.sent** | Email sent to contact | Email broadcast, template send |
+| **email.delivered** | Email successfully delivered | Webhook from email provider |
+| **email.opened** | Contact opened email | Webhook from email provider |
+| **email.clicked** | Contact clicked email link | Webhook from email provider |
+| **email.bounced** | Email bounced | Webhook from email provider |
+| **email.complained** | Spam complaint | Webhook from email provider |
+| **email.unsubscribed** | Unsubscribed via email link | Unsubscribe link click |
+| **{event_name}** | Custom event (uses exact event_name) | Custom events API |
 
 ### Trigger Examples
 
-**Welcome Series**
+**Welcome Series** - Trigger when a new contact is created
 ```json
 {
-  "event_kinds": ["insert_contact"],
+  "event_kinds": ["contact.created"],
   "conditions": {
     "kind": "leaf",
     "leaf": {
-      "table": "contacts",
+      "source": "contacts",
       "contact": {
         "filters": [{
-          "field_name": "source",
+          "field_name": "custom_string_1",
           "field_type": "string",
-          "operator": "equals", 
+          "operator": "equals",
           "string_values": ["website_signup"]
         }]
       }
@@ -172,26 +181,29 @@ const (
 }
 ```
 
-**Re-engagement Flow** 
+**New Subscriber Flow** - Trigger when contact subscribes to a list
 ```json
 {
-  "event_kinds": ["email_opened"],
+  "event_kinds": ["list.subscribed"],
+  "conditions": null,
+  "frequency": "once"
+}
+```
+
+**Re-engagement Flow** - Trigger when contact opens an email
+```json
+{
+  "event_kinds": ["email.opened"],
   "conditions": {
-    "kind": "leaf", 
+    "kind": "leaf",
     "leaf": {
-      "table": "contact_timeline",
+      "source": "contact_timeline",
       "contact_timeline": {
-        "kind": "email_opened",
+        "kind": "email.opened",
         "count_operator": "exactly",
         "count_value": 1,
         "timeframe_operator": "in_the_last_days",
-        "timeframe_values": ["30"],
-        "filters": [{
-          "field_name": "template_category",
-          "field_type": "string",
-          "operator": "equals",
-          "string_values": ["newsletter"]
-        }]
+        "timeframe_values": ["30"]
       }
     }
   },
@@ -199,25 +211,46 @@ const (
 }
 ```
 
-**Segment-Based Upsell**
+**Segment-Based Upsell** - Trigger when contact enters a segment
 ```json
 {
-  "event_kinds": ["enter_segment"],
+  "event_kinds": ["segment.joined"],
   "conditions": {
     "kind": "leaf",
     "leaf": {
-      "table": "contact_timeline", 
+      "source": "contact_timeline",
       "contact_timeline": {
-        "kind": "enter_segment",
+        "kind": "segment.joined",
         "count_operator": "at_least",
         "count_value": 1,
         "timeframe_operator": "anytime",
         "filters": [{
-          "field_name": "segment_id", 
+          "field_name": "segment_id",
           "field_type": "string",
           "operator": "equals",
           "string_values": ["high_value_customers"]
         }]
+      }
+    }
+  },
+  "frequency": "every_time"
+}
+```
+
+**Purchase Follow-up** - Trigger on custom purchase event
+```json
+{
+  "event_kinds": ["order_completed"],
+  "conditions": {
+    "kind": "leaf",
+    "leaf": {
+      "source": "custom_events_goals",
+      "custom_events_goal": {
+        "goal_type": "purchase",
+        "aggregate_operator": "sum",
+        "operator": "gte",
+        "value": 100,
+        "timeframe_operator": "anytime"
       }
     }
   },
@@ -368,18 +401,20 @@ CREATE TABLE automation_journey_log (
 CREATE INDEX idx_journey_log_contact_automation 
     ON automation_journey_log(contact_automation_id, entered_at DESC);
 
--- Trigger tracking to prevent duplicates
+-- Trigger tracking to prevent duplicates (for "once" frequency)
 CREATE TABLE automation_trigger_log (
     id VARCHAR(32) PRIMARY KEY,
     automation_id VARCHAR(32) NOT NULL REFERENCES automations(id),
     contact_email VARCHAR(255) NOT NULL,
-    timeline_entry_id VARCHAR(32) NOT NULL,
     triggered_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(automation_id, contact_email, timeline_entry_id)
+    UNIQUE(automation_id, contact_email)  -- One entry per contact per automation
 );
 
 CREATE INDEX idx_trigger_log_automation
     ON automation_trigger_log(automation_id, triggered_at DESC);
+
+CREATE INDEX idx_trigger_log_contact
+    ON automation_trigger_log(contact_email, automation_id);
 ```
 
 ---
@@ -956,12 +991,55 @@ func (s *SegmentService) updateMembership(ctx context.Context, workspaceID, segm
 
 ## Processing Architecture
 
-### Queue-Based Execution
-1. **Timeline Event** → Check for matching automation triggers
-2. **Trigger Match** → Create `ContactAutomation` record with `scheduled_at = now`  
-3. **Worker Process** → Poll for `scheduled_at <= now` records using `FOR UPDATE SKIP LOCKED`
-4. **Node Execution** → Execute current node, log journey, advance to next
-5. **Delay Handling** → Set `scheduled_at = now + delay_duration`
+### Per-Automation Database Triggers (Zero Latency)
+
+Instead of queue-based processing, we use **per-automation PostgreSQL triggers** for instant enrollment:
+
+1. **Timeline Event Created** → Per-automation trigger fires (WHEN clause filters by event kind)
+2. **Trigger Function** → Calls `automation_enroll_contact()` synchronously
+3. **Enrollment Function** → Checks list subscription, frequency, then inserts into `contact_automations`
+4. **Transaction Commits** → Enrollment is atomic with the triggering event (zero latency)
+5. **Execution Worker** → Polls `scheduled_at <= now` records for node execution
+6. **Node Execution** → Execute current node, log journey, advance to next
+
+**Key Benefits:**
+- Zero latency enrollment (same transaction as triggering event)
+- No queue table overhead
+- Efficient PostgreSQL WHEN clause filtering
+- Transactional consistency
+
+### Trigger Management
+
+When an automation is **activated** (draft → live):
+```sql
+-- Create trigger function for this automation
+CREATE OR REPLACE FUNCTION automation_trigger_{automation_id}()
+RETURNS TRIGGER AS $$
+BEGIN
+    PERFORM automation_enroll_contact(
+        '{automation_id}',
+        NEW.email,
+        '{root_node_id}',
+        '{list_id}',
+        '{frequency}'
+    );
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create trigger on contact_timeline
+CREATE TRIGGER automation_trigger_{automation_id}
+AFTER INSERT ON contact_timeline
+FOR EACH ROW
+WHEN (NEW.kind = '{event_kind}')  -- or IN ('kind1', 'kind2') for multiple
+EXECUTE FUNCTION automation_trigger_{automation_id}();
+```
+
+When an automation is **paused** or **deleted**:
+```sql
+DROP TRIGGER IF EXISTS automation_trigger_{automation_id} ON contact_timeline;
+DROP FUNCTION IF EXISTS automation_trigger_{automation_id}();
+```
 
 ### Error Handling & Retries
 - Failed nodes log errors in journey with retry count
@@ -984,47 +1062,47 @@ Based on the existing migration system, here's how to create the automation tabl
 ### Step 1: Update Version
 Update `config/config.go`:
 ```go
-const VERSION = "18.0"  // Increment from current 17.0
+const VERSION = "20.0"  // Increment from current 19.x
 ```
 
 ### Step 2: Create Migration File
-Create `internal/migrations/v18.go`:
+Create `internal/migrations/v20.go`:
 ```go
 package migrations
 
 import (
     "context"
     "fmt"
-    
+
     "github.com/Notifuse/notifuse/config"
     "github.com/Notifuse/notifuse/internal/domain"
 )
 
-// V18Migration adds automation system tables
-type V18Migration struct{}
+// V20Migration adds automation system tables
+type V20Migration struct{}
 
-func (m *V18Migration) GetMajorVersion() float64 {
-    return 18.0
+func (m *V20Migration) GetMajorVersion() float64 {
+    return 20.0
 }
 
-func (m *V18Migration) HasSystemUpdate() bool {
+func (m *V20Migration) HasSystemUpdate() bool {
     return false
 }
 
-func (m *V18Migration) HasWorkspaceUpdate() bool {
+func (m *V20Migration) HasWorkspaceUpdate() bool {
     return true
 }
 
-func (m *V18Migration) ShouldRestartServer() bool {
+func (m *V20Migration) ShouldRestartServer() bool {
     return false
 }
 
-func (m *V18Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
+func (m *V20Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
     // No system updates needed
     return nil
 }
 
-func (m *V18Migration) UpdateWorkspace(ctx context.Context, config *config.Config, workspace *domain.Workspace, db DBExecutor) error {
+func (m *V20Migration) UpdateWorkspace(ctx context.Context, config *config.Config, workspace *domain.Workspace, db DBExecutor) error {
     // Create automations table
     _, err := db.ExecContext(ctx, `
         CREATE TABLE IF NOT EXISTS automations (
@@ -1168,7 +1246,7 @@ func (m *V18Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 }
 
 func init() {
-    Register(&V18Migration{})
+    Register(&V20Migration{})
 }
 ```
 
@@ -1176,7 +1254,68 @@ func init() {
 The `init()` function automatically registers the migration with the global registry.
 
 ### Step 4: Test Migration
-Create `internal/migrations/v18_test.go` following existing test patterns.
+Create `internal/migrations/v20_test.go` following existing test patterns.
+
+### Step 5: Add Enrollment Function
+Add to the v20 migration the `automation_enroll_contact()` function that handles:
+- List subscription check
+- Frequency deduplication (once vs every_time)
+- Contact enrollment into `contact_automations`
+- Journey log entry creation
+
+```sql
+CREATE OR REPLACE FUNCTION automation_enroll_contact(
+    p_automation_id VARCHAR(32),
+    p_contact_email VARCHAR(255),
+    p_root_node_id VARCHAR(32),
+    p_list_id VARCHAR(32),
+    p_frequency VARCHAR(20)
+) RETURNS VOID AS $$
+DECLARE
+    v_is_subscribed BOOLEAN;
+    v_already_triggered BOOLEAN;
+BEGIN
+    -- Check list subscription
+    SELECT EXISTS(
+        SELECT 1 FROM contact_lists
+        WHERE email = p_contact_email
+        AND list_id = p_list_id
+        AND status = 'active'
+        AND deleted_at IS NULL
+    ) INTO v_is_subscribed;
+
+    IF NOT v_is_subscribed THEN
+        RETURN;
+    END IF;
+
+    -- For "once" frequency, check deduplication
+    IF p_frequency = 'once' THEN
+        SELECT EXISTS(
+            SELECT 1 FROM automation_trigger_log
+            WHERE automation_id = p_automation_id
+            AND contact_email = p_contact_email
+        ) INTO v_already_triggered;
+
+        IF v_already_triggered THEN
+            RETURN;
+        END IF;
+
+        INSERT INTO automation_trigger_log (id, automation_id, contact_email, triggered_at)
+        VALUES (gen_random_uuid()::text, p_automation_id, p_contact_email, NOW())
+        ON CONFLICT (automation_id, contact_email) DO NOTHING;
+    END IF;
+
+    -- Enroll contact
+    INSERT INTO contact_automations (
+        id, automation_id, contact_email, current_node_id,
+        status, entered_at, scheduled_at
+    ) VALUES (
+        gen_random_uuid()::text, p_automation_id, p_contact_email,
+        p_root_node_id, 'active', NOW(), NOW()
+    );
+END;
+$$ LANGUAGE plpgsql;
+```
 
 ---
 
@@ -1245,9 +1384,10 @@ func (w *AutomationExecutionWorker) calculateBackoff(retryCount int) time.Durati
 ### **Phase 1 - Foundation (MVP)**
 **Goal**: Basic automation system with essential functionality
 
-1. **Database Migration (v18.0)**
+1. **Database Migration (v20.0)**
    - Create all automation tables
    - Add retry tracking fields
+   - Migrate message_history timeline events to semantic naming (email.sent, email.opened, etc.)
 
 2. **Core Domain Models**
    - `Automation`, `AutomationNode`, `ContactAutomation` entities
@@ -1321,3 +1461,66 @@ func (w *AutomationExecutionWorker) calculateBackoff(retryCount int) time.Durati
 - Advanced retry logic needs operational tooling
 
 This phased approach ensures a **working automation system quickly** while building toward enterprise features systematically.
+
+---
+
+## TDD Implementation Order
+
+Each component follows **Red-Green-Refactor**:
+1. Write failing test(s) first
+2. Implement minimal code to pass
+3. Refactor if needed
+4. Run tests to verify
+
+### Step 1: Migration Tests → Migration
+```bash
+# RED: Write v20_test.go first
+# GREEN: Implement v20.go to pass
+go test ./internal/migrations/... -run "V20" -v
+```
+
+### Step 2: Domain Tests → Domain Models
+```bash
+# RED: Write automation_test.go first
+# GREEN: Implement automation.go to pass
+go test ./internal/domain/... -run "Automation" -v
+```
+
+### Step 3: Repository Tests → Repository
+```bash
+# RED: Write automation_postgres_test.go first
+# GREEN: Implement automation_postgres.go to pass
+go test ./internal/repository/... -run "Automation" -v
+```
+
+### Step 4: Trigger Generator Tests → Generator
+```bash
+# RED: Write automation_trigger_generator_test.go first
+# GREEN: Implement automation_trigger_generator.go to pass
+go test ./internal/service/... -run "TriggerGenerator" -v
+```
+
+### Step 5: Execution Processor Tests → Processor
+```bash
+# RED: Write automation_execution_processor_test.go first
+# GREEN: Implement automation_execution_processor.go to pass
+go test ./internal/service/... -run "ExecutionProcessor" -v
+```
+
+### Step 6: Service Tests → Service
+```bash
+# RED: Write automation_service_test.go first
+# GREEN: Implement automation_service.go to pass
+go test ./internal/service/... -run "AutomationService" -v
+```
+
+### Step 7: Handler Tests → Handlers
+```bash
+# RED: Write automation_handler_test.go first
+# GREEN: Implement automation_handler.go to pass
+go test ./internal/http/... -run "Automation" -v
+```
+
+### Step 8: Integration
+- Update app.go to wire everything together
+- Run full test suite: `make test-unit`
