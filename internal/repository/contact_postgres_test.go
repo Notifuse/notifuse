@@ -1370,7 +1370,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			)
 
 			// Expect query with JOINS for list filtering and excludeUnsubscribed
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + `, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.created_at ASC LIMIT 10 OFFSET 0`).
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + `, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.created_at ASC, c\.email ASC LIMIT 10 OFFSET 0`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1449,7 +1449,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			)
 
 		// Expect query without JOINS for all contacts
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c ORDER BY c\.created_at ASC LIMIT 10 OFFSET 0`).
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c ORDER BY c\.created_at ASC, c\.email ASC LIMIT 10 OFFSET 0`).
 			WillReturnRows(rows)
 
 		// Call the method being tested
@@ -1517,7 +1517,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 		}
 
 		// Expect query with error
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + `, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id IN \(\$1\) AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.created_at ASC LIMIT 10 OFFSET 0`).
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + `, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id IN \(\$1\) AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.created_at ASC, c\.email ASC LIMIT 10 OFFSET 0`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
@@ -1574,7 +1574,7 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				nil, nil, nil, nil, nil, createdAt2, createdAt2, createdAt2, createdAt2)
 
 		// Expect the query to join contacts with contact_segments
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c JOIN contact_segments cs ON c\.email = cs\.email WHERE cs\.segment_id IN \(\$1\) ORDER BY c\.created_at ASC LIMIT 10 OFFSET 0`).
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c JOIN contact_segments cs ON c\.email = cs\.email WHERE cs\.segment_id IN \(\$1\) ORDER BY c\.created_at ASC, c\.email ASC LIMIT 10 OFFSET 0`).
 			WithArgs("segment1").
 			WillReturnRows(rows)
 

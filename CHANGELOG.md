@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 - Fix: Broadcast recipient count mismatch - `CountContactsForBroadcast` now filters soft-deleted lists consistently with `GetContactsForBroadcast`
 - Fix: Contact list pagination now uses nanosecond precision timestamps to prevent skipping contacts created within the same second (#159)
+- Fix: Broadcast delivery now uses deterministic ordering (`created_at ASC, email ASC`) to prevent skipping contacts with identical timestamps during bulk imports (#157)
 
 ## [19.3] - 2025-12-09
 

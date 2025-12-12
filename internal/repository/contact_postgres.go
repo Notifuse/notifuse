@@ -1379,7 +1379,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 			Where(sq.Eq{"l.deleted_at": nil}). // Filter out deleted lists
 			Limit(uint64(limit)).
 			Offset(uint64(offset)).
-			OrderBy("c.created_at ASC")
+			OrderBy("c.created_at ASC", "c.email ASC") // Secondary sort by email for deterministic ordering
 
 		// Exclude unsubscribed contacts if required
 		if audience.ExcludeUnsubscribed {
@@ -1394,7 +1394,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 			From("contacts c").
 			Limit(uint64(limit)).
 			Offset(uint64(offset)).
-			OrderBy("c.created_at ASC")
+			OrderBy("c.created_at ASC", "c.email ASC") // Secondary sort by email for deterministic ordering
 	}
 
 	// Handle segments filtering
@@ -1415,7 +1415,7 @@ func (r *contactRepository) GetContactsForBroadcast(
 				Where(sq.Eq{"cs.segment_id": audience.Segments}).
 				Limit(uint64(limit)).
 				Offset(uint64(offset)).
-				OrderBy("c.created_at ASC")
+				OrderBy("c.created_at ASC", "c.email ASC") // Secondary sort by email for deterministic ordering
 		}
 	}
 
