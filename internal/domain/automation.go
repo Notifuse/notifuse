@@ -211,6 +211,26 @@ func (a *Automation) Validate() error {
 		return err
 	}
 
+	// Validate embedded nodes
+	for i, node := range a.Nodes {
+		if node == nil {
+			return fmt.Errorf("node at index %d is nil", i)
+		}
+		if err := node.Validate(); err != nil {
+			return fmt.Errorf("invalid node %s: %w", node.ID, err)
+		}
+	}
+
+	// Validate root_node_id references a valid node (only if nodes exist)
+	if len(a.Nodes) > 0 {
+		if a.RootNodeID == "" {
+			return fmt.Errorf("root_node_id is required when nodes are present")
+		}
+		if a.GetNodeByID(a.RootNodeID) == nil {
+			return fmt.Errorf("root_node_id %s does not reference a valid node", a.RootNodeID)
+		}
+	}
+
 	return nil
 }
 

@@ -284,6 +284,7 @@ func TestAutomationService_Update(t *testing.T) {
 		automation.Nodes = []*domain.AutomationNode{
 			createTestAutomationNodeService("node-1", "auto-123", domain.NodeTypeEmail),
 		}
+		automation.RootNodeID = "node-1" // Must reference a valid node
 
 		userWorkspace := &domain.UserWorkspace{
 			UserID:      "user-123",
@@ -303,6 +304,7 @@ func TestAutomationService_Update(t *testing.T) {
 		automation.Nodes = []*domain.AutomationNode{
 			createTestAutomationNodeService("node-1", "auto-123", domain.NodeTypeDelay),
 		}
+		automation.RootNodeID = "node-1" // Must reference a valid node
 
 		userWorkspace := &domain.UserWorkspace{
 			UserID:      "user-123",
@@ -448,6 +450,7 @@ func TestAutomationService_Activate(t *testing.T) {
 		existingAutomation.Nodes = []*domain.AutomationNode{
 			createTestAutomationNodeService("node-1", automationID, domain.NodeTypeEmail),
 		}
+		existingAutomation.RootNodeID = "node-1" // Must reference a valid node
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(existingAutomation, nil)
@@ -488,6 +491,7 @@ func TestAutomationService_Activate(t *testing.T) {
 		existingAutomation.Nodes = []*domain.AutomationNode{
 			createTestAutomationNodeService("node-1", automationID, domain.NodeTypeDelay),
 		}
+		existingAutomation.RootNodeID = "node-1" // Must reference a valid node
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(existingAutomation, nil)

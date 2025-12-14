@@ -114,11 +114,7 @@ func TestAutomation_WelcomeSeries(t *testing.T) {
 	require.NoError(t, err)
 
 	// Update trigger node to point to email node
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		emailNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, emailNode.ID)
 	require.NoError(t, err)
 
 	// Set root node
@@ -219,11 +215,7 @@ func TestAutomation_Deduplication(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		exitNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, exitNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -317,11 +309,7 @@ func TestAutomation_MultipleEntries(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		exitNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, exitNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -426,11 +414,7 @@ func TestAutomation_DelayTiming(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		delayNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, delayNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -541,11 +525,7 @@ func TestAutomation_ABTestDeterminism(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		abNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, abNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -651,11 +631,7 @@ func TestAutomation_BranchRouting(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		branchNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, branchNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -757,11 +733,7 @@ func TestAutomation_FilterNode(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		filterNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, filterNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -875,11 +847,7 @@ func TestAutomation_ListOperations(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		addNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, addNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -957,11 +925,7 @@ func TestAutomation_ContextData(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		exitNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, exitNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -1040,11 +1004,7 @@ func TestAutomation_SegmentTrigger(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		exitNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, exitNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -1122,11 +1082,7 @@ func TestAutomation_DeletionCleanup(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		exitNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, exitNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -1162,6 +1118,8 @@ func TestAutomation_DeletionCleanup(t *testing.T) {
 	}
 
 	// Verify: automation has deleted_at set
+	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
 	var deletedAt sql.NullTime
 	err = workspaceDB.QueryRowContext(context.Background(),
 		`SELECT deleted_at FROM automations WHERE id = $1`,
@@ -1239,11 +1197,7 @@ func TestAutomation_ErrorRecovery(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		emailNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, emailNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -1342,11 +1296,7 @@ func TestAutomation_SchedulerExecution(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
-	require.NoError(t, err)
-	_, err = workspaceDB.ExecContext(context.Background(),
-		`UPDATE automation_nodes SET next_node_id = $1 WHERE id = $2`,
-		emailNode.ID, triggerNode.ID)
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, emailNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -1405,6 +1355,161 @@ func TestAutomation_SchedulerExecution(t *testing.T) {
 	}
 
 	t.Logf("Scheduler execution test passed: enrollment verified")
+}
+
+// TestAutomation_PauseResume tests that paused automations freeze contacts instead of exiting them
+// Use Case: Admin pauses automation → contacts wait → Admin resumes → contacts continue
+func TestAutomation_PauseResume(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+
+	factory := suite.DataFactory
+
+	// Setup: Create user and workspace
+	user, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	err = factory.AddUserToWorkspace(user.ID, workspace.ID, "owner")
+	require.NoError(t, err)
+
+	// Create automation
+	automation, err := factory.CreateAutomation(workspace.ID,
+		testutil.WithAutomationName("Pause Resume Test"),
+		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
+			EventKinds: []string{"test_pause_event"},
+			Frequency:  domain.TriggerFrequencyOnce,
+		}),
+	)
+	require.NoError(t, err)
+
+	// Create nodes: trigger → delay → exit
+	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
+		testutil.WithNodeAutomationID(automation.ID),
+		testutil.WithNodeType(domain.NodeTypeTrigger),
+		testutil.WithNodeConfig(map[string]interface{}{}),
+	)
+	require.NoError(t, err)
+
+	exitNode, err := factory.CreateAutomationNode(workspace.ID,
+		testutil.WithNodeAutomationID(automation.ID),
+		testutil.WithNodeType(domain.NodeTypeExit),
+		testutil.WithNodeConfig(map[string]interface{}{}),
+	)
+	require.NoError(t, err)
+
+	delayNode, err := factory.CreateAutomationNode(workspace.ID,
+		testutil.WithNodeAutomationID(automation.ID),
+		testutil.WithNodeType(domain.NodeTypeDelay),
+		testutil.WithNodeConfig(map[string]interface{}{
+			"duration": 1,
+			"unit":     "seconds",
+		}),
+		testutil.WithNodeNextNodeID(exitNode.ID),
+	)
+	require.NoError(t, err)
+
+	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, delayNode.ID)
+	require.NoError(t, err)
+
+	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
+	require.NoError(t, err)
+
+	err = factory.ActivateAutomation(workspace.ID, automation.ID)
+	require.NoError(t, err)
+
+	// Create contact and trigger enrollment
+	contact, err := factory.CreateContact(workspace.ID, testutil.WithContactEmail("pause-test@example.com"))
+	require.NoError(t, err)
+
+	err = factory.CreateContactTimelineEvent(workspace.ID, contact.Email, "test_pause_event", map[string]interface{}{})
+	require.NoError(t, err)
+
+	// Wait for enrollment
+	time.Sleep(100 * time.Millisecond)
+
+	// Verify contact is enrolled
+	ca, err := factory.GetContactAutomation(workspace.ID, automation.ID, contact.Email)
+	require.NoError(t, err, "Contact should be enrolled")
+	assert.Equal(t, domain.ContactAutomationStatusActive, ca.Status)
+	t.Logf("Contact enrolled with status: %s", ca.Status)
+
+	// PAUSE the automation
+	workspaceDB, err := factory.GetWorkspaceDB(workspace.ID)
+	require.NoError(t, err)
+	_, err = workspaceDB.ExecContext(context.Background(),
+		`UPDATE automations SET status = $1, updated_at = $2 WHERE id = $3`,
+		domain.AutomationStatusPaused, time.Now().UTC(), automation.ID)
+	require.NoError(t, err)
+	t.Log("Automation paused")
+
+	// Verify contact status is still ACTIVE (not exited!)
+	ca, err = factory.GetContactAutomation(workspace.ID, automation.ID, contact.Email)
+	require.NoError(t, err)
+	assert.Equal(t, domain.ContactAutomationStatusActive, ca.Status, "Contact should still be ACTIVE when automation is paused")
+	t.Logf("After pause - Contact status: %s (should be active)", ca.Status)
+
+	// Verify scheduler query does NOT return this contact (paused automation filtered out)
+	// This query mimics the scheduler's GetScheduledContactAutomations query
+	schedulerQuery := `
+		SELECT ca.id, ca.contact_email
+		FROM contact_automations ca
+		JOIN automations a ON ca.automation_id = a.id
+		WHERE ca.status = 'active'
+		  AND ca.scheduled_at <= $1
+		  AND a.status = 'live'
+		  AND a.deleted_at IS NULL
+	`
+	rows, err := workspaceDB.QueryContext(context.Background(), schedulerQuery, time.Now().Add(1*time.Hour))
+	require.NoError(t, err)
+	defer rows.Close()
+
+	// Check that our contact is not in the scheduled list
+	found := false
+	for rows.Next() {
+		var id, email string
+		err := rows.Scan(&id, &email)
+		require.NoError(t, err)
+		if email == contact.Email {
+			found = true
+			break
+		}
+	}
+	assert.False(t, found, "Contact should NOT be returned by scheduler when automation is paused")
+	t.Logf("Scheduler query returned paused contact: %v (should be false)", found)
+
+	// RESUME the automation
+	_, err = workspaceDB.ExecContext(context.Background(),
+		`UPDATE automations SET status = $1, updated_at = $2 WHERE id = $3`,
+		domain.AutomationStatusLive, time.Now().UTC(), automation.ID)
+	require.NoError(t, err)
+	t.Log("Automation resumed")
+
+	// Verify contact can now be scheduled
+	rows2, err := workspaceDB.QueryContext(context.Background(), schedulerQuery, time.Now().Add(1*time.Hour))
+	require.NoError(t, err)
+	defer rows2.Close()
+
+	found = false
+	for rows2.Next() {
+		var id, email string
+		err := rows2.Scan(&id, &email)
+		require.NoError(t, err)
+		if email == contact.Email {
+			found = true
+			break
+		}
+	}
+	assert.True(t, found, "Contact should be returned by scheduler after automation is resumed")
+	t.Logf("After resume - Scheduler query returned contact: %v (should be true)", found)
+
+	t.Log("Pause/Resume test passed: contacts freeze when paused and resume when automation is live again")
 }
 
 // PrintBugReport outputs all bugs found during testing

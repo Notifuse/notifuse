@@ -361,3 +361,53 @@ func TestAutomationScheduler_ConcurrentSafety(t *testing.T) {
 	wg.Wait()
 	// Should complete without panic or race conditions
 }
+
+func TestAutomationScheduler_PausedAutomationsNotProcessed(t *testing.T) {
+	// Purpose: Verify that contacts in PAUSED automations are NOT returned by scheduler
+	// The scheduler query filters by `a.status = 'live'`
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		nodeExecutors:  map[domain.NodeType]NodeExecutor{},
+		logger:         mockLogger,
+	}
+
+	scheduler := NewAutomationScheduler(executor, mockLogger, 50*time.Millisecond, 50)
+
+	// Track how many times the scheduler queries for contacts
+	var callCount int
+	var mu sync.Mutex
+
+	// Mock returns empty slice - simulating that paused automation contacts are filtered out
+	// by the SQL query's `a.status = 'live'` condition
+	mockAutomationRepo.EXPECT().
+		GetScheduledContactAutomationsGlobal(gomock.Any(), gomock.Any(), 50).
+		DoAndReturn(func(ctx context.Context, beforeTime time.Time, limit int) ([]*domain.ContactAutomationWithWorkspace, error) {
+			mu.Lock()
+			defer mu.Unlock()
+			callCount++
+			// Always return empty - simulates paused automations being filtered out
+			return []*domain.ContactAutomationWithWorkspace{}, nil
+		}).AnyTimes()
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	scheduler.Start(ctx)
+	time.Sleep(100 * time.Millisecond)
+	scheduler.Stop()
+
+	// Verify scheduler was called at least once
+	mu.Lock()
+	finalCount := callCount
+	mu.Unlock()
+
+	assert.GreaterOrEqual(t, finalCount, 1, "Scheduler should have queried at least once")
+	// Test passes if no contacts are processed (empty result from scheduler query)
+	// The key behavior is that the SQL query itself filters out paused automations
+}

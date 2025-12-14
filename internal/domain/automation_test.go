@@ -329,6 +329,104 @@ func TestAutomation_Validate(t *testing.T) {
 			wantErr: true,
 			errMsg:  "at least one event kind is required",
 		},
+		{
+			name: "valid automation with nodes and valid root_node_id",
+			automation: func() *Automation {
+				a := validAutomation()
+				a.Nodes = []*AutomationNode{
+					{
+						ID:           "node1",
+						AutomationID: a.ID,
+						Type:         NodeTypeTrigger,
+						Config:       map[string]interface{}{},
+					},
+					{
+						ID:           "node2",
+						AutomationID: a.ID,
+						Type:         NodeTypeExit,
+						Config:       map[string]interface{}{},
+					},
+				}
+				a.RootNodeID = "node1"
+				return a
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "empty nodes array is valid",
+			automation: func() *Automation {
+				a := validAutomation()
+				a.Nodes = []*AutomationNode{}
+				a.RootNodeID = ""
+				return a
+			}(),
+			wantErr: false,
+		},
+		{
+			name: "nil node in nodes array",
+			automation: func() *Automation {
+				a := validAutomation()
+				a.Nodes = []*AutomationNode{nil}
+				a.RootNodeID = "node1"
+				return a
+			}(),
+			wantErr: true,
+			errMsg:  "node at index 0 is nil",
+		},
+		{
+			name: "invalid node in nodes array",
+			automation: func() *Automation {
+				a := validAutomation()
+				a.Nodes = []*AutomationNode{
+					{
+						ID:           "", // invalid - empty ID
+						AutomationID: a.ID,
+						Type:         NodeTypeTrigger,
+						Config:       map[string]interface{}{},
+					},
+				}
+				a.RootNodeID = "node1"
+				return a
+			}(),
+			wantErr: true,
+			errMsg:  "id is required",
+		},
+		{
+			name: "nodes present but empty root_node_id",
+			automation: func() *Automation {
+				a := validAutomation()
+				a.Nodes = []*AutomationNode{
+					{
+						ID:           "node1",
+						AutomationID: a.ID,
+						Type:         NodeTypeTrigger,
+						Config:       map[string]interface{}{},
+					},
+				}
+				a.RootNodeID = ""
+				return a
+			}(),
+			wantErr: true,
+			errMsg:  "root_node_id is required when nodes are present",
+		},
+		{
+			name: "root_node_id does not reference valid node",
+			automation: func() *Automation {
+				a := validAutomation()
+				a.Nodes = []*AutomationNode{
+					{
+						ID:           "node1",
+						AutomationID: a.ID,
+						Type:         NodeTypeTrigger,
+						Config:       map[string]interface{}{},
+					},
+				}
+				a.RootNodeID = "nonexistent_node"
+				return a
+			}(),
+			wantErr: true,
+			errMsg:  "root_node_id nonexistent_node does not reference a valid node",
+		},
 	}
 
 	for _, tt := range tests {

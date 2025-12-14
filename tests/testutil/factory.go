@@ -1543,6 +1543,7 @@ func (tdf *TestDataFactory) CreateAutomation(workspaceID string, opts ...Automat
 			Frequency:  domain.TriggerFrequencyOnce,
 		},
 		RootNodeID: "", // Set after creating nodes
+		Nodes:      []*domain.AutomationNode{}, // Initialize empty
 		Stats: &domain.AutomationStats{
 			Enrolled:  0,
 			Completed: 0,
@@ -1569,19 +1570,24 @@ func (tdf *TestDataFactory) CreateAutomation(workspaceID string, opts ...Automat
 		return nil, fmt.Errorf("failed to marshal trigger: %w", err)
 	}
 
+	nodesJSON, err := json.Marshal(automation.Nodes)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal nodes: %w", err)
+	}
+
 	statsJSON, err := json.Marshal(automation.Stats)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal stats: %w", err)
 	}
 
 	query := `
-		INSERT INTO automations (id, workspace_id, name, status, list_id, trigger_config, trigger_sql, root_node_id, stats, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		INSERT INTO automations (id, workspace_id, name, status, list_id, trigger_config, trigger_sql, root_node_id, nodes, stats, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 	`
 	_, err = workspaceDB.ExecContext(context.Background(), query,
 		automation.ID, workspaceID, automation.Name, automation.Status,
 		automation.ListID, triggerJSON, automation.TriggerSQL, automation.RootNodeID,
-		statsJSON, automation.CreatedAt, automation.UpdatedAt,
+		nodesJSON, statsJSON, automation.CreatedAt, automation.UpdatedAt,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create automation: %w", err)
@@ -1627,10 +1633,16 @@ func WithAutomationID(id string) AutomationOption {
 	}
 }
 
+func WithAutomationNodes(nodes []*domain.AutomationNode) AutomationOption {
+	return func(a *domain.Automation) {
+		a.Nodes = nodes
+	}
+}
+
 // AutomationNodeOption defines options for creating automation nodes
 type AutomationNodeOption func(*domain.AutomationNode)
 
-// CreateAutomationNode creates a test automation node
+// CreateAutomationNode creates a test automation node by appending to the automation's embedded nodes array
 func (tdf *TestDataFactory) CreateAutomationNode(workspaceID string, opts ...AutomationNodeOption) (*domain.AutomationNode, error) {
 	node := &domain.AutomationNode{
 		ID:           uuid.New().String(),
@@ -1651,32 +1663,39 @@ func (tdf *TestDataFactory) CreateAutomationNode(workspaceID string, opts ...Aut
 		return nil, fmt.Errorf("automation_id is required")
 	}
 
-	// Insert into database
 	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get workspace DB: %w", err)
 	}
 
-	configJSON, err := json.Marshal(node.Config)
+	// Get current automation to get existing nodes
+	var nodesJSON []byte
+	err = workspaceDB.QueryRowContext(context.Background(),
+		`SELECT nodes FROM automations WHERE id = $1`,
+		node.AutomationID).Scan(&nodesJSON)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal config: %w", err)
+		return nil, fmt.Errorf("failed to get automation: %w", err)
 	}
 
-	positionJSON, err := json.Marshal(node.Position)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal position: %w", err)
+	var nodes []*domain.AutomationNode
+	if err := json.Unmarshal(nodesJSON, &nodes); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal nodes: %w", err)
 	}
 
-	query := `
-		INSERT INTO automation_nodes (id, automation_id, type, config, next_node_id, position, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`
-	_, err = workspaceDB.ExecContext(context.Background(), query,
-		node.ID, node.AutomationID, node.Type, configJSON, node.NextNodeID,
-		positionJSON, node.CreatedAt,
-	)
+	// Append new node
+	nodes = append(nodes, node)
+
+	// Update automation with new nodes
+	newNodesJSON, err := json.Marshal(nodes)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create automation node: %w", err)
+		return nil, fmt.Errorf("failed to marshal nodes: %w", err)
+	}
+
+	_, err = workspaceDB.ExecContext(context.Background(),
+		`UPDATE automations SET nodes = $1, updated_at = $2 WHERE id = $3`,
+		newNodesJSON, time.Now().UTC(), node.AutomationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update automation nodes: %w", err)
 	}
 
 	return node, nil
@@ -1717,6 +1736,57 @@ func WithNodePosition(x, y float64) AutomationNodeOption {
 	return func(n *domain.AutomationNode) {
 		n.Position = domain.NodePosition{X: x, Y: y}
 	}
+}
+
+// UpdateAutomationNodeNextNodeID updates a node's next_node_id in the automation's embedded nodes array
+func (tdf *TestDataFactory) UpdateAutomationNodeNextNodeID(workspaceID, automationID, nodeID, nextNodeID string) error {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	// Get current nodes
+	var nodesJSON []byte
+	err = workspaceDB.QueryRowContext(context.Background(),
+		`SELECT nodes FROM automations WHERE id = $1`,
+		automationID).Scan(&nodesJSON)
+	if err != nil {
+		return fmt.Errorf("failed to get automation: %w", err)
+	}
+
+	var nodes []*domain.AutomationNode
+	if err := json.Unmarshal(nodesJSON, &nodes); err != nil {
+		return fmt.Errorf("failed to unmarshal nodes: %w", err)
+	}
+
+	// Find and update the node
+	found := false
+	for _, node := range nodes {
+		if node.ID == nodeID {
+			node.NextNodeID = &nextNodeID
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("node %s not found in automation %s", nodeID, automationID)
+	}
+
+	// Update automation with modified nodes
+	newNodesJSON, err := json.Marshal(nodes)
+	if err != nil {
+		return fmt.Errorf("failed to marshal nodes: %w", err)
+	}
+
+	_, err = workspaceDB.ExecContext(context.Background(),
+		`UPDATE automations SET nodes = $1, updated_at = $2 WHERE id = $3`,
+		newNodesJSON, time.Now().UTC(), automationID)
+	if err != nil {
+		return fmt.Errorf("failed to update automation nodes: %w", err)
+	}
+
+	return nil
 }
 
 // UpdateAutomationRootNode updates an automation's root_node_id
