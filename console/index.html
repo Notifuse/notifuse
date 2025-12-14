@@ -62,7 +62,10 @@
       }
     }
   </style>
-  <script src="/config.js"></script>
+  <script>
+    // Load config.js with cache-busting to ensure fresh configuration after setup
+    document.write('<script src="/config.js?_t=' + Date.now() + '"><\/script>');
+  </script>
 </head>
 
 <body>
