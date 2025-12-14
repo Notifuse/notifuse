@@ -182,6 +182,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			contact_email VARCHAR(255) NOT NULL,
 			external_id VARCHAR(255),
 			broadcast_id VARCHAR(255),
+			automation_id VARCHAR(32),
 			list_id VARCHAR(32),
 			template_id VARCHAR(32) NOT NULL,
 			template_version INTEGER NOT NULL,
@@ -203,6 +204,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_contact_email ON message_history(contact_email)`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_broadcast_id ON message_history(broadcast_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_message_history_automation_id ON message_history(automation_id) WHERE automation_id IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_template_id ON message_history(template_id, template_version)`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_created_at_id ON message_history(created_at DESC, id DESC)`,
 		`CREATE TABLE IF NOT EXISTS transactional_notifications (
@@ -380,6 +382,65 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_pending ON webhook_deliveries(next_attempt_at) WHERE status IN ('pending', 'failed') AND attempts < max_attempts`,
 		`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_subscription ON webhook_deliveries(subscription_id, created_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_webhook_deliveries_status ON webhook_deliveries(status)`,
+		// Automation tables (nodes embedded as JSONB in automations)
+		`CREATE TABLE IF NOT EXISTS automations (
+			id VARCHAR(36) PRIMARY KEY,
+			workspace_id VARCHAR(36) NOT NULL,
+			name VARCHAR(255) NOT NULL,
+			status VARCHAR(20) DEFAULT 'draft',
+			list_id VARCHAR(36),
+			trigger_config JSONB NOT NULL,
+			trigger_sql TEXT,
+			root_node_id VARCHAR(36),
+			nodes JSONB DEFAULT '[]',
+			stats JSONB DEFAULT '{}',
+			created_at TIMESTAMPTZ DEFAULT NOW(),
+			updated_at TIMESTAMPTZ DEFAULT NOW(),
+			deleted_at TIMESTAMPTZ
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_automations_workspace_status ON automations(workspace_id, status) WHERE deleted_at IS NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_automations_list ON automations(list_id, status)`,
+		`CREATE TABLE IF NOT EXISTS contact_automations (
+			id VARCHAR(36) PRIMARY KEY,
+			automation_id VARCHAR(36) NOT NULL REFERENCES automations(id),
+			contact_email VARCHAR(255) NOT NULL,
+			current_node_id VARCHAR(36),
+			status VARCHAR(20) DEFAULT 'active',
+			exit_reason VARCHAR(50),
+			entered_at TIMESTAMPTZ DEFAULT NOW(),
+			scheduled_at TIMESTAMPTZ,
+			context JSONB DEFAULT '{}',
+			retry_count INTEGER DEFAULT 0,
+			last_error TEXT,
+			last_retry_at TIMESTAMPTZ,
+			max_retries INTEGER DEFAULT 3,
+			UNIQUE(automation_id, contact_email, entered_at)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_automations_scheduled ON contact_automations(scheduled_at) WHERE status = 'active' AND scheduled_at IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_automations_automation ON contact_automations(automation_id, status)`,
+		`CREATE INDEX IF NOT EXISTS idx_contact_automations_email ON contact_automations(contact_email, status)`,
+		`CREATE TABLE IF NOT EXISTS automation_node_executions (
+			id VARCHAR(36) PRIMARY KEY,
+			contact_automation_id VARCHAR(36) NOT NULL REFERENCES contact_automations(id) ON DELETE CASCADE,
+			node_id VARCHAR(36) NOT NULL,
+			node_type VARCHAR(50) NOT NULL,
+			action VARCHAR(20) NOT NULL,
+			entered_at TIMESTAMPTZ DEFAULT NOW(),
+			completed_at TIMESTAMPTZ,
+			duration_ms INTEGER,
+			output JSONB DEFAULT '{}',
+			error TEXT
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_node_executions_contact_automation ON automation_node_executions(contact_automation_id, entered_at DESC)`,
+		`CREATE TABLE IF NOT EXISTS automation_trigger_log (
+			id VARCHAR(36) PRIMARY KEY,
+			automation_id VARCHAR(36) NOT NULL REFERENCES automations(id),
+			contact_email VARCHAR(255) NOT NULL,
+			triggered_at TIMESTAMPTZ DEFAULT NOW(),
+			UNIQUE(automation_id, contact_email)
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_trigger_log_automation ON automation_trigger_log(automation_id, triggered_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_trigger_log_contact ON automation_trigger_log(contact_email, automation_id)`,
 	}
 
 	// Run all table creation queries
@@ -1042,6 +1103,94 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		$$ LANGUAGE plpgsql`,
 		`DROP TRIGGER IF EXISTS webhook_custom_events ON custom_events`,
 		`CREATE TRIGGER webhook_custom_events AFTER INSERT OR UPDATE ON custom_events FOR EACH ROW EXECUTE FUNCTION webhook_custom_events_trigger()`,
+		// Automation enroll contact function
+		`CREATE OR REPLACE FUNCTION automation_enroll_contact(
+			p_automation_id VARCHAR(36),
+			p_contact_email VARCHAR(255),
+			p_root_node_id VARCHAR(36),
+			p_list_id VARCHAR(36),
+			p_frequency VARCHAR(20)
+		) RETURNS VOID AS $$
+		DECLARE
+			v_is_subscribed BOOLEAN;
+			v_already_triggered BOOLEAN;
+			v_new_id VARCHAR(36);
+		BEGIN
+			-- 1. Check list subscription (only if list_id is provided)
+			IF p_list_id IS NOT NULL AND p_list_id != '' THEN
+				SELECT EXISTS(
+					SELECT 1 FROM contact_lists
+					WHERE email = p_contact_email
+					AND list_id = p_list_id
+					AND status = 'active'
+					AND deleted_at IS NULL
+				) INTO v_is_subscribed;
+
+				IF NOT v_is_subscribed THEN
+					RETURN;  -- Contact not subscribed to list, skip enrollment
+				END IF;
+			END IF;
+
+			-- 2. For "once" frequency, check if already triggered
+			IF p_frequency = 'once' THEN
+				SELECT EXISTS(
+					SELECT 1 FROM automation_trigger_log
+					WHERE automation_id = p_automation_id
+					AND contact_email = p_contact_email
+				) INTO v_already_triggered;
+
+				IF v_already_triggered THEN
+					RETURN;  -- Already triggered for this contact, skip
+				END IF;
+
+				-- Record trigger for deduplication
+				INSERT INTO automation_trigger_log (id, automation_id, contact_email, triggered_at)
+				VALUES (gen_random_uuid()::text, p_automation_id, p_contact_email, NOW())
+				ON CONFLICT (automation_id, contact_email) DO NOTHING;
+			END IF;
+
+			-- 3. Generate new ID for contact_automation
+			v_new_id := gen_random_uuid()::text;
+
+			-- 4. Enroll contact in automation
+			INSERT INTO contact_automations (
+				id, automation_id, contact_email, current_node_id,
+				status, entered_at, scheduled_at
+			) VALUES (
+				v_new_id,
+				p_automation_id,
+				p_contact_email,
+				p_root_node_id,
+				'active',
+				NOW(),
+				NOW()
+			);
+
+			-- 5. Increment enrolled stat
+			UPDATE automations
+			SET stats = jsonb_set(
+				COALESCE(stats, '{}'::jsonb),
+				'{enrolled}',
+				to_jsonb(COALESCE((stats->>'enrolled')::int, 0) + 1)
+			),
+			updated_at = NOW()
+			WHERE id = p_automation_id;
+
+			-- 6. Log node execution entry
+			INSERT INTO automation_node_executions (
+				id, contact_automation_id, node_id, node_type, action, entered_at, output
+			) VALUES (
+				gen_random_uuid()::text,
+				v_new_id,
+				p_root_node_id,
+				'trigger',
+				'entered',
+				NOW(),
+				'{}'::jsonb
+			);
+
+		END;
+		$$ LANGUAGE plpgsql`,
 	}
 
 	for _, query := range triggerQueries {

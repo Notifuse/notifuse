@@ -1068,3 +1068,384 @@ func (qb *QueryBuilder) isNumeric(s string) bool {
 	}
 	return true
 }
+
+// BuildTriggerCondition generates SQL for use in PostgreSQL trigger WHEN clauses.
+// Unlike BuildSQL which returns "SELECT email FROM contacts WHERE ...",
+// this returns an EXISTS subquery format with the email reference substituted.
+//
+// Parameters:
+//   - tree: The TreeNode conditions to translate
+//   - emailRef: The email reference in trigger context (e.g., "NEW.email")
+//
+// Returns SQL condition string and args (args will be embedded by caller using embedArgs)
+func (qb *QueryBuilder) BuildTriggerCondition(tree *domain.TreeNode, emailRef string) (string, []interface{}, error) {
+	if tree == nil {
+		return "", nil, nil // No conditions = no filter
+	}
+
+	// Validate the tree structure
+	if err := tree.Validate(); err != nil {
+		return "", nil, fmt.Errorf("invalid tree: %w", err)
+	}
+
+	// Parse the tree recursively with email reference
+	condition, args, _, err := qb.parseNodeWithEmailRef(tree, 1, emailRef)
+	if err != nil {
+		return "", nil, err
+	}
+
+	return condition, args, nil
+}
+
+// parseNodeWithEmailRef recursively parses a tree node with custom email reference
+func (qb *QueryBuilder) parseNodeWithEmailRef(node *domain.TreeNode, argIndex int, emailRef string) (string, []interface{}, int, error) {
+	switch node.Kind {
+	case "branch":
+		return qb.parseBranchWithEmailRef(node.Branch, argIndex, emailRef)
+	case "leaf":
+		return qb.parseLeafWithEmailRef(node.Leaf, argIndex, emailRef)
+	default:
+		return "", nil, argIndex, fmt.Errorf("invalid node kind: %s", node.Kind)
+	}
+}
+
+// parseBranchWithEmailRef parses a branch node with custom email reference
+func (qb *QueryBuilder) parseBranchWithEmailRef(branch *domain.TreeNodeBranch, argIndex int, emailRef string) (string, []interface{}, int, error) {
+	if branch == nil {
+		return "", nil, argIndex, fmt.Errorf("branch cannot be nil")
+	}
+
+	var conditions []string
+	var args []interface{}
+
+	for _, leaf := range branch.Leaves {
+		condition, newArgs, newArgIndex, err := qb.parseNodeWithEmailRef(leaf, argIndex, emailRef)
+		if err != nil {
+			return "", nil, argIndex, err
+		}
+
+		if condition != "" {
+			conditions = append(conditions, condition)
+			args = append(args, newArgs...)
+			argIndex = newArgIndex
+		}
+	}
+
+	if len(conditions) == 0 {
+		return "", nil, argIndex, nil
+	}
+
+	sqlOperator := " AND "
+	if branch.Operator == "or" {
+		sqlOperator = " OR "
+	}
+
+	// Wrap in parentheses for proper precedence
+	result := "(" + strings.Join(conditions, sqlOperator) + ")"
+	return result, args, argIndex, nil
+}
+
+// parseLeafWithEmailRef parses a leaf node with custom email reference
+func (qb *QueryBuilder) parseLeafWithEmailRef(leaf *domain.TreeNodeLeaf, argIndex int, emailRef string) (string, []interface{}, int, error) {
+	if leaf == nil {
+		return "", nil, argIndex, fmt.Errorf("leaf cannot be nil")
+	}
+
+	switch leaf.Source {
+	case "contacts":
+		if leaf.Contact == nil {
+			return "", nil, argIndex, fmt.Errorf("leaf with source 'contacts' must have 'contact' field")
+		}
+		return qb.parseContactConditionsForTrigger(leaf.Contact, argIndex, emailRef)
+
+	case "contact_lists":
+		if leaf.ContactList == nil {
+			return "", nil, argIndex, fmt.Errorf("leaf with source 'contact_lists' must have 'contact_list' field")
+		}
+		return qb.parseContactListConditionsWithEmailRef(leaf.ContactList, argIndex, emailRef)
+
+	case "contact_timeline":
+		if leaf.ContactTimeline == nil {
+			return "", nil, argIndex, fmt.Errorf("leaf with source 'contact_timeline' must have 'contact_timeline' field")
+		}
+		return qb.parseContactTimelineConditionsWithEmailRef(leaf.ContactTimeline, argIndex, emailRef)
+
+	case "custom_events_goals":
+		if leaf.CustomEventsGoal == nil {
+			return "", nil, argIndex, fmt.Errorf("leaf with source 'custom_events_goals' must have 'custom_events_goal' field")
+		}
+		return qb.parseCustomEventsGoalConditionWithEmailRef(leaf.CustomEventsGoal, argIndex, emailRef)
+
+	default:
+		return "", nil, argIndex, fmt.Errorf("unsupported source: %s", leaf.Source)
+	}
+}
+
+// parseContactConditionsForTrigger generates an EXISTS subquery for contact conditions in trigger context
+func (qb *QueryBuilder) parseContactConditionsForTrigger(contact *domain.ContactCondition, argIndex int, emailRef string) (string, []interface{}, int, error) {
+	if contact == nil {
+		return "", nil, argIndex, fmt.Errorf("contact condition cannot be nil")
+	}
+
+	var conditions []string
+	var args []interface{}
+
+	for _, filter := range contact.Filters {
+		condition, newArgs, newArgIndex, err := qb.parseFilter(filter, argIndex)
+		if err != nil {
+			return "", nil, argIndex, err
+		}
+
+		if condition != "" {
+			conditions = append(conditions, condition)
+			args = append(args, newArgs...)
+			argIndex = newArgIndex
+		}
+	}
+
+	if len(conditions) == 0 {
+		// No conditions, just check contact exists
+		existsClause := fmt.Sprintf("EXISTS (SELECT 1 FROM contacts WHERE email = %s)", emailRef)
+		return existsClause, args, argIndex, nil
+	}
+
+	// Contact conditions are ANDed together
+	whereClause := strings.Join(conditions, " AND ")
+	existsClause := fmt.Sprintf("EXISTS (SELECT 1 FROM contacts WHERE email = %s AND %s)", emailRef, whereClause)
+	return existsClause, args, argIndex, nil
+}
+
+// parseContactListConditionsWithEmailRef generates SQL for contact_lists filtering with custom email reference
+func (qb *QueryBuilder) parseContactListConditionsWithEmailRef(contactList *domain.ContactListCondition, argIndex int, emailRef string) (string, []interface{}, int, error) {
+	if contactList == nil {
+		return "", nil, argIndex, fmt.Errorf("contact_list condition cannot be nil")
+	}
+
+	if contactList.ListID == "" {
+		return "", nil, argIndex, fmt.Errorf("contact_list must have 'list_id'")
+	}
+
+	var args []interface{}
+	var conditions []string
+
+	// Build the EXISTS subquery
+	args = append(args, contactList.ListID)
+	conditions = append(conditions, fmt.Sprintf("cl.list_id = $%d", argIndex))
+	argIndex++
+
+	// Add status filter if provided
+	if contactList.Status != nil && *contactList.Status != "" {
+		args = append(args, *contactList.Status)
+		conditions = append(conditions, fmt.Sprintf("cl.status = $%d", argIndex))
+		argIndex++
+	}
+
+	// Add check for non-deleted lists
+	conditions = append(conditions, "l.deleted_at IS NULL")
+
+	// Build the EXISTS clause with custom email reference
+	whereClause := strings.Join(conditions, " AND ")
+	existsClause := fmt.Sprintf(
+		"EXISTS (SELECT 1 FROM contact_lists cl JOIN lists l ON cl.list_id = l.id WHERE cl.email = %s AND %s)",
+		emailRef,
+		whereClause,
+	)
+
+	// Handle NOT IN operator
+	if contactList.Operator == "not_in" {
+		existsClause = "NOT " + existsClause
+	} else if contactList.Operator != "in" && contactList.Operator != "" {
+		return "", nil, argIndex, fmt.Errorf("invalid contact_list operator: %s (must be 'in' or 'not_in')", contactList.Operator)
+	}
+
+	return existsClause, args, argIndex, nil
+}
+
+// parseContactTimelineConditionsWithEmailRef generates SQL for contact_timeline filtering with custom email reference
+func (qb *QueryBuilder) parseContactTimelineConditionsWithEmailRef(timeline *domain.ContactTimelineCondition, argIndex int, emailRef string) (string, []interface{}, int, error) {
+	if timeline == nil {
+		return "", nil, argIndex, fmt.Errorf("contact_timeline condition cannot be nil")
+	}
+
+	if timeline.Kind == "" {
+		return "", nil, argIndex, fmt.Errorf("contact_timeline must have 'kind'")
+	}
+
+	if timeline.CountOperator == "" {
+		return "", nil, argIndex, fmt.Errorf("contact_timeline must have 'count_operator'")
+	}
+
+	var args []interface{}
+	var conditions []string
+
+	// Base condition: event kind
+	args = append(args, timeline.Kind)
+	conditions = append(conditions, fmt.Sprintf("ct.kind = $%d", argIndex))
+	argIndex++
+
+	// Add timeframe conditions if specified
+	if timeline.TimeframeOperator != nil && *timeline.TimeframeOperator != "" && *timeline.TimeframeOperator != "anytime" {
+		timeCondition, timeArgs, newArgIndex, err := qb.parseTimeframeCondition(*timeline.TimeframeOperator, timeline.TimeframeValues, argIndex)
+		if err != nil {
+			return "", nil, argIndex, err
+		}
+		if timeCondition != "" {
+			conditions = append(conditions, timeCondition)
+			args = append(args, timeArgs...)
+			argIndex = newArgIndex
+		}
+	}
+
+	// Add dimension filters if specified
+	if len(timeline.Filters) > 0 {
+		for _, filter := range timeline.Filters {
+			filterCondition, filterArgs, newArgIndex, err := qb.parseTimelineFilter(filter, argIndex)
+			if err != nil {
+				return "", nil, argIndex, err
+			}
+			if filterCondition != "" {
+				conditions = append(conditions, filterCondition)
+				args = append(args, filterArgs...)
+				argIndex = newArgIndex
+			}
+		}
+	}
+
+	// Build the subquery WHERE clause
+	whereClause := strings.Join(conditions, " AND ")
+
+	// Build the count comparison
+	var countComparison string
+	switch timeline.CountOperator {
+	case "at_least":
+		countComparison = ">="
+	case "at_most":
+		countComparison = "<="
+	case "exactly":
+		countComparison = "="
+	default:
+		return "", nil, argIndex, fmt.Errorf("invalid count_operator: %s (must be 'at_least', 'at_most', or 'exactly')", timeline.CountOperator)
+	}
+
+	args = append(args, timeline.CountValue)
+	// Use custom email reference instead of contacts.email
+	countCondition := fmt.Sprintf(
+		"(SELECT COUNT(*) FROM contact_timeline ct WHERE ct.email = %s AND %s) %s $%d",
+		emailRef,
+		whereClause,
+		countComparison,
+		argIndex,
+	)
+	argIndex++
+
+	return countCondition, args, argIndex, nil
+}
+
+// parseCustomEventsGoalConditionWithEmailRef generates SQL for custom_events goal filtering with custom email reference
+func (qb *QueryBuilder) parseCustomEventsGoalConditionWithEmailRef(goal *domain.CustomEventsGoalCondition, argIndex int, emailRef string) (string, []interface{}, int, error) {
+	if goal == nil {
+		return "", nil, argIndex, fmt.Errorf("custom_events_goal condition cannot be nil")
+	}
+
+	var args []interface{}
+	var conditions []string
+
+	// Always exclude soft-deleted events
+	conditions = append(conditions, "ce.deleted_at IS NULL")
+
+	// Filter by goal_type if not "*" (wildcard for all)
+	if goal.GoalType != "*" {
+		// Validate goal_type against allowed values
+		validGoalType := false
+		for _, t := range domain.ValidGoalTypes {
+			if goal.GoalType == t {
+				validGoalType = true
+				break
+			}
+		}
+		if !validGoalType {
+			return "", nil, argIndex, fmt.Errorf("invalid goal_type: %s (must be one of: %v or '*' for all)", goal.GoalType, domain.ValidGoalTypes)
+		}
+
+		args = append(args, goal.GoalType)
+		conditions = append(conditions, fmt.Sprintf("ce.goal_type = $%d", argIndex))
+		argIndex++
+	} else {
+		// For wildcard, just ensure goal_type is set
+		conditions = append(conditions, "ce.goal_type IS NOT NULL")
+	}
+
+	// Filter by goal_name if provided
+	if goal.GoalName != nil && *goal.GoalName != "" {
+		args = append(args, *goal.GoalName)
+		conditions = append(conditions, fmt.Sprintf("ce.goal_name = $%d", argIndex))
+		argIndex++
+	}
+
+	// Add timeframe conditions
+	if goal.TimeframeOperator != "" && goal.TimeframeOperator != "anytime" {
+		timeCondition, timeArgs, newArgIndex, err := qb.parseGoalTimeframeCondition(goal.TimeframeOperator, goal.TimeframeValues, argIndex)
+		if err != nil {
+			return "", nil, argIndex, err
+		}
+		if timeCondition != "" {
+			conditions = append(conditions, timeCondition)
+			args = append(args, timeArgs...)
+			argIndex = newArgIndex
+		}
+	}
+
+	// Build aggregate expression
+	var aggExpr string
+	switch goal.AggregateOperator {
+	case "sum":
+		aggExpr = "COALESCE(SUM(ce.goal_value), 0)"
+	case "count":
+		aggExpr = "COUNT(*)"
+	case "avg":
+		aggExpr = "COALESCE(AVG(ce.goal_value), 0)"
+	case "min":
+		aggExpr = "MIN(ce.goal_value)"
+	case "max":
+		aggExpr = "MAX(ce.goal_value)"
+	default:
+		return "", nil, argIndex, fmt.Errorf("invalid aggregate_operator: %s", goal.AggregateOperator)
+	}
+
+	// Build comparison expression
+	var comparison string
+	switch goal.Operator {
+	case "gte":
+		args = append(args, goal.Value)
+		comparison = fmt.Sprintf("%s >= $%d", aggExpr, argIndex)
+		argIndex++
+	case "lte":
+		args = append(args, goal.Value)
+		comparison = fmt.Sprintf("%s <= $%d", aggExpr, argIndex)
+		argIndex++
+	case "eq":
+		args = append(args, goal.Value)
+		comparison = fmt.Sprintf("%s = $%d", aggExpr, argIndex)
+		argIndex++
+	case "between":
+		if goal.Value2 == nil {
+			return "", nil, argIndex, fmt.Errorf("between operator requires value_2")
+		}
+		args = append(args, goal.Value, *goal.Value2)
+		comparison = fmt.Sprintf("%s BETWEEN $%d AND $%d", aggExpr, argIndex, argIndex+1)
+		argIndex += 2
+	default:
+		return "", nil, argIndex, fmt.Errorf("invalid operator: %s", goal.Operator)
+	}
+
+	// Build the EXISTS subquery with GROUP BY and HAVING, using custom email reference
+	whereClause := strings.Join(conditions, " AND ")
+	existsClause := fmt.Sprintf(
+		"EXISTS (SELECT 1 FROM custom_events ce WHERE ce.email = %s AND %s GROUP BY ce.email HAVING %s)",
+		emailRef,
+		whereClause,
+		comparison,
+	)
+
+	return existsClause, args, argIndex, nil
+}

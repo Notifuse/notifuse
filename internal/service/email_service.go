@@ -375,6 +375,7 @@ func (s *EmailService) SendEmailForTemplate(ctx context.Context, request domain.
 		ID:             request.MessageID,
 		ExternalID:     request.ExternalID,
 		ContactEmail:   request.Contact.Email,
+		AutomationID:   request.AutomationID,
 		TemplateID:     request.TemplateConfig.TemplateID,
 		Channel:        "email",
 		MessageData:    request.MessageData,

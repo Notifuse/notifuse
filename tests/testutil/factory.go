@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -1520,4 +1521,570 @@ func WithThemePublished(published bool) BlogThemeOption {
 // This is useful for tests that need direct database access to simulate edge cases
 func (tdf *TestDataFactory) GetWorkspaceDB(workspaceID string) (*sql.DB, error) {
 	return tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+}
+
+// ========================================
+// Automation Factory Methods
+// ========================================
+
+// AutomationOption defines options for creating automations
+type AutomationOption func(*domain.Automation)
+
+// CreateAutomation creates a test automation
+func (tdf *TestDataFactory) CreateAutomation(workspaceID string, opts ...AutomationOption) (*domain.Automation, error) {
+	automation := &domain.Automation{
+		ID:          uuid.New().String(),
+		WorkspaceID: workspaceID,
+		Name:        fmt.Sprintf("Test Automation %s", uuid.New().String()[:8]),
+		Status:      domain.AutomationStatusDraft,
+		ListID:      "", // Optional - set via options
+		Trigger: &domain.TimelineTriggerConfig{
+			EventKinds: []string{"insert_contact_list"},
+			Frequency:  domain.TriggerFrequencyOnce,
+		},
+		RootNodeID: "", // Set after creating nodes
+		Stats: &domain.AutomationStats{
+			Enrolled:  0,
+			Completed: 0,
+			Exited:    0,
+			Failed:    0,
+		},
+		CreatedAt: time.Now().UTC(),
+		UpdatedAt: time.Now().UTC(),
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(automation)
+	}
+
+	// Insert into database
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	triggerJSON, err := json.Marshal(automation.Trigger)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal trigger: %w", err)
+	}
+
+	statsJSON, err := json.Marshal(automation.Stats)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal stats: %w", err)
+	}
+
+	query := `
+		INSERT INTO automations (id, workspace_id, name, status, list_id, trigger_config, trigger_sql, root_node_id, stats, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+	`
+	_, err = workspaceDB.ExecContext(context.Background(), query,
+		automation.ID, workspaceID, automation.Name, automation.Status,
+		automation.ListID, triggerJSON, automation.TriggerSQL, automation.RootNodeID,
+		statsJSON, automation.CreatedAt, automation.UpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create automation: %w", err)
+	}
+
+	return automation, nil
+}
+
+// Automation options
+func WithAutomationName(name string) AutomationOption {
+	return func(a *domain.Automation) {
+		a.Name = name
+	}
+}
+
+func WithAutomationStatus(status domain.AutomationStatus) AutomationOption {
+	return func(a *domain.Automation) {
+		a.Status = status
+	}
+}
+
+func WithAutomationListID(listID string) AutomationOption {
+	return func(a *domain.Automation) {
+		a.ListID = listID
+	}
+}
+
+func WithAutomationTrigger(trigger *domain.TimelineTriggerConfig) AutomationOption {
+	return func(a *domain.Automation) {
+		a.Trigger = trigger
+	}
+}
+
+func WithAutomationRootNodeID(nodeID string) AutomationOption {
+	return func(a *domain.Automation) {
+		a.RootNodeID = nodeID
+	}
+}
+
+func WithAutomationID(id string) AutomationOption {
+	return func(a *domain.Automation) {
+		a.ID = id
+	}
+}
+
+// AutomationNodeOption defines options for creating automation nodes
+type AutomationNodeOption func(*domain.AutomationNode)
+
+// CreateAutomationNode creates a test automation node
+func (tdf *TestDataFactory) CreateAutomationNode(workspaceID string, opts ...AutomationNodeOption) (*domain.AutomationNode, error) {
+	node := &domain.AutomationNode{
+		ID:           uuid.New().String(),
+		AutomationID: "", // Must be set via options
+		Type:         domain.NodeTypeTrigger,
+		Config:       map[string]interface{}{},
+		NextNodeID:   nil,
+		Position:     domain.NodePosition{X: 0, Y: 0},
+		CreatedAt:    time.Now().UTC(),
+	}
+
+	// Apply options
+	for _, opt := range opts {
+		opt(node)
+	}
+
+	if node.AutomationID == "" {
+		return nil, fmt.Errorf("automation_id is required")
+	}
+
+	// Insert into database
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	configJSON, err := json.Marshal(node.Config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	positionJSON, err := json.Marshal(node.Position)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal position: %w", err)
+	}
+
+	query := `
+		INSERT INTO automation_nodes (id, automation_id, type, config, next_node_id, position, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`
+	_, err = workspaceDB.ExecContext(context.Background(), query,
+		node.ID, node.AutomationID, node.Type, configJSON, node.NextNodeID,
+		positionJSON, node.CreatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create automation node: %w", err)
+	}
+
+	return node, nil
+}
+
+// Node options
+func WithNodeID(id string) AutomationNodeOption {
+	return func(n *domain.AutomationNode) {
+		n.ID = id
+	}
+}
+
+func WithNodeAutomationID(automationID string) AutomationNodeOption {
+	return func(n *domain.AutomationNode) {
+		n.AutomationID = automationID
+	}
+}
+
+func WithNodeType(nodeType domain.NodeType) AutomationNodeOption {
+	return func(n *domain.AutomationNode) {
+		n.Type = nodeType
+	}
+}
+
+func WithNodeConfig(config map[string]interface{}) AutomationNodeOption {
+	return func(n *domain.AutomationNode) {
+		n.Config = config
+	}
+}
+
+func WithNodeNextNodeID(nextNodeID string) AutomationNodeOption {
+	return func(n *domain.AutomationNode) {
+		n.NextNodeID = &nextNodeID
+	}
+}
+
+func WithNodePosition(x, y float64) AutomationNodeOption {
+	return func(n *domain.AutomationNode) {
+		n.Position = domain.NodePosition{X: x, Y: y}
+	}
+}
+
+// UpdateAutomationRootNode updates an automation's root_node_id
+func (tdf *TestDataFactory) UpdateAutomationRootNode(workspaceID, automationID, rootNodeID string) error {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	query := `UPDATE automations SET root_node_id = $1, updated_at = $2 WHERE id = $3`
+	_, err = workspaceDB.ExecContext(context.Background(), query, rootNodeID, time.Now().UTC(), automationID)
+	if err != nil {
+		return fmt.Errorf("failed to update automation root node: %w", err)
+	}
+
+	return nil
+}
+
+// ActivateAutomation activates an automation (creates DB trigger)
+func (tdf *TestDataFactory) ActivateAutomation(workspaceID, automationID string) error {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	// Get automation to build trigger
+	var triggerJSON []byte
+	var rootNodeID, listID string
+	var frequency string
+
+	err = workspaceDB.QueryRowContext(context.Background(),
+		`SELECT trigger_config, root_node_id, list_id FROM automations WHERE id = $1`,
+		automationID,
+	).Scan(&triggerJSON, &rootNodeID, &listID)
+	if err != nil {
+		return fmt.Errorf("failed to get automation: %w", err)
+	}
+
+	var trigger domain.TimelineTriggerConfig
+	if err := json.Unmarshal(triggerJSON, &trigger); err != nil {
+		return fmt.Errorf("failed to unmarshal trigger: %w", err)
+	}
+	frequency = string(trigger.Frequency)
+
+	// Build event kind filter
+	eventKindFilter := ""
+	if len(trigger.EventKinds) == 1 {
+		eventKindFilter = fmt.Sprintf("NEW.kind = '%s'", trigger.EventKinds[0])
+	} else {
+		kinds := ""
+		for i, k := range trigger.EventKinds {
+			if i > 0 {
+				kinds += ", "
+			}
+			kinds += fmt.Sprintf("'%s'", k)
+		}
+		eventKindFilter = fmt.Sprintf("NEW.kind IN (%s)", kinds)
+	}
+
+	// Create trigger function (remove hyphens from UUID for valid PostgreSQL identifier)
+	safeID := strings.ReplaceAll(automationID, "-", "")
+	functionName := fmt.Sprintf("automation_trigger_%s", safeID)
+	functionSQL := fmt.Sprintf(`
+		CREATE OR REPLACE FUNCTION %s()
+		RETURNS TRIGGER AS $$
+		BEGIN
+			PERFORM automation_enroll_contact(
+				'%s',
+				NEW.email,
+				'%s',
+				'%s',
+				'%s'
+			);
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql
+	`, functionName, automationID, rootNodeID, listID, frequency)
+
+	_, err = workspaceDB.ExecContext(context.Background(), functionSQL)
+	if err != nil {
+		return fmt.Errorf("failed to create trigger function: %w", err)
+	}
+
+	// Create trigger
+	triggerSQL := fmt.Sprintf(`
+		CREATE TRIGGER %s
+		AFTER INSERT ON contact_timeline
+		FOR EACH ROW
+		WHEN (%s)
+		EXECUTE FUNCTION %s()
+	`, functionName, eventKindFilter, functionName)
+
+	_, err = workspaceDB.ExecContext(context.Background(), triggerSQL)
+	if err != nil {
+		return fmt.Errorf("failed to create trigger: %w", err)
+	}
+
+	// Update automation status to live
+	_, err = workspaceDB.ExecContext(context.Background(),
+		`UPDATE automations SET status = 'live', updated_at = $1 WHERE id = $2`,
+		time.Now().UTC(), automationID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update automation status: %w", err)
+	}
+
+	return nil
+}
+
+// DeactivateAutomation deactivates an automation (drops DB trigger)
+func (tdf *TestDataFactory) DeactivateAutomation(workspaceID, automationID string) error {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	triggerName := fmt.Sprintf("automation_trigger_%s", automationID)
+
+	// Drop trigger
+	_, err = workspaceDB.ExecContext(context.Background(),
+		fmt.Sprintf("DROP TRIGGER IF EXISTS %s ON contact_timeline", triggerName))
+	if err != nil {
+		return fmt.Errorf("failed to drop trigger: %w", err)
+	}
+
+	// Drop function
+	_, err = workspaceDB.ExecContext(context.Background(),
+		fmt.Sprintf("DROP FUNCTION IF EXISTS %s()", triggerName))
+	if err != nil {
+		return fmt.Errorf("failed to drop function: %w", err)
+	}
+
+	// Update status
+	_, err = workspaceDB.ExecContext(context.Background(),
+		`UPDATE automations SET status = 'paused', updated_at = $1 WHERE id = $2`,
+		time.Now().UTC(), automationID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update automation status: %w", err)
+	}
+
+	return nil
+}
+
+// GetContactAutomation retrieves a contact automation record
+func (tdf *TestDataFactory) GetContactAutomation(workspaceID, automationID, email string) (*domain.ContactAutomation, error) {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	var ca domain.ContactAutomation
+	var contextJSON []byte
+	var scheduledAt, lastRetryAt sql.NullTime
+	var lastError sql.NullString
+
+	err = workspaceDB.QueryRowContext(context.Background(), `
+		SELECT id, automation_id, contact_email, current_node_id, status,
+		       entered_at, scheduled_at, context, retry_count, last_error, last_retry_at, max_retries
+		FROM contact_automations
+		WHERE automation_id = $1 AND contact_email = $2
+		ORDER BY entered_at DESC
+		LIMIT 1
+	`, automationID, email).Scan(
+		&ca.ID, &ca.AutomationID, &ca.ContactEmail, &ca.CurrentNodeID, &ca.Status,
+		&ca.EnteredAt, &scheduledAt, &contextJSON, &ca.RetryCount, &lastError, &lastRetryAt, &ca.MaxRetries,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get contact automation: %w", err)
+	}
+
+	if scheduledAt.Valid {
+		ca.ScheduledAt = &scheduledAt.Time
+	}
+	if lastRetryAt.Valid {
+		ca.LastRetryAt = &lastRetryAt.Time
+	}
+	if lastError.Valid {
+		ca.LastError = &lastError.String
+	}
+	if len(contextJSON) > 0 {
+		json.Unmarshal(contextJSON, &ca.Context)
+	}
+
+	return &ca, nil
+}
+
+// GetAllContactAutomations retrieves all contact automation records for an automation
+func (tdf *TestDataFactory) GetAllContactAutomations(workspaceID, automationID string) ([]*domain.ContactAutomation, error) {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	rows, err := workspaceDB.QueryContext(context.Background(), `
+		SELECT id, automation_id, contact_email, current_node_id, status,
+		       entered_at, scheduled_at, context, retry_count, last_error, last_retry_at, max_retries
+		FROM contact_automations
+		WHERE automation_id = $1
+		ORDER BY entered_at DESC
+	`, automationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query contact automations: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*domain.ContactAutomation
+	for rows.Next() {
+		var ca domain.ContactAutomation
+		var contextJSON []byte
+		var scheduledAt, lastRetryAt sql.NullTime
+		var lastError sql.NullString
+
+		err := rows.Scan(
+			&ca.ID, &ca.AutomationID, &ca.ContactEmail, &ca.CurrentNodeID, &ca.Status,
+			&ca.EnteredAt, &scheduledAt, &contextJSON, &ca.RetryCount, &lastError, &lastRetryAt, &ca.MaxRetries,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan contact automation: %w", err)
+		}
+
+		if scheduledAt.Valid {
+			ca.ScheduledAt = &scheduledAt.Time
+		}
+		if lastRetryAt.Valid {
+			ca.LastRetryAt = &lastRetryAt.Time
+		}
+		if lastError.Valid {
+			ca.LastError = &lastError.String
+		}
+		if len(contextJSON) > 0 {
+			json.Unmarshal(contextJSON, &ca.Context)
+		}
+
+		results = append(results, &ca)
+	}
+
+	return results, nil
+}
+
+// GetAutomationStats retrieves an automation's stats
+func (tdf *TestDataFactory) GetAutomationStats(workspaceID, automationID string) (*domain.AutomationStats, error) {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	var statsJSON []byte
+	err = workspaceDB.QueryRowContext(context.Background(),
+		`SELECT stats FROM automations WHERE id = $1`, automationID,
+	).Scan(&statsJSON)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get automation stats: %w", err)
+	}
+
+	var stats domain.AutomationStats
+	if err := json.Unmarshal(statsJSON, &stats); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal stats: %w", err)
+	}
+
+	return &stats, nil
+}
+
+// GetNodeExecutions retrieves node executions for a contact automation
+func (tdf *TestDataFactory) GetNodeExecutions(workspaceID, contactAutomationID string) ([]*domain.NodeExecution, error) {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	rows, err := workspaceDB.QueryContext(context.Background(), `
+		SELECT id, contact_automation_id, node_id, node_type, action,
+		       entered_at, completed_at, duration_ms, output, error
+		FROM automation_node_executions
+		WHERE contact_automation_id = $1
+		ORDER BY entered_at ASC
+	`, contactAutomationID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query node executions: %w", err)
+	}
+	defer rows.Close()
+
+	var results []*domain.NodeExecution
+	for rows.Next() {
+		var ne domain.NodeExecution
+		var completedAt sql.NullTime
+		var durationMs sql.NullInt64
+		var outputJSON []byte
+		var errorMsg sql.NullString
+
+		err := rows.Scan(
+			&ne.ID, &ne.ContactAutomationID, &ne.NodeID, &ne.NodeType, &ne.Action,
+			&ne.EnteredAt, &completedAt, &durationMs, &outputJSON, &errorMsg,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan node execution: %w", err)
+		}
+
+		if completedAt.Valid {
+			ne.CompletedAt = &completedAt.Time
+		}
+		if durationMs.Valid {
+			ne.DurationMs = &durationMs.Int64
+		}
+		if errorMsg.Valid {
+			ne.Error = &errorMsg.String
+		}
+		if len(outputJSON) > 0 {
+			json.Unmarshal(outputJSON, &ne.Output)
+		}
+
+		results = append(results, &ne)
+	}
+
+	return results, nil
+}
+
+// UpdateContactAutomationScheduledAt updates scheduled_at for a contact automation (for testing delays)
+func (tdf *TestDataFactory) UpdateContactAutomationScheduledAt(workspaceID, contactAutomationID string, scheduledAt time.Time) error {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	_, err = workspaceDB.ExecContext(context.Background(),
+		`UPDATE contact_automations SET scheduled_at = $1 WHERE id = $2`,
+		scheduledAt, contactAutomationID,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to update scheduled_at: %w", err)
+	}
+
+	return nil
+}
+
+// GetTriggerLogEntry checks if a trigger log entry exists for deduplication
+func (tdf *TestDataFactory) GetTriggerLogEntry(workspaceID, automationID, email string) (bool, error) {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return false, fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	var exists bool
+	err = workspaceDB.QueryRowContext(context.Background(), `
+		SELECT EXISTS(SELECT 1 FROM automation_trigger_log WHERE automation_id = $1 AND contact_email = $2)
+	`, automationID, email).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check trigger log: %w", err)
+	}
+
+	return exists, nil
+}
+
+// CountContactAutomations counts contact automation records for an automation
+func (tdf *TestDataFactory) CountContactAutomations(workspaceID, automationID string) (int, error) {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get workspace DB: %w", err)
+	}
+
+	var count int
+	err = workspaceDB.QueryRowContext(context.Background(),
+		`SELECT COUNT(*) FROM contact_automations WHERE automation_id = $1`,
+		automationID,
+	).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to count contact automations: %w", err)
+	}
+
+	return count, nil
 }

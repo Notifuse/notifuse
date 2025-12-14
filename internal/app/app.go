@@ -112,6 +112,7 @@ type App struct {
 	customEventRepo               domain.CustomEventRepository
 	webhookSubscriptionRepo       domain.WebhookSubscriptionRepository
 	webhookDeliveryRepo           domain.WebhookDeliveryRepository
+	automationRepo                domain.AutomationRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -145,6 +146,8 @@ type App struct {
 	customEventService               *service.CustomEventService
 	webhookSubscriptionService       *service.WebhookSubscriptionService
 	webhookDeliveryWorker            *service.WebhookDeliveryWorker
+	automationService                *service.AutomationService
+	automationScheduler              *service.AutomationScheduler
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -413,6 +416,11 @@ func (a *App) InitRepositories() error {
 	a.customEventRepo = repository.NewCustomEventRepository(a.workspaceRepo)
 	a.webhookSubscriptionRepo = repository.NewWebhookSubscriptionRepository(a.workspaceRepo)
 	a.webhookDeliveryRepo = repository.NewWebhookDeliveryRepository(a.workspaceRepo)
+
+	// Create trigger generator for automation repository
+	queryBuilder := service.NewQueryBuilder()
+	triggerGenerator := service.NewAutomationTriggerGenerator(queryBuilder)
+	a.automationRepo = repository.NewAutomationRepository(a.workspaceRepo, triggerGenerator)
 
 	// Initialize setting service
 	a.settingService = service.NewSettingService(a.settingRepo)
@@ -875,6 +883,32 @@ func (a *App) InitServices() error {
 		httpClient,
 	)
 
+	// Initialize automation service
+	a.automationService = service.NewAutomationService(
+		a.automationRepo,
+		a.authService,
+		a.logger,
+	)
+
+	// Initialize automation executor and scheduler
+	automationExecutor := service.NewAutomationExecutor(
+		a.automationRepo,
+		a.contactRepo,
+		a.workspaceRepo,
+		a.contactListRepo,
+		a.templateRepo,
+		a.emailService,
+		a.messageHistoryRepo,
+		a.logger,
+		a.config.APIEndpoint,
+	)
+	a.automationScheduler = service.NewAutomationScheduler(
+		automationExecutor,
+		a.logger,
+		10*time.Second, // Poll every 10 seconds
+		50,             // Process 50 contacts per batch
+	)
+
 	// Initialize SMTP relay handler service
 	a.smtpRelayHandlerService = service.NewSMTPRelayHandlerService(
 		a.authService,
@@ -1044,6 +1078,11 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
+	automationHandler := httpHandler.NewAutomationHandler(
+		a.automationService,
+		getJWTSecret,
+		a.logger,
+	)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -1075,6 +1114,7 @@ func (a *App) InitHandlers() error {
 	segmentHandler.RegisterRoutes(a.mux)
 	customEventHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
+	automationHandler.RegisterRoutes(a.mux)
 
 	return nil
 }
@@ -1190,6 +1230,31 @@ func (a *App) Start() error {
 		}()
 	}
 
+	// Start automation scheduler (with 30 second delay)
+	// Disabled in demo mode to prevent executing automations
+	if a.automationScheduler != nil && !a.config.IsDemo() {
+		go func() {
+			a.logger.Info("Automation scheduler will start in 30 seconds...")
+
+			ctx := a.GetShutdownContext()
+
+			// Use a timer that respects the shutdown context
+			select {
+			case <-time.After(30 * time.Second):
+				// Check if we're shutting down before starting
+				if ctx.Err() != nil {
+					a.logger.Info("Server shutting down, automation scheduler will not start")
+					return
+				}
+				a.logger.Info("Starting automation scheduler now")
+				a.automationScheduler.Start(ctx)
+			case <-ctx.Done():
+				a.logger.Info("Server shutdown initiated during automation scheduler delay, scheduler will not start")
+				return
+			}
+		}()
+	}
+
 	// Start the server based on SSL configuration
 	if a.config.Server.SSL.Enabled {
 		a.logger.WithField("cert_file", a.config.Server.SSL.CertFile).Info("SSL enabled")
@@ -1215,6 +1280,12 @@ func (a *App) Shutdown(ctx context.Context) error {
 	// Stop task scheduler first (before stopping server)
 	if a.taskScheduler != nil {
 		a.taskScheduler.Stop()
+	}
+
+	// Stop automation scheduler
+	if a.automationScheduler != nil {
+		a.logger.Info("Stopping automation scheduler...")
+		a.automationScheduler.Stop()
 	}
 
 	// Stop global rate limiter

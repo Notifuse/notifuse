@@ -10,6 +10,11 @@
   - transactional API
   - blog posts
 
+## AUTOMATION
+
+- execute all nodes until wait node or end when executing automation for contact
+- use atomic db queries to increment automations stats
+
 ## Content
 
 - send newsletter to all contacts+previous customers
