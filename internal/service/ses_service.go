@@ -886,7 +886,12 @@ func (s *SESService) SendEmail(ctx context.Context, request domain.SendEmailProv
 	// Use SendRawEmail when attachments or List-Unsubscribe headers are needed
 	// (AWS SES V1 SendEmail API doesn't support custom headers)
 	if len(request.EmailOptions.Attachments) > 0 || request.EmailOptions.ListUnsubscribeURL != "" {
-		return s.sendRawEmail(ctx, sesEmailClient, request, configSetName)
+		// Only pass configSetName if it was verified to exist (graceful degradation)
+		configSetToUse := ""
+		if input.ConfigurationSetName != nil {
+			configSetToUse = *input.ConfigurationSetName
+		}
+		return s.sendRawEmail(ctx, sesEmailClient, request, configSetToUse)
 	}
 
 	// Add custom messageID as a tag

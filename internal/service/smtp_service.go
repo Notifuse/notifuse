@@ -176,9 +176,13 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 			// Generate a simple Content-ID from filename (e.g., <logo.png>)
 			contentID := att.Filename
 			fileOpts = append(fileOpts, mail.WithFileContentID(contentID))
-			_ = msg.EmbedReader(att.Filename, bytes.NewReader(content), fileOpts...)
+			if err := msg.EmbedReader(att.Filename, bytes.NewReader(content), fileOpts...); err != nil {
+				return fmt.Errorf("attachment %d: failed to embed inline: %w", i, err)
+			}
 		} else {
-			_ = msg.AttachReader(att.Filename, bytes.NewReader(content), fileOpts...)
+			if err := msg.AttachReader(att.Filename, bytes.NewReader(content), fileOpts...); err != nil {
+				return fmt.Errorf("attachment %d: failed to attach: %w", i, err)
+			}
 		}
 	}
 

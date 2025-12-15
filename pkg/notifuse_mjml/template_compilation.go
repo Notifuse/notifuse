@@ -47,6 +47,45 @@ func (t *TrackingSettings) Scan(value interface{}) error {
 	return json.Unmarshal(v, t)
 }
 
+// isNonTrackableURL checks if a URL should not have click tracking applied.
+// This includes special protocol links (mailto, tel, sms, etc.), template placeholders,
+// and anchor links that should not be redirected through the tracking endpoint.
+func isNonTrackableURL(urlStr string) bool {
+	if urlStr == "" {
+		return true
+	}
+
+	// Skip template placeholders (Liquid syntax)
+	if strings.Contains(urlStr, "{{") || strings.Contains(urlStr, "{%") {
+		return true
+	}
+
+	// Skip anchor-only links
+	if strings.HasPrefix(urlStr, "#") {
+		return true
+	}
+
+	// Skip special protocol links that should not be tracked
+	lowerURL := strings.ToLower(urlStr)
+	nonTrackableProtocols := []string{
+		"mailto:",
+		"tel:",
+		"sms:",
+		"javascript:",
+		"data:",
+		"blob:",
+		"file:",
+	}
+
+	for _, protocol := range nonTrackableProtocols {
+		if strings.HasPrefix(lowerURL, protocol) {
+			return true
+		}
+	}
+
+	return false
+}
+
 func (t *TrackingSettings) GetTrackingURL(sourceURL string) string {
 	// Ignore if URL is empty, a placeholder, mailto:, tel:, or already tracked (basic check)
 	if sourceURL == "" || strings.Contains(sourceURL, "{{") || strings.Contains(sourceURL, "{%") || strings.HasPrefix(sourceURL, "mailto:") || strings.HasPrefix(sourceURL, "tel:") {
@@ -332,6 +371,12 @@ func TrackLinks(htmlString string, trackingSettings TrackingSettings) (updatedHT
 		beforeURL := parts[1]   // <a ...href="
 		originalURL := parts[2] // the URL
 		afterURL := parts[3]    // "...>
+
+		// Skip tracking for special protocol links (mailto, tel, sms, etc.)
+		// These should not be wrapped in a redirect as it breaks their functionality
+		if isNonTrackableURL(originalURL) {
+			return match // Return original link unchanged
+		}
 
 		// Apply tracking to the URL
 		trackedURL := trackingSettings.GetTrackingURL(originalURL)

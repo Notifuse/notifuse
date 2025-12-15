@@ -799,9 +799,10 @@ type MailpitMessageSummary struct {
 		Name    string `json:"Name"`
 		Address string `json:"Address"`
 	} `json:"Bcc"`
-	Subject string    `json:"Subject"`
-	Created time.Time `json:"Created"`
-	Size    int       `json:"Size"`
+	Subject     string    `json:"Subject"`
+	Created     time.Time `json:"Created"`
+	Size        int       `json:"Size"`
+	Attachments int       `json:"Attachments"`
 }
 
 // MailpitMessage represents a full message from Mailpit API (with headers and content)

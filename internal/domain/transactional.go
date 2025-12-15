@@ -386,6 +386,13 @@ func (req *SendTransactionalRequest) Validate() error {
 		return NewValidationError(fmt.Sprintf("replyTo '%s' must be a valid email address", req.Notification.EmailOptions.ReplyTo))
 	}
 
+	// validate attachments if provided
+	if len(req.Notification.EmailOptions.Attachments) > 0 {
+		if err := ValidateAttachments(req.Notification.EmailOptions.Attachments); err != nil {
+			return NewValidationError(fmt.Sprintf("invalid attachments: %v", err))
+		}
+	}
+
 	return nil
 }
 
