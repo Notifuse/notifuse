@@ -56,7 +56,6 @@ const (
 	NodeTypeEmail          NodeType = "email"
 	NodeTypeBranch         NodeType = "branch"
 	NodeTypeFilter         NodeType = "filter"
-	NodeTypeExit           NodeType = "exit"
 	NodeTypeAddToList      NodeType = "add_to_list"
 	NodeTypeRemoveFromList NodeType = "remove_from_list"
 	NodeTypeABTest         NodeType = "ab_test"
@@ -66,7 +65,7 @@ const (
 func (t NodeType) IsValid() bool {
 	switch t {
 	case NodeTypeTrigger, NodeTypeDelay, NodeTypeEmail, NodeTypeBranch,
-		NodeTypeFilter, NodeTypeExit, NodeTypeAddToList, NodeTypeRemoveFromList,
+		NodeTypeFilter, NodeTypeAddToList, NodeTypeRemoveFromList,
 		NodeTypeABTest:
 		return true
 	default:

@@ -65,6 +65,10 @@ func (h *AutomationHandler) handleCreate(w http.ResponseWriter, r *http.Request)
 
 	if err := h.service.Create(r.Context(), req.WorkspaceID, req.Automation); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to create automation")
+		if _, ok := err.(*domain.PermissionError); ok {
+			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
 		WriteJSONError(w, "Failed to create automation", http.StatusInternalServerError)
 		return
 	}
@@ -89,6 +93,10 @@ func (h *AutomationHandler) handleGet(w http.ResponseWriter, r *http.Request) {
 	automation, err := h.service.Get(r.Context(), req.WorkspaceID, req.AutomationID)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get automation")
+		if _, ok := err.(*domain.PermissionError); ok {
+			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
 		WriteJSONError(w, "Failed to get automation", http.StatusInternalServerError)
 		return
 	}
@@ -113,6 +121,10 @@ func (h *AutomationHandler) handleList(w http.ResponseWriter, r *http.Request) {
 	automations, total, err := h.service.List(r.Context(), req.WorkspaceID, req.ToFilter())
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to list automations")
+		if _, ok := err.(*domain.PermissionError); ok {
+			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
 		WriteJSONError(w, "Failed to list automations", http.StatusInternalServerError)
 		return
 	}
@@ -143,6 +155,10 @@ func (h *AutomationHandler) handleUpdate(w http.ResponseWriter, r *http.Request)
 
 	if err := h.service.Update(r.Context(), req.WorkspaceID, req.Automation); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to update automation")
+		if _, ok := err.(*domain.PermissionError); ok {
+			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
 		WriteJSONError(w, "Failed to update automation", http.StatusInternalServerError)
 		return
 	}
@@ -172,6 +188,10 @@ func (h *AutomationHandler) handleDelete(w http.ResponseWriter, r *http.Request)
 
 	if err := h.service.Delete(r.Context(), req.WorkspaceID, req.AutomationID); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to delete automation")
+		if _, ok := err.(*domain.PermissionError); ok {
+			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
 		WriteJSONError(w, "Failed to delete automation", http.StatusInternalServerError)
 		return
 	}
@@ -201,6 +221,10 @@ func (h *AutomationHandler) handleActivate(w http.ResponseWriter, r *http.Reques
 
 	if err := h.service.Activate(r.Context(), req.WorkspaceID, req.AutomationID); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to activate automation")
+		if _, ok := err.(*domain.PermissionError); ok {
+			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
 		WriteJSONError(w, "Failed to activate automation", http.StatusInternalServerError)
 		return
 	}
@@ -230,6 +254,10 @@ func (h *AutomationHandler) handlePause(w http.ResponseWriter, r *http.Request) 
 
 	if err := h.service.Pause(r.Context(), req.WorkspaceID, req.AutomationID); err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to pause automation")
+		if _, ok := err.(*domain.PermissionError); ok {
+			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
 		WriteJSONError(w, "Failed to pause automation", http.StatusInternalServerError)
 		return
 	}
@@ -254,6 +282,10 @@ func (h *AutomationHandler) handleGetContactNodeExecutions(w http.ResponseWriter
 	contactAutomation, nodeExecutions, err := h.service.GetContactNodeExecutions(r.Context(), req.WorkspaceID, req.AutomationID, req.Email)
 	if err != nil {
 		h.logger.WithField("error", err.Error()).Error("Failed to get contact node executions")
+		if _, ok := err.(*domain.PermissionError); ok {
+			WriteJSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
 		WriteJSONError(w, "Failed to get contact node executions", http.StatusInternalServerError)
 		return
 	}

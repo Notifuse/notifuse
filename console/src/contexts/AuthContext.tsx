@@ -145,7 +145,8 @@ export function useWorkspacePermissions(workspaceId: string) {
           transactional: { read: true, write: true },
           workspace: { read: true, write: true },
           message_history: { read: true, write: true },
-          blog: { read: true, write: true }
+          blog: { read: true, write: true },
+          automations: { read: true, write: true }
         })
         setLoading(false)
         return
@@ -167,7 +168,8 @@ export function useWorkspacePermissions(workspaceId: string) {
             transactional: { read: false, write: false },
             workspace: { read: false, write: false },
             message_history: { read: false, write: false },
-            blog: { read: false, write: false }
+            blog: { read: false, write: false },
+            automations: { read: false, write: false }
           })
         }
       } catch (error) {
@@ -181,7 +183,8 @@ export function useWorkspacePermissions(workspaceId: string) {
           transactional: { read: false, write: false },
           workspace: { read: false, write: false },
           message_history: { read: false, write: false },
-          blog: { read: false, write: false }
+          blog: { read: false, write: false },
+          automations: { read: false, write: false }
         })
       } finally {
         setLoading(false)

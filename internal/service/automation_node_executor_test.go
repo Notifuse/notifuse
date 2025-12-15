@@ -194,37 +194,6 @@ func TestDelayNodeExecutor_NodeType(t *testing.T) {
 	assert.Equal(t, domain.NodeTypeDelay, executor.NodeType())
 }
 
-func TestExitNodeExecutor_Execute(t *testing.T) {
-	executor := NewExitNodeExecutor()
-
-	params := NodeExecutionParams{
-		WorkspaceID: "ws1",
-		Node: &domain.AutomationNode{
-			ID:   "node1",
-			Type: domain.NodeTypeExit,
-		},
-		Contact: &domain.ContactAutomation{
-			ID:           "ca1",
-			ContactEmail: "test@example.com",
-		},
-	}
-
-	result, err := executor.Execute(context.Background(), params)
-	require.NoError(t, err)
-	require.NotNil(t, result)
-
-	assert.Nil(t, result.NextNodeID)
-	assert.Equal(t, domain.ContactAutomationStatusCompleted, result.Status)
-	assert.NotNil(t, result.Output)
-	assert.Equal(t, "exit", result.Output["node_type"])
-	assert.Equal(t, "exit_node", result.Output["reason"])
-}
-
-func TestExitNodeExecutor_NodeType(t *testing.T) {
-	executor := NewExitNodeExecutor()
-	assert.Equal(t, domain.NodeTypeExit, executor.NodeType())
-}
-
 func TestParseDelayNodeConfig(t *testing.T) {
 	t.Run("valid config", func(t *testing.T) {
 		config := map[string]interface{}{

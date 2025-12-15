@@ -42,7 +42,6 @@ func TestAutomationExecutor_Execute_HappyPath(t *testing.T) {
 		workspaceRepo:  mockWorkspaceRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
 			domain.NodeTypeDelay: NewDelayNodeExecutor(),
-			domain.NodeTypeExit:  NewExitNodeExecutor(),
 		},
 		logger: mockLogger,
 	}
@@ -312,7 +311,8 @@ func TestAutomationExecutor_Execute_UnsupportedNodeType(t *testing.T) {
 	assert.Contains(t, *contactAutomation.LastError, "unsupported node type")
 }
 
-func TestAutomationExecutor_Execute_ExitNode(t *testing.T) {
+func TestAutomationExecutor_Execute_TerminalNode(t *testing.T) {
+	// Tests that a node with no NextNodeID (terminal node) completes the automation
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -324,13 +324,13 @@ func TestAutomationExecutor_Execute_ExitNode(t *testing.T) {
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeExit: NewExitNodeExecutor(),
+			domain.NodeTypeDelay: NewDelayNodeExecutor(),
 		},
 		logger: mockLogger,
 	}
 
 	workspaceID := "ws1"
-	nodeID := "exit_node"
+	nodeID := "terminal_node"
 
 	contactAutomation := &domain.ContactAutomation{
 		ID:            "ca1",
@@ -340,16 +340,22 @@ func TestAutomationExecutor_Execute_ExitNode(t *testing.T) {
 		Status:        domain.ContactAutomationStatusActive,
 	}
 
-	exitNode := &domain.AutomationNode{
-		ID:   nodeID,
-		Type: domain.NodeTypeExit,
+	// Delay node with no NextNodeID - this is a terminal node
+	terminalNode := &domain.AutomationNode{
+		ID:         nodeID,
+		Type:       domain.NodeTypeDelay,
+		NextNodeID: nil, // No next node = terminal
+		Config: map[string]interface{}{
+			"duration": 1,
+			"unit":     "minutes",
+		},
 	}
 
 	automation := &domain.Automation{
 		ID:     "auto1",
 		Name:   "Test Automation",
 		Status: domain.AutomationStatusLive,
-		Nodes:  []*domain.AutomationNode{exitNode},
+		Nodes:  []*domain.AutomationNode{terminalNode},
 	}
 
 	contact := &domain.Contact{
@@ -421,13 +427,13 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeExit: NewExitNodeExecutor(),
+			domain.NodeTypeDelay: NewDelayNodeExecutor(),
 		},
 		logger: mockLogger,
 	}
 
 	workspaceID := "ws1"
-	nodeID := "exit_node"
+	nodeID := "terminal_node"
 
 	contacts := []*domain.ContactAutomationWithWorkspace{
 		{
@@ -452,16 +458,22 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 		},
 	}
 
-	exitNode := &domain.AutomationNode{
-		ID:   nodeID,
-		Type: domain.NodeTypeExit,
+	// Terminal delay node (no next node = completion)
+	terminalNode := &domain.AutomationNode{
+		ID:         nodeID,
+		Type:       domain.NodeTypeDelay,
+		NextNodeID: nil,
+		Config: map[string]interface{}{
+			"duration": 1,
+			"unit":     "minutes",
+		},
 	}
 
 	automation := &domain.Automation{
 		ID:     "auto1",
 		Name:   "Test Automation",
 		Status: domain.AutomationStatusLive,
-		Nodes:  []*domain.AutomationNode{exitNode},
+		Nodes:  []*domain.AutomationNode{terminalNode},
 	}
 
 	contact1 := &domain.Contact{Email: "test1@example.com"}
@@ -524,13 +536,13 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeExit: NewExitNodeExecutor(),
+			domain.NodeTypeDelay: NewDelayNodeExecutor(),
 		},
 		logger: mockLogger,
 	}
 
 	workspaceID := "ws1"
-	nodeID := "exit_node"
+	nodeID := "terminal_node"
 
 	contacts := []*domain.ContactAutomationWithWorkspace{
 		{
@@ -556,16 +568,22 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 		},
 	}
 
-	exitNode := &domain.AutomationNode{
-		ID:   nodeID,
-		Type: domain.NodeTypeExit,
+	// Terminal delay node (no next node = completion)
+	terminalNode := &domain.AutomationNode{
+		ID:         nodeID,
+		Type:       domain.NodeTypeDelay,
+		NextNodeID: nil,
+		Config: map[string]interface{}{
+			"duration": 1,
+			"unit":     "minutes",
+		},
 	}
 
 	automation := &domain.Automation{
 		ID:     "auto1",
 		Name:   "Test Automation",
 		Status: domain.AutomationStatusLive,
-		Nodes:  []*domain.AutomationNode{exitNode},
+		Nodes:  []*domain.AutomationNode{terminalNode},
 	}
 
 	contact2 := &domain.Contact{Email: "test2@example.com"}

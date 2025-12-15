@@ -1,0 +1,68 @@
+@import '@xyflow/react/dist/style.css';
+
+/* Custom node styles */
+.react-flow__node {
+  font-family: inherit;
+}
+
+/* Selection highlight */
+.react-flow__node.selected .automation-node {
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+/* Custom edge styles */
+.react-flow__edge-path {
+  stroke: #b1b1b7;
+  stroke-width: 2;
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #1890ff;
+}
+
+/* Handle styles */
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  background-color: #1890ff;
+  border: 2px solid #fff;
+}
+
+.react-flow__handle-top {
+  top: -5px;
+}
+
+.react-flow__handle-bottom {
+  bottom: -5px;
+}
+
+/* Background */
+.react-flow__background {
+  background-color: #fafafa;
+}
+
+/* Controls */
+.react-flow__controls {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+}
+
+.react-flow__controls-button {
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+/* Add node button on edges */
+.add-node-button {
+  background-color: var(--primary);
+  transition: background-color 0.2s ease;
+  cursor: pointer !important;
+}
+
+.add-node-button:hover {
+  background-color: #6354d1;
+}

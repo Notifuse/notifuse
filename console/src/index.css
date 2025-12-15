@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./components/email_builder/editor.css";
+@import "./styles/reactflow.css";
 @theme {
   --color-primary: #7763f1;
 }

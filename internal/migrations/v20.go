@@ -16,7 +16,7 @@ func (m *V20Migration) GetMajorVersion() float64 {
 }
 
 func (m *V20Migration) HasSystemUpdate() bool {
-	return false
+	return true
 }
 
 func (m *V20Migration) HasWorkspaceUpdate() bool {
@@ -28,7 +28,28 @@ func (m *V20Migration) ShouldRestartServer() bool {
 }
 
 func (m *V20Migration) UpdateSystem(ctx context.Context, config *config.Config, db DBExecutor) error {
-	// No system updates needed
+	// Add automations permissions to all existing user workspaces
+	_, err := db.ExecContext(ctx, `
+		UPDATE user_workspaces
+		SET permissions = permissions || '{"automations": {"read": true, "write": true}}'::jsonb
+		WHERE permissions IS NOT NULL
+		AND NOT permissions ? 'automations'
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add automations permissions to user workspaces: %w", err)
+	}
+
+	// Add automations permissions to all existing workspace invitations
+	_, err = db.ExecContext(ctx, `
+		UPDATE workspace_invitations
+		SET permissions = permissions || '{"automations": {"read": true, "write": true}}'::jsonb
+		WHERE permissions IS NOT NULL
+		AND NOT permissions ? 'automations'
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add automations permissions to workspace invitations: %w", err)
+	}
+
 	return nil
 }
 

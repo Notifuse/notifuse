@@ -45,7 +45,6 @@ func NewAutomationExecutor(
 		domain.NodeTypeFilter:         NewFilterNodeExecutor(qb, workspaceRepo),
 		domain.NodeTypeAddToList:      NewAddToListNodeExecutor(contactListRepo),
 		domain.NodeTypeRemoveFromList: NewRemoveFromListNodeExecutor(contactListRepo),
-		domain.NodeTypeExit:           NewExitNodeExecutor(),
 		domain.NodeTypeABTest:         NewABTestNodeExecutor(),
 	}
 
@@ -141,7 +140,13 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 	// 7. Update contact automation
 	contactAutomation.CurrentNodeID = result.NextNodeID
 	contactAutomation.ScheduledAt = result.ScheduledAt
-	contactAutomation.Status = result.Status
+
+	// If there's no next node, mark as completed (terminal node behavior)
+	if result.NextNodeID == nil && result.Status == domain.ContactAutomationStatusActive {
+		contactAutomation.Status = domain.ContactAutomationStatusCompleted
+	} else {
+		contactAutomation.Status = result.Status
+	}
 	// Note: Context is now reconstructed from node executions on demand,
 	// no longer stored in contact_automations.context
 
@@ -160,9 +165,9 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 	_ = e.automationRepo.UpdateNodeExecution(ctx, workspaceID, nodeExecution)
 
 	// 9. Update automation stats if status changed
-	if result.Status == domain.ContactAutomationStatusCompleted {
+	if contactAutomation.Status == domain.ContactAutomationStatusCompleted {
 		_ = e.automationRepo.IncrementAutomationStat(ctx, workspaceID, automation.ID, "completed")
-	} else if result.Status == domain.ContactAutomationStatusExited {
+	} else if contactAutomation.Status == domain.ContactAutomationStatusExited {
 		_ = e.automationRepo.IncrementAutomationStat(ctx, workspaceID, automation.ID, "exited")
 	}
 
@@ -240,7 +245,7 @@ func (e *AutomationExecutor) handleError(ctx context.Context, workspaceID string
 			ID:                  uuid.NewString(),
 			ContactAutomationID: ca.ID,
 			NodeID:              *ca.CurrentNodeID,
-			NodeType:            domain.NodeTypeExit, // We don't know the actual type, use exit as placeholder
+			NodeType:            domain.NodeTypeTrigger, // Placeholder - actual type not available in error context
 			Action:              domain.NodeActionFailed,
 			EnteredAt:           time.Now().UTC(),
 			Error:               &errStr,

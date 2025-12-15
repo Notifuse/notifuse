@@ -30,9 +30,17 @@ func NewAutomationService(
 
 // Create creates a new automation
 func (s *AutomationService) Create(ctx context.Context, workspaceID string, automation *domain.Automation) error {
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceAutomations,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to automations required",
+		)
 	}
 
 	if err := automation.Validate(); err != nil {
@@ -49,9 +57,17 @@ func (s *AutomationService) Create(ctx context.Context, workspaceID string, auto
 
 // Get retrieves an automation by ID
 func (s *AutomationService) Get(ctx context.Context, workspaceID, automationID string) (*domain.Automation, error) {
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to authenticate: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeRead) {
+		return nil, domain.NewPermissionError(
+			domain.PermissionResourceAutomations,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to automations required",
+		)
 	}
 
 	automation, err := s.repo.GetByID(ctx, workspaceID, automationID)
@@ -64,9 +80,17 @@ func (s *AutomationService) Get(ctx context.Context, workspaceID, automationID s
 
 // List retrieves automations with optional filters
 func (s *AutomationService) List(ctx context.Context, workspaceID string, filter domain.AutomationFilter) ([]*domain.Automation, int, error) {
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("failed to authenticate: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeRead) {
+		return nil, 0, domain.NewPermissionError(
+			domain.PermissionResourceAutomations,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to automations required",
+		)
 	}
 
 	automations, count, err := s.repo.List(ctx, workspaceID, filter)
@@ -79,9 +103,17 @@ func (s *AutomationService) List(ctx context.Context, workspaceID string, filter
 
 // Update updates an existing automation
 func (s *AutomationService) Update(ctx context.Context, workspaceID string, automation *domain.Automation) error {
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceAutomations,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to automations required",
+		)
 	}
 
 	if err := automation.Validate(); err != nil {
@@ -106,9 +138,17 @@ func (s *AutomationService) Update(ctx context.Context, workspaceID string, auto
 // Delete soft-deletes an automation (can delete live automations)
 // The repository handles dropping triggers and exiting active contacts
 func (s *AutomationService) Delete(ctx context.Context, workspaceID, automationID string) error {
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceAutomations,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to automations required",
+		)
 	}
 
 	// Repository handles:
@@ -125,9 +165,17 @@ func (s *AutomationService) Delete(ctx context.Context, workspaceID, automationI
 
 // Activate activates an automation (changes status to live and creates trigger)
 func (s *AutomationService) Activate(ctx context.Context, workspaceID, automationID string) error {
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceAutomations,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to automations required",
+		)
 	}
 
 	// Get existing automation
@@ -167,9 +215,17 @@ func (s *AutomationService) Activate(ctx context.Context, workspaceID, automatio
 
 // Pause pauses a live automation (changes status to paused and drops trigger)
 func (s *AutomationService) Pause(ctx context.Context, workspaceID, automationID string) error {
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to authenticate: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeWrite) {
+		return domain.NewPermissionError(
+			domain.PermissionResourceAutomations,
+			domain.PermissionTypeWrite,
+			"Insufficient permissions: write access to automations required",
+		)
 	}
 
 	// Get existing automation
@@ -199,9 +255,17 @@ func (s *AutomationService) Pause(ctx context.Context, workspaceID, automationID
 
 // GetContactNodeExecutions retrieves the node executions of a contact through an automation
 func (s *AutomationService) GetContactNodeExecutions(ctx context.Context, workspaceID, automationID, email string) (*domain.ContactAutomation, []*domain.NodeExecution, error) {
-	ctx, _, _, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
+	ctx, _, userWorkspace, err := s.authService.AuthenticateUserForWorkspace(ctx, workspaceID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to authenticate: %w", err)
+	}
+
+	if !userWorkspace.HasPermission(domain.PermissionResourceAutomations, domain.PermissionTypeRead) {
+		return nil, nil, domain.NewPermissionError(
+			domain.PermissionResourceAutomations,
+			domain.PermissionTypeRead,
+			"Insufficient permissions: read access to automations required",
+		)
 	}
 
 	// Get the contact automation record

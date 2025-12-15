@@ -59,7 +59,6 @@ func TestNodeType_IsValid(t *testing.T) {
 		{"email is valid", NodeTypeEmail, true},
 		{"branch is valid", NodeTypeBranch, true},
 		{"filter is valid", NodeTypeFilter, true},
-		{"exit is valid", NodeTypeExit, true},
 		{"add_to_list is valid", NodeTypeAddToList, true},
 		{"remove_from_list is valid", NodeTypeRemoveFromList, true},
 		{"ab_test is valid", NodeTypeABTest, true},
@@ -343,7 +342,7 @@ func TestAutomation_Validate(t *testing.T) {
 					{
 						ID:           "node2",
 						AutomationID: a.ID,
-						Type:         NodeTypeExit,
+						Type:         NodeTypeDelay,
 						Config:       map[string]interface{}{},
 					},
 				}

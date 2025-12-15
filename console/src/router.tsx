@@ -13,6 +13,7 @@ import { ListsPage } from './pages/ListsPage'
 import { FileManagerPage } from './pages/FileManagerPage'
 import { TemplatesPage } from './pages/TemplatesPage'
 import { BroadcastsPage } from './pages/BroadcastsPage'
+import { AutomationsPage } from './pages/AutomationsPage'
 import { TransactionalNotificationsPage } from './pages/TransactionalNotificationsPage'
 import { LogsPage } from './pages/LogsPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
@@ -121,6 +122,12 @@ const workspaceBroadcastsRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/broadcasts',
   component: BroadcastsPage
+})
+
+const workspaceAutomationsRoute = createRoute({
+  getParentRoute: () => workspaceRoute,
+  path: '/automations',
+  component: AutomationsPage
 })
 
 const workspaceListsRoute = createRoute({
@@ -237,6 +244,7 @@ const routeTree = rootRoute.addChildren([
   workspaceRoute.addChildren([
     workspaceIndexRoute,
     workspaceBroadcastsRoute,
+    workspaceAutomationsRoute,
     workspaceContactsRoute,
     workspaceListsRoute,
     workspaceTransactionalNotificationsRoute,

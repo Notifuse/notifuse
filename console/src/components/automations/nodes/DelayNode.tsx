@@ -1,0 +1,46 @@
+import React from 'react'
+import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Clock } from 'lucide-react'
+import { BaseNode } from './BaseNode'
+import { nodeTypeColors } from './constants'
+import type { AutomationNodeData } from '../utils/flowConverter'
+import type { DelayNodeConfig } from '../../../services/api/automation'
+
+type DelayNodeProps = NodeProps<AutomationNodeData>
+
+export const DelayNode: React.FC<DelayNodeProps> = ({ data, selected }) => {
+  const config = data.config as DelayNodeConfig
+  const duration = config?.duration || 0
+  const unit = config?.unit || 'minutes'
+
+  const formatDuration = () => {
+    if (duration === 0) return 'Configure'
+    const unitLabel = duration === 1 ? unit.slice(0, -1) : unit
+    return `${duration} ${unitLabel}`
+  }
+
+  return (
+    <>
+      <Handle
+        type="target"
+        position={Position.Top}
+        style={{ background: nodeTypeColors.delay, width: 6, height: 6 }}
+      />
+      <BaseNode
+        type="delay"
+        label="Delay"
+        icon={<Clock size={16} color={selected ? undefined : nodeTypeColors.delay} />}
+        selected={selected}
+      >
+        <div className={duration === 0 ? 'text-orange-500' : ''}>
+          {formatDuration()}
+        </div>
+      </BaseNode>
+      <Handle
+        type="source"
+        position={Position.Bottom}
+        style={{ background: nodeTypeColors.delay, width: 6, height: 6 }}
+      />
+    </>
+  )
+}

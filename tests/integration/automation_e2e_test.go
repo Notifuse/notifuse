@@ -88,17 +88,10 @@ func TestAutomation_WelcomeSeries(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create nodes: trigger → email → exit
+	// Create nodes: trigger → email (terminal)
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
-		testutil.WithNodeConfig(map[string]interface{}{}),
-	)
-	require.NoError(t, err)
-
-	exitNode, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
 		testutil.WithNodeConfig(map[string]interface{}{}),
 	)
 	require.NoError(t, err)
@@ -109,7 +102,7 @@ func TestAutomation_WelcomeSeries(t *testing.T) {
 		testutil.WithNodeConfig(map[string]interface{}{
 			"template_id": template.ID,
 		}),
-		testutil.WithNodeNextNodeID(exitNode.ID),
+		// No NextNodeID - this is a terminal node
 	)
 	require.NoError(t, err)
 
@@ -200,22 +193,13 @@ func TestAutomation_Deduplication(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create simple trigger → exit flow
+	// Create simple trigger flow (trigger is terminal)
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
 		testutil.WithNodeConfig(map[string]interface{}{}),
+		// No NextNodeID - this is a terminal node
 	)
-	require.NoError(t, err)
-
-	exitNode, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
-		testutil.WithNodeConfig(map[string]interface{}{}),
-	)
-	require.NoError(t, err)
-
-	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, exitNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -296,20 +280,12 @@ func TestAutomation_MultipleEntries(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create simple trigger → exit flow
+	// Create simple trigger flow (trigger is terminal)
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
+		// No NextNodeID - this is a terminal node
 	)
-	require.NoError(t, err)
-
-	exitNode, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
-	)
-	require.NoError(t, err)
-
-	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, exitNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -390,16 +366,10 @@ func TestAutomation_DelayTiming(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create nodes: trigger → delay (5 minutes) → exit
+	// Create nodes: trigger → delay (5 minutes) - delay is terminal
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
-	)
-	require.NoError(t, err)
-
-	exitNode, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
 	)
 	require.NoError(t, err)
 
@@ -410,7 +380,7 @@ func TestAutomation_DelayTiming(t *testing.T) {
 			"duration": 5,
 			"unit":     "minutes",
 		}),
-		testutil.WithNodeNextNodeID(exitNode.ID),
+		// No NextNodeID - this is a terminal node
 	)
 	require.NoError(t, err)
 
@@ -492,24 +462,10 @@ func TestAutomation_ABTestDeterminism(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create A/B test node with 50/50 split
+	// Create A/B test node with 50/50 split (variants lead to terminal - empty string)
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
-	)
-	require.NoError(t, err)
-
-	exitA, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
-		testutil.WithNodeID("exitA"),
-	)
-	require.NoError(t, err)
-
-	exitB, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
-		testutil.WithNodeID("exitB"),
 	)
 	require.NoError(t, err)
 
@@ -518,8 +474,8 @@ func TestAutomation_ABTestDeterminism(t *testing.T) {
 		testutil.WithNodeType(domain.NodeTypeABTest),
 		testutil.WithNodeConfig(map[string]interface{}{
 			"variants": []map[string]interface{}{
-				{"id": "A", "name": "Variant A", "weight": 50, "next_node_id": exitA.ID},
-				{"id": "B", "name": "Variant B", "weight": 50, "next_node_id": exitB.ID},
+				{"id": "A", "name": "Variant A", "weight": 50, "next_node_id": ""}, // Terminal
+				{"id": "B", "name": "Variant B", "weight": 50, "next_node_id": ""}, // Terminal
 			},
 		}),
 	)
@@ -583,28 +539,14 @@ func TestAutomation_BranchRouting(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create nodes
+	// Create nodes (branch paths lead to terminal - empty string)
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
 	)
 	require.NoError(t, err)
 
-	exitVIP, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
-		testutil.WithNodeID("exitVIP"),
-	)
-	require.NoError(t, err)
-
-	exitStandard, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
-		testutil.WithNodeID("exitStandard"),
-	)
-	require.NoError(t, err)
-
-	// Branch node with condition on country (VIP = US)
+	// Branch node with condition on country (VIP = US) - paths lead to terminal
 	branchNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeBranch),
@@ -623,10 +565,10 @@ func TestAutomation_BranchRouting(t *testing.T) {
 							},
 						},
 					},
-					"next_node_id": exitVIP.ID,
+					"next_node_id": "", // Terminal
 				},
 			},
-			"default_path_id": exitStandard.ID,
+			"default_path_id": "", // Terminal
 		}),
 	)
 	require.NoError(t, err)
@@ -691,28 +633,14 @@ func TestAutomation_FilterNode(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create nodes
+	// Create nodes (filter paths lead to terminal - empty string)
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
 	)
 	require.NoError(t, err)
 
-	exitPass, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
-		testutil.WithNodeID("exitPass"),
-	)
-	require.NoError(t, err)
-
-	exitFail, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
-		testutil.WithNodeID("exitFail"),
-	)
-	require.NoError(t, err)
-
-	// Filter: continue if country = FR
+	// Filter: continue if country = FR - both paths lead to terminal
 	filterNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeFilter),
@@ -727,8 +655,8 @@ func TestAutomation_FilterNode(t *testing.T) {
 					},
 				},
 			},
-			"continue_node_id": exitPass.ID,
-			"exit_node_id":     exitFail.ID,
+			"continue_node_id": "", // Terminal
+			"exit_node_id":     "", // Terminal
 		}),
 	)
 	require.NoError(t, err)
@@ -813,16 +741,10 @@ func TestAutomation_ListOperations(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create nodes: trigger → add_to_list → remove_from_list → exit
+	// Create nodes: trigger → add_to_list → remove_from_list (terminal)
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
-	)
-	require.NoError(t, err)
-
-	exitNode, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
 	)
 	require.NoError(t, err)
 
@@ -832,7 +754,7 @@ func TestAutomation_ListOperations(t *testing.T) {
 		testutil.WithNodeConfig(map[string]interface{}{
 			"list_id": trialList.ID,
 		}),
-		testutil.WithNodeNextNodeID(exitNode.ID),
+		// No NextNodeID - this is a terminal node
 	)
 	require.NoError(t, err)
 
@@ -912,20 +834,12 @@ func TestAutomation_ContextData(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create simple flow
+	// Create simple flow (trigger is terminal)
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
+		// No NextNodeID - this is a terminal node
 	)
-	require.NoError(t, err)
-
-	exitNode, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
-	)
-	require.NoError(t, err)
-
-	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, exitNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -991,20 +905,12 @@ func TestAutomation_SegmentTrigger(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create simple flow
+	// Create simple flow (trigger is terminal)
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
+		// No NextNodeID - this is a terminal node
 	)
-	require.NoError(t, err)
-
-	exitNode, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
-	)
-	require.NoError(t, err)
-
-	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, exitNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -1073,16 +979,8 @@ func TestAutomation_DeletionCleanup(t *testing.T) {
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
+		// No NextNodeID - this is a terminal node
 	)
-	require.NoError(t, err)
-
-	exitNode, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
-	)
-	require.NoError(t, err)
-
-	err = factory.UpdateAutomationNodeNextNodeID(workspace.ID, automation.ID, triggerNode.ID, exitNode.ID)
 	require.NoError(t, err)
 
 	err = factory.UpdateAutomationRootNode(workspace.ID, automation.ID, triggerNode.ID)
@@ -1273,16 +1171,10 @@ func TestAutomation_SchedulerExecution(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create nodes: trigger → email → exit
+	// Create nodes: trigger → email (terminal)
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
-	)
-	require.NoError(t, err)
-
-	exitNode, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
 	)
 	require.NoError(t, err)
 
@@ -1292,7 +1184,7 @@ func TestAutomation_SchedulerExecution(t *testing.T) {
 		testutil.WithNodeConfig(map[string]interface{}{
 			"template_id": template.ID,
 		}),
-		testutil.WithNodeNextNodeID(exitNode.ID),
+		// No NextNodeID - this is a terminal node
 	)
 	require.NoError(t, err)
 
@@ -1389,17 +1281,10 @@ func TestAutomation_PauseResume(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Create nodes: trigger → delay → exit
+	// Create nodes: trigger → delay (terminal)
 	triggerNode, err := factory.CreateAutomationNode(workspace.ID,
 		testutil.WithNodeAutomationID(automation.ID),
 		testutil.WithNodeType(domain.NodeTypeTrigger),
-		testutil.WithNodeConfig(map[string]interface{}{}),
-	)
-	require.NoError(t, err)
-
-	exitNode, err := factory.CreateAutomationNode(workspace.ID,
-		testutil.WithNodeAutomationID(automation.ID),
-		testutil.WithNodeType(domain.NodeTypeExit),
 		testutil.WithNodeConfig(map[string]interface{}{}),
 	)
 	require.NoError(t, err)
@@ -1411,7 +1296,7 @@ func TestAutomation_PauseResume(t *testing.T) {
 			"duration": 1,
 			"unit":     "seconds",
 		}),
-		testutil.WithNodeNextNodeID(exitNode.ID),
+		// No NextNodeID - this is a terminal node
 	)
 	require.NoError(t, err)
 
@@ -1510,6 +1395,165 @@ func TestAutomation_PauseResume(t *testing.T) {
 	t.Logf("After resume - Scheduler query returned contact: %v (should be true)", found)
 
 	t.Log("Pause/Resume test passed: contacts freeze when paused and resume when automation is live again")
+}
+
+// TestAutomation_Permissions tests that automation API respects user permissions
+func TestAutomation_Permissions(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
+		return app.NewApp(cfg)
+	})
+	defer suite.Cleanup()
+
+	factory := suite.DataFactory
+	client := suite.APIClient
+
+	// Setup: Create owner user and workspace
+	owner, err := factory.CreateUser()
+	require.NoError(t, err)
+	workspace, err := factory.CreateWorkspace()
+	require.NoError(t, err)
+	err = factory.AddUserToWorkspace(owner.ID, workspace.ID, "owner")
+	require.NoError(t, err)
+
+	// Create a member user with NO automations permissions
+	memberNoPerms, err := factory.CreateUser()
+	require.NoError(t, err)
+	noAutoPerms := domain.UserPermissions{
+		domain.PermissionResourceContacts:       domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceLists:          domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceTemplates:      domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceBroadcasts:     domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceTransactional:  domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceWorkspace:      domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceMessageHistory: domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceBlog:           domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceAutomations:    domain.ResourcePermissions{Read: false, Write: false}, // No automations access
+	}
+	err = factory.AddUserToWorkspaceWithPermissions(memberNoPerms.ID, workspace.ID, "member", noAutoPerms)
+	require.NoError(t, err)
+
+	// Create a member user with read-only automations permissions
+	memberReadOnly, err := factory.CreateUser()
+	require.NoError(t, err)
+	readOnlyPerms := domain.UserPermissions{
+		domain.PermissionResourceContacts:       domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceLists:          domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceTemplates:      domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceBroadcasts:     domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceTransactional:  domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceWorkspace:      domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceMessageHistory: domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceBlog:           domain.ResourcePermissions{Read: true, Write: true},
+		domain.PermissionResourceAutomations:    domain.ResourcePermissions{Read: true, Write: false}, // Read-only
+	}
+	err = factory.AddUserToWorkspaceWithPermissions(memberReadOnly.ID, workspace.ID, "member", readOnlyPerms)
+	require.NoError(t, err)
+
+	// Owner creates an automation
+	err = client.Login(owner.Email, "password")
+	require.NoError(t, err)
+	client.SetWorkspaceID(workspace.ID)
+
+	automation, err := factory.CreateAutomation(workspace.ID,
+		testutil.WithAutomationName("Permission Test Automation"),
+		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
+			EventKinds: []string{"test_event"},
+			Frequency:  domain.TriggerFrequencyOnce,
+		}),
+	)
+	require.NoError(t, err)
+	t.Logf("Owner created automation: %s", automation.ID)
+
+	// Test 1: User with NO permissions cannot list automations
+	t.Run("no_permissions_cannot_list", func(t *testing.T) {
+		err = client.Login(memberNoPerms.Email, "password")
+		require.NoError(t, err)
+		client.SetWorkspaceID(workspace.ID)
+
+		resp, err := client.Get(fmt.Sprintf("/api/automations.list?workspace_id=%s", workspace.ID))
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should return 403 Forbidden
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode, "User without automations read permission should get 403")
+		t.Logf("User with no permissions got status %d (expected 403)", resp.StatusCode)
+	})
+
+	// Test 2: User with read-only permissions can list automations
+	t.Run("read_only_can_list", func(t *testing.T) {
+		err = client.Login(memberReadOnly.Email, "password")
+		require.NoError(t, err)
+		client.SetWorkspaceID(workspace.ID)
+
+		resp, err := client.Get(fmt.Sprintf("/api/automations.list?workspace_id=%s", workspace.ID))
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should return 200 OK
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "User with automations read permission should get 200")
+		t.Logf("User with read-only permissions got status %d (expected 200)", resp.StatusCode)
+	})
+
+	// Test 3: User with read-only permissions cannot create automations
+	t.Run("read_only_cannot_create", func(t *testing.T) {
+		err = client.Login(memberReadOnly.Email, "password")
+		require.NoError(t, err)
+		client.SetWorkspaceID(workspace.ID)
+
+		// Try to create an automation via API with a valid automation object
+		resp, err := client.Post("/api/automations.create", map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"automation": map[string]interface{}{
+				"id":           "test-create-fail",
+				"workspace_id": workspace.ID,
+				"name":         "Should Fail",
+				"status":       "draft",
+				"trigger": map[string]interface{}{
+					"event_kinds": []string{"test"},
+					"frequency":   "once",
+				},
+			},
+		})
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should return 403 Forbidden
+		assert.Equal(t, http.StatusForbidden, resp.StatusCode, "User without automations write permission should get 403 on create")
+		t.Logf("User with read-only permissions trying to create got status %d (expected 403)", resp.StatusCode)
+	})
+
+	// Test 4: Owner can create automations (owner bypasses permissions)
+	t.Run("owner_can_create", func(t *testing.T) {
+		err = client.Login(owner.Email, "password")
+		require.NoError(t, err)
+		client.SetWorkspaceID(workspace.ID)
+
+		resp, err := client.Post("/api/automations.create", map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"automation": map[string]interface{}{
+				"id":           "owner-created-auto",
+				"workspace_id": workspace.ID,
+				"name":         "Owner Created Automation",
+				"status":       "draft",
+				"trigger": map[string]interface{}{
+					"event_kinds": []string{"owner_test"},
+					"frequency":   "once",
+				},
+			},
+		})
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		// Should return 201 Created
+		assert.Equal(t, http.StatusCreated, resp.StatusCode, "Owner should be able to create automations")
+		t.Logf("Owner creating automation got status %d (expected 201)", resp.StatusCode)
+	})
+
+	t.Log("Automation permissions test passed")
 }
 
 // PrintBugReport outputs all bugs found during testing

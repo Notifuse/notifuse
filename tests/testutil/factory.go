@@ -320,6 +320,25 @@ func (tdf *TestDataFactory) AddUserToWorkspace(userID, workspaceID, role string)
 	return nil
 }
 
+// AddUserToWorkspaceWithPermissions adds a user to a workspace with the specified role and permissions
+func (tdf *TestDataFactory) AddUserToWorkspaceWithPermissions(userID, workspaceID, role string, permissions domain.UserPermissions) error {
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      userID,
+		WorkspaceID: workspaceID,
+		Role:        role,
+		Permissions: permissions,
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+	}
+
+	err := tdf.workspaceRepo.AddUserToWorkspace(context.Background(), userWorkspace)
+	if err != nil {
+		return fmt.Errorf("failed to add user to workspace: %w", err)
+	}
+
+	return nil
+}
+
 // CreateIntegration creates a test integration using the workspace repository
 func (tdf *TestDataFactory) CreateIntegration(workspaceID string, opts ...IntegrationOption) (*domain.Integration, error) {
 	integration := &domain.Integration{

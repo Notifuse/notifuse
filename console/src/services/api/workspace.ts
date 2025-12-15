@@ -300,6 +300,7 @@ export interface UserPermissions {
   workspace: ResourcePermissions
   message_history: ResourcePermissions
   blog: ResourcePermissions
+  automations: ResourcePermissions
 }
 
 // Set User Permissions types

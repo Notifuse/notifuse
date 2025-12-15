@@ -14,6 +14,7 @@
 
 - execute all nodes until wait node or end when executing automation for contact
 - use atomic db queries to increment automations stats
+- add new permissions in v20 for automations
 
 ## Content
 

@@ -378,22 +378,34 @@ export class MjSectionBlock extends BaseEmailBlock {
       >
         <tbody>
           <tr>
-            {this.block.children?.map((child) => (
-              <td key={child.id} style={{ verticalAlign: 'top' }}>
-                {EmailBlockClass.renderEmailBlock(
-                  child,
-                  attributeDefaults,
-                  selectedBlockId,
-                  onSelectBlock,
-                  emailTree,
-                  onUpdateBlock,
-                  onCloneBlock,
-                  onDeleteBlock,
-                  onSave,
-                  savedBlocks
-                )}
-              </td>
-            ))}
+            {this.block.children?.map((child) => {
+              // Get column width from child attributes (for mj-column blocks)
+              const childAttrs = child.attributes as Record<string, unknown> | undefined
+              const columnWidth = childAttrs?.width as string | undefined
+
+              return (
+                <td
+                  key={child.id}
+                  style={{
+                    verticalAlign: 'top',
+                    width: columnWidth || undefined
+                  }}
+                >
+                  {EmailBlockClass.renderEmailBlock(
+                    child,
+                    attributeDefaults,
+                    selectedBlockId,
+                    onSelectBlock,
+                    emailTree,
+                    onUpdateBlock,
+                    onCloneBlock,
+                    onDeleteBlock,
+                    onSave,
+                    savedBlocks
+                  )}
+                </td>
+              )
+            })}
           </tr>
         </tbody>
       </table>

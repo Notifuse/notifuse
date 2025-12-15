@@ -457,17 +457,34 @@ func (e *FilterNodeExecutor) Execute(ctx context.Context, params NodeExecutionPa
 	}
 
 	if matches {
+		// Filter passed - continue to next node (or complete if empty)
+		var nextNodeID *string
+		if config.ContinueNodeID != "" {
+			nextNodeID = &config.ContinueNodeID
+		}
+		status := domain.ContactAutomationStatusActive
+		if nextNodeID == nil {
+			status = domain.ContactAutomationStatusCompleted
+		}
 		return &NodeExecutionResult{
-			NextNodeID: &config.ContinueNodeID,
-			Status:     domain.ContactAutomationStatusActive,
+			NextNodeID: nextNodeID,
+			Status:     status,
 			Output:     buildNodeOutput(domain.NodeTypeFilter, map[string]interface{}{"filter_passed": true}),
 		}, nil
 	}
 
-	// Filter failed - go to exit path
+	// Filter failed - go to rejection path (or complete if empty)
+	var nextNodeID *string
+	if config.ExitNodeID != "" {
+		nextNodeID = &config.ExitNodeID
+	}
+	status := domain.ContactAutomationStatusActive
+	if nextNodeID == nil {
+		status = domain.ContactAutomationStatusCompleted
+	}
 	return &NodeExecutionResult{
-		NextNodeID: &config.ExitNodeID,
-		Status:     domain.ContactAutomationStatusActive,
+		NextNodeID: nextNodeID,
+		Status:     status,
 		Output:     buildNodeOutput(domain.NodeTypeFilter, map[string]interface{}{"filter_passed": false}),
 	}, nil
 }
@@ -647,28 +664,6 @@ func parseRemoveFromListNodeConfig(config map[string]interface{}) (*domain.Remov
 	}
 
 	return &c, nil
-}
-
-// ExitNodeExecutor executes exit nodes
-type ExitNodeExecutor struct{}
-
-// NewExitNodeExecutor creates a new exit node executor
-func NewExitNodeExecutor() *ExitNodeExecutor {
-	return &ExitNodeExecutor{}
-}
-
-// NodeType returns the node type this executor handles
-func (e *ExitNodeExecutor) NodeType() domain.NodeType {
-	return domain.NodeTypeExit
-}
-
-// Execute processes an exit node
-func (e *ExitNodeExecutor) Execute(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
-	return &NodeExecutionResult{
-		NextNodeID: nil, // No next node
-		Status:     domain.ContactAutomationStatusCompleted,
-		Output:     buildNodeOutput(domain.NodeTypeExit, map[string]interface{}{"reason": "exit_node"}),
-	}, nil
 }
 
 // ABTestNodeExecutor executes A/B test nodes

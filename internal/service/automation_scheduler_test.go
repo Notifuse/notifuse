@@ -206,7 +206,7 @@ func TestAutomationScheduler_ProcessBatchOnInterval(t *testing.T) {
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeExit: NewExitNodeExecutor(),
+			domain.NodeTypeDelay: NewDelayNodeExecutor(),
 		},
 		logger: mockLogger,
 	}
@@ -218,7 +218,7 @@ func TestAutomationScheduler_ProcessBatchOnInterval(t *testing.T) {
 	var callCount int
 	var mu sync.Mutex
 
-	nodeID := "exit_node"
+	nodeID := "terminal_node"
 	contacts := []*domain.ContactAutomationWithWorkspace{
 		{
 			WorkspaceID: "ws1",
@@ -232,16 +232,22 @@ func TestAutomationScheduler_ProcessBatchOnInterval(t *testing.T) {
 		},
 	}
 
-	exitNode := &domain.AutomationNode{
-		ID:   nodeID,
-		Type: domain.NodeTypeExit,
+	// Terminal delay node (no next node = completion)
+	terminalNode := &domain.AutomationNode{
+		ID:         nodeID,
+		Type:       domain.NodeTypeDelay,
+		NextNodeID: nil,
+		Config: map[string]interface{}{
+			"duration": 1,
+			"unit":     "minutes",
+		},
 	}
 
 	automation := &domain.Automation{
 		ID:     "auto1",
 		Name:   "Test",
 		Status: domain.AutomationStatusLive,
-		Nodes:  []*domain.AutomationNode{exitNode},
+		Nodes:  []*domain.AutomationNode{terminalNode},
 	}
 
 	contact := &domain.Contact{Email: "test@example.com"}

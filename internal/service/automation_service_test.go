@@ -71,7 +71,7 @@ func TestAutomationService_Create(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
-			Permissions: domain.UserPermissions{},
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().Create(ctx, workspaceID, automation).Return(nil)
@@ -97,6 +97,7 @@ func TestAutomationService_Create(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 
@@ -112,6 +113,7 @@ func TestAutomationService_Create(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().Create(ctx, workspaceID, automation).Return(errors.New("db error"))
@@ -145,6 +147,7 @@ func TestAutomationService_Get(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(expectedAutomation, nil)
@@ -168,6 +171,7 @@ func TestAutomationService_Get(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetByID(ctx, workspaceID, automationID).Return(nil, errors.New("not found"))
@@ -202,6 +206,7 @@ func TestAutomationService_List(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().List(ctx, workspaceID, filter).Return(expectedAutomations, 2, nil)
@@ -245,6 +250,7 @@ func TestAutomationService_Update(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		// No GetNodes call needed when list_id is set
@@ -270,6 +276,7 @@ func TestAutomationService_Update(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 
@@ -290,6 +297,7 @@ func TestAutomationService_Update(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 
@@ -310,6 +318,7 @@ func TestAutomationService_Update(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().Update(ctx, workspaceID, automation).Return(nil)
@@ -338,6 +347,7 @@ func TestAutomationService_Delete(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
@@ -354,6 +364,7 @@ func TestAutomationService_Delete(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
@@ -375,6 +386,7 @@ func TestAutomationService_Delete(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
@@ -407,6 +419,7 @@ func TestAutomationService_Activate(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		// Mock that automation is in draft status
 		existingAutomation := createTestAutomationService(automationID, workspaceID)
@@ -426,6 +439,7 @@ func TestAutomationService_Activate(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		existingAutomation := createTestAutomationService(automationID, workspaceID)
 		existingAutomation.Status = domain.AutomationStatusLive
@@ -443,6 +457,7 @@ func TestAutomationService_Activate(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		existingAutomation := createTestAutomationService(automationID, workspaceID)
 		existingAutomation.Status = domain.AutomationStatusDraft
@@ -465,6 +480,7 @@ func TestAutomationService_Activate(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		existingAutomation := createTestAutomationService(automationID, workspaceID)
 		existingAutomation.Status = domain.AutomationStatusDraft
@@ -484,6 +500,7 @@ func TestAutomationService_Activate(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		existingAutomation := createTestAutomationService(automationID, workspaceID)
 		existingAutomation.Status = domain.AutomationStatusDraft
@@ -522,6 +539,7 @@ func TestAutomationService_Pause(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		// Mock that automation is in live status
 		existingAutomation := createTestAutomationService(automationID, workspaceID)
@@ -541,6 +559,7 @@ func TestAutomationService_Pause(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		existingAutomation := createTestAutomationService(automationID, workspaceID)
 		existingAutomation.Status = domain.AutomationStatusDraft
@@ -590,6 +609,7 @@ func TestAutomationService_GetContactNodeExecutions(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetContactAutomationByEmail(ctx, workspaceID, automationID, email).Return(contactAutomation, nil)
@@ -616,6 +636,7 @@ func TestAutomationService_GetContactNodeExecutions(t *testing.T) {
 			UserID:      "user-123",
 			WorkspaceID: workspaceID,
 			Role:        "admin",
+			Permissions: domain.FullPermissions,
 		}
 		mockAuthService.EXPECT().AuthenticateUserForWorkspace(gomock.Any(), workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
 		mockRepo.EXPECT().GetContactAutomationByEmail(ctx, workspaceID, automationID, email).Return(nil, errors.New("not found"))
