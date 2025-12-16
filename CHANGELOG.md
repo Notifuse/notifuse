@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [19.5] - 2025-12-16
+
+- Fix: Unsubscribes via notification center link are now tracked in broadcast statistics (#165)
+
 ## [19.4] - 2025-12-12
 
 - Fix: Broadcast recipient count mismatch - `CountContactsForBroadcast` now filters soft-deleted lists consistently with `GetContactsForBroadcast`

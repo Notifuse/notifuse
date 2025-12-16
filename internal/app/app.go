@@ -599,6 +599,7 @@ func (a *App) InitServices() error {
 		a.workspaceRepo,
 		a.contactListRepo,
 		a.contactRepo,
+		a.messageHistoryRepo,
 		a.authService,
 		a.emailService,
 		a.logger,
