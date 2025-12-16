@@ -29,3 +29,5 @@ coverage-report.txt
 console/.claude/settings.local.json
 
 service.test
+
+integration.test

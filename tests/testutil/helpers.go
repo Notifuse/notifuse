@@ -994,3 +994,131 @@ func GetMailpitMessage(t *testing.T, messageID string) (*MailpitMessage, error) 
 
 	return &msg, nil
 }
+
+// GetMailpitMessageCount returns the total count of messages matching a subject substring
+// This is useful for verifying broadcast delivery to large recipient lists
+func GetMailpitMessageCount(t *testing.T, subject string) (int, error) {
+	httpClient := &http.Client{Timeout: 10 * time.Second}
+
+	// Use the search API to find messages by subject
+	// Mailpit supports search queries in the format: subject:"text"
+	searchURL := fmt.Sprintf("http://localhost:8025/api/v1/search?query=subject:%s", subject)
+	resp, err := httpClient.Get(searchURL)
+	if err != nil {
+		return 0, fmt.Errorf("failed to search Mailpit: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		// Fall back to listing all messages if search not supported
+		return getMailpitMessageCountByListing(t, subject)
+	}
+
+	var apiResp MailpitMessagesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return 0, fmt.Errorf("failed to decode Mailpit search response: %w", err)
+	}
+
+	return apiResp.Total, nil
+}
+
+// getMailpitMessageCountByListing counts messages by listing all and filtering by subject
+func getMailpitMessageCountByListing(t *testing.T, subject string) (int, error) {
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+
+	// Get all messages with high limit
+	mailpitURL := "http://localhost:8025/api/v1/messages?limit=10000"
+	resp, err := httpClient.Get(mailpitURL)
+	if err != nil {
+		return 0, fmt.Errorf("failed to list Mailpit messages: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var apiResp MailpitMessagesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return 0, fmt.Errorf("failed to decode Mailpit response: %w", err)
+	}
+
+	count := 0
+	for _, msg := range apiResp.Messages {
+		if strings.Contains(msg.Subject, subject) {
+			count++
+		}
+	}
+
+	return count, nil
+}
+
+// GetAllMailpitRecipients returns all unique recipient email addresses for messages matching a subject
+// This is the primary verification function for Issue #157 - ensures no recipients are skipped
+func GetAllMailpitRecipients(t *testing.T, subject string) (map[string]bool, error) {
+	httpClient := &http.Client{Timeout: 30 * time.Second}
+
+	// Get all messages with high limit to capture all broadcast emails
+	mailpitURL := "http://localhost:8025/api/v1/messages?limit=10000"
+	resp, err := httpClient.Get(mailpitURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list Mailpit messages: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var apiResp MailpitMessagesResponse
+	if err := json.NewDecoder(resp.Body).Decode(&apiResp); err != nil {
+		return nil, fmt.Errorf("failed to decode Mailpit response: %w", err)
+	}
+
+	recipients := make(map[string]bool)
+	for _, msg := range apiResp.Messages {
+		// Only count messages matching our subject
+		if !strings.Contains(msg.Subject, subject) {
+			continue
+		}
+
+		// Collect all To recipients
+		for _, to := range msg.To {
+			email := strings.ToLower(strings.TrimSpace(to.Address))
+			if email != "" {
+				recipients[email] = true
+			}
+		}
+	}
+
+	t.Logf("Found %d unique recipients for subject containing '%s'", len(recipients), subject)
+	return recipients, nil
+}
+
+// WaitForMailpitMessages waits until the expected count of messages arrive in Mailpit
+// This is useful when testing async broadcast delivery to many recipients
+func WaitForMailpitMessages(t *testing.T, subject string, expectedCount int, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 2 * time.Second
+	lastCount := 0
+
+	t.Logf("Waiting for %d emails with subject '%s' (timeout: %v)", expectedCount, subject, timeout)
+
+	for time.Now().Before(deadline) {
+		count, err := GetMailpitMessageCount(t, subject)
+		if err != nil {
+			t.Logf("Warning: failed to get Mailpit message count: %v", err)
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		// Log progress if count changed
+		if count != lastCount {
+			t.Logf("Mailpit message count: %d / %d (%.1f%%)", count, expectedCount, float64(count)/float64(expectedCount)*100)
+			lastCount = count
+		}
+
+		if count >= expectedCount {
+			t.Logf("All %d emails received in Mailpit", expectedCount)
+			return nil
+		}
+
+		time.Sleep(pollInterval)
+	}
+
+	// Timeout - get final count for error message
+	finalCount, _ := GetMailpitMessageCount(t, subject)
+	return fmt.Errorf("timeout waiting for %d emails (got %d after %v)", expectedCount, finalCount, timeout)
+}

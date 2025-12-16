@@ -587,6 +587,14 @@ func WithTemplateCategory(category string) TemplateOption {
 	}
 }
 
+func WithTemplateSubject(subject string) TemplateOption {
+	return func(t *domain.Template) {
+		if t.Email != nil {
+			t.Email.Subject = subject
+		}
+	}
+}
+
 // Broadcast options
 func WithBroadcastName(name string) BroadcastOption {
 	return func(b *domain.Broadcast) {
@@ -1074,10 +1082,10 @@ func (tdf *TestDataFactory) MarkTaskAsRunning(workspaceID, taskID string) error 
 	return taskRepo.MarkAsRunning(context.Background(), workspaceID, taskID, timeoutAfter)
 }
 
-// MarkTaskAsCompleted marks a task as completed
-func (tdf *TestDataFactory) MarkTaskAsCompleted(workspaceID, taskID string) error {
+// MarkTaskAsCompleted marks a task as completed with the final state
+func (tdf *TestDataFactory) MarkTaskAsCompleted(workspaceID, taskID string, state *domain.TaskState) error {
 	taskRepo := repository.NewTaskRepository(tdf.db)
-	return taskRepo.MarkAsCompleted(context.Background(), workspaceID, taskID)
+	return taskRepo.MarkAsCompleted(context.Background(), workspaceID, taskID, state)
 }
 
 // MarkTaskAsFailed marks a task as failed with an error message
@@ -1090,6 +1098,13 @@ func (tdf *TestDataFactory) MarkTaskAsFailed(workspaceID, taskID string, errorMs
 func (tdf *TestDataFactory) MarkTaskAsPaused(workspaceID, taskID string, nextRunAfter time.Time, progress float64, state *domain.TaskState) error {
 	taskRepo := repository.NewTaskRepository(tdf.db)
 	return taskRepo.MarkAsPaused(context.Background(), workspaceID, taskID, nextRunAfter, progress, state)
+}
+
+// UpdateTaskMaxRuntime updates a task's max_runtime value for testing timeout behavior
+func (tdf *TestDataFactory) UpdateTaskMaxRuntime(workspaceID, taskID string, maxRuntime int) error {
+	query := `UPDATE tasks SET max_runtime = $1 WHERE workspace_id = $2 AND id = $3`
+	_, err := tdf.db.ExecContext(context.Background(), query, maxRuntime, workspaceID, taskID)
+	return err
 }
 
 // CreateTransactionalNotification creates a test transactional notification using the repository

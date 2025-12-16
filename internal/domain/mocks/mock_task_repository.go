@@ -185,31 +185,31 @@ func (mr *MockTaskRepositoryMockRecorder) List(arg0, arg1, arg2 interface{}) *go
 }
 
 // MarkAsCompleted mocks base method.
-func (m *MockTaskRepository) MarkAsCompleted(arg0 context.Context, arg1, arg2 string) error {
+func (m *MockTaskRepository) MarkAsCompleted(arg0 context.Context, arg1, arg2 string, arg3 *domain.TaskState) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkAsCompleted", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "MarkAsCompleted", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // MarkAsCompleted indicates an expected call of MarkAsCompleted.
-func (mr *MockTaskRepositoryMockRecorder) MarkAsCompleted(arg0, arg1, arg2 interface{}) *gomock.Call {
+func (mr *MockTaskRepositoryMockRecorder) MarkAsCompleted(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsCompleted", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsCompleted), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsCompleted", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsCompleted), arg0, arg1, arg2, arg3)
 }
 
 // MarkAsCompletedTx mocks base method.
-func (m *MockTaskRepository) MarkAsCompletedTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string) error {
+func (m *MockTaskRepository) MarkAsCompletedTx(arg0 context.Context, arg1 *sql.Tx, arg2, arg3 string, arg4 *domain.TaskState) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MarkAsCompletedTx", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "MarkAsCompletedTx", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
 // MarkAsCompletedTx indicates an expected call of MarkAsCompletedTx.
-func (mr *MockTaskRepositoryMockRecorder) MarkAsCompletedTx(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+func (mr *MockTaskRepositoryMockRecorder) MarkAsCompletedTx(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsCompletedTx", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsCompletedTx), arg0, arg1, arg2, arg3)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsCompletedTx", reflect.TypeOf((*MockTaskRepository)(nil).MarkAsCompletedTx), arg0, arg1, arg2, arg3, arg4)
 }
 
 // MarkAsFailed mocks base method.

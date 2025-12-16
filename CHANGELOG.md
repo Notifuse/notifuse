@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [19.5] - 2025-12-16
 
+- Fix: Task completion now saves final state to prevent stale progress display in UI (#157)
+- Fix: Prevent concurrent task execution race condition that could cause duplicate broadcast emails
 - Fix: Unsubscribes via notification center link are now tracked in broadcast statistics (#165)
 - Fix: Email builder now respects column width attributes in section blocks
 - Fix: Contact bulk import now handles duplicate emails in a single batch (#167)
