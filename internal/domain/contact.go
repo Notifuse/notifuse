@@ -625,7 +625,8 @@ type ContactRepository interface {
 	BulkUpsertContacts(ctx context.Context, workspaceID string, contacts []*Contact) ([]BulkUpsertResult, error)
 
 	// GetContactsForBroadcast retrieves contacts based on broadcast audience settings
-	GetContactsForBroadcast(ctx context.Context, workspaceID string, audience AudienceSettings, limit int, offset int) ([]*ContactWithList, error)
+	// Uses cursor-based pagination: afterEmail is the last email from the previous batch (empty for first batch)
+	GetContactsForBroadcast(ctx context.Context, workspaceID string, audience AudienceSettings, limit int, afterEmail string) ([]*ContactWithList, error)
 
 	// CountContactsForBroadcast counts contacts based on broadcast audience settings
 	CountContactsForBroadcast(ctx context.Context, workspaceID string, audience AudienceSettings) (int, error)

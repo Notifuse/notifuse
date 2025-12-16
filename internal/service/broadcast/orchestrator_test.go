@@ -371,7 +371,7 @@ func TestBroadcastOrchestrator_FetchBatch(t *testing.T) {
 	ctx := context.Background()
 	workspaceID := "workspace-123"
 	broadcastID := "broadcast-123"
-	offset := 0
+	afterEmail := "" // Empty cursor for first batch
 	limit := 50
 
 	// Mock broadcast
@@ -394,11 +394,11 @@ func TestBroadcastOrchestrator_FetchBatch(t *testing.T) {
 		Return(testBroadcast, nil)
 
 	mockContactRepo.EXPECT().
-		GetContactsForBroadcast(ctx, workspaceID, testBroadcast.Audience, limit, offset).
+		GetContactsForBroadcast(ctx, workspaceID, testBroadcast.Audience, limit, afterEmail).
 		Return(expectedContacts, nil)
 
 	// Execute
-	contacts, err := orchestrator.FetchBatch(ctx, workspaceID, broadcastID, offset, limit)
+	contacts, err := orchestrator.FetchBatch(ctx, workspaceID, broadcastID, afterEmail, limit)
 
 	// Verify
 	require.NoError(t, err)
@@ -446,7 +446,7 @@ func TestBroadcastOrchestrator_FetchBatch_CancelledBroadcast(t *testing.T) {
 	ctx := context.Background()
 	workspaceID := "workspace-123"
 	broadcastID := "broadcast-123"
-	offset := 0
+	afterEmail := "" // Empty cursor for first batch
 	limit := 50
 
 	// Mock cancelled broadcast
@@ -465,7 +465,7 @@ func TestBroadcastOrchestrator_FetchBatch_CancelledBroadcast(t *testing.T) {
 	// Should NOT call GetContactsForBroadcast since broadcast is cancelled
 
 	// Execute
-	contacts, err := orchestrator.FetchBatch(ctx, workspaceID, broadcastID, offset, limit)
+	contacts, err := orchestrator.FetchBatch(ctx, workspaceID, broadcastID, afterEmail, limit)
 
 	// Verify
 	require.Error(t, err)
@@ -736,7 +736,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					{Contact: &domain.Contact{Email: "user2@example.com"}, ListID: "list-1"},
 				}
 				// Expect batch size of 2 because remainingInPhase (2) < FetchBatchSize (50)
-				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 2, 0).Return(recipients, nil)
+				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 2, "").Return(recipients, nil)
 
 				// Mock message sending
 				mockMessageSender.EXPECT().SendBatch(
@@ -867,7 +867,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					{Contact: &domain.Contact{Email: "user1@example.com"}, ListID: "list-1"},
 				}
 				// Expect batch size of 1 because remainingInPhase (1) < FetchBatchSize (50)
-				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 1, 0).Return(recipients, nil)
+				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 1, "").Return(recipients, nil)
 
 				// Mock message sending
 				mockMessageSender.EXPECT().SendBatch(
@@ -1189,7 +1189,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 				mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "template-1", int64(0)).Return(template, nil)
 
 				// Recipient fetch failure - expect batch size of 2 because remainingInPhase (2) < FetchBatchSize (50)
-				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 2, 0).Return(nil, fmt.Errorf("database error"))
+				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 2, "").Return(nil, fmt.Errorf("database error"))
 
 				return mockMessageSender, mockBroadcastRepo, mockTemplateRepo, mockContactRepo, mockTaskRepo, mockWorkspaceRepo, mockLogger, mockTimeProvider
 			},
@@ -1308,7 +1308,7 @@ func TestBroadcastOrchestrator_Process(t *testing.T) {
 					{Contact: &domain.Contact{Email: "user1@example.com"}, ListID: "list-1"},
 				}
 				// Expect batch size of 1 because remainingInPhase (1) < FetchBatchSize (50)
-				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 1, 0).Return(recipients, nil)
+				mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 1, "").Return(recipients, nil)
 
 				// Mock message sending
 				mockMessageSender.EXPECT().SendBatch(
@@ -1473,7 +1473,7 @@ func TestBroadcastOrchestrator_Process_ABTestStartSetsTestingAndCompletesTestPha
 
 	// Contacts - since sample 100% and totalRecipients preset below = 1, expect limit 1
 	recipients := []*domain.ContactWithList{{Contact: &domain.Contact{Email: "a@b.com"}, ListID: "list-1"}}
-	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", bcast.Audience, 1, 0).Return(recipients, nil)
+	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", bcast.Audience, 1, "").Return(recipients, nil)
 
 	// Send batch
 	mockMessageSender.EXPECT().SendBatch(gomock.Any(), "workspace-123", "marketing-provider-id", "secret-key", gomock.Any(), true, "broadcast-123", recipients, gomock.Any(), gomock.Any(), gomock.Any()).Return(1, 0, nil)
@@ -1690,7 +1690,7 @@ func TestBroadcastOrchestrator_Process_EmptyRecipientsTriggersTestCompletion(t *
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "w", "tpl", int64(0)).Return(tpl, nil)
 
 	// Return empty recipients
-	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "w", bcast.Audience, 1, 0).Return([]*domain.ContactWithList{}, nil)
+	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "w", bcast.Audience, 1, "").Return([]*domain.ContactWithList{}, nil)
 
 	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "w", "t", gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
 
@@ -1786,7 +1786,7 @@ func TestBroadcastOrchestrator_Process_AutoWinnerEvaluationPath(t *testing.T) {
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "w", "tplB", int64(0)).Return(tplB, nil)
 
 	// Recipient batch for winner phase (totalRecipients preset to 1 in task below)
-	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "w", bcast.Audience, 1, 0).Return([]*domain.ContactWithList{{Contact: &domain.Contact{Email: "w@x.com"}}}, nil)
+	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "w", bcast.Audience, 1, "").Return([]*domain.ContactWithList{{Contact: &domain.Contact{Email: "w@x.com"}}}, nil)
 
 	// Send
 	mockMessageSender.EXPECT().SendBatch(gomock.Any(), "w", "pid", "k", gomock.Any(), true, "b", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Return(1, 0, nil)
@@ -1902,8 +1902,9 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "template-A", int64(0)).Return(templateA, nil).AnyTimes()
 	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "template-B", int64(0)).Return(templateB, nil).AnyTimes()
 
-	// Setup recipients: winner phase should fetch from offset=1 (after test phase processed 1 recipient)
+	// Setup recipients: winner phase should fetch using cursor (after test phase processed 1 recipient)
 	// This is the key part of the test - ensuring the winner phase processes the remaining recipient
+	// With cursor-based pagination, we use LastProcessedEmail instead of offset
 	recipient := &domain.ContactWithList{
 		Contact: &domain.Contact{
 			Email: "recipient2@example.com",
@@ -1914,8 +1915,8 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 		gomock.Any(),
 		"workspace-123",
 		bcast.Audience,
-		1, // limit: remaining recipients in phase
-		1, // offset: should be 1 (after test phase processed first recipient)
+		1,                        // limit: remaining recipients in phase
+		"recipient1@example.com", // cursor: last email processed in test phase
 	).Return([]*domain.ContactWithList{recipient}, nil)
 
 	// Mock successful sending
@@ -1972,6 +1973,7 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 	// Create task that simulates resuming after test phase completion
 	// This is the key: RecipientOffset=1 means test phase already processed 1 recipient
 	// Phase="test" but winner is already selected, so should transition to "winner"
+	// LastProcessedEmail stores the cursor for DB pagination
 	task := &domain.Task{
 		ID:          "task-123",
 		WorkspaceID: "workspace-123",
@@ -1983,7 +1985,8 @@ func TestBroadcastOrchestrator_Process_ABTestWinnerPhaseProcessesRemainingRecipi
 				TotalRecipients:           2, // Total of 2 recipients
 				TestPhaseRecipientCount:   1, // Test phase processes 1 recipient (50% of 2)
 				WinnerPhaseRecipientCount: 1, // Winner phase should process remaining 1 recipient
-				RecipientOffset:           1, // Test phase already processed 1 recipient
+				RecipientOffset:           1, // Test phase already processed 1 recipient (progress counter)
+				LastProcessedEmail:        "recipient1@example.com", // Cursor for DB pagination
 				SentCount:                 1, // Test phase sent to 1 recipient
 				FailedCount:               0,
 				Phase:                     "test", // Should transition to "winner" when processing starts
@@ -2437,7 +2440,7 @@ func TestBroadcastOrchestrator_FetchBatch_BroadcastNotFound(t *testing.T) {
 
 	// Execute
 	ctx := context.Background()
-	contacts, err := orchestrator.FetchBatch(ctx, "workspace-123", "broadcast-123", 0, 10)
+	contacts, err := orchestrator.FetchBatch(ctx, "workspace-123", "broadcast-123", "", 10)
 
 	// Verify
 	assert.Nil(t, contacts)
@@ -2496,7 +2499,7 @@ func TestBroadcastOrchestrator_FetchBatch_BroadcastCancelled(t *testing.T) {
 
 	// Execute
 	ctx := context.Background()
-	contacts, err := orchestrator.FetchBatch(ctx, "workspace-123", "broadcast-123", 0, 10)
+	contacts, err := orchestrator.FetchBatch(ctx, "workspace-123", "broadcast-123", "", 10)
 
 	// Verify
 	assert.Nil(t, contacts)
@@ -2554,12 +2557,12 @@ func TestBroadcastOrchestrator_FetchBatch_ContactRepoError(t *testing.T) {
 	}
 	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(broadcast, nil)
 
-	// Mock GetContactsForBroadcast to return an error
-	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 10, 0).Return(nil, errors.New("database connection error"))
+	// Mock GetContactsForBroadcast to return an error (with empty cursor for first batch)
+	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", broadcast.Audience, 10, "").Return(nil, errors.New("database connection error"))
 
 	// Execute
 	ctx := context.Background()
-	contacts, err := orchestrator.FetchBatch(ctx, "workspace-123", "broadcast-123", 0, 10)
+	contacts, err := orchestrator.FetchBatch(ctx, "workspace-123", "broadcast-123", "", 10)
 
 	// Verify
 	assert.Nil(t, contacts)

@@ -51,7 +51,7 @@ func (mr *MockBroadcastOrchestratorInterfaceMockRecorder) CanProcess(arg0 interf
 }
 
 // FetchBatch mocks base method.
-func (m *MockBroadcastOrchestratorInterface) FetchBatch(arg0 context.Context, arg1, arg2 string, arg3, arg4 int) ([]*domain.ContactWithList, error) {
+func (m *MockBroadcastOrchestratorInterface) FetchBatch(arg0 context.Context, arg1, arg2, arg3 string, arg4 int) ([]*domain.ContactWithList, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FetchBatch", arg0, arg1, arg2, arg3, arg4)
 	ret0, _ := ret[0].([]*domain.ContactWithList)

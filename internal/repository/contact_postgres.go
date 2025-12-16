@@ -1348,12 +1348,13 @@ func (r *contactRepository) BulkUpsertContacts(ctx context.Context, workspaceID 
 
 // GetContactsForBroadcast retrieves contacts based on broadcast audience settings
 // It supports filtering by lists, handling unsubscribed contacts, and deduplication
+// Uses cursor-based pagination with afterEmail for deterministic ordering (fixes Issue #157)
 func (r *contactRepository) GetContactsForBroadcast(
 	ctx context.Context,
 	workspaceID string,
 	audience domain.AudienceSettings,
 	limit int,
-	offset int,
+	afterEmail string,
 ) ([]*domain.ContactWithList, error) {
 	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
 	if err != nil {
@@ -1378,8 +1379,12 @@ func (r *contactRepository) GetContactsForBroadcast(
 			Where(sq.Eq{"cl.list_id": audience.List}).
 			Where(sq.Eq{"l.deleted_at": nil}). // Filter out deleted lists
 			Limit(uint64(limit)).
-			Offset(uint64(offset)).
-			OrderBy("c.created_at ASC", "c.email ASC") // Secondary sort by email for deterministic ordering
+			OrderBy("c.email ASC") // Sort by email only (unique, deterministic)
+
+		// Cursor-based pagination: fetch contacts with email > afterEmail
+		if afterEmail != "" {
+			query = query.Where(sq.Gt{"c.email": afterEmail})
+		}
 
 		// Exclude unsubscribed contacts if required
 		if audience.ExcludeUnsubscribed {
@@ -1393,8 +1398,12 @@ func (r *contactRepository) GetContactsForBroadcast(
 		query = psql.Select(contactColumnsWithPrefix("c")...).
 			From("contacts c").
 			Limit(uint64(limit)).
-			Offset(uint64(offset)).
-			OrderBy("c.created_at ASC", "c.email ASC") // Secondary sort by email for deterministic ordering
+			OrderBy("c.email ASC") // Sort by email only (unique, deterministic)
+
+		// Cursor-based pagination: fetch contacts with email > afterEmail
+		if afterEmail != "" {
+			query = query.Where(sq.Gt{"c.email": afterEmail})
+		}
 	}
 
 	// Handle segments filtering
@@ -1414,8 +1423,12 @@ func (r *contactRepository) GetContactsForBroadcast(
 				Join("contact_segments cs ON c.email = cs.email").
 				Where(sq.Eq{"cs.segment_id": audience.Segments}).
 				Limit(uint64(limit)).
-				Offset(uint64(offset)).
-				OrderBy("c.created_at ASC", "c.email ASC") // Secondary sort by email for deterministic ordering
+				OrderBy("c.email ASC") // Sort by email only (unique, deterministic)
+
+			// Cursor-based pagination: fetch contacts with email > afterEmail
+			if afterEmail != "" {
+				query = query.Where(sq.Gt{"c.email": afterEmail})
+			}
 		}
 	}
 

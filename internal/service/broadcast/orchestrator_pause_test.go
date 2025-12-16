@@ -348,7 +348,7 @@ func TestBroadcastOrchestrator_Process_PausedDuringProcessing(t *testing.T) {
 		{Contact: &domain.Contact{Email: "test2@example.com"}, ListID: "list-1"},
 	}
 	mockContactRepo.EXPECT().
-		GetContactsForBroadcast(gomock.Any(), workspaceID, sendingBroadcast.Audience, 10, 0).
+		GetContactsForBroadcast(gomock.Any(), workspaceID, sendingBroadcast.Audience, 10, "").
 		Return(mockContacts, nil).
 		MaxTimes(1)
 

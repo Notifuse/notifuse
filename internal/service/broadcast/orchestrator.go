@@ -28,8 +28,9 @@ type BroadcastOrchestratorInterface interface {
 	// GetTotalRecipientCount gets the total number of recipients for a broadcast
 	GetTotalRecipientCount(ctx context.Context, workspaceID, broadcastID string) (int, error)
 
-	// FetchBatch retrieves a batch of recipients for a broadcast
-	FetchBatch(ctx context.Context, workspaceID, broadcastID string, offset, limit int) ([]*domain.ContactWithList, error)
+	// FetchBatch retrieves a batch of recipients for a broadcast using cursor-based pagination
+	// afterEmail is the last email from the previous batch (empty for first batch)
+	FetchBatch(ctx context.Context, workspaceID, broadcastID, afterEmail string, limit int) ([]*domain.ContactWithList, error)
 
 	// SaveProgressState saves the current task progress to the repository
 	SaveProgressState(ctx context.Context, workspaceID, taskID string, broadcastState *domain.SendBroadcastState, sentCount, failedCount, processedCount int, lastSaveTime time.Time, startTime time.Time) (time.Time, error)
@@ -218,8 +219,9 @@ func (o *BroadcastOrchestrator) GetTotalRecipientCount(ctx context.Context, work
 	return count, nil
 }
 
-// FetchBatch retrieves a batch of recipients for a broadcast
-func (o *BroadcastOrchestrator) FetchBatch(ctx context.Context, workspaceID, broadcastID string, offset, limit int) ([]*domain.ContactWithList, error) {
+// FetchBatch retrieves a batch of recipients for a broadcast using cursor-based pagination
+// afterEmail is the last email from the previous batch (empty for first batch)
+func (o *BroadcastOrchestrator) FetchBatch(ctx context.Context, workspaceID, broadcastID, afterEmail string, limit int) ([]*domain.ContactWithList, error) {
 	startTime := time.Now()
 	defer func() {
 		// codecov:ignore:start
@@ -227,7 +229,7 @@ func (o *BroadcastOrchestrator) FetchBatch(ctx context.Context, workspaceID, bro
 			"duration_ms":  time.Since(startTime).Milliseconds(),
 			"broadcast_id": broadcastID,
 			"workspace_id": workspaceID,
-			"offset":       offset,
+			"after_email":  afterEmail,
 			"limit":        limit,
 		}).Debug("Recipient batch fetch completed")
 		// codecov:ignore:end
@@ -256,15 +258,15 @@ func (o *BroadcastOrchestrator) FetchBatch(ctx context.Context, workspaceID, bro
 		limit = o.config.FetchBatchSize
 	}
 
-	// Fetch contacts based on broadcast audience
-	contactsWithList, err := o.contactRepo.GetContactsForBroadcast(ctx, workspaceID, broadcast.Audience, limit, offset)
+	// Fetch contacts based on broadcast audience using cursor-based pagination
+	contactsWithList, err := o.contactRepo.GetContactsForBroadcast(ctx, workspaceID, broadcast.Audience, limit, afterEmail)
 	if err != nil {
 		// codecov:ignore:start
 		o.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
 			"workspace_id": workspaceID,
 			"audience":     broadcast.Audience,
-			"offset":       offset,
+			"after_email":  afterEmail,
 			"limit":        limit,
 			"error":        err.Error(),
 		}).Error("Failed to fetch recipients for broadcast")
@@ -276,7 +278,7 @@ func (o *BroadcastOrchestrator) FetchBatch(ctx context.Context, workspaceID, bro
 	o.logger.WithFields(map[string]interface{}{
 		"broadcast_id":     broadcastID,
 		"workspace_id":     workspaceID,
-		"offset":           offset,
+		"after_email":      afterEmail,
 		"limit":            limit,
 		"contacts_fetched": len(contactsWithList),
 		"with_list_info":   true,
@@ -773,8 +775,10 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	var recipientLimit int
 	var currentOffset int
 
-	// All phases use the same RecipientOffset for continuity
+	// All phases use the same RecipientOffset for continuity (progress tracking)
 	currentOffset = int(broadcastState.RecipientOffset)
+	// Cursor for keyset pagination - tracks the last processed email
+	cursor := broadcastState.LastProcessedEmail
 
 	// If a winner has already been selected manually while test is running, transition immediately
 	if broadcastState.Phase == "test" {
@@ -916,12 +920,12 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			break
 		}
 
-		// Fetch the next batch of recipients
+		// Fetch the next batch of recipients using cursor-based pagination
 		recipients, batchErr := o.FetchBatch(
 			ctx,
 			task.WorkspaceID,
 			broadcastState.BroadcastID,
-			currentOffset,
+			cursor,
 			batchSize,
 		)
 		if batchErr != nil {
@@ -1109,9 +1113,15 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		sentCount += sent
 		failedCount += failed
 
-		// Update recipient offset - used across all phases for continuity
+		// Update recipient offset - used across all phases for continuity (progress tracking)
 		broadcastState.RecipientOffset += int64(sent + failed)
 		currentOffset = int(broadcastState.RecipientOffset)
+
+		// Update cursor for next batch - use last email from this batch
+		if len(recipients) > 0 {
+			cursor = recipients[len(recipients)-1].Contact.Email
+			broadcastState.LastProcessedEmail = cursor
+		}
 
 		// Use sent + failed as the number of recipients processed/attempted
 		processedCount = sentCount + failedCount
@@ -1129,6 +1139,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				"phase_offset":    currentOffset,
 				"phase_limit":     recipientLimit,
 				"total_count":     broadcastState.TotalRecipients,
+				"cursor":          cursor,
 				"progress":        CalculateProgress(processedCount, broadcastState.TotalRecipients),
 				"elapsed":         o.timeProvider.Since(startTime).String(),
 			}).Info("Broadcast progress update")
