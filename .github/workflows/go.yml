@@ -74,6 +74,8 @@ jobs:
 
       mailpit:
         image: axllent/mailpit:latest
+        env:
+          MP_MAX_MESSAGES: 2000
         options: >-
           --health-cmd "wget --quiet --tries=1 --spider http://localhost:8025/ || exit 1"
           --health-interval 10s
