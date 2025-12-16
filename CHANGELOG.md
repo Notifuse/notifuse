@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file.
 - Fix: Unsubscribes via notification center link are now tracked in broadcast statistics (#165)
 - Fix: Email builder now respects column width attributes in section blocks
 - Fix: Contact bulk import now handles duplicate emails in a single batch (#167)
+- Fix: Image alt text now supports Liquid template variables (#168)
 
 ## [19.4] - 2025-12-12
 

@@ -276,6 +276,18 @@ func TestLiquidInHrefAttributes(t *testing.T) {
 			expectedHref: `href="{{ invalid syntax"`, // Should return original on error
 			expectError:  false,                      // We don't error, just log warning
 		},
+		{
+			name: "image with liquid alt text",
+			block: func() EmailBlock {
+				b := NewBaseBlock("img2", MJMLComponentMjImage)
+				b.Attributes["src"] = "https://example.com/product.jpg"
+				b.Attributes["alt"] = "{{ product.name }} - {{ product.category }}"
+				return &MJImageBlock{BaseBlock: b}
+			}(),
+			templateData: `{"product": {"name": "Blue Widget", "category": "Electronics"}}`,
+			expectedHref: `alt="Blue Widget - Electronics"`,
+			expectError:  false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -357,6 +369,14 @@ func TestProcessAttributeValue(t *testing.T) {
 			templateData: nil,
 			blockID:      "test",
 			expected:     "{{ some_var }}", // Should return original
+		},
+		{
+			name:         "alt attribute with liquid",
+			value:        "{{ product.name }} image",
+			attributeKey: "alt",
+			templateData: map[string]interface{}{"product": map[string]interface{}{"name": "Blue Widget"}},
+			blockID:      "test",
+			expected:     "Blue Widget image",
 		},
 	}
 
