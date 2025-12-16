@@ -229,6 +229,28 @@ func (s *ContactService) BatchImportContacts(ctx context.Context, workspaceID st
 		}
 	}
 
+	// Deduplicate contacts by email - keep the last occurrence
+	// This prevents PostgreSQL "ON CONFLICT DO UPDATE cannot affect row a second time" error
+	// when the same email appears multiple times in a single batch
+	if len(validContacts) > 1 {
+		seen := make(map[string]bool)
+		deduplicatedContacts := make([]*domain.Contact, 0, len(validContacts))
+		deduplicatedIndices := make([]int, 0, len(validContacts))
+
+		// Iterate in reverse to keep last occurrence at its original position
+		for i := len(validContacts) - 1; i >= 0; i-- {
+			email := validContacts[i].Email
+			if !seen[email] {
+				seen[email] = true
+				deduplicatedContacts = append([]*domain.Contact{validContacts[i]}, deduplicatedContacts...)
+				deduplicatedIndices = append([]int{validContactIndices[i]}, deduplicatedIndices...)
+			}
+		}
+
+		validContacts = deduplicatedContacts
+		validContactIndices = deduplicatedIndices
+	}
+
 	// If there are valid contacts, perform bulk upsert
 	if len(validContacts) > 0 {
 		bulkResults, err := s.repo.BulkUpsertContacts(ctx, workspaceID, validContacts)

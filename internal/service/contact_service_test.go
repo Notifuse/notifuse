@@ -868,6 +868,109 @@ func TestContactService_BatchImportContacts_WithBulkOperations(t *testing.T) {
 	})
 }
 
+func TestContactService_BatchImportContacts_DuplicateEmails(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	service, mockRepo, _, mockAuthService, _, _, _, _, _ := createContactServiceWithMocks(ctrl)
+
+	ctx := context.Background()
+	workspaceID := "workspace123"
+
+	userWorkspace := &domain.UserWorkspace{
+		UserID:      "user123",
+		WorkspaceID: workspaceID,
+		Role:        "admin",
+		Permissions: domain.UserPermissions{
+			domain.PermissionResourceContacts: {Read: true, Write: true},
+		},
+	}
+
+	t.Run("duplicate emails are deduplicated - last occurrence wins", func(t *testing.T) {
+		// Input has the same email appearing 3 times with different first names
+		contacts := []*domain.Contact{
+			{Email: "duplicate@example.com", FirstName: &domain.NullableString{String: "First", IsNull: false}},
+			{Email: "unique@example.com", FirstName: &domain.NullableString{String: "Unique", IsNull: false}},
+			{Email: "duplicate@example.com", FirstName: &domain.NullableString{String: "Second", IsNull: false}},
+			{Email: "duplicate@example.com", FirstName: &domain.NullableString{String: "Third", IsNull: false}}, // This should be kept
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+
+		// After deduplication, only 2 contacts should be passed to BulkUpsertContacts
+		// The last occurrence of duplicate@example.com (with FirstName="Third") should be kept
+		mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, gomock.Any()).DoAndReturn(
+			func(ctx context.Context, wsID string, deduped []*domain.Contact) ([]domain.BulkUpsertResult, error) {
+				// Verify deduplication happened correctly
+				assert.Len(t, deduped, 2)
+				// Find the duplicate email contact and verify it has the last occurrence's data
+				for _, c := range deduped {
+					if c.Email == "duplicate@example.com" {
+						assert.Equal(t, "Third", c.FirstName.String, "Should keep last occurrence")
+					}
+				}
+				return []domain.BulkUpsertResult{
+					{Email: "unique@example.com", IsNew: true},
+					{Email: "duplicate@example.com", IsNew: true},
+				}, nil
+			})
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
+
+		assert.NotNil(t, response)
+		assert.Empty(t, response.Error)
+		// Response should have 2 operations (deduplicated count)
+		assert.Len(t, response.Operations, 2)
+	})
+
+	t.Run("single contact with duplicate email in batch", func(t *testing.T) {
+		// Even with just 2 contacts where both have the same email
+		contacts := []*domain.Contact{
+			{Email: "same@example.com", FirstName: &domain.NullableString{String: "First", IsNull: false}},
+			{Email: "same@example.com", FirstName: &domain.NullableString{String: "Last", IsNull: false}},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+
+		mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, gomock.Any()).DoAndReturn(
+			func(ctx context.Context, wsID string, deduped []*domain.Contact) ([]domain.BulkUpsertResult, error) {
+				assert.Len(t, deduped, 1)
+				assert.Equal(t, "Last", deduped[0].FirstName.String)
+				return []domain.BulkUpsertResult{
+					{Email: "same@example.com", IsNew: true},
+				}, nil
+			})
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
+
+		assert.NotNil(t, response)
+		assert.Empty(t, response.Error)
+		assert.Len(t, response.Operations, 1)
+	})
+
+	t.Run("no duplicates passes through unchanged", func(t *testing.T) {
+		contacts := []*domain.Contact{
+			{Email: "a@example.com"},
+			{Email: "b@example.com"},
+			{Email: "c@example.com"},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, &domain.User{}, userWorkspace, nil)
+
+		mockRepo.EXPECT().BulkUpsertContacts(ctx, workspaceID, contacts).Return([]domain.BulkUpsertResult{
+			{Email: "a@example.com", IsNew: true},
+			{Email: "b@example.com", IsNew: true},
+			{Email: "c@example.com", IsNew: true},
+		}, nil)
+
+		response := service.BatchImportContacts(ctx, workspaceID, contacts, nil)
+
+		assert.NotNil(t, response)
+		assert.Empty(t, response.Error)
+		assert.Len(t, response.Operations, 3)
+	})
+}
+
 func TestContactService_CountContacts(t *testing.T) {
 	// Test ContactService.CountContacts - this was at 0% coverage
 	ctrl := gomock.NewController(t)
