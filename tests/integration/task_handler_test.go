@@ -499,7 +499,10 @@ func testTaskStateManagement(t *testing.T, client *testutil.APIClient, factory *
 		})
 
 		t.Run("should mark task as completed", func(t *testing.T) {
-			err := factory.MarkTaskAsCompleted(workspaceID, task.ID)
+			err := factory.MarkTaskAsCompleted(workspaceID, task.ID, &domain.TaskState{
+				Progress: 100,
+				Message:  "Completed",
+			})
 			require.NoError(t, err)
 
 			// Verify status change
