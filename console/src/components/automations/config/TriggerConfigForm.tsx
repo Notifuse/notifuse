@@ -51,7 +51,7 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
       <Form.Item
         label="Trigger Events"
         required
-        help="Select the events that will trigger this automation"
+        extra="Select the events that will trigger this automation"
       >
         <Select
           mode="multiple"

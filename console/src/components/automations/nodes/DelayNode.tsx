@@ -1,6 +1,7 @@
 import React from 'react'
 import { Handle, Position, type NodeProps } from '@xyflow/react'
-import { Clock } from 'lucide-react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faHourglass } from '@fortawesome/free-regular-svg-icons'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
 import type { AutomationNodeData } from '../utils/flowConverter'
@@ -29,7 +30,7 @@ export const DelayNode: React.FC<DelayNodeProps> = ({ data, selected }) => {
       <BaseNode
         type="delay"
         label="Delay"
-        icon={<Clock size={16} color={selected ? undefined : nodeTypeColors.delay} />}
+        icon={<FontAwesomeIcon icon={faHourglass} style={{ color: selected ? undefined : nodeTypeColors.delay }} />}
         selected={selected}
       >
         <div className={duration === 0 ? 'text-orange-500' : ''}>

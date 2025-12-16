@@ -23,7 +23,7 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
       <Form.Item
         label="Email Template"
         required
-        help="Select the email template to send"
+        extra="Select the email template to send"
       >
         <TemplateSelectorInput
           value={config.template_id || null}

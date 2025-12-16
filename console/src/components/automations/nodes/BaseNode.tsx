@@ -21,7 +21,7 @@ export const BaseNode: React.FC<BaseNodeProps> = ({
       style={{
         padding: '8px 12px',
         minWidth: '300px',
-        border: selected ? '2px solid #7763F1' : '1px solid #e5e7eb',
+        border: selected ? '1px solid #7763F1' : '1px solid #e5e7eb',
         boxShadow: selected ? '0 4px 12px rgba(119,99,241,0.3)' : 'none'
       }}
     >

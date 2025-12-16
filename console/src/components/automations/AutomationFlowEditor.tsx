@@ -3,24 +3,26 @@ import {
   ReactFlow,
   Controls,
   Background,
+  MiniMap,
+  Panel,
   useReactFlow,
   ReactFlowProvider,
   type Node,
-  type Edge,
-  type OnConnect,
-  type OnNodesChange,
-  type OnEdgesChange,
   type NodeTypes,
   type EdgeTypes,
   BackgroundVariant
 } from '@xyflow/react'
 import { Plus } from 'lucide-react'
+import { Tooltip } from 'antd'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faHourglass, faEnvelope } from '@fortawesome/free-regular-svg-icons'
 import { TriggerNode, DelayNode, EmailNode } from './nodes'
 import { PlaceholderNode } from './nodes/PlaceholderNode'
-import { NodePalette } from './NodePalette'
 import { NodeConfigPanel } from './NodeConfigPanel'
 import { AddNodeEdge, type AddNodeEdgeData } from './edges/AddNodeEdge'
-import { type AutomationNodeData, isValidConnection } from './utils/flowConverter'
+import { useAutomation } from './context'
+import { useAutomationCanvas } from './hooks'
+import type { AutomationNodeData } from './utils/flowConverter'
 import type { NodeType } from '../../services/api/automation'
 
 // Define nodeTypes OUTSIDE component to prevent re-renders
@@ -37,9 +39,9 @@ const edgeTypes: EdgeTypes = {
 }
 
 // Menu items for adding nodes
-const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string }[] = [
-  { key: 'delay', label: 'Delay' },
-  { key: 'email', label: 'Email' }
+const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.ReactNode }[] = [
+  { key: 'delay', label: 'Delay', icon: <FontAwesomeIcon icon={faHourglass} style={{ color: '#faad14' }} /> },
+  { key: 'email', label: 'Email', icon: <FontAwesomeIcon icon={faEnvelope} style={{ color: '#1890ff' }} /> }
 ]
 
 // Floating add button component - rendered OUTSIDE ReactFlow
@@ -47,7 +49,8 @@ const FloatingAddButton: React.FC<{
   nodeId: string
   position: { x: number; y: number }
   onAddNode: (sourceNodeId: string, nodeType: NodeType) => void
-}> = ({ nodeId, position, onAddNode }) => {
+  hasListSelected: boolean
+}> = ({ nodeId, position, onAddNode, hasListSelected }) => {
   const [menuOpen, setMenuOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const menuOpenRef = useRef(menuOpen)
@@ -91,57 +94,67 @@ const FloatingAddButton: React.FC<{
           className="absolute top-full left-1/2 mt-1 bg-white rounded-md shadow-lg border border-gray-200 py-1 min-w-[120px]"
           style={{ transform: 'translateX(-50%)', zIndex: 10001 }}
         >
-          {ADD_NODE_MENU_ITEMS.map((item) => (
-            <button
-              key={item.key}
-              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 cursor-pointer"
-              onClick={() => {
-                onAddNode(nodeId, item.key)
-                setMenuOpen(false)
-              }}
-            >
-              {item.label}
-            </button>
-          ))}
+          {ADD_NODE_MENU_ITEMS.map((item) => {
+            const isDisabled = item.key === 'email' && !hasListSelected
+            const button = (
+              <button
+                key={item.key}
+                className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${
+                  isDisabled
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:bg-gray-100 cursor-pointer'
+                }`}
+                onClick={() => {
+                  if (isDisabled) return
+                  onAddNode(nodeId, item.key)
+                  setMenuOpen(false)
+                }}
+              >
+                {item.icon}
+                {item.label}
+              </button>
+            )
+            return isDisabled ? (
+              <Tooltip key={item.key} title="Select a list to enable email nodes" placement="right">
+                {button}
+              </Tooltip>
+            ) : (
+              button
+            )
+          })}
         </div>
       )}
     </div>
   )
 }
 
-interface AutomationFlowEditorProps {
-  nodes: Node<AutomationNodeData>[]
-  edges: Edge[]
-  onNodesChange: OnNodesChange<Node<AutomationNodeData>>
-  onEdgesChange: OnEdgesChange<Edge>
-  onConnect: OnConnect
-  onAddNode: (type: NodeType, position: { x: number; y: number }) => void
-  onNodeUpdate: (nodeId: string, data: Partial<AutomationNodeData>) => void
-  onAddNodeWithEdge: (sourceNodeId: string, type: NodeType, position: { x: number; y: number }) => void
-  workspaceId: string
-  initialSelectedNodeId?: string
-}
-
 // Inner component that uses useReactFlow hook
-const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({
-  nodes,
-  edges,
-  onNodesChange,
-  onEdgesChange,
-  onConnect,
-  onAddNode,
-  onNodeUpdate,
-  onAddNodeWithEdge,
-  workspaceId,
-  initialSelectedNodeId
-}) => {
+const AutomationFlowEditorInner: React.FC = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
-  const [selectedNode, setSelectedNode] = useState<Node<AutomationNodeData> | null>(null)
-  const [panelPosition, setPanelPosition] = useState<{ x: number; y: number } | null>(null)
   const [buttonPositions, setButtonPositions] = useState<Map<string, { x: number; y: number }>>(new Map())
-  const appliedSelectionId = useRef<string | null>(null)
+  const fitViewCalledRef = useRef(false)
 
-  const { getViewport } = useReactFlow()
+  const { getViewport, setViewport } = useReactFlow()
+
+  // Get context and hook
+  const { listId, workspace, isEditing } = useAutomation()
+  const {
+    nodes,
+    edges,
+    selectedNode,
+    selectNode,
+    unselectNode,
+    addNodeWithEdge,
+    updateNodeConfig,
+    onNodesChange,
+    onEdgesChange,
+    onConnect,
+    onNodeDragStop,
+    handleIsValidConnection,
+    terminalNodes
+  } = useAutomationCanvas()
+
+  const hasListSelected = !!listId
 
   // Handler for adding node via plus button
   const handleAddNodeFromTerminal = useCallback(
@@ -155,16 +168,10 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({
         y: sourceNode.position.y + 120
       }
 
-      onAddNodeWithEdge(sourceNodeId, nodeType, newPosition)
+      addNodeWithEdge(sourceNodeId, nodeType, newPosition)
     },
-    [nodes, onAddNodeWithEdge]
+    [nodes, addNodeWithEdge]
   )
-
-  // Compute terminal nodes (nodes with no outgoing edges)
-  const terminalNodes = useMemo(() => {
-    const nodesWithOutgoingEdges = new Set(edges.map((e) => e.source))
-    return nodes.filter((n) => !nodesWithOutgoingEdges.has(n.id))
-  }, [nodes, edges])
 
   // Compute placeholder nodes and edges for terminal nodes
   const { nodesWithPlaceholders, edgesWithPlaceholders } = useMemo(() => {
@@ -182,14 +189,14 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({
     }))
 
     // Create placeholder edges connecting terminal nodes to their placeholder targets
-    const placeholderEdges: Edge<AddNodeEdgeData>[] = terminalNodes.map((node) => ({
+    const placeholderEdges = terminalNodes.map((node) => ({
       id: `placeholder-edge-${node.id}`,
       source: node.id,
       target: `placeholder-target-${node.id}`,
       type: 'addNode',
       data: {
         sourceNodeId: node.id
-      }
+      } as AddNodeEdgeData
     }))
 
     return {
@@ -229,190 +236,119 @@ const AutomationFlowEditorInner: React.FC<AutomationFlowEditorProps> = ({
     updateButtonPositions()
   }, [updateButtonPositions, nodes, edges])
 
-  // Update floating panel position based on selected node
-  const updatePanelPosition = useCallback(() => {
-    if (!selectedNode) {
-      setPanelPosition(null)
-      return
+  // Position trigger at top-center on new automation
+  useEffect(() => {
+    if (!isEditing && !fitViewCalledRef.current && nodes.length === 1 && nodes[0].data.nodeType === 'trigger' && reactFlowWrapper.current) {
+      fitViewCalledRef.current = true
+      const wrapperRect = reactFlowWrapper.current.getBoundingClientRect()
+      const triggerNode = nodes[0]
+      // Center horizontally, position near top with padding
+      const viewportX = (wrapperRect.width / 2) - triggerNode.position.x - 150 // 150 = half node width approx
+      const viewportY = 80 - triggerNode.position.y // 80px from top
+      setTimeout(() => setViewport({ x: viewportX, y: viewportY, zoom: 1 }), 100)
     }
-    const nodeElement = document.querySelector(`[data-id="${selectedNode.id}"]`)
-    const flowBounds = reactFlowWrapper.current?.getBoundingClientRect()
-    if (nodeElement && flowBounds) {
-      const rect = nodeElement.getBoundingClientRect()
-      setPanelPosition({
-        x: rect.right - flowBounds.left + 16,
-        y: Math.max(8, rect.top - flowBounds.top)
-      })
-    }
-  }, [selectedNode])
+  }, [isEditing, nodes, setViewport])
 
-  // Update positions when viewport changes
+  // Update button positions when viewport changes
   const handleMove = useCallback(() => {
-    updatePanelPosition()
     updateButtonPositions()
-  }, [updatePanelPosition, updateButtonPositions])
-
-  // Update panel position when selected node changes
-  useEffect(() => {
-    const timer = setTimeout(updatePanelPosition, 50)
-    return () => clearTimeout(timer)
-  }, [selectedNode, updatePanelPosition])
-
-  // Apply initial selection only once per unique initialSelectedNodeId
-  useEffect(() => {
-    if (initialSelectedNodeId && appliedSelectionId.current !== initialSelectedNodeId && nodes.length > 0) {
-      appliedSelectionId.current = initialSelectedNodeId
-      const nodeToSelect = nodes.find((n) => n.id === initialSelectedNodeId)
-      if (nodeToSelect) {
-        setSelectedNode(nodeToSelect)
-        onNodesChange([{ id: initialSelectedNodeId, type: 'select', selected: true }])
-      }
-    } else if (!initialSelectedNodeId && appliedSelectionId.current !== null) {
-      appliedSelectionId.current = null
-    }
-  }, [initialSelectedNodeId, nodes, onNodesChange])
+  }, [updateButtonPositions])
 
   // Handle node click
   const handleNodeClick = useCallback(
     (_: React.MouseEvent, node: Node<AutomationNodeData>) => {
-      setSelectedNode(node)
+      selectNode(node.id)
     },
-    []
+    [selectNode]
   )
 
   // Handle pane click (deselect)
   const handlePaneClick = useCallback(() => {
-    setSelectedNode(null)
-  }, [])
-
-  // Handle drop from palette
-  const handleDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault()
-
-      const type = event.dataTransfer.getData('application/reactflow') as NodeType
-      if (!type || !reactFlowWrapper.current) return
-
-      const reactFlowBounds = reactFlowWrapper.current.getBoundingClientRect()
-      const position = {
-        x: event.clientX - reactFlowBounds.left - 90,
-        y: event.clientY - reactFlowBounds.top - 20
-      }
-
-      onAddNode(type, position)
-    },
-    [onAddNode]
-  )
-
-  const handleDragOver = useCallback((event: React.DragEvent) => {
-    event.preventDefault()
-    event.dataTransfer.dropEffect = 'move'
-  }, [])
-
-  // Validate connections
-  const handleIsValidConnection = useCallback(
-    (connection: { source: string | null; target: string | null }) => {
-      if (!connection.source || !connection.target) return false
-
-      const sourceNode = nodes.find((n) => n.id === connection.source)
-      const targetNode = nodes.find((n) => n.id === connection.target)
-
-      if (!sourceNode || !targetNode) return false
-
-      return isValidConnection(
-        sourceNode.data.nodeType,
-        targetNode.data.nodeType,
-        edges,
-        connection.target
-      )
-    },
-    [nodes, edges]
-  )
+    unselectNode()
+  }, [unselectNode])
 
   // Handle node update from config panel
   const handleNodeUpdateFromPanel = useCallback(
     (nodeId: string, data: Partial<AutomationNodeData>) => {
-      onNodeUpdate(nodeId, data)
-      if (selectedNode?.id === nodeId) {
-        setSelectedNode((prev) =>
-          prev ? { ...prev, data: { ...prev.data, ...data } } : null
-        )
+      if (data.config) {
+        updateNodeConfig(nodeId, data.config as Record<string, unknown>)
       }
     },
-    [onNodeUpdate, selectedNode]
+    [updateNodeConfig]
   )
 
   return (
-    <div className="flex h-full">
-      {/* Left Panel: Node Palette */}
-      <div className="w-[200px] flex-shrink-0">
-        <NodePalette />
-      </div>
-
-      {/* Center Panel: ReactFlow Canvas with floating elements */}
-      <div className="flex-1 relative" ref={reactFlowWrapper}>
-        <ReactFlow
-          nodes={nodesWithPlaceholders}
-          edges={edgesWithPlaceholders}
-          nodeTypes={nodeTypes}
-          edgeTypes={edgeTypes}
-          onNodesChange={onNodesChange}
-          onEdgesChange={onEdgesChange}
-          onConnect={onConnect}
-          onNodeClick={handleNodeClick}
-          onPaneClick={handlePaneClick}
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-          onMove={handleMove}
-          isValidConnection={handleIsValidConnection}
-          minZoom={0.2}
-          maxZoom={1.5}
-          defaultViewport={{ x: 50, y: 50, zoom: 1 }}
-          deleteKeyCode={['Backspace', 'Delete']}
-          className="bg-gray-50"
-        >
-          <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
-          <Controls />
-        </ReactFlow>
-
-        {/* Floating Add Buttons - OUTSIDE ReactFlow */}
-        {Array.from(buttonPositions.entries()).map(([nodeId, position]) => (
-          <FloatingAddButton
-            key={nodeId}
-            nodeId={nodeId}
-            position={position}
-            onAddNode={handleAddNodeFromTerminal}
-          />
-        ))}
-
-        {/* Floating Node Configuration Panel */}
-        {selectedNode && panelPosition && (
-          <div
-            className="absolute w-[320px] bg-white border border-gray-200 rounded-lg shadow-lg"
-            style={{
-              left: panelPosition.x,
-              top: panelPosition.y,
-              zIndex: 50
-            }}
-          >
-            <NodeConfigPanel
-              selectedNode={selectedNode}
-              onNodeUpdate={handleNodeUpdateFromPanel}
-              workspaceId={workspaceId}
-              onClose={() => setSelectedNode(null)}
-            />
+    <div className="h-full relative" ref={reactFlowWrapper}>
+      <ReactFlow
+        nodes={nodesWithPlaceholders}
+        edges={edgesWithPlaceholders}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
+        onNodeClick={handleNodeClick}
+        onPaneClick={handlePaneClick}
+        onMove={handleMove}
+        onNodeDragStop={onNodeDragStop}
+        isValidConnection={handleIsValidConnection}
+        minZoom={0.2}
+        maxZoom={1.5}
+        defaultViewport={{ x: 50, y: 50, zoom: 1 }}
+        deleteKeyCode={['Backspace', 'Delete']}
+        className="bg-gray-50"
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
+        <Controls position="top-left" showInteractive={false} />
+        <Panel position="bottom-left">
+          <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
+            <div className="text-xs text-gray-500 px-2 py-2 border-b border-gray-200">Minimap</div>
+            <MiniMap position="top-left" bgColor="white" maskColor="transparent" style={{ position: 'relative', margin: 0 }} />
           </div>
-        )}
-      </div>
+        </Panel>
+      </ReactFlow>
+
+      {/* Floating Add Buttons - OUTSIDE ReactFlow */}
+      {Array.from(buttonPositions.entries()).map(([nodeId, position]) => (
+        <FloatingAddButton
+          key={nodeId}
+          nodeId={nodeId}
+          position={position}
+          onAddNode={handleAddNodeFromTerminal}
+          hasListSelected={hasListSelected}
+        />
+      ))}
+
+      {/* Fixed Node Configuration Panel - Top Right */}
+      {selectedNode && (
+        <div
+          className="absolute w-[360px] bg-white border border-gray-200 rounded-lg shadow-lg"
+          style={{
+            top: 16,
+            right: 16,
+            maxHeight: 'calc(100% - 32px)',
+            overflow: 'auto',
+            zIndex: 50
+          }}
+        >
+          <NodeConfigPanel
+            selectedNode={selectedNode}
+            onNodeUpdate={handleNodeUpdateFromPanel}
+            workspaceId={workspace.id}
+            onClose={unselectNode}
+          />
+        </div>
+      )}
     </div>
   )
 }
 
 // Wrapper component that provides ReactFlowProvider
-export const AutomationFlowEditor: React.FC<AutomationFlowEditorProps> = (props) => {
+export const AutomationFlowEditor: React.FC = () => {
   return (
     <ReactFlowProvider>
-      <AutomationFlowEditorInner {...props} />
+      <AutomationFlowEditorInner />
     </ReactFlowProvider>
   )
 }

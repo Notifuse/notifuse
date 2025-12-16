@@ -27,7 +27,7 @@ export const DelayConfigForm: React.FC<DelayConfigFormProps> = ({ config, onChan
       <Form.Item
         label="Wait Duration"
         required
-        help="How long to wait before proceeding to the next step"
+        extra="How long to wait before proceeding to the next step"
       >
         <Space.Compact style={{ width: '100%' }}>
           <InputNumber
