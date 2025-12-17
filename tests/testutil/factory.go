@@ -595,6 +595,16 @@ func WithTemplateSubject(subject string) TemplateOption {
 	}
 }
 
+// WithTemplateEmailContent sets the text content in the email template's mj-text block
+// This is useful for testing Liquid template variable substitution
+func WithTemplateEmailContent(content string) TemplateOption {
+	return func(t *domain.Template) {
+		if t.Email != nil {
+			t.Email.VisualEditorTree = createMJMLBlockWithContent(content)
+		}
+	}
+}
+
 // Broadcast options
 func WithBroadcastName(name string) BroadcastOption {
 	return func(b *domain.Broadcast) {
@@ -864,6 +874,68 @@ func createDefaultMJMLBlock() notifuse_mjml.EmailBlock {
 	}
 
 	// Convert to JSON and back to create a proper EmailBlock structure
+	jsonData, err := json.Marshal(mjmlBlockMap)
+	if err != nil {
+		panic(err)
+	}
+
+	block, err := notifuse_mjml.UnmarshalEmailBlock(jsonData)
+	if err != nil {
+		panic(err)
+	}
+
+	return block
+}
+
+// createMJMLBlockWithContent creates an MJML block with custom text content
+// This allows testing Liquid template variables in the email body
+func createMJMLBlockWithContent(content string) notifuse_mjml.EmailBlock {
+	textBlockMap := map[string]interface{}{
+		"id":      "text-1",
+		"type":    "mj-text",
+		"content": content,
+		"attributes": map[string]interface{}{
+			"color":    "#000000",
+			"fontSize": "14px",
+		},
+		"children": []interface{}{},
+	}
+
+	columnBlockMap := map[string]interface{}{
+		"id":       "column-1",
+		"type":     "mj-column",
+		"children": []interface{}{textBlockMap},
+		"attributes": map[string]interface{}{
+			"width": "100%",
+		},
+	}
+
+	sectionBlockMap := map[string]interface{}{
+		"id":       "section-1",
+		"type":     "mj-section",
+		"children": []interface{}{columnBlockMap},
+		"attributes": map[string]interface{}{
+			"backgroundColor": "#ffffff",
+			"padding":         "20px 0",
+		},
+	}
+
+	bodyBlockMap := map[string]interface{}{
+		"id":       "body-1",
+		"type":     "mj-body",
+		"children": []interface{}{sectionBlockMap},
+		"attributes": map[string]interface{}{
+			"backgroundColor": "#f4f4f4",
+		},
+	}
+
+	mjmlBlockMap := map[string]interface{}{
+		"id":         "mjml-1",
+		"type":       "mjml",
+		"children":   []interface{}{bodyBlockMap},
+		"attributes": map[string]interface{}{},
+	}
+
 	jsonData, err := json.Marshal(mjmlBlockMap)
 	if err != nil {
 		panic(err)
