@@ -2635,3 +2635,226 @@ func TestBroadcastOrchestrator_SaveProgressState_SaveStateError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to save task state")
 }
+
+// TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate verifies that when SendBatch
+// processes fewer contacts than were fetched (e.g., due to timeout), the cursor is correctly
+// updated to the last PROCESSED contact, not the last FETCHED contact.
+// This test ensures no contacts are skipped when resuming after a partial batch.
+func TestBroadcastOrchestrator_Process_PartialBatchCursorUpdate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockMessageSender := mocks.NewMockMessageSender(ctrl)
+	mockBroadcastRepo := domainmocks.NewMockBroadcastRepository(ctrl)
+	mockTemplateRepo := domainmocks.NewMockTemplateRepository(ctrl)
+	mockContactRepo := domainmocks.NewMockContactRepository(ctrl)
+	mockTaskRepo := domainmocks.NewMockTaskRepository(ctrl)
+	mockWorkspaceRepo := domainmocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
+	mockEventBus := domainmocks.NewMockEventBus(ctrl)
+
+	// Setup logger expectations
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Info(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
+
+	// Setup time provider - return a fixed time that's always before timeout
+	baseTime := time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC)
+	sendBatchCalled := false
+	mockTimeProvider.EXPECT().Now().DoAndReturn(func() time.Time {
+		// After SendBatch is called (which processes partial batch), simulate timeout
+		if sendBatchCalled {
+			return baseTime.Add(35 * time.Second) // Past timeout
+		}
+		return baseTime
+	}).AnyTimes()
+	mockTimeProvider.EXPECT().Since(gomock.Any()).Return(10 * time.Second).AnyTimes()
+
+	// Mock workspace
+	workspace := &domain.Workspace{
+		ID: "workspace-123",
+		Settings: domain.WorkspaceSettings{
+			SecretKey:                "secret-key",
+			EmailTrackingEnabled:     true,
+			MarketingEmailProviderID: "marketing-provider-id",
+		},
+		Integrations: []domain.Integration{
+			{
+				ID:   "marketing-provider-id",
+				Name: "Marketing Provider",
+				Type: domain.IntegrationTypeEmail,
+				EmailProvider: domain.EmailProvider{
+					Kind: domain.EmailProviderKindSES,
+					SES: &domain.AmazonSESSettings{
+						AccessKey: "access-key",
+						SecretKey: "secret-key",
+						Region:    "us-east-1",
+					},
+				},
+			},
+		},
+	}
+	mockWorkspaceRepo.EXPECT().GetByID(gomock.Any(), "workspace-123").Return(workspace, nil)
+
+	// Mock broadcast
+	testBroadcast := &domain.Broadcast{
+		ID: "broadcast-123",
+		TestSettings: domain.BroadcastTestSettings{
+			Enabled: false,
+			Variations: []domain.BroadcastVariation{
+				{TemplateID: "template-1"},
+			},
+		},
+		Audience: domain.AudienceSettings{
+			List: "list-1",
+		},
+		Status: domain.BroadcastStatusSending,
+	}
+	mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-123", "broadcast-123").Return(testBroadcast, nil).AnyTimes()
+	// Mock broadcast status update on completion
+	mockBroadcastRepo.EXPECT().UpdateBroadcast(gomock.Any(), gomock.Any()).Return(nil).AnyTimes()
+
+	// Mock template
+	template := &domain.Template{
+		ID: "template-1",
+		Email: &domain.EmailTemplate{
+			Subject:  "Test Subject",
+			SenderID: "sender-123",
+			VisualEditorTree: &notifuse_mjml.MJMLBlock{
+				BaseBlock: notifuse_mjml.NewBaseBlock("root1", notifuse_mjml.MJMLComponentMjml),
+			},
+		},
+	}
+	mockTemplateRepo.EXPECT().GetTemplateByID(gomock.Any(), "workspace-123", "template-1", int64(0)).Return(template, nil)
+
+	// Mock recipients - first batch: 5 contacts fetched
+	recipients1 := []*domain.ContactWithList{
+		{Contact: &domain.Contact{Email: "user1@example.com"}, ListID: "list-1"},
+		{Contact: &domain.Contact{Email: "user2@example.com"}, ListID: "list-1"},
+		{Contact: &domain.Contact{Email: "user3@example.com"}, ListID: "list-1"},
+		{Contact: &domain.Contact{Email: "user4@example.com"}, ListID: "list-1"},
+		{Contact: &domain.Contact{Email: "user5@example.com"}, ListID: "list-1"},
+	}
+	// Second batch: remaining 2 contacts (user4, user5) - fetched after cursor user3
+	recipients2 := []*domain.ContactWithList{
+		{Contact: &domain.Contact{Email: "user4@example.com"}, ListID: "list-1"},
+		{Contact: &domain.Contact{Email: "user5@example.com"}, ListID: "list-1"},
+	}
+
+	// First fetch: empty cursor, get 5 contacts
+	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", testBroadcast.Audience, 5, "").Return(recipients1, nil)
+	// Second fetch: cursor at user3 (after partial first batch), get remaining 2 contacts
+	mockContactRepo.EXPECT().GetContactsForBroadcast(gomock.Any(), "workspace-123", testBroadcast.Audience, 2, "user3@example.com").Return(recipients2, nil)
+
+	// Mock SendBatch - first call: simulates partial completion (3 of 5 sent)
+	mockMessageSender.EXPECT().SendBatch(
+		gomock.Any(),
+		"workspace-123",
+		"marketing-provider-id",
+		"secret-key",
+		gomock.Any(),
+		true,
+		"broadcast-123",
+		recipients1,
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).DoAndReturn(func(_ context.Context, _, _, _, _ interface{}, _ bool, _ string, _ []*domain.ContactWithList, _, _, _ interface{}) (int, int, error) {
+		sendBatchCalled = true
+		return 3, 0, nil // Only 3 sent due to internal timeout
+	})
+	// Second call: sends remaining 2 contacts
+	mockMessageSender.EXPECT().SendBatch(
+		gomock.Any(),
+		"workspace-123",
+		"marketing-provider-id",
+		"secret-key",
+		gomock.Any(),
+		true,
+		"broadcast-123",
+		recipients2,
+		gomock.Any(),
+		gomock.Any(),
+		gomock.Any(),
+	).Return(2, 0, nil)
+
+	// Capture the saved state to verify cursor
+	var savedState *domain.TaskState
+	mockTaskRepo.EXPECT().SaveState(gomock.Any(), "workspace-123", "task-123", gomock.Any(), gomock.Any()).DoAndReturn(
+		func(ctx context.Context, workspaceID, taskID string, progress float64, state *domain.TaskState) error {
+			savedState = state
+			return nil
+		}).AnyTimes()
+
+	config := &broadcast.Config{
+		FetchBatchSize:      50,
+		MaxProcessTime:      30 * time.Second,
+		ProgressLogInterval: 5 * time.Second,
+	}
+
+	orchestrator := broadcast.NewBroadcastOrchestrator(
+		mockMessageSender,
+		mockBroadcastRepo,
+		mockTemplateRepo,
+		mockContactRepo,
+		mockTaskRepo,
+		mockWorkspaceRepo,
+		nil,
+		mockLogger,
+		config,
+		mockTimeProvider,
+		"https://api.example.com",
+		mockEventBus,
+	)
+
+	task := &domain.Task{
+		ID:          "task-123",
+		WorkspaceID: "workspace-123",
+		Type:        "send_broadcast",
+		BroadcastID: stringPtr("broadcast-123"),
+		State: &domain.TaskState{
+			Progress: 0,
+			Message:  "Starting broadcast",
+			SendBroadcast: &domain.SendBroadcastState{
+				BroadcastID:     "broadcast-123",
+				TotalRecipients: 5,
+				SentCount:       0,
+				FailedCount:     0,
+				RecipientOffset: 0,
+				Phase:           "single",
+			},
+		},
+		RetryCount: 0,
+		MaxRetries: 3,
+	}
+
+	// Execute with a real future timeout (orchestrator uses time.Now() directly for timeout check)
+	ctx := context.Background()
+	timeoutAt := time.Now().Add(30 * time.Second)
+	done, err := orchestrator.Process(ctx, task, timeoutAt)
+
+	// Verify
+	require.NoError(t, err)
+	// Task should be done since all contacts were eventually sent
+	assert.True(t, done, "Task should be complete after all contacts sent")
+
+	// The key test is that the second GetContactsForBroadcast call received cursor "user3@example.com"
+	// This proves the fix works: after partial batch (3 of 5 sent), cursor was correctly set to user3
+	// (the last PROCESSED contact), not user5 (the last FETCHED contact).
+	// If the bug was still present, the second call would have received cursor "user5@example.com"
+	// and would have failed because there's no mock for that.
+
+	// Also verify final state
+	require.NotNil(t, savedState, "State should have been saved")
+	require.NotNil(t, savedState.SendBroadcast, "SendBroadcast state should exist")
+	// Final cursor should be at user5 (last contact)
+	assert.Equal(t, "user5@example.com", savedState.SendBroadcast.LastProcessedEmail,
+		"Final cursor should be at the last processed contact (user5)")
+	// Total processed should be 5 (3 from first batch + 2 from second batch)
+	assert.Equal(t, int64(5), savedState.SendBroadcast.RecipientOffset,
+		"RecipientOffset should reflect all processed contacts (5)")
+}

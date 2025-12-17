@@ -1117,10 +1117,16 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		broadcastState.RecipientOffset += int64(sent + failed)
 		currentOffset = int(broadcastState.RecipientOffset)
 
-		// Update cursor for next batch - use last email from this batch
+		// Update cursor for next batch - use the email of the last PROCESSED contact
+		// This is critical: we must use sent+failed (what was actually processed), not len(recipients) (what was fetched)
+		// If SendBatch times out mid-batch, only part of the fetched batch may be processed
 		if len(recipients) > 0 {
-			cursor = recipients[len(recipients)-1].Contact.Email
-			broadcastState.LastProcessedEmail = cursor
+			processedInBatch := sent + failed
+			if processedInBatch > 0 && processedInBatch <= len(recipients) {
+				cursor = recipients[processedInBatch-1].Contact.Email
+				broadcastState.LastProcessedEmail = cursor
+			}
+			// If nothing was processed, don't update cursor (will retry same batch on next run)
 		}
 
 		// Use sent + failed as the number of recipients processed/attempted
