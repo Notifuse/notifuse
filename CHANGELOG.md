@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [19.6] - 2025-12-19
+
+- Fix: SMTP integration now works with strict SMTP servers (#172)
+  - Replaced go-mail SMTP client with raw SMTP command implementation
+  - MAIL FROM command no longer includes BODY=8BITMIME or SMTPUTF8 extensions that caused "501 5.5.4 Syntax error in parameters" errors
+  - Message composition (MIME, headers, attachments) still handled by go-mail
+
 ## [19.5] - 2025-12-16
 
 - Fix: Task completion now saves final state to prevent stale progress display in UI (#157)
