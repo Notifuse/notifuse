@@ -7,7 +7,7 @@ import {
   type Automation,
   type AutomationNode
 } from '../../../services/api/automation'
-import type { Workspace } from '../../../services/api/types'
+import type { Workspace, Template } from '../../../services/api/types'
 import type { List } from '../../../services/api/list'
 import type { Segment } from '../../../services/api/segment'
 import {
@@ -38,6 +38,7 @@ export interface AutomationContextType {
   isEditing: boolean
   lists: List[]
   segments: Segment[]
+  templates: Template[]
 
   // Form state
   name: string
@@ -78,6 +79,7 @@ interface AutomationProviderProps {
   automation?: Automation
   lists: List[]
   segments?: Segment[]
+  templates?: Template[]
   onSaveSuccess?: () => void
   onClose?: () => void
   children: React.ReactNode
@@ -88,6 +90,7 @@ export function AutomationProvider({
   automation,
   lists,
   segments = [],
+  templates = [],
   onSaveSuccess,
   onClose,
   children
@@ -315,6 +318,7 @@ export function AutomationProvider({
     isEditing,
     lists,
     segments,
+    templates,
     name,
     setName: setNameWithChange,
     listId,
@@ -339,6 +343,7 @@ export function AutomationProvider({
     isEditing,
     lists,
     segments,
+    templates,
     name,
     setNameWithChange,
     listId,

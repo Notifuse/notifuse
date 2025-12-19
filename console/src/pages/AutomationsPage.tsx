@@ -6,6 +6,7 @@ import { PlusOutlined } from '@ant-design/icons'
 import { automationApi, Automation } from '../services/api/automation'
 import { listsApi } from '../services/api/list'
 import { listSegments } from '../services/api/segment'
+import { templatesApi } from '../services/api/template'
 import { useWorkspacePermissions, useAuth } from '../contexts/AuthContext'
 import { AutomationCard } from '../components/automations/AutomationCard'
 import { UpsertAutomationDrawer } from '../components/automations/UpsertAutomationDrawer'
@@ -58,10 +59,18 @@ export function AutomationsPage() {
     enabled: !!workspaceId
   })
 
+  // Fetch templates for reference
+  const { data: templatesData } = useQuery({
+    queryKey: ['templates', workspaceId, 'marketing'],
+    queryFn: () => templatesApi.list({ workspace_id: workspaceId, category: 'marketing', channel: 'email' }),
+    enabled: !!workspaceId
+  })
+
   const automations = automationsData?.automations || []
   const totalAutomations = automationsData?.total || 0
   const lists = listsData?.lists || []
   const segments = segmentsData?.segments || []
+  const templates = templatesData?.templates || []
 
   // Handle activate automation
   const handleActivate = async (automation: Automation) => {
@@ -149,6 +158,7 @@ export function AutomationsPage() {
                 workspace={currentWorkspace}
                 lists={lists}
                 segments={segments}
+                templates={templates}
                 buttonProps={{
                   type: 'primary',
                   icon: <PlusOutlined />,
@@ -173,6 +183,7 @@ export function AutomationsPage() {
               workspace={currentWorkspace}
               lists={lists}
               segments={segments}
+              templates={templates}
               buttonProps={{
                 type: 'primary',
                 icon: <PlusOutlined />,
@@ -220,6 +231,7 @@ export function AutomationsPage() {
           automation={editingAutomation}
           lists={lists}
           segments={segments}
+          templates={templates}
           open={!!editingAutomation}
           onOpenChange={(open) => {
             if (!open) handleEditClose()

@@ -208,12 +208,18 @@ export function buildTriggerConfig(
   if (!triggerNode) return undefined
 
   const config = triggerNode.data.config as {
-    event_kinds?: string[]
+    event_kind?: string
+    list_id?: string
+    segment_id?: string
+    custom_event_name?: string
     frequency?: 'once' | 'every_time'
   }
 
   return {
-    event_kinds: config.event_kinds || [],
+    event_kind: config.event_kind || '',
+    list_id: config.list_id,
+    segment_id: config.segment_id,
+    custom_event_name: config.custom_event_name,
     frequency: config.frequency || 'once'
   }
 }
@@ -255,12 +261,12 @@ export function validateFlow(
       message: 'Automation must have a trigger node'
     })
   } else {
-    // Check trigger has event kinds
-    const config = triggerNode.data.config as { event_kinds?: string[] }
-    if (!config.event_kinds || config.event_kinds.length === 0) {
+    // Check trigger has event kind
+    const config = triggerNode.data.config as { event_kind?: string }
+    if (!config.event_kind) {
       errors.push({
         nodeId: triggerNode.id,
-        field: 'event_kinds',
+        field: 'event_kind',
         message: 'Trigger must have at least one event kind selected'
       })
     }

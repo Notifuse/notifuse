@@ -39,7 +39,7 @@ export const DelayConfigForm: React.FC<DelayConfigFormProps> = ({ config, onChan
             style={{ width: '60%' }}
           />
           <Select
-            value={config.unit || 'minutes'}
+            value={config.unit || 'days'}
             onChange={handleUnitChange}
             options={UNIT_OPTIONS}
             style={{ width: '40%' }}

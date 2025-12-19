@@ -3,14 +3,17 @@ import { Handle, Position, type NodeProps } from '@xyflow/react'
 import { Mail } from 'lucide-react'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
+import { useAutomation } from '../context'
 import type { AutomationNodeData } from '../utils/flowConverter'
 import type { EmailNodeConfig } from '../../../services/api/automation'
 
 type EmailNodeProps = NodeProps<AutomationNodeData>
 
 export const EmailNode: React.FC<EmailNodeProps> = ({ data, selected }) => {
+  const { templates } = useAutomation()
   const config = data.config as EmailNodeConfig
   const hasTemplate = !!config?.template_id
+  const templateName = config?.template_id ? templates.find(t => t.id === config.template_id)?.name : undefined
   const handleColor = data.isOrphan ? '#f97316' : '#3b82f6'
 
   return (
@@ -28,7 +31,7 @@ export const EmailNode: React.FC<EmailNodeProps> = ({ data, selected }) => {
         isOrphan={data.isOrphan}
       >
         {hasTemplate ? (
-          <div>Template set</div>
+          <div>{templateName || 'Template set'}</div>
         ) : (
           <div className="text-orange-500">Select</div>
         )}
