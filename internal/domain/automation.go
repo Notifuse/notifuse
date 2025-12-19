@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -45,6 +46,32 @@ func (f TriggerFrequency) IsValid() bool {
 	default:
 		return false
 	}
+}
+
+// ValidEventKinds defines all allowed automation trigger event kinds
+var ValidEventKinds = []string{
+	// Contact events
+	"contact.created", "contact.updated", "contact.deleted",
+	// List events (require list_id)
+	"list.subscribed", "list.unsubscribed", "list.confirmed", "list.resubscribed",
+	"list.bounced", "list.complained", "list.pending", "list.removed",
+	// Segment events (require segment_id)
+	"segment.joined", "segment.left",
+	// Email events
+	"email.sent", "email.delivered", "email.opened", "email.clicked",
+	"email.bounced", "email.complained", "email.unsubscribed",
+	// Custom events (require custom_event_name)
+	"custom_event",
+}
+
+// IsValidEventKind checks if the given event kind is valid
+func IsValidEventKind(kind string) bool {
+	for _, k := range ValidEventKinds {
+		if k == kind {
+			return true
+		}
+	}
+	return false
 }
 
 // NodeType represents the type of automation node
@@ -118,25 +145,47 @@ func (a NodeAction) IsValid() bool {
 
 // TimelineTriggerConfig defines the trigger configuration for an automation
 type TimelineTriggerConfig struct {
-	EventKinds []string         `json:"event_kinds"` // Timeline event types to listen for
-	Conditions *TreeNode        `json:"conditions"`  // Reuse segments condition system
-	Frequency  TriggerFrequency `json:"frequency"`
+	EventKind       string           `json:"event_kind"`                    // Timeline event type to listen for
+	ListID          *string          `json:"list_id,omitempty"`             // Required for list.* events
+	SegmentID       *string          `json:"segment_id,omitempty"`          // Required for segment.* events
+	CustomEventName *string          `json:"custom_event_name,omitempty"`   // Required for custom_event
+	Conditions      *TreeNode        `json:"conditions"`                    // Reuse segments condition system
+	Frequency       TriggerFrequency `json:"frequency"`
 }
 
 // Validate validates the trigger configuration
 func (c *TimelineTriggerConfig) Validate() error {
-	if len(c.EventKinds) == 0 {
-		return fmt.Errorf("at least one event kind is required")
+	if c.EventKind == "" {
+		return fmt.Errorf("event kind is required")
 	}
 
-	for _, kind := range c.EventKinds {
-		if kind == "" {
-			return fmt.Errorf("event kind cannot be empty")
-		}
+	if !IsValidEventKind(c.EventKind) {
+		return fmt.Errorf("invalid event kind: %s", c.EventKind)
 	}
 
 	if !c.Frequency.IsValid() {
 		return fmt.Errorf("invalid trigger frequency: %s", c.Frequency)
+	}
+
+	// list.* events require list_id
+	if strings.HasPrefix(c.EventKind, "list.") {
+		if c.ListID == nil || *c.ListID == "" {
+			return fmt.Errorf("list_id is required for list events")
+		}
+	}
+
+	// segment.* events require segment_id
+	if strings.HasPrefix(c.EventKind, "segment.") {
+		if c.SegmentID == nil || *c.SegmentID == "" {
+			return fmt.Errorf("segment_id is required for segment events")
+		}
+	}
+
+	// custom_event requires custom_event_name
+	if c.EventKind == "custom_event" {
+		if c.CustomEventName == nil || *c.CustomEventName == "" {
+			return fmt.Errorf("custom_event_name is required for custom events")
+		}
 	}
 
 	return nil

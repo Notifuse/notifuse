@@ -45,6 +45,7 @@ export interface UseAutomationCanvasReturn {
   // Computed
   terminalNodes: Node<AutomationNodeData>[]
   validationErrors: ValidationError[]
+  orphanNodeIds: Set<string>
 
   // Last added node tracking (for auto-selection)
   lastAddedNodeId: string | undefined
@@ -254,6 +255,39 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     return nodes.filter(n => !nodesWithOutgoingEdges.has(n.id))
   }, [nodes, edges])
 
+  // Compute orphan nodes (nodes not reachable from trigger via BFS)
+  const orphanNodeIds = useMemo(() => {
+    const triggerNode = nodes.find(n => n.data.nodeType === 'trigger')
+    if (!triggerNode) return new Set<string>()
+
+    // Build adjacency list from edges
+    const adjacency = new Map<string, string[]>()
+    edges.forEach(e => {
+      if (!adjacency.has(e.source)) adjacency.set(e.source, [])
+      adjacency.get(e.source)!.push(e.target)
+    })
+
+    // BFS from trigger
+    const reachable = new Set<string>()
+    const queue = [triggerNode.id]
+    while (queue.length > 0) {
+      const nodeId = queue.shift()!
+      if (reachable.has(nodeId)) continue
+      reachable.add(nodeId)
+      const neighbors = adjacency.get(nodeId) || []
+      neighbors.forEach(n => {
+        if (!reachable.has(n)) queue.push(n)
+      })
+    }
+
+    // Orphans are nodes not in reachable set (excluding trigger itself)
+    const orphans = new Set<string>()
+    nodes.forEach(n => {
+      if (!reachable.has(n.id)) orphans.add(n.id)
+    })
+    return orphans
+  }, [nodes, edges])
+
   // Compute validation errors
   const validationErrors = useMemo(() => {
     return validateFlow(nodes, edges)
@@ -277,6 +311,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     handleIsValidConnection,
     terminalNodes,
     validationErrors,
-    lastAddedNodeId
+    lastAddedNodeId,
+    orphanNodeIds
   }
 }

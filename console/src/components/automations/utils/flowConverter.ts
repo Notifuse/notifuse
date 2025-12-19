@@ -15,6 +15,7 @@ export interface AutomationNodeData {
   nodeType: NodeType
   config: Record<string, unknown>
   label: string
+  isOrphan?: boolean
 }
 
 // Get display label for node type

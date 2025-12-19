@@ -82,7 +82,7 @@ func TestAutomation_WelcomeSeries(t *testing.T) {
 		testutil.WithAutomationName("Welcome Series"),
 		testutil.WithAutomationListID(list.ID),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"insert_contact_list"},
+			EventKind: "insert_contact_list",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -187,7 +187,7 @@ func TestAutomation_Deduplication(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("Once Only Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"test_event"},
+			EventKind: "test_event",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -274,7 +274,7 @@ func TestAutomation_MultipleEntries(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("Every Time Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"repeat_event"},
+			EventKind: "repeat_event",
 			Frequency:  domain.TriggerFrequencyEveryTime,
 		}),
 	)
@@ -360,7 +360,7 @@ func TestAutomation_DelayTiming(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("Delay Test Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"delay_test_event"},
+			EventKind: "delay_test_event",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -456,7 +456,7 @@ func TestAutomation_ABTestDeterminism(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("AB Test Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"ab_test_event"},
+			EventKind: "ab_test_event",
 			Frequency:  domain.TriggerFrequencyEveryTime,
 		}),
 	)
@@ -533,7 +533,7 @@ func TestAutomation_BranchRouting(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("Branch Test Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"branch_test_event"},
+			EventKind: "branch_test_event",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -627,7 +627,7 @@ func TestAutomation_FilterNode(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("Filter Test Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"filter_test_event"},
+			EventKind: "filter_test_event",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -735,7 +735,7 @@ func TestAutomation_ListOperations(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("List Operations Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"list_ops_event"},
+			EventKind: "list_ops_event",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -828,7 +828,7 @@ func TestAutomation_ContextData(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("Context Data Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"purchase"},
+			EventKind: "purchase",
 			Frequency:  domain.TriggerFrequencyEveryTime,
 		}),
 	)
@@ -899,7 +899,7 @@ func TestAutomation_SegmentTrigger(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("Segment Trigger Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"segment.joined"},
+			EventKind: "segment.joined",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -970,7 +970,7 @@ func TestAutomation_DeletionCleanup(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("Deletion Test Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"delete_test_event"},
+			EventKind: "delete_test_event",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -1073,7 +1073,7 @@ func TestAutomation_ErrorRecovery(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("Error Recovery Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"error_test_event"},
+			EventKind: "error_test_event",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -1165,7 +1165,7 @@ func TestAutomation_SchedulerExecution(t *testing.T) {
 		testutil.WithAutomationName("Scheduler Execution Automation"),
 		testutil.WithAutomationListID(list.ID),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"scheduler_test_event"},
+			EventKind: "scheduler_test_event",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -1275,7 +1275,7 @@ func TestAutomation_PauseResume(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("Pause Resume Test"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"test_pause_event"},
+			EventKind: "test_pause_event",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -1461,7 +1461,7 @@ func TestAutomation_Permissions(t *testing.T) {
 	automation, err := factory.CreateAutomation(workspace.ID,
 		testutil.WithAutomationName("Permission Test Automation"),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKinds: []string{"test_event"},
+			EventKind: "test_event",
 			Frequency:  domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -1513,8 +1513,8 @@ func TestAutomation_Permissions(t *testing.T) {
 				"name":         "Should Fail",
 				"status":       "draft",
 				"trigger": map[string]interface{}{
-					"event_kinds": []string{"test"},
-					"frequency":   "once",
+					"event_kind": "test",
+					"frequency":  "once",
 				},
 			},
 		})
@@ -1540,8 +1540,8 @@ func TestAutomation_Permissions(t *testing.T) {
 				"name":         "Owner Created Automation",
 				"status":       "draft",
 				"trigger": map[string]interface{}{
-					"event_kinds": []string{"owner_test"},
-					"frequency":   "once",
+					"event_kind": "owner_test",
+					"frequency":  "once",
 				},
 			},
 		})

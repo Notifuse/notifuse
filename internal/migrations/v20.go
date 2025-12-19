@@ -312,6 +312,116 @@ func (m *V20Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		return fmt.Errorf("failed to create message_history automation_id index: %w", err)
 	}
 
+	// PART 7: Update custom_event timeline trigger to use semantic naming
+	// Changes kind from "purchase" to "custom_event.purchase" format
+	_, err = db.ExecContext(ctx, `
+		CREATE OR REPLACE FUNCTION track_custom_event_timeline()
+		RETURNS TRIGGER AS $$
+		DECLARE
+			timeline_operation TEXT;
+			changes_json JSONB;
+			property_key TEXT;
+			property_diff JSONB;
+			kind_value TEXT;
+		BEGIN
+			IF TG_OP = 'INSERT' THEN
+				-- On INSERT: Create timeline entry with operation='insert'
+				timeline_operation := 'insert';
+				kind_value := 'custom_event.' || NEW.event_name;
+
+				changes_json := jsonb_build_object(
+					'event_name', jsonb_build_object('new', NEW.event_name),
+					'external_id', jsonb_build_object('new', NEW.external_id)
+				);
+
+				-- Add goal fields if present
+				IF NEW.goal_type IS NOT NULL THEN
+					changes_json := changes_json || jsonb_build_object('goal_type', jsonb_build_object('new', NEW.goal_type));
+				END IF;
+				IF NEW.goal_value IS NOT NULL THEN
+					changes_json := changes_json || jsonb_build_object('goal_value', jsonb_build_object('new', NEW.goal_value));
+				END IF;
+				IF NEW.goal_name IS NOT NULL THEN
+					changes_json := changes_json || jsonb_build_object('goal_name', jsonb_build_object('new', NEW.goal_name));
+				END IF;
+
+			ELSIF TG_OP = 'UPDATE' THEN
+				-- On UPDATE: Create timeline entry with operation='update'
+				timeline_operation := 'update';
+				kind_value := 'custom_event.' || NEW.event_name;
+
+				-- Compute JSON diff between OLD.properties and NEW.properties
+				property_diff := '{}'::jsonb;
+
+				-- Find changed, added, or removed keys
+				FOR property_key IN
+					SELECT DISTINCT key
+					FROM (
+						SELECT key FROM jsonb_object_keys(OLD.properties) AS key
+						UNION
+						SELECT key FROM jsonb_object_keys(NEW.properties) AS key
+					) AS all_keys
+				LOOP
+					-- Compare old and new values for this key
+					IF (OLD.properties->property_key) IS DISTINCT FROM (NEW.properties->property_key) THEN
+						property_diff := property_diff || jsonb_build_object(
+							property_key,
+							jsonb_build_object(
+								'old', OLD.properties->property_key,
+								'new', NEW.properties->property_key
+							)
+						);
+					END IF;
+				END LOOP;
+
+				changes_json := jsonb_build_object(
+					'properties', property_diff,
+					'occurred_at', jsonb_build_object(
+						'old', OLD.occurred_at,
+						'new', NEW.occurred_at
+					)
+				);
+
+				-- Add goal fields if changed
+				IF OLD.goal_type IS DISTINCT FROM NEW.goal_type THEN
+					changes_json := changes_json || jsonb_build_object('goal_type', jsonb_build_object('old', OLD.goal_type, 'new', NEW.goal_type));
+				END IF;
+				IF OLD.goal_value IS DISTINCT FROM NEW.goal_value THEN
+					changes_json := changes_json || jsonb_build_object('goal_value', jsonb_build_object('old', OLD.goal_value, 'new', NEW.goal_value));
+				END IF;
+				IF OLD.goal_name IS DISTINCT FROM NEW.goal_name THEN
+					changes_json := changes_json || jsonb_build_object('goal_name', jsonb_build_object('old', OLD.goal_name, 'new', NEW.goal_name));
+				END IF;
+			END IF;
+
+			-- Insert timeline entry with custom_event.{event_name} format
+			INSERT INTO contact_timeline (
+				email, operation, entity_type, kind, entity_id, changes, created_at
+			) VALUES (
+				NEW.email, timeline_operation, 'custom_event', kind_value,
+				NEW.external_id, changes_json, NEW.occurred_at
+			);
+
+			RETURN NEW;
+		END;
+		$$ LANGUAGE plpgsql;
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to update track_custom_event_timeline function: %w", err)
+	}
+
+	// PART 8: Migrate existing custom_event timeline entries (idempotent)
+	// Update kind from "purchase" to "custom_event.purchase" format
+	_, err = db.ExecContext(ctx, `
+		UPDATE contact_timeline
+		SET kind = 'custom_event.' || kind
+		WHERE entity_type = 'custom_event'
+		  AND kind NOT LIKE 'custom_event.%'
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to migrate custom_event timeline entries: %w", err)
+	}
+
 	return nil
 }
 

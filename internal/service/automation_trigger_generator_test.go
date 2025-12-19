@@ -176,19 +176,19 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		assert.Contains(t, err.Error(), "trigger config is nil")
 	})
 
-	t.Run("missing event kinds returns error", func(t *testing.T) {
+	t.Run("missing event kind returns error", func(t *testing.T) {
 		automation := &domain.Automation{
 			ID:         "test123",
 			ListID:     "list1",
 			RootNodeID: "node1",
 			Trigger: &domain.TimelineTriggerConfig{
-				EventKinds: []string{},
-				Frequency:  domain.TriggerFrequencyOnce,
+				EventKind: "",
+				Frequency: domain.TriggerFrequencyOnce,
 			},
 		}
 		_, err := gen.Generate(automation)
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "at least one event kind")
+		assert.Contains(t, err.Error(), "must have an event kind")
 	})
 
 	t.Run("missing root node ID returns error", func(t *testing.T) {
@@ -197,8 +197,8 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 			ListID:     "list1",
 			RootNodeID: "",
 			Trigger: &domain.TimelineTriggerConfig{
-				EventKinds: []string{"insert_contact_list"},
-				Frequency:  domain.TriggerFrequencyOnce,
+				EventKind: "contact.created",
+				Frequency: domain.TriggerFrequencyOnce,
 			},
 		}
 		_, err := gen.Generate(automation)
@@ -212,8 +212,8 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 			ListID:     "list1",
 			RootNodeID: "node1",
 			Trigger: &domain.TimelineTriggerConfig{
-				EventKinds: []string{"insert_contact_list"},
-				Frequency:  domain.TriggerFrequencyOnce,
+				EventKind: "contact.created",
+				Frequency: domain.TriggerFrequencyOnce,
 			},
 		}
 
@@ -223,7 +223,7 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 
 		assert.Equal(t, "automation_trigger_test123", result.TriggerName)
 		assert.Equal(t, "automation_trigger_test123", result.FunctionName)
-		assert.Contains(t, result.WHENClause, "NEW.kind = 'insert_contact_list'")
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'contact.created'")
 		assert.NotContains(t, result.WHENClause, "EXISTS") // No TreeNode conditions
 		assert.Contains(t, result.FunctionBody, "CREATE OR REPLACE FUNCTION automation_trigger_test123()")
 		assert.Contains(t, result.FunctionBody, "automation_enroll_contact")
@@ -233,32 +233,14 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		assert.Contains(t, result.DropFunction, "DROP FUNCTION IF EXISTS automation_trigger_test123()")
 	})
 
-	t.Run("multiple event kinds", func(t *testing.T) {
-		automation := &domain.Automation{
-			ID:         "test456",
-			ListID:     "list1",
-			RootNodeID: "node1",
-			Trigger: &domain.TimelineTriggerConfig{
-				EventKinds: []string{"insert_contact_list", "update_contact"},
-				Frequency:  domain.TriggerFrequencyEveryTime,
-			},
-		}
-
-		result, err := gen.Generate(automation)
-		require.NoError(t, err)
-		require.NotNil(t, result)
-
-		assert.Contains(t, result.WHENClause, "NEW.kind IN ('insert_contact_list', 'update_contact')")
-	})
-
 	t.Run("event kind with TreeNode conditions - values are embedded", func(t *testing.T) {
 		automation := &domain.Automation{
 			ID:         "test789",
 			ListID:     "list1",
 			RootNodeID: "node1",
 			Trigger: &domain.TimelineTriggerConfig{
-				EventKinds: []string{"insert_contact"},
-				Frequency:  domain.TriggerFrequencyOnce,
+				EventKind: "contact.created",
+				Frequency: domain.TriggerFrequencyOnce,
 				Conditions: &domain.TreeNode{
 					Kind: "leaf",
 					Leaf: &domain.TreeNodeLeaf{
@@ -282,7 +264,7 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		assert.Contains(t, result.WHENClause, "NEW.kind = 'insert_contact'")
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'contact.created'")
 		assert.Contains(t, result.WHENClause, "EXISTS (SELECT 1 FROM contacts WHERE email = NEW.email")
 		// Values are embedded, not placeholders
 		assert.Contains(t, result.WHENClause, "country = 'US'")
@@ -291,12 +273,12 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 
 	t.Run("contact list membership condition", func(t *testing.T) {
 		automation := &domain.Automation{
-			ID:         "testlist",
+			ID:         "testlistcond",
 			ListID:     "list1",
 			RootNodeID: "node1",
 			Trigger: &domain.TimelineTriggerConfig{
-				EventKinds: []string{"update_message_history"},
-				Frequency:  domain.TriggerFrequencyEveryTime,
+				EventKind: "email.delivered",
+				Frequency: domain.TriggerFrequencyEveryTime,
 				Conditions: &domain.TreeNode{
 					Kind: "leaf",
 					Leaf: &domain.TreeNodeLeaf{
@@ -314,7 +296,7 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		assert.Contains(t, result.WHENClause, "NEW.kind = 'update_message_history'")
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'email.delivered'")
 		assert.Contains(t, result.WHENClause, "EXISTS (SELECT 1 FROM contact_lists cl")
 		assert.Contains(t, result.WHENClause, "cl.email = NEW.email")
 		assert.Contains(t, result.WHENClause, "'premium_members'") // Embedded value
@@ -326,8 +308,8 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 			ListID:     "list1",
 			RootNodeID: "node1",
 			Trigger: &domain.TimelineTriggerConfig{
-				EventKinds: []string{"insert_contact"},
-				Frequency:  domain.TriggerFrequencyOnce,
+				EventKind: "contact.created",
+				Frequency: domain.TriggerFrequencyOnce,
 			},
 		}
 
@@ -339,14 +321,14 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		assert.Contains(t, result.FunctionBody, "test''; DROP TABLE--")
 	})
 
-	t.Run("escapes SQL injection in event kinds", func(t *testing.T) {
+	t.Run("escapes SQL injection in event kind", func(t *testing.T) {
 		automation := &domain.Automation{
 			ID:         "test123",
 			ListID:     "list1",
 			RootNodeID: "node1",
 			Trigger: &domain.TimelineTriggerConfig{
-				EventKinds: []string{"insert'; DROP TABLE--"},
-				Frequency:  domain.TriggerFrequencyOnce,
+				EventKind: "insert'; DROP TABLE--",
+				Frequency: domain.TriggerFrequencyOnce,
 			},
 		}
 
@@ -364,8 +346,8 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 			ListID:     "list1",
 			RootNodeID: "node1",
 			Trigger: &domain.TimelineTriggerConfig{
-				EventKinds: []string{"insert_contact"},
-				Frequency:  "", // Empty
+				EventKind: "contact.created",
+				Frequency: "", // Empty
 			},
 		}
 
@@ -382,8 +364,8 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 			ListID:     "mylist456",
 			RootNodeID: "rootnode789",
 			Trigger: &domain.TimelineTriggerConfig{
-				EventKinds: []string{"insert_contact"},
-				Frequency:  domain.TriggerFrequencyOnce,
+				EventKind: "contact.created",
+				Frequency: domain.TriggerFrequencyOnce,
 			},
 		}
 
@@ -406,8 +388,8 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 			ListID:     "list1",
 			RootNodeID: "node1",
 			Trigger: &domain.TimelineTriggerConfig{
-				EventKinds: []string{"insert_contact"},
-				Frequency:  domain.TriggerFrequencyOnce,
+				EventKind: "contact.created",
+				Frequency: domain.TriggerFrequencyOnce,
 				Conditions: &domain.TreeNode{
 					Kind: "branch",
 					Branch: &domain.TreeNodeBranch{
@@ -449,10 +431,93 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		assert.Contains(t, result.WHENClause, "NEW.kind = 'insert_contact'")
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'contact.created'")
 		assert.Contains(t, result.WHENClause, "country = 'US'")
 		assert.Contains(t, result.WHENClause, "'premium'")
 		// Should have AND between the two conditions
 		assert.Contains(t, result.WHENClause, " AND ")
+	})
+
+	t.Run("list event with list_id filter", func(t *testing.T) {
+		listID := "mylist123"
+		automation := &domain.Automation{
+			ID:         "testlist",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind: "list.subscribed",
+				ListID:    &listID,
+				Frequency: domain.TriggerFrequencyOnce,
+			},
+		}
+
+		result, err := gen.Generate(automation)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'list.subscribed'")
+		assert.Contains(t, result.WHENClause, "NEW.entity_id = 'mylist123'")
+	})
+
+	t.Run("segment event with segment_id filter", func(t *testing.T) {
+		segmentID := "segment456"
+		automation := &domain.Automation{
+			ID:         "testsegment",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind: "segment.joined",
+				SegmentID: &segmentID,
+				Frequency: domain.TriggerFrequencyOnce,
+			},
+		}
+
+		result, err := gen.Generate(automation)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'segment.joined'")
+		assert.Contains(t, result.WHENClause, "NEW.entity_id = 'segment456'")
+	})
+
+	t.Run("custom_event with custom_event_name filter", func(t *testing.T) {
+		customEventName := "purchase"
+		automation := &domain.Automation{
+			ID:         "testcustom",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind:       "custom_event",
+				CustomEventName: &customEventName,
+				Frequency:       domain.TriggerFrequencyOnce,
+			},
+		}
+
+		result, err := gen.Generate(automation)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		// custom_event with name should produce "custom_event.purchase" format
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'custom_event.purchase'")
+	})
+
+	t.Run("email event (no additional filter)", func(t *testing.T) {
+		automation := &domain.Automation{
+			ID:         "testemail",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind: "email.opened",
+				Frequency: domain.TriggerFrequencyEveryTime,
+			},
+		}
+
+		result, err := gen.Generate(automation)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'email.opened'")
+		// Should NOT have entity_id filter for email events
+		assert.NotContains(t, result.WHENClause, "NEW.entity_id")
 	})
 }

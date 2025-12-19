@@ -145,13 +145,15 @@ const AutomationFlowEditorInner: React.FC = () => {
     selectNode,
     unselectNode,
     addNodeWithEdge,
+    removeNode,
     updateNodeConfig,
     onNodesChange,
     onEdgesChange,
     onConnect,
     onNodeDragStop,
     handleIsValidConnection,
-    terminalNodes
+    terminalNodes,
+    orphanNodeIds
   } = useAutomationCanvas()
 
   const hasListSelected = !!listId
@@ -175,6 +177,15 @@ const AutomationFlowEditorInner: React.FC = () => {
 
   // Compute placeholder nodes and edges for terminal nodes
   const { nodesWithPlaceholders, edgesWithPlaceholders } = useMemo(() => {
+    // Mark nodes with orphan status
+    const nodesWithOrphanStatus = nodes.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        isOrphan: orphanNodeIds.has(node.id)
+      }
+    }))
+
     // Create invisible placeholder nodes positioned below terminal nodes
     const placeholderNodes: Node[] = terminalNodes.map((node) => ({
       id: `placeholder-target-${node.id}`,
@@ -200,10 +211,10 @@ const AutomationFlowEditorInner: React.FC = () => {
     }))
 
     return {
-      nodesWithPlaceholders: [...nodes, ...placeholderNodes],
+      nodesWithPlaceholders: [...nodesWithOrphanStatus, ...placeholderNodes],
       edgesWithPlaceholders: [...edges, ...placeholderEdges]
     }
-  }, [nodes, edges, terminalNodes])
+  }, [nodes, edges, terminalNodes, orphanNodeIds])
 
   // Calculate button positions based on placeholder node positions and viewport
   const updateButtonPositions = useCallback(() => {
@@ -335,6 +346,7 @@ const AutomationFlowEditorInner: React.FC = () => {
           <NodeConfigPanel
             selectedNode={selectedNode}
             onNodeUpdate={handleNodeUpdateFromPanel}
+            onNodeDelete={removeNode}
             workspaceId={workspace.id}
             onClose={unselectNode}
           />

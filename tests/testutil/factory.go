@@ -1645,8 +1645,8 @@ func (tdf *TestDataFactory) CreateAutomation(workspaceID string, opts ...Automat
 		Status:      domain.AutomationStatusDraft,
 		ListID:      "", // Optional - set via options
 		Trigger: &domain.TimelineTriggerConfig{
-			EventKinds: []string{"insert_contact_list"},
-			Frequency:  domain.TriggerFrequencyOnce,
+			EventKind: "contact.created",
+			Frequency: domain.TriggerFrequencyOnce,
 		},
 		RootNodeID: "", // Set after creating nodes
 		Nodes:      []*domain.AutomationNode{}, // Initialize empty
@@ -1938,19 +1938,7 @@ func (tdf *TestDataFactory) ActivateAutomation(workspaceID, automationID string)
 	frequency = string(trigger.Frequency)
 
 	// Build event kind filter
-	eventKindFilter := ""
-	if len(trigger.EventKinds) == 1 {
-		eventKindFilter = fmt.Sprintf("NEW.kind = '%s'", trigger.EventKinds[0])
-	} else {
-		kinds := ""
-		for i, k := range trigger.EventKinds {
-			if i > 0 {
-				kinds += ", "
-			}
-			kinds += fmt.Sprintf("'%s'", k)
-		}
-		eventKindFilter = fmt.Sprintf("NEW.kind IN (%s)", kinds)
-	}
+	eventKindFilter := fmt.Sprintf("NEW.kind = '%s'", trigger.EventKind)
 
 	// Create trigger function (remove hyphens from UUID for valid PostgreSQL identifier)
 	safeID := strings.ReplaceAll(automationID, "-", "")

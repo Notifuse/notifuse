@@ -37,7 +37,7 @@ func createTestAutomation(id, workspaceID string) *domain.Automation {
 		Status:      domain.AutomationStatusDraft,
 		ListID:      "list-123",
 		Trigger: &domain.TimelineTriggerConfig{
-			EventKinds: []string{"email.opened"},
+			EventKind: "email.opened",
 			Frequency:  domain.TriggerFrequencyOnce,
 		},
 		RootNodeID: "node-root",
@@ -171,7 +171,7 @@ func TestAutomationRepository_GetByID(t *testing.T) {
 	now := time.Now().UTC()
 
 	triggerJSON, _ := json.Marshal(&domain.TimelineTriggerConfig{
-		EventKinds: []string{"email.opened"},
+		EventKind: "email.opened",
 		Frequency:  domain.TriggerFrequencyOnce,
 	})
 	nodesJSON, _ := json.Marshal([]*domain.AutomationNode{})
@@ -227,7 +227,7 @@ func TestAutomationRepository_List(t *testing.T) {
 	now := time.Now().UTC()
 
 	triggerJSON, _ := json.Marshal(&domain.TimelineTriggerConfig{
-		EventKinds: []string{"email.opened"},
+		EventKind: "email.opened",
 		Frequency:  domain.TriggerFrequencyOnce,
 	})
 	nodesJSON, _ := json.Marshal([]*domain.AutomationNode{})
@@ -985,7 +985,7 @@ func TestAutomationRepository_GetByIDTx(t *testing.T) {
 	now := time.Now().UTC()
 
 	triggerJSON, _ := json.Marshal(&domain.TimelineTriggerConfig{
-		EventKinds: []string{"email.opened"},
+		EventKind: "email.opened",
 		Frequency:  domain.TriggerFrequencyOnce,
 	})
 	nodesJSON, _ := json.Marshal([]*domain.AutomationNode{})
@@ -1387,7 +1387,7 @@ func TestAutomationRepository_List_ExcludesDeleted(t *testing.T) {
 	now := time.Now().UTC()
 
 	triggerJSON, _ := json.Marshal(&domain.TimelineTriggerConfig{
-		EventKinds: []string{"email.opened"},
+		EventKind: "email.opened",
 		Frequency:  domain.TriggerFrequencyOnce,
 	})
 	nodesJSON, _ := json.Marshal([]*domain.AutomationNode{})
@@ -1434,7 +1434,7 @@ func TestAutomationRepository_List_IncludeDeleted(t *testing.T) {
 	deletedAt := now.Add(-time.Hour)
 
 	triggerJSON, _ := json.Marshal(&domain.TimelineTriggerConfig{
-		EventKinds: []string{"email.opened"},
+		EventKind: "email.opened",
 		Frequency:  domain.TriggerFrequencyOnce,
 	})
 	nodesJSON, _ := json.Marshal([]*domain.AutomationNode{})

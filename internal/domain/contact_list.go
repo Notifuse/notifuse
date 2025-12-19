@@ -273,7 +273,13 @@ func (r *UpdateContactListStatusRequest) Validate() (workspaceID string, list *C
 
 	// Validate status is one of the allowed values
 	validStatus := false
-	for _, status := range []string{"active", "pending", "unsubscribed", "blacklisted"} {
+	for _, status := range []string{
+		string(ContactListStatusActive),
+		string(ContactListStatusPending),
+		string(ContactListStatusUnsubscribed),
+		string(ContactListStatusBounced),
+		string(ContactListStatusComplained),
+	} {
 		if r.Status == status {
 			validStatus = true
 			break

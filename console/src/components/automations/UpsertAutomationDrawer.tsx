@@ -15,6 +15,7 @@ import { Undo2, Redo2 } from 'lucide-react'
 import type { Automation } from '../../services/api/automation'
 import type { Workspace } from '../../services/api/types'
 import type { List } from '../../services/api/list'
+import type { Segment } from '../../services/api/segment'
 import { AutomationProvider, useAutomation } from './context'
 import { AutomationFlowEditor } from './AutomationFlowEditor'
 
@@ -25,6 +26,7 @@ interface UpsertAutomationDrawerProps {
   buttonContent?: React.ReactNode
   onClose?: () => void
   lists?: List[]
+  segments?: Segment[]
   // Controlled mode props
   open?: boolean
   onOpenChange?: (open: boolean) => void
@@ -202,6 +204,7 @@ export function UpsertAutomationDrawer({
   buttonContent,
   onClose,
   lists = [],
+  segments = [],
   open: controlledOpen,
   onOpenChange
 }: UpsertAutomationDrawerProps) {
@@ -259,6 +262,7 @@ export function UpsertAutomationDrawer({
             workspace={workspace}
             automation={automation}
             lists={lists}
+            segments={segments}
             onSaveSuccess={handleSaveSuccess}
             onClose={handleClose}
           >

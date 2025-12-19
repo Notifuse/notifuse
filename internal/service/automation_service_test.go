@@ -23,8 +23,8 @@ func createTestAutomationService(id, workspaceID string) *domain.Automation {
 		Status:      domain.AutomationStatusDraft,
 		ListID:      "list-123",
 		Trigger: &domain.TimelineTriggerConfig{
-			EventKinds: []string{"email.opened"},
-			Frequency:  domain.TriggerFrequencyOnce,
+			EventKind: "email.opened",
+			Frequency: domain.TriggerFrequencyOnce,
 		},
 		RootNodeID: "node-root",
 		Stats:      &domain.AutomationStats{},

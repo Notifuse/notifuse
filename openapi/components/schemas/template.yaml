@@ -277,29 +277,84 @@ DeleteTemplateRequest:
 CompileTemplateRequest:
   type: object
   required:
-    - template_content
-    - template_data
+    - workspace_id
+    - message_id
+    - visual_editor_tree
   properties:
-    template_content:
+    workspace_id:
+      type: string
+      description: The ID of the workspace
+      example: ws_1234567890
+    message_id:
+      type: string
+      description: Unique message ID for tracking
+      example: msg_abc123
+    visual_editor_tree:
       type: object
-      description: MJML template structure to compile
+      description: MJML visual editor tree structure (must have type 'mjml')
       additionalProperties: true
-    template_data:
+    test_data:
       type: object
       description: Data to use for Liquid templating
       additionalProperties: true
       example:
         user_name: John Doe
         action_url: https://example.com/action
+    tracking_settings:
+      $ref: '#/TrackingSettings'
+    channel:
+      type: string
+      enum:
+        - email
+        - web
+      description: Channel filter for block visibility
 
 CompileTemplateResponse:
   type: object
   properties:
+    success:
+      type: boolean
+      description: Whether compilation was successful
+    mjml:
+      type: string
+      description: Generated MJML markup
     html:
       type: string
       description: Compiled HTML output
-    errors:
-      type: array
-      description: Compilation errors, if any
-      items:
-        type: string
+    error:
+      type: object
+      description: MJML compilation error details, if any
+      properties:
+        message:
+          type: string
+
+TrackingSettings:
+  type: object
+  properties:
+    enable_tracking:
+      type: boolean
+      description: Whether to enable click/open tracking
+    endpoint:
+      type: string
+      description: API endpoint for tracking redirects
+    utm_source:
+      type: string
+      description: UTM source parameter
+    utm_medium:
+      type: string
+      description: UTM medium parameter
+    utm_campaign:
+      type: string
+      description: UTM campaign parameter
+    utm_content:
+      type: string
+      description: UTM content parameter
+    utm_term:
+      type: string
+      description: UTM term parameter
+    workspace_id:
+      type: string
+      description: Workspace ID for tracking
+    message_id:
+      type: string
+      description: Message ID for tracking

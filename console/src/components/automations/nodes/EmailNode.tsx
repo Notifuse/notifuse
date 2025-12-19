@@ -11,22 +11,24 @@ type EmailNodeProps = NodeProps<AutomationNodeData>
 export const EmailNode: React.FC<EmailNodeProps> = ({ data, selected }) => {
   const config = data.config as EmailNodeConfig
   const hasTemplate = !!config?.template_id
+  const handleColor = data.isOrphan ? '#f97316' : '#3b82f6'
 
   return (
     <>
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: nodeTypeColors.email, width: 6, height: 6 }}
+        style={{ background: handleColor, width: 10, height: 10 }}
       />
       <BaseNode
         type="email"
         label="Email"
         icon={<Mail size={16} color={selected ? undefined : nodeTypeColors.email} />}
         selected={selected}
+        isOrphan={data.isOrphan}
       >
         {hasTemplate ? (
-          <div className="truncate max-w-[80px]">Template set</div>
+          <div>Template set</div>
         ) : (
           <div className="text-orange-500">Select</div>
         )}
@@ -34,7 +36,7 @@ export const EmailNode: React.FC<EmailNodeProps> = ({ data, selected }) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: nodeTypeColors.email, width: 6, height: 6 }}
+        style={{ background: handleColor, width: 10, height: 10 }}
       />
     </>
   )

@@ -24,9 +24,44 @@ export type ContactAutomationStatus = 'active' | 'completed' | 'exited' | 'faile
 // Node action types
 export type NodeAction = 'entered' | 'processing' | 'completed' | 'failed' | 'skipped'
 
+// Valid event kinds for automation triggers
+export const VALID_EVENT_KINDS = [
+  // Contact events
+  'contact.created',
+  'contact.updated',
+  'contact.deleted',
+  // List events (require list_id)
+  'list.subscribed',
+  'list.unsubscribed',
+  'list.confirmed',
+  'list.resubscribed',
+  'list.bounced',
+  'list.complained',
+  'list.pending',
+  'list.removed',
+  // Segment events (require segment_id)
+  'segment.joined',
+  'segment.left',
+  // Email events
+  'email.sent',
+  'email.delivered',
+  'email.opened',
+  'email.clicked',
+  'email.bounced',
+  'email.complained',
+  'email.unsubscribed',
+  // Custom events (require custom_event_name)
+  'custom_event'
+] as const
+
+export type EventKind = (typeof VALID_EVENT_KINDS)[number]
+
 // Trigger configuration
 export interface TimelineTriggerConfig {
-  event_kinds: string[]
+  event_kind: string
+  list_id?: string // Required for list.* events
+  segment_id?: string // Required for segment.* events
+  custom_event_name?: string // Required for custom_event
   conditions?: TreeNode
   frequency: TriggerFrequency
 }

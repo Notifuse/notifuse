@@ -1,17 +1,16 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Card, Space, Badge, Button, Tooltip, Popconfirm, Descriptions, Tag, Statistic, Row, Col } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faCirclePause,
-  faCirclePlay,
   faTrashCan,
   faPenToSquare
 } from '@fortawesome/free-regular-svg-icons'
-import { faChevronDown, faChevronUp } from '@fortawesome/free-solid-svg-icons'
 import dayjs from '../../lib/dayjs'
 import type { Automation, AutomationStatus, NodeType } from '../../services/api/automation'
 import type { UserPermissions } from '../../services/api/workspace'
 import type { List } from '../../services/api/list'
+import type { Segment } from '../../services/api/segment'
 
 // Helper function to get status badge
 const getStatusBadge = (status: AutomationStatus) => {
@@ -62,33 +61,54 @@ const getWorkflowSummary = (automation: Automation): string => {
 interface AutomationCardProps {
   automation: Automation
   lists: List[]
+  segments?: Segment[]
   permissions: UserPermissions | null
   onActivate: (automation: Automation) => void
   onPause: (automation: Automation) => void
   onDelete: (automation: Automation) => void
   onEdit: (automation: Automation) => void
-  isFirst?: boolean
 }
 
 export const AutomationCard: React.FC<AutomationCardProps> = ({
   automation,
   lists,
+  segments = [],
   permissions,
   onActivate,
   onPause,
   onDelete,
-  onEdit,
-  isFirst = false
+  onEdit
 }) => {
-  const [showDetails, setShowDetails] = useState(isFirst)
-
   // Find the list name if list_id is set
   const listName = automation.list_id
     ? lists.find((l) => l.id === automation.list_id)?.name || automation.list_id
     : 'No list'
 
-  // Get trigger event kinds
-  const triggerEvents = automation.trigger?.event_kinds || []
+  // Get trigger event kind and filter info
+  const triggerEvent = automation.trigger?.event_kind
+  const triggerListId = automation.trigger?.list_id
+  const triggerSegmentId = automation.trigger?.segment_id
+  const triggerCustomEventName = automation.trigger?.custom_event_name
+
+  // Build trigger filter display
+  const getTriggerFilterDisplay = () => {
+    if (!triggerEvent) return null
+
+    if (triggerEvent.startsWith('list.') && triggerListId) {
+      const listItem = lists.find((l) => l.id === triggerListId)
+      return listItem?.name || triggerListId
+    }
+    if (triggerEvent.startsWith('segment.') && triggerSegmentId) {
+      const segmentItem = segments.find((s) => s.id === triggerSegmentId)
+      return segmentItem?.name || triggerSegmentId
+    }
+    if (triggerEvent === 'custom_event' && triggerCustomEventName) {
+      return triggerCustomEventName
+    }
+    return null
+  }
+
+  const triggerFilter = getTriggerFilterDisplay()
 
   return (
     <Card
@@ -105,6 +125,34 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
       }
       extra={
         <Space>
+          {/* Delete button - only for draft */}
+          {automation.status === 'draft' && (
+            <Tooltip
+              title={
+                !permissions?.automations?.write
+                  ? "You don't have write permission for automations"
+                  : 'Delete Automation'
+              }
+            >
+              <Popconfirm
+                title="Delete automation?"
+                description="This action cannot be undone."
+                onConfirm={() => onDelete(automation)}
+                okText="Yes, delete"
+                okButtonProps={{ danger: true }}
+                cancelText="Cancel"
+                disabled={!permissions?.automations?.write}
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />}
+                  disabled={!permissions?.automations?.write}
+                />
+              </Popconfirm>
+            </Tooltip>
+          )}
+
           {/* Edit button - only for draft/paused */}
           {(automation.status === 'draft' || automation.status === 'paused') && (
             <Tooltip
@@ -142,11 +190,12 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
                 disabled={!permissions?.automations?.write}
               >
                 <Button
-                  type="text"
+                  type="primary"
                   size="small"
-                  icon={<FontAwesomeIcon icon={faCirclePlay} style={{ opacity: 0.7 }} />}
                   disabled={!permissions?.automations?.write}
-                />
+                >
+                  Activate
+                </Button>
               </Popconfirm>
             </Tooltip>
           )}
@@ -172,35 +221,6 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
                   type="text"
                   size="small"
                   icon={<FontAwesomeIcon icon={faCirclePause} style={{ opacity: 0.7 }} />}
-                  disabled={!permissions?.automations?.write}
-                />
-              </Popconfirm>
-            </Tooltip>
-          )}
-
-          {/* Delete button - only for draft */}
-          {automation.status === 'draft' && (
-            <Tooltip
-              title={
-                !permissions?.automations?.write
-                  ? "You don't have write permission for automations"
-                  : 'Delete Automation'
-              }
-            >
-              <Popconfirm
-                title="Delete automation?"
-                description="This action cannot be undone."
-                onConfirm={() => onDelete(automation)}
-                okText="Yes, delete"
-                okButtonProps={{ danger: true }}
-                cancelText="Cancel"
-                disabled={!permissions?.automations?.write}
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  danger
-                  icon={<FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />}
                   disabled={!permissions?.automations?.write}
                 />
               </Popconfirm>
@@ -249,12 +269,11 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
           <div className="flex items-center gap-2">
             <span className="text-gray-500 text-sm">Trigger:</span>
             <Space size="small">
-              {triggerEvents.length > 0 ? (
-                triggerEvents.map((event) => (
-                  <Tag key={event} color="blue">
-                    {event}
-                  </Tag>
-                ))
+              {triggerEvent ? (
+                <>
+                  <Tag color="blue">{triggerEvent}</Tag>
+                  {triggerFilter && <Tag color="cyan">{triggerFilter}</Tag>}
+                </>
               ) : (
                 <span className="text-gray-400 text-sm">No trigger configured</span>
               )}
@@ -271,39 +290,21 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
         </Space>
       </div>
 
-      {/* Collapsible Details */}
-      <div
-        className="px-6 py-3 cursor-pointer hover:bg-gray-50 flex items-center justify-between"
-        onClick={() => setShowDetails(!showDetails)}
-      >
-        <span className="text-sm text-gray-500">Details</span>
-        <FontAwesomeIcon
-          icon={showDetails ? faChevronUp : faChevronDown}
-          className="text-gray-400"
-          size="sm"
-        />
+      {/* Details */}
+      <div className="px-6 py-4">
+        <Descriptions size="small" column={2}>
+          <Descriptions.Item label="ID">{automation.id}</Descriptions.Item>
+          <Descriptions.Item label="Trigger Frequency">
+            {automation.trigger?.frequency === 'once' ? 'Once per contact' : 'Every time'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Created">
+            {dayjs(automation.created_at).format('lll')}
+          </Descriptions.Item>
+          <Descriptions.Item label="Updated">
+            {dayjs(automation.updated_at).format('lll')}
+          </Descriptions.Item>
+        </Descriptions>
       </div>
-
-      {showDetails && (
-        <div className="px-6 py-4 bg-gray-50">
-          <Descriptions size="small" column={2}>
-            <Descriptions.Item label="ID">{automation.id}</Descriptions.Item>
-            <Descriptions.Item label="Status">{automation.status}</Descriptions.Item>
-            <Descriptions.Item label="Trigger Frequency">
-              {automation.trigger?.frequency === 'once' ? 'Once per contact' : 'Every time'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Total Nodes">
-              {automation.nodes?.length || 0}
-            </Descriptions.Item>
-            <Descriptions.Item label="Created">
-              {dayjs(automation.created_at).format('lll')}
-            </Descriptions.Item>
-            <Descriptions.Item label="Updated">
-              {dayjs(automation.updated_at).format('lll')}
-            </Descriptions.Item>
-          </Descriptions>
-        </div>
-      )}
     </Card>
   )
 }

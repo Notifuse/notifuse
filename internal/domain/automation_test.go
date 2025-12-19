@@ -117,13 +117,19 @@ func TestNodeAction_IsValid(t *testing.T) {
 }
 
 func validTimelineTriggerConfig() *TimelineTriggerConfig {
+	listID := "list123"
 	return &TimelineTriggerConfig{
-		EventKinds: []string{"list.subscribed"},
-		Frequency:  TriggerFrequencyOnce,
+		EventKind: "list.subscribed",
+		ListID:    &listID,
+		Frequency: TriggerFrequencyOnce,
 	}
 }
 
 func TestTimelineTriggerConfig_Validate(t *testing.T) {
+	listID := "list123"
+	segmentID := "segment123"
+	customEventName := "purchase"
+
 	tests := []struct {
 		name    string
 		config  *TimelineTriggerConfig
@@ -131,14 +137,41 @@ func TestTimelineTriggerConfig_Validate(t *testing.T) {
 		errMsg  string
 	}{
 		{
-			name:    "valid config",
+			name:    "valid config - list event with list_id",
 			config:  validTimelineTriggerConfig(),
+			wantErr: false,
+		},
+		{
+			name: "valid config - contact.created (no list_id required)",
+			config: &TimelineTriggerConfig{
+				EventKind: "contact.created",
+				Frequency: TriggerFrequencyOnce,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid config - segment event with segment_id",
+			config: &TimelineTriggerConfig{
+				EventKind: "segment.joined",
+				SegmentID: &segmentID,
+				Frequency: TriggerFrequencyOnce,
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid config - custom_event with custom_event_name",
+			config: &TimelineTriggerConfig{
+				EventKind:       "custom_event",
+				CustomEventName: &customEventName,
+				Frequency:       TriggerFrequencyOnce,
+			},
 			wantErr: false,
 		},
 		{
 			name: "valid config with conditions",
 			config: &TimelineTriggerConfig{
-				EventKinds: []string{"list.subscribed", "list.confirmed"},
+				EventKind: "list.subscribed",
+				ListID:    &listID,
 				Conditions: &TreeNode{
 					Kind: "leaf",
 					Leaf: &TreeNodeLeaf{
@@ -160,40 +193,58 @@ func TestTimelineTriggerConfig_Validate(t *testing.T) {
 			wantErr: false,
 		},
 		{
-			name: "empty event kinds",
+			name: "empty event kind",
 			config: &TimelineTriggerConfig{
-				EventKinds: []string{},
-				Frequency:  TriggerFrequencyOnce,
+				EventKind: "",
+				Frequency: TriggerFrequencyOnce,
 			},
 			wantErr: true,
-			errMsg:  "at least one event kind is required",
+			errMsg:  "event kind is required",
 		},
 		{
-			name: "nil event kinds",
+			name: "invalid event kind",
 			config: &TimelineTriggerConfig{
-				EventKinds: nil,
-				Frequency:  TriggerFrequencyOnce,
+				EventKind: "invalid.event",
+				Frequency: TriggerFrequencyOnce,
 			},
 			wantErr: true,
-			errMsg:  "at least one event kind is required",
-		},
-		{
-			name: "empty event kind in list",
-			config: &TimelineTriggerConfig{
-				EventKinds: []string{"list.subscribed", ""},
-				Frequency:  TriggerFrequencyOnce,
-			},
-			wantErr: true,
-			errMsg:  "event kind cannot be empty",
+			errMsg:  "invalid event kind",
 		},
 		{
 			name: "invalid frequency",
 			config: &TimelineTriggerConfig{
-				EventKinds: []string{"list.subscribed"},
-				Frequency:  TriggerFrequency("invalid"),
+				EventKind: "contact.created",
+				Frequency: TriggerFrequency("invalid"),
 			},
 			wantErr: true,
 			errMsg:  "invalid trigger frequency",
+		},
+		{
+			name: "list event missing list_id",
+			config: &TimelineTriggerConfig{
+				EventKind: "list.subscribed",
+				Frequency: TriggerFrequencyOnce,
+			},
+			wantErr: true,
+			errMsg:  "list_id is required for list events",
+		},
+		{
+			name: "segment event missing segment_id",
+			config: &TimelineTriggerConfig{
+				EventKind: "segment.joined",
+				Frequency: TriggerFrequencyOnce,
+			},
+			wantErr: true,
+			errMsg:  "segment_id is required for segment events",
+		},
+		{
+			name: "custom_event missing custom_event_name",
+			config: &TimelineTriggerConfig{
+				EventKind: "custom_event",
+				Frequency: TriggerFrequencyOnce,
+			},
+			wantErr: true,
+			errMsg:  "custom_event_name is required for custom events",
 		},
 	}
 
@@ -320,13 +371,13 @@ func TestAutomation_Validate(t *testing.T) {
 			automation: func() *Automation {
 				a := validAutomation()
 				a.Trigger = &TimelineTriggerConfig{
-					EventKinds: []string{},
-					Frequency:  TriggerFrequencyOnce,
+					EventKind: "",
+					Frequency: TriggerFrequencyOnce,
 				}
 				return a
 			}(),
 			wantErr: true,
-			errMsg:  "at least one event kind is required",
+			errMsg:  "event kind is required",
 		},
 		{
 			name: "valid automation with nodes and valid root_node_id",
@@ -777,7 +828,7 @@ func TestAutomation_JSON(t *testing.T) {
 	assert.Equal(t, automation.Name, decoded.Name)
 	assert.Equal(t, automation.Status, decoded.Status)
 	assert.Equal(t, automation.ListID, decoded.ListID)
-	assert.Equal(t, automation.Trigger.EventKinds, decoded.Trigger.EventKinds)
+	assert.Equal(t, automation.Trigger.EventKind, decoded.Trigger.EventKind)
 	assert.Equal(t, automation.Trigger.Frequency, decoded.Trigger.Frequency)
 	assert.Equal(t, automation.Stats.Enrolled, decoded.Stats.Enrolled)
 }

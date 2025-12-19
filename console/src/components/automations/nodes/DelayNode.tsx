@@ -20,18 +20,21 @@ export const DelayNode: React.FC<DelayNodeProps> = ({ data, selected }) => {
     return `${duration} ${unitLabel}`
   }
 
+  const handleColor = data.isOrphan ? '#f97316' : '#3b82f6'
+
   return (
     <>
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: nodeTypeColors.delay, width: 6, height: 6 }}
+        style={{ background: handleColor, width: 10, height: 10 }}
       />
       <BaseNode
         type="delay"
         label="Delay"
         icon={<FontAwesomeIcon icon={faHourglass} style={{ color: selected ? undefined : nodeTypeColors.delay }} />}
         selected={selected}
+        isOrphan={data.isOrphan}
       >
         <div className={duration === 0 ? 'text-orange-500' : ''}>
           {formatDuration()}
@@ -40,7 +43,7 @@ export const DelayNode: React.FC<DelayNodeProps> = ({ data, selected }) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: nodeTypeColors.delay, width: 6, height: 6 }}
+        style={{ background: handleColor, width: 10, height: 10 }}
       />
     </>
   )

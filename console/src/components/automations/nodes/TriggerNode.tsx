@@ -32,7 +32,7 @@ export const TriggerNode: React.FC<TriggerNodeProps> = ({ data, selected }) => {
       <Handle
         type="source"
         position={Position.Bottom}
-        style={{ background: nodeTypeColors.trigger, width: 6, height: 6 }}
+        style={{ background: '#3b82f6', width: 10, height: 10 }}
       />
     </>
   )

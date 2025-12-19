@@ -367,10 +367,10 @@
         example: ws_1234567890
       - name: subscription_id
         in: query
-        required: true
+        required: false
         schema:
           type: string
-        description: The ID of the webhook subscription
+        description: The ID of the webhook subscription (optional - if not provided, returns all deliveries for the workspace)
         example: whsub_a1b2c3d4e5f6
       - name: limit
         in: query
@@ -404,13 +404,8 @@
           application/json:
             schema:
               $ref: '../components/schemas/common.yaml#/ErrorResponse'
-            examples:
-              missingWorkspaceId:
-                value:
-                  error: workspace_id is required
-              missingSubscriptionId:
-                value:
-                  error: subscription_id is required
+            example:
+              error: workspace_id is required
       '401':
         description: Unauthorized - invalid or missing authentication token
         content:

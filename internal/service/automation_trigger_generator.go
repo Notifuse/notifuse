@@ -41,8 +41,8 @@ func (g *AutomationTriggerGenerator) Generate(automation *domain.Automation) (*T
 	if automation.Trigger == nil {
 		return nil, fmt.Errorf("automation trigger config is nil")
 	}
-	if len(automation.Trigger.EventKinds) == 0 {
-		return nil, fmt.Errorf("automation must have at least one event kind")
+	if automation.Trigger.EventKind == "" {
+		return nil, fmt.Errorf("automation must have an event kind")
 	}
 	if automation.RootNodeID == "" {
 		return nil, fmt.Errorf("automation must have a root node ID")
@@ -79,15 +79,31 @@ func (g *AutomationTriggerGenerator) Generate(automation *domain.Automation) (*T
 // buildWHENClause builds the WHEN clause for the trigger
 func (g *AutomationTriggerGenerator) buildWHENClause(automation *domain.Automation) (string, error) {
 	var conditions []string
+	trigger := automation.Trigger
 
-	// 1. Event kinds filter (required)
-	eventKindFilter := g.buildEventKindFilter(automation.Trigger.EventKinds)
-	conditions = append(conditions, eventKindFilter)
+	// 1. Event kind filter (required)
+	// For custom_event, the kind is "custom_event.{name}" in the timeline
+	if trigger.EventKind == "custom_event" && trigger.CustomEventName != nil && *trigger.CustomEventName != "" {
+		// Custom event with specific name filter
+		conditions = append(conditions, fmt.Sprintf("NEW.kind = 'custom_event.%s'", escapeString(*trigger.CustomEventName)))
+	} else {
+		conditions = append(conditions, fmt.Sprintf("NEW.kind = '%s'", escapeString(trigger.EventKind)))
+	}
 
-	// 2. TreeNode conditions (optional)
-	if automation.Trigger.Conditions != nil {
+	// 2. List ID filter (for list.* events) - entity_id stores list_id
+	if trigger.ListID != nil && *trigger.ListID != "" && strings.HasPrefix(trigger.EventKind, "list.") {
+		conditions = append(conditions, fmt.Sprintf("NEW.entity_id = '%s'", escapeString(*trigger.ListID)))
+	}
+
+	// 3. Segment ID filter (for segment.* events) - entity_id stores segment_id
+	if trigger.SegmentID != nil && *trigger.SegmentID != "" && strings.HasPrefix(trigger.EventKind, "segment.") {
+		conditions = append(conditions, fmt.Sprintf("NEW.entity_id = '%s'", escapeString(*trigger.SegmentID)))
+	}
+
+	// 4. TreeNode conditions (optional)
+	if trigger.Conditions != nil {
 		// Get SQL with placeholders and args
-		conditionSQL, args, err := g.queryBuilder.BuildTriggerCondition(automation.Trigger.Conditions, "NEW.email")
+		conditionSQL, args, err := g.queryBuilder.BuildTriggerCondition(trigger.Conditions, "NEW.email")
 		if err != nil {
 			return "", fmt.Errorf("failed to build TreeNode conditions: %w", err)
 		}
@@ -105,18 +121,9 @@ func (g *AutomationTriggerGenerator) buildWHENClause(automation *domain.Automati
 	return strings.Join(conditions, " AND "), nil
 }
 
-// buildEventKindFilter generates SQL for filtering by event kinds
-func (g *AutomationTriggerGenerator) buildEventKindFilter(eventKinds []string) string {
-	if len(eventKinds) == 1 {
-		return fmt.Sprintf("NEW.kind = '%s'", escapeString(eventKinds[0]))
-	}
-
-	// Multiple event kinds: IN clause
-	escaped := make([]string, len(eventKinds))
-	for i, kind := range eventKinds {
-		escaped[i] = fmt.Sprintf("'%s'", escapeString(kind))
-	}
-	return fmt.Sprintf("NEW.kind IN (%s)", strings.Join(escaped, ", "))
+// buildEventKindFilter generates SQL for filtering by event kind
+func (g *AutomationTriggerGenerator) buildEventKindFilter(eventKind string) string {
+	return fmt.Sprintf("NEW.kind = '%s'", escapeString(eventKind))
 }
 
 // buildFunctionBody generates the function body SQL

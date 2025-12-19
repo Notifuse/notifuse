@@ -5,6 +5,7 @@ import { useState } from 'react'
 import { PlusOutlined } from '@ant-design/icons'
 import { automationApi, Automation } from '../services/api/automation'
 import { listsApi } from '../services/api/list'
+import { listSegments } from '../services/api/segment'
 import { useWorkspacePermissions, useAuth } from '../contexts/AuthContext'
 import { AutomationCard } from '../components/automations/AutomationCard'
 import { UpsertAutomationDrawer } from '../components/automations/UpsertAutomationDrawer'
@@ -50,9 +51,17 @@ export function AutomationsPage() {
     enabled: !!workspaceId
   })
 
+  // Fetch segments for reference
+  const { data: segmentsData } = useQuery({
+    queryKey: ['segments', workspaceId],
+    queryFn: () => listSegments({ workspace_id: workspaceId }),
+    enabled: !!workspaceId
+  })
+
   const automations = automationsData?.automations || []
   const totalAutomations = automationsData?.total || 0
   const lists = listsData?.lists || []
+  const segments = segmentsData?.segments || []
 
   // Handle activate automation
   const handleActivate = async (automation: Automation) => {
@@ -139,6 +148,7 @@ export function AutomationsPage() {
               <UpsertAutomationDrawer
                 workspace={currentWorkspace}
                 lists={lists}
+                segments={segments}
                 buttonProps={{
                   type: 'primary',
                   icon: <PlusOutlined />,
@@ -162,6 +172,7 @@ export function AutomationsPage() {
             <UpsertAutomationDrawer
               workspace={currentWorkspace}
               lists={lists}
+              segments={segments}
               buttonProps={{
                 type: 'primary',
                 icon: <PlusOutlined />,
@@ -173,17 +184,17 @@ export function AutomationsPage() {
         </Empty>
       ) : (
         <>
-          {automations.map((automation, index) => (
+          {automations.map((automation) => (
             <AutomationCard
               key={automation.id}
               automation={automation}
               lists={lists}
+              segments={segments}
               permissions={permissions}
               onActivate={handleActivate}
               onPause={handlePause}
               onDelete={handleDelete}
               onEdit={handleEdit}
-              isFirst={index === 0}
             />
           ))}
 
@@ -208,6 +219,7 @@ export function AutomationsPage() {
           workspace={currentWorkspace}
           automation={editingAutomation}
           lists={lists}
+          segments={segments}
           open={!!editingAutomation}
           onOpenChange={(open) => {
             if (!open) handleEditClose()
