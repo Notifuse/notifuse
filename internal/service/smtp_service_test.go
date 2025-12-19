@@ -1,1807 +1,851 @@
 package service
 
 import (
+	"bufio"
 	"context"
-	"fmt"
+	"net"
+	"strings"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/domain/mocks"
-	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
-	"github.com/golang/mock/gomock"
+	pkglogger "github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestSMTPService_SendEmail(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+// mockSMTPServer is a test SMTP server that captures commands and messages
+type mockSMTPServer struct {
+	listener    net.Listener
+	mu          sync.Mutex
+	commands    []string
+	messages    []capturedMessage
+	authSuccess bool
+	closed      bool
+	wg          sync.WaitGroup
+	mailFromCmd string // captures the exact MAIL FROM command
+}
 
-	// Create mock logger
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
-	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
+type capturedMessage struct {
+	from       string
+	recipients []string
+	data       []byte
+}
 
-	// Test data
-	ctx := context.Background()
-	messageID := "test-message-id"
-	workspaceID := "workspace-123"
-	fromAddress := "sender@example.com"
-	fromName := "Test Sender"
-	to := "recipient@example.com"
-	subject := "Test Subject"
-	content := "<h1>Test Email</h1><p>This is a test email.</p>"
-	replyTo := "reply@example.com"
-	cc := []string{"cc1@example.com", "cc2@example.com"}
-	bcc := []string{"bcc1@example.com", "bcc2@example.com"}
+func newMockSMTPServer(t *testing.T, authSuccess bool) *mockSMTPServer {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
 
-	// Create valid provider config
-	validProvider := &domain.EmailProvider{
+	server := &mockSMTPServer{
+		listener:    listener,
+		authSuccess: authSuccess,
+		commands:    make([]string, 0),
+		messages:    make([]capturedMessage, 0),
+	}
+
+	server.wg.Add(1)
+	go server.serve()
+	return server
+}
+
+func (s *mockSMTPServer) serve() {
+	defer s.wg.Done()
+	for {
+		conn, err := s.listener.Accept()
+		if err != nil {
+			s.mu.Lock()
+			closed := s.closed
+			s.mu.Unlock()
+			if closed {
+				return
+			}
+			continue
+		}
+		s.wg.Add(1)
+		go s.handleConnection(conn)
+	}
+}
+
+func (s *mockSMTPServer) handleConnection(conn net.Conn) {
+	defer s.wg.Done()
+	defer conn.Close()
+
+	reader := bufio.NewReader(conn)
+
+	// Send greeting
+	conn.Write([]byte("220 localhost SMTP Mock Server\r\n"))
+
+	var from string
+	var recipients []string
+	var inData bool
+	var dataBuffer strings.Builder
+
+	for {
+		conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return
+		}
+
+		line = strings.TrimSpace(line)
+		s.mu.Lock()
+		s.commands = append(s.commands, line)
+		s.mu.Unlock()
+
+		if inData {
+			if line == "." {
+				inData = false
+				s.mu.Lock()
+				s.messages = append(s.messages, capturedMessage{
+					from:       from,
+					recipients: recipients,
+					data:       []byte(dataBuffer.String()),
+				})
+				s.mu.Unlock()
+				conn.Write([]byte("250 OK message queued\r\n"))
+				continue
+			}
+			dataBuffer.WriteString(line + "\r\n")
+			continue
+		}
+
+		upperLine := strings.ToUpper(line)
+
+		switch {
+		case strings.HasPrefix(upperLine, "EHLO") || strings.HasPrefix(upperLine, "HELO"):
+			conn.Write([]byte("250-localhost\r\n"))
+			conn.Write([]byte("250-8BITMIME\r\n")) // Advertise 8BITMIME to test that we don't use it
+			conn.Write([]byte("250-SMTPUTF8\r\n")) // Advertise SMTPUTF8 to test that we don't use it
+			conn.Write([]byte("250-SIZE 10485760\r\n"))
+			conn.Write([]byte("250 AUTH PLAIN LOGIN\r\n"))
+
+		case strings.HasPrefix(upperLine, "AUTH"):
+			if s.authSuccess {
+				conn.Write([]byte("235 Authentication successful\r\n"))
+			} else {
+				conn.Write([]byte("535 Authentication failed\r\n"))
+			}
+
+		case strings.HasPrefix(upperLine, "MAIL FROM:"):
+			s.mu.Lock()
+			s.mailFromCmd = line // Capture the exact MAIL FROM command
+			s.mu.Unlock()
+			// Extract email from MAIL FROM:<email>
+			start := strings.Index(line, "<")
+			end := strings.Index(line, ">")
+			if start != -1 && end != -1 && end > start {
+				from = line[start+1 : end]
+			}
+			conn.Write([]byte("250 OK\r\n"))
+
+		case strings.HasPrefix(upperLine, "RCPT TO:"):
+			start := strings.Index(line, "<")
+			end := strings.Index(line, ">")
+			if start != -1 && end != -1 && end > start {
+				recipients = append(recipients, line[start+1:end])
+			}
+			conn.Write([]byte("250 OK\r\n"))
+
+		case strings.HasPrefix(upperLine, "DATA"):
+			inData = true
+			dataBuffer.Reset()
+			conn.Write([]byte("354 Start mail input\r\n"))
+
+		case strings.HasPrefix(upperLine, "QUIT"):
+			conn.Write([]byte("221 Bye\r\n"))
+			return
+
+		case strings.HasPrefix(upperLine, "RSET"):
+			from = ""
+			recipients = nil
+			conn.Write([]byte("250 OK\r\n"))
+
+		case strings.HasPrefix(upperLine, "NOOP"):
+			conn.Write([]byte("250 OK\r\n"))
+
+		default:
+			conn.Write([]byte("500 Command not recognized\r\n"))
+		}
+	}
+}
+
+func (s *mockSMTPServer) Port() int {
+	return s.listener.Addr().(*net.TCPAddr).Port
+}
+
+func (s *mockSMTPServer) Addr() string {
+	return s.listener.Addr().String()
+}
+
+func (s *mockSMTPServer) Close() {
+	s.mu.Lock()
+	s.closed = true
+	s.mu.Unlock()
+	s.listener.Close()
+	s.wg.Wait()
+}
+
+func (s *mockSMTPServer) GetMailFromCommand() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.mailFromCmd
+}
+
+func (s *mockSMTPServer) GetMessages() []capturedMessage {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := make([]capturedMessage, len(s.messages))
+	copy(result, s.messages)
+	return result
+}
+
+func (s *mockSMTPServer) GetCommands() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := make([]string, len(s.commands))
+	copy(result, s.commands)
+	return result
+}
+
+// noopLogger implements logger.Logger interface for testing
+type noopLogger struct{}
+
+func (l *noopLogger) Debug(msg string)                                          {}
+func (l *noopLogger) Info(msg string)                                           {}
+func (l *noopLogger) Warn(msg string)                                           {}
+func (l *noopLogger) Error(msg string)                                          {}
+func (l *noopLogger) Fatal(msg string)                                          {}
+func (l *noopLogger) WithField(key string, value interface{}) pkglogger.Logger  { return l }
+func (l *noopLogger) WithFields(fields map[string]interface{}) pkglogger.Logger { return l }
+
+// ============================================================================
+// Tests for sendRawEmail function - Core fix for issue #172
+// ============================================================================
+
+func TestSendRawEmail_NoExtensionsInMailFrom(t *testing.T) {
+	// CRITICAL TEST: Verify MAIL FROM doesn't contain BODY=8BITMIME or SMTPUTF8
+	// This is the core fix for issue #172
+
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	port := server.Port()
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	err := sendRawEmail("127.0.0.1", port, "", "", false, "sender@example.com", []string{"recipient@example.com"}, msg)
+	require.NoError(t, err)
+
+	// Verify MAIL FROM command doesn't contain problematic extensions
+	mailFromCmd := server.GetMailFromCommand()
+	require.NotEmpty(t, mailFromCmd, "MAIL FROM command should be captured")
+
+	assert.NotContains(t, mailFromCmd, "BODY=8BITMIME", "MAIL FROM should not contain BODY=8BITMIME")
+	assert.NotContains(t, mailFromCmd, "SMTPUTF8", "MAIL FROM should not contain SMTPUTF8")
+	assert.NotContains(t, mailFromCmd, "SIZE=", "MAIL FROM should not contain SIZE parameter")
+
+	// Verify we got the message
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	assert.Equal(t, "sender@example.com", messages[0].from)
+}
+
+func TestSendRawEmail_Success_NoTLS(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	port := server.Port()
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	err := sendRawEmail("127.0.0.1", port, "", "", false, "sender@example.com", []string{"recipient@example.com"}, msg)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	assert.Equal(t, "sender@example.com", messages[0].from)
+	assert.Contains(t, messages[0].recipients, "recipient@example.com")
+}
+
+func TestSendRawEmail_WithAuth_NoTLS(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	port := server.Port()
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	err := sendRawEmail("127.0.0.1", port, "user", "pass", false, "sender@example.com", []string{"recipient@example.com"}, msg)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+}
+
+func TestSendRawEmail_AuthFailure(t *testing.T) {
+	server := newMockSMTPServer(t, false) // Auth will fail
+	defer server.Close()
+
+	port := server.Port()
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	err := sendRawEmail("127.0.0.1", port, "user", "pass", false, "sender@example.com", []string{"recipient@example.com"}, msg)
+	require.Error(t, err)
+}
+
+func TestSendRawEmail_ConnectionError(t *testing.T) {
+	// Try to connect to a port that's not listening
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	err := sendRawEmail("127.0.0.1", 59999, "", "", false, "sender@example.com", []string{"recipient@example.com"}, msg)
+	require.Error(t, err)
+}
+
+func TestSendRawEmail_MultipleRecipients(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	port := server.Port()
+	msg := []byte("From: sender@example.com\r\nTo: to@example.com\r\nCc: cc@example.com\r\n\r\nTest body")
+
+	recipients := []string{"to@example.com", "cc@example.com", "bcc@example.com"}
+	err := sendRawEmail("127.0.0.1", port, "", "", false, "sender@example.com", recipients, msg)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	assert.Len(t, messages[0].recipients, 3)
+}
+
+// ============================================================================
+// Tests for SMTPService.SendEmail with real message composition
+// ============================================================================
+
+func TestSMTPService_SendEmail_Integration(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
 		Kind: domain.EmailProviderKindSMTP,
 		SMTP: &domain.SMTPSettings{
-			Host:     "smtp.example.com",
-			Port:     587,
-			Username: "user@example.com",
-			Password: "password",
-			UseTLS:   true,
-		},
-		Senders: []domain.EmailSender{
-			domain.NewEmailSender("default@example.com", "Default Sender"),
+			Host:     "127.0.0.1",
+			Port:     server.Port(),
+			Username: "",
+			Password: "",
+			UseTLS:   false,
 		},
 	}
 
-	t.Run("missing SMTP settings", func(t *testing.T) {
-		// Create provider with missing SMTP settings
-		invalidProvider := &domain.EmailProvider{
-			Kind: domain.EmailProviderKindSMTP,
-			SMTP: nil,
-			Senders: []domain.EmailSender{
-				domain.NewEmailSender("default@example.com", "Default Sender"),
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1><p>This is a test.</p>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	// Verify message was sent
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	assert.Equal(t, "sender@example.com", messages[0].from)
+
+	// Verify no extensions in MAIL FROM (issue #172 fix)
+	mailFromCmd := server.GetMailFromCommand()
+	assert.NotContains(t, mailFromCmd, "BODY=8BITMIME")
+	assert.NotContains(t, mailFromCmd, "SMTPUTF8")
+}
+
+func TestSMTPService_SendEmail_WithCCAndBCC(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     server.Port(),
+			Username: "",
+			Password: "",
+			UseTLS:   false,
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "to@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1>",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			CC:  []string{"cc1@example.com", "cc2@example.com"},
+			BCC: []string{"bcc@example.com"},
+		},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	// Should have 4 recipients: to + 2 CC + 1 BCC
+	assert.Len(t, messages[0].recipients, 4)
+}
+
+func TestSMTPService_SendEmail_WithAttachment(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     server.Port(),
+			Username: "",
+			Password: "",
+			UseTLS:   false,
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test with Attachment",
+		Content:       "<h1>See attached</h1>",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			Attachments: []domain.Attachment{
+				{
+					Filename:    "test.txt",
+					Content:     "SGVsbG8gV29ybGQh", // "Hello World!" in base64
+					ContentType: "text/plain",
+					Disposition: "attachment",
+				},
 			},
-		}
+		},
+	}
 
-		// Create mock factory
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
 
-		// Create service with mock factory
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	// Verify attachment is in the message data
+	assert.Contains(t, string(messages[0].data), "test.txt")
+}
 
-		// Call the method
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      invalidProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
+func TestSMTPService_SendEmail_WithReplyTo(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
 
-		// Verify error
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "SMTP settings required")
-	})
+	log := &noopLogger{}
+	service := NewSMTPService(log)
 
-	t.Run("client creation error", func(t *testing.T) {
-		// Create mock factory that returns an error
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, fmt.Errorf("connection error"))
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     server.Port(),
+			Username: "",
+			Password: "",
+			UseTLS:   false,
+		},
+	}
 
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1>",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			ReplyTo: "reply@example.com",
+		},
+	}
 
-		// Call the method
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
 
-		// Verify error
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create SMTP client")
-	})
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	// Verify Reply-To header is in the message
+	assert.Contains(t, string(messages[0].data), "Reply-To:")
+}
 
-	t.Run("client creation success but send fails", func(t *testing.T) {
-		// Create mock factory that succeeds in creating client but we can't test actual sending
-		// without a more complex mock setup for the go-mail library
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, fmt.Errorf("connection refused"))
+func TestSMTPService_SendEmail_WithListUnsubscribe(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
 
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
+	log := &noopLogger{}
+	service := NewSMTPService(log)
 
-		// Call the method - should fail at client creation
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     server.Port(),
+			Username: "",
+			Password: "",
+			UseTLS:   false,
+		},
+	}
 
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create SMTP client")
-	})
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1>",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			ListUnsubscribeURL: "https://example.com/unsubscribe",
+		},
+	}
 
-	t.Run("test CC and BCC parameters passed to factory", func(t *testing.T) {
-		// Create mock factory that fails so we can test parameter passing without nil client issues
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, fmt.Errorf("connection timeout"))
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
 
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	// Verify List-Unsubscribe headers are in the message
+	assert.Contains(t, string(messages[0].data), "List-Unsubscribe:")
+	assert.Contains(t, string(messages[0].data), "List-Unsubscribe-Post:")
+}
 
-		// Call with CC and BCC - should fail at client creation but parameters are validated
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{CC: cc, BCC: bcc},
-		}
-		err := service.SendEmail(ctx, request)
+func TestSMTPService_SendEmail_InlineAttachment(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
 
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create SMTP client")
-	})
+	log := &noopLogger{}
+	service := NewSMTPService(log)
 
-	t.Run("empty CC and BCC values handling", func(t *testing.T) {
-		// Create mock factory that fails to avoid nil client issues
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, fmt.Errorf("network error"))
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     server.Port(),
+			Username: "",
+			Password: "",
+			UseTLS:   false,
+		},
+	}
 
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with empty CC and BCC values
-		ccWithEmpty := []string{"cc1@example.com", "", "cc2@example.com"}
-		bccWithEmpty := []string{"", "bcc1@example.com", ""}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{CC: ccWithEmpty, BCC: bccWithEmpty},
-		}
-		err := service.SendEmail(ctx, request)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create SMTP client")
-	})
-
-	t.Run("with reply-to header", func(t *testing.T) {
-		// Create mock factory that fails to avoid nil client issues
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, fmt.Errorf("auth failed"))
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with reply-to
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{ReplyTo: replyTo},
-		}
-		err := service.SendEmail(ctx, request)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create SMTP client")
-	})
-
-	t.Run("without reply-to header", func(t *testing.T) {
-		// Create mock factory that fails to avoid nil client issues
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, fmt.Errorf("timeout"))
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call without reply-to (empty string)
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create SMTP client")
-	})
-
-	t.Run("SMTP settings with TLS disabled", func(t *testing.T) {
-		// Create provider with TLS disabled
-		providerNoTLS := &domain.EmailProvider{
-			Kind: domain.EmailProviderKindSMTP,
-			SMTP: &domain.SMTPSettings{
-				Host:     "smtp.example.com",
-				Port:     25,
-				Username: "user@example.com",
-				Password: "password",
-				UseTLS:   false,
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test with Inline Image",
+		Content:       "<h1>See image</h1><img src=\"cid:logo.png\">",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			Attachments: []domain.Attachment{
+				{
+					Filename:    "logo.png",
+					Content:     "iVBORw0KGgo=", // minimal PNG header in base64
+					ContentType: "image/png",
+					Disposition: "inline",
+				},
 			},
-			Senders: []domain.EmailSender{
-				domain.NewEmailSender("default@example.com", "Default Sender"),
+		},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	assert.Contains(t, string(messages[0].data), "logo.png")
+}
+
+// ============================================================================
+// Validation tests
+// ============================================================================
+
+func TestSMTPService_SendEmail_MissingSMTPSettings(t *testing.T) {
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: nil, // Missing SMTP settings
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "SMTP settings required")
+}
+
+func TestSMTPService_SendEmail_EmptyMessageID(t *testing.T) {
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     587,
+			Username: "user",
+			Password: "pass",
+			UseTLS:   true,
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "", // Empty message ID
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "message ID is required")
+}
+
+func TestSMTPService_SendEmail_EmptySubject(t *testing.T) {
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     587,
+			Username: "user",
+			Password: "pass",
+			UseTLS:   true,
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "", // Empty subject
+		Content:       "<h1>Hello</h1>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "subject is required")
+}
+
+func TestSMTPService_SendEmail_EmptyContent(t *testing.T) {
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     587,
+			Username: "user",
+			Password: "pass",
+			UseTLS:   true,
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "", // Empty content
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "content is required")
+}
+
+func TestSMTPService_SendEmail_InvalidBase64Attachment(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     server.Port(),
+			Username: "",
+			Password: "",
+			UseTLS:   false,
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1>",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			Attachments: []domain.Attachment{
+				{
+					Filename:    "test.pdf",
+					Content:     "not-valid-base64!@#$",
+					ContentType: "application/pdf",
+					Disposition: "attachment",
+				},
 			},
-		}
-
-		// Create mock factory that fails to avoid nil client issues
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			providerNoTLS.SMTP.Host,
-			providerNoTLS.SMTP.Port,
-			providerNoTLS.SMTP.Username,
-			providerNoTLS.SMTP.Password,
-			providerNoTLS.SMTP.UseTLS,
-		).Return(nil, fmt.Errorf("connection refused"))
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call the method
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      providerNoTLS,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create SMTP client")
-	})
-
-	t.Run("invalid from address format", func(t *testing.T) {
-		// Create mock factory that fails to avoid nil client issues
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, fmt.Errorf("connection error"))
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with invalid from address
-		invalidFromAddress := "invalid-email"
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   invalidFromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create SMTP client")
-	})
-
-	t.Run("invalid to address format", func(t *testing.T) {
-		// Create mock factory that fails to avoid nil client issues
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, fmt.Errorf("connection error"))
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with invalid to address
-		invalidToAddress := "invalid-email"
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            invalidToAddress,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create SMTP client")
-	})
-
-	t.Run("empty message ID", func(t *testing.T) {
-		// Create service (no mock needed since validation fails before SMTP logic)
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: nil, // Not needed since validation fails first
-		}
-
-		// Call with empty message ID
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     "",
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "message ID is required")
-	})
-
-	t.Run("empty subject", func(t *testing.T) {
-		// Create service (no mock needed since validation fails before SMTP logic)
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: nil, // Not needed since validation fails first
-		}
-
-		// Call with empty subject
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       "",
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "subject is required")
-	})
-
-	t.Run("empty content", func(t *testing.T) {
-		// Create service (no mock needed since validation fails before SMTP logic)
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: nil, // Not needed since validation fails first
-		}
-
-		// Call with empty content
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       "",
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "content is required")
-	})
-
-	t.Run("successful email sending", func(t *testing.T) {
-		// For successful cases, we need to test the actual logic without mocking the mail client
-		// since the go-mail library doesn't provide interfaces we can easily mock
-		// Instead, we'll test by ensuring the factory is called with correct parameters
-		// and that no errors are returned when the factory succeeds
-
-		// Create mock factory that returns nil (simulating success)
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, nil) // Return nil client and nil error to simulate factory success
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call the method - this will fail when trying to use the nil client
-		// but we can verify the factory was called correctly
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// This will error because we returned nil client, but that's expected
-		// The important thing is that the factory was called with correct parameters
-		require.Error(t, err)
-	})
-
-	t.Run("factory called with CC and BCC parameters", func(t *testing.T) {
-		// Test that the factory is called correctly when CC and BCC are provided
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with CC and BCC - verify factory is called with correct parameters
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{CC: cc, BCC: bcc},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Will error due to nil client, but factory was called correctly
-		require.Error(t, err)
-	})
-
-	t.Run("factory called with ReplyTo parameter", func(t *testing.T) {
-		// Test that the factory is called correctly when ReplyTo is provided
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with ReplyTo - verify factory is called correctly
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{ReplyTo: replyTo},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Will error due to nil client, but factory was called correctly
-		require.Error(t, err)
-	})
-
-	t.Run("factory parameters validation", func(t *testing.T) {
-		// Test that the factory is called with correct parameters for various scenarios
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(nil, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with various parameters to ensure factory is called correctly
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Will error due to nil client, but factory was called correctly
-		require.Error(t, err)
-	})
-
-	// Test message composition and validation logic
-	t.Run("invalid from address format in message composition", func(t *testing.T) {
-		// Create a mock factory that returns a working client
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-
-		// Create a real client that will fail at dial stage (not at message composition)
-		// This allows us to test the message composition logic
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with invalid from address format
-		invalidFromAddress := "invalid-email-format"
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   invalidFromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at message composition stage with "invalid sender" error
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid sender")
-	})
-
-	t.Run("invalid to address format in message composition", func(t *testing.T) {
-		// Create a mock factory that returns a working client
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with invalid to address format
-		invalidToAddress := "invalid-email-format"
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            invalidToAddress,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at message composition stage with "invalid recipient" error
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid recipient")
-	})
-
-	t.Run("invalid CC address format in message composition", func(t *testing.T) {
-		// Create a mock factory that returns a working client
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with invalid CC address format
-		invalidCC := []string{"valid@example.com", "invalid-email-format"}
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{CC: invalidCC},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at message composition stage with "invalid CC recipient" error
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid CC recipient")
-	})
-
-	t.Run("invalid BCC address format in message composition", func(t *testing.T) {
-		// Create a mock factory that returns a working client
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with invalid BCC address format
-		invalidBCC := []string{"valid@example.com", "invalid-email-format"}
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{BCC: invalidBCC},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at message composition stage with "invalid BCC recipient" error
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid BCC recipient")
-	})
-
-	t.Run("successful message composition with all fields", func(t *testing.T) {
-		// Create a mock factory that returns a working client
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with all valid parameters including CC, BCC, and ReplyTo
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{CC: cc, BCC: bcc, ReplyTo: replyTo},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage (connection error), but message composition should succeed
-		// The error should be about sending, not about message composition
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("successful message composition with empty CC and BCC", func(t *testing.T) {
-		// Create a mock factory that returns a working client
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with empty CC and BCC arrays
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but message composition should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("successful message composition with mixed empty and valid CC/BCC", func(t *testing.T) {
-		// Create a mock factory that returns a working client
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with mixed empty and valid CC/BCC (empty strings should be skipped)
-		mixedCC := []string{"", "valid1@example.com", "", "valid2@example.com", ""}
-		mixedBCC := []string{"valid3@example.com", "", "valid4@example.com"}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{CC: mixedCC, BCC: mixedBCC, ReplyTo: replyTo},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but message composition should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("message composition with reply-to header", func(t *testing.T) {
-		// Create a mock factory that returns a working client
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call with reply-to header
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{ReplyTo: replyTo},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but message composition should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("message composition without reply-to header", func(t *testing.T) {
-		// Create a mock factory that returns a working client
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		// Create service
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		// Call without reply-to header (empty string)
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions:  domain.EmailOptions{},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but message composition should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
+		},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decode content")
+}
+
+func TestSMTPService_SendEmail_ConnectionError(t *testing.T) {
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	// Use a port that's not listening
+	provider := &domain.EmailProvider{
+		Kind: domain.EmailProviderKindSMTP,
+		SMTP: &domain.SMTPSettings{
+			Host:     "127.0.0.1",
+			Port:     59999, // Unlikely to be in use
+			Username: "",
+			Password: "",
+			UseTLS:   false,
+		},
+	}
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "recipient@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1>",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{},
+	}
+
+	err := service.SendEmail(context.Background(), request)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to send email")
 }
 
 func TestNewSMTPService(t *testing.T) {
-	// Create a new instance of Logger for testing
-	mockLogger := &pkgmocks.MockLogger{}
+	log := &noopLogger{}
+	service := NewSMTPService(log)
 
-	// Call the function being tested
-	service := NewSMTPService(mockLogger)
-
-	// Verify service was created correctly
 	require.NotNil(t, service)
-	require.Equal(t, mockLogger, service.logger)
-
-	// Verify the client factory is properly initialized
-	require.NotNil(t, service.clientFactory)
-	require.IsType(t, &defaultGoMailFactory{}, service.clientFactory)
+	require.Equal(t, log, service.logger)
 }
 
-func TestDefaultGoMailFactory_CreateClient(t *testing.T) {
-	factory := &defaultGoMailFactory{}
+func TestSMTPService_SendEmail_EmptyCCAndBCCFiltering(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
 
-	t.Run("valid configuration with TLS", func(t *testing.T) {
-		client, err := factory.CreateClient("smtp.example.com", 587, "user@example.com", "password", true)
+	log := &noopLogger{}
+	service := NewSMTPService(log)
 
-		// We expect this to fail since we're not connecting to a real SMTP server
-		// But we can verify the error is related to connection, not configuration
-		if err != nil {
-			// The error should be about connection, not about invalid parameters
-			assert.Contains(t, err.Error(), "failed to create mail client")
-		} else {
-			// If somehow it succeeds (unlikely), verify we got a client
-			assert.NotNil(t, client)
-			if client != nil {
-				_ = client.Close()
-			}
-		}
-	})
-
-	t.Run("valid configuration without TLS", func(t *testing.T) {
-		client, err := factory.CreateClient("smtp.example.com", 25, "user@example.com", "password", false)
-
-		// We expect this to fail since we're not connecting to a real SMTP server
-		if err != nil {
-			assert.Contains(t, err.Error(), "failed to create mail client")
-		} else {
-			assert.NotNil(t, client)
-			if client != nil {
-				_ = client.Close()
-			}
-		}
-	})
-
-	t.Run("invalid port", func(t *testing.T) {
-		client, err := factory.CreateClient("smtp.example.com", -1, "user@example.com", "password", true)
-
-		// Should fail due to invalid port
-		require.Error(t, err)
-		assert.Nil(t, client)
-		assert.Contains(t, err.Error(), "failed to create mail client")
-	})
-
-	t.Run("empty host", func(t *testing.T) {
-		client, err := factory.CreateClient("", 587, "user@example.com", "password", true)
-
-		// Should fail due to empty host
-		require.Error(t, err)
-		assert.Nil(t, client)
-		assert.Contains(t, err.Error(), "failed to create mail client")
-	})
-
-	t.Run("port out of range", func(t *testing.T) {
-		client, err := factory.CreateClient("smtp.example.com", 70000, "user@example.com", "password", true)
-
-		// Should fail due to port out of range
-		require.Error(t, err)
-		assert.Nil(t, client)
-		assert.Contains(t, err.Error(), "failed to create mail client")
-	})
-
-	t.Run("empty username with password (partial credentials)", func(t *testing.T) {
-		client, err := factory.CreateClient("smtp.example.com", 587, "", "password", true)
-
-		// With only password (no username), auth should not be configured
-		// Client creation should succeed, but the actual SMTP connection would fail
-		// since we're not connected to a real server in tests
-		if err != nil {
-			// Connection error is expected since we're not connected to a real server
-			assert.Contains(t, err.Error(), "failed to create mail client")
-		} else {
-			assert.NotNil(t, client)
-			if client != nil {
-				_ = client.Close()
-			}
-		}
-	})
-
-	t.Run("empty password with username (partial credentials)", func(t *testing.T) {
-		client, err := factory.CreateClient("smtp.example.com", 587, "user@example.com", "", true)
-
-		// With only username (no password), auth should not be configured
-		// Client creation should succeed, but the actual SMTP connection would fail
-		// since we're not connected to a real server in tests
-		if err != nil {
-			// Connection error is expected since we're not connected to a real server
-			assert.Contains(t, err.Error(), "failed to create mail client")
-		} else {
-			assert.NotNil(t, client)
-			if client != nil {
-				_ = client.Close()
-			}
-		}
-	})
-
-	t.Run("both username and password empty (unauthenticated SMTP)", func(t *testing.T) {
-		client, err := factory.CreateClient("smtp.example.com", 25, "", "", false)
-
-		// With both credentials empty, no auth should be configured
-		// This is the unauthenticated SMTP scenario (e.g., port 25 local relay)
-		// Client creation should succeed, but the actual SMTP connection would fail
-		// since we're not connected to a real server in tests
-		if err != nil {
-			// Connection error is expected since we're not connected to a real server
-			assert.Contains(t, err.Error(), "failed to create mail client")
-		} else {
-			assert.NotNil(t, client)
-			if client != nil {
-				_ = client.Close()
-			}
-		}
-	})
-}
-
-// Test the defaultGoMailFactory's method signature (without execution)
-func TestDefaultGoMailFactory_CreateClient_Signature(t *testing.T) {
-	factory := &defaultGoMailFactory{}
-
-	// We're testing the method existence and signature, not its behavior
-	// since that would require actually attempting to connect to an SMTP server
-	assert.NotNil(t, factory)
-
-	// Verify the method exists by getting its type
-	factoryType := fmt.Sprintf("%T", factory.CreateClient)
-	assert.Equal(t, "func(string, int, string, string, bool) (*mail.Client, error)", factoryType)
-}
-
-func TestSMTPService_SendEmail_WithAttachments(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	// Create mock logger
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
-	mockLogger.EXPECT().Error(gomock.Any()).AnyTimes()
-
-	// Test data
-	ctx := context.Background()
-	messageID := "test-message-id"
-	workspaceID := "workspace-123"
-	fromAddress := "sender@example.com"
-	fromName := "Test Sender"
-	to := "recipient@example.com"
-	subject := "Test Subject"
-	content := "<h1>Test Email</h1><p>This is a test email with attachments.</p>"
-
-	// Create valid provider config
-	validProvider := &domain.EmailProvider{
+	provider := &domain.EmailProvider{
 		Kind: domain.EmailProviderKindSMTP,
 		SMTP: &domain.SMTPSettings{
-			Host:     "smtp.example.com",
-			Port:     587,
-			Username: "user@example.com",
-			Password: "password",
-			UseTLS:   true,
-		},
-		Senders: []domain.EmailSender{
-			domain.NewEmailSender("default@example.com", "Default Sender"),
+			Host:     "127.0.0.1",
+			Port:     server.Port(),
+			Username: "",
+			Password: "",
+			UseTLS:   false,
 		},
 	}
 
-	// Helper function to create base64 content
-	createBase64Content := func(content string) string {
-		return "VGVzdCBmaWxlIGNvbnRlbnQ=" // "Test file content" in base64
+	// CC and BCC with some empty strings that should be filtered out
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace-123",
+		IntegrationID: "integration-123",
+		MessageID:     "message-123",
+		FromAddress:   "sender@example.com",
+		FromName:      "Test Sender",
+		To:            "to@example.com",
+		Subject:       "Test Subject",
+		Content:       "<h1>Hello</h1>",
+		Provider:      provider,
+		EmailOptions: domain.EmailOptions{
+			CC:  []string{"", "cc@example.com", ""},
+			BCC: []string{"bcc@example.com", ""},
+		},
 	}
 
-	t.Run("single attachment", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		attachment := domain.Attachment{
-			Filename:    "test.pdf",
-			Content:     createBase64Content("test content"),
-			ContentType: "application/pdf",
-			Disposition: "attachment",
-		}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				Attachments: []domain.Attachment{attachment},
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but attachment processing should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("multiple attachments", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		attachments := []domain.Attachment{
-			{
-				Filename:    "document.pdf",
-				Content:     createBase64Content("PDF content"),
-				ContentType: "application/pdf",
-				Disposition: "attachment",
-			},
-			{
-				Filename:    "image.png",
-				Content:     createBase64Content("PNG content"),
-				ContentType: "image/png",
-				Disposition: "attachment",
-			},
-			{
-				Filename:    "data.csv",
-				Content:     createBase64Content("CSV content"),
-				ContentType: "text/csv",
-				Disposition: "attachment",
-			},
-		}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				Attachments: attachments,
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but attachment processing should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("inline attachment", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		attachment := domain.Attachment{
-			Filename:    "logo.png",
-			Content:     createBase64Content("image content"),
-			ContentType: "image/png",
-			Disposition: "inline",
-		}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				Attachments: []domain.Attachment{attachment},
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but attachment processing should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("invalid base64 content in attachment", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		attachment := domain.Attachment{
-			Filename:    "test.pdf",
-			Content:     "not-valid-base64!@#$",
-			ContentType: "application/pdf",
-			Disposition: "attachment",
-		}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				Attachments: []domain.Attachment{attachment},
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DecodeContent stage
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to decode content")
-	})
-
-	t.Run("attachment without content type", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		attachment := domain.Attachment{
-			Filename:    "test.pdf",
-			Content:     createBase64Content("test content"),
-			ContentType: "", // No content type specified
-			Disposition: "attachment",
-		}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				Attachments: []domain.Attachment{attachment},
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but attachment processing should succeed
-		// (content type is optional)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("mixed inline and regular attachments", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		attachments := []domain.Attachment{
-			{
-				Filename:    "logo.png",
-				Content:     createBase64Content("logo content"),
-				ContentType: "image/png",
-				Disposition: "inline",
-			},
-			{
-				Filename:    "report.pdf",
-				Content:     createBase64Content("report content"),
-				ContentType: "application/pdf",
-				Disposition: "attachment",
-			},
-			{
-				Filename:    "banner.jpg",
-				Content:     createBase64Content("banner content"),
-				ContentType: "image/jpeg",
-				Disposition: "inline",
-			},
-		}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				Attachments: attachments,
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but attachment processing should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("email with attachments and CC/BCC/ReplyTo", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		attachment := domain.Attachment{
-			Filename:    "document.pdf",
-			Content:     createBase64Content("document content"),
-			ContentType: "application/pdf",
-			Disposition: "attachment",
-		}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				CC:          []string{"cc@example.com"},
-				BCC:         []string{"bcc@example.com"},
-				ReplyTo:     "reply@example.com",
-				Attachments: []domain.Attachment{attachment},
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but all processing should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("attachment with special characters in filename", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		attachment := domain.Attachment{
-			Filename:    "test-file_2024 (1).pdf",
-			Content:     createBase64Content("test content"),
-			ContentType: "application/pdf",
-			Disposition: "attachment",
-		}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				Attachments: []domain.Attachment{attachment},
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but attachment processing should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("no attachments", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				Attachments: []domain.Attachment{}, // Empty array
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, message composition should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("empty base64 content", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		attachment := domain.Attachment{
-			Filename:    "empty.txt",
-			Content:     "", // Empty base64 content
-			ContentType: "text/plain",
-			Disposition: "attachment",
-		}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				Attachments: []domain.Attachment{attachment},
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DecodeContent stage (empty content is valid base64 but decodes to empty)
-		// The service should handle empty attachments gracefully
-		require.Error(t, err)
-		// Empty content will decode successfully (to empty bytes) but may fail at send stage
-	})
-
-	t.Run("with RFC-8058 List-Unsubscribe headers", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		unsubscribeURL := "https://api.example.com/unsubscribe-oneclick?email=test@example.com&wid=ws1&mid=msg1"
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				ListUnsubscribeURL: unsubscribeURL,
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but message composition with List-Unsubscribe headers should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
-
-	t.Run("with List-Unsubscribe and other options", func(t *testing.T) {
-		mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-		realFactory := &defaultGoMailFactory{}
-		mockClient, _ := realFactory.CreateClient("localhost", 25, "test", "test", false)
-
-		mockFactory.EXPECT().CreateClient(
-			validProvider.SMTP.Host,
-			validProvider.SMTP.Port,
-			validProvider.SMTP.Username,
-			validProvider.SMTP.Password,
-			validProvider.SMTP.UseTLS,
-		).Return(mockClient, nil)
-
-		service := &SMTPService{
-			logger:        mockLogger,
-			clientFactory: mockFactory,
-		}
-
-		unsubscribeURL := "https://api.example.com/unsubscribe-oneclick?email=test@example.com&wid=ws1&mid=msg1"
-		attachment := domain.Attachment{
-			Filename:    "document.pdf",
-			Content:     "VGVzdCBmaWxlIGNvbnRlbnQ=", // "Test file content" in base64
-			ContentType: "application/pdf",
-			Disposition: "attachment",
-		}
-
-		request := domain.SendEmailProviderRequest{
-			WorkspaceID:   workspaceID,
-			IntegrationID: "test-integration-id",
-			MessageID:     messageID,
-			FromAddress:   fromAddress,
-			FromName:      fromName,
-			To:            to,
-			Subject:       subject,
-			Content:       content,
-			Provider:      validProvider,
-			EmailOptions: domain.EmailOptions{
-				CC:                 []string{"cc@example.com"},
-				BCC:                []string{"bcc@example.com"},
-				ReplyTo:            "reply@example.com",
-				Attachments:        []domain.Attachment{attachment},
-				ListUnsubscribeURL: unsubscribeURL,
-			},
-		}
-		err := service.SendEmail(ctx, request)
-
-		// Should fail at DialAndSend stage, but all processing including List-Unsubscribe should succeed
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
+	err := service.SendEmail(context.Background(), request)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	// Should have 3 recipients: to + 1 valid CC + 1 valid BCC (empty strings filtered)
+	assert.Len(t, messages[0].recipients, 3)
 }
