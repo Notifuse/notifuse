@@ -2,11 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [19.5] - 2025-12-16
+
+- Fix: Task completion now saves final state to prevent stale progress display in UI (#157)
+- Fix: Prevent concurrent task execution race condition that could cause duplicate broadcast emails
+- Fix: Unsubscribes via notification center link are now tracked in broadcast statistics (#165)
+- Fix: Email builder now respects column width attributes in section blocks
+- Fix: Contact bulk import now handles duplicate emails in a single batch (#167)
+- Fix: Image alt text now supports Liquid template variables (#168)
+
 ## [19.4] - 2025-12-12
 
 - Fix: Broadcast recipient count mismatch - `CountContactsForBroadcast` now filters soft-deleted lists consistently with `GetContactsForBroadcast`
 - Fix: Contact list pagination now uses nanosecond precision timestamps to prevent skipping contacts created within the same second (#159)
 - Fix: Broadcast delivery now uses deterministic ordering (`created_at ASC, email ASC`) to prevent skipping contacts with identical timestamps during bulk imports (#157)
+- Enhancement: SES configuration set is now optional for transactional emails
+- Fix: `mailto:` links are no longer tracked (prevents broken email client links)
 
 ## [19.3] - 2025-12-09
 

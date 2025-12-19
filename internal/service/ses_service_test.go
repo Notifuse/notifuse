@@ -2657,6 +2657,64 @@ func TestSendEmail_WithAttachmentsAndConfigSet(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+// Test SendEmail - raw email without configuration set should not include ConfigurationSetName
+func TestSendEmail_RawEmail_NoConfigurationSet(t *testing.T) {
+	service, mockSESClient, _, _, _ := createMockSESService(t)
+
+	provider := &domain.EmailProvider{
+		SES: &domain.AmazonSESSettings{
+			AccessKey: "test-access-key",
+			SecretKey: "test-secret-key",
+			Region:    "us-east-1",
+		},
+	}
+
+	attachments := []domain.Attachment{
+		{
+			Filename:    "doc.pdf",
+			Content:     "JVBERi0=",
+			ContentType: "application/pdf",
+			Disposition: "attachment",
+		},
+	}
+
+	// Mock configuration set does NOT exist (empty list)
+	mockSESClient.EXPECT().
+		ListConfigurationSetsWithContext(gomock.Any(), gomock.Any()).
+		Return(&ses.ListConfigurationSetsOutput{
+			ConfigurationSets: []*ses.ConfigurationSet{},
+		}, nil)
+
+	mockSESClient.EXPECT().
+		SendRawEmailWithContext(gomock.Any(), gomock.Any()).
+		DoAndReturn(func(_ context.Context, input *ses.SendRawEmailInput, _ ...request.Option) (*ses.SendRawEmailOutput, error) {
+			// Verify configuration set is NOT included (graceful degradation)
+			assert.Nil(t, input.ConfigurationSetName, "ConfigurationSetName should be nil when config set doesn't exist")
+
+			// Verify attachment is still present
+			rawData := string(input.RawMessage.Data)
+			assert.Contains(t, rawData, "doc.pdf")
+
+			return &ses.SendRawEmailOutput{}, nil
+		})
+
+	request := domain.SendEmailProviderRequest{
+		WorkspaceID:   "workspace",
+		IntegrationID: "test-integration-id",
+		MessageID:     "message",
+		FromAddress:   "from@example.com",
+		FromName:      "From",
+		To:            "to@example.com",
+		Subject:       "Subject",
+		Content:       "Content",
+		Provider:      provider,
+		EmailOptions:  domain.EmailOptions{Attachments: attachments},
+	}
+	err := service.SendEmail(context.Background(), request)
+
+	assert.NoError(t, err)
+}
+
 // Test SendEmail - with attachments, AWS SendRawEmail error
 func TestSendEmail_WithAttachmentsAWSError(t *testing.T) {
 	service, mockSESClient, _, _, _ := createMockSESService(t)

@@ -41,6 +41,15 @@ func (e *ErrTaskTimeout) Error() string {
 	return fmt.Sprintf("task timed out [%s] after %d seconds", e.TaskID, e.MaxRuntime)
 }
 
+// ErrTaskAlreadyRunning is returned when attempting to execute a task that is already running
+type ErrTaskAlreadyRunning struct {
+	TaskID string
+}
+
+func (e *ErrTaskAlreadyRunning) Error() string {
+	return fmt.Sprintf("task already running [%s]", e.TaskID)
+}
+
 // ValidationError represents an error that occurs due to invalid input or parameters
 type ValidationError struct {
 	Message string

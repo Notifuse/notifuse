@@ -334,12 +334,15 @@ func formatSingleAttributeWithLiquid(key string, value interface{}, templateData
 
 // processAttributeValue processes attribute values through liquid templating if applicable
 func processAttributeValue(value, attributeKey string, templateData map[string]interface{}, blockID string) string {
-	// Only process liquid templates for URL-related attributes that might contain dynamic content
+	// Process liquid templates for URL-related attributes and alt text
 	isURLAttribute := attributeKey == "href" || attributeKey == "src" || attributeKey == "action" ||
 		attributeKey == "background-url" || strings.HasSuffix(attributeKey, "-url")
 
-	// If templateData is nil or this isn't a URL attribute, return as-is
-	if templateData == nil || !isURLAttribute {
+	// Alt attribute for images - users commonly personalize this
+	isAltAttribute := attributeKey == "alt"
+
+	// If templateData is nil or this isn't a processable attribute, return as-is
+	if templateData == nil || (!isURLAttribute && !isAltAttribute) {
 		return value
 	}
 

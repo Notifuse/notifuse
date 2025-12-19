@@ -689,19 +689,27 @@ func (r *TaskRepository) MarkAsRunning(ctx context.Context, workspace, id string
 	})
 }
 
-// MarkAsRunningTx marks a task as running and sets timeout within a transaction
+// MarkAsRunningTx marks a task as running and sets timeout within a transaction.
+// Only tasks in "pending" or "paused" status can be marked as running.
+// This prevents duplicate execution when multiple schedulers try to execute the same task.
 func (r *TaskRepository) MarkAsRunningTx(ctx context.Context, tx *sql.Tx, workspace, id string, timeoutAfter time.Time) error {
 	now := time.Now().UTC()
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
+	// Only mark as running if task is in pending or paused status
+	// This prevents race conditions where multiple executors try to run the same task
 	query := psql.Update("tasks").
 		Set("status", domain.TaskStatusRunning).
 		Set("updated_at", now).
 		Set("last_run_at", now).
 		Set("timeout_after", timeoutAfter).
-		Where(sq.Eq{
-			"id":           id,
-			"workspace_id": workspace,
+		Where(sq.And{
+			sq.Eq{"id": id},
+			sq.Eq{"workspace_id": workspace},
+			sq.Or{
+				sq.Eq{"status": string(domain.TaskStatusPending)},
+				sq.Eq{"status": string(domain.TaskStatusPaused)},
+			},
 		})
 
 	sqlQuery, args, err := query.ToSql()
@@ -714,33 +722,41 @@ func (r *TaskRepository) MarkAsRunningTx(ctx context.Context, tx *sql.Tx, worksp
 		return fmt.Errorf("failed to mark task as running: %w", err)
 	}
 
-	// Check if the task was found
+	// Check if the task was found and was in an executable state
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("task not found")
+		return &domain.ErrTaskAlreadyRunning{TaskID: id}
 	}
 
 	return nil
 }
 
-// MarkAsCompleted marks a task as completed
-func (r *TaskRepository) MarkAsCompleted(ctx context.Context, workspace, id string) error {
+// MarkAsCompleted marks a task as completed and saves the final state
+func (r *TaskRepository) MarkAsCompleted(ctx context.Context, workspace, id string, state *domain.TaskState) error {
 	return r.WithTransaction(ctx, func(tx *sql.Tx) error {
-		return r.MarkAsCompletedTx(ctx, tx, workspace, id)
+		return r.MarkAsCompletedTx(ctx, tx, workspace, id, state)
 	})
 }
 
 // MarkAsCompletedTx marks a task as completed within a transaction
-func (r *TaskRepository) MarkAsCompletedTx(ctx context.Context, tx *sql.Tx, workspace, id string) error {
+func (r *TaskRepository) MarkAsCompletedTx(ctx context.Context, tx *sql.Tx, workspace, id string, state *domain.TaskState) error {
 	now := time.Now().UTC()
+
+	// Convert state to JSON
+	stateJSON, err := json.Marshal(state)
+	if err != nil {
+		return fmt.Errorf("failed to marshal state: %w", err)
+	}
+
 	psql := sq.StatementBuilder.PlaceholderFormat(sq.Dollar)
 
 	query := psql.Update("tasks").
 		Set("status", domain.TaskStatusCompleted).
 		Set("progress", 100).
+		Set("state", stateJSON).
 		Set("error_message", nil).
 		Set("updated_at", now).
 		Set("completed_at", now).

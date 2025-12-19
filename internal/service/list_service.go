@@ -14,28 +14,30 @@ import (
 )
 
 type ListService struct {
-	repo            domain.ListRepository
-	workspaceRepo   domain.WorkspaceRepository
-	contactListRepo domain.ContactListRepository
-	contactRepo     domain.ContactRepository
-	authService     domain.AuthService
-	emailService    domain.EmailServiceInterface
-	logger          logger.Logger
-	apiEndpoint     string
-	blogCache       cache.Cache
+	repo               domain.ListRepository
+	workspaceRepo      domain.WorkspaceRepository
+	contactListRepo    domain.ContactListRepository
+	contactRepo        domain.ContactRepository
+	messageHistoryRepo domain.MessageHistoryRepository
+	authService        domain.AuthService
+	emailService       domain.EmailServiceInterface
+	logger             logger.Logger
+	apiEndpoint        string
+	blogCache          cache.Cache
 }
 
-func NewListService(repo domain.ListRepository, workspaceRepo domain.WorkspaceRepository, contactListRepo domain.ContactListRepository, contactRepo domain.ContactRepository, authService domain.AuthService, emailService domain.EmailServiceInterface, logger logger.Logger, apiEndpoint string, blogCache cache.Cache) *ListService {
+func NewListService(repo domain.ListRepository, workspaceRepo domain.WorkspaceRepository, contactListRepo domain.ContactListRepository, contactRepo domain.ContactRepository, messageHistoryRepo domain.MessageHistoryRepository, authService domain.AuthService, emailService domain.EmailServiceInterface, logger logger.Logger, apiEndpoint string, blogCache cache.Cache) *ListService {
 	return &ListService{
-		repo:            repo,
-		workspaceRepo:   workspaceRepo,
-		contactListRepo: contactListRepo,
-		contactRepo:     contactRepo,
-		authService:     authService,
-		emailService:    emailService,
-		logger:          logger,
-		apiEndpoint:     apiEndpoint,
-		blogCache:       blogCache,
+		repo:               repo,
+		workspaceRepo:      workspaceRepo,
+		contactListRepo:    contactListRepo,
+		contactRepo:        contactRepo,
+		messageHistoryRepo: messageHistoryRepo,
+		authService:        authService,
+		emailService:       emailService,
+		logger:             logger,
+		apiEndpoint:        apiEndpoint,
+		blogCache:          blogCache,
 	}
 }
 
@@ -584,5 +586,25 @@ func (s *ListService) UnsubscribeFromLists(ctx context.Context, payload *domain.
 			}
 		}
 	}
+
+	// Update message history with unsubscribe event if MessageID is provided
+	// This enables broadcast statistics to track unsubscribes via notification center
+	if payload.MessageID != "" {
+		now := time.Now()
+		updates := []domain.MessageEventUpdate{
+			{
+				ID:        payload.MessageID,
+				Event:     domain.MessageEventUnsubscribed,
+				Timestamp: now,
+			},
+		}
+		if err := s.messageHistoryRepo.SetStatusesIfNotSet(ctx, workspace.ID, updates); err != nil {
+			// Log but don't fail - the contact is already unsubscribed
+			// Message history update is for analytics only
+			s.logger.WithField("message_id", payload.MessageID).
+				Warn(fmt.Sprintf("Failed to update message history for unsubscribe: %v", err))
+		}
+	}
+
 	return nil
 }

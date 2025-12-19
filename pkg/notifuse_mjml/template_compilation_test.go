@@ -77,7 +77,7 @@ func TestTrackLinks(t *testing.T) {
 			shouldError: false,
 		},
 		{
-			name: "Skip mailto and tel links",
+			name: "Skip mailto and tel links with tracking disabled",
 			htmlInput: `<a href="mailto:test@example.com">Email</a>
 <a href="tel:+1234567890">Call</a>`,
 			trackingSettings: TrackingSettings{
@@ -90,6 +90,66 @@ func TestTrackLinks(t *testing.T) {
 			},
 			expectedNotContains: []string{
 				"utm_source=email",
+			},
+			shouldError: false,
+		},
+		{
+			name: "Skip mailto and tel links with tracking ENABLED (issue #163)",
+			htmlInput: `<a href="mailto:test@example.com">Email</a>
+<a href="tel:+1234567890">Call</a>
+<a href="sms:+1234567890">Text</a>
+<a href="https://example.com">Normal Link</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: true,
+				Endpoint:       "https://track.example.com",
+				UTMSource:      "email",
+				WorkspaceID:    "test-workspace",
+				MessageID:      "test-message",
+			},
+			expectedContains: []string{
+				`href="mailto:test@example.com"`,  // mailto should be unchanged
+				`href="tel:+1234567890"`,          // tel should be unchanged
+				`href="sms:+1234567890"`,          // sms should be unchanged
+				"track.example.com/visit",         // normal links should be tracked
+			},
+			expectedNotContains: []string{
+				"url=mailto",  // mailto should NOT be in a tracking redirect URL param
+				"url=tel",     // tel should NOT be in a tracking redirect URL param
+				"url=sms",     // sms should NOT be in a tracking redirect URL param
+			},
+			shouldError: false,
+		},
+		{
+			name: "Skip anchor links with tracking enabled",
+			htmlInput: `<a href="#section1">Jump to section</a>
+<a href="https://example.com">Normal Link</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: true,
+				Endpoint:       "https://track.example.com",
+				UTMSource:      "email",
+				WorkspaceID:    "test-workspace",
+				MessageID:      "test-message",
+			},
+			expectedContains: []string{
+				`href="#section1"`,        // anchor should be unchanged
+				"track.example.com/visit", // normal links should be tracked
+			},
+			shouldError: false,
+		},
+		{
+			name: "Skip javascript links with tracking enabled",
+			htmlInput: `<a href="javascript:void(0)">No-op Link</a>
+<a href="https://example.com">Normal Link</a>`,
+			trackingSettings: TrackingSettings{
+				EnableTracking: true,
+				Endpoint:       "https://track.example.com",
+				UTMSource:      "email",
+				WorkspaceID:    "test-workspace",
+				MessageID:      "test-message",
+			},
+			expectedContains: []string{
+				`href="javascript:void(0)"`, // javascript should be unchanged
+				"track.example.com/visit",   // normal links should be tracked
 			},
 			shouldError: false,
 		},
@@ -509,6 +569,50 @@ func TestTrackingPixelWithoutBodyTag(t *testing.T) {
 	// Check that the pixel is at the end (check for the closing tag pattern)
 	if !strings.HasSuffix(strings.TrimSpace(result), `alt="" width="1" height="1">`) {
 		t.Error("Expected tracking pixel to be at the end when no body tag is present")
+	}
+}
+
+func TestIsNonTrackableURL(t *testing.T) {
+	tests := []struct {
+		name     string
+		url      string
+		expected bool
+	}{
+		// Non-trackable URLs
+		{name: "empty string", url: "", expected: true},
+		{name: "mailto link", url: "mailto:test@example.com", expected: true},
+		{name: "mailto with subject", url: "mailto:test@example.com?subject=Hello", expected: true},
+		{name: "MAILTO uppercase", url: "MAILTO:test@example.com", expected: true},
+		{name: "tel link", url: "tel:+1234567890", expected: true},
+		{name: "TEL uppercase", url: "TEL:+1234567890", expected: true},
+		{name: "sms link", url: "sms:+1234567890", expected: true},
+		{name: "sms with body", url: "sms:+1234567890?body=Hello", expected: true},
+		{name: "javascript void", url: "javascript:void(0)", expected: true},
+		{name: "javascript alert", url: "javascript:alert('test')", expected: true},
+		{name: "data URL", url: "data:image/png;base64,abc123", expected: true},
+		{name: "blob URL", url: "blob:https://example.com/uuid", expected: true},
+		{name: "file URL", url: "file:///path/to/file.txt", expected: true},
+		{name: "anchor link", url: "#section1", expected: true},
+		{name: "anchor with path", url: "#top", expected: true},
+		{name: "liquid double brace", url: "https://example.com/{{ user.id }}", expected: true},
+		{name: "liquid tag", url: "{% if cond %}https://example.com{% endif %}", expected: true},
+
+		// Trackable URLs
+		{name: "http URL", url: "http://example.com", expected: false},
+		{name: "https URL", url: "https://example.com", expected: false},
+		{name: "https with path", url: "https://example.com/path/to/page", expected: false},
+		{name: "https with query", url: "https://example.com?foo=bar", expected: false},
+		{name: "relative URL", url: "/path/to/page", expected: false},
+		{name: "URL with utm params", url: "https://example.com?utm_source=email", expected: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := isNonTrackableURL(tt.url)
+			if result != tt.expected {
+				t.Errorf("isNonTrackableURL(%q) = %v, expected %v", tt.url, result, tt.expected)
+			}
+		})
 	}
 }
 

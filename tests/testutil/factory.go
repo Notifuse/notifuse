@@ -607,6 +607,24 @@ func WithTemplateCategory(category string) TemplateOption {
 	}
 }
 
+func WithTemplateSubject(subject string) TemplateOption {
+	return func(t *domain.Template) {
+		if t.Email != nil {
+			t.Email.Subject = subject
+		}
+	}
+}
+
+// WithTemplateEmailContent sets the text content in the email template's mj-text block
+// This is useful for testing Liquid template variable substitution
+func WithTemplateEmailContent(content string) TemplateOption {
+	return func(t *domain.Template) {
+		if t.Email != nil {
+			t.Email.VisualEditorTree = createMJMLBlockWithContent(content)
+		}
+	}
+}
+
 // Broadcast options
 func WithBroadcastName(name string) BroadcastOption {
 	return func(b *domain.Broadcast) {
@@ -889,6 +907,68 @@ func createDefaultMJMLBlock() notifuse_mjml.EmailBlock {
 	return block
 }
 
+// createMJMLBlockWithContent creates an MJML block with custom text content
+// This allows testing Liquid template variables in the email body
+func createMJMLBlockWithContent(content string) notifuse_mjml.EmailBlock {
+	textBlockMap := map[string]interface{}{
+		"id":      "text-1",
+		"type":    "mj-text",
+		"content": content,
+		"attributes": map[string]interface{}{
+			"color":    "#000000",
+			"fontSize": "14px",
+		},
+		"children": []interface{}{},
+	}
+
+	columnBlockMap := map[string]interface{}{
+		"id":       "column-1",
+		"type":     "mj-column",
+		"children": []interface{}{textBlockMap},
+		"attributes": map[string]interface{}{
+			"width": "100%",
+		},
+	}
+
+	sectionBlockMap := map[string]interface{}{
+		"id":       "section-1",
+		"type":     "mj-section",
+		"children": []interface{}{columnBlockMap},
+		"attributes": map[string]interface{}{
+			"backgroundColor": "#ffffff",
+			"padding":         "20px 0",
+		},
+	}
+
+	bodyBlockMap := map[string]interface{}{
+		"id":       "body-1",
+		"type":     "mj-body",
+		"children": []interface{}{sectionBlockMap},
+		"attributes": map[string]interface{}{
+			"backgroundColor": "#f4f4f4",
+		},
+	}
+
+	mjmlBlockMap := map[string]interface{}{
+		"id":         "mjml-1",
+		"type":       "mjml",
+		"children":   []interface{}{bodyBlockMap},
+		"attributes": map[string]interface{}{},
+	}
+
+	jsonData, err := json.Marshal(mjmlBlockMap)
+	if err != nil {
+		panic(err)
+	}
+
+	block, err := notifuse_mjml.UnmarshalEmailBlock(jsonData)
+	if err != nil {
+		panic(err)
+	}
+
+	return block
+}
+
 func createDefaultAudience() domain.AudienceSettings {
 	return domain.AudienceSettings{
 		ExcludeUnsubscribed: true,
@@ -1094,10 +1174,10 @@ func (tdf *TestDataFactory) MarkTaskAsRunning(workspaceID, taskID string) error 
 	return taskRepo.MarkAsRunning(context.Background(), workspaceID, taskID, timeoutAfter)
 }
 
-// MarkTaskAsCompleted marks a task as completed
-func (tdf *TestDataFactory) MarkTaskAsCompleted(workspaceID, taskID string) error {
+// MarkTaskAsCompleted marks a task as completed with the final state
+func (tdf *TestDataFactory) MarkTaskAsCompleted(workspaceID, taskID string, state *domain.TaskState) error {
 	taskRepo := repository.NewTaskRepository(tdf.db)
-	return taskRepo.MarkAsCompleted(context.Background(), workspaceID, taskID)
+	return taskRepo.MarkAsCompleted(context.Background(), workspaceID, taskID, state)
 }
 
 // MarkTaskAsFailed marks a task as failed with an error message
@@ -1110,6 +1190,13 @@ func (tdf *TestDataFactory) MarkTaskAsFailed(workspaceID, taskID string, errorMs
 func (tdf *TestDataFactory) MarkTaskAsPaused(workspaceID, taskID string, nextRunAfter time.Time, progress float64, state *domain.TaskState) error {
 	taskRepo := repository.NewTaskRepository(tdf.db)
 	return taskRepo.MarkAsPaused(context.Background(), workspaceID, taskID, nextRunAfter, progress, state)
+}
+
+// UpdateTaskMaxRuntime updates a task's max_runtime value for testing timeout behavior
+func (tdf *TestDataFactory) UpdateTaskMaxRuntime(workspaceID, taskID string, maxRuntime int) error {
+	query := `UPDATE tasks SET max_runtime = $1 WHERE workspace_id = $2 AND id = $3`
+	_, err := tdf.db.ExecContext(context.Background(), query, maxRuntime, workspaceID, taskID)
+	return err
 }
 
 // CreateTransactionalNotification creates a test transactional notification using the repository

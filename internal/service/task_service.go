@@ -576,7 +576,7 @@ func (s *TaskService) ExecuteTask(ctx context.Context, workspace, taskID string,
 			tracing.AddAttribute(completeCtx, "task_id", taskID)
 			tracing.AddAttribute(completeCtx, "workspace_id", workspace)
 
-			if err := s.repo.MarkAsCompleted(bgCtx, workspace, taskID); err != nil {
+			if err := s.repo.MarkAsCompleted(bgCtx, workspace, taskID, task.State); err != nil {
 				tracing.MarkSpanError(completeCtx, err)
 				s.logger.WithFields(map[string]interface{}{
 					"task_id":      taskID,
@@ -1025,7 +1025,7 @@ func (s *TaskService) handleBroadcastSent(ctx context.Context, payload domain.Ev
 	tracing.AddAttribute(ctx, "current_status", string(task.Status))
 
 	// Mark the task as completed
-	if err := s.repo.MarkAsCompleted(ctx, payload.WorkspaceID, task.ID); err != nil {
+	if err := s.repo.MarkAsCompleted(ctx, payload.WorkspaceID, task.ID, task.State); err != nil {
 		tracing.MarkSpanError(ctx, err)
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,

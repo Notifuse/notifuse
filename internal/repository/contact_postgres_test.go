@@ -1369,16 +1369,16 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				"list1", "Marketing List", // Additional values for list filtering - same list
 			)
 
-			// Expect query with JOINS for list filtering and excludeUnsubscribed
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + `, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.created_at ASC, c\.email ASC LIMIT 10 OFFSET 0`).
+			// Expect query with JOINS for list filtering and excludeUnsubscribed (cursor-based pagination)
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + `, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
 				domain.ContactListStatusComplained).
 			WillReturnRows(rows)
 
-		// Call the method being tested
-		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, 0)
+		// Call the method being tested (empty string for first batch cursor)
+		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, "")
 
 		// Assertions
 		require.NoError(t, err)
@@ -1448,12 +1448,12 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				now, now, now, now,
 			)
 
-		// Expect query without JOINS for all contacts
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c ORDER BY c\.created_at ASC, c\.email ASC LIMIT 10 OFFSET 0`).
+		// Expect query without JOINS for all contacts (cursor-based pagination)
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c ORDER BY c\.email ASC LIMIT 10`).
 			WillReturnRows(rows)
 
-		// Call the method being tested
-		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, 0)
+		// Call the method being tested (empty string for first batch cursor)
+		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, "")
 
 		// Assertions
 		require.NoError(t, err)
@@ -1487,8 +1487,8 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			ExcludeUnsubscribed: true,
 		}
 
-		// Call the method being tested
-		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, 0)
+		// Call the method being tested (empty string for first batch cursor)
+		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, "")
 
 		// Assertions
 		require.Error(t, err)
@@ -1516,16 +1516,16 @@ func TestGetContactsForBroadcast(t *testing.T) {
 			ExcludeUnsubscribed: true,
 		}
 
-		// Expect query with error
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + `, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id IN \(\$1\) AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.created_at ASC, c\.email ASC LIMIT 10 OFFSET 0`).
+		// Expect query with error (cursor-based pagination)
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + `, cl\.list_id, l\.name as list_name FROM contacts c JOIN contact_lists cl ON c\.email = cl\.email JOIN lists l ON cl\.list_id = l\.id WHERE cl\.list_id = \$1 AND l\.deleted_at IS NULL AND cl\.status <> \$2 AND cl\.status <> \$3 AND cl\.status <> \$4 ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("list1",
 				domain.ContactListStatusUnsubscribed,
 				domain.ContactListStatusBounced,
 				domain.ContactListStatusComplained).
 			WillReturnError(fmt.Errorf("database error"))
 
-		// Call the method being tested
-		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, 0)
+		// Call the method being tested (empty string for first batch cursor)
+		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, "")
 
 		// Assertions
 		require.Error(t, err)
@@ -1573,13 +1573,13 @@ func TestGetContactsForBroadcast(t *testing.T) {
 				nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil, nil,
 				nil, nil, nil, nil, nil, createdAt2, createdAt2, createdAt2, createdAt2)
 
-		// Expect the query to join contacts with contact_segments
-		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c JOIN contact_segments cs ON c\.email = cs\.email WHERE cs\.segment_id IN \(\$1\) ORDER BY c\.created_at ASC, c\.email ASC LIMIT 10 OFFSET 0`).
+		// Expect the query to join contacts with contact_segments (cursor-based pagination)
+		mock.ExpectQuery(`SELECT ` + contactColumnsPattern + ` FROM contacts c JOIN contact_segments cs ON c\.email = cs\.email WHERE cs\.segment_id IN \(\$1\) ORDER BY c\.email ASC LIMIT 10`).
 			WithArgs("segment1").
 			WillReturnRows(rows)
 
-		// Call the method being tested
-		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, 0)
+		// Call the method being tested (empty string for first batch cursor)
+		contacts, err := repo.GetContactsForBroadcast(context.Background(), "workspace123", audience, 10, "")
 
 		// Assertions
 		require.NoError(t, err)
