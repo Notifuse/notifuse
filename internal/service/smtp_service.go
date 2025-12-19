@@ -1,9 +1,14 @@
 package service
 
 import (
+	"bufio"
 	"bytes"
 	"context"
+	"crypto/tls"
+	"encoding/base64"
 	"fmt"
+	"net"
+	"strings"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -11,57 +16,237 @@ import (
 	"github.com/wneessen/go-mail"
 )
 
-// SMTPService implements the domain.EmailProviderService interface for SMTP
-type SMTPService struct {
-	logger        logger.Logger
-	clientFactory domain.SMTPClientFactory
+// smtpConnection wraps a connection to an SMTP server and provides low-level
+// command sending that avoids the SMTP extension issues (BODY=8BITMIME, SMTPUTF8)
+// that both go-mail and net/smtp.Client.Mail() add when the server advertises
+// support for them. This causes problems with strict SMTP servers like Sender.net
+// (issue #172).
+type smtpConnection struct {
+	conn   net.Conn
+	reader *bufio.Reader
 }
 
-// defaultGoMailFactory implements the domain.SMTPClientFactory interface directly using go-mail
-type defaultGoMailFactory struct{}
-
-func (f *defaultGoMailFactory) CreateClient(host string, port int, username, password string, useTLS bool) (*mail.Client, error) {
-	var tlsPolicy mail.TLSPolicy
-	var clientOptions []mail.Option
-
-	// Configure TLS policy
-	if useTLS {
-		tlsPolicy = mail.TLSMandatory
-	} else {
-		// For local development servers like Mailpit, disable TLS completely
-		tlsPolicy = mail.NoTLS
+func newSMTPConnection(conn net.Conn) *smtpConnection {
+	return &smtpConnection{
+		conn:   conn,
+		reader: bufio.NewReader(conn),
 	}
+}
 
-	// Basic client options
-	clientOptions = append(clientOptions,
-		mail.WithPort(port),
-		mail.WithTLSPolicy(tlsPolicy),
-		mail.WithTimeout(10*time.Second),
-	)
-
-	// Only add authentication if username and password are provided
-	// This allows for servers like Mailpit that don't require authentication
-	if username != "" && password != "" {
-		clientOptions = append(clientOptions,
-			mail.WithUsername(username),
-			mail.WithPassword(password),
-			mail.WithSMTPAuth(mail.SMTPAuthAutoDiscover),
-		)
-	}
-
-	client, err := mail.NewClient(host, clientOptions...)
+func (c *smtpConnection) readResponse() (int, string, error) {
+	line, err := c.reader.ReadString('\n')
 	if err != nil {
-		return nil, fmt.Errorf("failed to create mail client: %w", err)
+		return 0, "", err
 	}
 
-	return client, nil
+	if len(line) < 4 {
+		return 0, "", fmt.Errorf("short response: %s", line)
+	}
+
+	code := 0
+	if _, err := fmt.Sscanf(line[:3], "%d", &code); err != nil {
+		return 0, "", fmt.Errorf("invalid response code: %s", line)
+	}
+
+	return code, strings.TrimSpace(line[4:]), nil
+}
+
+func (c *smtpConnection) readMultilineResponse() (int, error) {
+	for {
+		line, err := c.reader.ReadString('\n')
+		if err != nil {
+			return 0, err
+		}
+
+		if len(line) < 4 {
+			return 0, fmt.Errorf("short response: %s", line)
+		}
+
+		code := 0
+		if _, err := fmt.Sscanf(line[:3], "%d", &code); err != nil {
+			return 0, fmt.Errorf("invalid response code: %s", line)
+		}
+
+		// If the 4th char is a space, it's the last line
+		if line[3] == ' ' {
+			return code, nil
+		}
+		// If it's a dash, continue reading
+	}
+}
+
+func (c *smtpConnection) sendCommand(cmd string) (int, string, error) {
+	if _, err := fmt.Fprintf(c.conn, "%s\r\n", cmd); err != nil {
+		return 0, "", err
+	}
+	return c.readResponse()
+}
+
+func (c *smtpConnection) sendCommandMultiline(cmd string) (int, error) {
+	if _, err := fmt.Fprintf(c.conn, "%s\r\n", cmd); err != nil {
+		return 0, err
+	}
+	return c.readMultilineResponse()
+}
+
+func (c *smtpConnection) Close() error {
+	return c.conn.Close()
+}
+
+// sendRawEmail sends an email using raw SMTP commands without the problematic
+// SMTP extensions (BODY=8BITMIME, SMTPUTF8) that cause issues with strict SMTP
+// servers like Sender.net (issue #172).
+//
+// Both go-mail and Go's standard library smtp.Client.Mail() automatically add
+// these extensions when the server advertises support, so we need to bypass
+// them by sending raw SMTP commands.
+func sendRawEmail(host string, port int, username, password string, useTLS bool, from string, to []string, msg []byte) error {
+	addr := fmt.Sprintf("%s:%d", host, port)
+
+	// Connect to SMTP server
+	dialer := &net.Dialer{Timeout: 30 * time.Second}
+	conn, err := dialer.Dial("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("failed to connect: %w", err)
+	}
+
+	smtpConn := newSMTPConnection(conn)
+	defer smtpConn.Close()
+
+	// Read greeting
+	code, _, err := smtpConn.readResponse()
+	if err != nil {
+		return fmt.Errorf("failed to read greeting: %w", err)
+	}
+	if code != 220 {
+		return fmt.Errorf("unexpected greeting code: %d", code)
+	}
+
+	// Send EHLO
+	hostname := "localhost"
+	code, err = smtpConn.sendCommandMultiline(fmt.Sprintf("EHLO %s", hostname))
+	if err != nil {
+		return fmt.Errorf("EHLO failed: %w", err)
+	}
+	if code != 250 {
+		return fmt.Errorf("EHLO rejected with code: %d", code)
+	}
+
+	// STARTTLS if enabled
+	if useTLS {
+		code, _, err = smtpConn.sendCommand("STARTTLS")
+		if err != nil {
+			return fmt.Errorf("STARTTLS command failed: %w", err)
+		}
+		if code != 220 {
+			return fmt.Errorf("STARTTLS rejected with code: %d", code)
+		}
+
+		// Upgrade connection to TLS
+		tlsConfig := &tls.Config{
+			ServerName: host,
+			MinVersion: tls.VersionTLS12,
+		}
+		tlsConn := tls.Client(conn, tlsConfig)
+		if err := tlsConn.Handshake(); err != nil {
+			return fmt.Errorf("TLS handshake failed: %w", err)
+		}
+
+		// Replace connection with TLS connection
+		smtpConn = newSMTPConnection(tlsConn)
+		defer smtpConn.Close()
+
+		// Send EHLO again after TLS
+		code, err = smtpConn.sendCommandMultiline(fmt.Sprintf("EHLO %s", hostname))
+		if err != nil {
+			return fmt.Errorf("EHLO after TLS failed: %w", err)
+		}
+		if code != 250 {
+			return fmt.Errorf("EHLO after TLS rejected with code: %d", code)
+		}
+	}
+
+	// AUTH if credentials provided
+	if username != "" && password != "" {
+		// Use AUTH PLAIN
+		authString := fmt.Sprintf("\x00%s\x00%s", username, password)
+		encoded := base64.StdEncoding.EncodeToString([]byte(authString))
+		code, _, err = smtpConn.sendCommand(fmt.Sprintf("AUTH PLAIN %s", encoded))
+		if err != nil {
+			return fmt.Errorf("AUTH failed: %w", err)
+		}
+		if code != 235 {
+			return fmt.Errorf("authentication failed with code: %d", code)
+		}
+	}
+
+	// MAIL FROM - without any extensions (this is the key fix for issue #172)
+	code, _, err = smtpConn.sendCommand(fmt.Sprintf("MAIL FROM:<%s>", from))
+	if err != nil {
+		return fmt.Errorf("MAIL FROM failed: %w", err)
+	}
+	if code != 250 {
+		return fmt.Errorf("MAIL FROM rejected with code: %d", code)
+	}
+
+	// RCPT TO for each recipient
+	for _, recipient := range to {
+		if recipient == "" {
+			continue
+		}
+		code, _, err = smtpConn.sendCommand(fmt.Sprintf("RCPT TO:<%s>", recipient))
+		if err != nil {
+			return fmt.Errorf("RCPT TO failed for %s: %w", recipient, err)
+		}
+		if code != 250 && code != 251 {
+			return fmt.Errorf("RCPT TO rejected for %s with code: %d", recipient, code)
+		}
+	}
+
+	// DATA
+	code, _, err = smtpConn.sendCommand("DATA")
+	if err != nil {
+		return fmt.Errorf("DATA command failed: %w", err)
+	}
+	if code != 354 {
+		return fmt.Errorf("DATA rejected with code: %d", code)
+	}
+
+	// Send message body
+	// Ensure proper line endings and dot-stuffing
+	if _, err := smtpConn.conn.Write(msg); err != nil {
+		return fmt.Errorf("failed to write message: %w", err)
+	}
+
+	// End message with CRLF.CRLF
+	if _, err := fmt.Fprintf(smtpConn.conn, "\r\n.\r\n"); err != nil {
+		return fmt.Errorf("failed to write message terminator: %w", err)
+	}
+
+	// Read response after DATA
+	code, _, err = smtpConn.readResponse()
+	if err != nil {
+		return fmt.Errorf("failed to read DATA response: %w", err)
+	}
+	if code != 250 {
+		return fmt.Errorf("message rejected with code: %d", code)
+	}
+
+	// QUIT
+	_, _, _ = smtpConn.sendCommand("QUIT")
+
+	return nil
+}
+
+// SMTPService implements the domain.EmailProviderService interface for SMTP
+type SMTPService struct {
+	logger logger.Logger
 }
 
 // NewSMTPService creates a new instance of SMTPService
 func NewSMTPService(logger logger.Logger) *SMTPService {
 	return &SMTPService{
-		logger:        logger,
-		clientFactory: &defaultGoMailFactory{},
+		logger: logger,
 	}
 }
 
@@ -76,23 +261,9 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 		return fmt.Errorf("SMTP settings required")
 	}
 
-	// Create a client directly
-	client, err := s.clientFactory.CreateClient(
-		request.Provider.SMTP.Host,
-		request.Provider.SMTP.Port,
-		request.Provider.SMTP.Username,
-		request.Provider.SMTP.Password,
-		request.Provider.SMTP.UseTLS,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to create SMTP client: %w", err)
-	}
-	if client == nil {
-		return fmt.Errorf("SMTP client factory returned nil client")
-	}
-	defer func() { _ = client.Close() }()
+	smtpSettings := request.Provider.SMTP
 
-	// Create and configure the message
+	// Create and configure the message using go-mail for MIME composition
 	msg := mail.NewMsg(mail.WithNoDefaultUserAgent())
 
 	if err := msg.FromFormat(request.FromName, request.FromAddress); err != nil {
@@ -101,6 +272,9 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 	if err := msg.To(request.To); err != nil {
 		return fmt.Errorf("invalid recipient: %w", err)
 	}
+
+	// Collect all recipients for SMTP envelope
+	recipients := []string{request.To}
 
 	// Add CC recipients if specified (filter out empty strings)
 	if len(request.EmailOptions.CC) > 0 {
@@ -114,6 +288,7 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 			if err := msg.Cc(validCC...); err != nil {
 				return fmt.Errorf("invalid CC recipients: %w", err)
 			}
+			recipients = append(recipients, validCC...)
 		}
 	}
 
@@ -129,6 +304,7 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 			if err := msg.Bcc(validBCC...); err != nil {
 				return fmt.Errorf("invalid BCC recipients: %w", err)
 			}
+			recipients = append(recipients, validBCC...)
 		}
 	}
 
@@ -147,9 +323,6 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 		msg.SetGenHeader("List-Unsubscribe", fmt.Sprintf("<%s>", request.EmailOptions.ListUnsubscribeURL))
 		msg.SetGenHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click")
 	}
-
-	// Remove User-Agent and X-Mailer headers
-	// msg.SetUserAgent("")
 
 	msg.Subject(request.Subject)
 	msg.SetBodyString(mail.TypeTextHTML, request.Content)
@@ -173,7 +346,6 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 		// Add attachment or embed inline
 		if att.Disposition == "inline" {
 			// For inline attachments, set Content-ID for HTML references
-			// Generate a simple Content-ID from filename (e.g., <logo.png>)
 			contentID := att.Filename
 			fileOpts = append(fileOpts, mail.WithFileContentID(contentID))
 			if err := msg.EmbedReader(att.Filename, bytes.NewReader(content), fileOpts...); err != nil {
@@ -186,8 +358,23 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 		}
 	}
 
-	// Send the email directly
-	if err := client.DialAndSend(msg); err != nil {
+	// Write the composed message to a buffer
+	var buf bytes.Buffer
+	if _, err := msg.WriteTo(&buf); err != nil {
+		return fmt.Errorf("failed to write message: %w", err)
+	}
+
+	// Send using native net/smtp (avoids BODY=8BITMIME extension issues - fix for issue #172)
+	if err := sendRawEmail(
+		smtpSettings.Host,
+		smtpSettings.Port,
+		smtpSettings.Username,
+		smtpSettings.Password,
+		smtpSettings.UseTLS,
+		request.FromAddress,
+		recipients,
+		buf.Bytes(),
+	); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
 

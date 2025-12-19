@@ -1,14 +1,10 @@
 package domain
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
-	"github.com/wneessen/go-mail"
 )
-
-//go:generate mockgen -destination mocks/mock_smtp_client.go -package mocks github.com/Notifuse/notifuse/internal/domain SMTPClientFactory,SMTPService
 
 // SMTPWebhookPayload represents an SMTP webhook payload
 // SMTP doesn't typically have a built-in webhook system, so this is a generic structure
@@ -101,14 +97,4 @@ func (s *SMTPSettings) Validate(passphrase string) error {
 	}
 
 	return nil
-}
-
-// SMTPClientFactory is an interface for creating SMTP mail clients
-type SMTPClientFactory interface {
-	CreateClient(host string, port int, username, password string, useTLS bool) (*mail.Client, error)
-}
-
-// SMTPService is an interface for SMTP email sending service
-type SMTPService interface {
-	SendEmail(ctx context.Context, workspaceID string, fromAddress, fromName, to, subject, content string, provider *EmailProvider) error
 }

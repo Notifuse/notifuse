@@ -1,17 +1,12 @@
 package domain_test
 
 import (
-	"context"
 	"encoding/json"
-	"errors"
 	"testing"
 
 	"github.com/Notifuse/notifuse/internal/domain"
-	"github.com/Notifuse/notifuse/internal/domain/mocks"
-	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/wneessen/go-mail"
 )
 
 func TestSMTPSettings_EncryptDecryptUsername(t *testing.T) {
@@ -255,102 +250,6 @@ func TestSMTPSettings_Validate(t *testing.T) {
 			}
 		})
 	}
-}
-
-// TestSMTPClientFactoryInterface tests the SMTPClientFactory interface
-func TestSMTPClientFactoryInterface(t *testing.T) {
-	// Setup
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockFactory := mocks.NewMockSMTPClientFactory(ctrl)
-
-	host := "smtp.example.com"
-	port := 587
-	username := "user@example.com"
-	password := "password"
-	useTLS := true
-
-	mockMailClient := &mail.Client{}
-
-	// Test successful client creation
-	t.Run("successful client creation", func(t *testing.T) {
-		mockFactory.EXPECT().CreateClient(host, port, username, password, useTLS).Return(mockMailClient, nil)
-
-		client, err := mockFactory.CreateClient(host, port, username, password, useTLS)
-		require.NoError(t, err)
-		assert.Equal(t, mockMailClient, client)
-	})
-
-	// Test error handling
-	t.Run("client creation error", func(t *testing.T) {
-		mockFactory.EXPECT().CreateClient(host, port, username, password, useTLS).Return(nil, errors.New("connection failed"))
-
-		client, err := mockFactory.CreateClient(host, port, username, password, useTLS)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "connection failed")
-		assert.Nil(t, client)
-	})
-}
-
-func TestSMTPServiceInterface(t *testing.T) {
-	// Setup
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockService := mocks.NewMockSMTPService(ctrl)
-	ctx := context.Background()
-	workspaceID := "workspace-123"
-	fromAddress := "sender@example.com"
-	fromName := "Sender Name"
-	to := "recipient@example.com"
-	subject := "Test Subject"
-	content := "<p>This is a test email</p>"
-
-	provider := &domain.EmailProvider{
-		Kind: domain.EmailProviderKindSMTP,
-		SMTP: &domain.SMTPSettings{
-			Host:              "smtp.example.com",
-			Port:              587,
-			Username:          "user@example.com",
-			EncryptedPassword: "encrypted-password",
-			UseTLS:            true,
-		},
-		Senders: []domain.EmailSender{
-			domain.NewEmailSender("default@example.com", "Default Sender"),
-		},
-	}
-
-	t.Run("SendEmail", func(t *testing.T) {
-		// Set expectations
-		mockService.EXPECT().
-			SendEmail(gomock.Any(), gomock.Eq(workspaceID), gomock.Eq(fromAddress),
-				gomock.Eq(fromName), gomock.Eq(to), gomock.Eq(subject),
-				gomock.Eq(content), gomock.Eq(provider)).
-			Return(nil)
-
-		// Call the method
-		err := mockService.SendEmail(ctx, workspaceID, fromAddress, fromName, to, subject, content, provider)
-
-		// Assert
-		require.NoError(t, err)
-	})
-
-	t.Run("SendEmail error handling", func(t *testing.T) {
-		// Set expectations for error case
-		mockService.EXPECT().
-			SendEmail(gomock.Any(), gomock.Eq(workspaceID), gomock.Eq(fromAddress),
-				gomock.Eq(fromName), gomock.Eq(to), gomock.Eq(subject),
-				gomock.Eq(content), gomock.Eq(provider)).
-			Return(errors.New("failed to send email"))
-
-		// Call the method
-		err := mockService.SendEmail(ctx, workspaceID, fromAddress, fromName, to, subject, content, provider)
-
-		// Assert
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to send email")
-	})
 }
 
 func TestSMTPWebhookPayload(t *testing.T) {
