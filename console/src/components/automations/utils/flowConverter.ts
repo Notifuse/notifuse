@@ -1,4 +1,5 @@
 import type { Node, Edge } from '@xyflow/react'
+import { v4 as uuidv4 } from 'uuid'
 import type {
   Automation,
   AutomationNode,
@@ -7,7 +8,9 @@ import type {
   TimelineTriggerConfig,
   BranchNodeConfig,
   FilterNodeConfig,
-  ABTestNodeConfig
+  ABTestNodeConfig,
+  AddToListNodeConfig,
+  RemoveFromListNodeConfig
 } from '../../../services/api/automation'
 
 // Node data stored in ReactFlow nodes
@@ -16,6 +19,14 @@ export interface AutomationNodeData {
   config: Record<string, unknown>
   label: string
   isOrphan?: boolean
+  onDelete?: () => void
+}
+
+// Node types that support multiple outgoing connections
+const MULTI_CHILD_NODE_TYPES: NodeType[] = ['branch', 'filter', 'ab_test']
+
+export function canHaveMultipleChildren(nodeType: NodeType): boolean {
+  return MULTI_CHILD_NODE_TYPES.includes(nodeType)
 }
 
 // Get display label for node type
@@ -33,9 +44,9 @@ export function getNodeLabel(type: NodeType): string {
   return labels[type] || type
 }
 
-// Generate unique ID
+// Generate unique ID using UUID
 export function generateId(): string {
-  return `node_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  return uuidv4()
 }
 
 // Create default trigger node for new automations
@@ -239,7 +250,8 @@ export interface ValidationError {
 
 export function validateFlow(
   nodes: Node<AutomationNodeData>[],
-  edges: Edge[]
+  edges: Edge[],
+  listId?: string
 ): ValidationError[] {
   const errors: ValidationError[] = []
 
@@ -272,19 +284,26 @@ export function validateFlow(
     }
   }
 
-  // Check email nodes have template
-  nodes
-    .filter((n) => n.data.nodeType === 'email')
-    .forEach((emailNode) => {
-      const config = emailNode.data.config as { template_id?: string }
-      if (!config.template_id) {
-        errors.push({
-          nodeId: emailNode.id,
-          field: 'template_id',
-          message: 'Email node must have a template selected'
-        })
-      }
+  // Check email nodes require a list to be selected
+  const emailNodes = nodes.filter((n) => n.data.nodeType === 'email')
+  if (emailNodes.length > 0 && !listId) {
+    errors.push({
+      field: 'list_id',
+      message: 'A list must be selected when email nodes are present'
     })
+  }
+
+  // Check email nodes have template
+  emailNodes.forEach((emailNode) => {
+    const config = emailNode.data.config as { template_id?: string }
+    if (!config.template_id) {
+      errors.push({
+        nodeId: emailNode.id,
+        field: 'template_id',
+        message: 'Email node must have a template selected'
+      })
+    }
+  })
 
   // Check delay nodes have duration
   nodes
@@ -296,6 +315,74 @@ export function validateFlow(
           nodeId: delayNode.id,
           field: 'duration',
           message: 'Delay node must have a duration greater than 0'
+        })
+      }
+    })
+
+  // Check A/B test nodes have valid config
+  nodes
+    .filter((n) => n.data.nodeType === 'ab_test')
+    .forEach((abTestNode) => {
+      const config = abTestNode.data.config as ABTestNodeConfig
+      if (!config.variants || config.variants.length < 2) {
+        errors.push({
+          nodeId: abTestNode.id,
+          field: 'variants',
+          message: 'A/B test requires at least 2 variants'
+        })
+      } else {
+        const totalWeight = config.variants.reduce((sum, v) => sum + (v.weight || 0), 0)
+        if (totalWeight !== 100) {
+          errors.push({
+            nodeId: abTestNode.id,
+            field: 'weight',
+            message: `Variant weights must sum to 100 (currently ${totalWeight})`
+          })
+        }
+
+        // Check all variants have connections
+        const unconnectedVariants = config.variants.filter((v) => !v.next_node_id)
+        if (unconnectedVariants.length > 0) {
+          errors.push({
+            nodeId: abTestNode.id,
+            field: 'connections',
+            message: `All variants must be connected. Missing: ${unconnectedVariants.map((v) => v.name).join(', ')}`
+          })
+        }
+      }
+    })
+
+  // Check add_to_list nodes have list selected
+  nodes
+    .filter((n) => n.data.nodeType === 'add_to_list')
+    .forEach((node) => {
+      const config = node.data.config as AddToListNodeConfig
+      if (!config.list_id) {
+        errors.push({
+          nodeId: node.id,
+          field: 'list_id',
+          message: 'Add to List node must have a list selected'
+        })
+      }
+      if (!config.status) {
+        errors.push({
+          nodeId: node.id,
+          field: 'status',
+          message: 'Add to List node must have a status selected'
+        })
+      }
+    })
+
+  // Check remove_from_list nodes have list selected
+  nodes
+    .filter((n) => n.data.nodeType === 'remove_from_list')
+    .forEach((node) => {
+      const config = node.data.config as RemoveFromListNodeConfig
+      if (!config.list_id) {
+        errors.push({
+          nodeId: node.id,
+          field: 'list_id',
+          message: 'Remove from List node must have a list selected'
         })
       }
     })

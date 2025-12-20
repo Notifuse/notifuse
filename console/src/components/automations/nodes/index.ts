@@ -1,5 +1,8 @@
 export { TriggerNode } from './TriggerNode'
 export { DelayNode } from './DelayNode'
 export { EmailNode } from './EmailNode'
+export { ABTestNode } from './ABTestNode'
+export { AddToListNode } from './AddToListNode'
+export { RemoveFromListNode } from './RemoveFromListNode'
 export { BaseNode } from './BaseNode'
 export { nodeTypeColors } from './constants'

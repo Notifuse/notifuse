@@ -35,6 +35,7 @@ export const DelayNode: React.FC<DelayNodeProps> = ({ data, selected }) => {
         icon={<FontAwesomeIcon icon={faHourglass} style={{ color: selected ? undefined : nodeTypeColors.delay }} />}
         selected={selected}
         isOrphan={data.isOrphan}
+        onDelete={data.onDelete}
       >
         <div className={duration === 0 ? 'text-orange-500' : ''}>
           {formatDuration()}

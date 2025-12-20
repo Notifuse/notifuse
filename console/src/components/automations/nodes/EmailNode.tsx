@@ -29,6 +29,7 @@ export const EmailNode: React.FC<EmailNodeProps> = ({ data, selected }) => {
         icon={<Mail size={16} color={selected ? undefined : nodeTypeColors.email} />}
         selected={selected}
         isOrphan={data.isOrphan}
+        onDelete={data.onDelete}
       >
         {hasTemplate ? (
           <div>{templateName || 'Template set'}</div>

@@ -1,4 +1,6 @@
 import React from 'react'
+import { Trash2 } from 'lucide-react'
+import { Tooltip, Popconfirm } from 'antd'
 import type { NodeType } from '../../../services/api/automation'
 
 interface BaseNodeProps {
@@ -8,20 +10,41 @@ interface BaseNodeProps {
   selected?: boolean
   isOrphan?: boolean
   children?: React.ReactNode
+  onDelete?: () => void
 }
 
 export const BaseNode: React.FC<BaseNodeProps> = ({
+  type,
   label,
   icon,
   selected,
   isOrphan,
-  children
+  children,
+  onDelete
 }) => {
   return (
     <div className="relative">
       {isOrphan && (
         <div className="absolute -top-6 left-0 right-0 text-center text-xs text-orange-500 font-medium">
           Not connected
+        </div>
+      )}
+      {selected && type !== 'trigger' && onDelete && (
+        <div className="absolute -right-8 top-1/2 -translate-y-1/2" style={{ zIndex: 10 }}>
+          <Popconfirm
+            title="Delete node"
+            description="Are you sure you want to delete this node?"
+            onConfirm={onDelete}
+            okText="Delete"
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Delete node" placement="right">
+              <button className="flex items-center justify-center w-6 h-6 rounded-full bg-white hover:bg-red-50 shadow-md border border-gray-200 cursor-pointer transition-transform hover:scale-110">
+                <Trash2 size={14} className="text-gray-400 hover:text-red-500" />
+              </button>
+            </Tooltip>
+          </Popconfirm>
         </div>
       )}
       <div

@@ -16,10 +16,13 @@ import { Plus } from 'lucide-react'
 import { Tooltip } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHourglass, faEnvelope } from '@fortawesome/free-regular-svg-icons'
-import { TriggerNode, DelayNode, EmailNode } from './nodes'
+import { faFlask } from '@fortawesome/free-solid-svg-icons'
+import { UserPlus, UserMinus } from 'lucide-react'
+import { TriggerNode, DelayNode, EmailNode, ABTestNode, AddToListNode, RemoveFromListNode } from './nodes'
 import { PlaceholderNode } from './nodes/PlaceholderNode'
 import { NodeConfigPanel } from './NodeConfigPanel'
 import { AddNodeEdge, type AddNodeEdgeData } from './edges/AddNodeEdge'
+import { AutomationEdge, type AutomationEdgeData } from './edges/AutomationEdge'
 import { useAutomation } from './context'
 import { useAutomationCanvas } from './hooks'
 import type { AutomationNodeData } from './utils/flowConverter'
@@ -30,18 +33,26 @@ const nodeTypes: NodeTypes = {
   trigger: TriggerNode,
   delay: DelayNode,
   email: EmailNode,
+  ab_test: ABTestNode,
+  add_to_list: AddToListNode,
+  remove_from_list: RemoveFromListNode,
   placeholder: PlaceholderNode
 }
 
 // Define edgeTypes OUTSIDE component to prevent re-renders
 const edgeTypes: EdgeTypes = {
-  addNode: AddNodeEdge
+  addNode: AddNodeEdge,
+  smoothstep: AutomationEdge,
+  default: AutomationEdge
 }
 
 // Menu items for adding nodes
 const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.ReactNode }[] = [
   { key: 'delay', label: 'Delay', icon: <FontAwesomeIcon icon={faHourglass} style={{ color: '#faad14' }} /> },
-  { key: 'email', label: 'Email', icon: <FontAwesomeIcon icon={faEnvelope} style={{ color: '#1890ff' }} /> }
+  { key: 'email', label: 'Email', icon: <FontAwesomeIcon icon={faEnvelope} style={{ color: '#1890ff' }} /> },
+  { key: 'ab_test', label: 'A/B Test', icon: <FontAwesomeIcon icon={faFlask} style={{ color: '#2f54eb' }} /> },
+  { key: 'add_to_list', label: 'Add to List', icon: <UserPlus size={14} style={{ color: '#13c2c2' }} /> },
+  { key: 'remove_from_list', label: 'Remove from List', icon: <UserMinus size={14} style={{ color: '#fa541c' }} /> }
 ]
 
 // Floating add button component - rendered OUTSIDE ReactFlow
@@ -83,15 +94,17 @@ const FloatingAddButton: React.FC<{
         zIndex: 1002
       }}
     >
-      <button
-        className="add-node-button flex items-center justify-center w-7 h-7 rounded-full shadow-lg border-2 border-white cursor-pointer"
-        onClick={() => setMenuOpen(!menuOpen)}
-      >
-        <Plus size={16} color="white" />
-      </button>
+      <Tooltip title="Add node" placement="top">
+        <button
+          className="add-node-button flex items-center justify-center w-7 h-7 rounded-full shadow-lg border-2 border-white cursor-pointer"
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          <Plus size={16} color="white" />
+        </button>
+      </Tooltip>
       {menuOpen && (
         <div
-          className="absolute top-full left-1/2 mt-1 bg-white rounded-md shadow-lg border border-gray-200 py-1 min-w-[120px]"
+          className="absolute top-full left-1/2 mt-1 bg-white rounded-md shadow-lg border border-gray-200 py-1 min-w-[180px]"
           style={{ transform: 'translateX(-50%)', zIndex: 10001 }}
         >
           {ADD_NODE_MENU_ITEMS.map((item) => {
@@ -145,8 +158,10 @@ const AutomationFlowEditorInner: React.FC = () => {
     selectNode,
     unselectNode,
     addNodeWithEdge,
+    insertNodeOnEdge,
     removeNode,
     updateNodeConfig,
+    deleteEdge,
     onNodesChange,
     onEdgesChange,
     onConnect,
@@ -177,12 +192,13 @@ const AutomationFlowEditorInner: React.FC = () => {
 
   // Compute placeholder nodes and edges for terminal nodes
   const { nodesWithPlaceholders, edgesWithPlaceholders } = useMemo(() => {
-    // Mark nodes with orphan status
+    // Mark nodes with orphan status and add delete callback
     const nodesWithOrphanStatus = nodes.map((node) => ({
       ...node,
       data: {
         ...node.data,
-        isOrphan: orphanNodeIds.has(node.id)
+        isOrphan: orphanNodeIds.has(node.id),
+        onDelete: () => removeNode(node.id)
       }
     }))
 
@@ -210,11 +226,24 @@ const AutomationFlowEditorInner: React.FC = () => {
       } as AddNodeEdgeData
     }))
 
+    // Enhance regular edges with insert/delete callbacks
+    // zIndex: 1 ensures EdgeLabelRenderer content (dropdown) renders above nodes
+    const enhancedEdges = edges.map((edge) => ({
+      ...edge,
+      zIndex: 1,
+      data: {
+        ...edge.data,
+        onInsert: (nodeType: NodeType) => insertNodeOnEdge(edge.id, nodeType),
+        onDelete: () => deleteEdge(edge.id),
+        hasListSelected
+      } as AutomationEdgeData
+    }))
+
     return {
       nodesWithPlaceholders: [...nodesWithOrphanStatus, ...placeholderNodes],
-      edgesWithPlaceholders: [...edges, ...placeholderEdges]
+      edgesWithPlaceholders: [...enhancedEdges, ...placeholderEdges]
     }
-  }, [nodes, edges, terminalNodes, orphanNodeIds])
+  }, [nodes, edges, terminalNodes, orphanNodeIds, insertNodeOnEdge, deleteEdge, hasListSelected, removeNode])
 
   // Calculate button positions based on placeholder node positions and viewport
   const updateButtonPositions = useCallback(() => {
@@ -346,7 +375,6 @@ const AutomationFlowEditorInner: React.FC = () => {
           <NodeConfigPanel
             selectedNode={selectedNode}
             onNodeUpdate={handleNodeUpdateFromPanel}
-            onNodeDelete={removeNode}
             workspaceId={workspace.id}
             onClose={unselectNode}
           />

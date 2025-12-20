@@ -7,7 +7,7 @@ import {
   faPenToSquare
 } from '@fortawesome/free-regular-svg-icons'
 import dayjs from '../../lib/dayjs'
-import type { Automation, AutomationStatus, NodeType } from '../../services/api/automation'
+import type { Automation, AutomationStatus } from '../../services/api/automation'
 import type { UserPermissions } from '../../services/api/workspace'
 import type { List } from '../../services/api/list'
 import type { Segment } from '../../services/api/segment'
@@ -24,38 +24,6 @@ const getStatusBadge = (status: AutomationStatus) => {
     default:
       return <Badge status="default" text={status} />
   }
-}
-
-// Helper to get node type display name
-const getNodeTypeName = (type: NodeType): string => {
-  const names: Record<NodeType, string> = {
-    trigger: 'Trigger',
-    delay: 'Delay',
-    email: 'Email',
-    branch: 'Branch',
-    filter: 'Filter',
-    add_to_list: 'Add to List',
-    remove_from_list: 'Remove from List',
-    ab_test: 'A/B Test'
-  }
-  return names[type] || type
-}
-
-// Helper to build workflow summary text
-const getWorkflowSummary = (automation: Automation): string => {
-  if (!automation.nodes || automation.nodes.length === 0) {
-    return 'No nodes configured'
-  }
-
-  const nodeCount = automation.nodes.length
-  const nodeTypes = automation.nodes.map((n) => getNodeTypeName(n.type))
-
-  // Build a simple flow representation
-  if (nodeTypes.length <= 5) {
-    return `${nodeCount} nodes: ${nodeTypes.join(' → ')}`
-  }
-
-  return `${nodeCount} nodes: ${nodeTypes.slice(0, 4).join(' → ')} → ...`
 }
 
 interface AutomationCardProps {
@@ -263,11 +231,11 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
         </div>
       )}
 
-      {/* Summary Info */}
-      <div className="px-6 py-4 border-b border-gray-100">
-        <Space direction="vertical" size="small" className="w-full">
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 text-sm">Trigger:</span>
+      {/* Details */}
+      <div className="px-6 py-4">
+        <Descriptions size="small" column={2}>
+          <Descriptions.Item label="ID">{automation.id}</Descriptions.Item>
+          <Descriptions.Item label="Trigger">
             <Space size="small">
               {triggerEvent ? (
                 <>
@@ -275,33 +243,16 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
                   {triggerFilter && <Tag color="cyan">{triggerFilter}</Tag>}
                 </>
               ) : (
-                <span className="text-gray-400 text-sm">No trigger configured</span>
+                <span className="text-gray-400">No trigger configured</span>
               )}
             </Space>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 text-sm">List:</span>
-            <span className="text-sm">{listName}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-gray-500 text-sm">Workflow:</span>
-            <span className="text-sm text-gray-600">{getWorkflowSummary(automation)}</span>
-          </div>
-        </Space>
-      </div>
-
-      {/* Details */}
-      <div className="px-6 py-4">
-        <Descriptions size="small" column={2}>
-          <Descriptions.Item label="ID">{automation.id}</Descriptions.Item>
-          <Descriptions.Item label="Trigger Frequency">
+          </Descriptions.Item>
+          <Descriptions.Item label="List">{listName}</Descriptions.Item>
+          <Descriptions.Item label="Frequency">
             {automation.trigger?.frequency === 'once' ? 'Once per contact' : 'Every time'}
           </Descriptions.Item>
-          <Descriptions.Item label="Created">
-            {dayjs(automation.created_at).format('lll')}
-          </Descriptions.Item>
           <Descriptions.Item label="Updated">
-            {dayjs(automation.updated_at).format('lll')}
+            {dayjs(automation.updated_at).fromNow()}
           </Descriptions.Item>
         </Descriptions>
       </div>

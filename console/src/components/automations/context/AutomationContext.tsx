@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { v4 as uuidv4 } from 'uuid'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { App } from 'antd'
 import type { Node, Edge } from '@xyflow/react'
@@ -158,9 +159,17 @@ export function AutomationProvider({
   }, [])
 
   const setListIdWithChange = useCallback((newListId: string | undefined) => {
+    // Check if clearing list while email nodes exist
+    if (!newListId) {
+      const hasEmailNodes = nodes.some(n => n.data.nodeType === 'email')
+      if (hasEmailNodes) {
+        message.error('Cannot remove list while email nodes exist. Delete email nodes first.')
+        return
+      }
+    }
     setListId(newListId)
     setHasUnsavedChanges(true)
-  }, [])
+  }, [nodes, message])
 
   // Push current canvas state to history (call BEFORE making changes)
   const pushHistory = useCallback(() => {
@@ -195,8 +204,8 @@ export function AutomationProvider({
 
   // Validate flow
   const validate = useCallback(() => {
-    return validateFlow(nodes, edges)
-  }, [nodes, edges])
+    return validateFlow(nodes, edges, listId)
+  }, [nodes, edges, listId])
 
   // Create mutation
   const createMutation = useMutation({
@@ -249,7 +258,7 @@ export function AutomationProvider({
     setLastError(null)
 
     try {
-      const automationId = automation?.id || `auto_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      const automationId = automation?.id || uuidv4()
 
       // Convert flow to automation nodes
       const automationNodes: AutomationNode[] = flowToAutomationNodes(nodes, edges, automationId)

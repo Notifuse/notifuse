@@ -1,17 +1,29 @@
 import React from 'react'
-import { Typography, Empty, Popconfirm } from 'antd'
-import { X, Trash2 } from 'lucide-react'
+import { Typography, Empty } from 'antd'
+import { X } from 'lucide-react'
 import type { Node } from '@xyflow/react'
-import { TriggerConfigForm, DelayConfigForm, EmailConfigForm } from './config'
+import {
+  TriggerConfigForm,
+  DelayConfigForm,
+  EmailConfigForm,
+  ABTestConfigForm,
+  AddToListConfigForm,
+  RemoveFromListConfigForm
+} from './config'
 import type { AutomationNodeData } from './utils/flowConverter'
-import type { DelayNodeConfig, EmailNodeConfig } from '../../services/api/automation'
+import type {
+  DelayNodeConfig,
+  EmailNodeConfig,
+  ABTestNodeConfig,
+  AddToListNodeConfig,
+  RemoveFromListNodeConfig
+} from '../../services/api/automation'
 
 const { Title } = Typography
 
 interface NodeConfigPanelProps {
   selectedNode: Node<AutomationNodeData> | null
   onNodeUpdate: (nodeId: string, data: Partial<AutomationNodeData>) => void
-  onNodeDelete?: (nodeId: string) => void
   workspaceId: string
   onClose?: () => void
 }
@@ -19,7 +31,6 @@ interface NodeConfigPanelProps {
 export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   selectedNode,
   onNodeUpdate,
-  onNodeDelete,
   workspaceId,
   onClose
 }) => {
@@ -28,11 +39,6 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   }
 
   const { nodeType, config } = selectedNode.data
-  const canDelete = nodeType !== 'trigger'
-
-  const handleDelete = () => {
-    onNodeDelete?.(selectedNode.id)
-  }
 
   const handleConfigChange = (newConfig: Record<string, unknown>) => {
     onNodeUpdate(selectedNode.id, {
@@ -66,6 +72,27 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
             workspaceId={workspaceId}
           />
         )
+      case 'ab_test':
+        return (
+          <ABTestConfigForm
+            config={config as ABTestNodeConfig}
+            onChange={handleConfigChange}
+          />
+        )
+      case 'add_to_list':
+        return (
+          <AddToListConfigForm
+            config={config as AddToListNodeConfig}
+            onChange={handleConfigChange}
+          />
+        )
+      case 'remove_from_list':
+        return (
+          <RemoveFromListConfigForm
+            config={config as RemoveFromListNodeConfig}
+            onChange={handleConfigChange}
+          />
+        )
       default:
         return (
           <Empty
@@ -82,32 +109,14 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
         <Title level={5} style={{ margin: 0, fontSize: '14px' }}>
           Configure {selectedNode.data.label}
         </Title>
-        <div className="flex items-center gap-1">
-          {canDelete && onNodeDelete && (
-            <Popconfirm
-              title="Delete node"
-              description="Are you sure you want to delete this node?"
-              onConfirm={handleDelete}
-              okText="Delete"
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-            >
-              <button
-                className="p-1 hover:bg-red-50 rounded text-gray-400 hover:text-red-500 cursor-pointer"
-              >
-                <Trash2 size={16} />
-              </button>
-            </Popconfirm>
-          )}
-          {onClose && (
-            <button
-              onClick={onClose}
-              className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700 cursor-pointer"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="p-1 hover:bg-gray-100 rounded text-gray-500 hover:text-gray-700 cursor-pointer"
+          >
+            <X size={16} />
+          </button>
+        )}
       </div>
       <div className="p-3 overflow-y-auto flex-1">{renderConfigForm()}</div>
     </div>
