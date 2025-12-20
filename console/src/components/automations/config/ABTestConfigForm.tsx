@@ -1,5 +1,5 @@
 import React from 'react'
-import { Form, Input, InputNumber, Button, Alert } from 'antd'
+import { Form, Input, InputNumber, Button } from 'antd'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons'
 import type { ABTestNodeConfig, ABTestVariant } from '../../../services/api/automation'
 
@@ -62,7 +62,13 @@ export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onCh
   const handleRemoveVariant = (index: number) => {
     if (variants.length <= MIN_VARIANTS) return
 
-    const updatedVariants = variants.filter((_, i) => i !== index)
+    // Filter out the removed variant and reassign IDs sequentially (A, B, C, D)
+    const updatedVariants = variants
+      .filter((_, i) => i !== index)
+      .map((v, i) => ({
+        ...v,
+        id: VARIANT_IDS[i]
+      }))
     onChange({ ...config, variants: updatedVariants })
   }
 
@@ -82,9 +88,8 @@ export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onCh
   return (
     <Form layout="vertical" className="nodrag">
       <Form.Item
-        label="Test Variants"
-        required
-        extra="Split contacts between variants. Weights must total 100%."
+        label={<span>Test Variants <span className="text-red-500">*</span></span>}
+        required={false}
       >
         <div className="space-y-2">
           {variants.map((variant, index) => (
@@ -117,32 +122,29 @@ export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onCh
             </div>
           ))}
         </div>
-      </Form.Item>
 
-      <div className="flex items-center justify-between mb-4">
         {variants.length < MAX_VARIANTS && (
-          <Button type="dashed" onClick={handleAddVariant} icon={<PlusOutlined />} size="small">
+          <Button
+            type="primary"
+            ghost
+            block
+            size="small"
+            onClick={handleAddVariant}
+            icon={<PlusOutlined />}
+            className="!mt-2"
+          >
             Add Variant
           </Button>
         )}
-        <Button type="link" onClick={handleDistributeEvenly} size="small">
+      </Form.Item>
+
+      <div className={`text-sm flex items-center gap-1 ${isWeightValid ? 'text-green-600' : 'text-red-500'}`}>
+        <span>Total: {totalWeight}%</span>
+        <span className="text-gray-400">-</span>
+        <Button type="link" onClick={handleDistributeEvenly} size="small" className="p-0 h-auto text-sm">
           Distribute evenly
         </Button>
       </div>
-
-      <div className={`text-sm ${isWeightValid ? 'text-green-600' : 'text-red-500'}`}>
-        Total: {totalWeight}%
-        {!isWeightValid && ' (must equal 100%)'}
-      </div>
-
-      {!isWeightValid && (
-        <Alert
-          type="warning"
-          message={`Weights must sum to 100%. Currently: ${totalWeight}%`}
-          className="mt-2"
-          showIcon
-        />
-      )}
     </Form>
   )
 }

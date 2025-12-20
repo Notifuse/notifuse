@@ -387,6 +387,24 @@ export function validateFlow(
       }
     })
 
+  // Check filter nodes have conditions configured
+  nodes
+    .filter((n) => n.data.nodeType === 'filter')
+    .forEach((node) => {
+      const config = node.data.config as FilterNodeConfig
+      // Check if conditions exist and have at least one leaf
+      const hasConditions = config.conditions?.kind === 'branch'
+        ? (config.conditions.branch?.leaves?.length ?? 0) > 0
+        : config.conditions?.kind === 'leaf'
+      if (!hasConditions) {
+        errors.push({
+          nodeId: node.id,
+          field: 'conditions',
+          message: 'Filter node must have at least one condition'
+        })
+      }
+    })
+
   return errors
 }
 

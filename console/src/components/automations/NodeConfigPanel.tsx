@@ -8,7 +8,8 @@ import {
   EmailConfigForm,
   ABTestConfigForm,
   AddToListConfigForm,
-  RemoveFromListConfigForm
+  RemoveFromListConfigForm,
+  FilterConfigForm
 } from './config'
 import type { AutomationNodeData } from './utils/flowConverter'
 import type {
@@ -16,7 +17,8 @@ import type {
   EmailNodeConfig,
   ABTestNodeConfig,
   AddToListNodeConfig,
-  RemoveFromListNodeConfig
+  RemoveFromListNodeConfig,
+  FilterNodeConfig
 } from '../../services/api/automation'
 
 const { Title } = Typography
@@ -90,6 +92,13 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
         return (
           <RemoveFromListConfigForm
             config={config as RemoveFromListNodeConfig}
+            onChange={handleConfigChange}
+          />
+        )
+      case 'filter':
+        return (
+          <FilterConfigForm
+            config={config as FilterNodeConfig}
             onChange={handleConfigChange}
           />
         )

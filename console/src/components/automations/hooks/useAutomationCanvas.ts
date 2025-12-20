@@ -19,7 +19,7 @@ import {
   type AutomationNodeData,
   type ValidationError
 } from '../utils/flowConverter'
-import type { NodeType, ABTestNodeConfig } from '../../../services/api/automation'
+import type { NodeType, ABTestNodeConfig, FilterNodeConfig } from '../../../services/api/automation'
 
 export interface UseAutomationCanvasReturn {
   // State
@@ -177,6 +177,19 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       }
     }
 
+    // For filter nodes, update continue_node_id or exit_node_id based on sourceHandle
+    if (sourceNode.data.nodeType === 'filter' && params.sourceHandle) {
+      const config = sourceNode.data.config as FilterNodeConfig
+      const field = params.sourceHandle === 'continue' ? 'continue_node_id' : 'exit_node_id'
+      setNodes(nds =>
+        nds.map(n =>
+          n.id === params.source
+            ? { ...n, data: { ...n.data, config: { ...config, [field]: params.target } } }
+            : n
+        )
+      )
+    }
+
     // For single-child nodes, remove existing outgoing edge before adding new one
     if (!canHaveMultipleChildren(sourceNode.data.nodeType)) {
       setEdges(eds => {
@@ -207,6 +220,12 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
         return { list_id: '', status: 'subscribed' }
       case 'remove_from_list':
         return { list_id: '' }
+      case 'filter':
+        return {
+          conditions: { kind: 'branch', branch: { operator: 'and', leaves: [] } },
+          continue_node_id: '',
+          exit_node_id: ''
+        }
       default:
         return {}
     }
@@ -353,6 +372,19 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
             )
           )
         }
+      }
+
+      // For filter nodes, clear continue_node_id or exit_node_id when edge is deleted
+      if (sourceNode?.data.nodeType === 'filter') {
+        const config = sourceNode.data.config as FilterNodeConfig
+        const field = edge.sourceHandle === 'continue' ? 'continue_node_id' : 'exit_node_id'
+        setNodes(nds =>
+          nds.map(n =>
+            n.id === edge.source
+              ? { ...n, data: { ...n.data, config: { ...config, [field]: '' } } }
+              : n
+          )
+        )
       }
     }
 

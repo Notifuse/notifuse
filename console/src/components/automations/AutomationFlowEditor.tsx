@@ -17,8 +17,8 @@ import { Tooltip } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faHourglass, faEnvelope } from '@fortawesome/free-regular-svg-icons'
 import { faFlask } from '@fortawesome/free-solid-svg-icons'
-import { UserPlus, UserMinus } from 'lucide-react'
-import { TriggerNode, DelayNode, EmailNode, ABTestNode, AddToListNode, RemoveFromListNode } from './nodes'
+import { UserPlus, UserMinus, Filter } from 'lucide-react'
+import { TriggerNode, DelayNode, EmailNode, ABTestNode, AddToListNode, RemoveFromListNode, FilterNode } from './nodes'
 import { PlaceholderNode } from './nodes/PlaceholderNode'
 import { NodeConfigPanel } from './NodeConfigPanel'
 import { AddNodeEdge, type AddNodeEdgeData } from './edges/AddNodeEdge'
@@ -36,6 +36,7 @@ const nodeTypes: NodeTypes = {
   ab_test: ABTestNode,
   add_to_list: AddToListNode,
   remove_from_list: RemoveFromListNode,
+  filter: FilterNode,
   placeholder: PlaceholderNode
 }
 
@@ -50,6 +51,7 @@ const edgeTypes: EdgeTypes = {
 const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.ReactNode }[] = [
   { key: 'delay', label: 'Delay', icon: <FontAwesomeIcon icon={faHourglass} style={{ color: '#faad14' }} /> },
   { key: 'email', label: 'Email', icon: <FontAwesomeIcon icon={faEnvelope} style={{ color: '#1890ff' }} /> },
+  { key: 'filter', label: 'Filter', icon: <Filter size={14} style={{ color: '#eb2f96' }} /> },
   { key: 'ab_test', label: 'A/B Test', icon: <FontAwesomeIcon icon={faFlask} style={{ color: '#2f54eb' }} /> },
   { key: 'add_to_list', label: 'Add to List', icon: <UserPlus size={14} style={{ color: '#13c2c2' }} /> },
   { key: 'remove_from_list', label: 'Remove from List', icon: <UserMinus size={14} style={{ color: '#fa541c' }} /> }
@@ -363,7 +365,9 @@ const AutomationFlowEditorInner: React.FC = () => {
       {/* Fixed Node Configuration Panel - Top Right */}
       {selectedNode && (
         <div
-          className="absolute w-[360px] bg-white border border-gray-200 rounded-lg shadow-lg"
+          className={`absolute bg-white border border-gray-200 rounded-lg shadow-lg ${
+            selectedNode.data.nodeType === 'filter' ? 'w-[640px]' : 'w-[480px]'
+          }`}
           style={{
             top: 16,
             right: 16,
