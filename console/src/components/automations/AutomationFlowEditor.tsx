@@ -60,10 +60,11 @@ const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.ReactNode
 // Floating add button component - rendered OUTSIDE ReactFlow
 const FloatingAddButton: React.FC<{
   nodeId: string
+  sourceHandle: string | null
   position: { x: number; y: number }
-  onAddNode: (sourceNodeId: string, nodeType: NodeType) => void
+  onAddNode: (sourceNodeId: string, nodeType: NodeType, sourceHandle: string | null) => void
   hasListSelected: boolean
-}> = ({ nodeId, position, onAddNode, hasListSelected }) => {
+}> = ({ nodeId, sourceHandle, position, onAddNode, hasListSelected }) => {
   const [menuOpen, setMenuOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const menuOpenRef = useRef(menuOpen)
@@ -121,7 +122,7 @@ const FloatingAddButton: React.FC<{
                 }`}
                 onClick={() => {
                   if (isDisabled) return
-                  onAddNode(nodeId, item.key)
+                  onAddNode(nodeId, item.key, sourceHandle)
                   setMenuOpen(false)
                 }}
               >
@@ -169,7 +170,7 @@ const AutomationFlowEditorInner: React.FC = () => {
     onConnect,
     onNodeDragStop,
     handleIsValidConnection,
-    terminalNodes,
+    unconnectedOutputs,
     orphanNodeIds
   } = useAutomationCanvas()
 
@@ -177,22 +178,47 @@ const AutomationFlowEditorInner: React.FC = () => {
 
   // Handler for adding node via plus button
   const handleAddNodeFromTerminal = useCallback(
-    (sourceNodeId: string, nodeType: NodeType) => {
+    (sourceNodeId: string, nodeType: NodeType, sourceHandle: string | null) => {
       const sourceNode = nodes.find((n) => n.id === sourceNodeId)
       if (!sourceNode) return
 
-      // Position new node below the source node
-      const newPosition = {
-        x: sourceNode.position.x,
-        y: sourceNode.position.y + 120
+      const nodeWidth = 300
+      const nodeSpacing = 50  // Gap between nodes
+
+      // Find existing children of this parent
+      const existingChildEdges = edges.filter(e => e.source === sourceNodeId)
+      const existingChildIds = existingChildEdges.map(e => e.target)
+      const existingChildren = nodes.filter(n => existingChildIds.includes(n.id))
+
+      let offsetX = 0
+
+      if (sourceNode.data.nodeType === 'filter' || sourceNode.data.nodeType === 'ab_test') {
+        if (existingChildren.length === 0) {
+          // First child: position on the LEFT (centered under left handle area)
+          offsetX = -150
+        } else {
+          // Find rightmost existing child
+          const rightmostChild = existingChildren.reduce((max, child) =>
+            child.position.x > max.position.x ? child : max
+          , existingChildren[0])
+
+          // Position to the RIGHT of rightmost child with spacing
+          offsetX = (rightmostChild.position.x - sourceNode.position.x) + nodeWidth + nodeSpacing
+        }
       }
 
-      addNodeWithEdge(sourceNodeId, nodeType, newPosition)
+      // Position new node below the source node
+      const newPosition = {
+        x: sourceNode.position.x + offsetX,
+        y: sourceNode.position.y + 150
+      }
+
+      addNodeWithEdge(sourceNodeId, nodeType, newPosition, sourceHandle)
     },
-    [nodes, addNodeWithEdge]
+    [nodes, edges, addNodeWithEdge]
   )
 
-  // Compute placeholder nodes and edges for terminal nodes
+  // Compute placeholder nodes and edges for unconnected outputs
   const { nodesWithPlaceholders, edgesWithPlaceholders } = useMemo(() => {
     // Mark nodes with orphan status and add delete callback
     const nodesWithOrphanStatus = nodes.map((node) => ({
@@ -204,27 +230,28 @@ const AutomationFlowEditorInner: React.FC = () => {
       }
     }))
 
-    // Create invisible placeholder nodes positioned below terminal nodes
-    const placeholderNodes: Node[] = terminalNodes.map((node) => ({
-      id: `placeholder-target-${node.id}`,
+    // Create invisible placeholder nodes for each unconnected output
+    const placeholderNodes: Node[] = unconnectedOutputs.map((output) => ({
+      id: `placeholder-${output.nodeId}-${output.handleId || 'default'}`,
       type: 'placeholder',
-      position: {
-        x: node.position.x + 150,
-        y: node.position.y + 120
-      },
+      position: output.position,
       data: {},
       selectable: false,
       draggable: false
     }))
 
-    // Create placeholder edges connecting terminal nodes to their placeholder targets
-    const placeholderEdges = terminalNodes.map((node) => ({
-      id: `placeholder-edge-${node.id}`,
-      source: node.id,
-      target: `placeholder-target-${node.id}`,
+    // Create placeholder edges connecting unconnected outputs to their placeholder targets
+    const placeholderEdges = unconnectedOutputs.map((output) => ({
+      id: `placeholder-edge-${output.nodeId}-${output.handleId || 'default'}`,
+      source: output.nodeId,
+      sourceHandle: output.handleId || undefined,
+      target: `placeholder-${output.nodeId}-${output.handleId || 'default'}`,
       type: 'addNode',
       data: {
-        sourceNodeId: node.id
+        sourceNodeId: output.nodeId,
+        sourceHandle: output.handleId,
+        label: output.label,
+        color: output.color
       } as AddNodeEdgeData
     }))
 
@@ -245,9 +272,9 @@ const AutomationFlowEditorInner: React.FC = () => {
       nodesWithPlaceholders: [...nodesWithOrphanStatus, ...placeholderNodes],
       edgesWithPlaceholders: [...enhancedEdges, ...placeholderEdges]
     }
-  }, [nodes, edges, terminalNodes, orphanNodeIds, insertNodeOnEdge, deleteEdge, hasListSelected, removeNode])
+  }, [nodes, edges, unconnectedOutputs, orphanNodeIds, insertNodeOnEdge, deleteEdge, hasListSelected, removeNode])
 
-  // Calculate button positions based on placeholder node positions and viewport
+  // Calculate button positions based on unconnected output positions and viewport
   const updateButtonPositions = useCallback(() => {
     if (!reactFlowWrapper.current) return
 
@@ -255,23 +282,20 @@ const AutomationFlowEditorInner: React.FC = () => {
     const wrapperRect = reactFlowWrapper.current.getBoundingClientRect()
     const newPositions = new Map<string, { x: number; y: number }>()
 
-    terminalNodes.forEach((node) => {
-      // Placeholder position in flow coordinates
-      const placeholderX = node.position.x + 150
-      const placeholderY = node.position.y + 120
-
+    unconnectedOutputs.forEach((output) => {
       // Convert to screen coordinates
-      const screenX = placeholderX * viewport.zoom + viewport.x
-      const screenY = placeholderY * viewport.zoom + viewport.y
+      const screenX = output.position.x * viewport.zoom + viewport.x
+      const screenY = output.position.y * viewport.zoom + viewport.y
 
       // Only show if within bounds
       if (screenX >= 0 && screenX <= wrapperRect.width && screenY >= 0 && screenY <= wrapperRect.height) {
-        newPositions.set(node.id, { x: screenX, y: screenY })
+        const key = `${output.nodeId}-${output.handleId || 'default'}`
+        newPositions.set(key, { x: screenX, y: screenY })
       }
     })
 
     setButtonPositions(newPositions)
-  }, [terminalNodes, getViewport])
+  }, [unconnectedOutputs, getViewport])
 
   // Update button positions on mount and when dependencies change
   useEffect(() => {
@@ -352,15 +376,22 @@ const AutomationFlowEditorInner: React.FC = () => {
       </ReactFlow>
 
       {/* Floating Add Buttons - OUTSIDE ReactFlow */}
-      {Array.from(buttonPositions.entries()).map(([nodeId, position]) => (
-        <FloatingAddButton
-          key={nodeId}
-          nodeId={nodeId}
-          position={position}
-          onAddNode={handleAddNodeFromTerminal}
-          hasListSelected={hasListSelected}
-        />
-      ))}
+      {unconnectedOutputs.map((output) => {
+        const key = `${output.nodeId}-${output.handleId || 'default'}`
+        const position = buttonPositions.get(key)
+        if (!position) return null
+
+        return (
+          <FloatingAddButton
+            key={key}
+            nodeId={output.nodeId}
+            sourceHandle={output.handleId}
+            position={position}
+            onAddNode={handleAddNodeFromTerminal}
+            hasListSelected={hasListSelected}
+          />
+        )
+      })}
 
       {/* Fixed Node Configuration Panel - Top Right */}
       {selectedNode && (

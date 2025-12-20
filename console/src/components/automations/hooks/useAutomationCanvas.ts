@@ -21,6 +21,15 @@ import {
 } from '../utils/flowConverter'
 import type { NodeType, ABTestNodeConfig, FilterNodeConfig } from '../../../services/api/automation'
 
+// Represents an unconnected output handle that needs a placeholder edge
+export interface UnconnectedOutput {
+  nodeId: string
+  handleId: string | null  // null for default single output
+  position: { x: number; y: number }  // placeholder position in flow coords
+  label?: string  // "Yes", "No", or variant name
+  color?: string  // "#22c55e" for Yes, "#ef4444" for No
+}
+
 export interface UseAutomationCanvasReturn {
   // State
   nodes: Node<AutomationNodeData>[]
@@ -32,7 +41,7 @@ export interface UseAutomationCanvasReturn {
   selectNode: (id: string) => void
   unselectNode: () => void
   addNode: (type: NodeType, position: { x: number; y: number }) => void
-  addNodeWithEdge: (sourceNodeId: string, type: NodeType, position: { x: number; y: number }) => void
+  addNodeWithEdge: (sourceNodeId: string, type: NodeType, position: { x: number; y: number }, sourceHandle?: string | null) => void
   insertNodeOnEdge: (edgeId: string, type: NodeType) => void
   removeNode: (id: string) => void
   updateNodeConfig: (nodeId: string, config: Record<string, unknown>) => void
@@ -48,7 +57,7 @@ export interface UseAutomationCanvasReturn {
   handleIsValidConnection: (connection: { source: string | null; target: string | null }) => boolean
 
   // Computed
-  terminalNodes: Node<AutomationNodeData>[]
+  unconnectedOutputs: UnconnectedOutput[]
   validationErrors: ValidationError[]
   orphanNodeIds: Set<string>
 
@@ -249,7 +258,12 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
   }, [setNodes, markAsChanged, pushHistory, getDefaultConfig])
 
   // Add node with edge from source
-  const addNodeWithEdge = useCallback((sourceNodeId: string, type: NodeType, position: { x: number; y: number }) => {
+  const addNodeWithEdge = useCallback((
+    sourceNodeId: string,
+    type: NodeType,
+    position: { x: number; y: number },
+    sourceHandle?: string | null
+  ) => {
     const sourceNode = nodes.find(n => n.id === sourceNodeId)
     if (!sourceNode) return
 
@@ -266,13 +280,46 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       }
     }
     const newEdge: Edge = {
-      id: `${sourceNodeId}-${newNodeId}`,
+      id: `${sourceNodeId}-${sourceHandle || ''}-${newNodeId}`,
       source: sourceNodeId,
+      sourceHandle: sourceHandle || undefined,
       target: newNodeId,
       type: 'smoothstep'
     }
 
-    setNodes(nds => [...nds, newNode])
+    // Update filter config when adding via handle
+    if (sourceHandle && sourceNode.data.nodeType === 'filter') {
+      const config = sourceNode.data.config as FilterNodeConfig
+      const field = sourceHandle === 'continue' ? 'continue_node_id' : 'exit_node_id'
+      setNodes(nds => [
+        ...nds.map(n =>
+          n.id === sourceNodeId
+            ? { ...n, data: { ...n.data, config: { ...config, [field]: newNodeId } } }
+            : n
+        ),
+        newNode
+      ])
+    } else if (sourceHandle && sourceNode.data.nodeType === 'ab_test') {
+      // Update A/B test variant config when adding via handle
+      const config = sourceNode.data.config as ABTestNodeConfig
+      const updatedVariants = config?.variants?.map(v =>
+        v.id === sourceHandle ? { ...v, next_node_id: newNodeId } : v
+      )
+      if (updatedVariants) {
+        setNodes(nds => [
+          ...nds.map(n =>
+            n.id === sourceNodeId
+              ? { ...n, data: { ...n.data, config: { ...config, variants: updatedVariants } } }
+              : n
+          ),
+          newNode
+        ])
+      } else {
+        setNodes(nds => [...nds, newNode])
+      }
+    } else {
+      setNodes(nds => [...nds, newNode])
+    }
 
     // For single-child nodes, remove existing outgoing edge before adding new one
     if (!canHaveMultipleChildren(sourceNode.data.nodeType)) {
@@ -304,11 +351,32 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     pushHistory()
 
-    // Calculate middle position between source and target
+    const verticalSpacing = 150  // Standard vertical spacing between nodes
+
+    // Position new node below the source node (aligned with source's x)
     const newPosition = {
-      x: (sourceNode.position.x + targetNode.position.x) / 2,
-      y: (sourceNode.position.y + targetNode.position.y) / 2
+      x: sourceNode.position.x,
+      y: sourceNode.position.y + verticalSpacing
     }
+
+    // Calculate how much to push down the target and its descendants
+    // We want the target to be at least verticalSpacing below the new node
+    const requiredTargetY = newPosition.y + verticalSpacing
+    const pushAmount = Math.max(0, requiredTargetY - targetNode.position.y)
+
+    // Find all descendants of the target node (nodes reachable from target)
+    const findDescendants = (nodeId: string, visited: Set<string> = new Set()): Set<string> => {
+      if (visited.has(nodeId)) return visited
+      visited.add(nodeId)
+      edges.forEach(e => {
+        if (e.source === nodeId) {
+          findDescendants(e.target, visited)
+        }
+      })
+      return visited
+    }
+
+    const nodesToPush = findDescendants(targetNode.id)
 
     const newNodeId = generateId()
     const newNode: Node<AutomationNodeData> = {
@@ -324,8 +392,9 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
     // Create two new edges: source -> newNode and newNode -> target
     const edgeToNew: Edge = {
-      id: `${edge.source}-${newNodeId}`,
+      id: `${edge.source}-${edge.sourceHandle || ''}-${newNodeId}`,
       source: edge.source,
+      sourceHandle: edge.sourceHandle,
       target: newNodeId,
       type: 'smoothstep'
     }
@@ -336,8 +405,16 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       type: 'smoothstep'
     }
 
-    // Remove old edge, add new node and two new edges
-    setNodes(nds => [...nds, newNode])
+    // Update nodes: add new node and push down descendants
+    setNodes(nds => [
+      ...nds.map(n => {
+        if (nodesToPush.has(n.id) && pushAmount > 0) {
+          return { ...n, position: { ...n.position, y: n.position.y + pushAmount } }
+        }
+        return n
+      }),
+      newNode
+    ])
     setEdges(eds => [...eds.filter(e => e.id !== edgeId), edgeToNew, edgeFromNew])
     markAsChanged()
     setLastAddedNodeId(newNodeId)
@@ -439,10 +516,71 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     )
   }, [nodes, edges])
 
-  // Compute terminal nodes (nodes with no outgoing edges)
-  const terminalNodes = useMemo(() => {
-    const nodesWithOutgoingEdges = new Set(edges.map(e => e.source))
-    return nodes.filter(n => !nodesWithOutgoingEdges.has(n.id))
+  // Compute unconnected outputs (handles that need placeholder edges)
+  const unconnectedOutputs = useMemo(() => {
+    const outputs: UnconnectedOutput[] = []
+
+    nodes.forEach(node => {
+      if (node.data.nodeType === 'filter') {
+        const hasYesEdge = edges.some(e => e.source === node.id && e.sourceHandle === 'continue')
+        const hasNoEdge = edges.some(e => e.source === node.id && e.sourceHandle === 'exit')
+
+        // Use measured width if available, fallback to 300px
+        const nodeWidth = node.measured?.width || 300
+        if (!hasYesEdge) {
+          outputs.push({
+            nodeId: node.id,
+            handleId: 'continue',
+            position: { x: node.position.x + (nodeWidth * 0.3), y: node.position.y + 120 },
+            label: 'Yes',
+            color: '#22c55e'  // green
+          })
+        }
+        if (!hasNoEdge) {
+          outputs.push({
+            nodeId: node.id,
+            handleId: 'exit',
+            position: { x: node.position.x + (nodeWidth * 0.7), y: node.position.y + 120 },
+            label: 'No',
+            color: '#ef4444'  // red
+          })
+        }
+      } else if (node.data.nodeType === 'ab_test') {
+        const config = node.data.config as ABTestNodeConfig
+        const variants = config?.variants || []
+        // Use measured width if available, fallback to 300px
+        const nodeWidth = node.measured?.width || 300
+        const totalVariants = variants.length
+        variants.forEach((variant, originalIndex) => {
+          const hasEdge = edges.some(e => e.source === node.id && e.sourceHandle === variant.id)
+          if (!hasEdge) {
+            // Match ABTestNode handle positioning: spread from 20% to 80% of width
+            // Uses originalIndex (not filtered index) to align with actual handles
+            const start = 20
+            const end = 80
+            const handlePercent = totalVariants === 1 ? 50 : start + (originalIndex * (end - start)) / (totalVariants - 1)
+            outputs.push({
+              nodeId: node.id,
+              handleId: variant.id,
+              position: { x: node.position.x + (nodeWidth * handlePercent / 100), y: node.position.y + 120 },
+              label: variant.name
+            })
+          }
+        })
+      } else {
+        // Single-output nodes
+        const hasOutgoingEdge = edges.some(e => e.source === node.id)
+        if (!hasOutgoingEdge) {
+          outputs.push({
+            nodeId: node.id,
+            handleId: null,
+            position: { x: node.position.x + 150, y: node.position.y + 120 }
+          })
+        }
+      }
+    })
+
+    return outputs
   }, [nodes, edges])
 
   // Compute orphan nodes (nodes not reachable from trigger via BFS)
@@ -501,7 +639,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     onConnect,
     onNodeDragStop,
     handleIsValidConnection,
-    terminalNodes,
+    unconnectedOutputs,
     validationErrors,
     lastAddedNodeId,
     orphanNodeIds
