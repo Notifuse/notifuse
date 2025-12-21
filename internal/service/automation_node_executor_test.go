@@ -3,8 +3,11 @@ package service
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -1884,4 +1887,431 @@ func TestABTestNodeExecutor_Execute_DifferentNodeID(t *testing.T) {
 	// just that different node IDs produce valid results
 	assert.NotNil(t, result1.NextNodeID)
 	assert.NotNil(t, result2.NextNodeID)
+}
+
+// WebhookNodeExecutor tests
+
+func TestWebhookNodeExecutor_NodeType(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+	executor := NewWebhookNodeExecutor(mockLogger)
+	assert.Equal(t, domain.NodeTypeWebhook, executor.NodeType())
+}
+
+func TestParseWebhookNodeConfig(t *testing.T) {
+	t.Run("valid config with URL only", func(t *testing.T) {
+		config := map[string]interface{}{
+			"url": "https://example.com/webhook",
+		}
+
+		c, err := parseWebhookNodeConfig(config)
+		require.NoError(t, err)
+		assert.Equal(t, "https://example.com/webhook", c.URL)
+		assert.Nil(t, c.Secret)
+	})
+
+	t.Run("valid config with URL and secret", func(t *testing.T) {
+		config := map[string]interface{}{
+			"url":    "https://example.com/webhook",
+			"secret": "my-secret-token",
+		}
+
+		c, err := parseWebhookNodeConfig(config)
+		require.NoError(t, err)
+		assert.Equal(t, "https://example.com/webhook", c.URL)
+		require.NotNil(t, c.Secret)
+		assert.Equal(t, "my-secret-token", *c.Secret)
+	})
+
+	t.Run("invalid config - missing URL", func(t *testing.T) {
+		config := map[string]interface{}{
+			"secret": "my-secret",
+		}
+
+		_, err := parseWebhookNodeConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "url is required")
+	})
+
+	t.Run("invalid config - invalid URL scheme", func(t *testing.T) {
+		config := map[string]interface{}{
+			"url": "ftp://example.com/webhook",
+		}
+
+		_, err := parseWebhookNodeConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "url must start with http")
+	})
+}
+
+func TestBuildWebhookPayload(t *testing.T) {
+	t.Run("builds payload with contact and automation", func(t *testing.T) {
+		firstName := &domain.NullableString{String: "John", IsNull: false}
+		contact := &domain.Contact{
+			Email:     "john@example.com",
+			FirstName: firstName,
+		}
+
+		automation := &domain.Automation{
+			ID:   "auto123",
+			Name: "Test Automation",
+		}
+
+		payload := buildWebhookPayload(contact, automation, "node123")
+
+		assert.Equal(t, "john@example.com", payload["email"])
+		assert.Equal(t, "auto123", payload["automation_id"])
+		assert.Equal(t, "Test Automation", payload["automation_name"])
+		assert.Equal(t, "node123", payload["node_id"])
+		assert.NotEmpty(t, payload["timestamp"])
+		assert.NotNil(t, payload["contact"])
+	})
+
+	t.Run("handles nil contact", func(t *testing.T) {
+		automation := &domain.Automation{
+			ID:   "auto123",
+			Name: "Test Automation",
+		}
+
+		payload := buildWebhookPayload(nil, automation, "node123")
+
+		assert.NotContains(t, payload, "email")
+		assert.NotContains(t, payload, "contact")
+		assert.Equal(t, "auto123", payload["automation_id"])
+	})
+
+	t.Run("handles nil automation", func(t *testing.T) {
+		contact := &domain.Contact{
+			Email: "john@example.com",
+		}
+
+		payload := buildWebhookPayload(contact, nil, "node123")
+
+		assert.Equal(t, "john@example.com", payload["email"])
+		assert.NotContains(t, payload, "automation_id")
+	})
+}
+
+func TestWebhookNodeExecutor_Execute_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	// Create test server
+	responseData := map[string]interface{}{
+		"success": true,
+		"id":      "webhook_123",
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(responseData)
+	}))
+	defer server.Close()
+
+	executor := NewWebhookNodeExecutor(mockLogger)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:         "webhook_node1",
+			Type:       domain.NodeTypeWebhook,
+			NextNodeID: strPtr("next_node"),
+			Config: map[string]interface{}{
+				"url": server.URL,
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+		ContactData: &domain.Contact{
+			Email: "test@example.com",
+		},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Equal(t, "next_node", *result.NextNodeID)
+	assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
+	assert.Equal(t, "webhook", result.Output["node_type"])
+	assert.Equal(t, server.URL, result.Output["url"])
+	assert.Equal(t, 200, result.Output["status_code"])
+	assert.NotNil(t, result.Output["response"])
+}
+
+func TestWebhookNodeExecutor_Execute_WithSecret(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	// Create test server that verifies the Authorization header
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "Bearer my-secret-token", r.Header.Get("Authorization"))
+
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"ok": true}`))
+	}))
+	defer server.Close()
+
+	executor := NewWebhookNodeExecutor(mockLogger)
+
+	secret := "my-secret-token"
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:         "webhook_node1",
+			Type:       domain.NodeTypeWebhook,
+			NextNodeID: strPtr("next_node"),
+			Config: map[string]interface{}{
+				"url":    server.URL,
+				"secret": secret,
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+		ContactData: &domain.Contact{
+			Email: "test@example.com",
+		},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, 200, result.Output["status_code"])
+}
+
+func TestWebhookNodeExecutor_Execute_4xxError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	// Create test server that returns 400
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "bad request"}`))
+	}))
+	defer server.Close()
+
+	executor := NewWebhookNodeExecutor(mockLogger)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:   "webhook_node1",
+			Type: domain.NodeTypeWebhook,
+			Config: map[string]interface{}{
+				"url": server.URL,
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+		ContactData: &domain.Contact{
+			Email: "test@example.com",
+		},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "webhook returned client error")
+	assert.Contains(t, err.Error(), "400")
+}
+
+func TestWebhookNodeExecutor_Execute_5xxError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	// Create test server that returns 500
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "internal server error"}`))
+	}))
+	defer server.Close()
+
+	executor := NewWebhookNodeExecutor(mockLogger)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:   "webhook_node1",
+			Type: domain.NodeTypeWebhook,
+			Config: map[string]interface{}{
+				"url": server.URL,
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+		ContactData: &domain.Contact{
+			Email: "test@example.com",
+		},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "webhook returned server error")
+	assert.Contains(t, err.Error(), "500")
+}
+
+func TestWebhookNodeExecutor_Execute_NonJSONResponse(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	// Create test server that returns plain text
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK - webhook received"))
+	}))
+	defer server.Close()
+
+	executor := NewWebhookNodeExecutor(mockLogger)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:         "webhook_node1",
+			Type:       domain.NodeTypeWebhook,
+			NextNodeID: strPtr("next_node"),
+			Config: map[string]interface{}{
+				"url": server.URL,
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+		ContactData: &domain.Contact{
+			Email: "test@example.com",
+		},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	// Response should be stored as raw string
+	response := result.Output["response"].(map[string]interface{})
+	assert.Equal(t, "OK - webhook received", response["raw"])
+}
+
+func TestWebhookNodeExecutor_Execute_InvalidConfig(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+	executor := NewWebhookNodeExecutor(mockLogger)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:   "webhook_node1",
+			Type: domain.NodeTypeWebhook,
+			Config: map[string]interface{}{
+				// Missing URL
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+		ContactData: &domain.Contact{
+			Email: "test@example.com",
+		},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "invalid webhook node config")
+}
+
+func TestWebhookNodeExecutor_Execute_EmptyResponse(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	// Create test server that returns 204 No Content
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	executor := NewWebhookNodeExecutor(mockLogger)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:         "webhook_node1",
+			Type:       domain.NodeTypeWebhook,
+			NextNodeID: strPtr("next_node"),
+			Config: map[string]interface{}{
+				"url": server.URL,
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+		ContactData: &domain.Contact{
+			Email: "test@example.com",
+		},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Equal(t, 204, result.Output["status_code"])
+	// Empty response should result in nil map
+	assert.Nil(t, result.Output["response"])
 }

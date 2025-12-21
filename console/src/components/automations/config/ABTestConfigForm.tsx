@@ -56,20 +56,42 @@ export const ABTestConfigForm: React.FC<ABTestConfigFormProps> = ({ config, onCh
       next_node_id: ''
     }
 
-    onChange({ ...config, variants: [...variants, newVariant] })
+    // Add variant and redistribute weights evenly
+    const newVariants = [...variants, newVariant]
+    const count = newVariants.length
+    const baseWeight = Math.floor(100 / count)
+    const remainder = 100 % count
+
+    const distributedVariants = newVariants.map((v, i) => ({
+      ...v,
+      weight: baseWeight + (i < remainder ? 1 : 0)
+    }))
+
+    onChange({ ...config, variants: distributedVariants })
   }
 
   const handleRemoveVariant = (index: number) => {
     if (variants.length <= MIN_VARIANTS) return
 
     // Filter out the removed variant and reassign IDs sequentially (A, B, C, D)
-    const updatedVariants = variants
+    const filteredVariants = variants
       .filter((_, i) => i !== index)
       .map((v, i) => ({
         ...v,
         id: VARIANT_IDS[i]
       }))
-    onChange({ ...config, variants: updatedVariants })
+
+    // Redistribute weights evenly
+    const count = filteredVariants.length
+    const baseWeight = Math.floor(100 / count)
+    const remainder = 100 % count
+
+    const distributedVariants = filteredVariants.map((v, i) => ({
+      ...v,
+      weight: baseWeight + (i < remainder ? 1 : 0)
+    }))
+
+    onChange({ ...config, variants: distributedVariants })
   }
 
   const handleDistributeEvenly = () => {

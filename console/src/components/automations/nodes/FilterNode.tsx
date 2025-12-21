@@ -49,8 +49,22 @@ export const FilterNode: React.FC<FilterNodeProps> = ({ data, selected }) => {
         {!hasConditions ? (
           <div className="text-orange-500 text-xs">No conditions</div>
         ) : (
-          <div className="text-xs text-gray-600">
-            {conditionCount} condition{conditionCount !== 1 ? 's' : ''}
+          <div
+            className="text-xs text-gray-600 truncate max-w-[180px]"
+            title={
+              config.description
+                ? `${config.description} (${conditionCount} condition${conditionCount !== 1 ? 's' : ''})`
+                : undefined
+            }
+          >
+            {config.description ? (
+              <>
+                {config.description}
+                <span className="text-gray-400 ml-1">({conditionCount})</span>
+              </>
+            ) : (
+              `${conditionCount} condition${conditionCount !== 1 ? 's' : ''}`
+            )}
           </div>
         )}
         {/* Yes/No labels for handles */}

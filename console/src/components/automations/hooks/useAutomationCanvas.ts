@@ -45,6 +45,7 @@ export interface UseAutomationCanvasReturn {
   insertNodeOnEdge: (edgeId: string, type: NodeType) => void
   removeNode: (id: string) => void
   updateNodeConfig: (nodeId: string, config: Record<string, unknown>) => void
+  reorganizeNodes: () => void
 
   // Edge operations
   deleteEdge: (edgeId: string) => void
@@ -390,7 +391,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       }
     }
 
-    // Create two new edges: source -> newNode and newNode -> target
+    // Create edge from source to new node
     const edgeToNew: Edge = {
       id: `${edge.source}-${edge.sourceHandle || ''}-${newNodeId}`,
       source: edge.source,
@@ -398,11 +399,54 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       target: newNodeId,
       type: 'smoothstep'
     }
-    const edgeFromNew: Edge = {
-      id: `${newNodeId}-${edge.target}`,
-      source: newNodeId,
-      target: edge.target,
-      type: 'smoothstep'
+
+    // Create edge from new node to target
+    // For multi-output nodes, connect via the first handle and update config
+    let edgeFromNew: Edge
+    let updatedNewNode = newNode
+
+    if (type === 'ab_test') {
+      const config = newNode.data.config as ABTestNodeConfig
+      const firstVariantId = config.variants?.[0]?.id || 'A'
+      edgeFromNew = {
+        id: `${newNodeId}-${firstVariantId}-${edge.target}`,
+        source: newNodeId,
+        sourceHandle: firstVariantId,
+        target: edge.target,
+        type: 'smoothstep'
+      }
+      // Update the first variant's next_node_id in config
+      if (config.variants) {
+        const updatedVariants = config.variants.map((v, i) =>
+          i === 0 ? { ...v, next_node_id: edge.target } : v
+        )
+        updatedNewNode = {
+          ...newNode,
+          data: { ...newNode.data, config: { ...config, variants: updatedVariants } }
+        }
+      }
+    } else if (type === 'filter') {
+      edgeFromNew = {
+        id: `${newNodeId}-continue-${edge.target}`,
+        source: newNodeId,
+        sourceHandle: 'continue',
+        target: edge.target,
+        type: 'smoothstep'
+      }
+      // Update continue_node_id in config
+      const config = newNode.data.config as FilterNodeConfig
+      updatedNewNode = {
+        ...newNode,
+        data: { ...newNode.data, config: { ...config, continue_node_id: edge.target } }
+      }
+    } else {
+      // Single-output nodes - no sourceHandle needed
+      edgeFromNew = {
+        id: `${newNodeId}-${edge.target}`,
+        source: newNodeId,
+        target: edge.target,
+        type: 'smoothstep'
+      }
     }
 
     // Update nodes: add new node and push down descendants
@@ -413,7 +457,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
         }
         return n
       }),
-      newNode
+      updatedNewNode
     ])
     setEdges(eds => [...eds.filter(e => e.id !== edgeId), edgeToNew, edgeFromNew])
     markAsChanged()
@@ -616,6 +660,148 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     return orphans
   }, [nodes, edges])
 
+  // Reorganize nodes in a clean hierarchical layout
+  const reorganizeNodes = useCallback(() => {
+    const triggerNode = nodes.find(n => n.data.nodeType === 'trigger')
+    if (!triggerNode) return
+
+    pushHistory()
+
+    const HORIZONTAL_SPACING = 50
+    const VERTICAL_SPACING = 150
+    const DEFAULT_NODE_WIDTH = 300
+
+    // Build adjacency list (parent → children) with edge info for ordering
+    const childrenWithHandles = new Map<string, { target: string; sourceHandle?: string }[]>()
+    edges.forEach(e => {
+      if (!childrenWithHandles.has(e.source)) childrenWithHandles.set(e.source, [])
+      childrenWithHandles.get(e.source)!.push({ target: e.target, sourceHandle: e.sourceHandle })
+    })
+
+    // Get ordered children for a node (A/B Test children sorted by variant order)
+    const getOrderedChildren = (nodeId: string): string[] => {
+      const node = nodes.find(n => n.id === nodeId)
+      const childEdges = childrenWithHandles.get(nodeId) || []
+
+      if (node?.data.nodeType === 'ab_test') {
+        // Sort by variant order (A, B, C, D...)
+        const config = node.data.config as ABTestNodeConfig
+        const variantOrder = config?.variants?.map(v => v.id) || []
+        return childEdges
+          .sort((a, b) => {
+            const aIndex = variantOrder.indexOf(a.sourceHandle || '')
+            const bIndex = variantOrder.indexOf(b.sourceHandle || '')
+            return aIndex - bIndex
+          })
+          .map(e => e.target)
+      }
+
+      if (node?.data.nodeType === 'filter') {
+        // Sort: 'continue' (Yes) first, then 'exit' (No)
+        return childEdges
+          .sort((a, b) => {
+            const order = { continue: 0, exit: 1 }
+            const aOrder = order[a.sourceHandle as keyof typeof order] ?? 2
+            const bOrder = order[b.sourceHandle as keyof typeof order] ?? 2
+            return aOrder - bOrder
+          })
+          .map(e => e.target)
+      }
+
+      return childEdges.map(e => e.target)
+    }
+
+    // Legacy children map for compatibility
+    const children = new Map<string, string[]>()
+    nodes.forEach(n => {
+      children.set(n.id, getOrderedChildren(n.id))
+    })
+
+    // Get measured width for a node
+    const getNodeWidth = (nodeId: string): number => {
+      const node = nodes.find(n => n.id === nodeId)
+      return node?.measured?.width || DEFAULT_NODE_WIDTH
+    }
+
+    // Calculate subtree widths (bottom-up) using measured widths
+    const subtreeWidthCache = new Map<string, number>()
+    const getSubtreeWidth = (nodeId: string, visited: Set<string> = new Set()): number => {
+      if (visited.has(nodeId)) return 0  // Prevent cycles
+      visited.add(nodeId)
+
+      if (subtreeWidthCache.has(nodeId)) return subtreeWidthCache.get(nodeId)!
+
+      const kids = children.get(nodeId) || []
+      let width: number
+      if (kids.length === 0) {
+        width = getNodeWidth(nodeId)
+      } else {
+        width = kids.reduce((sum, kid) => sum + getSubtreeWidth(kid, new Set(visited)), 0)
+               + (kids.length - 1) * HORIZONTAL_SPACING
+      }
+      subtreeWidthCache.set(nodeId, width)
+      return width
+    }
+
+    // Assign positions (top-down)
+    const newPositions = new Map<string, { x: number; y: number }>()
+
+    const layoutNode = (nodeId: string, x: number, y: number, visited: Set<string> = new Set()) => {
+      if (visited.has(nodeId)) return  // Prevent cycles
+      visited.add(nodeId)
+
+      newPositions.set(nodeId, { x, y })
+
+      const kids = children.get(nodeId) || []
+      if (kids.length === 0) return
+
+      // Calculate total width of children
+      const childWidths = kids.map(k => getSubtreeWidth(k))
+      const totalWidth = childWidths.reduce((a, b) => a + b, 0)
+                         + (kids.length - 1) * HORIZONTAL_SPACING
+
+      // Start position for first child (centered under parent)
+      let childX = x - totalWidth / 2 + childWidths[0] / 2
+      const childY = y + VERTICAL_SPACING
+
+      kids.forEach((kid, i) => {
+        layoutNode(kid, childX, childY, new Set(visited))
+        if (i < kids.length - 1) {
+          childX += childWidths[i] / 2 + HORIZONTAL_SPACING + childWidths[i + 1] / 2
+        }
+      })
+    }
+
+    // Start layout from trigger at top-center
+    layoutNode(triggerNode.id, 400, 50)
+
+    // Handle orphan nodes - position them to the right of the main tree
+    const orphanNodes = nodes.filter(n => !newPositions.has(n.id))
+    if (orphanNodes.length > 0) {
+      // Find the rightmost position in the main tree
+      let maxX = 400
+      newPositions.forEach(pos => {
+        if (pos.x > maxX) maxX = pos.x
+      })
+
+      // Position orphans to the right
+      let orphanX = maxX + 400
+      let orphanY = 50
+      orphanNodes.forEach(node => {
+        newPositions.set(node.id, { x: orphanX, y: orphanY })
+        orphanY += VERTICAL_SPACING
+      })
+    }
+
+    // Apply new positions
+    setNodes(nds => nds.map(n => ({
+      ...n,
+      position: newPositions.get(n.id) || n.position
+    })))
+
+    markAsChanged()
+  }, [nodes, edges, setNodes, markAsChanged, pushHistory])
+
   // Compute validation errors
   const validationErrors = useMemo(() => {
     return validateFlow(nodes, edges, listId)
@@ -633,6 +819,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     insertNodeOnEdge,
     removeNode,
     updateNodeConfig,
+    reorganizeNodes,
     deleteEdge,
     onNodesChange,
     onEdgesChange,

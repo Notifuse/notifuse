@@ -9,7 +9,8 @@ import {
   ABTestConfigForm,
   AddToListConfigForm,
   RemoveFromListConfigForm,
-  FilterConfigForm
+  FilterConfigForm,
+  WebhookConfigForm
 } from './config'
 import type { AutomationNodeData } from './utils/flowConverter'
 import type {
@@ -18,7 +19,8 @@ import type {
   ABTestNodeConfig,
   AddToListNodeConfig,
   RemoveFromListNodeConfig,
-  FilterNodeConfig
+  FilterNodeConfig,
+  WebhookNodeConfig
 } from '../../services/api/automation'
 
 const { Title } = Typography
@@ -99,6 +101,13 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
         return (
           <FilterConfigForm
             config={config as FilterNodeConfig}
+            onChange={handleConfigChange}
+          />
+        )
+      case 'webhook':
+        return (
+          <WebhookConfigForm
+            config={config as WebhookNodeConfig}
             onChange={handleConfigChange}
           />
         )

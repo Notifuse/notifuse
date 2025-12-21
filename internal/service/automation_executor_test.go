@@ -2,7 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -1055,4 +1058,488 @@ func (e *testNodeExecutor) NodeType() domain.NodeType {
 
 func (e *testNodeExecutor) Execute(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
 	return e.execute(ctx, params)
+}
+
+// Webhook Node Integration Tests
+
+func TestAutomationExecutor_Execute_WebhookNode_Success(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	// Create a test HTTP server that simulates an external webhook endpoint
+	webhookCalled := false
+	var receivedPayload map[string]interface{}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		webhookCalled = true
+		// Verify request method and headers
+		assert.Equal(t, "POST", r.Method)
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		// Parse the received payload
+		json.NewDecoder(r.Body).Decode(&receivedPayload)
+
+		// Return a JSON response
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"success":    true,
+			"webhook_id": "wh_12345",
+			"processed":  true,
+		})
+	}))
+	defer server.Close()
+
+	// Create executor with webhook node executor
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+	automationID := "auto1"
+	nodeID := "webhook_node1"
+	nextNodeID := "next_node"
+
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  automationID,
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &nodeID,
+		Status:        domain.ContactAutomationStatusActive,
+		MaxRetries:    3,
+	}
+
+	webhookNode := &domain.AutomationNode{
+		ID:         nodeID,
+		Type:       domain.NodeTypeWebhook,
+		NextNodeID: &nextNodeID,
+		Config: map[string]interface{}{
+			"url": server.URL,
+		},
+	}
+
+	automation := &domain.Automation{
+		ID:     automationID,
+		Name:   "Test Webhook Automation",
+		Status: domain.AutomationStatusLive,
+		Nodes:  []*domain.AutomationNode{webhookNode},
+	}
+
+	contact := &domain.Contact{
+		Email: "test@example.com",
+	}
+
+	// Set expectations
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, automationID).Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
+	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+	// Execute
+	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
+	require.NoError(t, err)
+
+	// Verify webhook was called
+	assert.True(t, webhookCalled, "Webhook endpoint should have been called")
+
+	// Verify payload contained contact data
+	assert.Equal(t, "test@example.com", receivedPayload["email"])
+	assert.Equal(t, automationID, receivedPayload["automation_id"])
+	assert.Equal(t, "Test Webhook Automation", receivedPayload["automation_name"])
+	assert.Equal(t, nodeID, receivedPayload["node_id"])
+	assert.NotEmpty(t, receivedPayload["timestamp"])
+
+	// Verify contact automation was updated correctly
+	assert.Equal(t, &nextNodeID, contactAutomation.CurrentNodeID)
+	assert.Equal(t, domain.ContactAutomationStatusActive, contactAutomation.Status)
+}
+
+func TestAutomationExecutor_Execute_WebhookNode_WithSecret(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	// Create a test HTTP server that verifies the Authorization header
+	var receivedAuthHeader string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedAuthHeader = r.Header.Get("Authorization")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"ok": true}`))
+	}))
+	defer server.Close()
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+	nodeID := "webhook_node1"
+	nextNodeID := "next_node"
+
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  "auto1",
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &nodeID,
+		Status:        domain.ContactAutomationStatusActive,
+	}
+
+	webhookNode := &domain.AutomationNode{
+		ID:         nodeID,
+		Type:       domain.NodeTypeWebhook,
+		NextNodeID: &nextNodeID,
+		Config: map[string]interface{}{
+			"url":    server.URL,
+			"secret": "my-api-secret-token",
+		},
+	}
+
+	automation := &domain.Automation{
+		ID:     "auto1",
+		Name:   "Test Automation",
+		Status: domain.AutomationStatusLive,
+		Nodes:  []*domain.AutomationNode{webhookNode},
+	}
+
+	contact := &domain.Contact{Email: "test@example.com"}
+
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
+	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
+	require.NoError(t, err)
+
+	// Verify Authorization header was sent
+	assert.Equal(t, "Bearer my-api-secret-token", receivedAuthHeader)
+}
+
+func TestAutomationExecutor_Execute_WebhookNode_ServerError_TriggersRetry(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	// Create a test HTTP server that returns 500 error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error": "internal server error"}`))
+	}))
+	defer server.Close()
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+	nodeID := "webhook_node1"
+
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  "auto1",
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &nodeID,
+		Status:        domain.ContactAutomationStatusActive,
+		RetryCount:    0,
+		MaxRetries:    3,
+	}
+
+	webhookNode := &domain.AutomationNode{
+		ID:   nodeID,
+		Type: domain.NodeTypeWebhook,
+		Config: map[string]interface{}{
+			"url": server.URL,
+		},
+	}
+
+	automation := &domain.Automation{
+		ID:     "auto1",
+		Name:   "Test Automation",
+		Status: domain.AutomationStatusLive,
+		Nodes:  []*domain.AutomationNode{webhookNode},
+	}
+
+	contact := &domain.Contact{Email: "test@example.com"}
+
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
+	// Node execution is updated with failure before error handling
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	// Error handling expects these calls for retry
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
+	require.NoError(t, err) // Error is handled internally, returns nil
+
+	// Verify retry was scheduled
+	assert.Equal(t, 1, contactAutomation.RetryCount)
+	assert.NotNil(t, contactAutomation.LastError)
+	assert.Contains(t, *contactAutomation.LastError, "webhook returned server error")
+	assert.Contains(t, *contactAutomation.LastError, "500")
+	assert.NotNil(t, contactAutomation.ScheduledAt)
+}
+
+func TestAutomationExecutor_Execute_WebhookNode_ClientError_TriggersRetry(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	// Create a test HTTP server that returns 400 error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error": "bad request"}`))
+	}))
+	defer server.Close()
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+	nodeID := "webhook_node1"
+
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  "auto1",
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &nodeID,
+		Status:        domain.ContactAutomationStatusActive,
+		RetryCount:    0,
+		MaxRetries:    3,
+	}
+
+	webhookNode := &domain.AutomationNode{
+		ID:   nodeID,
+		Type: domain.NodeTypeWebhook,
+		Config: map[string]interface{}{
+			"url": server.URL,
+		},
+	}
+
+	automation := &domain.Automation{
+		ID:     "auto1",
+		Name:   "Test Automation",
+		Status: domain.AutomationStatusLive,
+		Nodes:  []*domain.AutomationNode{webhookNode},
+	}
+
+	contact := &domain.Contact{Email: "test@example.com"}
+
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
+	// Node execution is updated with failure before error handling
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	// Error handling expects these calls
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
+	require.NoError(t, err)
+
+	// Verify error was recorded (4xx errors also trigger retry in the executor)
+	assert.Equal(t, 1, contactAutomation.RetryCount)
+	assert.NotNil(t, contactAutomation.LastError)
+	assert.Contains(t, *contactAutomation.LastError, "webhook returned client error")
+	assert.Contains(t, *contactAutomation.LastError, "400")
+}
+
+func TestAutomationExecutor_Execute_WebhookNode_TerminalNode(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	// Create a test HTTP server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"success": true}`))
+	}))
+	defer server.Close()
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+	nodeID := "webhook_terminal"
+
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  "auto1",
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &nodeID,
+		Status:        domain.ContactAutomationStatusActive,
+	}
+
+	// Webhook node with no NextNodeID - terminal node
+	webhookNode := &domain.AutomationNode{
+		ID:         nodeID,
+		Type:       domain.NodeTypeWebhook,
+		NextNodeID: nil, // Terminal node
+		Config: map[string]interface{}{
+			"url": server.URL,
+		},
+	}
+
+	automation := &domain.Automation{
+		ID:     "auto1",
+		Name:   "Test Automation",
+		Status: domain.AutomationStatusLive,
+		Nodes:  []*domain.AutomationNode{webhookNode},
+	}
+
+	contact := &domain.Contact{Email: "test@example.com"}
+
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
+	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+
+	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
+	require.NoError(t, err)
+
+	// Verify automation completed
+	assert.Nil(t, contactAutomation.CurrentNodeID)
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, contactAutomation.Status)
+}
+
+func TestAutomationExecutor_Execute_WebhookNode_ResponseStoredInContext(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	// Create a test HTTP server that returns data
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"user_id":    "usr_123",
+			"created":    true,
+			"attributes": map[string]string{"tier": "premium"},
+		})
+	}))
+	defer server.Close()
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+	nodeID := "webhook_node1"
+	nextNodeID := "next_node"
+
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  "auto1",
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &nodeID,
+		Status:        domain.ContactAutomationStatusActive,
+	}
+
+	webhookNode := &domain.AutomationNode{
+		ID:         nodeID,
+		Type:       domain.NodeTypeWebhook,
+		NextNodeID: &nextNodeID,
+		Config: map[string]interface{}{
+			"url": server.URL,
+		},
+	}
+
+	automation := &domain.Automation{
+		ID:     "auto1",
+		Name:   "Test Automation",
+		Status: domain.AutomationStatusLive,
+		Nodes:  []*domain.AutomationNode{webhookNode},
+	}
+
+	contact := &domain.Contact{Email: "test@example.com"}
+
+	// Capture the node execution that's updated
+	var capturedNodeExecution *domain.NodeExecution
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
+	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+		func(ctx context.Context, wsID string, ne *domain.NodeExecution) error {
+			capturedNodeExecution = ne
+			return nil
+		})
+
+	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
+	require.NoError(t, err)
+
+	// Verify the node execution output contains the webhook response
+	require.NotNil(t, capturedNodeExecution)
+	require.NotNil(t, capturedNodeExecution.Output)
+
+	assert.Equal(t, "webhook", capturedNodeExecution.Output["node_type"])
+	assert.Equal(t, server.URL, capturedNodeExecution.Output["url"])
+	assert.Equal(t, 200, capturedNodeExecution.Output["status_code"])
+
+	// Verify response data is stored
+	response, ok := capturedNodeExecution.Output["response"].(map[string]interface{})
+	require.True(t, ok, "Response should be a map")
+	assert.Equal(t, "usr_123", response["user_id"])
+	assert.Equal(t, true, response["created"])
 }

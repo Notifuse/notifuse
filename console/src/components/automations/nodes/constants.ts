@@ -9,5 +9,6 @@ export const nodeTypeColors: Record<NodeType, string> = {
   filter: '#eb2f96', // magenta
   add_to_list: '#13c2c2', // cyan
   remove_from_list: '#fa541c', // orange
-  ab_test: '#2f54eb' // geekblue
+  ab_test: '#2f54eb', // geekblue
+  webhook: '#9254de' // violet
 }

@@ -1,10 +1,13 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -742,6 +745,144 @@ func parseABTestNodeConfig(config map[string]interface{}) (*domain.ABTestNodeCon
 	}
 
 	var c domain.ABTestNodeConfig
+	if err := json.Unmarshal(data, &c); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	if err := c.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &c, nil
+}
+
+// WebhookNodeExecutor executes webhook nodes
+type WebhookNodeExecutor struct {
+	httpClient *http.Client
+	logger     logger.Logger
+}
+
+// NewWebhookNodeExecutor creates a new webhook node executor
+func NewWebhookNodeExecutor(log logger.Logger) *WebhookNodeExecutor {
+	return &WebhookNodeExecutor{
+		httpClient: &http.Client{Timeout: 30 * time.Second},
+		logger:     log,
+	}
+}
+
+// NodeType returns the node type this executor handles
+func (e *WebhookNodeExecutor) NodeType() domain.NodeType {
+	return domain.NodeTypeWebhook
+}
+
+// Execute processes a webhook node
+func (e *WebhookNodeExecutor) Execute(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
+	// 1. Parse config
+	config, err := parseWebhookNodeConfig(params.Node.Config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid webhook node config: %w", err)
+	}
+
+	// 2. Build payload with contact data
+	payload := buildWebhookPayload(params.ContactData, params.Automation, params.Node.ID)
+
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal webhook payload: %w", err)
+	}
+
+	// 3. Create HTTP request
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, config.URL, bytes.NewReader(payloadBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create webhook request: %w", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	if config.Secret != nil && *config.Secret != "" {
+		req.Header.Set("Authorization", "Bearer "+*config.Secret)
+	}
+
+	// 4. Make HTTP POST request
+	resp, err := e.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("webhook request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body (limit to 10KB)
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 10*1024))
+	if err != nil {
+		return nil, fmt.Errorf("failed to read webhook response: %w", err)
+	}
+
+	// 5. Handle response status
+	if resp.StatusCode >= 400 && resp.StatusCode < 500 {
+		// 4xx - client error, fail immediately (won't be fixed by retry)
+		return nil, fmt.Errorf("webhook returned client error: %d %s", resp.StatusCode, string(bodyBytes))
+	}
+	if resp.StatusCode >= 500 {
+		// 5xx - server error, return error to trigger retry via existing backoff
+		return nil, fmt.Errorf("webhook returned server error: %d %s", resp.StatusCode, string(bodyBytes))
+	}
+
+	// 6. Parse JSON response for context storage
+	var responseData map[string]interface{}
+	if len(bodyBytes) > 0 {
+		if err := json.Unmarshal(bodyBytes, &responseData); err != nil {
+			// If response isn't valid JSON, store as raw string
+			responseData = map[string]interface{}{
+				"raw": string(bodyBytes),
+			}
+		}
+	}
+
+	e.logger.WithFields(map[string]interface{}{
+		"workspace_id":  params.WorkspaceID,
+		"automation_id": params.Automation.ID,
+		"url":           config.URL,
+		"status_code":   resp.StatusCode,
+	}).Info("Webhook node executed successfully")
+
+	return &NodeExecutionResult{
+		NextNodeID: params.Node.NextNodeID,
+		Status:     domain.ContactAutomationStatusActive,
+		Output: buildNodeOutput(domain.NodeTypeWebhook, map[string]interface{}{
+			"url":         config.URL,
+			"status_code": resp.StatusCode,
+			"response":    responseData,
+		}),
+	}, nil
+}
+
+// buildWebhookPayload creates the payload for webhook requests
+func buildWebhookPayload(contact *domain.Contact, automation *domain.Automation, nodeID string) map[string]interface{} {
+	payload := map[string]interface{}{
+		"node_id":   nodeID,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+
+	if contact != nil {
+		payload["email"] = contact.Email
+		payload["contact"] = contact
+	}
+
+	if automation != nil {
+		payload["automation_id"] = automation.ID
+		payload["automation_name"] = automation.Name
+	}
+
+	return payload
+}
+
+// parseWebhookNodeConfig parses webhook node configuration from map
+func parseWebhookNodeConfig(config map[string]interface{}) (*domain.WebhookNodeConfig, error) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	var c domain.WebhookNodeConfig
 	if err := json.Unmarshal(data, &c); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
 	}

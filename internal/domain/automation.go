@@ -86,6 +86,7 @@ const (
 	NodeTypeAddToList      NodeType = "add_to_list"
 	NodeTypeRemoveFromList NodeType = "remove_from_list"
 	NodeTypeABTest         NodeType = "ab_test"
+	NodeTypeWebhook        NodeType = "webhook"
 )
 
 // IsValid checks if the node type is valid
@@ -93,7 +94,7 @@ func (t NodeType) IsValid() bool {
 	switch t {
 	case NodeTypeTrigger, NodeTypeDelay, NodeTypeEmail, NodeTypeBranch,
 		NodeTypeFilter, NodeTypeAddToList, NodeTypeRemoveFromList,
-		NodeTypeABTest:
+		NodeTypeABTest, NodeTypeWebhook:
 		return true
 	default:
 		return false
@@ -504,6 +505,7 @@ type BranchNodeConfig struct {
 
 // FilterNodeConfig configures a filter node
 type FilterNodeConfig struct {
+	Description    string    `json:"description,omitempty"`
 	Conditions     *TreeNode `json:"conditions"`
 	ContinueNodeID string    `json:"continue_node_id"`
 	ExitNodeID     string    `json:"exit_node_id"`
@@ -594,6 +596,24 @@ func (c ABTestNodeConfig) Validate() error {
 		return fmt.Errorf("variant weights must sum to 100, got %d", totalWeight)
 	}
 
+	return nil
+}
+
+// WebhookNodeConfig configures a webhook node
+type WebhookNodeConfig struct {
+	URL    string  `json:"url"`
+	Secret *string `json:"secret,omitempty"` // Optional: becomes Authorization: Bearer <secret>
+}
+
+// Validate validates the webhook node config
+func (c WebhookNodeConfig) Validate() error {
+	if c.URL == "" {
+		return fmt.Errorf("url is required")
+	}
+	// Basic URL validation - check it's not empty and has valid scheme
+	if !strings.HasPrefix(c.URL, "http://") && !strings.HasPrefix(c.URL, "https://") {
+		return fmt.Errorf("url must start with http:// or https://")
+	}
 	return nil
 }
 

@@ -17,6 +17,7 @@ export type NodeType =
   | 'add_to_list'
   | 'remove_from_list'
   | 'ab_test'
+  | 'webhook'
 
 // Contact automation status
 export type ContactAutomationStatus = 'active' | 'completed' | 'exited' | 'failed'
@@ -105,6 +106,7 @@ export interface BranchNodeConfig {
 }
 
 export interface FilterNodeConfig {
+  description?: string
   conditions?: TreeNode
   continue_node_id: string
   exit_node_id: string
@@ -131,6 +133,11 @@ export interface ABTestNodeConfig {
   variants: ABTestVariant[]
 }
 
+export interface WebhookNodeConfig {
+  url: string
+  secret?: string // Optional Authorization Bearer token
+}
+
 // Union type for node configs
 export type NodeConfig =
   | DelayNodeConfig
@@ -140,6 +147,7 @@ export type NodeConfig =
   | AddToListNodeConfig
   | RemoveFromListNodeConfig
   | ABTestNodeConfig
+  | WebhookNodeConfig
   | Record<string, unknown> // For trigger nodes with no config
 
 // Automation node

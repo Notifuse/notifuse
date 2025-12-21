@@ -46,6 +46,7 @@ func NewAutomationExecutor(
 		domain.NodeTypeAddToList:      NewAddToListNodeExecutor(contactListRepo),
 		domain.NodeTypeRemoveFromList: NewRemoveFromListNodeExecutor(contactListRepo),
 		domain.NodeTypeABTest:         NewABTestNodeExecutor(),
+		domain.NodeTypeWebhook:        NewWebhookNodeExecutor(log),
 	}
 
 	return &AutomationExecutor{

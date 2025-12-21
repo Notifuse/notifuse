@@ -12,17 +12,14 @@ import {
   type EdgeTypes,
   BackgroundVariant
 } from '@xyflow/react'
-import { Plus } from 'lucide-react'
+import { LayoutGrid } from 'lucide-react'
 import { Tooltip } from 'antd'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faHourglass, faEnvelope } from '@fortawesome/free-regular-svg-icons'
-import { faFlask } from '@fortawesome/free-solid-svg-icons'
-import { UserPlus, UserMinus, Filter } from 'lucide-react'
-import { TriggerNode, DelayNode, EmailNode, ABTestNode, AddToListNode, RemoveFromListNode, FilterNode } from './nodes'
+import { TriggerNode, DelayNode, EmailNode, ABTestNode, AddToListNode, RemoveFromListNode, FilterNode, WebhookNode } from './nodes'
 import { PlaceholderNode } from './nodes/PlaceholderNode'
 import { NodeConfigPanel } from './NodeConfigPanel'
 import { AddNodeEdge, type AddNodeEdgeData } from './edges/AddNodeEdge'
 import { AutomationEdge, type AutomationEdgeData } from './edges/AutomationEdge'
+import { AddNodeButton } from './AddNodeButton'
 import { useAutomation } from './context'
 import { useAutomationCanvas } from './hooks'
 import type { AutomationNodeData } from './utils/flowConverter'
@@ -37,6 +34,7 @@ const nodeTypes: NodeTypes = {
   add_to_list: AddToListNode,
   remove_from_list: RemoveFromListNode,
   filter: FilterNode,
+  webhook: WebhookNode,
   placeholder: PlaceholderNode
 }
 
@@ -47,16 +45,6 @@ const edgeTypes: EdgeTypes = {
   default: AutomationEdge
 }
 
-// Menu items for adding nodes
-const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.ReactNode }[] = [
-  { key: 'delay', label: 'Delay', icon: <FontAwesomeIcon icon={faHourglass} style={{ color: '#faad14' }} /> },
-  { key: 'email', label: 'Email', icon: <FontAwesomeIcon icon={faEnvelope} style={{ color: '#1890ff' }} /> },
-  { key: 'filter', label: 'Filter', icon: <Filter size={14} style={{ color: '#eb2f96' }} /> },
-  { key: 'ab_test', label: 'A/B Test', icon: <FontAwesomeIcon icon={faFlask} style={{ color: '#2f54eb' }} /> },
-  { key: 'add_to_list', label: 'Add to List', icon: <UserPlus size={14} style={{ color: '#13c2c2' }} /> },
-  { key: 'remove_from_list', label: 'Remove from List', icon: <UserMinus size={14} style={{ color: '#fa541c' }} /> }
-]
-
 // Floating add button component - rendered OUTSIDE ReactFlow
 const FloatingAddButton: React.FC<{
   nodeId: string
@@ -64,82 +52,27 @@ const FloatingAddButton: React.FC<{
   position: { x: number; y: number }
   onAddNode: (sourceNodeId: string, nodeType: NodeType, sourceHandle: string | null) => void
   hasListSelected: boolean
-}> = ({ nodeId, sourceHandle, position, onAddNode, hasListSelected }) => {
-  const [menuOpen, setMenuOpen] = useState(false)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const menuOpenRef = useRef(menuOpen)
-
-  // Keep ref in sync with state
-  useEffect(() => {
-    menuOpenRef.current = menuOpen
-  }, [menuOpen])
-
-  // Use capture phase to catch event before ReactFlow stops propagation
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (!menuOpenRef.current) return
-      if (containerRef.current && !containerRef.current.contains(e.target as globalThis.Node)) {
-        setMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside, true)
-    return () => document.removeEventListener('mousedown', handleClickOutside, true)
-  }, [])
-
+  isMenuOpen: boolean
+  onMenuToggle: (open: boolean) => void
+}> = ({ nodeId, sourceHandle, position, onAddNode, hasListSelected, isMenuOpen, onMenuToggle }) => {
   return (
     <div
-      ref={containerRef}
       className="absolute"
       style={{
         left: position.x,
         top: position.y,
         transform: 'translate(-50%, -50%)',
-        zIndex: 1002
+        zIndex: isMenuOpen ? 1003 : 1002
       }}
     >
-      <Tooltip title="Add node" placement="top">
-        <button
-          className="add-node-button flex items-center justify-center w-7 h-7 rounded-full shadow-lg border-2 border-white cursor-pointer"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          <Plus size={16} color="white" />
-        </button>
-      </Tooltip>
-      {menuOpen && (
-        <div
-          className="absolute top-full left-1/2 mt-1 bg-white rounded-md shadow-lg border border-gray-200 py-1 min-w-[180px]"
-          style={{ transform: 'translateX(-50%)', zIndex: 10001 }}
-        >
-          {ADD_NODE_MENU_ITEMS.map((item) => {
-            const isDisabled = item.key === 'email' && !hasListSelected
-            const button = (
-              <button
-                key={item.key}
-                className={`w-full px-3 py-2 text-left text-sm flex items-center gap-2 ${
-                  isDisabled
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:bg-gray-100 cursor-pointer'
-                }`}
-                onClick={() => {
-                  if (isDisabled) return
-                  onAddNode(nodeId, item.key, sourceHandle)
-                  setMenuOpen(false)
-                }}
-              >
-                {item.icon}
-                {item.label}
-              </button>
-            )
-            return isDisabled ? (
-              <Tooltip key={item.key} title="Select a list to enable email nodes" placement="right">
-                {button}
-              </Tooltip>
-            ) : (
-              button
-            )
-          })}
-        </div>
-      )}
+      <AddNodeButton
+        onSelectNodeType={(nodeType) => onAddNode(nodeId, nodeType, sourceHandle)}
+        hasListSelected={hasListSelected}
+        isMenuOpen={isMenuOpen}
+        onMenuToggle={onMenuToggle}
+        size="default"
+        tooltipPlacement="top"
+      />
     </div>
   )
 }
@@ -148,9 +81,11 @@ const FloatingAddButton: React.FC<{
 const AutomationFlowEditorInner: React.FC = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
   const [buttonPositions, setButtonPositions] = useState<Map<string, { x: number; y: number }>>(new Map())
+  const [openMenuKey, setOpenMenuKey] = useState<string | null>(null)
   const fitViewCalledRef = useRef(false)
+  const pendingReorganizeRef = useRef(false)
 
-  const { getViewport, setViewport } = useReactFlow()
+  const { getViewport, setViewport, fitView } = useReactFlow()
 
   // Get context and hook
   const { listId, workspace, isEditing } = useAutomation()
@@ -164,6 +99,7 @@ const AutomationFlowEditorInner: React.FC = () => {
     insertNodeOnEdge,
     removeNode,
     updateNodeConfig,
+    reorganizeNodes,
     deleteEdge,
     onNodesChange,
     onEdgesChange,
@@ -175,6 +111,20 @@ const AutomationFlowEditorInner: React.FC = () => {
   } = useAutomationCanvas()
 
   const hasListSelected = !!listId
+
+  // Effect to handle pending reorganization after state updates
+  useEffect(() => {
+    if (pendingReorganizeRef.current) {
+      pendingReorganizeRef.current = false
+      // Small delay to ensure React has fully committed the state
+      setTimeout(() => {
+        reorganizeNodes()
+        setTimeout(() => {
+          fitView({ padding: 0.4, maxZoom: 0.9, duration: 200 })
+        }, 50)
+      }, 50)
+    }
+  }, [nodes, reorganizeNodes, fitView])
 
   // Handler for adding node via plus button
   const handleAddNodeFromTerminal = useCallback(
@@ -211,6 +161,17 @@ const AutomationFlowEditorInner: React.FC = () => {
       const newPosition = {
         x: sourceNode.position.x + offsetX,
         y: sourceNode.position.y + 150
+      }
+
+      // Auto-reorganize when adding filter/ab_test or adding children to filter/ab_test
+      const shouldReorganize =
+        nodeType === 'filter' ||
+        nodeType === 'ab_test' ||
+        sourceNode.data.nodeType === 'filter' ||
+        sourceNode.data.nodeType === 'ab_test'
+
+      if (shouldReorganize) {
+        pendingReorganizeRef.current = true
       }
 
       addNodeWithEdge(sourceNodeId, nodeType, newPosition, sourceHandle)
@@ -262,7 +223,13 @@ const AutomationFlowEditorInner: React.FC = () => {
       zIndex: 1,
       data: {
         ...edge.data,
-        onInsert: (nodeType: NodeType) => insertNodeOnEdge(edge.id, nodeType),
+        onInsert: (nodeType: NodeType) => {
+          // Auto-reorganize when inserting filter/ab_test
+          if (nodeType === 'filter' || nodeType === 'ab_test') {
+            pendingReorganizeRef.current = true
+          }
+          insertNodeOnEdge(edge.id, nodeType)
+        },
         onDelete: () => deleteEdge(edge.id),
         hasListSelected
       } as AutomationEdgeData
@@ -343,6 +310,15 @@ const AutomationFlowEditorInner: React.FC = () => {
     [updateNodeConfig]
   )
 
+  // Handle reorganize button click
+  const handleReorganize = useCallback(() => {
+    reorganizeNodes()
+    // Delay fitView to allow React to render new positions
+    setTimeout(() => {
+      fitView({ padding: 0.4, maxZoom: 0.9, duration: 200 })
+    }, 50)
+  }, [reorganizeNodes, fitView])
+
   return (
     <div className="h-full relative" ref={reactFlowWrapper}>
       <ReactFlow
@@ -367,6 +343,18 @@ const AutomationFlowEditorInner: React.FC = () => {
       >
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
         <Controls position="top-left" showInteractive={false} />
+        <Panel position="top-left" style={{ marginTop: 120 }}>
+          <div className="bg-white border border-gray-200 rounded shadow-sm">
+            <Tooltip title="Reorganize layout" placement="right">
+              <button
+                className="flex items-center justify-center w-7 h-7 hover:bg-gray-100 cursor-pointer"
+                onClick={handleReorganize}
+              >
+                <LayoutGrid size={16} className="text-gray-600" />
+              </button>
+            </Tooltip>
+          </div>
+        </Panel>
         <Panel position="bottom-left">
           <div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
             <div className="text-xs text-gray-500 px-2 py-2 border-b border-gray-200">Minimap</div>
@@ -389,6 +377,8 @@ const AutomationFlowEditorInner: React.FC = () => {
             position={position}
             onAddNode={handleAddNodeFromTerminal}
             hasListSelected={hasListSelected}
+            isMenuOpen={openMenuKey === key}
+            onMenuToggle={(open) => setOpenMenuKey(open ? key : null)}
           />
         )
       })}
