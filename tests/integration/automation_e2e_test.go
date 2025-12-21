@@ -1513,9 +1513,11 @@ func TestAutomation_Permissions(t *testing.T) {
 				"name":         "Should Fail",
 				"status":       "draft",
 				"trigger": map[string]interface{}{
-					"event_kind": "test",
+					"event_kind": "contact.created",
 					"frequency":  "once",
 				},
+				"nodes": []interface{}{},
+				"stats": map[string]interface{}{},
 			},
 		})
 		require.NoError(t, err)
@@ -1540,9 +1542,11 @@ func TestAutomation_Permissions(t *testing.T) {
 				"name":         "Owner Created Automation",
 				"status":       "draft",
 				"trigger": map[string]interface{}{
-					"event_kind": "owner_test",
+					"event_kind": "contact.created",
 					"frequency":  "once",
 				},
+				"nodes": []interface{}{},
+				"stats": map[string]interface{}{},
 			},
 		})
 		require.NoError(t, err)
