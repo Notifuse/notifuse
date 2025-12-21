@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "19.6"
+const VERSION = "20.0"
 
 type Config struct {
 	Server          ServerConfig
@@ -504,7 +504,7 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 		SMTPPassword:           v.GetString("SMTP_PASSWORD"),
 		SMTPFromEmail:          v.GetString("SMTP_FROM_EMAIL"),
 		SMTPFromName:           v.GetString("SMTP_FROM_NAME"),
-		SMTPUseTLS:             smtpUseTLSStr, // "true", "false", or "" (empty = not set, defaults to true)
+		SMTPUseTLS:             smtpUseTLSStr,       // "true", "false", or "" (empty = not set, defaults to true)
 		SMTPRelayEnabled:       smtpRelayEnabledStr, // "true", "false", or "" (empty = not set)
 		SMTPRelayDomain:        v.GetString("SMTP_RELAY_DOMAIN"),
 		SMTPRelayPort:          v.GetInt("SMTP_RELAY_PORT"),
