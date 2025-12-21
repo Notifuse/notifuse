@@ -20,8 +20,6 @@ type List struct {
 	IsPublic            bool               `json:"is_public" db:"is_public"`
 	Description         string             `json:"description,omitempty"`
 	DoubleOptInTemplate *TemplateReference `json:"double_optin_template,omitempty"`
-	WelcomeTemplate     *TemplateReference `json:"welcome_template,omitempty"`
-	UnsubscribeTemplate *TemplateReference `json:"unsubscribe_template,omitempty"`
 	CreatedAt           time.Time          `json:"created_at"`
 	UpdatedAt           time.Time          `json:"updated_at"`
 	DeletedAt           *time.Time         `json:"-" db:"deleted_at"`
@@ -53,18 +51,6 @@ func (l *List) Validate() error {
 		}
 	}
 
-	if l.WelcomeTemplate != nil {
-		if err := l.WelcomeTemplate.Validate(); err != nil {
-			return fmt.Errorf("invalid list: welcome template: %w", err)
-		}
-	}
-
-	if l.UnsubscribeTemplate != nil {
-		if err := l.UnsubscribeTemplate.Validate(); err != nil {
-			return fmt.Errorf("invalid list: unsubscribe template: %w", err)
-		}
-	}
-
 	return nil
 }
 
@@ -76,8 +62,6 @@ type dbList struct {
 	IsPublic            bool
 	Description         string
 	DoubleOptInTemplate *TemplateReference
-	WelcomeTemplate     *TemplateReference
-	UnsubscribeTemplate *TemplateReference
 	CreatedAt           time.Time
 	UpdatedAt           time.Time
 	DeletedAt           *time.Time
@@ -95,8 +79,6 @@ func ScanList(scanner interface {
 		&dbl.IsPublic,
 		&dbl.Description,
 		&dbl.DoubleOptInTemplate,
-		&dbl.WelcomeTemplate,
-		&dbl.UnsubscribeTemplate,
 		&dbl.CreatedAt,
 		&dbl.UpdatedAt,
 		&dbl.DeletedAt,
@@ -111,8 +93,6 @@ func ScanList(scanner interface {
 		IsPublic:            dbl.IsPublic,
 		Description:         dbl.Description,
 		DoubleOptInTemplate: dbl.DoubleOptInTemplate,
-		WelcomeTemplate:     dbl.WelcomeTemplate,
-		UnsubscribeTemplate: dbl.UnsubscribeTemplate,
 		CreatedAt:           dbl.CreatedAt,
 		UpdatedAt:           dbl.UpdatedAt,
 		DeletedAt:           dbl.DeletedAt,
@@ -130,8 +110,6 @@ type CreateListRequest struct {
 	IsPublic            bool               `json:"is_public"`
 	Description         string             `json:"description,omitempty"`
 	DoubleOptInTemplate *TemplateReference `json:"double_optin_template,omitempty"`
-	WelcomeTemplate     *TemplateReference `json:"welcome_template,omitempty"`
-	UnsubscribeTemplate *TemplateReference `json:"unsubscribe_template,omitempty"`
 }
 
 func (r *CreateListRequest) Validate() (list *List, workspaceID string, err error) {
@@ -162,18 +140,6 @@ func (r *CreateListRequest) Validate() (list *List, workspaceID string, err erro
 		}
 	}
 
-	if r.WelcomeTemplate != nil {
-		if err := r.WelcomeTemplate.Validate(); err != nil {
-			return nil, "", fmt.Errorf("invalid create list request: welcome template: %w", err)
-		}
-	}
-
-	if r.UnsubscribeTemplate != nil {
-		if err := r.UnsubscribeTemplate.Validate(); err != nil {
-			return nil, "", fmt.Errorf("invalid create list request: unsubscribe template: %w", err)
-		}
-	}
-
 	if r.IsDoubleOptin && r.DoubleOptInTemplate == nil {
 		return nil, "", fmt.Errorf("invalid create list request: double opt-in template is required when is_double_optin is true")
 	}
@@ -185,8 +151,6 @@ func (r *CreateListRequest) Validate() (list *List, workspaceID string, err erro
 		IsPublic:            r.IsPublic,
 		Description:         r.Description,
 		DoubleOptInTemplate: r.DoubleOptInTemplate,
-		WelcomeTemplate:     r.WelcomeTemplate,
-		UnsubscribeTemplate: r.UnsubscribeTemplate,
 	}, r.WorkspaceID, nil
 }
 
@@ -241,8 +205,6 @@ type UpdateListRequest struct {
 	IsPublic            bool               `json:"is_public"`
 	Description         string             `json:"description,omitempty"`
 	DoubleOptInTemplate *TemplateReference `json:"double_optin_template,omitempty"`
-	WelcomeTemplate     *TemplateReference `json:"welcome_template,omitempty"`
-	UnsubscribeTemplate *TemplateReference `json:"unsubscribe_template,omitempty"`
 }
 
 func (r *UpdateListRequest) Validate() (list *List, workspaceID string, err error) {
@@ -273,18 +235,6 @@ func (r *UpdateListRequest) Validate() (list *List, workspaceID string, err erro
 		}
 	}
 
-	if r.WelcomeTemplate != nil {
-		if err := r.WelcomeTemplate.Validate(); err != nil {
-			return nil, "", fmt.Errorf("invalid update list request: welcome template: %w", err)
-		}
-	}
-
-	if r.UnsubscribeTemplate != nil {
-		if err := r.UnsubscribeTemplate.Validate(); err != nil {
-			return nil, "", fmt.Errorf("invalid update list request: unsubscribe template: %w", err)
-		}
-	}
-
 	if r.IsDoubleOptin && r.DoubleOptInTemplate == nil {
 		return nil, "", fmt.Errorf("invalid update list request: double opt-in template is required when is_double_optin is true")
 	}
@@ -296,8 +246,6 @@ func (r *UpdateListRequest) Validate() (list *List, workspaceID string, err erro
 		IsPublic:            r.IsPublic,
 		Description:         r.Description,
 		DoubleOptInTemplate: r.DoubleOptInTemplate,
-		WelcomeTemplate:     r.WelcomeTemplate,
-		UnsubscribeTemplate: r.UnsubscribeTemplate,
 	}, r.WorkspaceID, nil
 }
 

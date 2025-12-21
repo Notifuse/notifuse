@@ -33,10 +33,9 @@ func (r *listRepository) CreateList(ctx context.Context, workspaceID string, lis
 	list.UpdatedAt = now
 
 	query := `
-		INSERT INTO lists (id, name, is_double_optin, is_public, description, 
-		                   double_optin_template, welcome_template, unsubscribe_template,
-		                   created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+		INSERT INTO lists (id, name, is_double_optin, is_public, description,
+		                   double_optin_template, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 	_, err = workspaceDB.ExecContext(ctx, query,
 		list.ID,
@@ -45,8 +44,6 @@ func (r *listRepository) CreateList(ctx context.Context, workspaceID string, lis
 		list.IsPublic,
 		list.Description,
 		list.DoubleOptInTemplate,
-		list.WelcomeTemplate,
-		list.UnsubscribeTemplate,
 		list.CreatedAt,
 		list.UpdatedAt,
 	)
@@ -64,8 +61,8 @@ func (r *listRepository) GetListByID(ctx context.Context, workspaceID string, id
 	}
 
 	query := `
-		SELECT id, name, is_double_optin, is_public, description, double_optin_template, 
-		welcome_template, unsubscribe_template, created_at, updated_at, deleted_at
+		SELECT id, name, is_double_optin, is_public, description, double_optin_template,
+		created_at, updated_at, deleted_at
 		FROM lists
 		WHERE id = $1 AND deleted_at IS NULL
 	`
@@ -92,8 +89,8 @@ func (r *listRepository) GetLists(ctx context.Context, workspaceID string) ([]*d
 	}
 
 	query := `
-		SELECT id, name, is_double_optin, is_public, description, double_optin_template, 
-		welcome_template, unsubscribe_template, created_at, updated_at, deleted_at
+		SELECT id, name, is_double_optin, is_public, description, double_optin_template,
+		created_at, updated_at, deleted_at
 		FROM lists
 		WHERE deleted_at IS NULL
 		ORDER BY created_at DESC
@@ -133,8 +130,8 @@ func (r *listRepository) UpdateList(ctx context.Context, workspaceID string, lis
 	query := `
 		UPDATE lists
 		SET name = $1, is_double_optin = $2, is_public = $3, description = $4, updated_at = $5,
-		    double_optin_template = $6, welcome_template = $7, unsubscribe_template = $8
-		WHERE id = $9 AND deleted_at IS NULL
+		    double_optin_template = $6
+		WHERE id = $7 AND deleted_at IS NULL
 	`
 
 	result, err := workspaceDB.ExecContext(ctx, query,
@@ -144,8 +141,6 @@ func (r *listRepository) UpdateList(ctx context.Context, workspaceID string, lis
 		list.Description,
 		list.UpdatedAt,
 		list.DoubleOptInTemplate,
-		list.WelcomeTemplate,
-		list.UnsubscribeTemplate,
 		list.ID,
 	)
 

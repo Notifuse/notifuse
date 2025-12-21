@@ -121,8 +121,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			is_public BOOLEAN NOT NULL DEFAULT FALSE,
 			description TEXT,
 			double_optin_template JSONB,
-			welcome_template JSONB,
-			unsubscribe_template JSONB,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
 			deleted_at TIMESTAMP WITH TIME ZONE

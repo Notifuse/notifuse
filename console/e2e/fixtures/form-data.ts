@@ -110,10 +110,6 @@ export interface ListFormData {
   is_public: boolean
   double_optin_template_id?: string
   double_optin_template_version?: number
-  welcome_template_id?: string
-  welcome_template_version?: number
-  unsubscribe_template_id?: string
-  unsubscribe_template_version?: number
 }
 
 export const testListData: ListFormData = {

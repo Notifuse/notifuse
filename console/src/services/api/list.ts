@@ -15,8 +15,6 @@ export interface List {
   description?: string
   slug?: string
   double_optin_template?: TemplateReference
-  welcome_template?: TemplateReference
-  unsubscribe_template?: TemplateReference
   created_at: string
   updated_at: string
 }
@@ -29,8 +27,6 @@ export interface CreateListRequest {
   is_public: boolean
   description?: string
   double_optin_template?: TemplateReference
-  welcome_template?: TemplateReference
-  unsubscribe_template?: TemplateReference
 }
 
 export interface GetListsRequest {
@@ -51,8 +47,6 @@ export interface UpdateListRequest {
   is_public: boolean
   description?: string
   double_optin_template?: TemplateReference
-  welcome_template?: TemplateReference
-  unsubscribe_template?: TemplateReference
 }
 
 export interface DeleteListRequest {

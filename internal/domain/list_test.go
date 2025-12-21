@@ -93,47 +93,13 @@ func TestList_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid welcome template",
-			list: List{
-				ID:            "list123",
-				Name:          "My List",
-				IsDoubleOptin: false,
-				WelcomeTemplate: &TemplateReference{
-					ID:      "",
-					Version: 0,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid unsubscribe template",
-			list: List{
-				ID:            "list123",
-				Name:          "My List",
-				IsDoubleOptin: false,
-				UnsubscribeTemplate: &TemplateReference{
-					ID:      "",
-					Version: 0,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "valid with all template references",
+			name: "valid with double opt-in template",
 			list: List{
 				ID:            "list123",
 				Name:          "My List",
 				IsDoubleOptin: true,
 				DoubleOptInTemplate: &TemplateReference{
 					ID:      "template1",
-					Version: 1,
-				},
-				WelcomeTemplate: &TemplateReference{
-					ID:      "template2",
-					Version: 1,
-				},
-				UnsubscribeTemplate: &TemplateReference{
-					ID:      "template3",
 					Version: 1,
 				},
 			},
@@ -165,8 +131,6 @@ func TestScanList(t *testing.T) {
 			true,             // IsPublic
 			"This is a list", // Description
 			nil,              // DoubleOptInTemplate
-			nil,              // WelcomeTemplate
-			nil,              // UnsubscribeTemplate
 			now,              // CreatedAt
 			now,              // UpdatedAt
 			nil,              // DeletedAt
@@ -182,8 +146,6 @@ func TestScanList(t *testing.T) {
 	assert.Equal(t, true, list.IsPublic)
 	assert.Equal(t, "This is a list", list.Description)
 	assert.Nil(t, list.DoubleOptInTemplate)
-	assert.Nil(t, list.WelcomeTemplate)
-	assert.Nil(t, list.UnsubscribeTemplate)
 	assert.Equal(t, now, list.CreatedAt)
 	assert.Equal(t, now, list.UpdatedAt)
 	assert.Nil(t, list.DeletedAt)
@@ -309,49 +271,6 @@ func TestCreateListRequest_Validate(t *testing.T) {
 			},
 		},
 		{
-			name: "valid request with all templates",
-			request: CreateListRequest{
-				WorkspaceID:   "workspace123",
-				ID:            "list123",
-				Name:          "My List",
-				IsDoubleOptin: true,
-				IsPublic:      true,
-				Description:   "Test description",
-				DoubleOptInTemplate: &TemplateReference{
-					ID:      "template1",
-					Version: 1,
-				},
-				WelcomeTemplate: &TemplateReference{
-					ID:      "template2",
-					Version: 1,
-				},
-				UnsubscribeTemplate: &TemplateReference{
-					ID:      "template3",
-					Version: 1,
-				},
-			},
-			wantErr: false,
-			wantList: &List{
-				ID:            "list123",
-				Name:          "My List",
-				IsDoubleOptin: true,
-				IsPublic:      true,
-				Description:   "Test description",
-				DoubleOptInTemplate: &TemplateReference{
-					ID:      "template1",
-					Version: 1,
-				},
-				WelcomeTemplate: &TemplateReference{
-					ID:      "template2",
-					Version: 1,
-				},
-				UnsubscribeTemplate: &TemplateReference{
-					ID:      "template3",
-					Version: 1,
-				},
-			},
-		},
-		{
 			name: "valid request with no double opt-in",
 			request: CreateListRequest{
 				WorkspaceID:   "workspace123",
@@ -451,34 +370,6 @@ func TestCreateListRequest_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "invalid welcome template",
-			request: CreateListRequest{
-				WorkspaceID:   "workspace123",
-				ID:            "list123",
-				Name:          "My List",
-				IsDoubleOptin: false,
-				WelcomeTemplate: &TemplateReference{
-					ID:      "",
-					Version: 0,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid unsubscribe template",
-			request: CreateListRequest{
-				WorkspaceID:   "workspace123",
-				ID:            "list123",
-				Name:          "My List",
-				IsDoubleOptin: false,
-				UnsubscribeTemplate: &TemplateReference{
-					ID:      "",
-					Version: 0,
-				},
-			},
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -502,22 +393,6 @@ func TestCreateListRequest_Validate(t *testing.T) {
 					assert.Equal(t, tt.wantList.DoubleOptInTemplate.Version, list.DoubleOptInTemplate.Version)
 				} else {
 					assert.Nil(t, list.DoubleOptInTemplate)
-				}
-
-				if tt.wantList.WelcomeTemplate != nil {
-					assert.NotNil(t, list.WelcomeTemplate)
-					assert.Equal(t, tt.wantList.WelcomeTemplate.ID, list.WelcomeTemplate.ID)
-					assert.Equal(t, tt.wantList.WelcomeTemplate.Version, list.WelcomeTemplate.Version)
-				} else {
-					assert.Nil(t, list.WelcomeTemplate)
-				}
-
-				if tt.wantList.UnsubscribeTemplate != nil {
-					assert.NotNil(t, list.UnsubscribeTemplate)
-					assert.Equal(t, tt.wantList.UnsubscribeTemplate.ID, list.UnsubscribeTemplate.ID)
-					assert.Equal(t, tt.wantList.UnsubscribeTemplate.Version, list.UnsubscribeTemplate.Version)
-				} else {
-					assert.Nil(t, list.UnsubscribeTemplate)
 				}
 			}
 		})
@@ -715,49 +590,6 @@ func TestUpdateListRequest_Validate(t *testing.T) {
 			},
 		},
 		{
-			name: "valid request with all templates",
-			request: UpdateListRequest{
-				WorkspaceID:   "workspace123",
-				ID:            "list123",
-				Name:          "My List",
-				IsDoubleOptin: true,
-				IsPublic:      true,
-				Description:   "Test description",
-				DoubleOptInTemplate: &TemplateReference{
-					ID:      "template1",
-					Version: 1,
-				},
-				WelcomeTemplate: &TemplateReference{
-					ID:      "template2",
-					Version: 1,
-				},
-				UnsubscribeTemplate: &TemplateReference{
-					ID:      "template3",
-					Version: 1,
-				},
-			},
-			wantErr: false,
-			wantList: &List{
-				ID:            "list123",
-				Name:          "My List",
-				IsDoubleOptin: true,
-				IsPublic:      true,
-				Description:   "Test description",
-				DoubleOptInTemplate: &TemplateReference{
-					ID:      "template1",
-					Version: 1,
-				},
-				WelcomeTemplate: &TemplateReference{
-					ID:      "template2",
-					Version: 1,
-				},
-				UnsubscribeTemplate: &TemplateReference{
-					ID:      "template3",
-					Version: 1,
-				},
-			},
-		},
-		{
 			name: "valid request with no double opt-in",
 			request: UpdateListRequest{
 				WorkspaceID:   "workspace123",
@@ -857,34 +689,6 @@ func TestUpdateListRequest_Validate(t *testing.T) {
 			},
 			wantErr: true,
 		},
-		{
-			name: "invalid welcome template",
-			request: UpdateListRequest{
-				WorkspaceID:   "workspace123",
-				ID:            "list123",
-				Name:          "My List",
-				IsDoubleOptin: false,
-				WelcomeTemplate: &TemplateReference{
-					ID:      "",
-					Version: 0,
-				},
-			},
-			wantErr: true,
-		},
-		{
-			name: "invalid unsubscribe template",
-			request: UpdateListRequest{
-				WorkspaceID:   "workspace123",
-				ID:            "list123",
-				Name:          "My List",
-				IsDoubleOptin: false,
-				UnsubscribeTemplate: &TemplateReference{
-					ID:      "",
-					Version: 0,
-				},
-			},
-			wantErr: true,
-		},
 	}
 
 	for _, tt := range tests {
@@ -909,22 +713,6 @@ func TestUpdateListRequest_Validate(t *testing.T) {
 					assert.Equal(t, tt.wantList.DoubleOptInTemplate.Version, list.DoubleOptInTemplate.Version)
 				} else {
 					assert.Nil(t, list.DoubleOptInTemplate)
-				}
-
-				if tt.wantList.WelcomeTemplate != nil {
-					assert.NotNil(t, list.WelcomeTemplate)
-					assert.Equal(t, tt.wantList.WelcomeTemplate.ID, list.WelcomeTemplate.ID)
-					assert.Equal(t, tt.wantList.WelcomeTemplate.Version, list.WelcomeTemplate.Version)
-				} else {
-					assert.Nil(t, list.WelcomeTemplate)
-				}
-
-				if tt.wantList.UnsubscribeTemplate != nil {
-					assert.NotNil(t, list.UnsubscribeTemplate)
-					assert.Equal(t, tt.wantList.UnsubscribeTemplate.ID, list.UnsubscribeTemplate.ID)
-					assert.Equal(t, tt.wantList.UnsubscribeTemplate.Version, list.UnsubscribeTemplate.Version)
-				} else {
-					assert.Nil(t, list.UnsubscribeTemplate)
 				}
 			}
 		})

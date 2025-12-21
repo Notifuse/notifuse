@@ -422,6 +422,24 @@ func (m *V20Migration) UpdateWorkspace(ctx context.Context, config *config.Confi
 		return fmt.Errorf("failed to migrate custom_event timeline entries: %w", err)
 	}
 
+	// PART 9: Remove welcome_template and unsubscribe_template from lists
+	// These are now handled by automations
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE lists
+		DROP COLUMN IF EXISTS welcome_template
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to drop welcome_template column: %w", err)
+	}
+
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE lists
+		DROP COLUMN IF EXISTS unsubscribe_template
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to drop unsubscribe_template column: %w", err)
+	}
+
 	return nil
 }
 

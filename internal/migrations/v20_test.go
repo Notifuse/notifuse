@@ -18,7 +18,7 @@ func TestV20Migration_GetMajorVersion(t *testing.T) {
 
 func TestV20Migration_HasSystemUpdate(t *testing.T) {
 	migration := &V20Migration{}
-	assert.False(t, migration.HasSystemUpdate(), "V20Migration should not have system updates")
+	assert.True(t, migration.HasSystemUpdate(), "V20Migration should have system updates for automations permissions")
 }
 
 func TestV20Migration_HasWorkspaceUpdate(t *testing.T) {
@@ -36,13 +36,19 @@ func TestV20Migration_UpdateSystem(t *testing.T) {
 	ctx := context.Background()
 	cfg := &config.Config{}
 
-	db, _, err := sqlmock.New()
+	db, mock, err := sqlmock.New()
 	require.NoError(t, err)
 	defer func() { _ = db.Close() }()
 
-	// UpdateSystem should do nothing and return nil
+	// UpdateSystem adds automations permissions to user_workspaces and workspace_invitations
+	mock.ExpectExec("UPDATE user_workspaces").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+	mock.ExpectExec("UPDATE workspace_invitations").
+		WillReturnResult(sqlmock.NewResult(0, 0))
+
 	err = migration.UpdateSystem(ctx, cfg, db)
 	assert.NoError(t, err)
+	assert.NoError(t, mock.ExpectationsWereMet())
 }
 
 func TestV20Migration_UpdateWorkspace(t *testing.T) {
@@ -99,6 +105,20 @@ func TestV20Migration_UpdateWorkspace(t *testing.T) {
 		mock.ExpectExec("ALTER TABLE message_history").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_message_history_automation_id").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// PART 7: Update custom_event timeline trigger to use semantic naming
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION track_custom_event_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// PART 8: Migrate existing custom_event timeline entries (idempotent)
+		mock.ExpectExec("UPDATE contact_timeline").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// PART 9: Remove welcome_template and unsubscribe_template from lists
+		mock.ExpectExec("ALTER TABLE lists").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("ALTER TABLE lists").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)

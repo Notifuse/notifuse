@@ -290,36 +290,6 @@ export function ListsPage() {
                     <X size={16} className="text-slate-500 mt-1" />
                   )}
                 </Descriptions.Item>
-
-                {/* Welcome Template */}
-                <Descriptions.Item label="Welcome Template">
-                  {list.welcome_template ? (
-                    <Space>
-                      <Check size={16} className="text-green-500 mt-1" />
-                      <TemplatePreviewButton
-                        templateRef={list.welcome_template}
-                        workspace={workspace}
-                      />
-                    </Space>
-                  ) : (
-                    <X size={16} className="text-slate-500 mt-1" />
-                  )}
-                </Descriptions.Item>
-
-                {/* Unsubscribe Template */}
-                <Descriptions.Item label="Unsubscribe Template">
-                  {list.unsubscribe_template ? (
-                    <Space>
-                      <Check size={16} className="text-green-500 mt-1" />
-                      <TemplatePreviewButton
-                        templateRef={list.unsubscribe_template}
-                        workspace={workspace}
-                      />
-                    </Space>
-                  ) : (
-                    <X size={16} className="text-slate-500 mt-1" />
-                  )}
-                </Descriptions.Item>
               </Descriptions>
             </Card>
           ))}

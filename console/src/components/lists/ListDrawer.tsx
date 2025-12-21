@@ -95,9 +95,7 @@ export function CreateListDrawer({
         description: list.description,
         is_double_optin: list.is_double_optin,
         is_public: list.is_public,
-        double_optin_template_id: list.double_optin_template?.id,
-        welcome_template_id: list.welcome_template?.id,
-        unsubscribe_template_id: list.unsubscribe_template?.id
+        double_optin_template_id: list.double_optin_template?.id
       })
     }
     setOpen(true)
@@ -118,22 +116,6 @@ export function CreateListDrawer({
       }
     }
 
-    let welcomeTemplate: TemplateReference | undefined = undefined
-    if (values.welcome_template_id) {
-      welcomeTemplate = {
-        id: String(values.welcome_template_id),
-        version: 1 // Using default version
-      }
-    }
-
-    let unsubscribeTemplate: TemplateReference | undefined = undefined
-    if (values.unsubscribe_template_id) {
-      unsubscribeTemplate = {
-        id: String(values.unsubscribe_template_id),
-        version: 1 // Using default version
-      }
-    }
-
     if (isEditMode) {
       const request: UpdateListRequest = {
         workspace_id: workspaceId,
@@ -142,9 +124,7 @@ export function CreateListDrawer({
         is_double_optin: Boolean(values.is_double_optin),
         is_public: Boolean(values.is_public),
         description: values.description ? String(values.description) : undefined,
-        double_optin_template: doubleOptInTemplate,
-        welcome_template: welcomeTemplate,
-        unsubscribe_template: unsubscribeTemplate
+        double_optin_template: doubleOptInTemplate
       }
       updateListMutation.mutate(request)
     } else {
@@ -155,9 +135,7 @@ export function CreateListDrawer({
         is_double_optin: Boolean(values.is_double_optin),
         is_public: Boolean(values.is_public),
         description: values.description ? String(values.description) : undefined,
-        double_optin_template: doubleOptInTemplate,
-        welcome_template: welcomeTemplate,
-        unsubscribe_template: unsubscribeTemplate
+        double_optin_template: doubleOptInTemplate
       }
       createListMutation.mutate(request)
     }
@@ -283,43 +261,6 @@ export function CreateListDrawer({
             }
           </Form.Item>
 
-          <Form.Item
-            name="welcome_template_id"
-            label={
-              <span>
-                Welcome Template &nbsp;
-                <Tooltip title="Email template sent to subscribers when they join this list">
-                  <InfoCircleOutlined />
-                </Tooltip>
-              </span>
-            }
-          >
-            <TemplateSelectorInput
-              workspaceId={workspaceId}
-              category="welcome"
-              placeholder="Select welcome email template"
-              clearable={true}
-            />
-          </Form.Item>
-
-          <Form.Item
-            name="unsubscribe_template_id"
-            label={
-              <span>
-                Unsubscribe Template &nbsp;
-                <Tooltip title="Email template sent to subscribers when they unsubscribe from this list">
-                  <InfoCircleOutlined />
-                </Tooltip>
-              </span>
-            }
-          >
-            <TemplateSelectorInput
-              workspaceId={workspaceId}
-              category="unsubscribe"
-              placeholder="Select unsubscribe email template"
-              clearable={true}
-            />
-          </Form.Item>
         </Form>
       </Drawer>
     </>
