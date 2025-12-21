@@ -182,7 +182,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			contact_email VARCHAR(255) NOT NULL,
 			external_id VARCHAR(255),
 			broadcast_id VARCHAR(255),
-			automation_id VARCHAR(32),
+			automation_id VARCHAR(36),
 			list_id VARCHAR(32),
 			template_id VARCHAR(32) NOT NULL,
 			template_version INTEGER NOT NULL,
@@ -680,9 +680,11 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			changes_json JSONB;
 			property_key TEXT;
 			property_diff JSONB;
+			kind_value TEXT;
 		BEGIN
 			IF TG_OP = 'INSERT' THEN
 				timeline_operation := 'insert';
+				kind_value := 'custom_event.' || NEW.event_name;
 				changes_json := jsonb_build_object(
 					'event_name', jsonb_build_object('new', NEW.event_name),
 					'external_id', jsonb_build_object('new', NEW.external_id)
@@ -699,6 +701,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				END IF;
 			ELSIF TG_OP = 'UPDATE' THEN
 				timeline_operation := 'update';
+				kind_value := 'custom_event.' || NEW.event_name;
 				property_diff := '{}'::jsonb;
 				FOR property_key IN
 					SELECT DISTINCT key
@@ -739,7 +742,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			INSERT INTO contact_timeline (
 				email, operation, entity_type, kind, entity_id, changes, created_at
 			) VALUES (
-				NEW.email, timeline_operation, 'custom_event', NEW.event_name,
+				NEW.email, timeline_operation, 'custom_event', kind_value,
 				NEW.external_id, changes_json, NEW.occurred_at
 			);
 			RETURN NEW;
