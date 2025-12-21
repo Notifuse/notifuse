@@ -714,6 +714,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 		email := testutil.GenerateTestEmail()
 		externalID := "timeline_test_" + testutil.GenerateRandomString(8)
 		eventName := "order.completed"
+		expectedKind := "custom_event." + eventName
 
 		// Create a custom event
 		req := map[string]interface{}{
@@ -743,7 +744,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 			WHERE email = $1
 			AND entity_type = 'custom_event'
 			AND kind = $2
-		`, email, eventName).Scan(&count)
+		`, email, expectedKind).Scan(&count)
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, count, 1, "Timeline entry should be created for custom event")
 
@@ -757,10 +758,10 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 			AND kind = $2
 			ORDER BY created_at DESC
 			LIMIT 1
-		`, email, eventName).Scan(&entityType, &kind, &operation)
+		`, email, expectedKind).Scan(&entityType, &kind, &operation)
 		require.NoError(t, err)
 		assert.Equal(t, "custom_event", entityType)
-		assert.Equal(t, eventName, kind)
+		assert.Equal(t, expectedKind, kind)
 		assert.Equal(t, "insert", operation)
 	})
 
@@ -768,6 +769,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 		email := testutil.GenerateTestEmail()
 		externalID := "timeline_update_" + testutil.GenerateRandomString(8)
 		eventName := "subscription.renewed"
+		expectedKind := "custom_event." + eventName
 
 		// Create initial event
 		req1 := map[string]interface{}{
@@ -809,7 +811,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 			WHERE email = $1
 			AND entity_type = 'custom_event'
 			AND kind = $2
-		`, email, eventName).Scan(&count)
+		`, email, expectedKind).Scan(&count)
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, count, 2, "Should have both insert and update timeline entries")
 
@@ -823,7 +825,7 @@ func testTimelineIntegration(t *testing.T, client *testutil.APIClient, workspace
 				AND kind = $2
 				AND operation = 'update'
 			)
-		`, email, eventName).Scan(&hasUpdate)
+		`, email, expectedKind).Scan(&hasUpdate)
 		require.NoError(t, err)
 		assert.True(t, hasUpdate, "Should have an update operation in timeline")
 	})
