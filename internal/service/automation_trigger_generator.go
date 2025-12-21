@@ -10,6 +10,28 @@ import (
 	"github.com/Notifuse/notifuse/internal/domain"
 )
 
+// AllowedContactFields defines valid field names for updated_fields filter (prevents SQL injection)
+var AllowedContactFields = map[string]bool{
+	// Core fields
+	"external_id": true, "timezone": true, "language": true,
+	"first_name": true, "last_name": true, "phone": true, "photo_url": true,
+	// Address fields
+	"address_line_1": true, "address_line_2": true,
+	"country": true, "postcode": true, "state": true,
+	// Custom string fields
+	"custom_string_1": true, "custom_string_2": true, "custom_string_3": true,
+	"custom_string_4": true, "custom_string_5": true,
+	// Custom number fields
+	"custom_number_1": true, "custom_number_2": true, "custom_number_3": true,
+	"custom_number_4": true, "custom_number_5": true,
+	// Custom datetime fields
+	"custom_datetime_1": true, "custom_datetime_2": true, "custom_datetime_3": true,
+	"custom_datetime_4": true, "custom_datetime_5": true,
+	// Custom JSON fields
+	"custom_json_1": true, "custom_json_2": true, "custom_json_3": true,
+	"custom_json_4": true, "custom_json_5": true,
+}
+
 // TriggerSQL contains the generated SQL statements for an automation trigger
 type TriggerSQL struct {
 	FunctionName string // automation_trigger_{id}
@@ -100,7 +122,22 @@ func (g *AutomationTriggerGenerator) buildWHENClause(automation *domain.Automati
 		conditions = append(conditions, fmt.Sprintf("NEW.entity_id = '%s'", escapeString(*trigger.SegmentID)))
 	}
 
-	// 4. TreeNode conditions (optional)
+	// 4. Updated fields filter (for contact.updated events) - checks if specific fields were changed
+	if trigger.EventKind == "contact.updated" && len(trigger.UpdatedFields) > 0 {
+		fieldChecks := make([]string, 0, len(trigger.UpdatedFields))
+		for _, field := range trigger.UpdatedFields {
+			if !AllowedContactFields[field] {
+				return "", fmt.Errorf("invalid updated_field: %s", field)
+			}
+			// Use JSONB ? operator to check if field exists in changes
+			fieldChecks = append(fieldChecks, fmt.Sprintf("NEW.changes ? '%s'", escapeString(field)))
+		}
+		if len(fieldChecks) > 0 {
+			conditions = append(conditions, "("+strings.Join(fieldChecks, " OR ")+")")
+		}
+	}
+
+	// 5. TreeNode conditions (optional)
 	if trigger.Conditions != nil {
 		// Get SQL with placeholders and args
 		conditionSQL, args, err := g.queryBuilder.BuildTriggerCondition(trigger.Conditions, "NEW.email")

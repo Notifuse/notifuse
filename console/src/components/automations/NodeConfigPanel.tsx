@@ -12,6 +12,7 @@ import {
   FilterConfigForm,
   WebhookConfigForm
 } from './config'
+import { useAutomation } from './context'
 import type { AutomationNodeData } from './utils/flowConverter'
 import type {
   DelayNodeConfig,
@@ -38,6 +39,8 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
   workspaceId,
   onClose
 }) => {
+  const { workspace } = useAutomation()
+
   if (!selectedNode) {
     return null
   }
@@ -56,9 +59,10 @@ export const NodeConfigPanel: React.FC<NodeConfigPanelProps> = ({
       case 'trigger':
         return (
           <TriggerConfigForm
-            config={config as { event_kind?: string; list_id?: string; segment_id?: string; custom_event_name?: string; frequency?: 'once' | 'every_time' }}
+            config={config as { event_kind?: string; list_id?: string; segment_id?: string; custom_event_name?: string; updated_fields?: string[]; frequency?: 'once' | 'every_time' }}
             onChange={handleConfigChange}
             workspaceId={workspaceId}
+            workspace={workspace}
           />
         )
       case 'delay':

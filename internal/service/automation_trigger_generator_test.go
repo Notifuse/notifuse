@@ -520,4 +520,144 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		// Should NOT have entity_id filter for email events
 		assert.NotContains(t, result.WHENClause, "NEW.entity_id")
 	})
+
+	t.Run("contact.updated with updated_fields filter", func(t *testing.T) {
+		automation := &domain.Automation{
+			ID:         "testupdated",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind:     "contact.updated",
+				UpdatedFields: []string{"first_name", "last_name"},
+				Frequency:     domain.TriggerFrequencyEveryTime,
+			},
+		}
+
+		result, err := gen.Generate(automation)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'contact.updated'")
+		// Should contain JSONB ? operator for each field
+		assert.Contains(t, result.WHENClause, "NEW.changes ? 'first_name'")
+		assert.Contains(t, result.WHENClause, "NEW.changes ? 'last_name'")
+		// Fields should be OR'd together
+		assert.Contains(t, result.WHENClause, " OR ")
+	})
+
+	t.Run("contact.updated with single updated_field", func(t *testing.T) {
+		automation := &domain.Automation{
+			ID:         "testsingle",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind:     "contact.updated",
+				UpdatedFields: []string{"phone"},
+				Frequency:     domain.TriggerFrequencyOnce,
+			},
+		}
+
+		result, err := gen.Generate(automation)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'contact.updated'")
+		assert.Contains(t, result.WHENClause, "NEW.changes ? 'phone'")
+	})
+
+	t.Run("contact.updated without updated_fields (any field change)", func(t *testing.T) {
+		automation := &domain.Automation{
+			ID:         "testany",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind: "contact.updated",
+				Frequency: domain.TriggerFrequencyEveryTime,
+			},
+		}
+
+		result, err := gen.Generate(automation)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'contact.updated'")
+		// Should NOT contain changes filter
+		assert.NotContains(t, result.WHENClause, "NEW.changes ?")
+	})
+
+	t.Run("contact.updated with invalid updated_field returns error", func(t *testing.T) {
+		automation := &domain.Automation{
+			ID:         "testinvalid",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind:     "contact.updated",
+				UpdatedFields: []string{"invalid_field_name"},
+				Frequency:     domain.TriggerFrequencyEveryTime,
+			},
+		}
+
+		_, err := gen.Generate(automation)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid updated_field")
+	})
+
+	t.Run("contact.updated with SQL injection attempt in updated_fields is rejected", func(t *testing.T) {
+		automation := &domain.Automation{
+			ID:         "testsqlinjection",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind:     "contact.updated",
+				UpdatedFields: []string{"first_name'; DROP TABLE--"},
+				Frequency:     domain.TriggerFrequencyEveryTime,
+			},
+		}
+
+		_, err := gen.Generate(automation)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "invalid updated_field")
+	})
+
+	t.Run("contact.updated with custom fields", func(t *testing.T) {
+		automation := &domain.Automation{
+			ID:         "testcustom",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind:     "contact.updated",
+				UpdatedFields: []string{"custom_string_1", "custom_number_3", "custom_datetime_5"},
+				Frequency:     domain.TriggerFrequencyEveryTime,
+			},
+		}
+
+		result, err := gen.Generate(automation)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.Contains(t, result.WHENClause, "NEW.changes ? 'custom_string_1'")
+		assert.Contains(t, result.WHENClause, "NEW.changes ? 'custom_number_3'")
+		assert.Contains(t, result.WHENClause, "NEW.changes ? 'custom_datetime_5'")
+	})
+
+	t.Run("updated_fields ignored for non-contact.updated events", func(t *testing.T) {
+		automation := &domain.Automation{
+			ID:         "testignored",
+			ListID:     "list1",
+			RootNodeID: "node1",
+			Trigger: &domain.TimelineTriggerConfig{
+				EventKind:     "contact.created",
+				UpdatedFields: []string{"first_name"}, // Should be ignored
+				Frequency:     domain.TriggerFrequencyOnce,
+			},
+		}
+
+		result, err := gen.Generate(automation)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.Contains(t, result.WHENClause, "NEW.kind = 'contact.created'")
+		// Should NOT contain changes filter for non-contact.updated events
+		assert.NotContains(t, result.WHENClause, "NEW.changes ?")
+	})
 }

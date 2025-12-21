@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { listsApi } from '../../../services/api/list'
 import { listSegments } from '../../../services/api/segment'
 import { OptionSelector } from '../../ui/OptionSelector'
+import type { Workspace } from '../../../services/api/types'
 
 // Cascader options for event kinds
 const EVENT_KIND_CASCADER_OPTIONS = [
@@ -62,11 +63,91 @@ const getCascaderValue = (eventKind?: string): string[] => {
   return [prefix, eventKind]
 }
 
+// Helper to get custom field label with fallback to default
+const getFieldLabel = (
+  fieldKey: string,
+  defaultLabel: string,
+  customFieldLabels?: Record<string, string>
+): string => {
+  const customLabel = customFieldLabels?.[fieldKey]
+  if (customLabel) {
+    return `${customLabel} (${fieldKey})`
+  }
+  return defaultLabel
+}
+
+// Build contact field options with custom labels from workspace settings
+const buildContactFieldOptions = (customFieldLabels?: Record<string, string>) => [
+  {
+    label: 'Core Fields',
+    options: [
+      { value: 'first_name', label: 'First Name' },
+      { value: 'last_name', label: 'Last Name' },
+      { value: 'phone', label: 'Phone' },
+      { value: 'photo_url', label: 'Photo URL' },
+      { value: 'external_id', label: 'External ID' },
+      { value: 'timezone', label: 'Timezone' },
+      { value: 'language', label: 'Language' }
+    ]
+  },
+  {
+    label: 'Address',
+    options: [
+      { value: 'address_line_1', label: 'Address Line 1' },
+      { value: 'address_line_2', label: 'Address Line 2' },
+      { value: 'country', label: 'Country' },
+      { value: 'state', label: 'State' },
+      { value: 'postcode', label: 'Postcode' }
+    ]
+  },
+  {
+    label: 'Custom String Fields',
+    options: [
+      { value: 'custom_string_1', label: getFieldLabel('custom_string_1', 'Custom String 1', customFieldLabels) },
+      { value: 'custom_string_2', label: getFieldLabel('custom_string_2', 'Custom String 2', customFieldLabels) },
+      { value: 'custom_string_3', label: getFieldLabel('custom_string_3', 'Custom String 3', customFieldLabels) },
+      { value: 'custom_string_4', label: getFieldLabel('custom_string_4', 'Custom String 4', customFieldLabels) },
+      { value: 'custom_string_5', label: getFieldLabel('custom_string_5', 'Custom String 5', customFieldLabels) }
+    ]
+  },
+  {
+    label: 'Custom Number Fields',
+    options: [
+      { value: 'custom_number_1', label: getFieldLabel('custom_number_1', 'Custom Number 1', customFieldLabels) },
+      { value: 'custom_number_2', label: getFieldLabel('custom_number_2', 'Custom Number 2', customFieldLabels) },
+      { value: 'custom_number_3', label: getFieldLabel('custom_number_3', 'Custom Number 3', customFieldLabels) },
+      { value: 'custom_number_4', label: getFieldLabel('custom_number_4', 'Custom Number 4', customFieldLabels) },
+      { value: 'custom_number_5', label: getFieldLabel('custom_number_5', 'Custom Number 5', customFieldLabels) }
+    ]
+  },
+  {
+    label: 'Custom Date Fields',
+    options: [
+      { value: 'custom_datetime_1', label: getFieldLabel('custom_datetime_1', 'Custom Date 1', customFieldLabels) },
+      { value: 'custom_datetime_2', label: getFieldLabel('custom_datetime_2', 'Custom Date 2', customFieldLabels) },
+      { value: 'custom_datetime_3', label: getFieldLabel('custom_datetime_3', 'Custom Date 3', customFieldLabels) },
+      { value: 'custom_datetime_4', label: getFieldLabel('custom_datetime_4', 'Custom Date 4', customFieldLabels) },
+      { value: 'custom_datetime_5', label: getFieldLabel('custom_datetime_5', 'Custom Date 5', customFieldLabels) }
+    ]
+  },
+  {
+    label: 'Custom JSON Fields',
+    options: [
+      { value: 'custom_json_1', label: getFieldLabel('custom_json_1', 'Custom JSON 1', customFieldLabels) },
+      { value: 'custom_json_2', label: getFieldLabel('custom_json_2', 'Custom JSON 2', customFieldLabels) },
+      { value: 'custom_json_3', label: getFieldLabel('custom_json_3', 'Custom JSON 3', customFieldLabels) },
+      { value: 'custom_json_4', label: getFieldLabel('custom_json_4', 'Custom JSON 4', customFieldLabels) },
+      { value: 'custom_json_5', label: getFieldLabel('custom_json_5', 'Custom JSON 5', customFieldLabels) }
+    ]
+  }
+]
+
 interface TriggerConfig {
   event_kind?: string
   list_id?: string
   segment_id?: string
   custom_event_name?: string
+  updated_fields?: string[]
   frequency?: 'once' | 'every_time'
 }
 
@@ -74,9 +155,15 @@ interface TriggerConfigFormProps {
   config: TriggerConfig
   onChange: (config: TriggerConfig) => void
   workspaceId: string
+  workspace?: Workspace
 }
 
-export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, onChange, workspaceId }) => {
+export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, onChange, workspaceId, workspace }) => {
+  // Build contact field options with custom labels from workspace settings
+  const contactFieldOptions = useMemo(
+    () => buildContactFieldOptions(workspace?.settings?.custom_field_labels),
+    [workspace?.settings?.custom_field_labels]
+  )
   // Fetch lists for list events
   const { data: listsData } = useQuery({
     queryKey: ['lists', workspaceId],
@@ -100,7 +187,8 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
       event_kind: eventKind,
       list_id: undefined,
       segment_id: undefined,
-      custom_event_name: undefined
+      custom_event_name: undefined,
+      updated_fields: undefined
     }
     onChange(newConfig)
   }
@@ -121,9 +209,14 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
     onChange({ ...config, frequency: value })
   }
 
+  const handleUpdatedFieldsChange = (value: string[]) => {
+    onChange({ ...config, updated_fields: value.length > 0 ? value : undefined })
+  }
+
   const isListEvent = config.event_kind?.startsWith('list.')
   const isSegmentEvent = config.event_kind?.startsWith('segment.')
   const isCustomEvent = config.event_kind === 'custom_event'
+  const isContactUpdated = config.event_kind === 'contact.updated'
 
   // Memoize cascader value to prevent flicker on re-render
   const cascaderValue = useMemo(() => getCascaderValue(config.event_kind), [config.event_kind])
@@ -208,6 +301,24 @@ export const TriggerConfigForm: React.FC<TriggerConfigFormProps> = ({ config, on
             placeholder="e.g., purchase"
             value={config.custom_event_name}
             onChange={handleCustomEventNameChange}
+          />
+        </Form.Item>
+      )}
+
+      {/* Updated fields filter for contact.updated events */}
+      {isContactUpdated && (
+        <Form.Item
+          label="Trigger on specific field changes"
+          extra="Leave empty to trigger on any field change"
+        >
+          <Select
+            mode="multiple"
+            placeholder="Any field change triggers automation"
+            value={config.updated_fields || []}
+            onChange={handleUpdatedFieldsChange}
+            options={contactFieldOptions}
+            allowClear
+            style={{ width: '100%' }}
           />
         </Form.Item>
       )}

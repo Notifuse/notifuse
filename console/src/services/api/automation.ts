@@ -63,6 +63,7 @@ export interface TimelineTriggerConfig {
   list_id?: string // Required for list.* events
   segment_id?: string // Required for segment.* events
   custom_event_name?: string // Required for custom_event
+  updated_fields?: string[] // For contact.updated: only trigger on these field changes
   conditions?: TreeNode
   frequency: TriggerFrequency
 }
