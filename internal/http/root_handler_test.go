@@ -214,7 +214,7 @@ func TestRootHandler_ServeConfigJS(t *testing.T) {
 	assert.Equal(t, "application/javascript", rr.Header().Get("Content-Type"))
 
 	// Check cache control headers
-	assert.Equal(t, "no-cache, no-store, must-revalidate", rr.Header().Get("Cache-Control"))
+	assert.Equal(t, "no-cache, no-store, must-revalidate, max-age=0", rr.Header().Get("Cache-Control"))
 	assert.Equal(t, "no-cache", rr.Header().Get("Pragma"))
 	assert.Equal(t, "0", rr.Header().Get("Expires"))
 

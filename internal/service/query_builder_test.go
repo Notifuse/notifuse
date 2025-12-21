@@ -1642,3 +1642,284 @@ func TestQueryBuilder_BuildSQL_JSONFiltering(t *testing.T) {
 		assert.Equal(t, []interface{}{"verified"}, args)
 	})
 }
+
+// ============================================================================
+// BuildTriggerCondition Tests
+// ============================================================================
+
+func TestQueryBuilder_BuildTriggerCondition(t *testing.T) {
+	qb := NewQueryBuilder()
+
+	t.Run("nil tree returns empty", func(t *testing.T) {
+		sql, args, err := qb.BuildTriggerCondition(nil, "NEW.email")
+		require.NoError(t, err)
+		assert.Equal(t, "", sql)
+		assert.Nil(t, args)
+	})
+
+	t.Run("simple contact condition", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "country",
+							FieldType:    "string",
+							Operator:     "equals",
+							StringValues: []string{"US"},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildTriggerCondition(tree, "NEW.email")
+		require.NoError(t, err)
+
+		// Should wrap in EXISTS with NEW.email reference
+		assert.Contains(t, sql, "EXISTS")
+		assert.Contains(t, sql, "SELECT 1 FROM contacts")
+		assert.Contains(t, sql, "email = NEW.email")
+		assert.Contains(t, sql, "country = $1")
+		assert.Equal(t, []interface{}{"US"}, args)
+	})
+
+	t.Run("contact list membership - in", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_lists",
+				ContactList: &domain.ContactListCondition{
+					Operator: "in",
+					ListID:   "vip_list",
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildTriggerCondition(tree, "NEW.email")
+		require.NoError(t, err)
+
+		// Should use NEW.email instead of contacts.email
+		assert.Contains(t, sql, "EXISTS")
+		assert.Contains(t, sql, "FROM contact_lists cl")
+		assert.Contains(t, sql, "cl.email = NEW.email")
+		assert.Contains(t, sql, "cl.list_id = $1")
+		assert.Equal(t, []interface{}{"vip_list"}, args)
+	})
+
+	t.Run("contact list membership - not_in", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_lists",
+				ContactList: &domain.ContactListCondition{
+					Operator: "not_in",
+					ListID:   "blocklist",
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildTriggerCondition(tree, "NEW.email")
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "NOT EXISTS")
+		assert.Contains(t, sql, "cl.email = NEW.email")
+		assert.Equal(t, []interface{}{"blocklist"}, args)
+	})
+
+	t.Run("timeline count condition", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contact_timeline",
+				ContactTimeline: &domain.ContactTimelineCondition{
+					Kind:          "update_message_history",
+					CountOperator: "at_least",
+					CountValue:    5,
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildTriggerCondition(tree, "NEW.email")
+		require.NoError(t, err)
+
+		// Should use NEW.email instead of contacts.email in subquery
+		assert.Contains(t, sql, "SELECT COUNT(*)")
+		assert.Contains(t, sql, "ct.email = NEW.email")
+		assert.Contains(t, sql, "ct.kind = $1")
+		assert.Contains(t, sql, ">= $2")
+		assert.Equal(t, []interface{}{"update_message_history", 5}, args)
+	})
+
+	t.Run("AND branch with multiple conditions", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "and",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"US"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "contact_lists",
+							ContactList: &domain.ContactListCondition{
+								Operator: "in",
+								ListID:   "premium",
+							},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildTriggerCondition(tree, "NEW.email")
+		require.NoError(t, err)
+
+		// Should have both conditions with NEW.email
+		assert.Contains(t, sql, "country = $1")
+		assert.Contains(t, sql, "cl.email = NEW.email")
+		assert.Contains(t, sql, "cl.list_id = $2")
+		assert.Contains(t, sql, " AND ")
+		assert.Equal(t, []interface{}{"US", "premium"}, args)
+	})
+
+	t.Run("OR branch with multiple conditions", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "branch",
+			Branch: &domain.TreeNodeBranch{
+				Operator: "or",
+				Leaves: []*domain.TreeNode{
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"US"},
+									},
+								},
+							},
+						},
+					},
+					{
+						Kind: "leaf",
+						Leaf: &domain.TreeNodeLeaf{
+							Source: "contacts",
+							Contact: &domain.ContactCondition{
+								Filters: []*domain.DimensionFilter{
+									{
+										FieldName:    "country",
+										FieldType:    "string",
+										Operator:     "equals",
+										StringValues: []string{"CA"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildTriggerCondition(tree, "NEW.email")
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "country = $1")
+		assert.Contains(t, sql, "country = $2")
+		assert.Contains(t, sql, " OR ")
+		assert.Equal(t, []interface{}{"US", "CA"}, args)
+	})
+
+	t.Run("different email references", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "country",
+							FieldType:    "string",
+							Operator:     "equals",
+							StringValues: []string{"US"},
+						},
+					},
+				},
+			},
+		}
+
+		// Test with different email reference
+		sql, _, err := qb.BuildTriggerCondition(tree, "OLD.email")
+		require.NoError(t, err)
+		assert.Contains(t, sql, "email = OLD.email")
+
+		// Test with table.column reference
+		sql2, _, err := qb.BuildTriggerCondition(tree, "ct.email")
+		require.NoError(t, err)
+		assert.Contains(t, sql2, "email = ct.email")
+	})
+
+	t.Run("invalid tree structure returns error", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			// Missing Leaf field
+		}
+
+		_, _, err := qb.BuildTriggerCondition(tree, "NEW.email")
+		require.Error(t, err)
+	})
+
+	t.Run("multiple filters in contact condition", func(t *testing.T) {
+		tree := &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "country",
+							FieldType:    "string",
+							Operator:     "equals",
+							StringValues: []string{"US"},
+						},
+						{
+							FieldName:    "custom_number_1",
+							FieldType:    "number",
+							Operator:     "gte",
+							NumberValues: []float64{100},
+						},
+					},
+				},
+			},
+		}
+
+		sql, args, err := qb.BuildTriggerCondition(tree, "NEW.email")
+		require.NoError(t, err)
+
+		assert.Contains(t, sql, "country = $1")
+		assert.Contains(t, sql, "custom_number_1 >= $2")
+		assert.Contains(t, sql, " AND ")
+		assert.Equal(t, []interface{}{"US", 100.0}, args)
+	})
+}

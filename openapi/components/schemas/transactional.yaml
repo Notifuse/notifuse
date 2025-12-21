@@ -16,6 +16,7 @@ TransactionalNotificationSendParams:
   required:
     - id
     - contact
+    - channels
   properties:
     id:
       type: string
@@ -30,7 +31,8 @@ TransactionalNotificationSendParams:
       $ref: 'contact.yaml#/Contact'
     channels:
       type: array
-      description: Specific channels to send through (if empty, use all configured channels)
+      description: Channels to send through (at least one required)
+      minItems: 1
       items:
         type: string
         enum:

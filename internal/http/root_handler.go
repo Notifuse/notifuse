@@ -119,9 +119,12 @@ func (h *RootHandler) Handle(w http.ResponseWriter, r *http.Request) {
 // serveConfigJS generates and serves the config.js file with environment variables
 func (h *RootHandler) serveConfigJS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/javascript")
-	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
+	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate, max-age=0")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
+	// Prevent 304 responses by removing ETag and setting a dynamic Last-Modified
+	w.Header().Del("ETag")
+	w.Header().Del("Last-Modified")
 
 	isInstalledStr := "false"
 	if h.isInstalledPtr != nil && *h.isInstalledPtr {

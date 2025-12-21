@@ -2,6 +2,70 @@
 
 All notable changes to this project will be documented in this file.
 
+## [20.0] - 2025-12-21
+
+### Database Schema Changes
+
+- Migration v20.0 introduces the automations system with 4 new workspace tables:
+  - `automations` - Workflow definitions with trigger config, nodes, and statistics
+  - `contact_automations` - Tracks each contact's journey through automations
+  - `automation_node_executions` - Audit log of node executions for debugging
+  - `automation_trigger_log` - Trigger event logging
+
+### Features
+
+- **Marketing Automations**: Visual workflow builder for automated contact journeys
+  - Event-driven triggers from contact timeline (contact, list, segment, email, custom events)
+  - Trigger frequency control: `once` (first occurrence) or `every_time`
+  - Conditional triggers using segment filter conditions
+  - Field-specific triggers for contact updates (e.g., trigger only when `custom_string_1` changes)
+
+- **Automation Node Types**:
+  - **Trigger**: Entry point based on timeline events with configurable conditions
+  - **Delay**: Pause workflow for minutes, hours, or days
+  - **Email**: Send templated emails using workspace email provider with tracking
+  - **Branch**: Conditional branching with multiple paths based on segment conditions
+  - **Filter**: Pass/fail routing based on contact attributes
+  - **Add to List**: Subscribe contacts to additional lists
+  - **Remove from List**: Unsubscribe contacts from lists
+  - **A/B Test**: Deterministic variant selection using FNV-32a hashing for consistent splits
+  - **Webhook**: POST contact data to external URLs with authorization headers
+
+- **Visual Flow Editor**: Drag-and-drop canvas for designing automation workflows
+  - Node positioning with visual connections
+  - Type-specific configuration panels
+  - Real-time validation
+
+- **Automation Lifecycle Management**:
+  - Draft mode for building and testing
+  - Activate to go live (creates PostgreSQL triggers)
+  - Pause to stop new enrollments while preserving in-progress journeys
+  - Soft-delete with recovery capability
+
+- **Contact Journey Tracking**:
+  - Full audit trail of node executions with timestamps and duration
+  - Contact status tracking (active, completed, exited, failed)
+  - Exit reasons for debugging
+  - Node execution output logging
+
+- **Execution Engine**:
+  - Background scheduler polling every 10 seconds
+  - Batch processing (50 contacts per batch)
+  - Round-robin workload distribution across workspaces
+  - Retry logic with exponential backoff (max 5 retries)
+  - Graceful shutdown handling
+
+- **Statistics Dashboard**:
+  - Enrolled contacts count
+  - Completed journeys
+  - Exited contacts (with reasons)
+  - Failed executions
+
+- **API Endpoints** (`/api/automations.*`):
+  - `create`, `get`, `list`, `update`, `delete`
+  - `activate`, `pause` for lifecycle management
+  - `nodeExecutions` for contact journey audit trail
+
 ## [19.6] - 2025-12-19
 
 - Fix: SMTP integration now works with strict SMTP servers (#172)

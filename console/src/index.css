@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "./components/email_builder/editor.css";
+@import "./styles/reactflow.css";
 @theme {
   --color-primary: #7763f1;
 }
@@ -93,3 +94,4 @@ h1 {
 :where(.css-dev-only-do-not-override-1d0rgb4).ant-form-item .ant-form-item-label > label.ant-form-item-required::before {
   font-family: inherit;
 }
+

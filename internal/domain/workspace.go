@@ -26,6 +26,7 @@ const (
 	PermissionResourceWorkspace      PermissionResource = "workspace"
 	PermissionResourceMessageHistory PermissionResource = "message_history"
 	PermissionResourceBlog           PermissionResource = "blog"
+	PermissionResourceAutomations    PermissionResource = "automations"
 )
 
 // PermissionType defines the types of permissions (read/write)
@@ -45,6 +46,7 @@ var FullPermissions = UserPermissions{
 	PermissionResourceWorkspace:      ResourcePermissions{Read: true, Write: true},
 	PermissionResourceMessageHistory: ResourcePermissions{Read: true, Write: true},
 	PermissionResourceBlog:           ResourcePermissions{Read: true, Write: true},
+	PermissionResourceAutomations:    ResourcePermissions{Read: true, Write: true},
 }
 
 // ResourcePermissions defines read/write permissions for a specific resource

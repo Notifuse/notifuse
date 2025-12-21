@@ -53,6 +53,7 @@
     "@tiptap/suggestion": "^3.10.5",
     "@types/html2canvas": "^0.5.35",
     "@types/uuid": "^10.0.0",
+    "@xyflow/react": "^12.10.0",
     "antd": "^5.27.4",
     "blueimp-md5": "^2.19.0",
     "date-fns": "^4.1.0",

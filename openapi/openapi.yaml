@@ -194,6 +194,8 @@ components:
       $ref: './components/schemas/template.yaml#/CompileTemplateRequest'
     CompileTemplateResponse:
       $ref: './components/schemas/template.yaml#/CompileTemplateResponse'
+    TrackingSettings:
+      $ref: './components/schemas/template.yaml#/TrackingSettings'
     CustomEvent:
       $ref: './components/schemas/custom-event.yaml#/CustomEvent'
     ImportCustomEventsRequest:

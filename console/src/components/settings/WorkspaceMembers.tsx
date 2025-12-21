@@ -52,7 +52,8 @@ export function WorkspaceMembers({
     transactional: { read: true, write: true },
     workspace: { read: true, write: true },
     message_history: { read: true, write: true },
-    blog: { read: true, write: true }
+    blog: { read: true, write: true },
+    automations: { read: true, write: true }
   })
   const { message } = App.useApp()
 
@@ -363,7 +364,8 @@ export function WorkspaceMembers({
         transactional: { read: true, write: true },
         workspace: { read: true, write: true },
         message_history: { read: true, write: true },
-        blog: { read: true, write: true }
+        blog: { read: true, write: true },
+        automations: { read: true, write: true }
       }
 
       await workspaceService.inviteMember({

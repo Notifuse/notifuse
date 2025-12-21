@@ -350,6 +350,7 @@ type SendEmailRequest struct {
 	IntegrationID string `validate:"required"`
 	MessageID     string `validate:"required"`
 	ExternalID    *string
+	AutomationID  *string // Automation this email is sent from (nullable for broadcasts/transactional)
 
 	// Target and content
 	Contact        *Contact        `validate:"required"`
