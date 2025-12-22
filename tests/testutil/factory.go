@@ -1107,7 +1107,7 @@ func (tdf *TestDataFactory) CreateSendBroadcastTask(workspaceID, broadcastID str
 		SendBroadcast: &domain.SendBroadcastState{
 			BroadcastID:     broadcastID,
 			TotalRecipients: 100,
-			SentCount:       0,
+			EnqueuedCount:       0,
 			FailedCount:     0,
 			ChannelType:     "email",
 			RecipientOffset: 0,
@@ -1136,7 +1136,7 @@ func (tdf *TestDataFactory) CreateTaskWithABTesting(workspaceID, broadcastID str
 		SendBroadcast: &domain.SendBroadcastState{
 			BroadcastID:               broadcastID,
 			TotalRecipients:           1000,
-			SentCount:                 0,
+			EnqueuedCount:                 0,
 			FailedCount:               0,
 			ChannelType:               "email",
 			RecipientOffset:           0,

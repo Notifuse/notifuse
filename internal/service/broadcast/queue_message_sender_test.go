@@ -90,10 +90,6 @@ func TestNewQueueMessageSender(t *testing.T) {
 		)
 
 		require.NotNil(t, sender)
-
-		// Circuit breaker should be initialized
-		qms := sender.(*queueMessageSender)
-		assert.NotNil(t, qms.circuitBreaker)
 	})
 }
 
@@ -197,64 +193,6 @@ func TestQueueMessageSender_SendToRecipient(t *testing.T) {
 		)
 
 		assert.NoError(t, err)
-	})
-
-	t.Run("returns error when circuit breaker open", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
-		mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
-		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
-		mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
-		mockLogger := pkgmocks.NewMockLogger(ctrl)
-
-		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
-		mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
-
-		config := &Config{
-			EnableCircuitBreaker:    true,
-			CircuitBreakerThreshold: 1,
-			CircuitBreakerCooldown:  1 * time.Hour,
-		}
-
-		sender := NewQueueMessageSender(
-			mockQueueRepo,
-			mockBroadcastRepo,
-			mockMessageHistoryRepo,
-			mockTemplateRepo,
-			mockLogger,
-			config,
-			"https://api.example.com",
-		)
-
-		// Trip the circuit breaker
-		qms := sender.(*queueMessageSender)
-		qms.circuitBreaker.RecordFailure(errors.New("test error"))
-
-		broadcast := &domain.Broadcast{
-			ID:          "broadcast-1",
-			WorkspaceID: "workspace-1",
-		}
-
-		err := sender.SendToRecipient(
-			context.Background(),
-			"workspace-1",
-			"integration-1",
-			true,
-			broadcast,
-			"msg-1",
-			"recipient@example.com",
-			&domain.Template{},
-			nil,
-			nil,
-			time.Now().Add(5*time.Minute),
-		)
-
-		assert.Error(t, err)
-		var broadcastErr *BroadcastError
-		assert.True(t, errors.As(err, &broadcastErr))
-		assert.Equal(t, ErrCodeCircuitOpen, broadcastErr.Code)
 	})
 
 	t.Run("returns error on enqueue failure", func(t *testing.T) {
@@ -502,62 +440,6 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, 0, sent)
 		assert.Equal(t, 0, failed)
-	})
-
-	t.Run("returns error when circuit breaker open", func(t *testing.T) {
-		ctrl := gomock.NewController(t)
-		defer ctrl.Finish()
-
-		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
-		mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
-		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
-		mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
-		mockLogger := pkgmocks.NewMockLogger(ctrl)
-
-		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
-		mockLogger.EXPECT().Warn(gomock.Any()).AnyTimes()
-
-		config := &Config{
-			EnableCircuitBreaker:    true,
-			CircuitBreakerThreshold: 1,
-			CircuitBreakerCooldown:  1 * time.Hour,
-		}
-
-		sender := NewQueueMessageSender(
-			mockQueueRepo,
-			mockBroadcastRepo,
-			mockMessageHistoryRepo,
-			mockTemplateRepo,
-			mockLogger,
-			config,
-			"https://api.example.com",
-		)
-
-		// Trip the circuit breaker
-		qms := sender.(*queueMessageSender)
-		qms.circuitBreaker.RecordFailure(errors.New("test error"))
-
-		recipients := []*domain.ContactWithList{
-			{Contact: &domain.Contact{Email: "user1@example.com"}},
-		}
-
-		sent, failed, err := sender.SendBatch(
-			context.Background(),
-			"workspace-1",
-			"integration-1",
-			"secret-key",
-			"https://api.example.com",
-			true,
-			"broadcast-1",
-			recipients,
-			nil,
-			nil,
-			time.Now().Add(5*time.Minute),
-		)
-
-		assert.Error(t, err)
-		assert.Equal(t, 0, sent)
-		assert.Equal(t, 1, failed)
 	})
 
 	t.Run("handles enqueue failure", func(t *testing.T) {

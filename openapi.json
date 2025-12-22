@@ -4957,9 +4957,9 @@
             "enum": [
               "draft",
               "scheduled",
-              "sending",
+              "processing",
               "paused",
-              "sent",
+              "processed",
               "cancelled",
               "failed",
               "testing",
@@ -5003,6 +5003,21 @@
             "format": "date-time",
             "nullable": true,
             "description": "When the winning variation was sent"
+          },
+          "enqueued_count": {
+            "type": "integer",
+            "description": "Number of emails added to the queue by orchestrator",
+            "example": 1000
+          },
+          "sent_count": {
+            "type": "integer",
+            "description": "Number of emails successfully sent by worker",
+            "example": 985
+          },
+          "failed_count": {
+            "type": "integer",
+            "description": "Number of emails permanently failed (moved to dead letter)",
+            "example": 5
           },
           "test_phase_recipient_count": {
             "type": "integer",
@@ -5189,11 +5204,12 @@
       },
       "ScheduleSettings": {
         "type": "object",
+        "description": "Schedule settings for a broadcast. Note: When a broadcast is first created,\nthese fields are empty/false. Use the /api/broadcasts.schedule endpoint to\nconfigure scheduling.\n",
         "properties": {
           "is_scheduled": {
             "type": "boolean",
-            "description": "Whether the broadcast is scheduled",
-            "example": true
+            "description": "Whether the broadcast is scheduled (false after creation, set via broadcasts.schedule)",
+            "example": false
           },
           "scheduled_date": {
             "type": "string",

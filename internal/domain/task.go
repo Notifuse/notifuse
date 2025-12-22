@@ -65,12 +65,12 @@ func (s *TaskState) Scan(value interface{}) error {
 	return json.Unmarshal(cloned, &s)
 }
 
-// SendBroadcastState contains state specific to broadcast sending tasks
+// SendBroadcastState contains state specific to broadcast enqueueing tasks
 type SendBroadcastState struct {
 	BroadcastID     string `json:"broadcast_id"`
 	TotalRecipients int    `json:"total_recipients"`
-	SentCount       int    `json:"sent_count"`
-	FailedCount     int    `json:"failed_count"`
+	EnqueuedCount   int    `json:"enqueued_count"` // Emails added to queue (was SentCount)
+	FailedCount     int    `json:"failed_count"`   // Template/build failures during enqueueing
 	ChannelType     string `json:"channel_type"`
 	RecipientOffset int64  `json:"recipient_offset"`
 	// LastProcessedEmail is the cursor for keyset pagination - stores the last email processed

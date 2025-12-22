@@ -143,7 +143,7 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		// Wait for broadcast completion
 		t.Log("Waiting for broadcast completion...")
 		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
-			[]string{"sent", "completed"}, 60*time.Second)
+			[]string{"processed", "completed"}, 60*time.Second)
 		require.NoError(t, err)
 
 		// Fetch email from Mailpit
@@ -233,7 +233,7 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		// Wait for broadcast completion
 		t.Log("Waiting for broadcast completion...")
 		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
-			[]string{"sent", "completed"}, 60*time.Second)
+			[]string{"processed", "completed"}, 60*time.Second)
 		require.NoError(t, err)
 
 		// Fetch email from Mailpit

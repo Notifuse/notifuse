@@ -206,7 +206,7 @@ func TestBroadcastService_PauseBroadcast_Success(t *testing.T) {
 	)
 
 	sending := testBroadcast(req.WorkspaceID, req.ID)
-	sending.Status = domain.BroadcastStatusSending
+	sending.Status = domain.BroadcastStatusProcessing
 	d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(sending, nil)
 	d.repo.EXPECT().UpdateBroadcastTx(gomock.Any(), gomock.Any(), gomock.Any()).Return(nil)
 	d.eventBus.EXPECT().PublishWithAck(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_ context.Context, _ domain.EventPayload, ack domain.EventAckCallback) { ack(nil) })
@@ -892,7 +892,7 @@ func TestBroadcastService_ScheduleBroadcast_InvalidStatus(t *testing.T) {
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
 			// broadcast with invalid status for scheduling
 			broadcast := testBroadcast(req.WorkspaceID, req.ID)
-			broadcast.Status = domain.BroadcastStatusSending // not draft
+			broadcast.Status = domain.BroadcastStatusProcessing // not draft
 			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(broadcast, nil)
 			return fn(nil)
 		},
@@ -1066,7 +1066,7 @@ func TestBroadcastService_CancelBroadcast_InvalidStatus(t *testing.T) {
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
 			// broadcast with invalid status for cancelling
 			broadcast := testBroadcast(req.WorkspaceID, req.ID)
-			broadcast.Status = domain.BroadcastStatusSending // not scheduled or paused
+			broadcast.Status = domain.BroadcastStatusProcessing // not scheduled or paused
 			d.repo.EXPECT().GetBroadcastTx(gomock.Any(), gomock.Any(), req.WorkspaceID, req.ID).Return(broadcast, nil)
 			return fn(nil)
 		},
@@ -1129,7 +1129,7 @@ func TestBroadcastService_DeleteBroadcast_SendingStatus(t *testing.T) {
 	authOK(d.authService, ctx, req.WorkspaceID)
 
 	b := testBroadcast(req.WorkspaceID, req.ID)
-	b.Status = domain.BroadcastStatusSending // not deletable
+	b.Status = domain.BroadcastStatusProcessing // not deletable
 	d.repo.EXPECT().GetBroadcast(ctx, req.WorkspaceID, req.ID).Return(b, nil)
 
 	err := d.svc.DeleteBroadcast(ctx, req)
@@ -2152,7 +2152,7 @@ func TestBroadcastService_SelectWinner_DuringSendingPhase(t *testing.T) {
 	d.repo.EXPECT().WithTransaction(ctx, workspaceID, gomock.Any()).DoAndReturn(
 		func(_ context.Context, _ string, fn func(*sql.Tx) error) error {
 			b := testBroadcast(workspaceID, broadcastID)
-			b.Status = domain.BroadcastStatusSending // sending phase
+			b.Status = domain.BroadcastStatusProcessing // sending phase
 			b.TestSettings.Enabled = true
 			b.TestSettings.AutoSendWinner = false // manual selection allowed
 			b.TestSettings.Variations = []domain.BroadcastVariation{{VariationName: "A", TemplateID: templateID}}

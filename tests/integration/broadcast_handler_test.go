@@ -427,7 +427,7 @@ func testBroadcastCRUD(t *testing.T, client *testutil.APIClient, factory *testut
 
 			// Create a broadcast and set it to sent status
 			broadcast, err := factory.CreateBroadcast(workspaceID,
-				testutil.WithBroadcastStatus(domain.BroadcastStatusSent))
+				testutil.WithBroadcastStatus(domain.BroadcastStatusProcessed))
 			require.NoError(t, err)
 
 			updateRequest := map[string]interface{}{
@@ -616,13 +616,13 @@ func testBroadcastLifecycle(t *testing.T, client *testutil.APIClient, factory *t
 			// Using WaitForBroadcastStatusWithExecution to ensure continuous task processing
 			// This is the critical check that would have caught the SQL scan bug!
 			finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
-				[]string{"sent", "completed"},
+				[]string{"processed", "completed"},
 				60*time.Second)
 			if err != nil {
 				t.Fatalf("Broadcast failed or timed out: %v", err)
 			}
 
-			assert.Contains(t, []string{"sent", "completed"}, finalStatus,
+			assert.Contains(t, []string{"processed", "completed"}, finalStatus,
 				"Broadcast should complete successfully")
 		})
 
@@ -672,7 +672,7 @@ func testBroadcastLifecycle(t *testing.T, client *testutil.APIClient, factory *t
 	t.Run("Pause Broadcast", func(t *testing.T) {
 		t.Run("should pause broadcast successfully", func(t *testing.T) {
 			broadcast, err := factory.CreateBroadcast(workspaceID,
-				testutil.WithBroadcastStatus(domain.BroadcastStatusSending))
+				testutil.WithBroadcastStatus(domain.BroadcastStatusProcessing))
 			require.NoError(t, err)
 
 			pauseRequest := map[string]interface{}{

@@ -25,15 +25,11 @@ func TestEmailQueueStatus_Values(t *testing.T) {
 			expected: "processing",
 		},
 		{
-			name:     "sent status",
-			status:   EmailQueueStatusSent,
-			expected: "sent",
-		},
-		{
 			name:     "failed status",
 			status:   EmailQueueStatusFailed,
 			expected: "failed",
 		},
+		// Note: There is no "sent" status - entries are deleted immediately after successful send
 	}
 
 	for _, tt := range tests {
@@ -247,9 +243,9 @@ func TestEmailQueueStats_DefaultValues(t *testing.T) {
 
 	assert.Equal(t, int64(0), stats.Pending)
 	assert.Equal(t, int64(0), stats.Processing)
-	assert.Equal(t, int64(0), stats.Sent)
 	assert.Equal(t, int64(0), stats.Failed)
 	assert.Equal(t, int64(0), stats.DeadLetter)
+	// Note: Sent entries are deleted immediately, not tracked in stats
 }
 
 func TestEmailQueueDeadLetter_DefaultValues(t *testing.T) {

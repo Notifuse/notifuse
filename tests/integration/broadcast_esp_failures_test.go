@@ -204,16 +204,16 @@ func TestBroadcastESPFailure_AllReject(t *testing.T) {
 					if task, ok := tasks[0].(map[string]interface{}); ok {
 						if state, ok := task["state"].(map[string]interface{}); ok {
 							if sendBroadcast, ok := state["send_broadcast"].(map[string]interface{}); ok {
-								sentCount := int(sendBroadcast["sent_count"].(float64))
+								enqueuedCount := int(sendBroadcast["enqueued_count"].(float64))
 								failedCount := int(sendBroadcast["failed_count"].(float64))
 								totalRecipients := int(sendBroadcast["total_recipients"].(float64))
 								recipientOffset := int(sendBroadcast["recipient_offset"].(float64))
 
-								t.Logf("Task State - sent: %d, failed: %d, total: %d, offset: %d",
-									sentCount, failedCount, totalRecipients, recipientOffset)
+								t.Logf("Task State - enqueued: %d, failed: %d, total: %d, offset: %d",
+									enqueuedCount, failedCount, totalRecipients, recipientOffset)
 
 								taskState = &domain.SendBroadcastState{
-									SentCount:       sentCount,
+									EnqueuedCount:   enqueuedCount,
 									FailedCount:     failedCount,
 									TotalRecipients: totalRecipients,
 									RecipientOffset: int64(recipientOffset),
@@ -226,7 +226,7 @@ func TestBroadcastESPFailure_AllReject(t *testing.T) {
 		}
 
 		// Break if broadcast reached a terminal state
-		if finalStatus == "sent" || finalStatus == "failed" || finalStatus == "paused" || finalStatus == "completed" {
+		if finalStatus == "processed" || finalStatus == "failed" || finalStatus == "paused" || finalStatus == "completed" {
 			break
 		}
 
@@ -240,13 +240,13 @@ func TestBroadcastESPFailure_AllReject(t *testing.T) {
 	if taskState != nil {
 		t.Logf("Task State:")
 		t.Logf("  - Total Recipients: %d", taskState.TotalRecipients)
-		t.Logf("  - Sent Count: %d", taskState.SentCount)
+		t.Logf("  - Enqueued Count: %d", taskState.EnqueuedCount)
 		t.Logf("  - Failed Count: %d", taskState.FailedCount)
 		t.Logf("  - Recipient Offset: %d", taskState.RecipientOffset)
 
 		// Verify all emails failed (since SMTP is unreachable)
-		assert.Equal(t, 0, taskState.SentCount,
-			"No emails should be sent successfully (SMTP unreachable)")
+		assert.Equal(t, 0, taskState.EnqueuedCount,
+			"No emails should be enqueued successfully (SMTP unreachable)")
 		assert.Greater(t, taskState.FailedCount, 0,
 			"Failed count should be greater than 0")
 
@@ -260,8 +260,8 @@ func TestBroadcastESPFailure_AllReject(t *testing.T) {
 	// The broadcast should either be:
 	// - "paused" (circuit breaker triggered after too many failures)
 	// - "failed" (explicit failure state)
-	// - "sent" (completed but with failures tracked)
-	assert.Contains(t, []string{"paused", "failed", "sent", "sending"},
+	// - "processed" (completed but with failures tracked)
+	assert.Contains(t, []string{"paused", "failed", "processed", "processing"},
 		finalStatus,
 		"Broadcast should be in a valid end state")
 
@@ -403,7 +403,7 @@ func TestBroadcastESPFailure_PartialSuccess(t *testing.T) {
 	// Step 12: Wait for completion
 	t.Log("Step 12: Waiting for broadcast completion...")
 	finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
-		[]string{"sent", "completed"}, 3*time.Minute)
+		[]string{"processed", "completed"}, 3*time.Minute)
 	require.NoError(t, err)
 	t.Logf("Broadcast completed with status: %s", finalStatus)
 
@@ -425,13 +425,13 @@ func TestBroadcastESPFailure_PartialSuccess(t *testing.T) {
 		if task, ok := tasks[0].(map[string]interface{}); ok {
 			if state, ok := task["state"].(map[string]interface{}); ok {
 				if sendBroadcast, ok := state["send_broadcast"].(map[string]interface{}); ok {
-					sentCount := int(sendBroadcast["sent_count"].(float64))
+					processedCount := int(sendBroadcast["processed_count"].(float64))
 					failedCount := int(sendBroadcast["failed_count"].(float64))
 					totalRecipients := int(sendBroadcast["total_recipients"].(float64))
 					recipientOffset := int(sendBroadcast["recipient_offset"].(float64))
 
 					taskState = &domain.SendBroadcastState{
-						SentCount:       sentCount,
+						EnqueuedCount:   processedCount,
 						FailedCount:     failedCount,
 						TotalRecipients: totalRecipients,
 						RecipientOffset: int64(recipientOffset),
@@ -454,13 +454,13 @@ func TestBroadcastESPFailure_PartialSuccess(t *testing.T) {
 	if taskState != nil {
 		t.Logf("Task State:")
 		t.Logf("  - Total Recipients: %d", taskState.TotalRecipients)
-		t.Logf("  - Sent Count: %d", taskState.SentCount)
+		t.Logf("  - Enqueued Count: %d", taskState.EnqueuedCount)
 		t.Logf("  - Failed Count: %d", taskState.FailedCount)
 		t.Logf("  - Recipient Offset: %d", taskState.RecipientOffset)
 
 		// With working SMTP, all should succeed
-		assert.Equal(t, contactCount, taskState.SentCount,
-			"All emails should be sent successfully")
+		assert.Equal(t, contactCount, taskState.EnqueuedCount,
+			"All emails should be enqueued successfully")
 		assert.Equal(t, 0, taskState.FailedCount,
 			"No emails should fail with working SMTP")
 		assert.Equal(t, contactCount, int(taskState.RecipientOffset),
@@ -828,7 +828,7 @@ func TestBroadcastConcurrentExecution(t *testing.T) {
 		if json.Unmarshal(body, &result) == nil {
 			if bd, ok := result["broadcast"].(map[string]interface{}); ok {
 				finalStatus, _ = bd["status"].(string)
-				if finalStatus == "sent" || finalStatus == "completed" || finalStatus == "failed" {
+				if finalStatus == "processed" || finalStatus == "completed" || finalStatus == "failed" {
 					break
 				}
 			}
@@ -885,7 +885,7 @@ func TestBroadcastConcurrentExecution(t *testing.T) {
 
 	// Assertions
 	assert.Equal(t, 0, duplicates,
-		"No duplicate emails should be sent (race condition detected)")
+		"No duplicate emails should be processed (race condition detected)")
 	assert.Empty(t, missing,
 		"No recipients should be missing")
 	assert.Equal(t, contactCount, len(receivedEmails),

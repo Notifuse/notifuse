@@ -209,23 +209,19 @@ func (r *EmailQueueRepository) MarkAsProcessing(ctx context.Context, workspaceID
 	return nil
 }
 
-// MarkAsSent marks an entry as successfully sent
+// MarkAsSent deletes the entry after successful send
+// (entries are removed immediately rather than kept with a "sent" status)
 func (r *EmailQueueRepository) MarkAsSent(ctx context.Context, workspaceID string, id string) error {
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get database connection: %w", err)
 	}
 
-	now := time.Now().UTC()
-	query := `
-		UPDATE email_queue
-		SET status = 'sent', updated_at = $2, processed_at = $2
-		WHERE id = $1
-	`
+	query := `DELETE FROM email_queue WHERE id = $1`
 
-	_, err = db.ExecContext(ctx, query, id, now)
+	_, err = db.ExecContext(ctx, query, id)
 	if err != nil {
-		return fmt.Errorf("failed to mark email as sent: %w", err)
+		return fmt.Errorf("failed to delete sent email: %w", err)
 	}
 
 	return nil
@@ -311,18 +307,18 @@ func (r *EmailQueueRepository) GetStats(ctx context.Context, workspaceID string)
 		return nil, fmt.Errorf("failed to get database connection: %w", err)
 	}
 
+	// Note: sent entries are deleted immediately, so we don't track them in stats
 	query := `
 		SELECT
 			COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) as pending,
 			COALESCE(SUM(CASE WHEN status = 'processing' THEN 1 ELSE 0 END), 0) as processing,
-			COALESCE(SUM(CASE WHEN status = 'sent' THEN 1 ELSE 0 END), 0) as sent,
 			COALESCE(SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END), 0) as failed
 		FROM email_queue
 	`
 
 	var stats domain.EmailQueueStats
 	err = db.QueryRowContext(ctx, query).Scan(
-		&stats.Pending, &stats.Processing, &stats.Sent, &stats.Failed,
+		&stats.Pending, &stats.Processing, &stats.Failed,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queue stats: %w", err)
@@ -392,24 +388,6 @@ func (r *EmailQueueRepository) CountBySourceAndStatus(ctx context.Context, works
 	}
 
 	return count, nil
-}
-
-// CleanupSent removes old sent entries
-func (r *EmailQueueRepository) CleanupSent(ctx context.Context, workspaceID string, olderThan time.Duration) (int64, error) {
-	db, err := r.getDB(ctx, workspaceID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get database connection: %w", err)
-	}
-
-	cutoff := time.Now().UTC().Add(-olderThan)
-	query := `DELETE FROM email_queue WHERE status = 'sent' AND processed_at < $1`
-
-	result, err := db.ExecContext(ctx, query, cutoff)
-	if err != nil {
-		return 0, fmt.Errorf("failed to cleanup sent emails: %w", err)
-	}
-
-	return result.RowsAffected()
 }
 
 // CleanupDeadLetter removes old dead letter entries

@@ -878,7 +878,7 @@ func TestTaskService_BroadcastEventHandlers(t *testing.T) {
 			EntityID:    broadcastID,
 			Data: map[string]interface{}{
 				"send_now": true,
-				"status":   string(domain.BroadcastStatusSending),
+				"status":   string(domain.BroadcastStatusProcessing),
 			},
 		}
 
@@ -1815,7 +1815,7 @@ func TestTaskService_HandleBroadcastScheduledExtended(t *testing.T) {
 			EntityID:    broadcastID,
 			Data: map[string]interface{}{
 				"send_now": true,
-				"status":   string(domain.BroadcastStatusSending),
+				"status":   string(domain.BroadcastStatusProcessing),
 			},
 		}
 
@@ -1925,7 +1925,7 @@ func TestTaskService_HandleBroadcastScheduledExtended(t *testing.T) {
 			EntityID:    broadcastID,
 			Data: map[string]interface{}{
 				"send_now": true,
-				"status":   string(domain.BroadcastStatusSending),
+				"status":   string(domain.BroadcastStatusProcessing),
 			},
 		}
 
@@ -1964,7 +1964,7 @@ func TestTaskService_HandleBroadcastScheduledExtended(t *testing.T) {
 			EntityID:    broadcastID,
 			Data: map[string]interface{}{
 				"send_now": true,
-				"status":   string(domain.BroadcastStatusSending),
+				"status":   string(domain.BroadcastStatusProcessing),
 			},
 		}
 
@@ -2012,7 +2012,7 @@ func TestTaskService_HandleBroadcastScheduledExtended(t *testing.T) {
 			EntityID:    broadcastID,
 			Data: map[string]interface{}{
 				"send_now": true,
-				"status":   string(domain.BroadcastStatusSending),
+				"status":   string(domain.BroadcastStatusProcessing),
 			},
 		}
 

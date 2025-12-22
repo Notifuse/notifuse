@@ -183,10 +183,10 @@ func testCompleteABTestingFlow(t *testing.T, client *testutil.APIClient, factory
 		defer func() { _ = winnerResp.Body.Close() }()
 		assert.Equal(t, http.StatusOK, winnerResp.StatusCode)
 
-		// Step 10: Wait for broadcast to complete (sent or completed status)
+		// Step 10: Wait for broadcast to complete (processed or completed status)
 		// Using WaitForBroadcastStatusWithExecution to ensure continuous task processing
 		finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcastID,
-			[]string{"sent", "completed", "winner_selected"},
+			[]string{"processed", "completed", "winner_selected"},
 			60*time.Second)
 		if err != nil {
 			// If timeout, check if we're at least progressing
@@ -194,8 +194,8 @@ func testCompleteABTestingFlow(t *testing.T, client *testutil.APIClient, factory
 		}
 
 		// Verify broadcast progressed successfully
-		assert.Contains(t, []string{"sent", "completed", "winner_selected"}, finalStatus,
-			"Broadcast should reach sent, completed, or winner_selected state")
+		assert.Contains(t, []string{"processed", "completed", "winner_selected"}, finalStatus,
+			"Broadcast should reach processed, completed, or winner_selected state")
 
 		// Verify winning template is set
 		finalBroadcastResp, err := client.GetBroadcast(broadcastID)
@@ -297,7 +297,7 @@ func testRaceConditionPrevention(t *testing.T, client *testutil.APIClient, facto
 
 		// Wait for broadcast to enter testing or test_completed state with continuous task execution
 		currentStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcastID,
-			[]string{"testing", "test_completed", "sending"},
+			[]string{"testing", "test_completed", "processing"},
 			90*time.Second)
 		if err != nil {
 			t.Fatalf("Failed to wait for broadcast to enter testing phase: %v", err)
@@ -324,7 +324,7 @@ func testRaceConditionPrevention(t *testing.T, client *testutil.APIClient, facto
 		// Final verification - wait for broadcast to progress to winner_selected or beyond
 		// Using WaitForBroadcastStatusWithExecution to continue task processing
 		finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcastID,
-			[]string{"winner_selected", "sending", "sent", "completed"},
+			[]string{"winner_selected", "processing", "processed", "completed"},
 			60*time.Second)
 		if err != nil {
 			// If timeout, verify we're at least past race condition state
@@ -332,7 +332,7 @@ func testRaceConditionPrevention(t *testing.T, client *testutil.APIClient, facto
 		}
 
 		// Should be progressing with or have completed winner phase (race condition prevented)
-		assert.Contains(t, []string{"winner_selected", "sending", "sent", "completed"}, finalStatus,
+		assert.Contains(t, []string{"winner_selected", "processing", "processed", "completed"}, finalStatus,
 			"Race condition test: broadcast should progress past test phase")
 
 		// Verify winning template is preserved
@@ -429,14 +429,14 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 
 		// Wait for broadcast to enter testing state with continuous task execution
 		currentStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcastID,
-			[]string{"testing", "test_completed", "sending"},
+			[]string{"testing", "test_completed", "processing"},
 			45*time.Second)
 		if err != nil {
 			t.Fatalf("Failed to wait for broadcast to enter testing phase: %v", err)
 		}
 
 		// Verify we're in a state that allows winner selection
-		assert.Contains(t, []string{"testing", "test_completed", "sending"}, currentStatus,
+		assert.Contains(t, []string{"testing", "test_completed", "processing"}, currentStatus,
 			"Broadcast should be in testing, test_completed, or sending state before winner selection")
 
 		// Select winner DURING test phase (not after completion)
@@ -458,14 +458,14 @@ func testManualWinnerSelectionDuringTestPhase(t *testing.T, client *testutil.API
 
 		// Verify transition to winner phase with continuous task execution
 		finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcastID,
-			[]string{"winner_selected", "sending", "sent", "completed"},
+			[]string{"winner_selected", "processing", "processed", "completed"},
 			60*time.Second)
 		if err != nil {
 			t.Logf("Warning: broadcast did not reach final state: %v", err)
 		}
 
 		// Should be in or past winner phase
-		assert.Contains(t, []string{"winner_selected", "sending", "sent", "completed"}, finalStatus,
+		assert.Contains(t, []string{"winner_selected", "processing", "processed", "completed"}, finalStatus,
 			"Broadcast should progress to winner phase after manual selection")
 
 		// Verify correct winner
@@ -572,14 +572,14 @@ func testAutoWinnerSelectionFlow(t *testing.T, client *testutil.APIClient, facto
 		// So we verify the test phase completes and the broadcast is waiting for the duration
 		// Using WaitForBroadcastStatusWithExecution to ensure continuous task processing
 		status, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcastID,
-			[]string{"test_completed", "testing", "sending"},
+			[]string{"test_completed", "testing", "processing"},
 			90*time.Second)
 		if err != nil {
 			t.Logf("Warning: broadcast did not complete test phase: %v", err)
 		}
 
 		// Broadcast should reach test_completed and wait for auto evaluation
-		assert.Contains(t, []string{"test_completed", "testing", "sending"}, status,
+		assert.Contains(t, []string{"test_completed", "testing", "processing"}, status,
 			"Broadcast should complete test phase and wait for auto winner evaluation")
 
 		// Verify broadcast state and settings

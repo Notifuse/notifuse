@@ -9,6 +9,7 @@ import (
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/service/queue"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
 
@@ -42,10 +43,12 @@ type AppInterface interface {
 	GetMessageHistoryRepository() domain.MessageHistoryRepository
 	GetContactListRepository() domain.ContactListRepository
 	GetTransactionalNotificationRepository() domain.TransactionalNotificationRepository
+	GetEmailQueueRepository() domain.EmailQueueRepository
 
 	// Service getters for testing
 	GetAuthService() interface{} // Returns *service.AuthService but defined as interface{} to avoid import cycle
 	GetTransactionalNotificationService() domain.TransactionalNotificationService
+	GetEmailQueueWorker() *queue.EmailQueueWorker
 }
 
 // NewServerManager creates a new server manager for testing

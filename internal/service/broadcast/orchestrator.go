@@ -351,7 +351,7 @@ func (o *BroadcastOrchestrator) SaveProgressState(
 
 	// Create a copy of the broadcast state and update counters
 	updatedBroadcastState := *broadcastState // Copy the struct
-	updatedBroadcastState.SentCount = sentCount
+	updatedBroadcastState.EnqueuedCount = sentCount
 	updatedBroadcastState.FailedCount = failedCount
 
 	// Create state with preserved A/B testing fields
@@ -462,7 +462,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			Progress: 0,
 			Message:  "Starting broadcast",
 			SendBroadcast: &domain.SendBroadcastState{
-				SentCount:                 0,
+				EnqueuedCount:                 0,
 				FailedCount:               0,
 				RecipientOffset:           0,        // Track how many recipients we've processed
 				Phase:                     "single", // Default phase
@@ -475,7 +475,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	// Initialize the SendBroadcast state if it doesn't exist yet
 	if task.State.SendBroadcast == nil {
 		task.State.SendBroadcast = &domain.SendBroadcastState{
-			SentCount:                 0,
+			EnqueuedCount:                 0,
 			FailedCount:               0,
 			RecipientOffset:           0,
 			Phase:                     "single", // Default phase
@@ -507,7 +507,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	broadcastID = broadcastState.BroadcastID
 
 	// Track progress
-	sentCount := broadcastState.SentCount
+	sentCount := broadcastState.EnqueuedCount
 	failedCount := broadcastState.FailedCount
 	// processedCount will be calculated later when needed
 	var processedCount int
@@ -576,8 +576,8 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				return false, err
 			}
 
-			// Update broadcast status to sent
-			broadcast.Status = domain.BroadcastStatusSent
+			// Update broadcast status to processed
+			broadcast.Status = domain.BroadcastStatusProcessed
 			broadcast.UpdatedAt = time.Now().UTC()
 
 			// Set completion time
@@ -590,15 +590,23 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 					"task_id":      task.ID,
 					"broadcast_id": broadcastState.BroadcastID,
 					"error":        updateErr.Error(),
-				}).Error("Failed to update broadcast status to sent (no recipients)")
-				err = fmt.Errorf("failed to update broadcast status to sent: %w", updateErr)
+				}).Error("Failed to update broadcast status to processed (no recipients)")
+				err = fmt.Errorf("failed to update broadcast status to processed: %w", updateErr)
 				return false, err
+			}
+
+			// Set enqueued count on the broadcast (0 for no recipients case)
+			if setErr := o.broadcastRepo.SetEnqueuedCount(context.Background(), task.WorkspaceID, broadcastState.BroadcastID, 0); setErr != nil {
+				o.logger.WithFields(map[string]interface{}{
+					"broadcast_id": broadcastState.BroadcastID,
+					"error":        setErr.Error(),
+				}).Error("Failed to set enqueued count")
 			}
 
 			o.logger.WithFields(map[string]interface{}{
 				"task_id":      task.ID,
 				"broadcast_id": broadcastState.BroadcastID,
-			}).Info("Broadcast marked as sent successfully (no recipients)")
+			}).Info("Broadcast marked as processed successfully (no recipients)")
 
 			allDone = true
 			return allDone, err
@@ -663,7 +671,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		if broadcastState.Phase == "" {
 			// Initialize phase based on current status
 			switch broadcast.Status {
-			case domain.BroadcastStatusSending:
+			case domain.BroadcastStatusProcessing:
 				if broadcast.WinningTemplate != nil {
 					// Winner already selected, proceed to winner phase
 					broadcastState.Phase = "winner"
@@ -1178,7 +1186,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		}
 
 		// Update local counters for state
-		broadcastState.SentCount = sentCount
+		broadcastState.EnqueuedCount = sentCount
 		broadcastState.FailedCount = failedCount
 
 		// Continue to next batch; do not prematurely mark done based on returned count
@@ -1219,7 +1227,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 		switch broadcastState.Phase {
 		case "winner", "single":
 			// Winner phase or single template complete - mark as sent
-			broadcast.Status = domain.BroadcastStatusSent
+			broadcast.Status = domain.BroadcastStatusProcessed
 			broadcast.UpdatedAt = time.Now().UTC()
 
 			// Set completion time
@@ -1231,7 +1239,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				broadcast.WinnerSentAt = &completedAt
 			}
 
-			statusMessage = "sent"
+			statusMessage = "processed"
 		case "test":
 			// Test phase complete - should have been handled by handleTestPhaseCompletion
 			// This shouldn't happen, but handle it gracefully
@@ -1253,13 +1261,22 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			return false, err
 		}
 
+		// Set final enqueued count on the broadcast
+		if setErr := o.broadcastRepo.SetEnqueuedCount(context.Background(), task.WorkspaceID, broadcastState.BroadcastID, broadcastState.EnqueuedCount); setErr != nil {
+			o.logger.WithFields(map[string]interface{}{
+				"broadcast_id":   broadcastState.BroadcastID,
+				"enqueued_count": broadcastState.EnqueuedCount,
+				"error":          setErr.Error(),
+			}).Error("Failed to set enqueued count")
+		}
+
 		// codecov:ignore:start
 		o.logger.WithFields(map[string]interface{}{
-			"task_id":      task.ID,
-			"broadcast_id": broadcastState.BroadcastID,
-			"sent_count":   sentCount,
-			"failed_count": failedCount,
-			"phase":        broadcastState.Phase,
+			"task_id":        task.ID,
+			"broadcast_id":   broadcastState.BroadcastID,
+			"enqueued_count": sentCount,
+			"failed_count":   failedCount,
+			"phase":          broadcastState.Phase,
 		}).Info("Broadcast marked as " + statusMessage + " successfully")
 		// codecov:ignore:end
 	}
@@ -1268,7 +1285,7 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 	o.logger.WithFields(map[string]interface{}{
 		"task_id":          task.ID,
 		"broadcast_id":     broadcastState.BroadcastID,
-		"sent_total":       broadcastState.SentCount,
+		"enqueued_total":   broadcastState.EnqueuedCount,
 		"failed_total":     broadcastState.FailedCount,
 		"total_recipients": broadcastState.TotalRecipients,
 		"progress":         task.Progress,

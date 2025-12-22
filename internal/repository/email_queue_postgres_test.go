@@ -306,14 +306,14 @@ func TestEmailQueueRepository_MarkAsProcessing(t *testing.T) {
 func TestEmailQueueRepository_MarkAsSent(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("successfully marks as sent", func(t *testing.T) {
+	t.Run("successfully deletes entry after send", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
 
 		repo := NewEmailQueueRepositoryWithDB(db)
 
-		mock.ExpectExec(`UPDATE email_queue SET status = 'sent'`).
-			WithArgs("entry-123", sqlmock.AnyArg()).
+		mock.ExpectExec(`DELETE FROM email_queue WHERE id = \$1`).
+			WithArgs("entry-123").
 			WillReturnResult(sqlmock.NewResult(0, 1))
 
 		err := repo.MarkAsSent(ctx, "workspace-123", "entry-123")
@@ -327,13 +327,13 @@ func TestEmailQueueRepository_MarkAsSent(t *testing.T) {
 
 		repo := NewEmailQueueRepositoryWithDB(db)
 
-		mock.ExpectExec(`UPDATE email_queue SET status = 'sent'`).
-			WithArgs("entry-123", sqlmock.AnyArg()).
+		mock.ExpectExec(`DELETE FROM email_queue WHERE id = \$1`).
+			WithArgs("entry-123").
 			WillReturnError(errors.New("database error"))
 
 		err := repo.MarkAsSent(ctx, "workspace-123", "entry-123")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to mark email as sent")
+		assert.Contains(t, err.Error(), "failed to delete sent email")
 	})
 }
 
@@ -457,10 +457,10 @@ func TestEmailQueueRepository_GetStats(t *testing.T) {
 
 		repo := NewEmailQueueRepositoryWithDB(db)
 
-		// Queue stats
+		// Queue stats (no "sent" column - sent entries are deleted immediately)
 		mock.ExpectQuery(`SELECT .+ FROM email_queue`).
-			WillReturnRows(sqlmock.NewRows([]string{"pending", "processing", "sent", "failed"}).
-				AddRow(10, 5, 100, 3))
+			WillReturnRows(sqlmock.NewRows([]string{"pending", "processing", "failed"}).
+				AddRow(10, 5, 3))
 
 		// Dead letter count
 		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM email_queue_dead_letter`).
@@ -470,7 +470,6 @@ func TestEmailQueueRepository_GetStats(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, int64(10), stats.Pending)
 		assert.Equal(t, int64(5), stats.Processing)
-		assert.Equal(t, int64(100), stats.Sent)
 		assert.Equal(t, int64(3), stats.Failed)
 		assert.Equal(t, int64(2), stats.DeadLetter)
 		assert.NoError(t, mock.ExpectationsWereMet())
@@ -556,10 +555,10 @@ func TestEmailQueueRepository_CountBySourceAndStatus(t *testing.T) {
 		repo := NewEmailQueueRepositoryWithDB(db)
 
 		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM email_queue WHERE source_type = \$1 AND source_id = \$2 AND status = \$3`).
-			WithArgs(domain.EmailQueueSourceBroadcast, "bcast-123", domain.EmailQueueStatusSent).
+			WithArgs(domain.EmailQueueSourceBroadcast, "bcast-123", domain.EmailQueueStatusPending).
 			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(42))
 
-		count, err := repo.CountBySourceAndStatus(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "bcast-123", domain.EmailQueueStatusSent)
+		count, err := repo.CountBySourceAndStatus(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "bcast-123", domain.EmailQueueStatusPending)
 		require.NoError(t, err)
 		assert.Equal(t, int64(42), count)
 	})
@@ -573,44 +572,14 @@ func TestEmailQueueRepository_CountBySourceAndStatus(t *testing.T) {
 		mock.ExpectQuery(`SELECT COUNT\(\*\)`).
 			WillReturnError(errors.New("database error"))
 
-		count, err := repo.CountBySourceAndStatus(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "bcast-123", domain.EmailQueueStatusSent)
+		count, err := repo.CountBySourceAndStatus(ctx, "workspace-123", domain.EmailQueueSourceBroadcast, "bcast-123", domain.EmailQueueStatusPending)
 		assert.Error(t, err)
 		assert.Equal(t, int64(0), count)
 	})
 }
 
-func TestEmailQueueRepository_CleanupSent(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("deletes sent entries older than duration", func(t *testing.T) {
-		db, mock, cleanup := testutil.SetupMockDB(t)
-		defer cleanup()
-
-		repo := NewEmailQueueRepositoryWithDB(db)
-
-		mock.ExpectExec(`DELETE FROM email_queue WHERE status = 'sent' AND processed_at < \$1`).
-			WithArgs(sqlmock.AnyArg()).
-			WillReturnResult(sqlmock.NewResult(0, 50))
-
-		count, err := repo.CleanupSent(ctx, "workspace-123", 24*time.Hour)
-		require.NoError(t, err)
-		assert.Equal(t, int64(50), count)
-	})
-
-	t.Run("handles database error", func(t *testing.T) {
-		db, mock, cleanup := testutil.SetupMockDB(t)
-		defer cleanup()
-
-		repo := NewEmailQueueRepositoryWithDB(db)
-
-		mock.ExpectExec(`DELETE FROM email_queue`).
-			WillReturnError(errors.New("database error"))
-
-		count, err := repo.CleanupSent(ctx, "workspace-123", 24*time.Hour)
-		assert.Error(t, err)
-		assert.Equal(t, int64(0), count)
-	})
-}
+// Note: CleanupSent test removed - sent entries are now deleted immediately
+// so there's no need for a cleanup operation
 
 func TestEmailQueueRepository_CleanupDeadLetter(t *testing.T) {
 	ctx := context.Background()

@@ -100,16 +100,6 @@ func (m *V21Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 		return fmt.Errorf("failed to create email_queue source index: %w", err)
 	}
 
-	// Index for cleanup of sent emails
-	_, err = db.ExecContext(ctx, `
-		CREATE INDEX IF NOT EXISTS idx_email_queue_cleanup
-		ON email_queue(processed_at)
-		WHERE status = 'sent'
-	`)
-	if err != nil {
-		return fmt.Errorf("failed to create email_queue cleanup index: %w", err)
-	}
-
 	// Index for integration-based queries (useful for rate limiting monitoring)
 	_, err = db.ExecContext(ctx, `
 		CREATE INDEX IF NOT EXISTS idx_email_queue_integration
@@ -155,6 +145,28 @@ func (m *V21Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create email_queue_dead_letter cleanup index: %w", err)
+	}
+
+	// PART 3: Add broadcast count columns for email queue tracking
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE broadcasts
+		ADD COLUMN IF NOT EXISTS enqueued_count INTEGER DEFAULT 0,
+		ADD COLUMN IF NOT EXISTS sent_count INTEGER DEFAULT 0,
+		ADD COLUMN IF NOT EXISTS failed_count INTEGER DEFAULT 0
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add broadcast count columns: %w", err)
+	}
+
+	// PART 4: Migrate broadcast statuses from sending/sent to processing/processed
+	_, err = db.ExecContext(ctx, `UPDATE broadcasts SET status = 'processing' WHERE status = 'sending'`)
+	if err != nil {
+		return fmt.Errorf("failed to migrate sending status: %w", err)
+	}
+
+	_, err = db.ExecContext(ctx, `UPDATE broadcasts SET status = 'processed' WHERE status = 'sent'`)
+	if err != nil {
+		return fmt.Errorf("failed to migrate sent status: %w", err)
 	}
 
 	return nil

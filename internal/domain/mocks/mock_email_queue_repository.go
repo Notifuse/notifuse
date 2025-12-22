@@ -52,21 +52,6 @@ func (mr *MockEmailQueueRepositoryMockRecorder) CleanupDeadLetter(arg0, arg1, ar
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanupDeadLetter", reflect.TypeOf((*MockEmailQueueRepository)(nil).CleanupDeadLetter), arg0, arg1, arg2)
 }
 
-// CleanupSent mocks base method.
-func (m *MockEmailQueueRepository) CleanupSent(arg0 context.Context, arg1 string, arg2 time.Duration) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CleanupSent", arg0, arg1, arg2)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CleanupSent indicates an expected call of CleanupSent.
-func (mr *MockEmailQueueRepositoryMockRecorder) CleanupSent(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanupSent", reflect.TypeOf((*MockEmailQueueRepository)(nil).CleanupSent), arg0, arg1, arg2)
-}
-
 // CountBySourceAndStatus mocks base method.
 func (m *MockEmailQueueRepository) CountBySourceAndStatus(arg0 context.Context, arg1 string, arg2 domain.EmailQueueSourceType, arg3 string, arg4 domain.EmailQueueStatus) (int64, error) {
 	m.ctrl.T.Helper()

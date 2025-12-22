@@ -49,6 +49,12 @@ func setupTestEnvironment(t *testing.T) (
 	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
 	mockEventBus := domainmocks.NewMockEventBus(ctrl)
 
+	// Setup common broadcast repository expectations for count updates
+	mockBroadcastRepository.EXPECT().
+		SetEnqueuedCount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+		Return(nil).
+		AnyTimes()
+
 	// Setup common logger expectations
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
@@ -86,7 +92,7 @@ func createMockBroadcast(broadcastID string, variations []string) *domain.Broadc
 		TestSettings: domain.BroadcastTestSettings{
 			Variations: broadcastVariations,
 		},
-		Status: domain.BroadcastStatusSending,
+		Status: domain.BroadcastStatusProcessing,
 	}
 }
 
@@ -154,7 +160,7 @@ func TestProcess_HappyPath(t *testing.T) {
 		Return(0, nil).
 		Times(1)
 
-	// Expect UpdateBroadcast to be called when marking broadcast as sent (no recipients)
+	// Expect UpdateBroadcast to be called when marking broadcast as processed (no recipients)
 	mockBroadcastRepository.EXPECT().
 		UpdateBroadcast(gomock.Any(), gomock.Any()).
 		Return(nil).

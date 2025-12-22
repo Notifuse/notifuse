@@ -439,6 +439,47 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_trigger_log_automation ON automation_trigger_log(automation_id, triggered_at DESC)`,
 		`CREATE INDEX IF NOT EXISTS idx_trigger_log_contact ON automation_trigger_log(contact_email, automation_id)`,
+		// Email queue tables (V21 migration)
+		`CREATE TABLE IF NOT EXISTS email_queue (
+			id VARCHAR(36) PRIMARY KEY,
+			status VARCHAR(20) NOT NULL DEFAULT 'pending',
+			priority INTEGER NOT NULL DEFAULT 5,
+			source_type VARCHAR(20) NOT NULL,
+			source_id VARCHAR(36) NOT NULL,
+			integration_id VARCHAR(36) NOT NULL,
+			provider_kind VARCHAR(20) NOT NULL,
+			contact_email VARCHAR(255) NOT NULL,
+			message_id VARCHAR(100) NOT NULL,
+			template_id VARCHAR(36) NOT NULL,
+			payload JSONB NOT NULL,
+			attempts INTEGER NOT NULL DEFAULT 0,
+			max_attempts INTEGER NOT NULL DEFAULT 3,
+			last_error TEXT,
+			next_retry_at TIMESTAMPTZ,
+			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+			processed_at TIMESTAMPTZ
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_email_queue_pending ON email_queue(priority ASC, created_at ASC) WHERE status = 'pending'`,
+		`CREATE INDEX IF NOT EXISTS idx_email_queue_next_retry ON email_queue(next_retry_at) WHERE status = 'pending' AND next_retry_at IS NOT NULL`,
+		`CREATE INDEX IF NOT EXISTS idx_email_queue_retry ON email_queue(next_retry_at) WHERE status = 'failed' AND attempts < max_attempts`,
+		`CREATE INDEX IF NOT EXISTS idx_email_queue_source ON email_queue(source_type, source_id, status)`,
+		`CREATE INDEX IF NOT EXISTS idx_email_queue_integration ON email_queue(integration_id, status)`,
+		`CREATE TABLE IF NOT EXISTS email_queue_dead_letter (
+			id VARCHAR(36) PRIMARY KEY,
+			original_entry_id VARCHAR(36) NOT NULL,
+			source_type VARCHAR(20) NOT NULL,
+			source_id VARCHAR(36) NOT NULL,
+			contact_email VARCHAR(255) NOT NULL,
+			message_id VARCHAR(100) NOT NULL,
+			payload JSONB NOT NULL,
+			final_error TEXT NOT NULL,
+			attempts INTEGER NOT NULL,
+			created_at TIMESTAMPTZ NOT NULL,
+			failed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+		)`,
+		`CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_source ON email_queue_dead_letter(source_type, source_id, failed_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_cleanup ON email_queue_dead_letter(failed_at)`,
 	}
 
 	// Run all table creation queries

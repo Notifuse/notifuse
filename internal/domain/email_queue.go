@@ -3,6 +3,7 @@ package domain
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"time"
 )
 
@@ -14,8 +15,8 @@ type EmailQueueStatus string
 const (
 	EmailQueueStatusPending    EmailQueueStatus = "pending"
 	EmailQueueStatusProcessing EmailQueueStatus = "processing"
-	EmailQueueStatusSent       EmailQueueStatus = "sent"
 	EmailQueueStatusFailed     EmailQueueStatus = "failed"
+	// Note: There is no "sent" status - entries are deleted immediately after successful send
 )
 
 // EmailQueueSourceType identifies the origin of the queued email
@@ -114,9 +115,9 @@ type EmailQueueDeadLetter struct {
 type EmailQueueStats struct {
 	Pending    int64 `json:"pending"`
 	Processing int64 `json:"processing"`
-	Sent       int64 `json:"sent"`
 	Failed     int64 `json:"failed"`
 	DeadLetter int64 `json:"dead_letter"`
+	// Note: Sent entries are deleted immediately, not tracked in stats
 }
 
 // EmailQueueRepository defines data access for the email queue
@@ -135,7 +136,8 @@ type EmailQueueRepository interface {
 	// MarkAsProcessing atomically marks an entry as processing
 	MarkAsProcessing(ctx context.Context, workspaceID string, id string) error
 
-	// MarkAsSent marks an entry as successfully sent
+	// MarkAsSent deletes the entry after successful send
+	// (entries are removed immediately rather than marked with a "sent" status)
 	MarkAsSent(ctx context.Context, workspaceID string, id string) error
 
 	// MarkAsFailed marks an entry as failed and schedules retry
@@ -153,9 +155,6 @@ type EmailQueueRepository interface {
 
 	// CountBySourceAndStatus counts entries by source and status
 	CountBySourceAndStatus(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string, status EmailQueueStatus) (int64, error)
-
-	// CleanupSent removes old sent entries (for maintenance)
-	CleanupSent(ctx context.Context, workspaceID string, olderThan time.Duration) (int64, error)
 
 	// CleanupDeadLetter removes old dead letter entries
 	CleanupDeadLetter(ctx context.Context, workspaceID string, olderThan time.Duration) (int64, error)
@@ -176,4 +175,111 @@ func CalculateNextRetryTime(attempts int) time.Time {
 	// 2^(attempts-1) minutes
 	backoffMinutes := 1 << uint(attempts-1)
 	return time.Now().UTC().Add(time.Duration(backoffMinutes) * time.Minute)
+}
+
+// CleanupDeadLetterRequest represents a request to clean up old dead letter entries
+type CleanupDeadLetterRequest struct {
+	WorkspaceID    string `json:"workspace_id"`
+	RetentionHours int    `json:"retention_hours"` // Delete entries older than this many hours (default: 720 = 30 days)
+}
+
+// Validate validates the cleanup request
+func (r *CleanupDeadLetterRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+	if r.RetentionHours < 0 {
+		r.RetentionHours = 0
+	}
+	// Default to 30 days if not specified
+	if r.RetentionHours == 0 {
+		r.RetentionHours = 720 // 30 days
+	}
+	return nil
+}
+
+// GetEmailQueueStatsRequest represents a request to get queue statistics
+type GetEmailQueueStatsRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+}
+
+// FromURLParams populates the request from URL parameters
+func (r *GetEmailQueueStatsRequest) FromURLParams(params map[string][]string) error {
+	if ids, ok := params["workspace_id"]; ok && len(ids) > 0 {
+		r.WorkspaceID = ids[0]
+	}
+	return r.Validate()
+}
+
+// Validate validates the request
+func (r *GetEmailQueueStatsRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+	return nil
+}
+
+// GetDeadLetterEntriesRequest represents a request to get dead letter entries
+type GetDeadLetterEntriesRequest struct {
+	WorkspaceID string `json:"workspace_id"`
+	Limit       int    `json:"limit"`
+	Offset      int    `json:"offset"`
+}
+
+// FromURLParams populates the request from URL parameters
+func (r *GetDeadLetterEntriesRequest) FromURLParams(params map[string][]string) error {
+	if ids, ok := params["workspace_id"]; ok && len(ids) > 0 {
+		r.WorkspaceID = ids[0]
+	}
+	if limits, ok := params["limit"]; ok && len(limits) > 0 {
+		val, err := ParseIntParam(limits[0])
+		if err == nil {
+			r.Limit = val
+		} else {
+			r.Limit = 50
+		}
+	} else {
+		r.Limit = 50
+	}
+	if offsets, ok := params["offset"]; ok && len(offsets) > 0 {
+		val, err := ParseIntParam(offsets[0])
+		if err == nil {
+			r.Offset = val
+		}
+	}
+	return r.Validate()
+}
+
+// Validate validates the request
+func (r *GetDeadLetterEntriesRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+	if r.Limit <= 0 {
+		r.Limit = 50
+	}
+	if r.Limit > 100 {
+		r.Limit = 100
+	}
+	if r.Offset < 0 {
+		r.Offset = 0
+	}
+	return nil
+}
+
+// RetryDeadLetterRequest represents a request to retry a dead letter entry
+type RetryDeadLetterRequest struct {
+	WorkspaceID  string `json:"workspace_id"`
+	DeadLetterID string `json:"dead_letter_id"`
+}
+
+// Validate validates the request
+func (r *RetryDeadLetterRequest) Validate() error {
+	if r.WorkspaceID == "" {
+		return fmt.Errorf("workspace_id is required")
+	}
+	if r.DeadLetterID == "" {
+		return fmt.Errorf("dead_letter_id is required")
+	}
+	return nil
 }

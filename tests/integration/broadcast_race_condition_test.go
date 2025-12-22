@@ -239,7 +239,7 @@ func TestTaskConcurrentExecutionRaceCondition(t *testing.T) {
 		if json.Unmarshal(body, &result) == nil {
 			if bd, ok := result["broadcast"].(map[string]interface{}); ok {
 				finalStatus, _ = bd["status"].(string)
-				if finalStatus == "sent" || finalStatus == "completed" || finalStatus == "failed" {
+				if finalStatus == "processed" || finalStatus == "completed" || finalStatus == "failed" {
 					break
 				}
 			}

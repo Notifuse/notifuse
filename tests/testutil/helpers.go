@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Notifuse/notifuse/config"
+	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/stretchr/testify/require"
 )
@@ -1121,4 +1122,142 @@ func WaitForMailpitMessages(t *testing.T, subject string, expectedCount int, tim
 	// Timeout - get final count for error message
 	finalCount, _ := GetMailpitMessageCount(t, subject)
 	return fmt.Errorf("timeout waiting for %d emails (got %d after %v)", expectedCount, finalCount, timeout)
+}
+
+// ============================================================================
+// Email Queue Helpers
+// ============================================================================
+
+// WaitForQueueEmpty waits for the email queue to be empty (no pending or processing entries)
+func WaitForQueueEmpty(t *testing.T, queueRepo domain.EmailQueueRepository, workspaceID string, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 500 * time.Millisecond
+
+	t.Logf("Waiting for email queue to be empty (workspace: %s, timeout: %v)", workspaceID, timeout)
+
+	for time.Now().Before(deadline) {
+		stats, err := queueRepo.GetStats(context.Background(), workspaceID)
+		if err != nil {
+			t.Logf("Warning: failed to get queue stats: %v", err)
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		activeCount := stats.Pending + stats.Processing
+		if activeCount == 0 {
+			// Note: sent entries are deleted immediately, not tracked in stats
+			t.Logf("Email queue is empty (failed: %d, dead letter: %d)", stats.Failed, stats.DeadLetter)
+			return nil
+		}
+
+		t.Logf("Queue status - pending: %d, processing: %d, failed: %d",
+			stats.Pending, stats.Processing, stats.Failed)
+
+		time.Sleep(pollInterval)
+	}
+
+	// Get final stats for error message
+	finalStats, _ := queueRepo.GetStats(context.Background(), workspaceID)
+	return fmt.Errorf("timeout waiting for queue to be empty (pending: %d, processing: %d after %v)",
+		finalStats.Pending, finalStats.Processing, timeout)
+}
+
+// WaitForQueueStats waits for the email queue to reach specific stats
+// Note: Since sent entries are deleted immediately, this only waits for failed count and empty queue
+func WaitForQueueStats(t *testing.T, queueRepo domain.EmailQueueRepository, workspaceID string,
+	expectedSent, expectedFailed int64, timeout time.Duration) error {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 500 * time.Millisecond
+
+	// Note: expectedSent is kept for API compatibility but ignored since sent entries are deleted immediately
+	t.Logf("Waiting for queue stats: failed=%d (workspace: %s, timeout: %v)",
+		expectedFailed, workspaceID, timeout)
+
+	for time.Now().Before(deadline) {
+		stats, err := queueRepo.GetStats(context.Background(), workspaceID)
+		if err != nil {
+			t.Logf("Warning: failed to get queue stats: %v", err)
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		// Check if we've reached expected stats (sent entries are deleted, so just check failed and empty queue)
+		if stats.Failed >= expectedFailed && stats.Pending == 0 && stats.Processing == 0 {
+			t.Logf("Queue reached expected stats - failed: %d", stats.Failed)
+			return nil
+		}
+
+		t.Logf("Queue status - pending: %d, processing: %d, failed: %d/%d",
+			stats.Pending, stats.Processing, stats.Failed, expectedFailed)
+
+		time.Sleep(pollInterval)
+	}
+
+	// Get final stats for error message
+	finalStats, _ := queueRepo.GetStats(context.Background(), workspaceID)
+	return fmt.Errorf("timeout waiting for queue stats (got failed=%d, expected failed=%d after %v)",
+		finalStats.Failed, expectedFailed, timeout)
+}
+
+// WaitForQueueProcessed waits for all pending entries to be processed (either sent or failed)
+// Note: Sent entries are deleted immediately, so we wait until the queue is empty
+func WaitForQueueProcessed(t *testing.T, queueRepo domain.EmailQueueRepository, workspaceID string,
+	expectedTotal int64, timeout time.Duration) (*domain.EmailQueueStats, error) {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 500 * time.Millisecond
+
+	t.Logf("Waiting for %d queue entries to be processed (workspace: %s, timeout: %v)",
+		expectedTotal, workspaceID, timeout)
+
+	for time.Now().Before(deadline) {
+		stats, err := queueRepo.GetStats(context.Background(), workspaceID)
+		if err != nil {
+			t.Logf("Warning: failed to get queue stats: %v", err)
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		// Sent entries are deleted immediately, so just check if queue is empty (or only has failures)
+		if stats.Pending == 0 && stats.Processing == 0 {
+			t.Logf("Queue processing complete - failed: %d, dead letter: %d",
+				stats.Failed, stats.DeadLetter)
+			return stats, nil
+		}
+
+		t.Logf("Queue progress - pending: %d, processing: %d, failed: %d",
+			stats.Pending, stats.Processing, stats.Failed)
+
+		time.Sleep(pollInterval)
+	}
+
+	// Get final stats for error message
+	finalStats, _ := queueRepo.GetStats(context.Background(), workspaceID)
+	return finalStats, fmt.Errorf("timeout waiting for queue processing (pending: %d, processing: %d after %v)",
+		finalStats.Pending, finalStats.Processing, timeout)
+}
+
+// CreateTestEmailQueueEntry creates a test email queue entry with sensible defaults
+func CreateTestEmailQueueEntry(integrationID, contactEmail, sourceID string, sourceType domain.EmailQueueSourceType) *domain.EmailQueueEntry {
+	return &domain.EmailQueueEntry{
+		Status:        domain.EmailQueueStatusPending,
+		Priority:      domain.EmailQueuePriorityMarketing,
+		SourceType:    sourceType,
+		SourceID:      sourceID,
+		IntegrationID: integrationID,
+		ProviderKind:  domain.EmailProviderKindSMTP,
+		ContactEmail:  contactEmail,
+		MessageID:     fmt.Sprintf("msg-%s", GenerateRandomString(8)),
+		TemplateID:    fmt.Sprintf("tpl-%s", GenerateRandomString(8)),
+		Payload: domain.EmailQueuePayload{
+			FromAddress:        "test@example.com",
+			FromName:           "Test Sender",
+			Subject:            fmt.Sprintf("Test Email %s", GenerateRandomString(4)),
+			HTMLContent:        "<html><body><h1>Test Email</h1><p>This is a test email.</p></body></html>",
+			RateLimitPerMinute: 6000, // High rate for tests
+		},
+		Attempts:    0,
+		MaxAttempts: 3,
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+	}
 }

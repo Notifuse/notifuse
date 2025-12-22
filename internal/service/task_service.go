@@ -340,6 +340,16 @@ func (s *TaskService) ExecutePendingTasks(ctx context.Context, maxTasks int) err
 			// Check response
 			if resp.StatusCode != http.StatusOK {
 				body, _ := io.ReadAll(resp.Body)
+
+				// 409 Conflict means task is already running - this is expected in concurrent scenarios
+				if resp.StatusCode == http.StatusConflict {
+					s.logger.WithField("task_id", t.ID).
+						WithField("workspace_id", t.WorkspaceID).
+						Debug("Task already running, skipping duplicate dispatch")
+					return
+				}
+
+				// Other non-OK statuses are actual errors
 				err := fmt.Errorf("non-OK status: %d, response: %s", resp.StatusCode, string(body))
 				tracing.MarkSpanError(taskCtx, err)
 				s.logger.WithField("task_id", t.ID).
@@ -729,7 +739,7 @@ func (s *TaskService) handleBroadcastScheduled(ctx context.Context, payload doma
 			tracing.AddAttribute(txCtx, "send_now", sendNow)
 			tracing.AddAttribute(txCtx, "broadcast_status", status)
 
-			if sendNow && status == string(domain.BroadcastStatusSending) {
+			if sendNow && status == string(domain.BroadcastStatusProcessing) {
 				// If broadcast is being sent immediately, mark task as pending and set next run to now
 				nextRunAfter := time.Now()
 				existingTask.NextRunAfter = &nextRunAfter
@@ -795,7 +805,7 @@ func (s *TaskService) handleBroadcastScheduled(ctx context.Context, payload doma
 				SendBroadcast: &domain.SendBroadcastState{
 					BroadcastID:     broadcastID,
 					ChannelType:     "email",
-					SentCount:       0,
+					EnqueuedCount:   0,
 					FailedCount:     0,
 					RecipientOffset: 0,
 				},
@@ -839,7 +849,7 @@ func (s *TaskService) handleBroadcastScheduled(ctx context.Context, payload doma
 		}).Info("Successfully created task for scheduled broadcast")
 
 		// If the broadcast is set to send immediately, trigger task execution
-		if sendNow && status == string(domain.BroadcastStatusSending) && s.autoExecuteImmediate {
+		if sendNow && status == string(domain.BroadcastStatusProcessing) && s.autoExecuteImmediate {
 			// Immediately trigger task execution after the transaction commits
 			go func() {
 				// Small delay to ensure transaction is committed

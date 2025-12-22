@@ -5,7 +5,6 @@ import (
 	crand "crypto/rand"
 	"fmt"
 	"math/big"
-	"sync"
 	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
@@ -24,11 +23,7 @@ type queueMessageSender struct {
 	templateRepo       domain.TemplateRepository
 	logger             logger.Logger
 	config             *Config
-	circuitBreaker     *CircuitBreaker
 	apiEndpoint        string
-
-	// Mutex for thread-safe operations
-	mu sync.Mutex
 }
 
 // NewQueueMessageSender creates a new message sender that enqueues to the email queue
@@ -45,11 +40,6 @@ func NewQueueMessageSender(
 		config = DefaultConfig()
 	}
 
-	var cb *CircuitBreaker
-	if config.EnableCircuitBreaker {
-		cb = NewCircuitBreaker(config.CircuitBreakerThreshold, config.CircuitBreakerCooldown)
-	}
-
 	return &queueMessageSender{
 		queueRepo:          queueRepo,
 		broadcastRepo:      broadcastRepo,
@@ -57,7 +47,6 @@ func NewQueueMessageSender(
 		templateRepo:       templateRepo,
 		logger:             logger,
 		config:             config,
-		circuitBreaker:     cb,
 		apiEndpoint:        apiEndpoint,
 	}
 }
@@ -76,31 +65,14 @@ func (s *queueMessageSender) SendToRecipient(
 	emailProvider *domain.EmailProvider,
 	timeoutAt time.Time,
 ) error {
-	// Check circuit breaker
-	if s.circuitBreaker != nil && s.circuitBreaker.IsOpen() {
-		lastError := s.circuitBreaker.GetLastError()
-		s.logger.WithFields(map[string]interface{}{
-			"broadcast_id": broadcast.ID,
-			"workspace_id": workspaceID,
-			"recipient":    email,
-		}).Warn("Circuit breaker open, skipping enqueue")
-		return NewBroadcastError(ErrCodeCircuitOpen, "circuit breaker is open", true, lastError)
-	}
-
 	// Build the email payload
 	entry, err := s.buildQueueEntry(ctx, workspaceID, integrationID, trackingEnabled, broadcast, messageID, email, template, data, emailProvider)
 	if err != nil {
-		if s.circuitBreaker != nil {
-			s.circuitBreaker.RecordFailure(err)
-		}
 		return err
 	}
 
 	// Enqueue the email
 	if err := s.queueRepo.Enqueue(ctx, workspaceID, []*domain.EmailQueueEntry{entry}); err != nil {
-		if s.circuitBreaker != nil {
-			s.circuitBreaker.RecordFailure(err)
-		}
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcast.ID,
 			"workspace_id": workspaceID,
@@ -108,11 +80,6 @@ func (s *queueMessageSender) SendToRecipient(
 			"error":        err.Error(),
 		}).Error("Failed to enqueue email")
 		return NewBroadcastError(ErrCodeSendFailed, "failed to enqueue email", true, err)
-	}
-
-	// Record success
-	if s.circuitBreaker != nil {
-		s.circuitBreaker.RecordSuccess()
 	}
 
 	return nil
@@ -134,17 +101,6 @@ func (s *queueMessageSender) SendBatch(
 ) (sent int, failed int, err error) {
 	if len(recipients) == 0 {
 		return 0, 0, nil
-	}
-
-	// Check circuit breaker
-	if s.circuitBreaker != nil && s.circuitBreaker.IsOpen() {
-		lastError := s.circuitBreaker.GetLastError()
-		s.logger.WithFields(map[string]interface{}{
-			"broadcast_id": broadcastID,
-			"workspace_id": workspaceID,
-			"batch_size":   len(recipients),
-		}).Warn("Circuit breaker open, skipping batch enqueue")
-		return 0, len(recipients), NewBroadcastError(ErrCodeCircuitOpen, "circuit breaker is open", true, lastError)
 	}
 
 	// Get broadcast for context
@@ -215,9 +171,6 @@ func (s *queueMessageSender) SendBatch(
 
 	// Enqueue all entries in batch
 	if err := s.queueRepo.Enqueue(ctx, workspaceID, entries); err != nil {
-		if s.circuitBreaker != nil {
-			s.circuitBreaker.RecordFailure(err)
-		}
 		s.logger.WithFields(map[string]interface{}{
 			"broadcast_id": broadcastID,
 			"workspace_id": workspaceID,
@@ -225,11 +178,6 @@ func (s *queueMessageSender) SendBatch(
 			"error":        err.Error(),
 		}).Error("Failed to enqueue batch")
 		return 0, len(recipients), NewBroadcastError(ErrCodeSendFailed, "failed to enqueue batch", true, err)
-	}
-
-	// Record success
-	if s.circuitBreaker != nil {
-		s.circuitBreaker.RecordSuccess()
 	}
 
 	s.logger.WithFields(map[string]interface{}{

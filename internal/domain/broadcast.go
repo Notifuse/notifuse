@@ -21,14 +21,14 @@ type BroadcastStatus string
 const (
 	BroadcastStatusDraft          BroadcastStatus = "draft"
 	BroadcastStatusScheduled      BroadcastStatus = "scheduled"
-	BroadcastStatusSending        BroadcastStatus = "sending"
+	BroadcastStatusProcessing     BroadcastStatus = "processing"      // Orchestrator is enqueueing emails
 	BroadcastStatusPaused         BroadcastStatus = "paused"
-	BroadcastStatusSent           BroadcastStatus = "sent"
+	BroadcastStatusProcessed      BroadcastStatus = "processed"       // Enqueueing complete
 	BroadcastStatusCancelled      BroadcastStatus = "cancelled"
 	BroadcastStatusFailed         BroadcastStatus = "failed"
 	BroadcastStatusTesting        BroadcastStatus = "testing"         // A/B test in progress
 	BroadcastStatusTestCompleted  BroadcastStatus = "test_completed"  // Test done, awaiting winner selection
-	BroadcastStatusWinnerSelected BroadcastStatus = "winner_selected" // Winner chosen, sending to remaining
+	BroadcastStatusWinnerSelected BroadcastStatus = "winner_selected" // Winner chosen, enqueueing to remaining
 )
 
 // TestWinnerMetric defines the metric used to determine the winning A/B test variation
@@ -256,6 +256,9 @@ type Broadcast struct {
 	WinnerSentAt              *time.Time            `json:"winner_sent_at,omitempty"`
 	TestPhaseRecipientCount   int                   `json:"test_phase_recipient_count"`
 	WinnerPhaseRecipientCount int                   `json:"winner_phase_recipient_count"`
+	EnqueuedCount             int                   `json:"enqueued_count"`  // Emails added to queue
+	SentCount                 int                   `json:"sent_count"`      // Emails actually sent by worker
+	FailedCount               int                   `json:"failed_count"`    // Emails permanently failed (dead letter)
 	CreatedAt                 time.Time             `json:"created_at"`
 	UpdatedAt                 time.Time             `json:"updated_at"`
 	StartedAt                 *time.Time            `json:"started_at,omitempty"`
@@ -310,8 +313,8 @@ func (b *Broadcast) Validate() error {
 
 	// Validate status
 	switch b.Status {
-	case BroadcastStatusDraft, BroadcastStatusScheduled, BroadcastStatusSending,
-		BroadcastStatusPaused, BroadcastStatusSent, BroadcastStatusCancelled,
+	case BroadcastStatusDraft, BroadcastStatusScheduled, BroadcastStatusProcessing,
+		BroadcastStatusPaused, BroadcastStatusProcessed, BroadcastStatusCancelled,
 		BroadcastStatusFailed, BroadcastStatusTesting, BroadcastStatusTestCompleted,
 		BroadcastStatusWinnerSelected:
 		// Valid status
@@ -873,6 +876,11 @@ type BroadcastRepository interface {
 	UpdateBroadcastTx(ctx context.Context, tx *sql.Tx, broadcast *Broadcast) error
 	DeleteBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string) error
 	ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params ListBroadcastsParams) (*BroadcastListResponse, error)
+
+	// Atomic count operations for email queue callbacks
+	IncrementSentCount(ctx context.Context, workspaceID, broadcastID string) error
+	IncrementFailedCount(ctx context.Context, workspaceID, broadcastID string) error
+	SetEnqueuedCount(ctx context.Context, workspaceID, broadcastID string, count int) error
 }
 
 // ErrBroadcastNotFound is an error type for when a broadcast is not found

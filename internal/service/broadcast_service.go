@@ -303,7 +303,7 @@ func (s *BroadcastService) ScheduleBroadcast(ctx context.Context, request *domai
 
 		if request.SendNow {
 			// If sending immediately, set status to sending
-			broadcast.Status = domain.BroadcastStatusSending
+			broadcast.Status = domain.BroadcastStatusProcessing
 			now := time.Now().UTC()
 			broadcast.StartedAt = &now
 		} else {
@@ -411,7 +411,7 @@ func (s *BroadcastService) PauseBroadcast(ctx context.Context, request *domain.P
 		}
 
 		// Only sending broadcasts can be paused
-		if broadcast.Status != domain.BroadcastStatusSending {
+		if broadcast.Status != domain.BroadcastStatusProcessing {
 			err := fmt.Errorf("only broadcasts with sending status can be paused, current status: %s", broadcast.Status)
 			s.logger.Error("Cannot pause broadcast with non-sending status")
 			return err
@@ -532,7 +532,7 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 				s.logger.Info("Broadcast resumed to scheduled status")
 			} else {
 				// If scheduled time has passed or there was an error parsing it
-				broadcast.Status = domain.BroadcastStatusSending
+				broadcast.Status = domain.BroadcastStatusProcessing
 				startNow = true
 				if broadcast.StartedAt == nil {
 					broadcast.StartedAt = &now
@@ -541,7 +541,7 @@ func (s *BroadcastService) ResumeBroadcast(ctx context.Context, request *domain.
 			}
 		} else {
 			// If broadcast wasn't scheduled, resume sending
-			broadcast.Status = domain.BroadcastStatusSending
+			broadcast.Status = domain.BroadcastStatusProcessing
 			startNow = true
 			if broadcast.StartedAt == nil {
 				broadcast.StartedAt = &now
@@ -733,7 +733,7 @@ func (s *BroadcastService) DeleteBroadcast(ctx context.Context, request *domain.
 	}
 
 	// Broadcasts in 'sending' status cannot be deleted
-	if broadcast.Status == domain.BroadcastStatusSending {
+	if broadcast.Status == domain.BroadcastStatusProcessing {
 		err := fmt.Errorf("broadcasts in 'sending' status cannot be deleted")
 		s.logger.Error("Cannot delete broadcast with sending status")
 		return err
@@ -980,8 +980,8 @@ func (s *BroadcastService) GetTestResults(ctx context.Context, workspaceID, broa
 	// Validate status - allow viewing results during active sending and completed states
 	if broadcast.Status != domain.BroadcastStatusTestCompleted &&
 		broadcast.Status != domain.BroadcastStatusWinnerSelected &&
-		broadcast.Status != domain.BroadcastStatusSent &&
-		broadcast.Status != domain.BroadcastStatusSending &&
+		broadcast.Status != domain.BroadcastStatusProcessed &&
+		broadcast.Status != domain.BroadcastStatusProcessing &&
 		broadcast.Status != domain.BroadcastStatusTesting {
 		return nil, fmt.Errorf("broadcast test results not available for status: %s", broadcast.Status)
 	}
@@ -1071,7 +1071,7 @@ func (s *BroadcastService) SelectWinner(ctx context.Context, workspaceID, broadc
 		} else if broadcast.Status == domain.BroadcastStatusTesting && !broadcast.TestSettings.AutoSendWinner {
 			// Allow manual winner selection during test phase when auto_send_winner is false
 			validForWinnerSelection = true
-		} else if broadcast.Status == domain.BroadcastStatusSending && broadcast.TestSettings.Enabled && !broadcast.TestSettings.AutoSendWinner {
+		} else if broadcast.Status == domain.BroadcastStatusProcessing && broadcast.TestSettings.Enabled && !broadcast.TestSettings.AutoSendWinner {
 			// Allow manual winner selection during sending phase for A/B tests when auto_send_winner is false
 			// This handles the case where the test phase is very short and the status hasn't been updated to "testing" yet
 			validForWinnerSelection = true

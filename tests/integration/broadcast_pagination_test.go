@@ -226,7 +226,7 @@ func runBroadcastPaginationTest(t *testing.T, suite *testutil.IntegrationTestSui
 	t.Logf("Step 12: Waiting for broadcast completion (timeout: %v)...", timeout)
 
 	finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
-		[]string{"sent", "completed"}, timeout)
+		[]string{"processed", "completed"}, timeout)
 	require.NoError(t, err, "Broadcast should complete successfully")
 	t.Logf("Broadcast completed with status: %s", finalStatus)
 
@@ -291,16 +291,16 @@ func runBroadcastPaginationTest(t *testing.T, suite *testutil.IntegrationTestSui
 	broadcastData, ok := broadcastResult["broadcast"].(map[string]interface{})
 	require.True(t, ok, "Broadcast data should be present")
 
-	// Verify broadcast status is "sent" or "completed"
+	// Verify broadcast status is "processed" or "completed"
 	status, _ := broadcastData["status"].(string)
 	t.Logf("Broadcast final status: %s", status)
 
 	// Final assertions
 	t.Log("=== FINAL ASSERTIONS ===")
 
-	// Assert broadcast completed with sent status
-	assert.Contains(t, []string{"sent", "completed"}, status,
-		"Broadcast should be in 'sent' or 'completed' status, got: %s", status)
+	// Assert broadcast completed with processed status
+	assert.Contains(t, []string{"processed", "completed"}, status,
+		"Broadcast should be in 'processed' or 'completed' status, got: %s", status)
 
 	// Assert no missing recipients (the key Issue #157 verification)
 	assert.Empty(t, missing,

@@ -71,7 +71,7 @@ func TestBroadcastOrchestrator_Process_PausedBroadcast(t *testing.T) {
 			SendBroadcast: &domain.SendBroadcastState{
 				BroadcastID:     broadcastID,
 				TotalRecipients: 100,
-				SentCount:       25,
+				EnqueuedCount:       25,
 				FailedCount:     0,
 				RecipientOffset: 25,
 				Phase:           "single",
@@ -230,7 +230,7 @@ func TestBroadcastOrchestrator_Process_PausedDuringProcessing(t *testing.T) {
 			SendBroadcast: &domain.SendBroadcastState{
 				BroadcastID:     broadcastID,
 				TotalRecipients: 50,
-				SentCount:       0,
+				EnqueuedCount:       0,
 				FailedCount:     0,
 				RecipientOffset: 0,
 				Phase:           "single",
@@ -271,7 +271,7 @@ func TestBroadcastOrchestrator_Process_PausedDuringProcessing(t *testing.T) {
 	// Initially sending broadcast
 	sendingBroadcast := &domain.Broadcast{
 		ID:     broadcastID,
-		Status: domain.BroadcastStatusSending,
+		Status: domain.BroadcastStatusProcessing,
 		Audience: domain.AudienceSettings{
 			List: "list-1",
 		},
@@ -446,7 +446,7 @@ func TestBroadcastOrchestrator_Process_PausedVsCancelled(t *testing.T) {
 					SendBroadcast: &domain.SendBroadcastState{
 						BroadcastID:     broadcastID,
 						TotalRecipients: 100,
-						SentCount:       50,
+						EnqueuedCount:       50,
 						FailedCount:     0,
 						RecipientOffset: 50,
 						Phase:           "single",

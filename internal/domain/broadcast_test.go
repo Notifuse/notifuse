@@ -15,9 +15,9 @@ func TestBroadcastStatus_Values(t *testing.T) {
 	// Verify all status constants are defined
 	assert.Equal(t, domain.BroadcastStatus("draft"), domain.BroadcastStatusDraft)
 	assert.Equal(t, domain.BroadcastStatus("scheduled"), domain.BroadcastStatusScheduled)
-	assert.Equal(t, domain.BroadcastStatus("sending"), domain.BroadcastStatusSending)
+	assert.Equal(t, domain.BroadcastStatus("processing"), domain.BroadcastStatusProcessing)
 	assert.Equal(t, domain.BroadcastStatus("paused"), domain.BroadcastStatusPaused)
-	assert.Equal(t, domain.BroadcastStatus("sent"), domain.BroadcastStatusSent)
+	assert.Equal(t, domain.BroadcastStatus("processed"), domain.BroadcastStatusProcessed)
 	assert.Equal(t, domain.BroadcastStatus("cancelled"), domain.BroadcastStatusCancelled)
 	assert.Equal(t, domain.BroadcastStatus("failed"), domain.BroadcastStatusFailed)
 }
@@ -480,7 +480,7 @@ func TestUpdateBroadcastRequest_Validate(t *testing.T) {
 			errMsg:   "broadcast id cannot be changed",
 		},
 		{
-			name: "cannot update sent broadcast",
+			name: "cannot update processed broadcast",
 			request: domain.UpdateBroadcastRequest{
 				WorkspaceID: existingBroadcast.WorkspaceID,
 				ID:          existingBroadcast.ID,
@@ -488,14 +488,14 @@ func TestUpdateBroadcastRequest_Validate(t *testing.T) {
 			},
 			existing: func() domain.Broadcast {
 				b := existingBroadcast
-				b.Status = domain.BroadcastStatusSent
+				b.Status = domain.BroadcastStatusProcessed
 				return b
 			}(),
 			wantErr: true,
-			errMsg:  "cannot update broadcast with status: sent",
+			errMsg:  "cannot update broadcast with status: processed",
 		},
 		{
-			name: "cannot update sending broadcast",
+			name: "cannot update processing broadcast",
 			request: domain.UpdateBroadcastRequest{
 				WorkspaceID: existingBroadcast.WorkspaceID,
 				ID:          existingBroadcast.ID,
@@ -503,11 +503,11 @@ func TestUpdateBroadcastRequest_Validate(t *testing.T) {
 			},
 			existing: func() domain.Broadcast {
 				b := existingBroadcast
-				b.Status = domain.BroadcastStatusSending
+				b.Status = domain.BroadcastStatusProcessing
 				return b
 			}(),
 			wantErr: true,
-			errMsg:  "cannot update broadcast with status: sending",
+			errMsg:  "cannot update broadcast with status: processing",
 		},
 		{
 			name: "cannot update cancelled broadcast",

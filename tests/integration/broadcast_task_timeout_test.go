@@ -206,7 +206,7 @@ func TestBroadcastTaskTimeoutRecovery(t *testing.T) {
 		}
 
 		t.Logf("  Status: %s, Progress: %.1f%%, Offset: %d, Sent: %d, Failed: %d",
-			state.Status, state.Progress, state.RecipientOffset, state.SentCount, state.FailedCount)
+			state.Status, state.Progress, state.RecipientOffset, state.EnqueuedCount, state.FailedCount)
 
 		// Detect timeout (task paused or returned with partial progress)
 		if state.Status == "paused" || (lastState != nil && state.RecipientOffset > lastState.RecipientOffset && state.Status != "completed") {
@@ -279,7 +279,7 @@ func TestBroadcastTaskTimeoutRecovery(t *testing.T) {
 }
 
 // TestBroadcastStateCounterAccuracy verifies that broadcast state counters
-// (SentCount, FailedCount, RecipientOffset) accurately reflect the actual
+// (EnqueuedCount, FailedCount, RecipientOffset) accurately reflect the actual
 // number of emails sent.
 func TestBroadcastStateCounterAccuracy(t *testing.T) {
 	testutil.SkipIfShort(t)
@@ -426,7 +426,7 @@ func TestBroadcastStateCounterAccuracy(t *testing.T) {
 		stateAfter, _ := getTaskStateInfo(client, workspace.ID, taskID)
 		if stateAfter != nil {
 			t.Logf("Cycle %d: Status=%s, Sent=%d, Failed=%d, Offset=%d, Progress=%.1f%%",
-				i+1, stateAfter.Status, stateAfter.SentCount, stateAfter.FailedCount,
+				i+1, stateAfter.Status, stateAfter.EnqueuedCount, stateAfter.FailedCount,
 				stateAfter.RecipientOffset, stateAfter.Progress)
 
 			if stateAfter.Status == "completed" {
@@ -451,7 +451,7 @@ func TestBroadcastStateCounterAccuracy(t *testing.T) {
 
 	t.Log("=== COUNTER ACCURACY RESULTS ===")
 	t.Logf("Final Status: %s", finalState.Status)
-	t.Logf("State SentCount: %d", finalState.SentCount)
+	t.Logf("State EnqueuedCount: %d", finalState.EnqueuedCount)
 	t.Logf("State FailedCount: %d", finalState.FailedCount)
 	t.Logf("State RecipientOffset: %d", finalState.RecipientOffset)
 	t.Logf("State TotalRecipients: %d", finalState.TotalRecipients)
@@ -463,12 +463,12 @@ func TestBroadcastStateCounterAccuracy(t *testing.T) {
 	t.Log("=== ASSERTIONS ===")
 
 	// Counter consistency
-	assert.Equal(t, finalState.SentCount+finalState.FailedCount, int(finalState.RecipientOffset),
+	assert.Equal(t, finalState.EnqueuedCount+finalState.FailedCount, int(finalState.RecipientOffset),
 		"Offset should equal Sent + Failed")
 
 	// Counter matches actual sends (allowing for failed sends)
-	assert.Equal(t, actualMessages, finalState.SentCount,
-		"SentCount (%d) should match actual Mailpit messages (%d)", finalState.SentCount, actualMessages)
+	assert.Equal(t, actualMessages, finalState.EnqueuedCount,
+		"EnqueuedCount (%d) should match actual Mailpit messages (%d)", finalState.EnqueuedCount, actualMessages)
 
 	// Progress should be 100% if completed
 	if finalState.Status == "completed" {
@@ -491,7 +491,7 @@ func TestBroadcastStateCounterAccuracy(t *testing.T) {
 // 1. TotalRecipients is counted at schedule time (e.g., 100)
 // 2. Some contacts unsubscribe before execution
 // 3. FetchBatch returns empty early
-// 4. Broadcast marked as "sent" with progress < 100%
+// 4. Broadcast marked as "processed" with progress < 100%
 func TestBroadcastEmptyBatchPrematureCompletion(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
@@ -634,7 +634,7 @@ func TestBroadcastEmptyBatchPrematureCompletion(t *testing.T) {
 	firstState, _ := getTaskStateInfo(client, workspace.ID, taskID)
 	if firstState != nil {
 		t.Logf("After first execution: Status=%s, Total=%d, Sent=%d, Offset=%d",
-			firstState.Status, firstState.TotalRecipients, firstState.SentCount, firstState.RecipientOffset)
+			firstState.Status, firstState.TotalRecipients, firstState.EnqueuedCount, firstState.RecipientOffset)
 	}
 
 	// If already completed on first run, skip the rest
@@ -673,7 +673,7 @@ func TestBroadcastEmptyBatchPrematureCompletion(t *testing.T) {
 		state, _ := getTaskStateInfo(client, workspace.ID, taskID)
 		if state != nil {
 			t.Logf("Execution %d: Status=%s, Sent=%d, Failed=%d, Offset=%d, Total=%d, Progress=%.1f%%",
-				i+1, state.Status, state.SentCount, state.FailedCount,
+				i+1, state.Status, state.EnqueuedCount, state.FailedCount,
 				state.RecipientOffset, state.TotalRecipients, state.Progress)
 
 			if state.Status == "completed" {
@@ -702,7 +702,7 @@ func TestBroadcastEmptyBatchPrematureCompletion(t *testing.T) {
 	t.Logf("Contacts unsubscribed after scheduling: %d", contactsToUnsubscribe)
 	t.Logf("Expected recipients: %d", expectedSent)
 	t.Logf("TotalRecipients in task state: %d", finalState.TotalRecipients)
-	t.Logf("Actual SentCount: %d", finalState.SentCount)
+	t.Logf("Actual EnqueuedCount: %d", finalState.EnqueuedCount)
 	t.Logf("Actual Mailpit messages: %d", actualMessages)
 	t.Logf("Final Progress: %.1f%%", finalState.Progress)
 	t.Logf("Final Status: %s", finalState.Status)
@@ -719,10 +719,10 @@ func TestBroadcastEmptyBatchPrematureCompletion(t *testing.T) {
 		// - Contacts unsubscribed after count
 		// - FetchBatch returns empty at offset 90 (only 90 contacts remain)
 		// - Broadcast logs show progress: 90% but task.Progress shows 100%
-		actualBroadcastProgress := float64(finalState.SentCount) / float64(finalState.TotalRecipients) * 100
+		actualBroadcastProgress := float64(finalState.EnqueuedCount) / float64(finalState.TotalRecipients) * 100
 
 		t.Logf("Actual broadcast progress: %.1f%% (sent %d / total %d)",
-			actualBroadcastProgress, finalState.SentCount, finalState.TotalRecipients)
+			actualBroadcastProgress, finalState.EnqueuedCount, finalState.TotalRecipients)
 		t.Logf("Task progress field: %.1f%% (set to 100%% when task completes)", finalState.Progress)
 
 		if actualBroadcastProgress < 100.0 && finalState.Status == "completed" {
@@ -747,9 +747,9 @@ func TestBroadcastEmptyBatchPrematureCompletion(t *testing.T) {
 	assert.Equal(t, expectedSent, actualMessages,
 		"Should have sent to %d recipients (total - unsubscribed)", expectedSent)
 
-	// SentCount should match actual emails
-	assert.Equal(t, actualMessages, finalState.SentCount,
-		"SentCount should match actual emails sent")
+	// EnqueuedCount should match actual emails
+	assert.Equal(t, actualMessages, finalState.EnqueuedCount,
+		"EnqueuedCount should match actual emails sent")
 
 	t.Log("=== Test completed ===")
 }
@@ -758,7 +758,7 @@ func TestBroadcastEmptyBatchPrematureCompletion(t *testing.T) {
 type TaskStateInfo struct {
 	Status           string
 	Progress         float64
-	SentCount        int
+	EnqueuedCount    int
 	FailedCount      int
 	RecipientOffset  int64
 	TotalRecipients  int
@@ -804,8 +804,8 @@ func getTaskStateInfo(client *testutil.APIClient, workspaceID, taskID string) (*
 	// Parse nested state
 	if state, ok := task["state"].(map[string]interface{}); ok {
 		if sendBroadcast, ok := state["send_broadcast"].(map[string]interface{}); ok {
-			if v, ok := sendBroadcast["sent_count"].(float64); ok {
-				info.SentCount = int(v)
+			if v, ok := sendBroadcast["enqueued_count"].(float64); ok {
+				info.EnqueuedCount = int(v)
 			}
 			if v, ok := sendBroadcast["failed_count"].(float64); ok {
 				info.FailedCount = int(v)

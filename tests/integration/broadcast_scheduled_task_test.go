@@ -394,10 +394,10 @@ func TestScheduledBroadcast_TaskCreation(t *testing.T) {
 		// Wait for broadcast completion
 		t.Log("Waiting for broadcast to complete...")
 		finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
-			[]string{"sent", "completed"}, 60*time.Second)
+			[]string{"processed", "completed"}, 60*time.Second)
 		require.NoError(t, err, "Broadcast should complete successfully")
 
-		assert.Contains(t, []string{"sent", "completed"}, finalStatus,
+		assert.Contains(t, []string{"processed", "completed"}, finalStatus,
 			"Immediate send should complete successfully")
 		t.Logf("Broadcast completed with status: %s", finalStatus)
 	})

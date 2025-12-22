@@ -56,10 +56,12 @@ type AppInterface interface {
 	GetContactListRepository() domain.ContactListRepository
 	GetTransactionalNotificationRepository() domain.TransactionalNotificationRepository
 	GetTelemetryRepository() domain.TelemetryRepository
+	GetEmailQueueRepository() domain.EmailQueueRepository
 
 	// Service getters for testing
 	GetAuthService() interface{} // Returns *service.AuthService but defined as interface{} to avoid import cycle
 	GetTransactionalNotificationService() domain.TransactionalNotificationService
+	GetEmailQueueWorker() *queue.EmailQueueWorker
 
 	// Server status methods
 	IsServerCreated() bool
@@ -901,6 +903,32 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 
+	// Wire callbacks to update broadcast sent/failed counts when emails are processed
+	a.emailQueueWorker.SetCallbacks(
+		// onEmailSent - increment broadcast sent count
+		func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID, messageID string) {
+			if sourceType == domain.EmailQueueSourceBroadcast {
+				if err := a.broadcastRepo.IncrementSentCount(context.Background(), workspaceID, sourceID); err != nil {
+					a.logger.WithFields(map[string]interface{}{
+						"broadcast_id": sourceID,
+						"error":        err.Error(),
+					}).Error("Failed to increment sent count")
+				}
+			}
+		},
+		// onEmailFailed - only count permanent failures (dead letters)
+		func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID, messageID string, err error, isDeadLetter bool) {
+			if sourceType == domain.EmailQueueSourceBroadcast && isDeadLetter {
+				if incErr := a.broadcastRepo.IncrementFailedCount(context.Background(), workspaceID, sourceID); incErr != nil {
+					a.logger.WithFields(map[string]interface{}{
+						"broadcast_id": sourceID,
+						"error":        incErr.Error(),
+					}).Error("Failed to increment failed count")
+				}
+			}
+		},
+	)
+
 	// Initialize automation service
 	a.automationService = service.NewAutomationService(
 		a.automationRepo,
@@ -1101,6 +1129,12 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
+	emailQueueHandler := httpHandler.NewEmailQueueHandler(
+		a.emailQueueRepo,
+		a.authService,
+		getJWTSecret,
+		a.logger,
+	)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -1133,6 +1167,7 @@ func (a *App) InitHandlers() error {
 	customEventHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
 	automationHandler.RegisterRoutes(a.mux)
+	emailQueueHandler.RegisterRoutes(a.mux)
 
 	return nil
 }
@@ -1664,6 +1699,14 @@ func (a *App) GetTransactionalNotificationRepository() domain.TransactionalNotif
 
 func (a *App) GetTelemetryRepository() domain.TelemetryRepository {
 	return a.telemetryRepo
+}
+
+func (a *App) GetEmailQueueRepository() domain.EmailQueueRepository {
+	return a.emailQueueRepo
+}
+
+func (a *App) GetEmailQueueWorker() *queue.EmailQueueWorker {
+	return a.emailQueueWorker
 }
 
 func (a *App) GetAuthService() interface{} {

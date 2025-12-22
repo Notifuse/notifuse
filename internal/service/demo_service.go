@@ -1217,24 +1217,24 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 			continue
 		}
 
-		// Update broadcast status to "sent" since we're generating message history for it
-		// Set timestamps to simulate that it was sent in the past (10-1 days ago based on campaign)
+		// Update broadcast status to "processed" since we're generating message history for it
+		// Set timestamps to simulate that it was processed in the past (10-1 days ago based on campaign)
 		daysAgo := 10 - (i * 2) // Spread broadcasts over last 10 days
 		if daysAgo < 1 {
 			daysAgo = 1
 		}
 		sentTime := time.Now().AddDate(0, 0, -daysAgo)
-		completedTime := sentTime.Add(2 * time.Hour) // Completed 2 hours after sending started
+		completedTime := sentTime.Add(2 * time.Hour) // Completed 2 hours after processing started
 
-		broadcast.Status = domain.BroadcastStatusSent
+		broadcast.Status = domain.BroadcastStatusProcessed
 		broadcast.StartedAt = &sentTime
 		broadcast.CompletedAt = &completedTime
 		broadcast.UpdatedAt = completedTime
 
-		// Update the broadcast in the repository to reflect sent status
+		// Update the broadcast in the repository to reflect processed status
 		if err := s.broadcastRepo.UpdateBroadcast(ctx, broadcast); err != nil {
-			s.logger.WithField("broadcast_id", broadcast.ID).WithField("error", err.Error()).Warn("Failed to update broadcast status to sent")
-			// Continue anyway - the broadcast was created, just not marked as sent
+			s.logger.WithField("broadcast_id", broadcast.ID).WithField("error", err.Error()).Warn("Failed to update broadcast status to processed")
+			// Continue anyway - the broadcast was created, just not marked as processed
 		}
 
 		broadcastIDs = append(broadcastIDs, broadcast.ID)

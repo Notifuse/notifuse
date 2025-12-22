@@ -108,7 +108,7 @@ func TestBroadcastRepository_ListBroadcasts_ConnectionError(t *testing.T) {
 
 	ctx := context.Background()
 	workspaceID := "ws123"
-	status := domain.BroadcastStatusSending
+	status := domain.BroadcastStatusProcessing
 
 	params := domain.ListBroadcastsParams{
 		WorkspaceID: workspaceID,
@@ -419,12 +419,14 @@ func TestBroadcastRepository_CreateBroadcast_Success(t *testing.T) {
 			sqlmock.AnyArg(), // audience
 			sqlmock.AnyArg(), // schedule
 			sqlmock.AnyArg(), // test_settings
-
 			sqlmock.AnyArg(), // utm_parameters
 			sqlmock.AnyArg(), // metadata
 			sqlmock.AnyArg(), // winning_template
 			sqlmock.AnyArg(), // test_sent_at
 			sqlmock.AnyArg(), // winner_sent_at
+			sqlmock.AnyArg(), // enqueued_count
+			sqlmock.AnyArg(), // sent_count
+			sqlmock.AnyArg(), // failed_count
 			sqlmock.AnyArg(), // created_at - timestamp will be added
 			sqlmock.AnyArg(), // updated_at - timestamp will be added
 			sqlmock.AnyArg(), // started_at
@@ -514,14 +516,16 @@ func TestBroadcastRepository_GetBroadcast_Success(t *testing.T) {
 		"id", "workspace_id", "name", "status", "audience", "schedule",
 		"test_settings", "utm_parameters", "metadata",
 		"winning_template",
-		"test_sent_at", "winner_sent_at", "created_at", "updated_at",
+		"test_sent_at", "winner_sent_at", "enqueued_count", "sent_count", "failed_count",
+		"created_at", "updated_at",
 		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
 	}).
 		AddRow(
 			broadcastID, workspaceID, "Test Broadcast", domain.BroadcastStatusDraft,
 			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
 			"", // Use empty string instead of nil for winning_template
-			nil, nil, time.Now(), time.Now(),
+			nil, nil, 0, 0, 0, // enqueued_count, sent_count, failed_count
+			time.Now(), time.Now(),
 			nil, nil, nil, nil, nil,
 		)
 
@@ -567,14 +571,16 @@ func TestBroadcastRepository_GetBroadcast_NullPauseReason(t *testing.T) {
 		"id", "workspace_id", "name", "status", "audience", "schedule",
 		"test_settings", "utm_parameters", "metadata",
 		"winning_template",
-		"test_sent_at", "winner_sent_at", "created_at", "updated_at",
+		"test_sent_at", "winner_sent_at", "enqueued_count", "sent_count", "failed_count",
+		"created_at", "updated_at",
 		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
 	}).
 		AddRow(
 			broadcastID, workspaceID, "Test Broadcast", domain.BroadcastStatusDraft,
 			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
 			"", // Use empty string instead of nil for winning_template
-			nil, nil, time.Now(), time.Now(),
+			nil, nil, 0, 0, 0, // enqueued_count, sent_count, failed_count
+			time.Now(), time.Now(),
 			nil, nil, nil, nil, nil, // NULL pause_reason
 		)
 
@@ -619,14 +625,16 @@ func TestBroadcastRepository_GetBroadcast_WithPauseReason(t *testing.T) {
 		"id", "workspace_id", "name", "status", "audience", "schedule",
 		"test_settings", "utm_parameters", "metadata",
 		"winning_template",
-		"test_sent_at", "winner_sent_at", "created_at", "updated_at",
+		"test_sent_at", "winner_sent_at", "enqueued_count", "sent_count", "failed_count",
+		"created_at", "updated_at",
 		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
 	}).
 		AddRow(
 			broadcastID, workspaceID, "Test Broadcast", domain.BroadcastStatusPaused,
 			[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
 			"",
-			nil, nil, time.Now(), time.Now(),
+			nil, nil, 0, 0, 0, // enqueued_count, sent_count, failed_count
+			time.Now(), time.Now(),
 			nil, nil, nil, time.Now(), expectedReason, // Non-NULL pause_reason
 		)
 
@@ -1145,7 +1153,7 @@ func TestBroadcastRepository_ListBroadcasts_WithStatus(t *testing.T) {
 
 	ctx := context.Background()
 	workspaceID := "ws123"
-	status := domain.BroadcastStatusSending
+	status := domain.BroadcastStatusProcessing
 
 	// Setup mock expectations for workspace DB connection
 	mockWorkspaceRepo.EXPECT().
@@ -1165,16 +1173,17 @@ func TestBroadcastRepository_ListBroadcasts_WithStatus(t *testing.T) {
 		"id", "workspace_id", "name", "status", "audience", "schedule",
 		"test_settings", "utm_parameters", "metadata",
 		"winning_template",
-		"test_sent_at", "winner_sent_at", "created_at", "updated_at",
+		"test_sent_at", "winner_sent_at", "enqueued_count", "sent_count", "failed_count",
+		"created_at", "updated_at",
 		"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
 	}).
 		AddRow(
 			"bc123", workspaceID, "Broadcast 1", status, []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
-			"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, nil,
+			"", nil, nil, 0, 0, 0, time.Now(), time.Now(), nil, nil, nil, nil, nil,
 		).
 		AddRow(
 			"bc456", workspaceID, "Broadcast 2", status, []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
-			"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, nil,
+			"", nil, nil, 0, 0, 0, time.Now(), time.Now(), nil, nil, nil, nil, nil,
 		)
 
 	// Expect query with limit/offset
@@ -1228,13 +1237,14 @@ func TestBroadcastRepository_GetBroadcastTx(t *testing.T) {
 				"id", "workspace_id", "name", "status", "audience", "schedule",
 				"test_settings", "utm_parameters", "metadata",
 				"winning_template",
-				"test_sent_at", "winner_sent_at", "created_at", "updated_at",
+				"test_sent_at", "winner_sent_at", "enqueued_count", "sent_count", "failed_count",
+				"created_at", "updated_at",
 				"started_at", "completed_at", "cancelled_at", "paused_at", "pause_reason",
 			}).
 				AddRow(
 					broadcastID, workspaceID, "Test Broadcast", "draft",
 					[]byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"), []byte("{}"),
-					"", nil, nil, time.Now(), time.Now(), nil, nil, nil, nil, nil,
+					"", nil, nil, 0, 0, 0, time.Now(), time.Now(), nil, nil, nil, nil, nil,
 				))
 		sqlMock.ExpectCommit()
 
