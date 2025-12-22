@@ -386,9 +386,6 @@ func TestHandleCreate(t *testing.T) {
 				List:     "list123",
 				Segments: []string{"segment123"},
 			},
-			Schedule: domain.ScheduleSettings{
-				IsScheduled: false,
-			},
 		}
 
 		mockService.EXPECT().
@@ -422,9 +419,6 @@ func TestHandleCreate(t *testing.T) {
 			Audience: domain.AudienceSettings{
 				List:     "list123",
 				Segments: []string{"segment123"},
-			},
-			Schedule: domain.ScheduleSettings{
-				IsScheduled: false,
 			},
 		}
 

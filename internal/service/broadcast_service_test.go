@@ -139,7 +139,6 @@ func TestBroadcastService_CreateBroadcast_Success(t *testing.T) {
 		WorkspaceID: "w1",
 		Name:        "My Campaign",
 		Audience:    domain.AudienceSettings{List: "list1", Segments: []string{"seg1"}},
-		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 	}
 
 	authOK(d.authService, ctx, req.WorkspaceID)
@@ -568,7 +567,6 @@ func TestBroadcastService_CreateBroadcast_RepositoryFailure(t *testing.T) {
 		WorkspaceID: "w1",
 		Name:        "Test",
 		Audience:    domain.AudienceSettings{List: "list1", Segments: []string{"seg1"}},
-		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 	}
 	authOK(d.authService, ctx, req.WorkspaceID)
 
@@ -1839,29 +1837,27 @@ func TestBroadcastService_ScheduleBroadcast_ContextCancellation(t *testing.T) {
 
 // Additional edge case tests
 
-func TestBroadcastService_CreateBroadcast_WithScheduledBroadcast(t *testing.T) {
+func TestBroadcastService_CreateBroadcast_AlwaysCreatesInDraftStatus(t *testing.T) {
 	d := setupBroadcastSvc(t)
 	defer d.ctrl.Finish()
 
 	ctx := context.Background()
+	// Note: Schedule is no longer part of CreateBroadcastRequest
+	// Broadcasts must be scheduled via the broadcasts.schedule endpoint
 	req := &domain.CreateBroadcastRequest{
 		WorkspaceID: "w1",
-		Name:        "Scheduled Campaign",
+		Name:        "New Campaign",
 		Audience:    domain.AudienceSettings{List: "list1", Segments: []string{"seg1"}},
-		Schedule: domain.ScheduleSettings{
-			IsScheduled:   true,
-			ScheduledDate: "2024-12-25",
-			ScheduledTime: "10:00",
-			Timezone:      "UTC",
-		},
 	}
 
 	authOK(d.authService, ctx, req.WorkspaceID)
 
 	d.repo.EXPECT().CreateBroadcast(gomock.Any(), gomock.Any()).DoAndReturn(
 		func(_ context.Context, b *domain.Broadcast) error {
-			// Verify status is set to scheduled for scheduled broadcasts
-			assert.Equal(t, domain.BroadcastStatusScheduled, b.Status)
+			// Verify status is always set to draft on creation
+			assert.Equal(t, domain.BroadcastStatusDraft, b.Status)
+			// Verify schedule is empty (scheduling must be done separately)
+			assert.False(t, b.Schedule.IsScheduled)
 			return nil
 		},
 	)
@@ -1869,7 +1865,7 @@ func TestBroadcastService_CreateBroadcast_WithScheduledBroadcast(t *testing.T) {
 	b, err := d.svc.CreateBroadcast(ctx, req)
 	require.NoError(t, err)
 	require.NotNil(t, b)
-	assert.Equal(t, domain.BroadcastStatusScheduled, b.Status)
+	assert.Equal(t, domain.BroadcastStatusDraft, b.Status)
 }
 
 func TestBroadcastService_SendToIndividual_WithContact(t *testing.T) {
@@ -2184,7 +2180,6 @@ func TestBroadcastService_CreateBroadcast_IDGeneration(t *testing.T) {
 		WorkspaceID: "w1",
 		Name:        "Test Campaign",
 		Audience:    domain.AudienceSettings{List: "list1", Segments: []string{"seg1"}},
-		Schedule:    domain.ScheduleSettings{IsScheduled: false},
 	}
 
 	authOK(d.authService, ctx, req.WorkspaceID)

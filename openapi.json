@@ -1253,7 +1253,7 @@
     "/api/broadcasts.create": {
       "post": {
         "summary": "Create a broadcast",
-        "description": "Creates a new broadcast campaign. The broadcast is created in draft status unless scheduling is configured.",
+        "description": "Creates a new broadcast campaign in draft status.\n\n**Important:** Creating a broadcast does not schedule or send it. After creating the broadcast,\nyou must call the `/api/broadcasts.schedule` endpoint to schedule or send it immediately.\n",
         "operationId": "createBroadcast",
         "security": [
           {
@@ -5268,9 +5268,6 @@
           },
           "audience": {
             "$ref": "#/components/schemas/AudienceSettings"
-          },
-          "schedule": {
-            "$ref": "#/components/schemas/ScheduleSettings"
           },
           "test_settings": {
             "$ref": "#/components/schemas/BroadcastTestSettings"

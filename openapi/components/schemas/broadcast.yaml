@@ -269,8 +269,6 @@ CreateBroadcastRequest:
       maxLength: 255
     audience:
       $ref: '#/AudienceSettings'
-    schedule:
-      $ref: '#/ScheduleSettings'
     test_settings:
       $ref: '#/BroadcastTestSettings'
     tracking_enabled:

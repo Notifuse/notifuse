@@ -397,12 +397,12 @@ func (b *Broadcast) Validate() error {
 	return nil
 }
 
-// CreateBroadcastRequest defines the request to create a new broadcast
+// CreateBroadcastRequest defines the request to create a new broadcast.
+// Note: Scheduling must be done via the ScheduleBroadcastRequest after creation.
 type CreateBroadcastRequest struct {
 	WorkspaceID     string                `json:"workspace_id"`
 	Name            string                `json:"name"`
 	Audience        AudienceSettings      `json:"audience"`
-	Schedule        ScheduleSettings      `json:"schedule"`
 	TestSettings    BroadcastTestSettings `json:"test_settings"`
 	TrackingEnabled bool                  `json:"tracking_enabled"`
 	UTMParameters   *UTMParameters        `json:"utm_parameters,omitempty"`
@@ -416,17 +416,12 @@ func (r *CreateBroadcastRequest) Validate() (*Broadcast, error) {
 		Name:          r.Name,
 		Status:        BroadcastStatusDraft,
 		Audience:      r.Audience,
-		Schedule:      r.Schedule,
+		Schedule:      ScheduleSettings{}, // Empty schedule - must use broadcasts.schedule endpoint
 		TestSettings:  r.TestSettings,
 		UTMParameters: r.UTMParameters,
 		Metadata:      r.Metadata,
 		CreatedAt:     time.Now().UTC(),
 		UpdatedAt:     time.Now().UTC(),
-	}
-
-	// Set status to scheduled if the broadcast is scheduled
-	if r.Schedule.IsScheduled {
-		broadcast.Status = BroadcastStatusScheduled
 	}
 
 	if err := broadcast.Validate(); err != nil {

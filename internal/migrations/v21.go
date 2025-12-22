@@ -61,13 +61,24 @@ func (m *V21Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 
 	// Index for fetching pending emails by priority and creation time
 	// Used by workers to fetch emails in priority order
+	// Note: next_retry_at filtering is done at query time since NOW() is not IMMUTABLE
 	_, err = db.ExecContext(ctx, `
 		CREATE INDEX IF NOT EXISTS idx_email_queue_pending
 		ON email_queue(priority ASC, created_at ASC)
-		WHERE status = 'pending' AND (next_retry_at IS NULL OR next_retry_at <= NOW())
+		WHERE status = 'pending'
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to create email_queue pending index: %w", err)
+	}
+
+	// Index for next_retry_at to support retry filtering
+	_, err = db.ExecContext(ctx, `
+		CREATE INDEX IF NOT EXISTS idx_email_queue_next_retry
+		ON email_queue(next_retry_at)
+		WHERE status = 'pending' AND next_retry_at IS NOT NULL
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create email_queue next_retry index: %w", err)
 	}
 
 	// Index for fetching failed emails ready for retry

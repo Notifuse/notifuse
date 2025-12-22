@@ -154,7 +154,11 @@
 /api/broadcasts.create:
   post:
     summary: Create a broadcast
-    description: Creates a new broadcast campaign. The broadcast is created in draft status unless scheduling is configured.
+    description: |
+      Creates a new broadcast campaign in draft status.
+
+      **Important:** Creating a broadcast does not schedule or send it. After creating the broadcast,
+      you must call the `/api/broadcasts.schedule` endpoint to schedule or send it immediately.
     operationId: createBroadcast
     security:
       - BearerAuth: []

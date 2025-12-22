@@ -1195,12 +1195,6 @@ func (s *DemoService) createSampleBroadcasts(ctx context.Context, workspaceID st
 				Segments:            []string{},
 				ExcludeUnsubscribed: true,
 			},
-			Schedule: domain.ScheduleSettings{
-				IsScheduled:   false,
-				ScheduledDate: "",
-				ScheduledTime: "",
-				Timezone:      "UTC",
-			},
 			TestSettings: domain.BroadcastTestSettings{
 				Enabled:          i == len(broadcasts)-1, // Only enable A/B test for last broadcast
 				SamplePercentage: 10,
