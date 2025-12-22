@@ -93,8 +93,8 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
       }
       extra={
         <Space>
-          {/* Delete button - only for draft */}
-          {automation.status === 'draft' && (
+          {/* Delete button - for draft and paused */}
+          {(automation.status === 'draft' || automation.status === 'paused') && (
             <Tooltip
               title={
                 !permissions?.automations?.write
@@ -140,8 +140,8 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
             </Tooltip>
           )}
 
-          {/* Activate button - only for draft */}
-          {automation.status === 'draft' && (
+          {/* Activate button - for draft and paused */}
+          {(automation.status === 'draft' || automation.status === 'paused') && (
             <Tooltip
               title={
                 !permissions?.automations?.write
