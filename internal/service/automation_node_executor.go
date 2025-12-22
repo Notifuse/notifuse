@@ -120,24 +120,27 @@ func parseDelayNodeConfig(config map[string]interface{}) (*domain.DelayNodeConfi
 
 // EmailNodeExecutor executes email nodes
 type EmailNodeExecutor struct {
-	emailService  domain.EmailServiceInterface
-	workspaceRepo domain.WorkspaceRepository
-	apiEndpoint   string
-	logger        logger.Logger
+	emailQueueRepo domain.EmailQueueRepository
+	templateRepo   domain.TemplateRepository
+	workspaceRepo  domain.WorkspaceRepository
+	apiEndpoint    string
+	logger         logger.Logger
 }
 
 // NewEmailNodeExecutor creates a new email node executor
 func NewEmailNodeExecutor(
-	emailService domain.EmailServiceInterface,
+	emailQueueRepo domain.EmailQueueRepository,
+	templateRepo domain.TemplateRepository,
 	workspaceRepo domain.WorkspaceRepository,
 	apiEndpoint string,
 	log logger.Logger,
 ) *EmailNodeExecutor {
 	return &EmailNodeExecutor{
-		emailService:  emailService,
-		workspaceRepo: workspaceRepo,
-		apiEndpoint:   apiEndpoint,
-		logger:        log,
+		emailQueueRepo: emailQueueRepo,
+		templateRepo:   templateRepo,
+		workspaceRepo:  workspaceRepo,
+		apiEndpoint:    apiEndpoint,
+		logger:         log,
 	}
 }
 
@@ -146,7 +149,7 @@ func (e *EmailNodeExecutor) NodeType() domain.NodeType {
 	return domain.NodeTypeEmail
 }
 
-// Execute processes an email node
+// Execute processes an email node by enqueuing to the email queue
 func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
 	// 0. Validate required parameters
 	if params.ContactData == nil {
@@ -177,13 +180,19 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		return nil, fmt.Errorf("no email provider configured for workspace")
 	}
 
-	// 4. Build template data from contact + automation
+	// 4. Get template (version 0 means latest version)
+	template, err := e.templateRepo.GetTemplateByID(ctx, params.WorkspaceID, config.TemplateID, 0)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get template: %w", err)
+	}
+
+	// 5. Build template data from contact + automation
 	templateData := buildAutomationTemplateData(params.ContactData, params.Automation)
 
-	// 5. Generate message ID
+	// 6. Generate message ID
 	messageID := fmt.Sprintf("%s_%s", params.WorkspaceID, uuid.New().String())
 
-	// 6. Setup tracking settings
+	// 7. Setup tracking settings
 	endpoint := e.apiEndpoint
 	if workspace.Settings.CustomEndpointURL != nil && *workspace.Settings.CustomEndpointURL != "" {
 		endpoint = *workspace.Settings.CustomEndpointURL
@@ -200,23 +209,72 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		MessageID:      messageID,
 	}
 
-	// 7. Build and send email request via EmailService
-	request := domain.SendEmailRequest{
-		WorkspaceID:      params.WorkspaceID,
-		IntegrationID:    integrationID,
-		MessageID:        messageID,
-		AutomationID:     &params.Automation.ID,
-		Contact:          params.ContactData,
-		TemplateConfig:   domain.ChannelTemplate{TemplateID: config.TemplateID},
-		MessageData:      domain.MessageData{Data: templateData},
-		TrackingSettings: trackingSettings,
-		EmailProvider:    emailProvider,
-		EmailOptions:     domain.EmailOptions{},
+	// 8. Compile template
+	compiledTemplate, err := notifuse_mjml.CompileTemplate(
+		notifuse_mjml.CompileTemplateRequest{
+			WorkspaceID:      params.WorkspaceID,
+			MessageID:        messageID,
+			VisualEditorTree: template.Email.VisualEditorTree,
+			TemplateData:     templateData,
+			TrackingSettings: trackingSettings,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compile template: %w", err)
+	}
+	if !compiledTemplate.Success || compiledTemplate.HTML == nil {
+		errMsg := "template compilation failed"
+		if compiledTemplate.Error != nil {
+			errMsg = compiledTemplate.Error.Message
+		}
+		return nil, fmt.Errorf("%s", errMsg)
+	}
+	htmlContent := *compiledTemplate.HTML
+
+	// 9. Process subject line through Liquid templating
+	subject, err := notifuse_mjml.ProcessLiquidTemplate(
+		template.Email.Subject,
+		templateData,
+		"email_subject",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to process subject: %w", err)
 	}
 
-	err = e.emailService.SendEmailForTemplate(ctx, request)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send email: %w", err)
+	// 10. Get sender
+	sender := emailProvider.GetSender(template.Email.SenderID)
+	if sender == nil {
+		return nil, fmt.Errorf("no sender configured for email provider")
+	}
+
+	// 11. Create queue entry
+	entry := &domain.EmailQueueEntry{
+		ID:            uuid.New().String(),
+		Status:        domain.EmailQueueStatusPending,
+		Priority:      domain.EmailQueuePriorityMarketing,
+		SourceType:    domain.EmailQueueSourceAutomation,
+		SourceID:      params.Automation.ID,
+		IntegrationID: integrationID,
+		ProviderKind:  emailProvider.Kind,
+		ContactEmail:  params.ContactData.Email,
+		MessageID:     messageID,
+		TemplateID:    config.TemplateID,
+		Payload: domain.EmailQueuePayload{
+			FromAddress:        sender.Email,
+			FromName:           sender.Name,
+			Subject:            subject,
+			HTMLContent:        htmlContent,
+			RateLimitPerMinute: emailProvider.RateLimitPerMinute,
+			EmailOptions:       domain.EmailOptions{},
+		},
+		MaxAttempts: 3,
+		CreatedAt:   time.Now().UTC(),
+		UpdatedAt:   time.Now().UTC(),
+	}
+
+	// 12. Enqueue the email
+	if err := e.emailQueueRepo.Enqueue(ctx, params.WorkspaceID, []*domain.EmailQueueEntry{entry}); err != nil {
+		return nil, fmt.Errorf("failed to enqueue email: %w", err)
 	}
 
 	e.logger.WithFields(map[string]interface{}{
@@ -225,7 +283,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 		"template_id":   config.TemplateID,
 		"contact_email": params.ContactData.Email,
 		"message_id":    messageID,
-	}).Info("Email node executed successfully")
+	}).Info("Email node executed - email enqueued")
 
 	return &NodeExecutionResult{
 		NextNodeID: params.Node.NextNodeID,
@@ -234,6 +292,7 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			"template_id": config.TemplateID,
 			"message_id":  messageID,
 			"to":          params.ContactData.Email,
+			"queued":      true,
 		}),
 	}, nil
 }

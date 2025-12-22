@@ -17,7 +17,7 @@ type AutomationExecutor struct {
 	workspaceRepo   domain.WorkspaceRepository
 	contactListRepo domain.ContactListRepository
 	templateRepo    domain.TemplateRepository
-	emailService    domain.EmailServiceInterface
+	emailQueueRepo  domain.EmailQueueRepository
 	messageRepo     domain.MessageHistoryRepository
 	nodeExecutors   map[domain.NodeType]NodeExecutor
 	logger          logger.Logger
@@ -31,7 +31,7 @@ func NewAutomationExecutor(
 	workspaceRepo domain.WorkspaceRepository,
 	contactListRepo domain.ContactListRepository,
 	templateRepo domain.TemplateRepository,
-	emailService domain.EmailServiceInterface,
+	emailQueueRepo domain.EmailQueueRepository,
 	messageRepo domain.MessageHistoryRepository,
 	log logger.Logger,
 	apiEndpoint string,
@@ -40,7 +40,7 @@ func NewAutomationExecutor(
 
 	executors := map[domain.NodeType]NodeExecutor{
 		domain.NodeTypeDelay:          NewDelayNodeExecutor(),
-		domain.NodeTypeEmail:          NewEmailNodeExecutor(emailService, workspaceRepo, apiEndpoint, log),
+		domain.NodeTypeEmail:          NewEmailNodeExecutor(emailQueueRepo, templateRepo, workspaceRepo, apiEndpoint, log),
 		domain.NodeTypeBranch:         NewBranchNodeExecutor(qb, workspaceRepo),
 		domain.NodeTypeFilter:         NewFilterNodeExecutor(qb, workspaceRepo),
 		domain.NodeTypeAddToList:      NewAddToListNodeExecutor(contactListRepo),
@@ -55,7 +55,7 @@ func NewAutomationExecutor(
 		workspaceRepo:   workspaceRepo,
 		contactListRepo: contactListRepo,
 		templateRepo:    templateRepo,
-		emailService:    emailService,
+		emailQueueRepo:  emailQueueRepo,
 		messageRepo:     messageRepo,
 		nodeExecutors:   executors,
 		logger:          log,

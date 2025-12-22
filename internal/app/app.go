@@ -20,6 +20,7 @@ import (
 	"github.com/Notifuse/notifuse/internal/repository"
 	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/internal/service/broadcast"
+	"github.com/Notifuse/notifuse/internal/service/queue"
 	"github.com/Notifuse/notifuse/pkg/cache"
 	pkgDatabase "github.com/Notifuse/notifuse/pkg/database"
 	"github.com/Notifuse/notifuse/pkg/logger"
@@ -113,6 +114,7 @@ type App struct {
 	webhookSubscriptionRepo       domain.WebhookSubscriptionRepository
 	webhookDeliveryRepo           domain.WebhookDeliveryRepository
 	automationRepo                domain.AutomationRepository
+	emailQueueRepo                domain.EmailQueueRepository
 
 	// Services
 	authService                      *service.AuthService
@@ -148,6 +150,7 @@ type App struct {
 	webhookDeliveryWorker            *service.WebhookDeliveryWorker
 	automationService                *service.AutomationService
 	automationScheduler              *service.AutomationScheduler
+	emailQueueWorker                 *queue.EmailQueueWorker
 	// providers
 	postmarkService  *service.PostmarkService
 	mailgunService   *service.MailgunService
@@ -422,6 +425,9 @@ func (a *App) InitRepositories() error {
 	triggerGenerator := service.NewAutomationTriggerGenerator(queryBuilder)
 	a.automationRepo = repository.NewAutomationRepository(a.workspaceRepo, triggerGenerator)
 
+	// Initialize email queue repository
+	a.emailQueueRepo = repository.NewEmailQueueRepository(a.workspaceRepo)
+
 	// Initialize setting service
 	a.settingService = service.NewSettingService(a.settingRepo)
 
@@ -695,10 +701,12 @@ func (a *App) InitServices() error {
 		a.contactRepo,
 		a.taskRepo,
 		a.workspaceRepo,
+		a.emailQueueRepo,
 		a.logger,
 		broadcastConfig,
 		a.config.APIEndpoint,
 		a.eventBus,
+		true, // useQueueSender - use queue-based message sender for broadcasts
 	)
 
 	// Register the broadcast factory with the task service
@@ -884,6 +892,15 @@ func (a *App) InitServices() error {
 		httpClient,
 	)
 
+	// Initialize email queue worker for processing marketing emails (broadcasts & automations)
+	a.emailQueueWorker = queue.NewEmailQueueWorker(
+		a.emailQueueRepo,
+		a.workspaceRepo,
+		a.emailService,
+		queue.DefaultWorkerConfig(),
+		a.logger,
+	)
+
 	// Initialize automation service
 	a.automationService = service.NewAutomationService(
 		a.automationRepo,
@@ -898,7 +915,7 @@ func (a *App) InitServices() error {
 		a.workspaceRepo,
 		a.contactListRepo,
 		a.templateRepo,
-		a.emailService,
+		a.emailQueueRepo,
 		a.messageHistoryRepo,
 		a.logger,
 		a.config.APIEndpoint,
@@ -1231,6 +1248,33 @@ func (a *App) Start() error {
 		}()
 	}
 
+	// Start email queue worker (with 30 second delay)
+	// Disabled in demo mode to prevent sending marketing emails
+	if a.emailQueueWorker != nil && !a.config.IsDemo() {
+		go func() {
+			a.logger.Info("Email queue worker will start in 30 seconds...")
+
+			ctx := a.GetShutdownContext()
+
+			// Use a timer that respects the shutdown context
+			select {
+			case <-time.After(30 * time.Second):
+				// Check if we're shutting down before starting
+				if ctx.Err() != nil {
+					a.logger.Info("Server shutting down, email queue worker will not start")
+					return
+				}
+				a.logger.Info("Starting email queue worker now")
+				if err := a.emailQueueWorker.Start(ctx); err != nil {
+					a.logger.WithField("error", err.Error()).Error("Failed to start email queue worker")
+				}
+			case <-ctx.Done():
+				a.logger.Info("Server shutdown initiated during email queue worker delay, worker will not start")
+				return
+			}
+		}()
+	}
+
 	// Start automation scheduler (with 30 second delay)
 	// Disabled in demo mode to prevent executing automations
 	if a.automationScheduler != nil && !a.config.IsDemo() {
@@ -1287,6 +1331,12 @@ func (a *App) Shutdown(ctx context.Context) error {
 	if a.automationScheduler != nil {
 		a.logger.Info("Stopping automation scheduler...")
 		a.automationScheduler.Stop()
+	}
+
+	// Stop email queue worker
+	if a.emailQueueWorker != nil {
+		a.logger.Info("Stopping email queue worker...")
+		a.emailQueueWorker.Stop()
 	}
 
 	// Stop global rate limiter

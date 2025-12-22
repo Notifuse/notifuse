@@ -14,10 +14,12 @@ type Factory struct {
 	contactRepo        domain.ContactRepository
 	taskRepo           domain.TaskRepository
 	workspaceRepo      domain.WorkspaceRepository
+	emailQueueRepo     domain.EmailQueueRepository
 	logger             logger.Logger
 	config             *Config
 	apiEndpoint        string
 	eventBus           domain.EventBus
+	useQueueSender     bool
 }
 
 // NewFactory creates a new factory for broadcast components
@@ -29,10 +31,12 @@ func NewFactory(
 	contactRepo domain.ContactRepository,
 	taskRepo domain.TaskRepository,
 	workspaceRepo domain.WorkspaceRepository,
+	emailQueueRepo domain.EmailQueueRepository,
 	logger logger.Logger,
 	config *Config,
 	apiEndpoint string,
 	eventBus domain.EventBus,
+	useQueueSender bool,
 ) *Factory {
 	if config == nil {
 		config = DefaultConfig()
@@ -46,15 +50,31 @@ func NewFactory(
 		contactRepo:        contactRepo,
 		taskRepo:           taskRepo,
 		workspaceRepo:      workspaceRepo,
+		emailQueueRepo:     emailQueueRepo,
 		logger:             logger,
 		config:             config,
 		apiEndpoint:        apiEndpoint,
 		eventBus:           eventBus,
+		useQueueSender:     useQueueSender,
 	}
 }
 
 // CreateMessageSender creates a new message sender
+// If useQueueSender is true, it creates a queue-based sender that enqueues emails
+// for processing by the queue worker. Otherwise, it creates a direct sender.
 func (f *Factory) CreateMessageSender() MessageSender {
+	if f.useQueueSender && f.emailQueueRepo != nil {
+		return NewQueueMessageSender(
+			f.emailQueueRepo,
+			f.broadcastRepo,
+			f.messageHistoryRepo,
+			f.templateRepo,
+			f.logger,
+			f.config,
+			f.apiEndpoint,
+		)
+	}
+
 	return NewMessageSender(
 		f.broadcastRepo,
 		f.messageHistoryRepo,
