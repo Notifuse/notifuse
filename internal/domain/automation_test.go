@@ -301,11 +301,11 @@ func TestAutomation_Validate(t *testing.T) {
 			name: "ID too long",
 			automation: func() *Automation {
 				a := validAutomation()
-				a.ID = string(make([]byte, 33))
+				a.ID = string(make([]byte, 37))
 				return a
 			}(),
 			wantErr: true,
-			errMsg:  "id cannot exceed 32 characters",
+			errMsg:  "id cannot exceed 36 characters",
 		},
 		{
 			name: "empty workspace ID",
@@ -542,11 +542,11 @@ func TestAutomationNode_Validate(t *testing.T) {
 			name: "ID too long",
 			node: func() *AutomationNode {
 				n := validAutomationNode()
-				n.ID = string(make([]byte, 33))
+				n.ID = string(make([]byte, 37))
 				return n
 			}(),
 			wantErr: true,
-			errMsg:  "id cannot exceed 32 characters",
+			errMsg:  "id cannot exceed 36 characters",
 		},
 		{
 			name: "empty automation ID",

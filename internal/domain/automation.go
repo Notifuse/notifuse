@@ -233,8 +233,8 @@ func (a *Automation) Validate() error {
 	if a.ID == "" {
 		return fmt.Errorf("id is required")
 	}
-	if len(a.ID) > 32 {
-		return fmt.Errorf("id cannot exceed 32 characters")
+	if len(a.ID) > 36 {
+		return fmt.Errorf("id cannot exceed 36 characters")
 	}
 
 	if a.WorkspaceID == "" {
@@ -312,8 +312,8 @@ func (n *AutomationNode) Validate() error {
 	if n.ID == "" {
 		return fmt.Errorf("id is required")
 	}
-	if len(n.ID) > 32 {
-		return fmt.Errorf("id cannot exceed 32 characters")
+	if len(n.ID) > 36 {
+		return fmt.Errorf("id cannot exceed 36 characters")
 	}
 
 	if n.AutomationID == "" {
