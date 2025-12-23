@@ -579,12 +579,13 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			// Update broadcast status to processed
 			broadcast.Status = domain.BroadcastStatusProcessed
 			broadcast.UpdatedAt = time.Now().UTC()
+			broadcast.EnqueuedCount = 0 // No recipients case
 
 			// Set completion time
 			completedAt := time.Now().UTC()
 			broadcast.CompletedAt = &completedAt
 
-			// Save the updated broadcast
+			// Save the updated broadcast (includes enqueued_count atomically)
 			if updateErr := o.broadcastRepo.UpdateBroadcast(context.Background(), broadcast); updateErr != nil {
 				o.logger.WithFields(map[string]interface{}{
 					"task_id":      task.ID,
@@ -593,14 +594,6 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 				}).Error("Failed to update broadcast status to processed (no recipients)")
 				err = fmt.Errorf("failed to update broadcast status to processed: %w", updateErr)
 				return false, err
-			}
-
-			// Set enqueued count on the broadcast (0 for no recipients case)
-			if setErr := o.broadcastRepo.SetEnqueuedCount(context.Background(), task.WorkspaceID, broadcastState.BroadcastID, 0); setErr != nil {
-				o.logger.WithFields(map[string]interface{}{
-					"broadcast_id": broadcastState.BroadcastID,
-					"error":        setErr.Error(),
-				}).Error("Failed to set enqueued count")
 			}
 
 			o.logger.WithFields(map[string]interface{}{
@@ -1247,7 +1240,10 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			return false, nil // Pause task for winner selection
 		}
 
-		// Save the updated broadcast
+		// Set final enqueued count on the broadcast (included in atomic update)
+		broadcast.EnqueuedCount = broadcastState.EnqueuedCount
+
+		// Save the updated broadcast (includes enqueued_count atomically)
 		updateErr := o.broadcastRepo.UpdateBroadcast(context.Background(), broadcast)
 		if updateErr != nil {
 			// codecov:ignore:start
@@ -1259,15 +1255,6 @@ func (o *BroadcastOrchestrator) Process(ctx context.Context, task *domain.Task, 
 			// codecov:ignore:end
 			err = fmt.Errorf("failed to update broadcast status to %s: %w", statusMessage, updateErr)
 			return false, err
-		}
-
-		// Set final enqueued count on the broadcast
-		if setErr := o.broadcastRepo.SetEnqueuedCount(context.Background(), task.WorkspaceID, broadcastState.BroadcastID, broadcastState.EnqueuedCount); setErr != nil {
-			o.logger.WithFields(map[string]interface{}{
-				"broadcast_id":   broadcastState.BroadcastID,
-				"enqueued_count": broadcastState.EnqueuedCount,
-				"error":          setErr.Error(),
-			}).Error("Failed to set enqueued count")
 		}
 
 		// codecov:ignore:start

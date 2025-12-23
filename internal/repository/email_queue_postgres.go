@@ -249,52 +249,38 @@ func (r *EmailQueueRepository) MarkAsFailed(ctx context.Context, workspaceID str
 	return nil
 }
 
-// MoveToDeadLetter moves a permanently failed entry to the dead letter queue
-func (r *EmailQueueRepository) MoveToDeadLetter(ctx context.Context, workspaceID string, entry *domain.EmailQueueEntry, finalError string) error {
+// Delete removes a queue entry (used when max retries exhausted)
+func (r *EmailQueueRepository) Delete(ctx context.Context, workspaceID string, entryID string) error {
 	db, err := r.getDB(ctx, workspaceID)
 	if err != nil {
 		return fmt.Errorf("failed to get database connection: %w", err)
 	}
 
-	tx, err := db.BeginTx(ctx, nil)
+	_, err = db.ExecContext(ctx, `DELETE FROM email_queue WHERE id = $1`, entryID)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	// Insert into dead letter queue
-	payloadJSON, err := json.Marshal(entry.Payload)
-	if err != nil {
-		return fmt.Errorf("failed to marshal payload: %w", err)
+		return fmt.Errorf("failed to delete queue entry: %w", err)
 	}
 
-	deadLetterID := uuid.New().String()
-	now := time.Now().UTC()
+	return nil
+}
 
-	insertQuery := `
-		INSERT INTO email_queue_dead_letter (
-			id, original_entry_id, source_type, source_id, contact_email,
-			message_id, payload, final_error, attempts, created_at, failed_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+// SetNextRetry updates next_retry_at WITHOUT incrementing attempts
+// Used by circuit breaker to schedule retry without burning retry attempts
+func (r *EmailQueueRepository) SetNextRetry(ctx context.Context, workspaceID string, entryID string, nextRetry time.Time) error {
+	db, err := r.getDB(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+
+	query := `
+		UPDATE email_queue
+		SET next_retry_at = $1, status = 'pending', updated_at = NOW()
+		WHERE id = $2
 	`
 
-	_, err = tx.ExecContext(ctx, insertQuery,
-		deadLetterID, entry.ID, entry.SourceType, entry.SourceID, entry.ContactEmail,
-		entry.MessageID, payloadJSON, finalError, entry.Attempts, entry.CreatedAt, now,
-	)
+	_, err = db.ExecContext(ctx, query, nextRetry, entryID)
 	if err != nil {
-		return fmt.Errorf("failed to insert into dead letter queue: %w", err)
-	}
-
-	// Delete from main queue
-	deleteQuery := `DELETE FROM email_queue WHERE id = $1`
-	_, err = tx.ExecContext(ctx, deleteQuery, entry.ID)
-	if err != nil {
-		return fmt.Errorf("failed to delete from email queue: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+		return fmt.Errorf("failed to set next retry: %w", err)
 	}
 
 	return nil
@@ -322,13 +308,6 @@ func (r *EmailQueueRepository) GetStats(ctx context.Context, workspaceID string)
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get queue stats: %w", err)
-	}
-
-	// Get dead letter count separately
-	deadLetterQuery := `SELECT COUNT(*) FROM email_queue_dead_letter`
-	err = db.QueryRowContext(ctx, deadLetterQuery).Scan(&stats.DeadLetter)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get dead letter count: %w", err)
 	}
 
 	return &stats, nil
@@ -388,154 +367,6 @@ func (r *EmailQueueRepository) CountBySourceAndStatus(ctx context.Context, works
 	}
 
 	return count, nil
-}
-
-// CleanupDeadLetter removes old dead letter entries
-func (r *EmailQueueRepository) CleanupDeadLetter(ctx context.Context, workspaceID string, olderThan time.Duration) (int64, error) {
-	db, err := r.getDB(ctx, workspaceID)
-	if err != nil {
-		return 0, fmt.Errorf("failed to get database connection: %w", err)
-	}
-
-	cutoff := time.Now().UTC().Add(-olderThan)
-	query := `DELETE FROM email_queue_dead_letter WHERE failed_at < $1`
-
-	result, err := db.ExecContext(ctx, query, cutoff)
-	if err != nil {
-		return 0, fmt.Errorf("failed to cleanup dead letter entries: %w", err)
-	}
-
-	return result.RowsAffected()
-}
-
-// GetDeadLetterEntries retrieves dead letter entries for investigation
-func (r *EmailQueueRepository) GetDeadLetterEntries(ctx context.Context, workspaceID string, limit, offset int) ([]*domain.EmailQueueDeadLetter, int64, error) {
-	db, err := r.getDB(ctx, workspaceID)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to get database connection: %w", err)
-	}
-
-	// Get total count
-	var total int64
-	countQuery := `SELECT COUNT(*) FROM email_queue_dead_letter`
-	err = db.QueryRowContext(ctx, countQuery).Scan(&total)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to count dead letter entries: %w", err)
-	}
-
-	// Get entries
-	query := `
-		SELECT id, original_entry_id, source_type, source_id, contact_email,
-		       message_id, payload, final_error, attempts, created_at, failed_at
-		FROM email_queue_dead_letter
-		ORDER BY failed_at DESC
-		LIMIT $1 OFFSET $2
-	`
-
-	rows, err := db.QueryContext(ctx, query, limit, offset)
-	if err != nil {
-		return nil, 0, fmt.Errorf("failed to query dead letter entries: %w", err)
-	}
-	defer rows.Close()
-
-	var entries []*domain.EmailQueueDeadLetter
-	for rows.Next() {
-		var entry domain.EmailQueueDeadLetter
-		var payloadJSON []byte
-
-		err := rows.Scan(
-			&entry.ID, &entry.OriginalEntryID, &entry.SourceType, &entry.SourceID,
-			&entry.ContactEmail, &entry.MessageID, &payloadJSON, &entry.FinalError,
-			&entry.Attempts, &entry.CreatedAt, &entry.FailedAt,
-		)
-		if err != nil {
-			return nil, 0, fmt.Errorf("failed to scan dead letter entry: %w", err)
-		}
-
-		if err := json.Unmarshal(payloadJSON, &entry.Payload); err != nil {
-			return nil, 0, fmt.Errorf("failed to unmarshal payload: %w", err)
-		}
-
-		entries = append(entries, &entry)
-	}
-
-	return entries, total, rows.Err()
-}
-
-// RetryDeadLetter moves a dead letter entry back to the queue for retry
-func (r *EmailQueueRepository) RetryDeadLetter(ctx context.Context, workspaceID string, deadLetterID string) error {
-	db, err := r.getDB(ctx, workspaceID)
-	if err != nil {
-		return fmt.Errorf("failed to get database connection: %w", err)
-	}
-
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer tx.Rollback()
-
-	// Get dead letter entry
-	var entry domain.EmailQueueDeadLetter
-	var payloadJSON []byte
-
-	query := `
-		SELECT id, original_entry_id, source_type, source_id, contact_email,
-		       message_id, payload, final_error, attempts, created_at, failed_at
-		FROM email_queue_dead_letter
-		WHERE id = $1
-	`
-
-	err = tx.QueryRowContext(ctx, query, deadLetterID).Scan(
-		&entry.ID, &entry.OriginalEntryID, &entry.SourceType, &entry.SourceID,
-		&entry.ContactEmail, &entry.MessageID, &payloadJSON, &entry.FinalError,
-		&entry.Attempts, &entry.CreatedAt, &entry.FailedAt,
-	)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return fmt.Errorf("dead letter entry not found: %s", deadLetterID)
-		}
-		return fmt.Errorf("failed to get dead letter entry: %w", err)
-	}
-
-	if err := json.Unmarshal(payloadJSON, &entry.Payload); err != nil {
-		return fmt.Errorf("failed to unmarshal payload: %w", err)
-	}
-
-	// Create new queue entry
-	now := time.Now().UTC()
-	newID := uuid.New().String()
-
-	// Extract integration_id, provider_kind, template_id from original context
-	// These should be stored in the payload or we need to add them to dead letter
-	insertQuery := `
-		INSERT INTO email_queue (
-			id, status, priority, source_type, source_id, integration_id, provider_kind,
-			contact_email, message_id, template_id, payload, attempts, max_attempts,
-			created_at, updated_at
-		) VALUES ($1, 'pending', 5, $2, $3, '', '', $4, $5, '', $6, 0, 3, $7, $7)
-	`
-
-	_, err = tx.ExecContext(ctx, insertQuery,
-		newID, entry.SourceType, entry.SourceID, entry.ContactEmail,
-		entry.MessageID, payloadJSON, now,
-	)
-	if err != nil {
-		return fmt.Errorf("failed to re-enqueue entry: %w", err)
-	}
-
-	// Delete from dead letter
-	deleteQuery := `DELETE FROM email_queue_dead_letter WHERE id = $1`
-	_, err = tx.ExecContext(ctx, deleteQuery, deadLetterID)
-	if err != nil {
-		return fmt.Errorf("failed to delete from dead letter: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
-	return nil
 }
 
 // scanEmailQueueEntry scans a row into an EmailQueueEntry

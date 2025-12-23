@@ -895,38 +895,14 @@ func (a *App) InitServices() error {
 	)
 
 	// Initialize email queue worker for processing marketing emails (broadcasts & automations)
+	// Worker creates message_history entries via UPSERT after each send attempt
 	a.emailQueueWorker = queue.NewEmailQueueWorker(
 		a.emailQueueRepo,
 		a.workspaceRepo,
 		a.emailService,
+		a.messageHistoryRepo,
 		queue.DefaultWorkerConfig(),
 		a.logger,
-	)
-
-	// Wire callbacks to update broadcast sent/failed counts when emails are processed
-	a.emailQueueWorker.SetCallbacks(
-		// onEmailSent - increment broadcast sent count
-		func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID, messageID string) {
-			if sourceType == domain.EmailQueueSourceBroadcast {
-				if err := a.broadcastRepo.IncrementSentCount(context.Background(), workspaceID, sourceID); err != nil {
-					a.logger.WithFields(map[string]interface{}{
-						"broadcast_id": sourceID,
-						"error":        err.Error(),
-					}).Error("Failed to increment sent count")
-				}
-			}
-		},
-		// onEmailFailed - only count permanent failures (dead letters)
-		func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID, messageID string, err error, isDeadLetter bool) {
-			if sourceType == domain.EmailQueueSourceBroadcast && isDeadLetter {
-				if incErr := a.broadcastRepo.IncrementFailedCount(context.Background(), workspaceID, sourceID); incErr != nil {
-					a.logger.WithFields(map[string]interface{}{
-						"broadcast_id": sourceID,
-						"error":        incErr.Error(),
-					}).Error("Failed to increment failed count")
-				}
-			}
-		},
 	)
 
 	// Initialize automation service
@@ -945,6 +921,7 @@ func (a *App) InitServices() error {
 		a.templateRepo,
 		a.emailQueueRepo,
 		a.messageHistoryRepo,
+		a.contactTimelineRepo,
 		a.logger,
 		a.config.APIEndpoint,
 	)

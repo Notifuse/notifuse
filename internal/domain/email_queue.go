@@ -77,6 +77,10 @@ type EmailQueuePayload struct {
 
 	// Provider settings (encrypted, will be decrypted by worker)
 	ProviderSettings map[string]interface{} `json:"provider_settings"`
+
+	// Message history tracking fields
+	TemplateVersion int    `json:"template_version"`        // Needed for message_history
+	ListID          string `json:"list_id,omitempty"`       // For broadcasts
 }
 
 // ToSendEmailProviderRequest converts the payload to a SendEmailProviderRequest
@@ -96,27 +100,11 @@ func (p *EmailQueuePayload) ToSendEmailProviderRequest(workspaceID, integrationI
 	}
 }
 
-// EmailQueueDeadLetter stores permanently failed emails for investigation
-type EmailQueueDeadLetter struct {
-	ID              string               `json:"id"`
-	OriginalEntryID string               `json:"original_entry_id"`
-	SourceType      EmailQueueSourceType `json:"source_type"`
-	SourceID        string               `json:"source_id"`
-	ContactEmail    string               `json:"contact_email"`
-	MessageID       string               `json:"message_id"`
-	Payload         EmailQueuePayload    `json:"payload"`
-	FinalError      string               `json:"final_error"`
-	Attempts        int                  `json:"attempts"`
-	CreatedAt       time.Time            `json:"created_at"` // Original creation time
-	FailedAt        time.Time            `json:"failed_at"`
-}
-
 // EmailQueueStats provides queue statistics for a workspace
 type EmailQueueStats struct {
 	Pending    int64 `json:"pending"`
 	Processing int64 `json:"processing"`
 	Failed     int64 `json:"failed"`
-	DeadLetter int64 `json:"dead_letter"`
 	// Note: Sent entries are deleted immediately, not tracked in stats
 }
 
@@ -143,8 +131,12 @@ type EmailQueueRepository interface {
 	// MarkAsFailed marks an entry as failed and schedules retry
 	MarkAsFailed(ctx context.Context, workspaceID string, id string, errorMsg string, nextRetryAt *time.Time) error
 
-	// MoveToDeadLetter moves a permanently failed entry to the dead letter queue
-	MoveToDeadLetter(ctx context.Context, workspaceID string, entry *EmailQueueEntry, finalError string) error
+	// Delete removes a queue entry (used when max retries exhausted)
+	Delete(ctx context.Context, workspaceID string, entryID string) error
+
+	// SetNextRetry updates next_retry_at WITHOUT incrementing attempts
+	// Used by circuit breaker to schedule retry without burning retry attempts
+	SetNextRetry(ctx context.Context, workspaceID string, entryID string, nextRetry time.Time) error
 
 	// GetStats returns queue statistics for a workspace
 	GetStats(ctx context.Context, workspaceID string) (*EmailQueueStats, error)
@@ -155,15 +147,6 @@ type EmailQueueRepository interface {
 
 	// CountBySourceAndStatus counts entries by source and status
 	CountBySourceAndStatus(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string, status EmailQueueStatus) (int64, error)
-
-	// CleanupDeadLetter removes old dead letter entries
-	CleanupDeadLetter(ctx context.Context, workspaceID string, olderThan time.Duration) (int64, error)
-
-	// GetDeadLetterEntries retrieves dead letter entries for investigation
-	GetDeadLetterEntries(ctx context.Context, workspaceID string, limit, offset int) ([]*EmailQueueDeadLetter, int64, error)
-
-	// RetryDeadLetter moves a dead letter entry back to the queue for retry
-	RetryDeadLetter(ctx context.Context, workspaceID string, deadLetterID string) error
 }
 
 // CalculateNextRetryTime calculates the next retry time using exponential backoff
@@ -175,27 +158,6 @@ func CalculateNextRetryTime(attempts int) time.Time {
 	// 2^(attempts-1) minutes
 	backoffMinutes := 1 << uint(attempts-1)
 	return time.Now().UTC().Add(time.Duration(backoffMinutes) * time.Minute)
-}
-
-// CleanupDeadLetterRequest represents a request to clean up old dead letter entries
-type CleanupDeadLetterRequest struct {
-	WorkspaceID    string `json:"workspace_id"`
-	RetentionHours int    `json:"retention_hours"` // Delete entries older than this many hours (default: 720 = 30 days)
-}
-
-// Validate validates the cleanup request
-func (r *CleanupDeadLetterRequest) Validate() error {
-	if r.WorkspaceID == "" {
-		return fmt.Errorf("workspace_id is required")
-	}
-	if r.RetentionHours < 0 {
-		r.RetentionHours = 0
-	}
-	// Default to 30 days if not specified
-	if r.RetentionHours == 0 {
-		r.RetentionHours = 720 // 30 days
-	}
-	return nil
 }
 
 // GetEmailQueueStatsRequest represents a request to get queue statistics
@@ -215,71 +177,6 @@ func (r *GetEmailQueueStatsRequest) FromURLParams(params map[string][]string) er
 func (r *GetEmailQueueStatsRequest) Validate() error {
 	if r.WorkspaceID == "" {
 		return fmt.Errorf("workspace_id is required")
-	}
-	return nil
-}
-
-// GetDeadLetterEntriesRequest represents a request to get dead letter entries
-type GetDeadLetterEntriesRequest struct {
-	WorkspaceID string `json:"workspace_id"`
-	Limit       int    `json:"limit"`
-	Offset      int    `json:"offset"`
-}
-
-// FromURLParams populates the request from URL parameters
-func (r *GetDeadLetterEntriesRequest) FromURLParams(params map[string][]string) error {
-	if ids, ok := params["workspace_id"]; ok && len(ids) > 0 {
-		r.WorkspaceID = ids[0]
-	}
-	if limits, ok := params["limit"]; ok && len(limits) > 0 {
-		val, err := ParseIntParam(limits[0])
-		if err == nil {
-			r.Limit = val
-		} else {
-			r.Limit = 50
-		}
-	} else {
-		r.Limit = 50
-	}
-	if offsets, ok := params["offset"]; ok && len(offsets) > 0 {
-		val, err := ParseIntParam(offsets[0])
-		if err == nil {
-			r.Offset = val
-		}
-	}
-	return r.Validate()
-}
-
-// Validate validates the request
-func (r *GetDeadLetterEntriesRequest) Validate() error {
-	if r.WorkspaceID == "" {
-		return fmt.Errorf("workspace_id is required")
-	}
-	if r.Limit <= 0 {
-		r.Limit = 50
-	}
-	if r.Limit > 100 {
-		r.Limit = 100
-	}
-	if r.Offset < 0 {
-		r.Offset = 0
-	}
-	return nil
-}
-
-// RetryDeadLetterRequest represents a request to retry a dead letter entry
-type RetryDeadLetterRequest struct {
-	WorkspaceID  string `json:"workspace_id"`
-	DeadLetterID string `json:"dead_letter_id"`
-}
-
-// Validate validates the request
-func (r *RetryDeadLetterRequest) Validate() error {
-	if r.WorkspaceID == "" {
-		return fmt.Errorf("workspace_id is required")
-	}
-	if r.DeadLetterID == "" {
-		return fmt.Errorf("dead_letter_id is required")
 	}
 	return nil
 }

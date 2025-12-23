@@ -54,7 +54,7 @@ func TestV21Migration_UpdateWorkspace(t *testing.T) {
 		Name: "Test Workspace",
 	}
 
-	t.Run("Success - Creates email_queue and email_queue_dead_letter tables", func(t *testing.T) {
+	t.Run("Success - Creates email_queue table and indexes", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
@@ -79,32 +79,26 @@ func TestV21Migration_UpdateWorkspace(t *testing.T) {
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_source").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		// Note: No cleanup index - sent entries are deleted immediately
-
 		// Index for integration-based queries
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_integration").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		// PART 2: Create email_queue_dead_letter table
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue_dead_letter").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		// Index for investigating dead letter entries by source
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_source").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		// Index for dead letter cleanup
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_cleanup").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-
-		// PART 3: Add broadcast count columns
+		// PART 2: Add broadcast count columns
 		mock.ExpectExec("ALTER TABLE broadcasts").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
-		// PART 4: Migrate broadcast statuses
+		// PART 3: Migrate broadcast statuses
 		mock.ExpectExec("UPDATE broadcasts SET status = 'processing' WHERE status = 'sending'").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("UPDATE broadcasts SET status = 'processed' WHERE status = 'sent'").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// PART 4: Add missing broadcast_id index
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_message_history_broadcast_id").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		// PART 5: Update automation_enroll_contact function with timeline events
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION automation_enroll_contact").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 
 		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
@@ -197,9 +191,6 @@ func TestV21Migration_UpdateWorkspace(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to create email_queue source index")
 	})
 
-	// Note: "Error - Create cleanup index fails" test removed - cleanup index no longer exists
-	// (sent entries are deleted immediately)
-
 	t.Run("Error - Create integration index fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
@@ -223,7 +214,7 @@ func TestV21Migration_UpdateWorkspace(t *testing.T) {
 		assert.Contains(t, err.Error(), "failed to create email_queue integration index")
 	})
 
-	t.Run("Error - Create dead_letter table fails", func(t *testing.T) {
+	t.Run("Error - Add broadcast enqueued_count column fails", func(t *testing.T) {
 		db, mock, err := sqlmock.New()
 		require.NoError(t, err)
 		defer func() { _ = db.Close() }()
@@ -239,100 +230,13 @@ func TestV21Migration_UpdateWorkspace(t *testing.T) {
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_source").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_integration").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue_dead_letter").
-			WillReturnError(assert.AnError)
-
-		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create email_queue_dead_letter table")
-	})
-
-	t.Run("Error - Create dead_letter source index fails", func(t *testing.T) {
-		db, mock, err := sqlmock.New()
-		require.NoError(t, err)
-		defer func() { _ = db.Close() }()
-
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_pending").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_next_retry").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_retry").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_source").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_integration").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue_dead_letter").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_source").
-			WillReturnError(assert.AnError)
-
-		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create email_queue_dead_letter source index")
-	})
-
-	t.Run("Error - Create dead_letter cleanup index fails", func(t *testing.T) {
-		db, mock, err := sqlmock.New()
-		require.NoError(t, err)
-		defer func() { _ = db.Close() }()
-
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_pending").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_next_retry").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_retry").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_source").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_integration").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue_dead_letter").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_source").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_cleanup").
-			WillReturnError(assert.AnError)
-
-		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to create email_queue_dead_letter cleanup index")
-	})
-
-	t.Run("Error - Add broadcast count columns fails", func(t *testing.T) {
-		db, mock, err := sqlmock.New()
-		require.NoError(t, err)
-		defer func() { _ = db.Close() }()
-
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_pending").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_next_retry").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_retry").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_source").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_integration").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue_dead_letter").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_source").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_cleanup").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("ALTER TABLE broadcasts").
 			WillReturnError(assert.AnError)
 
 		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to add broadcast count columns")
+		assert.Contains(t, err.Error(), "failed to add broadcast enqueued_count column")
 	})
 
 	t.Run("Error - Migrate sending status fails", func(t *testing.T) {
@@ -351,12 +255,6 @@ func TestV21Migration_UpdateWorkspace(t *testing.T) {
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_source").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_integration").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue_dead_letter").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_source").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_cleanup").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("ALTER TABLE broadcasts").
 			WillReturnResult(sqlmock.NewResult(0, 0))
@@ -385,12 +283,6 @@ func TestV21Migration_UpdateWorkspace(t *testing.T) {
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_integration").
 			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue_dead_letter").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_source").
-			WillReturnResult(sqlmock.NewResult(0, 0))
-		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_cleanup").
-			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("ALTER TABLE broadcasts").
 			WillReturnResult(sqlmock.NewResult(0, 0))
 		mock.ExpectExec("UPDATE broadcasts SET status = 'processing' WHERE status = 'sending'").
@@ -401,6 +293,70 @@ func TestV21Migration_UpdateWorkspace(t *testing.T) {
 		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to migrate sent status")
+	})
+
+	t.Run("Error - Create message_history broadcast_id index fails", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_pending").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_next_retry").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_retry").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_source").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_integration").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("ALTER TABLE broadcasts").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE broadcasts SET status = 'processing' WHERE status = 'sending'").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE broadcasts SET status = 'processed' WHERE status = 'sent'").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_message_history_broadcast_id").
+			WillReturnError(assert.AnError)
+
+		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to create message_history broadcast_id index")
+	})
+
+	t.Run("Error - Update automation_enroll_contact function fails", func(t *testing.T) {
+		db, mock, err := sqlmock.New()
+		require.NoError(t, err)
+		defer func() { _ = db.Close() }()
+
+		mock.ExpectExec("CREATE TABLE IF NOT EXISTS email_queue").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_pending").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_next_retry").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_retry").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_source").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_email_queue_integration").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("ALTER TABLE broadcasts").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE broadcasts SET status = 'processing' WHERE status = 'sending'").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("UPDATE broadcasts SET status = 'processed' WHERE status = 'sent'").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE INDEX IF NOT EXISTS idx_message_history_broadcast_id").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+		mock.ExpectExec("CREATE OR REPLACE FUNCTION automation_enroll_contact").
+			WillReturnError(assert.AnError)
+
+		err = migration.UpdateWorkspace(ctx, cfg, workspace, db)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to update automation_enroll_contact function")
 	})
 }
 

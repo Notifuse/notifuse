@@ -166,6 +166,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			winner_sent_at TIMESTAMP WITH TIME ZONE,
 			test_phase_recipient_count INTEGER DEFAULT 0,
 			winner_phase_recipient_count INTEGER DEFAULT 0,
+			enqueued_count INTEGER DEFAULT 0,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			started_at TIMESTAMP WITH TIME ZONE,
@@ -201,7 +202,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_contact_email ON message_history(contact_email)`,
-		`CREATE INDEX IF NOT EXISTS idx_message_history_broadcast_id ON message_history(broadcast_id)`,
+		`CREATE INDEX IF NOT EXISTS idx_message_history_broadcast_id ON message_history(broadcast_id) WHERE broadcast_id IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_automation_id ON message_history(automation_id) WHERE automation_id IS NOT NULL`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_template_id ON message_history(template_id, template_version)`,
 		`CREATE INDEX IF NOT EXISTS idx_message_history_created_at_id ON message_history(created_at DESC, id DESC)`,
@@ -465,21 +466,6 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE INDEX IF NOT EXISTS idx_email_queue_retry ON email_queue(next_retry_at) WHERE status = 'failed' AND attempts < max_attempts`,
 		`CREATE INDEX IF NOT EXISTS idx_email_queue_source ON email_queue(source_type, source_id, status)`,
 		`CREATE INDEX IF NOT EXISTS idx_email_queue_integration ON email_queue(integration_id, status)`,
-		`CREATE TABLE IF NOT EXISTS email_queue_dead_letter (
-			id VARCHAR(36) PRIMARY KEY,
-			original_entry_id VARCHAR(36) NOT NULL,
-			source_type VARCHAR(20) NOT NULL,
-			source_id VARCHAR(36) NOT NULL,
-			contact_email VARCHAR(255) NOT NULL,
-			message_id VARCHAR(100) NOT NULL,
-			payload JSONB NOT NULL,
-			final_error TEXT NOT NULL,
-			attempts INTEGER NOT NULL,
-			created_at TIMESTAMPTZ NOT NULL,
-			failed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-		)`,
-		`CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_source ON email_queue_dead_letter(source_type, source_id, failed_at DESC)`,
-		`CREATE INDEX IF NOT EXISTS idx_email_queue_dead_letter_cleanup ON email_queue_dead_letter(failed_at)`,
 	}
 
 	// Run all table creation queries
@@ -1229,6 +1215,21 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				'entered',
 				NOW(),
 				'{}'::jsonb
+			);
+
+			-- 7. Create automation.start timeline event
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+			VALUES (
+				p_contact_email,
+				'insert',
+				'automation',
+				'automation.start',
+				p_automation_id,
+				jsonb_build_object(
+					'automation_id', jsonb_build_object('new', p_automation_id),
+					'root_node_id', jsonb_build_object('new', p_root_node_id)
+				),
+				NOW()
 			);
 
 		END;

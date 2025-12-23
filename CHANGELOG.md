@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [21.0] - 2025-12-23
+
+### Database Schema Changes
+
+- Migration v21.0 introduces the email queue system:
+  - `email_queue` table for unified broadcast and automation email delivery
+  - Added `enqueued_count` column to `broadcasts` table
+  - Migrated broadcast statuses: `sending` → `processing`, `sent` → `processed`
+
+### Features
+
+- **Email Queue System**: Centralized queue for all outbound emails
+  - Unified delivery for broadcasts and automations
+  - Priority-based processing with retry logic
+  - Per-integration rate limiting
+  - Background worker with graceful shutdown
+
+- **Automation Performance**: Single-tick execution optimization
+  - Process multiple nodes per scheduler tick until delay or completion
+  - 10-node safety limit per tick prevents runaway loops
+  - State persisted after each node for crash recovery
+
+- **Automation Timeline Events**: Track contact journey lifecycle
+  - `automation.start` event on enrollment
+  - `automation.end` event on completion/exit/failure
+
+### Breaking Changes
+
+- Broadcast statuses renamed: `sending` → `processing`, `sent` → `processed`
+
 ## [20.0] - 2025-12-21
 
 ### Database Schema Changes

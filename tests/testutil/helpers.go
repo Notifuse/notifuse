@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -110,6 +111,107 @@ func (s *IntegrationTestSuite) ResetData() {
 
 	err = s.DBManager.SeedTestData()
 	require.NoError(s.T, err, "Failed to seed test data")
+}
+
+// ============================================================================
+// Token Cache - Reduces redundant authentication calls in integration tests
+// ============================================================================
+
+// TokenCache provides a thread-safe cache for authentication tokens within a test suite.
+// This significantly reduces test execution time by avoiding repeated sign-in flows
+// for the same user across multiple subtests.
+type TokenCache struct {
+	mu     sync.RWMutex
+	tokens map[string]string // email -> token
+	client *APIClient
+}
+
+// NewTokenCache creates a token cache bound to an API client
+func NewTokenCache(client *APIClient) *TokenCache {
+	return &TokenCache{
+		tokens: make(map[string]string),
+		client: client,
+	}
+}
+
+// GetOrCreate returns a cached token or performs the authentication flow.
+// This method is thread-safe and handles concurrent access properly.
+func (tc *TokenCache) GetOrCreate(t *testing.T, email string) string {
+	// Try read lock first for fast path
+	tc.mu.RLock()
+	if token, exists := tc.tokens[email]; exists {
+		tc.mu.RUnlock()
+		return token
+	}
+	tc.mu.RUnlock()
+
+	// Acquire write lock for authentication
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+
+	// Double-check after acquiring write lock (another goroutine may have added it)
+	if token, exists := tc.tokens[email]; exists {
+		return token
+	}
+
+	// Perform the authentication flow
+	token := tc.performSignIn(t, email)
+	tc.tokens[email] = token
+	return token
+}
+
+// performSignIn executes the complete sign-in flow for an email address.
+// This performs the magic code sign-in and verification.
+func (tc *TokenCache) performSignIn(t *testing.T, email string) string {
+	// Save and restore current token
+	currentToken := tc.client.GetToken()
+	defer tc.client.SetToken(currentToken)
+
+	tc.client.SetToken("")
+
+	// Step 1: Sign in (generates magic code)
+	signInReq := map[string]string{"email": email}
+	resp, err := tc.client.Post("/api/user.signin", signInReq)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	require.Equal(t, http.StatusOK, resp.StatusCode, "Sign-in failed for %s", email)
+
+	var signInResponse map[string]interface{}
+	err = json.NewDecoder(resp.Body).Decode(&signInResponse)
+	require.NoError(t, err)
+
+	// Get magic code from response (only available in test/development mode)
+	// Note: the API returns the code as "code", not "magic_code"
+	code, ok := signInResponse["code"].(string)
+	require.True(t, ok, "Magic code not found in response for %s", email)
+
+	// Step 2: Verify magic code
+	verifyReq := map[string]string{
+		"email": email,
+		"code":  code,
+	}
+	verifyResp, err := tc.client.Post("/api/user.verify", verifyReq)
+	require.NoError(t, err)
+	defer verifyResp.Body.Close()
+
+	require.Equal(t, http.StatusOK, verifyResp.StatusCode, "Verification failed for %s", email)
+
+	var authResponse map[string]interface{}
+	err = json.NewDecoder(verifyResp.Body).Decode(&authResponse)
+	require.NoError(t, err)
+
+	token, ok := authResponse["token"].(string)
+	require.True(t, ok, "Token not found in auth response for %s", email)
+
+	return token
+}
+
+// Clear removes all cached tokens (useful for test isolation if needed)
+func (tc *TokenCache) Clear() {
+	tc.mu.Lock()
+	defer tc.mu.Unlock()
+	tc.tokens = make(map[string]string)
 }
 
 // WaitForBroadcastCompletion waits for a broadcast to reach a terminal state
@@ -447,8 +549,7 @@ func WaitForBroadcastStatusWithExecution(t *testing.T, client *APIClient, broadc
 				// Extract detailed state info
 				phase := "unknown"
 				progress := 0.0
-				sentCount := 0
-				failedCount := 0
+				enqueuedCount := 0
 				totalRecipients := 0
 
 				if state, ok := broadcastData["state"].(map[string]interface{}); ok {
@@ -460,11 +561,8 @@ func WaitForBroadcastStatusWithExecution(t *testing.T, client *APIClient, broadc
 					}
 				}
 
-				if sentCountVal, ok := broadcastData["sent_count"].(float64); ok {
-					sentCount = int(sentCountVal)
-				}
-				if failedCountVal, ok := broadcastData["failed_count"].(float64); ok {
-					failedCount = int(failedCountVal)
+				if enqueuedCountVal, ok := broadcastData["enqueued_count"].(float64); ok {
+					enqueuedCount = int(enqueuedCountVal)
 				}
 				if totalVal, ok := broadcastData["total_recipients"].(float64); ok {
 					totalRecipients = int(totalVal)
@@ -474,7 +572,7 @@ func WaitForBroadcastStatusWithExecution(t *testing.T, client *APIClient, broadc
 				t.Logf("  Current status: %s", status)
 				t.Logf("  Phase: %s", phase)
 				t.Logf("  Progress: %.1f%%", progress*100)
-				t.Logf("  Recipients: %d sent, %d failed, %d total", sentCount, failedCount, totalRecipients)
+				t.Logf("  Recipients: %d enqueued, %d total", enqueuedCount, totalRecipients)
 				t.Logf("  Iterations: %d", iterationCount)
 				t.Logf("  Task executions: %d", taskExecutionCount)
 				t.Logf("  Expected statuses: %v", acceptableStatuses)
@@ -1124,6 +1222,48 @@ func WaitForMailpitMessages(t *testing.T, subject string, expectedCount int, tim
 	return fmt.Errorf("timeout waiting for %d emails (got %d after %v)", expectedCount, finalCount, timeout)
 }
 
+// WaitForMailpitMessagesFast waits for messages with fast polling (200ms interval).
+// Returns the MailpitMessagesResponse when at least one message matching subject is found.
+// If subject is empty, returns when any message is found.
+func WaitForMailpitMessagesFast(t *testing.T, subject string, timeout time.Duration) (*MailpitMessagesResponse, error) {
+	deadline := time.Now().Add(timeout)
+	pollInterval := 200 * time.Millisecond
+	httpClient := &http.Client{Timeout: 5 * time.Second}
+	mailpitURL := "http://localhost:8025/api/v1/messages"
+
+	for time.Now().Before(deadline) {
+		resp, err := httpClient.Get(mailpitURL)
+		if err != nil {
+			time.Sleep(pollInterval)
+			continue
+		}
+
+		var data MailpitMessagesResponse
+		if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
+			resp.Body.Close()
+			time.Sleep(pollInterval)
+			continue
+		}
+		resp.Body.Close()
+
+		// If no subject filter, return any messages
+		if subject == "" && len(data.Messages) > 0 {
+			return &data, nil
+		}
+
+		// Filter by subject
+		for _, msg := range data.Messages {
+			if strings.Contains(msg.Subject, subject) {
+				return &data, nil
+			}
+		}
+
+		time.Sleep(pollInterval)
+	}
+
+	return nil, fmt.Errorf("timeout waiting for messages with subject '%s'", subject)
+}
+
 // ============================================================================
 // Email Queue Helpers
 // ============================================================================
@@ -1146,7 +1286,7 @@ func WaitForQueueEmpty(t *testing.T, queueRepo domain.EmailQueueRepository, work
 		activeCount := stats.Pending + stats.Processing
 		if activeCount == 0 {
 			// Note: sent entries are deleted immediately, not tracked in stats
-			t.Logf("Email queue is empty (failed: %d, dead letter: %d)", stats.Failed, stats.DeadLetter)
+			t.Logf("Email queue is empty (failed: %d)", stats.Failed)
 			return nil
 		}
 
@@ -1219,8 +1359,7 @@ func WaitForQueueProcessed(t *testing.T, queueRepo domain.EmailQueueRepository, 
 
 		// Sent entries are deleted immediately, so just check if queue is empty (or only has failures)
 		if stats.Pending == 0 && stats.Processing == 0 {
-			t.Logf("Queue processing complete - failed: %d, dead letter: %d",
-				stats.Failed, stats.DeadLetter)
+			t.Logf("Queue processing complete - failed: %d", stats.Failed)
 			return stats, nil
 		}
 

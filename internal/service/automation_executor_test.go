@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -148,10 +149,12 @@ func TestAutomationExecutor_Execute_NoCurrentNode(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors:  map[domain.NodeType]NodeExecutor{},
 		logger:         mockLogger,
 	}
@@ -175,6 +178,7 @@ func TestAutomationExecutor_Execute_NoCurrentNode(t *testing.T) {
 	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
 	require.NoError(t, err)
@@ -223,10 +227,14 @@ func TestAutomationExecutor_Execute_NodeNotFound(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors:  map[domain.NodeType]NodeExecutor{},
 		logger:         mockLogger,
 	}
@@ -251,9 +259,13 @@ func TestAutomationExecutor_Execute_NodeNotFound(t *testing.T) {
 		Nodes:  []*domain.AutomationNode{}, // Empty nodes - current node not found
 	}
 
+	contact := &domain.Contact{Email: "test@example.com"}
+
 	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "exited").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
 	require.NoError(t, err)
@@ -303,7 +315,10 @@ func TestAutomationExecutor_Execute_UnsupportedNodeType(t *testing.T) {
 		Nodes:  []*domain.AutomationNode{node},
 	}
 
+	contact := &domain.Contact{Email: "test@example.com"}
+
 	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
@@ -321,11 +336,13 @@ func TestAutomationExecutor_Execute_TerminalNode(t *testing.T) {
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
 			domain.NodeTypeDelay: NewDelayNodeExecutor(),
 		},
@@ -372,6 +389,7 @@ func TestAutomationExecutor_Execute_TerminalNode(t *testing.T) {
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
 	require.NoError(t, err)
@@ -385,10 +403,12 @@ func TestAutomationExecutor_Execute_MaxRetriesExceeded(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors:  map[domain.NodeType]NodeExecutor{},
 		logger:         mockLogger,
 	}
@@ -410,6 +430,7 @@ func TestAutomationExecutor_Execute_MaxRetriesExceeded(t *testing.T) {
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "failed").Return(nil)
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
 	require.NoError(t, err)
@@ -424,11 +445,13 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
 			domain.NodeTypeDelay: NewDelayNodeExecutor(),
 		},
@@ -492,6 +515,7 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	// For second contact
 	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
@@ -501,6 +525,7 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	processed, err := executor.ProcessBatch(context.Background(), 50)
 	require.NoError(t, err)
@@ -533,11 +558,13 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
 			domain.NodeTypeDelay: NewDelayNodeExecutor(),
 		},
@@ -607,6 +634,7 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	processed, err := executor.ProcessBatch(context.Background(), 50)
 	require.NoError(t, err)
@@ -659,10 +687,12 @@ func TestAutomationExecutor_handleError_MaxRetriesExceeded(t *testing.T) {
 	defer ctrl.Finish()
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
+		timelineRepo:   mockTimelineRepo,
 		logger:         mockLogger,
 	}
 
@@ -682,6 +712,7 @@ func TestAutomationExecutor_handleError_MaxRetriesExceeded(t *testing.T) {
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "failed").Return(nil)
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	err := executor.handleError(context.Background(), workspaceID, ca, errors.New("test error"), "test context")
 	require.NoError(t, err)
@@ -957,6 +988,7 @@ func TestAutomationExecutor_Execute_PassesExecutionContext(t *testing.T) {
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	// Create a custom node executor that verifies ExecutionContext is passed
@@ -965,9 +997,9 @@ func TestAutomationExecutor_Execute_PassesExecutionContext(t *testing.T) {
 		nodeType: domain.NodeTypeDelay,
 		execute: func(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
 			capturedContext = params.ExecutionContext
-			nextNode := "next_node"
+			// Return nil NextNodeID to complete the automation (terminal node)
 			return &NodeExecutionResult{
-				NextNodeID: &nextNode,
+				NextNodeID: nil,
 				Status:     domain.ContactAutomationStatusActive,
 				Output: map[string]interface{}{
 					"node_type": "delay",
@@ -979,6 +1011,7 @@ func TestAutomationExecutor_Execute_PassesExecutionContext(t *testing.T) {
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
 			domain.NodeTypeDelay: customExecutor,
 		},
@@ -1032,6 +1065,8 @@ func TestAutomationExecutor_Execute_PassesExecutionContext(t *testing.T) {
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return(previousExecutions, nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
 	require.NoError(t, err)
@@ -1068,6 +1103,7 @@ func TestAutomationExecutor_Execute_WebhookNode_Success(t *testing.T) {
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	// Create a test HTTP server that simulates an external webhook endpoint
@@ -1097,6 +1133,7 @@ func TestAutomationExecutor_Execute_WebhookNode_Success(t *testing.T) {
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
 			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
 		},
@@ -1106,7 +1143,6 @@ func TestAutomationExecutor_Execute_WebhookNode_Success(t *testing.T) {
 	workspaceID := "ws1"
 	automationID := "auto1"
 	nodeID := "webhook_node1"
-	nextNodeID := "next_node"
 
 	contactAutomation := &domain.ContactAutomation{
 		ID:            "ca1",
@@ -1117,10 +1153,11 @@ func TestAutomationExecutor_Execute_WebhookNode_Success(t *testing.T) {
 		MaxRetries:    3,
 	}
 
+	// Terminal webhook node (no NextNodeID)
 	webhookNode := &domain.AutomationNode{
 		ID:         nodeID,
 		Type:       domain.NodeTypeWebhook,
-		NextNodeID: &nextNodeID,
+		NextNodeID: nil,
 		Config: map[string]interface{}{
 			"url": server.URL,
 		},
@@ -1144,6 +1181,8 @@ func TestAutomationExecutor_Execute_WebhookNode_Success(t *testing.T) {
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, automationID, "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	// Execute
 	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
@@ -1159,9 +1198,9 @@ func TestAutomationExecutor_Execute_WebhookNode_Success(t *testing.T) {
 	assert.Equal(t, nodeID, receivedPayload["node_id"])
 	assert.NotEmpty(t, receivedPayload["timestamp"])
 
-	// Verify contact automation was updated correctly
-	assert.Equal(t, &nextNodeID, contactAutomation.CurrentNodeID)
-	assert.Equal(t, domain.ContactAutomationStatusActive, contactAutomation.Status)
+	// Verify contact automation completed (terminal node)
+	assert.Nil(t, contactAutomation.CurrentNodeID)
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, contactAutomation.Status)
 }
 
 func TestAutomationExecutor_Execute_WebhookNode_WithSecret(t *testing.T) {
@@ -1170,6 +1209,7 @@ func TestAutomationExecutor_Execute_WebhookNode_WithSecret(t *testing.T) {
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	// Create a test HTTP server that verifies the Authorization header
@@ -1184,6 +1224,7 @@ func TestAutomationExecutor_Execute_WebhookNode_WithSecret(t *testing.T) {
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
 			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
 		},
@@ -1192,7 +1233,6 @@ func TestAutomationExecutor_Execute_WebhookNode_WithSecret(t *testing.T) {
 
 	workspaceID := "ws1"
 	nodeID := "webhook_node1"
-	nextNodeID := "next_node"
 
 	contactAutomation := &domain.ContactAutomation{
 		ID:            "ca1",
@@ -1202,10 +1242,11 @@ func TestAutomationExecutor_Execute_WebhookNode_WithSecret(t *testing.T) {
 		Status:        domain.ContactAutomationStatusActive,
 	}
 
+	// Terminal webhook node (no NextNodeID)
 	webhookNode := &domain.AutomationNode{
 		ID:         nodeID,
 		Type:       domain.NodeTypeWebhook,
-		NextNodeID: &nextNodeID,
+		NextNodeID: nil,
 		Config: map[string]interface{}{
 			"url":    server.URL,
 			"secret": "my-api-secret-token",
@@ -1227,6 +1268,8 @@ func TestAutomationExecutor_Execute_WebhookNode_WithSecret(t *testing.T) {
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
 	require.NoError(t, err)
@@ -1390,6 +1433,7 @@ func TestAutomationExecutor_Execute_WebhookNode_TerminalNode(t *testing.T) {
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	// Create a test HTTP server
@@ -1402,6 +1446,7 @@ func TestAutomationExecutor_Execute_WebhookNode_TerminalNode(t *testing.T) {
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
 			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
 		},
@@ -1445,6 +1490,7 @@ func TestAutomationExecutor_Execute_WebhookNode_TerminalNode(t *testing.T) {
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
 	require.NoError(t, err)
@@ -1460,6 +1506,7 @@ func TestAutomationExecutor_Execute_WebhookNode_ResponseStoredInContext(t *testi
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	// Create a test HTTP server that returns data
@@ -1477,6 +1524,7 @@ func TestAutomationExecutor_Execute_WebhookNode_ResponseStoredInContext(t *testi
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
 			domain.NodeTypeWebhook: NewWebhookNodeExecutor(mockLogger),
 		},
@@ -1485,7 +1533,6 @@ func TestAutomationExecutor_Execute_WebhookNode_ResponseStoredInContext(t *testi
 
 	workspaceID := "ws1"
 	nodeID := "webhook_node1"
-	nextNodeID := "next_node"
 
 	contactAutomation := &domain.ContactAutomation{
 		ID:            "ca1",
@@ -1495,10 +1542,11 @@ func TestAutomationExecutor_Execute_WebhookNode_ResponseStoredInContext(t *testi
 		Status:        domain.ContactAutomationStatusActive,
 	}
 
+	// Terminal webhook node (no NextNodeID)
 	webhookNode := &domain.AutomationNode{
 		ID:         nodeID,
 		Type:       domain.NodeTypeWebhook,
-		NextNodeID: &nextNodeID,
+		NextNodeID: nil,
 		Config: map[string]interface{}{
 			"url": server.URL,
 		},
@@ -1525,6 +1573,8 @@ func TestAutomationExecutor_Execute_WebhookNode_ResponseStoredInContext(t *testi
 			capturedNodeExecution = ne
 			return nil
 		})
+	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 
 	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
 	require.NoError(t, err)
@@ -1542,4 +1592,359 @@ func TestAutomationExecutor_Execute_WebhookNode_ResponseStoredInContext(t *testi
 	require.True(t, ok, "Response should be a map")
 	assert.Equal(t, "usr_123", response["user_id"])
 	assert.Equal(t, true, response["created"])
+}
+
+// Loop Behavior Tests
+
+func TestAutomationExecutor_Execute_LoopMultipleNonDelayNodes(t *testing.T) {
+	// Tests that multiple non-delay nodes are executed in a single tick
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	// Track execution count
+	executionCount := 0
+	customExecutor := &testNodeExecutor{
+		nodeType: domain.NodeTypeDelay,
+		execute: func(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
+			executionCount++
+			// Each node points to the next, last one is terminal
+			node := params.Node
+			return &NodeExecutionResult{
+				NextNodeID: node.NextNodeID,
+				Status:     domain.ContactAutomationStatusActive,
+				Output:     map[string]interface{}{"executed": executionCount},
+			}, nil
+		},
+	}
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeDelay: customExecutor,
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+	node1ID := "node1"
+	node2ID := "node2"
+	node3ID := "node3"
+
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  "auto1",
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &node1ID,
+		Status:        domain.ContactAutomationStatusActive,
+	}
+
+	// Create 3 chained nodes: node1 -> node2 -> node3 (terminal)
+	node1 := &domain.AutomationNode{ID: node1ID, Type: domain.NodeTypeDelay, NextNodeID: &node2ID}
+	node2 := &domain.AutomationNode{ID: node2ID, Type: domain.NodeTypeDelay, NextNodeID: &node3ID}
+	node3 := &domain.AutomationNode{ID: node3ID, Type: domain.NodeTypeDelay, NextNodeID: nil}
+
+	automation := &domain.Automation{
+		ID:     "auto1",
+		Name:   "Test",
+		Status: domain.AutomationStatusLive,
+		Nodes:  []*domain.AutomationNode{node1, node2, node3},
+	}
+
+	contact := &domain.Contact{Email: "test@example.com"}
+
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
+	// 3 nodes = 3 CreateNodeExecution calls
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(3)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil).Times(3)
+	// 3 nodes = 3 UpdateContactAutomation calls (state persisted after each node)
+	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(3)
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(3)
+	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
+	require.NoError(t, err)
+
+	// Verify all 3 nodes were executed in a single call
+	assert.Equal(t, 3, executionCount, "All 3 nodes should be executed in a single tick")
+	assert.Nil(t, contactAutomation.CurrentNodeID, "Should be nil after completion")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, contactAutomation.Status)
+}
+
+func TestAutomationExecutor_Execute_LoopStopsAtDelayNode(t *testing.T) {
+	// Tests that the loop stops when a delay node returns future ScheduledAt
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	executionCount := 0
+	futureTime := time.Now().Add(1 * time.Hour)
+
+	customExecutor := &testNodeExecutor{
+		nodeType: domain.NodeTypeDelay,
+		execute: func(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
+			executionCount++
+			node := params.Node
+			// Node2 is a real delay that schedules for the future
+			if node.ID == "node2" {
+				return &NodeExecutionResult{
+					NextNodeID:  node.NextNodeID,
+					ScheduledAt: &futureTime,
+					Status:      domain.ContactAutomationStatusActive,
+					Output:      map[string]interface{}{"delayed": true},
+				}, nil
+			}
+			return &NodeExecutionResult{
+				NextNodeID: node.NextNodeID,
+				Status:     domain.ContactAutomationStatusActive,
+				Output:     map[string]interface{}{"executed": executionCount},
+			}, nil
+		},
+	}
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeDelay: customExecutor,
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+	node1ID := "node1"
+	node2ID := "node2"
+	node3ID := "node3"
+
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  "auto1",
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &node1ID,
+		Status:        domain.ContactAutomationStatusActive,
+	}
+
+	// Create 3 chained nodes: node1 (instant) -> node2 (1hr delay) -> node3 (terminal)
+	node1 := &domain.AutomationNode{ID: node1ID, Type: domain.NodeTypeDelay, NextNodeID: &node2ID}
+	node2 := &domain.AutomationNode{ID: node2ID, Type: domain.NodeTypeDelay, NextNodeID: &node3ID}
+	node3 := &domain.AutomationNode{ID: node3ID, Type: domain.NodeTypeDelay, NextNodeID: nil}
+
+	automation := &domain.Automation{
+		ID:     "auto1",
+		Name:   "Test",
+		Status: domain.AutomationStatusLive,
+		Nodes:  []*domain.AutomationNode{node1, node2, node3},
+	}
+
+	contact := &domain.Contact{Email: "test@example.com"}
+
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
+	// Only 2 nodes executed before hitting delay
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(2)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil).Times(2)
+	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(2)
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(2)
+	// No IncrementAutomationStat - not completed yet
+
+	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
+	require.NoError(t, err)
+
+	// Verify only 2 nodes were executed
+	assert.Equal(t, 2, executionCount, "Only 2 nodes should be executed before delay")
+	// Current node should be node3 (next after node2)
+	assert.NotNil(t, contactAutomation.CurrentNodeID)
+	assert.Equal(t, node3ID, *contactAutomation.CurrentNodeID)
+	// ScheduledAt should be ~1 hour in the future
+	assert.NotNil(t, contactAutomation.ScheduledAt)
+	assert.True(t, contactAutomation.ScheduledAt.After(time.Now()))
+	assert.Equal(t, domain.ContactAutomationStatusActive, contactAutomation.Status)
+}
+
+func TestAutomationExecutor_Execute_StatePersistsAfterEachNode(t *testing.T) {
+	// Tests that state is persisted after each node (for crash recovery)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	customExecutor := &testNodeExecutor{
+		nodeType: domain.NodeTypeDelay,
+		execute: func(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
+			return &NodeExecutionResult{
+				NextNodeID: params.Node.NextNodeID,
+				Status:     domain.ContactAutomationStatusActive,
+				Output:     map[string]interface{}{},
+			}, nil
+		},
+	}
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeDelay: customExecutor,
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+	node1ID := "node1"
+	node2ID := "node2"
+	node3ID := "node3"
+
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  "auto1",
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &node1ID,
+		Status:        domain.ContactAutomationStatusActive,
+	}
+
+	node1 := &domain.AutomationNode{ID: node1ID, Type: domain.NodeTypeDelay, NextNodeID: &node2ID}
+	node2 := &domain.AutomationNode{ID: node2ID, Type: domain.NodeTypeDelay, NextNodeID: &node3ID}
+	node3 := &domain.AutomationNode{ID: node3ID, Type: domain.NodeTypeDelay, NextNodeID: nil}
+
+	automation := &domain.Automation{
+		ID:     "auto1",
+		Name:   "Test",
+		Status: domain.AutomationStatusLive,
+		Nodes:  []*domain.AutomationNode{node1, node2, node3},
+	}
+
+	contact := &domain.Contact{Email: "test@example.com"}
+
+	// Track the CurrentNodeID at each UpdateContactAutomation call
+	var capturedNodeIDs []*string
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(3)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil).Times(3)
+	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).DoAndReturn(
+		func(ctx context.Context, wsID string, ca *domain.ContactAutomation) error {
+			// Capture the current node ID at each persist
+			if ca.CurrentNodeID != nil {
+				capturedNodeIDs = append(capturedNodeIDs, strPtr(*ca.CurrentNodeID))
+			} else {
+				capturedNodeIDs = append(capturedNodeIDs, nil)
+			}
+			return nil
+		}).Times(3)
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(3)
+	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
+
+	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
+	require.NoError(t, err)
+
+	// Verify state was persisted 3 times with different CurrentNodeIDs
+	require.Len(t, capturedNodeIDs, 3)
+	// After node1: CurrentNodeID = node2
+	assert.Equal(t, node2ID, *capturedNodeIDs[0])
+	// After node2: CurrentNodeID = node3
+	assert.Equal(t, node3ID, *capturedNodeIDs[1])
+	// After node3: CurrentNodeID = nil (completed)
+	assert.Nil(t, capturedNodeIDs[2])
+}
+
+func TestAutomationExecutor_Execute_MaxIterationsLimit(t *testing.T) {
+	// Tests that the loop respects maxNodesPerTick limit (10 nodes)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
+	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockLogger := setupMockLogger(ctrl)
+
+	executionCount := 0
+	customExecutor := &testNodeExecutor{
+		nodeType: domain.NodeTypeDelay,
+		execute: func(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
+			executionCount++
+			return &NodeExecutionResult{
+				NextNodeID: params.Node.NextNodeID,
+				Status:     domain.ContactAutomationStatusActive,
+				Output:     map[string]interface{}{},
+			}, nil
+		},
+	}
+
+	executor := &AutomationExecutor{
+		automationRepo: mockAutomationRepo,
+		contactRepo:    mockContactRepo,
+		nodeExecutors: map[domain.NodeType]NodeExecutor{
+			domain.NodeTypeDelay: customExecutor,
+		},
+		logger: mockLogger,
+	}
+
+	workspaceID := "ws1"
+
+	// Create 15 chained nodes
+	nodes := make([]*domain.AutomationNode, 15)
+	for i := 0; i < 15; i++ {
+		nodeID := fmt.Sprintf("node%d", i+1)
+		var nextNodeID *string
+		if i < 14 {
+			next := fmt.Sprintf("node%d", i+2)
+			nextNodeID = &next
+		}
+		nodes[i] = &domain.AutomationNode{
+			ID:         nodeID,
+			Type:       domain.NodeTypeDelay,
+			NextNodeID: nextNodeID,
+		}
+	}
+
+	firstNodeID := "node1"
+	contactAutomation := &domain.ContactAutomation{
+		ID:            "ca1",
+		AutomationID:  "auto1",
+		ContactEmail:  "test@example.com",
+		CurrentNodeID: &firstNodeID,
+		Status:        domain.ContactAutomationStatusActive,
+	}
+
+	automation := &domain.Automation{
+		ID:     "auto1",
+		Name:   "Test",
+		Status: domain.AutomationStatusLive,
+		Nodes:  nodes,
+	}
+
+	contact := &domain.Contact{Email: "test@example.com"}
+
+	mockAutomationRepo.EXPECT().GetByID(gomock.Any(), workspaceID, "auto1").Return(automation, nil)
+	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
+	// maxNodesPerTick = 10
+	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(10)
+	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil).Times(10)
+	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(10)
+	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil).Times(10)
+	// No completion - stopped at max iterations
+
+	err := executor.Execute(context.Background(), workspaceID, contactAutomation)
+	require.NoError(t, err)
+
+	// Verify exactly 10 nodes were executed (maxNodesPerTick limit)
+	assert.Equal(t, 10, executionCount, "Should execute exactly maxNodesPerTick nodes")
+	// Current node should be node11 (next after 10 executed)
+	assert.NotNil(t, contactAutomation.CurrentNodeID)
+	assert.Equal(t, "node11", *contactAutomation.CurrentNodeID)
+	assert.Equal(t, domain.ContactAutomationStatusActive, contactAutomation.Status)
 }

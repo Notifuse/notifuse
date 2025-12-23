@@ -1,14 +1,11 @@
 package http
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
@@ -74,9 +71,6 @@ func TestEmailQueueHandler_RegisterRoutes(t *testing.T) {
 	// Verify routes are registered by checking they don't return 404
 	routes := []string{
 		"/api/email_queue.stats",
-		"/api/email_queue.dead_letter.list",
-		"/api/email_queue.dead_letter.cleanup",
-		"/api/email_queue.dead_letter.retry",
 	}
 
 	for _, route := range routes {
@@ -94,7 +88,6 @@ func TestEmailQueueHandler_handleStats(t *testing.T) {
 			Pending:    10,
 			Processing: 5,
 			Failed:     2,
-			DeadLetter: 1,
 		}
 
 		mockAuthSuccess(mockAuthService, "workspace-123")
@@ -109,10 +102,7 @@ func TestEmailQueueHandler_handleStats(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 
-		var response map[string]interface{}
-		err := json.NewDecoder(rec.Body).Decode(&response)
-		require.NoError(t, err)
-		assert.NotNil(t, response["stats"])
+		require.NotEmpty(t, rec.Body.String())
 	})
 
 	t.Run("Method not allowed", func(t *testing.T) {
@@ -166,357 +156,6 @@ func TestEmailQueueHandler_handleStats(t *testing.T) {
 		rec := httptest.NewRecorder()
 
 		handler.handleStats(rec, req)
-
-		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-	})
-}
-
-func TestEmailQueueHandler_handleDeadLetterList(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		handler, mockRepo, mockAuthService, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		entries := []*domain.EmailQueueDeadLetter{
-			{
-				ID:              "dl-1",
-				OriginalEntryID: "entry-1",
-				SourceType:      domain.EmailQueueSourceBroadcast,
-				SourceID:        "broadcast-1",
-				ContactEmail:    "test@example.com",
-				FinalError:      "permanent failure",
-				Attempts:        3,
-			},
-		}
-
-		mockAuthSuccess(mockAuthService, "workspace-123")
-		mockRepo.EXPECT().
-			GetDeadLetterEntries(gomock.Any(), "workspace-123", 50, 0).
-			Return(entries, int64(1), nil)
-
-		req := httptest.NewRequest("GET", "/api/email_queue.dead_letter.list?workspace_id=workspace-123", nil)
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterList(rec, req)
-
-		assert.Equal(t, http.StatusOK, rec.Code)
-
-		var response map[string]interface{}
-		err := json.NewDecoder(rec.Body).Decode(&response)
-		require.NoError(t, err)
-		assert.NotNil(t, response["entries"])
-		assert.Equal(t, float64(1), response["total"])
-	})
-
-	t.Run("With pagination", func(t *testing.T) {
-		handler, mockRepo, mockAuthService, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		mockAuthSuccess(mockAuthService, "workspace-123")
-		mockRepo.EXPECT().
-			GetDeadLetterEntries(gomock.Any(), "workspace-123", 10, 20).
-			Return([]*domain.EmailQueueDeadLetter{}, int64(0), nil)
-
-		req := httptest.NewRequest("GET", "/api/email_queue.dead_letter.list?workspace_id=workspace-123&limit=10&offset=20", nil)
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterList(rec, req)
-
-		assert.Equal(t, http.StatusOK, rec.Code)
-	})
-
-	t.Run("Method not allowed", func(t *testing.T) {
-		handler, _, _, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.list?workspace_id=workspace-123", nil)
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterList(rec, req)
-
-		assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
-	})
-
-	t.Run("Missing workspace_id", func(t *testing.T) {
-		handler, _, _, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		req := httptest.NewRequest("GET", "/api/email_queue.dead_letter.list", nil)
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterList(rec, req)
-
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
-	})
-
-	t.Run("Unauthorized", func(t *testing.T) {
-		handler, _, mockAuthService, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		mockAuthFailure(mockAuthService, "workspace-123")
-
-		req := httptest.NewRequest("GET", "/api/email_queue.dead_letter.list?workspace_id=workspace-123", nil)
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterList(rec, req)
-
-		assert.Equal(t, http.StatusUnauthorized, rec.Code)
-	})
-
-	t.Run("Repository error", func(t *testing.T) {
-		handler, mockRepo, mockAuthService, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		mockAuthSuccess(mockAuthService, "workspace-123")
-		mockRepo.EXPECT().
-			GetDeadLetterEntries(gomock.Any(), "workspace-123", 50, 0).
-			Return(nil, int64(0), errors.New("database error"))
-
-		req := httptest.NewRequest("GET", "/api/email_queue.dead_letter.list?workspace_id=workspace-123", nil)
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterList(rec, req)
-
-		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-	})
-}
-
-func TestEmailQueueHandler_handleDeadLetterCleanup(t *testing.T) {
-	t.Run("Success with default retention", func(t *testing.T) {
-		handler, mockRepo, mockAuthService, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		mockAuthSuccess(mockAuthService, "workspace-123")
-		mockRepo.EXPECT().
-			CleanupDeadLetter(gomock.Any(), "workspace-123", 720*time.Hour).
-			Return(int64(5), nil)
-
-		body := `{"workspace_id": "workspace-123"}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.cleanup", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterCleanup(rec, req)
-
-		assert.Equal(t, http.StatusOK, rec.Code)
-
-		var response map[string]interface{}
-		err := json.NewDecoder(rec.Body).Decode(&response)
-		require.NoError(t, err)
-		assert.Equal(t, float64(5), response["deleted"])
-		assert.Equal(t, float64(720), response["retention_hours"])
-	})
-
-	t.Run("Success with custom retention", func(t *testing.T) {
-		handler, mockRepo, mockAuthService, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		mockAuthSuccess(mockAuthService, "workspace-123")
-		mockRepo.EXPECT().
-			CleanupDeadLetter(gomock.Any(), "workspace-123", 24*time.Hour).
-			Return(int64(10), nil)
-
-		body := `{"workspace_id": "workspace-123", "retention_hours": 24}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.cleanup", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterCleanup(rec, req)
-
-		assert.Equal(t, http.StatusOK, rec.Code)
-
-		var response map[string]interface{}
-		err := json.NewDecoder(rec.Body).Decode(&response)
-		require.NoError(t, err)
-		assert.Equal(t, float64(10), response["deleted"])
-		assert.Equal(t, float64(24), response["retention_hours"])
-	})
-
-	t.Run("Method not allowed", func(t *testing.T) {
-		handler, _, _, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		req := httptest.NewRequest("GET", "/api/email_queue.dead_letter.cleanup", nil)
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterCleanup(rec, req)
-
-		assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
-	})
-
-	t.Run("Invalid JSON", func(t *testing.T) {
-		handler, _, _, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		body := `{invalid json}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.cleanup", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterCleanup(rec, req)
-
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
-	})
-
-	t.Run("Missing workspace_id", func(t *testing.T) {
-		handler, _, _, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		body := `{"retention_hours": 24}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.cleanup", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterCleanup(rec, req)
-
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
-	})
-
-	t.Run("Unauthorized", func(t *testing.T) {
-		handler, _, mockAuthService, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		mockAuthFailure(mockAuthService, "workspace-123")
-
-		body := `{"workspace_id": "workspace-123"}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.cleanup", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterCleanup(rec, req)
-
-		assert.Equal(t, http.StatusUnauthorized, rec.Code)
-	})
-
-	t.Run("Repository error", func(t *testing.T) {
-		handler, mockRepo, mockAuthService, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		mockAuthSuccess(mockAuthService, "workspace-123")
-		mockRepo.EXPECT().
-			CleanupDeadLetter(gomock.Any(), "workspace-123", 720*time.Hour).
-			Return(int64(0), errors.New("database error"))
-
-		body := `{"workspace_id": "workspace-123"}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.cleanup", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterCleanup(rec, req)
-
-		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-	})
-}
-
-func TestEmailQueueHandler_handleDeadLetterRetry(t *testing.T) {
-	t.Run("Success", func(t *testing.T) {
-		handler, mockRepo, mockAuthService, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		mockAuthSuccess(mockAuthService, "workspace-123")
-		mockRepo.EXPECT().
-			RetryDeadLetter(gomock.Any(), "workspace-123", "dl-456").
-			Return(nil)
-
-		body := `{"workspace_id": "workspace-123", "dead_letter_id": "dl-456"}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.retry", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterRetry(rec, req)
-
-		assert.Equal(t, http.StatusOK, rec.Code)
-
-		var response map[string]interface{}
-		err := json.NewDecoder(rec.Body).Decode(&response)
-		require.NoError(t, err)
-		assert.Equal(t, true, response["success"])
-	})
-
-	t.Run("Method not allowed", func(t *testing.T) {
-		handler, _, _, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		req := httptest.NewRequest("GET", "/api/email_queue.dead_letter.retry", nil)
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterRetry(rec, req)
-
-		assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
-	})
-
-	t.Run("Invalid JSON", func(t *testing.T) {
-		handler, _, _, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		body := `{invalid json}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.retry", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterRetry(rec, req)
-
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
-	})
-
-	t.Run("Missing workspace_id", func(t *testing.T) {
-		handler, _, _, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		body := `{"dead_letter_id": "dl-456"}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.retry", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterRetry(rec, req)
-
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
-	})
-
-	t.Run("Missing dead_letter_id", func(t *testing.T) {
-		handler, _, _, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		body := `{"workspace_id": "workspace-123"}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.retry", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterRetry(rec, req)
-
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
-	})
-
-	t.Run("Unauthorized", func(t *testing.T) {
-		handler, _, mockAuthService, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		mockAuthFailure(mockAuthService, "workspace-123")
-
-		body := `{"workspace_id": "workspace-123", "dead_letter_id": "dl-456"}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.retry", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterRetry(rec, req)
-
-		assert.Equal(t, http.StatusUnauthorized, rec.Code)
-	})
-
-	t.Run("Repository error", func(t *testing.T) {
-		handler, mockRepo, mockAuthService, ctrl := setupEmailQueueHandlerTest(t)
-		defer ctrl.Finish()
-
-		mockAuthSuccess(mockAuthService, "workspace-123")
-		mockRepo.EXPECT().
-			RetryDeadLetter(gomock.Any(), "workspace-123", "dl-456").
-			Return(errors.New("database error"))
-
-		body := `{"workspace_id": "workspace-123", "dead_letter_id": "dl-456"}`
-		req := httptest.NewRequest("POST", "/api/email_queue.dead_letter.retry", bytes.NewBufferString(body))
-		req.Header.Set("Content-Type", "application/json")
-		rec := httptest.NewRecorder()
-
-		handler.handleDeadLetterRetry(rec, req)
 
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	})

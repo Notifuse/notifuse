@@ -35,6 +35,20 @@ func (m *MockContactTimelineRepository) EXPECT() *MockContactTimelineRepositoryM
 	return m.recorder
 }
 
+// Create mocks base method.
+func (m *MockContactTimelineRepository) Create(arg0 context.Context, arg1 string, arg2 *domain.ContactTimelineEntry) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Create", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Create indicates an expected call of Create.
+func (mr *MockContactTimelineRepositoryMockRecorder) Create(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Create", reflect.TypeOf((*MockContactTimelineRepository)(nil).Create), arg0, arg1, arg2)
+}
+
 // DeleteForEmail mocks base method.
 func (m *MockContactTimelineRepository) DeleteForEmail(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()

@@ -256,9 +256,7 @@ type Broadcast struct {
 	WinnerSentAt              *time.Time            `json:"winner_sent_at,omitempty"`
 	TestPhaseRecipientCount   int                   `json:"test_phase_recipient_count"`
 	WinnerPhaseRecipientCount int                   `json:"winner_phase_recipient_count"`
-	EnqueuedCount             int                   `json:"enqueued_count"`  // Emails added to queue
-	SentCount                 int                   `json:"sent_count"`      // Emails actually sent by worker
-	FailedCount               int                   `json:"failed_count"`    // Emails permanently failed (dead letter)
+	EnqueuedCount             int                   `json:"enqueued_count"` // Emails added to queue
 	CreatedAt                 time.Time             `json:"created_at"`
 	UpdatedAt                 time.Time             `json:"updated_at"`
 	StartedAt                 *time.Time            `json:"started_at,omitempty"`
@@ -876,11 +874,6 @@ type BroadcastRepository interface {
 	UpdateBroadcastTx(ctx context.Context, tx *sql.Tx, broadcast *Broadcast) error
 	DeleteBroadcastTx(ctx context.Context, tx *sql.Tx, workspaceID, broadcastID string) error
 	ListBroadcastsTx(ctx context.Context, tx *sql.Tx, params ListBroadcastsParams) (*BroadcastListResponse, error)
-
-	// Atomic count operations for email queue callbacks
-	IncrementSentCount(ctx context.Context, workspaceID, broadcastID string) error
-	IncrementFailedCount(ctx context.Context, workspaceID, broadcastID string) error
-	SetEnqueuedCount(ctx context.Context, workspaceID, broadcastID string, count int) error
 }
 
 // ErrBroadcastNotFound is an error type for when a broadcast is not found

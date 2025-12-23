@@ -5016,7 +5016,7 @@
           },
           "failed_count": {
             "type": "integer",
-            "description": "Number of emails permanently failed (moved to dead letter)",
+            "description": "Number of emails permanently failed (max retries exhausted)",
             "example": 5
           },
           "test_phase_recipient_count": {

@@ -81,6 +81,8 @@ func (r *TimelineListRequest) FromQuery(query url.Values) error {
 
 // ContactTimelineRepository defines methods for contact timeline persistence
 type ContactTimelineRepository interface {
+	// Create inserts a new timeline entry
+	Create(ctx context.Context, workspaceID string, entry *ContactTimelineEntry) error
 	// List retrieves timeline entries for a contact
 	List(ctx context.Context, workspaceID string, email string, limit int, cursor *string) ([]*ContactTimelineEntry, *string, error)
 	// DeleteForEmail deletes all timeline entries for a contact

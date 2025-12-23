@@ -81,8 +81,6 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			test_sent_at,
 			winner_sent_at,
 			enqueued_count,
-			sent_count,
-			failed_count,
 			created_at,
 			updated_at,
 			started_at,
@@ -91,7 +89,7 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			paused_at,
 			pause_reason
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20
 		)
 	`
 
@@ -109,8 +107,6 @@ func (r *broadcastRepository) CreateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.TestSentAt,
 		broadcast.WinnerSentAt,
 		broadcast.EnqueuedCount,
-		broadcast.SentCount,
-		broadcast.FailedCount,
 		broadcast.CreatedAt,
 		broadcast.UpdatedAt,
 		broadcast.StartedAt,
@@ -150,8 +146,6 @@ func (r *broadcastRepository) GetBroadcast(ctx context.Context, workspaceID, id 
 			test_sent_at,
 			winner_sent_at,
 			enqueued_count,
-			sent_count,
-			failed_count,
 			created_at,
 			updated_at,
 			started_at,
@@ -193,8 +187,6 @@ func (r *broadcastRepository) GetBroadcastTx(ctx context.Context, tx *sql.Tx, wo
 			test_sent_at,
 			winner_sent_at,
 			enqueued_count,
-			sent_count,
-			failed_count,
 			created_at,
 			updated_at,
 			started_at,
@@ -248,7 +240,8 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 			completed_at = $15,
 			cancelled_at = $16,
 			paused_at = $17,
-			pause_reason = $18
+			pause_reason = $18,
+			enqueued_count = $19
 		WHERE id = $1 AND workspace_id = $2
 			AND status != 'cancelled'
 			AND status != 'processed'
@@ -273,6 +266,7 @@ func (r *broadcastRepository) UpdateBroadcastTx(ctx context.Context, tx *sql.Tx,
 		broadcast.CancelledAt,
 		broadcast.PausedAt,
 		broadcast.PauseReason,
+		broadcast.EnqueuedCount,
 	)
 
 	if err != nil {
@@ -339,8 +333,6 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				test_sent_at,
 				winner_sent_at,
 				enqueued_count,
-				sent_count,
-				failed_count,
 				created_at,
 				updated_at,
 				started_at,
@@ -370,8 +362,6 @@ func (r *broadcastRepository) ListBroadcastsTx(ctx context.Context, tx *sql.Tx, 
 				test_sent_at,
 				winner_sent_at,
 				enqueued_count,
-				sent_count,
-				failed_count,
 				created_at,
 				updated_at,
 				started_at,
@@ -494,8 +484,6 @@ func scanBroadcast(scanner interface {
 		&broadcast.TestSentAt,
 		&broadcast.WinnerSentAt,
 		&broadcast.EnqueuedCount,
-		&broadcast.SentCount,
-		&broadcast.FailedCount,
 		&broadcast.CreatedAt,
 		&broadcast.UpdatedAt,
 		&broadcast.StartedAt,
@@ -518,55 +506,4 @@ func scanBroadcast(scanner interface {
 	}
 
 	return broadcast, nil
-}
-
-// IncrementSentCount atomically increments the sent count for a broadcast
-func (r *broadcastRepository) IncrementSentCount(ctx context.Context, workspaceID, broadcastID string) error {
-	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
-	if err != nil {
-		return fmt.Errorf("failed to get workspace connection: %w", err)
-	}
-
-	_, err = db.ExecContext(ctx,
-		`UPDATE broadcasts SET sent_count = sent_count + 1, updated_at = NOW() WHERE id = $1`,
-		broadcastID)
-	if err != nil {
-		return fmt.Errorf("failed to increment sent count: %w", err)
-	}
-
-	return nil
-}
-
-// IncrementFailedCount atomically increments the failed count for a broadcast
-func (r *broadcastRepository) IncrementFailedCount(ctx context.Context, workspaceID, broadcastID string) error {
-	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
-	if err != nil {
-		return fmt.Errorf("failed to get workspace connection: %w", err)
-	}
-
-	_, err = db.ExecContext(ctx,
-		`UPDATE broadcasts SET failed_count = failed_count + 1, updated_at = NOW() WHERE id = $1`,
-		broadcastID)
-	if err != nil {
-		return fmt.Errorf("failed to increment failed count: %w", err)
-	}
-
-	return nil
-}
-
-// SetEnqueuedCount sets the enqueued count for a broadcast
-func (r *broadcastRepository) SetEnqueuedCount(ctx context.Context, workspaceID, broadcastID string, count int) error {
-	db, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
-	if err != nil {
-		return fmt.Errorf("failed to get workspace connection: %w", err)
-	}
-
-	_, err = db.ExecContext(ctx,
-		`UPDATE broadcasts SET enqueued_count = $1, updated_at = NOW() WHERE id = $2`,
-		count, broadcastID)
-	if err != nil {
-		return fmt.Errorf("failed to set enqueued count: %w", err)
-	}
-
-	return nil
 }

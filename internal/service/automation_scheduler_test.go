@@ -200,11 +200,13 @@ func TestAutomationScheduler_ProcessBatchOnInterval(t *testing.T) {
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	executor := &AutomationExecutor{
 		automationRepo: mockAutomationRepo,
 		contactRepo:    mockContactRepo,
+		timelineRepo:   mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
 			domain.NodeTypeDelay: NewDelayNodeExecutor(),
 		},
@@ -273,6 +275,7 @@ func TestAutomationScheduler_ProcessBatchOnInterval(t *testing.T) {
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), "ws1", gomock.Any()).Return(nil).AnyTimes()
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), "ws1", gomock.Any()).Return(nil).AnyTimes()
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), "ws1", "auto1", "completed").Return(nil).AnyTimes()
+	mockTimelineRepo.EXPECT().Create(gomock.Any(), "ws1", gomock.Any()).Return(nil).AnyTimes()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()

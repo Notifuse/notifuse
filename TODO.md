@@ -1,5 +1,7 @@
 # TODO
 
+- use analytics endpoint for email queue stats
+
 - docs: blog setup / theme / post
 - docs: custom events + segments for goals
 
@@ -9,12 +11,6 @@
   - newsletter campaigns
   - transactional API
   - blog posts
-
-## AUTOMATION
-
-- execute all nodes until wait node or end when executing automation for contact
-- use atomic db queries to increment automations stats
-- add new permissions in v20 for automations
 
 ## Content
 
@@ -33,3 +29,21 @@
 
 - check for updates + newsletter box
 - automations with async triggers
+
+---
+
+Issue 8: Rate Limiter Not Workspace-Isolated
+
+Status: VALID ✓
+
+Confirmed at worker.go:296. Rate limiter key is entry.IntegrationID
+only, not workspace-scoped.
+
+---
+
+Issue 9: Message History in Hot Path
+
+Status: VALID ✓
+
+Confirmed at worker.go:436-485. Individual upsert per email with
+JSON marshaling and encryption.

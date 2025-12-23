@@ -12,9 +12,44 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// TestConnectionPoolTimingConfig holds tunable timing parameters for cleanup operations
+type TestConnectionPoolTimingConfig struct {
+	CleanupWorkspaceSleep    time.Duration // Sleep after terminating workspace connections
+	CleanupBatchSleep        time.Duration // Sleep after closing all workspace connections
+	CleanupPerWorkspaceSleep time.Duration // Sleep per workspace during drain
+	DropDatabaseSleep        time.Duration // Sleep before dropping database
+	SystemPoolPreCloseSleep  time.Duration // Sleep before closing system pool
+	SystemPoolPostCloseSleep time.Duration // Sleep after closing system pool
+}
+
+// DefaultTimingConfig returns conservative defaults for reliability
+func DefaultTimingConfig() TestConnectionPoolTimingConfig {
+	return TestConnectionPoolTimingConfig{
+		CleanupWorkspaceSleep:    200 * time.Millisecond,
+		CleanupBatchSleep:        500 * time.Millisecond,
+		CleanupPerWorkspaceSleep: 10 * time.Millisecond,
+		DropDatabaseSleep:        100 * time.Millisecond,
+		SystemPoolPreCloseSleep:  50 * time.Millisecond,
+		SystemPoolPostCloseSleep: 200 * time.Millisecond,
+	}
+}
+
+// FastTimingConfig returns aggressive timings for performance tests
+func FastTimingConfig() TestConnectionPoolTimingConfig {
+	return TestConnectionPoolTimingConfig{
+		CleanupWorkspaceSleep:    50 * time.Millisecond,
+		CleanupBatchSleep:        100 * time.Millisecond,
+		CleanupPerWorkspaceSleep: 5 * time.Millisecond,
+		DropDatabaseSleep:        25 * time.Millisecond,
+		SystemPoolPreCloseSleep:  20 * time.Millisecond,
+		SystemPoolPostCloseSleep: 50 * time.Millisecond,
+	}
+}
+
 // TestConnectionPool manages a pool of database connections for integration tests
 type TestConnectionPool struct {
 	config          *config.DatabaseConfig
+	timingConfig    TestConnectionPoolTimingConfig
 	systemPool      *sql.DB
 	workspacePools  map[string]*sql.DB
 	poolMutex       sync.RWMutex
@@ -23,10 +58,16 @@ type TestConnectionPool struct {
 	connectionCount int
 }
 
-// NewTestConnectionPool creates a new connection pool for tests
-func NewTestConnectionPool(config *config.DatabaseConfig) *TestConnectionPool {
+// NewTestConnectionPool creates a new connection pool for tests with default timing
+func NewTestConnectionPool(cfg *config.DatabaseConfig) *TestConnectionPool {
+	return NewTestConnectionPoolWithTiming(cfg, DefaultTimingConfig())
+}
+
+// NewTestConnectionPoolWithTiming creates a new connection pool with custom timing configuration
+func NewTestConnectionPoolWithTiming(cfg *config.DatabaseConfig, timing TestConnectionPoolTimingConfig) *TestConnectionPool {
 	return &TestConnectionPool{
-		config:         config,
+		config:         cfg,
+		timingConfig:   timing,
 		workspacePools: make(map[string]*sql.DB),
 		maxConnections: 10, // Conservative limit for tests
 		maxIdleTime:    2 * time.Minute,
@@ -172,8 +213,8 @@ func (pool *TestConnectionPool) CleanupWorkspace(workspaceID string) error {
 
 		pool.systemPool.Exec(terminateQuery)
 
-		// Increased delay for connections to fully close
-		time.Sleep(200 * time.Millisecond)
+		// Delay for connections to fully close (configurable)
+		time.Sleep(pool.timingConfig.CleanupWorkspaceSleep)
 
 		// Drop the database
 		dropQuery := fmt.Sprintf("DROP DATABASE IF EXISTS %s", workspaceDBName)
@@ -211,8 +252,8 @@ func (pool *TestConnectionPool) Cleanup() error {
 		db.SetMaxOpenConns(1)
 		db.SetConnMaxLifetime(0)
 
-		// Give connections time to drain before closing
-		time.Sleep(10 * time.Millisecond)
+		// Give connections time to drain before closing (configurable)
+		time.Sleep(pool.timingConfig.CleanupPerWorkspaceSleep)
 
 		if err := db.Close(); err != nil {
 			errors = append(errors, fmt.Errorf("error closing workspace pool %s: %w", workspaceID, err))
@@ -221,8 +262,8 @@ func (pool *TestConnectionPool) Cleanup() error {
 	}
 
 	// Step 2: Wait for connections to actually close
-	// Brief delay to ensure PostgreSQL releases connections
-	time.Sleep(500 * time.Millisecond)
+	// Brief delay to ensure PostgreSQL releases connections (configurable)
+	time.Sleep(pool.timingConfig.CleanupBatchSleep)
 
 	// Step 3: Drop workspace databases using system connection
 	if pool.systemPool != nil {
@@ -239,15 +280,15 @@ func (pool *TestConnectionPool) Cleanup() error {
 		pool.systemPool.SetMaxIdleConns(0)
 		pool.systemPool.SetMaxOpenConns(1)
 		pool.systemPool.SetConnMaxLifetime(0)
-		time.Sleep(50 * time.Millisecond)
+		time.Sleep(pool.timingConfig.SystemPoolPreCloseSleep)
 
 		if err := pool.systemPool.Close(); err != nil {
 			errors = append(errors, fmt.Errorf("error closing system pool: %w", err))
 		}
 		pool.systemPool = nil
 
-		// Final wait to ensure system connection is fully released
-		time.Sleep(200 * time.Millisecond)
+		// Final wait to ensure system connection is fully released (configurable)
+		time.Sleep(pool.timingConfig.SystemPoolPostCloseSleep)
 	}
 
 	pool.connectionCount = 0
@@ -274,8 +315,8 @@ func (pool *TestConnectionPool) dropDatabaseIfExists(dbName string) error {
 		return nil
 	}
 
-	// Small delay for connections to close
-	time.Sleep(100 * time.Millisecond)
+	// Small delay for connections to close (configurable)
+	time.Sleep(pool.timingConfig.DropDatabaseSleep)
 
 	// Drop the database
 	dropQuery := fmt.Sprintf("DROP DATABASE IF EXISTS %s", dbName)
@@ -342,7 +383,7 @@ func CleanupGlobalTestPool() error {
 
 	// Give PostgreSQL extra time to release connections when running multiple tests
 	// This prevents connection exhaustion between test suites
-	time.Sleep(1 * time.Second)
+	time.Sleep(500 * time.Millisecond)
 
 	return err
 }

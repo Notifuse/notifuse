@@ -67,6 +67,12 @@ export interface CustomEventEntityData {
   updated_at: string
 }
 
+export interface AutomationEventEntityData {
+  id: string
+  name: string
+  status: string
+}
+
 export type EntityData =
   | ContactEntityData
   | ContactListEntityData
@@ -74,12 +80,13 @@ export type EntityData =
   | InboundWebhookEventEntityData
   | ContactSegmentEntityData
   | CustomEventEntityData
+  | AutomationEventEntityData
 
 export interface ContactTimelineEntry {
   id: string
   email: string
   operation: 'insert' | 'update' | 'delete'
-  entity_type: 'contact' | 'contact_list' | 'message_history' | 'inbound_webhook_event' | 'contact_segment' | 'custom_event'
+  entity_type: 'contact' | 'contact_list' | 'message_history' | 'inbound_webhook_event' | 'contact_segment' | 'custom_event' | 'automation'
   kind: string // Semantic event names (e.g., 'contact.created', 'list.subscribed', 'segment.joined', 'orders/fulfilled')
   changes: Record<string, unknown>
   entity_id?: string // NULL for contact, list_id for contact_list, message_id for message_history and inbound_webhook_event, segment_id for contact_segment, external_id for custom_event

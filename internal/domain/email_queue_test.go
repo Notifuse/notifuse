@@ -244,16 +244,5 @@ func TestEmailQueueStats_DefaultValues(t *testing.T) {
 	assert.Equal(t, int64(0), stats.Pending)
 	assert.Equal(t, int64(0), stats.Processing)
 	assert.Equal(t, int64(0), stats.Failed)
-	assert.Equal(t, int64(0), stats.DeadLetter)
 	// Note: Sent entries are deleted immediately, not tracked in stats
-}
-
-func TestEmailQueueDeadLetter_DefaultValues(t *testing.T) {
-	deadLetter := EmailQueueDeadLetter{}
-
-	assert.Equal(t, "", deadLetter.ID)
-	assert.Equal(t, "", deadLetter.OriginalEntryID)
-	assert.Equal(t, EmailQueueSourceType(""), deadLetter.SourceType)
-	assert.Equal(t, "", deadLetter.FinalError)
-	assert.Equal(t, 0, deadLetter.Attempts)
 }

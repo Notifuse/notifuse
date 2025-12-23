@@ -739,32 +739,8 @@ func testTransactionalSendWithCCAndBCC(t *testing.T, client *testutil.APIClient,
 
 		// Wait for SMTP server to process all emails
 		t.Log("Waiting for emails to be delivered to Mailpit...")
-		time.Sleep(3 * time.Second)
-
-		// Check Mailpit to verify all 7 emails were received
-		t.Log("Checking Mailpit API for email count...")
-		mailpitResp, err := http.Get("http://localhost:8025/api/v1/messages")
-		require.NoError(t, err, "Failed to connect to Mailpit API")
-		defer func() { _ = mailpitResp.Body.Close() }()
-
-		var mailpitData struct {
-			Total    int `json:"total"`
-			Messages []struct {
-				Subject string `json:"Subject"`
-				To      []struct {
-					Address string `json:"Address"`
-				} `json:"To"`
-				Cc []struct {
-					Address string `json:"Address"`
-				} `json:"Cc"`
-				Bcc []struct {
-					Address string `json:"Address"`
-				} `json:"Bcc"`
-			} `json:"messages"`
-		}
-
-		err = json.NewDecoder(mailpitResp.Body).Decode(&mailpitData)
-		require.NoError(t, err, "Failed to decode Mailpit response")
+		mailpitData, err := testutil.WaitForMailpitMessagesFast(t, "Test Email Subject", 5*time.Second)
+		require.NoError(t, err, "Failed to get emails from Mailpit")
 
 		t.Logf("Mailpit reports %d total emails", mailpitData.Total)
 
@@ -1004,17 +980,8 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 
 		// Wait for SMTP server to process email
 		t.Log("Waiting for email to be delivered to Mailpit...")
-		time.Sleep(3 * time.Second)
-
-		// Check Mailpit to verify the From header contains custom from_name
-		t.Log("Checking Mailpit API for email with custom from_name...")
-		mailpitResp, err := http.Get("http://localhost:8025/api/v1/messages")
-		require.NoError(t, err, "Failed to connect to Mailpit API")
-		defer func() { _ = mailpitResp.Body.Close() }()
-
-		var mailpitData testutil.MailpitMessagesResponse
-		err = json.NewDecoder(mailpitResp.Body).Decode(&mailpitData)
-		require.NoError(t, err, "Failed to decode Mailpit response")
+		mailpitData, err := testutil.WaitForMailpitMessagesFast(t, "Test Email Subject", 5*time.Second)
+		require.NoError(t, err, "Failed to get emails from Mailpit")
 
 		t.Logf("Mailpit reports %d total emails", mailpitData.Total)
 
@@ -1134,16 +1101,8 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		t.Logf("Email sent successfully with message ID: %s (using default from_name)", messageID)
 
 		// Wait for email delivery
-		time.Sleep(3 * time.Second)
-
-		// Check Mailpit to verify email was sent (with default from_name)
-		mailpitResp, err := http.Get("http://localhost:8025/api/v1/messages")
-		require.NoError(t, err)
-		defer func() { _ = mailpitResp.Body.Close() }()
-
-		var mailpitData testutil.MailpitMessagesResponse
-		err = json.NewDecoder(mailpitResp.Body).Decode(&mailpitData)
-		require.NoError(t, err)
+		mailpitData, err := testutil.WaitForMailpitMessagesFast(t, "Test Email Subject", 5*time.Second)
+		require.NoError(t, err, "Failed to get emails from Mailpit")
 
 		// Verify at least one email was sent
 		foundEmail := false
@@ -1225,16 +1184,8 @@ func testTransactionalSendWithCustomFromName(t *testing.T, client *testutil.APIC
 		t.Logf("Email sent successfully with message ID: %s (empty from_name, using default)", messageID)
 
 		// Wait for email delivery
-		time.Sleep(3 * time.Second)
-
-		// Verify email was sent
-		mailpitResp, err := http.Get("http://localhost:8025/api/v1/messages")
-		require.NoError(t, err)
-		defer func() { _ = mailpitResp.Body.Close() }()
-
-		var mailpitData testutil.MailpitMessagesResponse
-		err = json.NewDecoder(mailpitResp.Body).Decode(&mailpitData)
-		require.NoError(t, err)
+		mailpitData, err := testutil.WaitForMailpitMessagesFast(t, "Test Email Subject", 5*time.Second)
+		require.NoError(t, err, "Failed to get emails from Mailpit")
 
 		assert.Greater(t, mailpitData.Total, 0, "Should have sent at least one email")
 		t.Log("✅ Email sent successfully - empty from_name correctly falls back to default")
@@ -1537,16 +1488,8 @@ func TestTransactionalAttachmentValidation(t *testing.T) {
 		t.Logf("✅ Email with valid attachment sent successfully with message ID: %s", messageID)
 
 		// Wait for email delivery
-		time.Sleep(3 * time.Second)
-
-		// Verify email was received in Mailpit with attachment
-		mailpitResp, err := http.Get("http://localhost:8025/api/v1/messages")
-		require.NoError(t, err)
-		defer func() { _ = mailpitResp.Body.Close() }()
-
-		var mailpitData testutil.MailpitMessagesResponse
-		err = json.NewDecoder(mailpitResp.Body).Decode(&mailpitData)
-		require.NoError(t, err)
+		mailpitData, err := testutil.WaitForMailpitMessagesFast(t, "", 5*time.Second)
+		require.NoError(t, err, "Failed to get emails from Mailpit")
 
 		assert.Greater(t, mailpitData.Total, 0, "Should have sent at least one email")
 

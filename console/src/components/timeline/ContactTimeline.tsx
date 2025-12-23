@@ -9,7 +9,9 @@ import {
   faTriangleExclamation,
   faArrowRightToBracket,
   faArrowRightFromBracket,
-  faBolt
+  faBolt,
+  faPlay,
+  faFlagCheckered
 } from '@fortawesome/free-solid-svg-icons'
 import { faUser, faFolderOpen, faPaperPlane, faEye } from '@fortawesome/free-regular-svg-icons'
 import {
@@ -17,7 +19,8 @@ import {
   ContactListEntityData,
   MessageHistoryEntityData,
   InboundWebhookEventEntityData,
-  CustomEventEntityData
+  CustomEventEntityData,
+  AutomationEventEntityData
 } from '../../services/api/contact_timeline'
 import type { Workspace } from '../../services/api/types'
 import type { Segment } from '../../services/api/segment'
@@ -94,7 +97,13 @@ export function ContactTimeline({
       // Engagement actions
       opened: 'cyan',
       clicked: 'geekblue',
-      'user created': 'cyan'
+      'user created': 'cyan',
+      // Automation actions
+      started: 'blue',
+      ended: 'green',
+      completed: 'green',
+      exited: 'orange',
+      failed: 'red'
     }
     return colorMap[action.toLowerCase()] || 'default'
   }
@@ -137,6 +146,10 @@ export function ContactTimeline({
         return faBolt
       }
       case 'custom_event':
+        return faBolt
+      case 'automation':
+        if (entry.kind === 'automation.start') return faPlay
+        if (entry.kind === 'automation.end') return faFlagCheckered
         return faBolt
       default:
         return faClock
@@ -701,6 +714,44 @@ export function ContactTimeline({
 
               {/* Properties */}
               {customEventData?.properties && renderCustomEventProperties(customEventData.properties, timezone)}
+            </div>
+          </div>
+        )
+      }
+
+      case 'automation': {
+        const automationData = entry.entity_data as AutomationEventEntityData | undefined
+        const isStart = entry.kind === 'automation.start'
+        const exitReasonChange = entry.changes?.exit_reason
+        const exitReason = typeof exitReasonChange === 'object' && exitReasonChange !== null && 'new' in exitReasonChange
+          ? exitReasonChange.new as string
+          : undefined
+
+        // Determine action label based on event kind and exit reason
+        let actionLabel = isStart ? 'started' : 'ended'
+        if (!isStart && exitReason) {
+          if (exitReason === 'failed') actionLabel = 'failed'
+          else if (exitReason.includes('exited') || exitReason.includes('deleted')) actionLabel = 'exited'
+          else if (exitReason === 'completed') actionLabel = 'completed'
+        }
+
+        return (
+          <div>
+            {renderEventHeader(entry, 'Automation', actionLabel)}
+            <div className="text-sm">
+              <Text type="secondary">Automation:</Text>{' '}
+              {automationData?.name ? (
+                <Tooltip title={`ID: ${entry.entity_id}`}>
+                  <span>
+                    <Text strong className="cursor-help">{automationData.name}</Text>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Text code>{entry.entity_id || 'Unknown'}</Text>
+              )}
+              {!isStart && exitReason && exitReason !== 'completed' && (
+                <Tag className="ml-2" bordered={false}>{exitReason}</Tag>
+              )}
             </div>
           </div>
         )

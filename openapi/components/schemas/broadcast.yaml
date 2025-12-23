@@ -64,14 +64,6 @@ Broadcast:
       type: integer
       description: Number of emails added to the queue by orchestrator
       example: 1000
-    sent_count:
-      type: integer
-      description: Number of emails successfully sent by worker
-      example: 985
-    failed_count:
-      type: integer
-      description: Number of emails permanently failed (moved to dead letter)
-      example: 5
     test_phase_recipient_count:
       type: integer
       description: Number of recipients in test phase

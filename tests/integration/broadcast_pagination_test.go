@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -201,8 +202,14 @@ func runBroadcastPaginationTest(t *testing.T, suite *testutil.IntegrationTestSui
 	defer updateResp.Body.Close()
 	require.Equal(t, http.StatusOK, updateResp.StatusCode, "Broadcast update should succeed")
 
-	// Step 11: Schedule broadcast for immediate sending
-	t.Log("Step 11: Scheduling broadcast for immediate sending...")
+	// Step 11: Start email queue worker to process emails
+	t.Log("Step 11: Starting email queue worker...")
+	ctx := context.Background()
+	err = suite.ServerManager.StartBackgroundWorkers(ctx)
+	require.NoError(t, err, "Should be able to start background workers")
+
+	// Step 12: Schedule broadcast for immediate sending
+	t.Log("Step 12: Scheduling broadcast for immediate sending...")
 	scheduleRequest := map[string]interface{}{
 		"workspace_id": workspace.ID,
 		"id":           broadcast.ID,
@@ -218,24 +225,24 @@ func runBroadcastPaginationTest(t *testing.T, suite *testutil.IntegrationTestSui
 		t.Fatalf("Failed to schedule broadcast: %d - %s", scheduleResp.StatusCode, string(body))
 	}
 
-	// Step 12: Wait for broadcast completion
+	// Step 13: Wait for broadcast completion
 	timeout := 5 * time.Minute
 	if contactCount >= 1000 {
 		timeout = 10 * time.Minute
 	}
-	t.Logf("Step 12: Waiting for broadcast completion (timeout: %v)...", timeout)
+	t.Logf("Step 13: Waiting for broadcast completion (timeout: %v)...", timeout)
 
 	finalStatus, err := testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
 		[]string{"processed", "completed"}, timeout)
 	require.NoError(t, err, "Broadcast should complete successfully")
 	t.Logf("Broadcast completed with status: %s", finalStatus)
 
-	// Step 13: Wait for all emails to arrive in Mailpit
+	// Step 14: Wait for all emails to arrive in Mailpit
 	mailpitTimeout := 3 * time.Minute
 	if contactCount >= 1000 {
 		mailpitTimeout = 5 * time.Minute
 	}
-	t.Logf("Step 13: Waiting for %d emails in Mailpit (timeout: %v)...", contactCount, mailpitTimeout)
+	t.Logf("Step 14: Waiting for %d emails in Mailpit (timeout: %v)...", contactCount, mailpitTimeout)
 
 	err = testutil.WaitForMailpitMessages(t, uniqueSubject, contactCount, mailpitTimeout)
 	if err != nil {
@@ -243,8 +250,8 @@ func runBroadcastPaginationTest(t *testing.T, suite *testutil.IntegrationTestSui
 		// Continue to verification to see exactly how many we got
 	}
 
-	// Step 14: Verify ALL recipients received the email
-	t.Log("Step 14: Verifying all recipients received the email...")
+	// Step 15: Verify ALL recipients received the email
+	t.Log("Step 15: Verifying all recipients received the email...")
 	receivedEmails, err := testutil.GetAllMailpitRecipients(t, uniqueSubject)
 	require.NoError(t, err)
 
@@ -278,8 +285,8 @@ func runBroadcastPaginationTest(t *testing.T, suite *testutil.IntegrationTestSui
 		}
 	}
 
-	// Step 15: Verify broadcast status
-	t.Log("Step 15: Verifying broadcast completed successfully...")
+	// Step 16: Verify broadcast status
+	t.Log("Step 16: Verifying broadcast completed successfully...")
 	broadcastResp, err := client.GetBroadcast(broadcast.ID)
 	require.NoError(t, err)
 	defer broadcastResp.Body.Close()

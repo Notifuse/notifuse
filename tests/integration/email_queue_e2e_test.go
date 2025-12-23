@@ -48,6 +48,16 @@ func TestEmailQueue(t *testing.T) {
 	queueRepo := app.GetEmailQueueRepository()
 	require.NotNil(t, queueRepo, "Email queue repository should be available")
 
+	// Start the worker once for all tests that need it
+	workerCtx, cancelWorker := context.WithCancel(context.Background())
+	defer cancelWorker()
+
+	err = suite.ServerManager.StartBackgroundWorkers(workerCtx)
+	require.NoError(t, err)
+
+	// Give worker time to start
+	time.Sleep(100 * time.Millisecond)
+
 	t.Run("Repository Operations", func(t *testing.T) {
 		testRepositoryOperations(t, queueRepo, workspace.ID, integration.ID)
 	})
@@ -56,12 +66,12 @@ func TestEmailQueue(t *testing.T) {
 		testWorkerProcessing(t, suite, queueRepo, workspace.ID, integration.ID)
 	})
 
-	t.Run("Dead Letter Queue", func(t *testing.T) {
-		testDeadLetterQueue(t, queueRepo, workspace.ID, integration.ID)
-	})
-
 	t.Run("Rate Limiting", func(t *testing.T) {
 		testRateLimiting(t, suite, queueRepo, workspace.ID, integration.ID)
+	})
+
+	t.Run("Circuit Breaker", func(t *testing.T) {
+		testCircuitBreaker(t, suite, queueRepo, workspace.ID, integration.ID)
 	})
 }
 
@@ -158,8 +168,8 @@ func testRepositoryOperations(t *testing.T, queueRepo domain.EmailQueueRepositor
 
 		// Verify stats structure
 		// Note: Sent entries are deleted immediately, so no "Sent" count in stats
-		t.Logf("Queue stats - Pending: %d, Processing: %d, Failed: %d, DeadLetter: %d",
-			stats.Pending, stats.Processing, stats.Failed, stats.DeadLetter)
+		t.Logf("Queue stats - Pending: %d, Processing: %d, Failed: %d",
+			stats.Pending, stats.Processing, stats.Failed)
 
 		assert.GreaterOrEqual(t, stats.Pending, int64(0), "Pending count should be non-negative")
 		assert.GreaterOrEqual(t, stats.Failed, int64(0), "Failed count should be non-negative")
@@ -230,13 +240,14 @@ func testRepositoryOperations(t *testing.T, queueRepo domain.EmailQueueRepositor
 }
 
 func testWorkerProcessing(t *testing.T, suite *testutil.IntegrationTestSuite, queueRepo domain.EmailQueueRepository, workspaceID, integrationID string) {
-	ctx := context.Background()
 	app := suite.ServerManager.GetApp()
 	worker := app.GetEmailQueueWorker()
 
 	if worker == nil {
 		t.Skip("Email queue worker not available")
 	}
+
+	ctx := context.Background()
 
 	t.Run("Successful Email Delivery", func(t *testing.T) {
 		// Clear Mailpit first
@@ -281,131 +292,140 @@ func testWorkerProcessing(t *testing.T, suite *testutil.IntegrationTestSuite, qu
 		stats := worker.GetStats()
 		t.Logf("Worker rate limiter stats: %d integrations", len(stats))
 	})
-
-	t.Run("Callback Invocation", func(t *testing.T) {
-		// Set up callback tracking
-		sentCount := 0
-		failedCount := 0
-
-		worker.SetCallbacks(
-			func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string) {
-				sentCount++
-				t.Logf("Callback: email sent - workspace=%s, source=%s/%s, message=%s", workspaceID, sourceType, sourceID, messageID)
-			},
-			func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string, err error, isDeadLetter bool) {
-				failedCount++
-				t.Logf("Callback: email failed - workspace=%s, source=%s/%s, message=%s, error=%v, deadLetter=%v", workspaceID, sourceType, sourceID, messageID, err, isDeadLetter)
-			},
-		)
-
-		// Create a test entry
-		entry := testutil.CreateTestEmailQueueEntry(integrationID, "callback-test@example.com", "broadcast-callback", domain.EmailQueueSourceBroadcast)
-		err := queueRepo.Enqueue(ctx, workspaceID, []*domain.EmailQueueEntry{entry})
-		require.NoError(t, err)
-
-		// Wait for processing
-		_ = testutil.WaitForQueueEmpty(t, queueRepo, workspaceID, 15*time.Second)
-
-		t.Logf("Callback results - sent: %d, failed: %d", sentCount, failedCount)
-		// Note: callback may not fire if worker isn't running - that's expected in some test environments
-	})
 }
 
-func testDeadLetterQueue(t *testing.T, queueRepo domain.EmailQueueRepository, workspaceID, integrationID string) {
-	ctx := context.Background()
+func testCircuitBreaker(t *testing.T, suite *testutil.IntegrationTestSuite, queueRepo domain.EmailQueueRepository, workspaceID, integrationID string) {
+	app := suite.ServerManager.GetApp()
+	worker := app.GetEmailQueueWorker()
+	factory := suite.DataFactory
 
-	t.Run("Move to Dead Letter", func(t *testing.T) {
-		// Create an entry
-		entry := testutil.CreateTestEmailQueueEntry(integrationID, "deadletter-test@example.com", "broadcast-dl", domain.EmailQueueSourceBroadcast)
+	if worker == nil {
+		t.Skip("Email queue worker not available")
+	}
+
+	t.Run("Circuit Breaker Opens After Failures", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create a failing SMTP integration (port 9999 - no server listening)
+		failingIntegration, err := factory.CreateFailingSMTPIntegration(workspaceID)
+		require.NoError(t, err)
+		t.Logf("Created failing integration: %s", failingIntegration.ID)
+
+		// Circuit breaker threshold is 5 by default
+		// Create 6 entries to trigger circuit breaker (5 to open + 1 to verify deferral)
+		numEntries := 6
+		entries := make([]*domain.EmailQueueEntry, numEntries)
+		for i := 0; i < numEntries; i++ {
+			entries[i] = testutil.CreateTestEmailQueueEntry(
+				failingIntegration.ID,
+				testutil.GenerateTestEmail(),
+				"circuit-breaker-failure-test",
+				domain.EmailQueueSourceBroadcast,
+			)
+			entries[i].Payload.Subject = "Circuit Breaker Test"
+		}
+
+		err = queueRepo.Enqueue(ctx, workspaceID, entries)
+		require.NoError(t, err)
+		t.Logf("Enqueued %d emails with failing integration", numEntries)
+
+		// Wait for worker to process entries and hit failures
+		// The circuit breaker should open after 5 failures
+		var lastStats map[string]interface{}
+		success := assert.Eventually(t, func() bool {
+			stats := worker.GetCircuitBreakerStats()
+			if stat, ok := stats[failingIntegration.ID]; ok {
+				lastStats = map[string]interface{}{
+					"isOpen":   stat.IsOpen,
+					"failures": stat.Failures,
+				}
+				return stat.IsOpen
+			}
+			return false
+		}, 30*time.Second, 500*time.Millisecond, "Circuit breaker should open after failures")
+
+		if success {
+			t.Logf("Circuit breaker opened! Stats: %+v", lastStats)
+		} else {
+			// Log current state for debugging
+			stats := worker.GetCircuitBreakerStats()
+			t.Logf("Circuit breaker did not open. Current stats:")
+			for id, stat := range stats {
+				t.Logf("  Integration %s: open=%v, failures=%d, threshold=%d",
+					id, stat.IsOpen, stat.Failures, stat.Threshold)
+			}
+		}
+
+		// Verify the circuit breaker stats
+		stats := worker.GetCircuitBreakerStats()
+		stat, exists := stats[failingIntegration.ID]
+		require.True(t, exists, "Should have stats for failing integration")
+		assert.True(t, stat.IsOpen, "Circuit breaker should be open after failures")
+		assert.GreaterOrEqual(t, stat.Failures, 5, "Should have at least 5 failures")
+		t.Logf("Final circuit breaker stats: failures=%d, threshold=%d, isOpen=%v",
+			stat.Failures, stat.Threshold, stat.IsOpen)
+
+		// Clean up: delete remaining entries
+		remainingEntries, _ := queueRepo.GetBySourceID(ctx, workspaceID, domain.EmailQueueSourceBroadcast, "circuit-breaker-failure-test")
+		for _, e := range remainingEntries {
+			_ = queueRepo.Delete(ctx, workspaceID, e.ID)
+		}
+	})
+
+	t.Run("SetNextRetry Without Incrementing Attempts", func(t *testing.T) {
+		ctx := context.Background()
+
+		// Create test entry using the good integration
+		entry := testutil.CreateTestEmailQueueEntry(integrationID, "circuit-test@example.com", "circuit-breaker-test", domain.EmailQueueSourceBroadcast)
 		err := queueRepo.Enqueue(ctx, workspaceID, []*domain.EmailQueueEntry{entry})
 		require.NoError(t, err)
 
-		// Fetch and get the entry ID
+		// Fetch to get the entry with ID and verify initial attempts
 		entries, err := queueRepo.FetchPending(ctx, workspaceID, 10)
 		require.NoError(t, err)
 
 		var testEntry *domain.EmailQueueEntry
 		for _, e := range entries {
-			if e.ContactEmail == "deadletter-test@example.com" {
+			if e.ContactEmail == "circuit-test@example.com" {
 				testEntry = e
 				break
 			}
 		}
+		require.NotNil(t, testEntry, "Should find the test entry")
 
-		if testEntry == nil {
-			t.Skip("Could not find test entry")
-			return
+		initialAttempts := testEntry.Attempts
+
+		// Use SetNextRetry (simulating circuit breaker deferral)
+		nextRetry := time.Now().Add(1 * time.Minute)
+		err = queueRepo.SetNextRetry(ctx, workspaceID, testEntry.ID, nextRetry)
+		require.NoError(t, err)
+
+		// Verify attempts was NOT incremented
+		entriesAfter, err := queueRepo.GetBySourceID(ctx, workspaceID, domain.EmailQueueSourceBroadcast, "circuit-breaker-test")
+		require.NoError(t, err)
+
+		for _, e := range entriesAfter {
+			if e.ID == testEntry.ID {
+				assert.Equal(t, initialAttempts, e.Attempts, "SetNextRetry should NOT increment attempts")
+				assert.Equal(t, domain.EmailQueueStatusPending, e.Status, "Entry should be back to pending status")
+				break
+			}
 		}
 
-		// Mark as processing
-		err = queueRepo.MarkAsProcessing(ctx, workspaceID, testEntry.ID)
-		require.NoError(t, err)
-
-		// Move to dead letter
-		testEntry.Attempts = testEntry.MaxAttempts // Simulate max attempts reached
-		err = queueRepo.MoveToDeadLetter(ctx, workspaceID, testEntry, "permanent failure")
-		require.NoError(t, err)
-
-		// Verify it's in dead letter
-		stats, err := queueRepo.GetStats(ctx, workspaceID)
-		require.NoError(t, err)
-		assert.GreaterOrEqual(t, stats.DeadLetter, int64(1), "Should have at least 1 dead letter entry")
+		// Clean up
+		_ = queueRepo.Delete(ctx, workspaceID, testEntry.ID)
 	})
-
-	t.Run("Retry Dead Letter", func(t *testing.T) {
-		// Get dead letter entries
-		dlEntries, total, err := queueRepo.GetDeadLetterEntries(ctx, workspaceID, 10, 0)
-		require.NoError(t, err)
-		t.Logf("Dead letter entries: %d (total: %d)", len(dlEntries), total)
-
-		if len(dlEntries) == 0 {
-			t.Skip("No dead letter entries to retry")
-			return
-		}
-
-		// Retry the first dead letter entry
-		dlEntry := dlEntries[0]
-		err = queueRepo.RetryDeadLetter(ctx, workspaceID, dlEntry.ID)
-		require.NoError(t, err)
-
-		// Verify it's back in the main queue (stats should show pending or processing)
-		// Clean up by marking as sent - the retried entry should have the original entry ID
-		entries, err := queueRepo.FetchPending(ctx, workspaceID, 10)
-		require.NoError(t, err)
-
-		for _, e := range entries {
-			// Clean up any pending entries
-			_ = queueRepo.MarkAsProcessing(ctx, workspaceID, e.ID)
-			_ = queueRepo.MarkAsSent(ctx, workspaceID, e.ID)
-		}
-	})
-
-	t.Run("Dead Letter Pagination", func(t *testing.T) {
-		// Get dead letter entries with pagination
-		page1, total1, err := queueRepo.GetDeadLetterEntries(ctx, workspaceID, 5, 0)
-		require.NoError(t, err)
-		t.Logf("Dead letter page 1: %d entries (total: %d)", len(page1), total1)
-
-		if total1 > 5 {
-			page2, total2, err := queueRepo.GetDeadLetterEntries(ctx, workspaceID, 5, 5)
-			require.NoError(t, err)
-			assert.Equal(t, total1, total2, "Total should be consistent across pages")
-			t.Logf("Dead letter page 2: %d entries", len(page2))
-		}
-	})
-
-	// Clean up dead letter queue
-	_, _ = queueRepo.CleanupDeadLetter(ctx, workspaceID, 0)
 }
 
 func testRateLimiting(t *testing.T, suite *testutil.IntegrationTestSuite, queueRepo domain.EmailQueueRepository, workspaceID, integrationID string) {
-	ctx := context.Background()
 	app := suite.ServerManager.GetApp()
 	worker := app.GetEmailQueueWorker()
 
 	if worker == nil {
 		t.Skip("Email queue worker not available")
 	}
+
+	ctx := context.Background()
 
 	t.Run("Integration Rate Limits", func(t *testing.T) {
 		// Create entries with a low rate limit
@@ -549,6 +569,4 @@ func TestEmailQueueConcurrency(t *testing.T) {
 		}
 	})
 
-	// Clean up (note: sent entries are deleted immediately, only dead letter needs cleanup)
-	_, _ = queueRepo.CleanupDeadLetter(ctx, workspace.ID, 0)
 }

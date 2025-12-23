@@ -24,7 +24,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 
 	t.Run("connection reuse performance", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
-		pool := testutil.NewTestConnectionPool(config)
+		pool := testutil.NewTestConnectionPoolWithTiming(config, testutil.FastTimingConfig())
 		defer func() { _ = pool.Cleanup() }()
 
 		workspaceID := "test_perf_reuse"
@@ -67,7 +67,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 
 	t.Run("high workspace count", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
-		pool := testutil.NewTestConnectionPool(config)
+		pool := testutil.NewTestConnectionPoolWithTiming(config, testutil.FastTimingConfig())
 		defer func() { _ = pool.Cleanup() }()
 
 		// Create 25 workspace pools (reduced from 100 to avoid "too many clients")
@@ -131,7 +131,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 
 	t.Run("rapid create destroy cycles", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
-		pool := testutil.NewTestConnectionPool(config)
+		pool := testutil.NewTestConnectionPoolWithTiming(config, testutil.FastTimingConfig())
 		defer func() { _ = pool.Cleanup() }()
 
 		// Rapidly create and destroy 50 workspaces, repeat 10 times
@@ -192,7 +192,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 
 	t.Run("idle connection cleanup overhead", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
-		pool := testutil.NewTestConnectionPool(config)
+		pool := testutil.NewTestConnectionPoolWithTiming(config, testutil.FastTimingConfig())
 		defer func() { _ = pool.Cleanup() }()
 
 		// Create 10 workspace pools (reduced from 20 to avoid exhaustion)
@@ -218,8 +218,8 @@ func TestConnectionPoolPerformance(t *testing.T) {
 		runtime.ReadMemStats(&memStatsBefore)
 
 		// Let connections idle
-		t.Log("Letting connections idle for 3 seconds...")
-		time.Sleep(3 * time.Second)
+		t.Log("Letting connections idle for 1 second...")
+		time.Sleep(1 * time.Second)
 
 		// Record memory after idle period
 		runtime.GC()
@@ -240,7 +240,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 
 	t.Run("concurrent query performance", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
-		pool := testutil.NewTestConnectionPool(config)
+		pool := testutil.NewTestConnectionPoolWithTiming(config, testutil.FastTimingConfig())
 		defer func() { _ = pool.Cleanup() }()
 
 		// Create 5 workspaces
@@ -306,7 +306,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 
 	t.Run("memory efficiency with large result sets", func(t *testing.T) {
 		config := testutil.GetTestDatabaseConfig()
-		pool := testutil.NewTestConnectionPool(config)
+		pool := testutil.NewTestConnectionPoolWithTiming(config, testutil.FastTimingConfig())
 		defer func() { _ = pool.Cleanup() }()
 
 		workspaceID := "test_perf_memory"
@@ -327,12 +327,13 @@ func TestConnectionPoolPerformance(t *testing.T) {
 		`)
 		require.NoError(t, err)
 
-		// Insert test data
-		for i := 0; i < 1000; i++ {
-			_, err = db.Exec("INSERT INTO test_large (data) VALUES ($1)",
-				fmt.Sprintf("test_data_%d_with_some_content_to_make_it_larger", i))
-			require.NoError(t, err)
-		}
+		// Insert test data using generate_series (single query for efficiency)
+		_, err = db.Exec(`
+			INSERT INTO test_large (data)
+			SELECT 'test_data_' || i || '_with_some_content_to_make_it_larger'
+			FROM generate_series(1, 1000) AS s(i)
+		`)
+		require.NoError(t, err)
 
 		// Measure memory before queries
 		runtime.GC()
@@ -387,7 +388,7 @@ func TestConnectionPoolPerformance(t *testing.T) {
 		// Measure time to create and initialize pool
 		start := time.Now()
 
-		pool := testutil.NewTestConnectionPool(config)
+		pool := testutil.NewTestConnectionPoolWithTiming(config, testutil.FastTimingConfig())
 		defer func() { _ = pool.Cleanup() }()
 
 		// Get system connection

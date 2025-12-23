@@ -148,6 +148,18 @@ func (sm *ServerManager) Start() error {
 	return nil
 }
 
+// StartBackgroundWorkers starts the email queue worker and other background services
+// Call this after Start() when you need workers to process queued items
+func (sm *ServerManager) StartBackgroundWorkers(ctx context.Context) error {
+	worker := sm.app.GetEmailQueueWorker()
+	if worker != nil {
+		if err := worker.Start(ctx); err != nil {
+			return fmt.Errorf("failed to start email queue worker: %w", err)
+		}
+	}
+	return nil
+}
+
 // Stop stops the test server
 func (sm *ServerManager) Stop() error {
 	if !sm.isStarted {

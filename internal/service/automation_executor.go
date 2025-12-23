@@ -19,6 +19,7 @@ type AutomationExecutor struct {
 	templateRepo    domain.TemplateRepository
 	emailQueueRepo  domain.EmailQueueRepository
 	messageRepo     domain.MessageHistoryRepository
+	timelineRepo    domain.ContactTimelineRepository
 	nodeExecutors   map[domain.NodeType]NodeExecutor
 	logger          logger.Logger
 	apiEndpoint     string
@@ -33,6 +34,7 @@ func NewAutomationExecutor(
 	templateRepo domain.TemplateRepository,
 	emailQueueRepo domain.EmailQueueRepository,
 	messageRepo domain.MessageHistoryRepository,
+	timelineRepo domain.ContactTimelineRepository,
 	log logger.Logger,
 	apiEndpoint string,
 ) *AutomationExecutor {
@@ -57,121 +59,142 @@ func NewAutomationExecutor(
 		templateRepo:    templateRepo,
 		emailQueueRepo:  emailQueueRepo,
 		messageRepo:     messageRepo,
+		timelineRepo:    timelineRepo,
 		nodeExecutors:   executors,
 		logger:          log,
 		apiEndpoint:     apiEndpoint,
 	}
 }
 
-// Execute processes a single contact through their current node
+// Execute processes a contact through their automation nodes until a delay or completion.
+// It loops through multiple nodes in a single tick for efficiency, persisting state after each node.
 func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, contactAutomation *domain.ContactAutomation) error {
-	startTime := time.Now()
-
-	// 1. Get automation (includes embedded nodes)
+	// Get automation once (outside loop)
 	automation, err := e.automationRepo.GetByID(ctx, workspaceID, contactAutomation.AutomationID)
 	if err != nil {
 		return e.handleError(ctx, workspaceID, contactAutomation, err, "failed to get automation")
 	}
 
-	// Check automation is still active
-	// Note: This is a safety check - scheduler should already filter by automation status
+	// Check if automation is paused/not live
 	// When paused, contacts stay frozen at their current node (they don't get exited)
 	if automation.Status != domain.AutomationStatusLive {
-		// Don't exit - just skip processing. Contact stays at current node.
 		return nil
 	}
 
-	// 2. Get current node from embedded nodes
+	// Early exit if already completed (no current node) - avoid fetching contact unnecessarily
 	if contactAutomation.CurrentNodeID == nil {
 		return e.markAsCompleted(ctx, workspaceID, contactAutomation, "completed")
 	}
 
-	node := automation.GetNodeByID(*contactAutomation.CurrentNodeID)
-	if node == nil {
-		// Node was deleted while contact was waiting - exit gracefully
-		return e.markAsExited(ctx, workspaceID, contactAutomation, "automation_node_deleted")
-	}
-
-	// 3. Get node executor
-	executor, ok := e.nodeExecutors[node.Type]
-	if !ok {
-		return e.handleError(ctx, workspaceID, contactAutomation,
-			fmt.Errorf("unsupported node type: %s", node.Type), "unsupported node type")
-	}
-
-	// 4. Get contact data for template rendering
-	contact, err := e.contactRepo.GetContactByEmail(ctx, workspaceID, contactAutomation.ContactEmail)
+	// Get contact data once (outside loop) - only if we have nodes to process
+	contactData, err := e.contactRepo.GetContactByEmail(ctx, workspaceID, contactAutomation.ContactEmail)
 	if err != nil {
 		return e.handleError(ctx, workspaceID, contactAutomation, err, "failed to get contact")
 	}
 
-	// 5. Create node execution entry (processing)
-	nodeExecution := e.createNodeExecution(contactAutomation, node, domain.NodeActionProcessing)
-	_ = e.automationRepo.CreateNodeExecution(ctx, workspaceID, nodeExecution)
+	// LOOP: Process nodes until delay, completion, or max iterations
+	const maxNodesPerTick = 10
+	for iterations := 0; iterations < maxNodesPerTick; iterations++ {
 
-	// 5.5 Build execution context from previous node executions
-	executionContext, err := e.buildContextFromNodeExecutions(ctx, workspaceID, contactAutomation.ID)
-	if err != nil {
-		e.logger.WithField("error", err).Warn("Failed to build context from node executions")
-		executionContext = make(map[string]interface{})
-	}
+		// Get current node from embedded nodes
+		node := automation.GetNodeByID(*contactAutomation.CurrentNodeID)
+		if node == nil {
+			return e.markAsExited(ctx, workspaceID, contactAutomation, "automation_node_deleted")
+		}
 
-	// 6. Execute node
-	params := NodeExecutionParams{
-		WorkspaceID:      workspaceID,
-		Contact:          contactAutomation,
-		Node:             node,
-		Automation:       automation,
-		ContactData:      contact,
-		ExecutionContext: executionContext,
-	}
+		// Get executor for node type
+		executor, ok := e.nodeExecutors[node.Type]
+		if !ok {
+			return e.handleError(ctx, workspaceID, contactAutomation,
+				fmt.Errorf("unsupported node type: %s", node.Type), "unsupported node type")
+		}
 
-	result, err := executor.Execute(ctx, params)
-	if err != nil {
-		// Update node execution entry with error
-		nodeExecution.Action = domain.NodeActionFailed
-		nodeExecution.Error = strPtr(err.Error())
+		// Create node execution entry (processing)
+		nodeExecution := e.createNodeExecution(contactAutomation, node, domain.NodeActionProcessing)
+		nodeStartTime := time.Now()
+		_ = e.automationRepo.CreateNodeExecution(ctx, workspaceID, nodeExecution)
+
+		// Build context from previous node executions
+		executionContext, err := e.buildContextFromNodeExecutions(ctx, workspaceID, contactAutomation.ID)
+		if err != nil {
+			e.logger.WithField("error", err).Warn("Failed to build context from node executions")
+			executionContext = make(map[string]interface{})
+		}
+
+		// Execute the node
+		params := NodeExecutionParams{
+			WorkspaceID:      workspaceID,
+			Contact:          contactAutomation,
+			Node:             node,
+			Automation:       automation,
+			ContactData:      contactData,
+			ExecutionContext: executionContext,
+		}
+		result, execErr := executor.Execute(ctx, params)
+
+		// Handle execution error
+		if execErr != nil {
+			nodeExecution.Action = domain.NodeActionFailed
+			nodeExecution.Error = strPtr(execErr.Error())
+			completedAt := time.Now().UTC()
+			nodeExecution.CompletedAt = &completedAt
+			_ = e.automationRepo.UpdateNodeExecution(ctx, workspaceID, nodeExecution)
+			return e.handleError(ctx, workspaceID, contactAutomation, execErr, "node execution failed")
+		}
+
+		// Update contact automation state
+		contactAutomation.CurrentNodeID = result.NextNodeID
+		contactAutomation.ScheduledAt = result.ScheduledAt
+
+		// Determine status (terminal node = completed)
+		if result.NextNodeID == nil && result.Status == domain.ContactAutomationStatusActive {
+			contactAutomation.Status = domain.ContactAutomationStatusCompleted
+		} else {
+			contactAutomation.Status = result.Status
+		}
+
+		// PERSIST STATE (critical for crash recovery)
+		if err := e.automationRepo.UpdateContactAutomation(ctx, workspaceID, contactAutomation); err != nil {
+			return e.handleError(ctx, workspaceID, contactAutomation, err, "failed to update contact automation")
+		}
+
+		// Update node execution to completed
+		duration := time.Since(nodeStartTime).Milliseconds()
+		nodeExecution.Action = domain.NodeActionCompleted
 		completedAt := time.Now().UTC()
 		nodeExecution.CompletedAt = &completedAt
+		nodeExecution.DurationMs = &duration
+		nodeExecution.Output = result.Output
 		_ = e.automationRepo.UpdateNodeExecution(ctx, workspaceID, nodeExecution)
 
-		return e.handleError(ctx, workspaceID, contactAutomation, err, "node execution failed")
+		// EXIT: Completed (terminal node reached)
+		if contactAutomation.Status == domain.ContactAutomationStatusCompleted {
+			_ = e.automationRepo.IncrementAutomationStat(ctx, workspaceID, automation.ID, "completed")
+			e.createAutomationEndEvent(ctx, workspaceID, contactAutomation, "completed")
+			return nil
+		}
+
+		// EXIT: Exited (filter/branch exit)
+		if contactAutomation.Status == domain.ContactAutomationStatusExited {
+			_ = e.automationRepo.IncrementAutomationStat(ctx, workspaceID, automation.ID, "exited")
+			reason := "exited"
+			if contactAutomation.ExitReason != nil {
+				reason = *contactAutomation.ExitReason
+			}
+			e.createAutomationEndEvent(ctx, workspaceID, contactAutomation, reason)
+			return nil
+		}
+
+		// EXIT: Delay node (ScheduledAt is in the future)
+		if result.ScheduledAt != nil && result.ScheduledAt.After(time.Now()) {
+			return nil
+		}
+
+		// CONTINUE: Process next node immediately
 	}
 
-	// 7. Update contact automation
-	contactAutomation.CurrentNodeID = result.NextNodeID
-	contactAutomation.ScheduledAt = result.ScheduledAt
-
-	// If there's no next node, mark as completed (terminal node behavior)
-	if result.NextNodeID == nil && result.Status == domain.ContactAutomationStatusActive {
-		contactAutomation.Status = domain.ContactAutomationStatusCompleted
-	} else {
-		contactAutomation.Status = result.Status
-	}
-	// Note: Context is now reconstructed from node executions on demand,
-	// no longer stored in contact_automations.context
-
-	err = e.automationRepo.UpdateContactAutomation(ctx, workspaceID, contactAutomation)
-	if err != nil {
-		return e.handleError(ctx, workspaceID, contactAutomation, err, "failed to update contact automation")
-	}
-
-	// 8. Update node execution entry (completed)
-	duration := time.Since(startTime).Milliseconds()
-	nodeExecution.Action = domain.NodeActionCompleted
-	completedAt := time.Now().UTC()
-	nodeExecution.CompletedAt = &completedAt
-	nodeExecution.DurationMs = &duration
-	nodeExecution.Output = result.Output
-	_ = e.automationRepo.UpdateNodeExecution(ctx, workspaceID, nodeExecution)
-
-	// 9. Update automation stats if status changed
-	if contactAutomation.Status == domain.ContactAutomationStatusCompleted {
-		_ = e.automationRepo.IncrementAutomationStat(ctx, workspaceID, automation.ID, "completed")
-	} else if contactAutomation.Status == domain.ContactAutomationStatusExited {
-		_ = e.automationRepo.IncrementAutomationStat(ctx, workspaceID, automation.ID, "exited")
-	}
-
+	// Hit max iterations - remaining nodes picked up next tick
+	// State already persisted, so this is safe
 	return nil
 }
 
@@ -216,6 +239,8 @@ func (e *AutomationExecutor) handleError(ctx context.Context, workspaceID string
 	if ca.RetryCount >= ca.MaxRetries {
 		ca.Status = domain.ContactAutomationStatusFailed
 		_ = e.automationRepo.IncrementAutomationStat(ctx, workspaceID, ca.AutomationID, "failed")
+
+		e.createAutomationEndEvent(ctx, workspaceID, ca, "failed")
 
 		e.logger.WithFields(map[string]interface{}{
 			"contact_email": ca.ContactEmail,
@@ -272,6 +297,8 @@ func (e *AutomationExecutor) markAsCompleted(ctx context.Context, workspaceID st
 
 	_ = e.automationRepo.IncrementAutomationStat(ctx, workspaceID, ca.AutomationID, "completed")
 
+	e.createAutomationEndEvent(ctx, workspaceID, ca, reason)
+
 	return e.automationRepo.UpdateContactAutomation(ctx, workspaceID, ca)
 }
 
@@ -289,6 +316,8 @@ func (e *AutomationExecutor) markAsExited(ctx context.Context, workspaceID strin
 	}).Info("Contact automation exited")
 
 	_ = e.automationRepo.IncrementAutomationStat(ctx, workspaceID, ca.AutomationID, "exited")
+
+	e.createAutomationEndEvent(ctx, workspaceID, ca, reason)
 
 	return e.automationRepo.UpdateContactAutomation(ctx, workspaceID, ca)
 }
@@ -321,5 +350,29 @@ func (e *AutomationExecutor) buildContextFromNodeExecutions(ctx context.Context,
 		}
 	}
 	return result, nil
+}
+
+// createAutomationEndEvent creates an automation.end timeline event when a contact exits an automation
+func (e *AutomationExecutor) createAutomationEndEvent(ctx context.Context, workspaceID string, ca *domain.ContactAutomation, exitReason string) {
+	entry := &domain.ContactTimelineEntry{
+		Email:      ca.ContactEmail,
+		Operation:  "update",
+		EntityType: "automation",
+		Kind:       "automation.end",
+		EntityID:   &ca.AutomationID,
+		Changes: map[string]interface{}{
+			"automation_id": map[string]interface{}{"new": ca.AutomationID},
+			"exit_reason":   map[string]interface{}{"new": exitReason},
+			"status":        map[string]interface{}{"new": string(ca.Status)},
+		},
+		CreatedAt: time.Now().UTC(),
+	}
+	if err := e.timelineRepo.Create(ctx, workspaceID, entry); err != nil {
+		e.logger.WithFields(map[string]interface{}{
+			"contact_email": ca.ContactEmail,
+			"automation_id": ca.AutomationID,
+			"error":         err.Error(),
+		}).Warn("Failed to create automation.end timeline event")
+	}
 }
 

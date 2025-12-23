@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -133,8 +134,14 @@ func TestBroadcastTaskTimeoutRecovery(t *testing.T) {
 	require.NoError(t, err)
 	defer updateResp.Body.Close()
 
-	// Step 6: Schedule broadcast
-	t.Log("Step 6: Scheduling broadcast...")
+	// Step 6: Start email queue worker to process emails
+	t.Log("Step 6: Starting email queue worker...")
+	ctx := context.Background()
+	err = suite.ServerManager.StartBackgroundWorkers(ctx)
+	require.NoError(t, err, "Should be able to start background workers")
+
+	// Step 7: Schedule broadcast
+	t.Log("Step 7: Scheduling broadcast...")
 	scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{
 		"workspace_id": workspace.ID,
 		"id":           broadcast.ID,
@@ -145,8 +152,8 @@ func TestBroadcastTaskTimeoutRecovery(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	// Step 7: Get task ID and modify MaxRuntime for testing
-	t.Log("Step 7: Getting task ID and setting short timeout...")
+	// Step 8: Get task ID and modify MaxRuntime for testing
+	t.Log("Step 8: Getting task ID and setting short timeout...")
 	tasksResp, err := client.ListTasks(map[string]string{
 		"broadcast_id": broadcast.ID,
 	})
@@ -172,8 +179,8 @@ func TestBroadcastTaskTimeoutRecovery(t *testing.T) {
 	require.NoError(t, err)
 	t.Log("Set task MaxRuntime to 5 seconds")
 
-	// Step 8: Execute task multiple times, monitoring state
-	t.Log("Step 8: Executing task with timeouts...")
+	// Step 9: Execute task multiple times, monitoring state
+	t.Log("Step 9: Executing task with timeouts...")
 
 	maxExecutions := 50 // Safety limit
 	executionCount := 0
@@ -235,12 +242,15 @@ func TestBroadcastTaskTimeoutRecovery(t *testing.T) {
 
 	t.Logf("Total executions: %d, Timeout occurred: %v", executionCount, timeoutOccurred)
 
-	// Step 9: Wait for emails to arrive
-	t.Log("Step 9: Waiting for emails in Mailpit...")
-	time.Sleep(3 * time.Second)
+	// Step 10: Wait for emails to arrive
+	t.Log("Step 10: Waiting for emails in Mailpit...")
+	err = testutil.WaitForMailpitMessages(t, uniqueSubject, contactCount, 2*time.Minute)
+	if err != nil {
+		t.Logf("Warning: Not all emails arrived: %v", err)
+	}
 
-	// Step 10: Verify results
-	t.Log("Step 10: Verifying results...")
+	// Step 11: Verify results
+	t.Log("Step 11: Verifying results...")
 	totalMessages, err := testutil.GetMailpitMessageCount(t, uniqueSubject)
 	require.NoError(t, err)
 
@@ -376,6 +386,11 @@ func TestBroadcastStateCounterAccuracy(t *testing.T) {
 	require.NoError(t, err)
 	updateResp.Body.Close()
 
+	// Start email queue worker
+	ctx := context.Background()
+	err = suite.ServerManager.StartBackgroundWorkers(ctx)
+	require.NoError(t, err, "Should be able to start background workers")
+
 	// Schedule and get task
 	scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{
 		"workspace_id": workspace.ID,
@@ -439,7 +454,10 @@ func TestBroadcastStateCounterAccuracy(t *testing.T) {
 	}
 
 	// Wait for emails
-	time.Sleep(3 * time.Second)
+	err = testutil.WaitForMailpitMessages(t, uniqueSubject, contactCount, 2*time.Minute)
+	if err != nil {
+		t.Logf("Warning: Not all emails arrived: %v", err)
+	}
 
 	// Get actual email count
 	actualMessages, err := testutil.GetMailpitMessageCount(t, uniqueSubject)
@@ -592,6 +610,11 @@ func TestBroadcastEmptyBatchPrematureCompletion(t *testing.T) {
 	require.NoError(t, err)
 	updateResp.Body.Close()
 
+	// Start email queue worker
+	ctx := context.Background()
+	err = suite.ServerManager.StartBackgroundWorkers(ctx)
+	require.NoError(t, err, "Should be able to start background workers")
+
 	// Schedule broadcast - this counts TotalRecipients = 100
 	t.Log("Scheduling broadcast (TotalRecipients will be counted now)...")
 	scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{
@@ -684,8 +707,13 @@ func TestBroadcastEmptyBatchPrematureCompletion(t *testing.T) {
 		time.Sleep(100 * time.Millisecond)
 	}
 
+	expectedSent := totalContacts - contactsToUnsubscribe // 90
+
 	// Wait for emails
-	time.Sleep(3 * time.Second)
+	err = testutil.WaitForMailpitMessages(t, uniqueSubject, expectedSent, 2*time.Minute)
+	if err != nil {
+		t.Logf("Warning: Not all emails arrived: %v", err)
+	}
 
 	// Get final state
 	finalState, err := getTaskStateInfo(client, workspace.ID, taskID)
@@ -694,8 +722,6 @@ func TestBroadcastEmptyBatchPrematureCompletion(t *testing.T) {
 	// Get actual email count
 	actualMessages, err := testutil.GetMailpitMessageCount(t, uniqueSubject)
 	require.NoError(t, err)
-
-	expectedSent := totalContacts - contactsToUnsubscribe // 90
 
 	t.Log("=== EMPTY BATCH BUG DETECTION RESULTS ===")
 	t.Logf("Total contacts at schedule time: %d", totalContacts)

@@ -147,6 +147,10 @@ type MessageHistoryRepository interface {
 	// Create adds a new message history record
 	Create(ctx context.Context, workspaceID string, secretKey string, message *MessageHistory) error
 
+	// Upsert creates or updates a message history record (for retry handling)
+	// On conflict, updates failed_at, status_info, and updated_at fields
+	Upsert(ctx context.Context, workspaceID string, secretKey string, message *MessageHistory) error
+
 	// Update updates an existing message history record
 	Update(ctx context.Context, workspaceID string, message *MessageHistory) error
 

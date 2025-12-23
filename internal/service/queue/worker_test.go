@@ -33,6 +33,7 @@ func TestNewEmailQueueWorker(t *testing.T) {
 		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		config := &EmailQueueWorkerConfig{
@@ -46,6 +47,7 @@ func TestNewEmailQueueWorker(t *testing.T) {
 			mockQueueRepo,
 			mockWorkspaceRepo,
 			mockEmailService,
+			mockMessageHistoryRepo,
 			config,
 			mockLogger,
 		)
@@ -62,12 +64,14 @@ func TestNewEmailQueueWorker(t *testing.T) {
 		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		worker := NewEmailQueueWorker(
 			mockQueueRepo,
 			mockWorkspaceRepo,
 			mockEmailService,
+			mockMessageHistoryRepo,
 			nil, // nil config
 			mockLogger,
 		)
@@ -78,47 +82,6 @@ func TestNewEmailQueueWorker(t *testing.T) {
 	})
 }
 
-func TestEmailQueueWorker_SetCallbacks(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
-	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
-	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
-	mockLogger := pkgmocks.NewMockLogger(ctrl)
-
-	worker := NewEmailQueueWorker(
-		mockQueueRepo,
-		mockWorkspaceRepo,
-		mockEmailService,
-		nil,
-		mockLogger,
-	)
-
-	var sentCalled, failedCalled bool
-
-	onSent := func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string) {
-		sentCalled = true
-	}
-
-	onFailed := func(workspaceID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string, err error, isDeadLetter bool) {
-		failedCalled = true
-	}
-
-	worker.SetCallbacks(onSent, onFailed)
-
-	// Verify callbacks are set (we can't access them directly, but we can verify they were accepted)
-	assert.NotNil(t, worker.onEmailSent)
-	assert.NotNil(t, worker.onEmailFailed)
-
-	// Call them to verify they work
-	worker.onEmailSent("ws1", domain.EmailQueueSourceBroadcast, "bc1", "msg1")
-	worker.onEmailFailed("ws1", domain.EmailQueueSourceBroadcast, "bc1", "msg1", errors.New("test"), false)
-
-	assert.True(t, sentCalled)
-	assert.True(t, failedCalled)
-}
-
 func TestEmailQueueWorker_StartStop(t *testing.T) {
 	t.Run("start sets running to true", func(t *testing.T) {
 		ctrl := gomock.NewController(t)
@@ -127,6 +90,7 @@ func TestEmailQueueWorker_StartStop(t *testing.T) {
 		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		// Expect log calls
@@ -141,6 +105,7 @@ func TestEmailQueueWorker_StartStop(t *testing.T) {
 			mockQueueRepo,
 			mockWorkspaceRepo,
 			mockEmailService,
+			mockMessageHistoryRepo,
 			&EmailQueueWorkerConfig{
 				WorkerCount:  1,
 				PollInterval: 100 * time.Millisecond, // Short interval for test
@@ -167,6 +132,7 @@ func TestEmailQueueWorker_StartStop(t *testing.T) {
 		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		// Expect log calls
@@ -180,6 +146,7 @@ func TestEmailQueueWorker_StartStop(t *testing.T) {
 			mockQueueRepo,
 			mockWorkspaceRepo,
 			mockEmailService,
+			mockMessageHistoryRepo,
 			&EmailQueueWorkerConfig{
 				WorkerCount:  1,
 				PollInterval: 100 * time.Millisecond,
@@ -203,6 +170,7 @@ func TestEmailQueueWorker_StartStop(t *testing.T) {
 		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
@@ -215,6 +183,7 @@ func TestEmailQueueWorker_StartStop(t *testing.T) {
 			mockQueueRepo,
 			mockWorkspaceRepo,
 			mockEmailService,
+			mockMessageHistoryRepo,
 			&EmailQueueWorkerConfig{
 				WorkerCount:  1,
 				PollInterval: 100 * time.Millisecond,
@@ -242,6 +211,7 @@ func TestEmailQueueWorker_StartStop(t *testing.T) {
 		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
@@ -254,6 +224,7 @@ func TestEmailQueueWorker_StartStop(t *testing.T) {
 			mockQueueRepo,
 			mockWorkspaceRepo,
 			mockEmailService,
+			mockMessageHistoryRepo,
 			&EmailQueueWorkerConfig{
 				WorkerCount:  1,
 				PollInterval: 100 * time.Millisecond,
@@ -280,6 +251,7 @@ func TestEmailQueueWorker_ProcessEntry_Success(t *testing.T) {
 	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Setup logger
@@ -326,33 +298,21 @@ func TestEmailQueueWorker_ProcessEntry_Success(t *testing.T) {
 	// Expect calls in order
 	mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, entryID).Return(nil)
 	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
+	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
 	mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspaceID, entryID).Return(nil)
 
 	worker := NewEmailQueueWorker(
 		mockQueueRepo,
 		mockWorkspaceRepo,
 		mockEmailService,
+		mockMessageHistoryRepo,
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
 	worker.ctx = context.Background()
 
-	var sentCallbackCalled bool
-	worker.SetCallbacks(
-		func(wsID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string) {
-			sentCallbackCalled = true
-			assert.Equal(t, workspaceID, wsID)
-			assert.Equal(t, domain.EmailQueueSourceBroadcast, sourceType)
-			assert.Equal(t, "broadcast-1", sourceID)
-			assert.Equal(t, "msg-1", messageID)
-		},
-		nil,
-	)
-
 	// Process the entry
 	worker.processEntry(workspace, entry)
-
-	assert.True(t, sentCallbackCalled)
 }
 
 func TestEmailQueueWorker_ProcessEntry_SendFailure(t *testing.T) {
@@ -362,6 +322,7 @@ func TestEmailQueueWorker_ProcessEntry_SendFailure(t *testing.T) {
 	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Setup logger
@@ -411,6 +372,7 @@ func TestEmailQueueWorker_ProcessEntry_SendFailure(t *testing.T) {
 	// Expect calls in order
 	mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, entryID).Return(nil)
 	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(sendErr)
+	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
 	// After failure, should schedule retry
 	mockQueueRepo.EXPECT().MarkAsFailed(gomock.Any(), workspaceID, entryID, sendErr.Error(), gomock.Any()).Return(nil)
 
@@ -418,25 +380,14 @@ func TestEmailQueueWorker_ProcessEntry_SendFailure(t *testing.T) {
 		mockQueueRepo,
 		mockWorkspaceRepo,
 		mockEmailService,
+		mockMessageHistoryRepo,
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
 	worker.ctx = context.Background()
 
-	var failedCallbackCalled bool
-	worker.SetCallbacks(
-		nil,
-		func(wsID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string, err error, isDeadLetter bool) {
-			failedCallbackCalled = true
-			assert.Equal(t, workspaceID, wsID)
-			assert.False(t, isDeadLetter) // Should not be dead letter yet
-		},
-	)
-
 	// Process the entry
 	worker.processEntry(workspace, entry)
-
-	assert.True(t, failedCallbackCalled)
 }
 
 func TestEmailQueueWorker_ProcessEntry_MaxAttemptsExceeded(t *testing.T) {
@@ -446,6 +397,7 @@ func TestEmailQueueWorker_ProcessEntry_MaxAttemptsExceeded(t *testing.T) {
 	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Setup logger
@@ -487,7 +439,7 @@ func TestEmailQueueWorker_ProcessEntry_MaxAttemptsExceeded(t *testing.T) {
 			RateLimitPerMinute: 100,
 		},
 		Attempts:    2, // Already 2 attempts
-		MaxAttempts: 3, // Max is 3, so after this attempt it should go to dead letter
+		MaxAttempts: 3, // Max is 3, so after this attempt it should be deleted
 	}
 
 	sendErr := errors.New("SMTP connection failed")
@@ -495,32 +447,22 @@ func TestEmailQueueWorker_ProcessEntry_MaxAttemptsExceeded(t *testing.T) {
 	// Expect calls in order
 	mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, entryID).Return(nil)
 	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(sendErr)
-	// Should move to dead letter since attempts >= maxAttempts after increment
-	mockQueueRepo.EXPECT().MoveToDeadLetter(gomock.Any(), workspaceID, entry, sendErr.Error()).Return(nil)
+	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
+	// Should delete the entry since attempts >= maxAttempts after increment (message_history tracks failure)
+	mockQueueRepo.EXPECT().Delete(gomock.Any(), workspaceID, entryID).Return(nil)
 
 	worker := NewEmailQueueWorker(
 		mockQueueRepo,
 		mockWorkspaceRepo,
 		mockEmailService,
+		mockMessageHistoryRepo,
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
 	worker.ctx = context.Background()
 
-	var failedCallbackCalled bool
-	worker.SetCallbacks(
-		nil,
-		func(wsID string, sourceType domain.EmailQueueSourceType, sourceID string, messageID string, err error, isDeadLetter bool) {
-			failedCallbackCalled = true
-			assert.Equal(t, workspaceID, wsID)
-			assert.True(t, isDeadLetter) // Should be dead letter now
-		},
-	)
-
 	// Process the entry
 	worker.processEntry(workspace, entry)
-
-	assert.True(t, failedCallbackCalled)
 }
 
 func TestEmailQueueWorker_ProcessEntry_IntegrationNotFound(t *testing.T) {
@@ -530,6 +472,7 @@ func TestEmailQueueWorker_ProcessEntry_IntegrationNotFound(t *testing.T) {
 	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Setup logger
@@ -561,13 +504,16 @@ func TestEmailQueueWorker_ProcessEntry_IntegrationNotFound(t *testing.T) {
 
 	// Expect mark as processing
 	mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, entryID).Return(nil)
-	// Expect mark as failed due to integration not found (but won't go to dead letter yet)
+	// Upsert message history is called even when integration not found (error case)
+	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
+	// Expect mark as failed due to integration not found (will retry)
 	mockQueueRepo.EXPECT().MarkAsFailed(gomock.Any(), workspaceID, entryID, gomock.Any(), gomock.Any()).Return(nil)
 
 	worker := NewEmailQueueWorker(
 		mockQueueRepo,
 		mockWorkspaceRepo,
 		mockEmailService,
+		mockMessageHistoryRepo,
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
@@ -583,6 +529,7 @@ func TestEmailQueueWorker_ProcessEntry_MarkAsProcessingFails(t *testing.T) {
 	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	// Setup logger
@@ -611,6 +558,7 @@ func TestEmailQueueWorker_ProcessEntry_MarkAsProcessingFails(t *testing.T) {
 		mockQueueRepo,
 		mockWorkspaceRepo,
 		mockEmailService,
+		mockMessageHistoryRepo,
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
@@ -628,12 +576,14 @@ func TestEmailQueueWorker_GetStats(t *testing.T) {
 	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	worker := NewEmailQueueWorker(
 		mockQueueRepo,
 		mockWorkspaceRepo,
 		mockEmailService,
+		mockMessageHistoryRepo,
 		nil,
 		mockLogger,
 	)
@@ -658,6 +608,7 @@ func TestEmailQueueWorker_GetConfig(t *testing.T) {
 	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	customConfig := &EmailQueueWorkerConfig{
@@ -671,6 +622,7 @@ func TestEmailQueueWorker_GetConfig(t *testing.T) {
 		mockQueueRepo,
 		mockWorkspaceRepo,
 		mockEmailService,
+		mockMessageHistoryRepo,
 		customConfig,
 		mockLogger,
 	)
@@ -692,6 +644,7 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
@@ -734,12 +687,14 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 		mockQueueRepo.EXPECT().FetchPending(gomock.Any(), workspaceID, gomock.Any()).Return(entries, nil)
 		mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, "entry-1").Return(nil)
 		mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
+		mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
 		mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspaceID, "entry-1").Return(nil)
 
 		worker := NewEmailQueueWorker(
 			mockQueueRepo,
 			mockWorkspaceRepo,
 			mockEmailService,
+			mockMessageHistoryRepo,
 			DefaultWorkerConfig(),
 			mockLogger,
 		)
@@ -755,6 +710,7 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		workspaceID := "workspace-1"
@@ -767,6 +723,7 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 			mockQueueRepo,
 			mockWorkspaceRepo,
 			mockEmailService,
+			mockMessageHistoryRepo,
 			DefaultWorkerConfig(),
 			mockLogger,
 		)
@@ -783,6 +740,7 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
@@ -799,6 +757,7 @@ func TestEmailQueueWorker_ProcessWorkspace(t *testing.T) {
 			mockQueueRepo,
 			mockWorkspaceRepo,
 			mockEmailService,
+			mockMessageHistoryRepo,
 			DefaultWorkerConfig(),
 			mockLogger,
 		)
@@ -817,6 +776,7 @@ func TestEmailQueueWorker_ProcessAllWorkspaces(t *testing.T) {
 		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		workspaces := []*domain.Workspace{
@@ -834,6 +794,7 @@ func TestEmailQueueWorker_ProcessAllWorkspaces(t *testing.T) {
 			mockQueueRepo,
 			mockWorkspaceRepo,
 			mockEmailService,
+			mockMessageHistoryRepo,
 			DefaultWorkerConfig(),
 			mockLogger,
 		)
@@ -849,6 +810,7 @@ func TestEmailQueueWorker_ProcessAllWorkspaces(t *testing.T) {
 		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 		mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 		mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 		mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 		mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
@@ -860,6 +822,7 @@ func TestEmailQueueWorker_ProcessAllWorkspaces(t *testing.T) {
 			mockQueueRepo,
 			mockWorkspaceRepo,
 			mockEmailService,
+			mockMessageHistoryRepo,
 			DefaultWorkerConfig(),
 			mockLogger,
 		)
@@ -870,13 +833,14 @@ func TestEmailQueueWorker_ProcessAllWorkspaces(t *testing.T) {
 	})
 }
 
-func TestEmailQueueWorker_CallbacksOptional(t *testing.T) {
+func TestEmailQueueWorker_ProcessWithoutCallbacks(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
@@ -916,18 +880,20 @@ func TestEmailQueueWorker_CallbacksOptional(t *testing.T) {
 
 	mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, entryID).Return(nil)
 	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
+	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
 	mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspaceID, entryID).Return(nil)
 
 	worker := NewEmailQueueWorker(
 		mockQueueRepo,
 		mockWorkspaceRepo,
 		mockEmailService,
+		mockMessageHistoryRepo,
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
 	worker.ctx = context.Background()
 
-	// Don't set callbacks - should work without panicking
+	// Should work without panicking (no callbacks needed anymore)
 	worker.processEntry(workspace, entry)
 }
 
@@ -938,6 +904,7 @@ func TestEmailQueueWorker_RateLimiting(t *testing.T) {
 	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
@@ -986,6 +953,7 @@ func TestEmailQueueWorker_RateLimiting(t *testing.T) {
 				return nil
 			},
 		)
+		mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
 		mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspaceID, entry.ID).Return(nil)
 	}
 
@@ -993,6 +961,7 @@ func TestEmailQueueWorker_RateLimiting(t *testing.T) {
 		mockQueueRepo,
 		mockWorkspaceRepo,
 		mockEmailService,
+		mockMessageHistoryRepo,
 		DefaultWorkerConfig(),
 		mockLogger,
 	)
@@ -1027,6 +996,7 @@ func TestEmailQueueWorker_DefaultRateLimit(t *testing.T) {
 	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
 	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
 	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
 	mockLogger := pkgmocks.NewMockLogger(ctrl)
 
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
@@ -1067,12 +1037,14 @@ func TestEmailQueueWorker_DefaultRateLimit(t *testing.T) {
 
 	mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, "entry-1").Return(nil)
 	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
+	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).Return(nil)
 	mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspaceID, "entry-1").Return(nil)
 
 	worker := NewEmailQueueWorker(
 		mockQueueRepo,
 		mockWorkspaceRepo,
 		mockEmailService,
+		mockMessageHistoryRepo,
 		DefaultWorkerConfig(),
 		mockLogger,
 	)

@@ -37,21 +37,6 @@ func (m *MockEmailQueueRepository) EXPECT() *MockEmailQueueRepositoryMockRecorde
 	return m.recorder
 }
 
-// CleanupDeadLetter mocks base method.
-func (m *MockEmailQueueRepository) CleanupDeadLetter(arg0 context.Context, arg1 string, arg2 time.Duration) (int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CleanupDeadLetter", arg0, arg1, arg2)
-	ret0, _ := ret[0].(int64)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// CleanupDeadLetter indicates an expected call of CleanupDeadLetter.
-func (mr *MockEmailQueueRepositoryMockRecorder) CleanupDeadLetter(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CleanupDeadLetter", reflect.TypeOf((*MockEmailQueueRepository)(nil).CleanupDeadLetter), arg0, arg1, arg2)
-}
-
 // CountBySourceAndStatus mocks base method.
 func (m *MockEmailQueueRepository) CountBySourceAndStatus(arg0 context.Context, arg1 string, arg2 domain.EmailQueueSourceType, arg3 string, arg4 domain.EmailQueueStatus) (int64, error) {
 	m.ctrl.T.Helper()
@@ -65,6 +50,20 @@ func (m *MockEmailQueueRepository) CountBySourceAndStatus(arg0 context.Context, 
 func (mr *MockEmailQueueRepositoryMockRecorder) CountBySourceAndStatus(arg0, arg1, arg2, arg3, arg4 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CountBySourceAndStatus", reflect.TypeOf((*MockEmailQueueRepository)(nil).CountBySourceAndStatus), arg0, arg1, arg2, arg3, arg4)
+}
+
+// Delete mocks base method.
+func (m *MockEmailQueueRepository) Delete(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Delete", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Delete indicates an expected call of Delete.
+func (mr *MockEmailQueueRepositoryMockRecorder) Delete(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Delete", reflect.TypeOf((*MockEmailQueueRepository)(nil).Delete), arg0, arg1, arg2)
 }
 
 // Enqueue mocks base method.
@@ -125,22 +124,6 @@ func (mr *MockEmailQueueRepositoryMockRecorder) GetBySourceID(arg0, arg1, arg2, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBySourceID", reflect.TypeOf((*MockEmailQueueRepository)(nil).GetBySourceID), arg0, arg1, arg2, arg3)
 }
 
-// GetDeadLetterEntries mocks base method.
-func (m *MockEmailQueueRepository) GetDeadLetterEntries(arg0 context.Context, arg1 string, arg2, arg3 int) ([]*domain.EmailQueueDeadLetter, int64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetDeadLetterEntries", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].([]*domain.EmailQueueDeadLetter)
-	ret1, _ := ret[1].(int64)
-	ret2, _ := ret[2].(error)
-	return ret0, ret1, ret2
-}
-
-// GetDeadLetterEntries indicates an expected call of GetDeadLetterEntries.
-func (mr *MockEmailQueueRepositoryMockRecorder) GetDeadLetterEntries(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDeadLetterEntries", reflect.TypeOf((*MockEmailQueueRepository)(nil).GetDeadLetterEntries), arg0, arg1, arg2, arg3)
-}
-
 // GetStats mocks base method.
 func (m *MockEmailQueueRepository) GetStats(arg0 context.Context, arg1 string) (*domain.EmailQueueStats, error) {
 	m.ctrl.T.Helper()
@@ -198,30 +181,16 @@ func (mr *MockEmailQueueRepositoryMockRecorder) MarkAsSent(arg0, arg1, arg2 inte
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MarkAsSent", reflect.TypeOf((*MockEmailQueueRepository)(nil).MarkAsSent), arg0, arg1, arg2)
 }
 
-// MoveToDeadLetter mocks base method.
-func (m *MockEmailQueueRepository) MoveToDeadLetter(arg0 context.Context, arg1 string, arg2 *domain.EmailQueueEntry, arg3 string) error {
+// SetNextRetry mocks base method.
+func (m *MockEmailQueueRepository) SetNextRetry(arg0 context.Context, arg1, arg2 string, arg3 time.Time) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "MoveToDeadLetter", arg0, arg1, arg2, arg3)
+	ret := m.ctrl.Call(m, "SetNextRetry", arg0, arg1, arg2, arg3)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// MoveToDeadLetter indicates an expected call of MoveToDeadLetter.
-func (mr *MockEmailQueueRepositoryMockRecorder) MoveToDeadLetter(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
+// SetNextRetry indicates an expected call of SetNextRetry.
+func (mr *MockEmailQueueRepositoryMockRecorder) SetNextRetry(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "MoveToDeadLetter", reflect.TypeOf((*MockEmailQueueRepository)(nil).MoveToDeadLetter), arg0, arg1, arg2, arg3)
-}
-
-// RetryDeadLetter mocks base method.
-func (m *MockEmailQueueRepository) RetryDeadLetter(arg0 context.Context, arg1, arg2 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "RetryDeadLetter", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// RetryDeadLetter indicates an expected call of RetryDeadLetter.
-func (mr *MockEmailQueueRepositoryMockRecorder) RetryDeadLetter(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RetryDeadLetter", reflect.TypeOf((*MockEmailQueueRepository)(nil).RetryDeadLetter), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetNextRetry", reflect.TypeOf((*MockEmailQueueRepository)(nil).SetNextRetry), arg0, arg1, arg2, arg3)
 }

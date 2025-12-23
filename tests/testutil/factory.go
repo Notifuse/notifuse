@@ -302,6 +302,60 @@ func (tdf *TestDataFactory) CreateContactTimelineEvent(workspaceID, email, kind 
 	return nil
 }
 
+// TimelineEventResult represents a timeline event returned from query
+type TimelineEventResult struct {
+	ID         string
+	Email      string
+	Operation  string
+	EntityType string
+	Kind       string
+	EntityID   *string
+	Changes    map[string]interface{}
+	CreatedAt  time.Time
+}
+
+// GetContactTimelineEvents retrieves timeline events for a contact filtered by kind
+func (tdf *TestDataFactory) GetContactTimelineEvents(workspaceID, email, kind string) ([]TimelineEventResult, error) {
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace database: %w", err)
+	}
+
+	query := `
+		SELECT id, email, operation, entity_type, kind, entity_id, changes, created_at
+		FROM contact_timeline
+		WHERE email = $1 AND kind = $2
+		ORDER BY created_at DESC
+	`
+
+	rows, err := workspaceDB.QueryContext(context.Background(), query, email, kind)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query timeline events: %w", err)
+	}
+	defer rows.Close()
+
+	var results []TimelineEventResult
+	for rows.Next() {
+		var result TimelineEventResult
+		var changesJSON []byte
+		err := rows.Scan(&result.ID, &result.Email, &result.Operation, &result.EntityType,
+			&result.Kind, &result.EntityID, &changesJSON, &result.CreatedAt)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan timeline event: %w", err)
+		}
+
+		if len(changesJSON) > 0 {
+			if err := json.Unmarshal(changesJSON, &result.Changes); err != nil {
+				return nil, fmt.Errorf("failed to unmarshal changes: %w", err)
+			}
+		}
+
+		results = append(results, result)
+	}
+
+	return results, nil
+}
+
 // AddUserToWorkspace adds a user to a workspace with the specified role
 func (tdf *TestDataFactory) AddUserToWorkspace(userID, workspaceID, role string) error {
 	userWorkspace := &domain.UserWorkspace{
@@ -457,6 +511,33 @@ func (tdf *TestDataFactory) CreateMailpitSMTPIntegration(workspaceID string, opt
 	mailpitOpts = append(mailpitOpts, opts...)
 
 	return tdf.CreateIntegration(workspaceID, mailpitOpts...)
+}
+
+// CreateFailingSMTPIntegration creates an SMTP integration that will fail to send emails
+// Used for testing circuit breaker behavior
+func (tdf *TestDataFactory) CreateFailingSMTPIntegration(workspaceID string, opts ...IntegrationOption) (*domain.Integration, error) {
+	failingOpts := []IntegrationOption{
+		WithIntegrationName("Failing SMTP"),
+		WithIntegrationEmailProvider(domain.EmailProvider{
+			Kind: domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{
+				domain.NewEmailSender("noreply@notifuse.test", "Notifuse Test"),
+			},
+			SMTP: &domain.SMTPSettings{
+				Host:     "localhost",
+				Port:     9999, // Invalid port - no server listening
+				Username: "",
+				Password: "",
+				UseTLS:   false,
+			},
+			RateLimitPerMinute: 6000, // High rate limit so we don't get throttled
+		}),
+	}
+
+	// Append user-provided options
+	failingOpts = append(failingOpts, opts...)
+
+	return tdf.CreateIntegration(workspaceID, failingOpts...)
 }
 
 // SetupWorkspaceWithSMTPProvider creates a workspace with an SMTP email provider and sets it as the marketing and transactional provider

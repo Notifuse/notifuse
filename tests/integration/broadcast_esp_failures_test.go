@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -149,6 +150,12 @@ func TestBroadcastESPFailure_AllReject(t *testing.T) {
 	defer scheduleResp.Body.Close()
 	require.Equal(t, http.StatusOK, scheduleResp.StatusCode)
 
+	// Step 10.5: Start email queue worker to process enqueued emails
+	t.Log("Step 10.5: Starting email queue worker...")
+	workerCtx := context.Background()
+	err = suite.ServerManager.StartBackgroundWorkers(workerCtx)
+	require.NoError(t, err, "Should be able to start background workers")
+
 	// Step 11: Wait for broadcast to process (it should fail or pause due to circuit breaker)
 	t.Log("Step 11: Waiting for broadcast processing (expecting failures)...")
 
@@ -233,6 +240,12 @@ func TestBroadcastESPFailure_AllReject(t *testing.T) {
 		time.Sleep(1 * time.Second)
 	}
 
+	// Step 11.5: Wait for email queue to process (all will fail due to bad SMTP)
+	t.Log("Step 11.5: Waiting for email queue to drain...")
+	queueRepo := suite.ServerManager.GetApp().GetEmailQueueRepository()
+	_ = testutil.WaitForQueueEmpty(t, queueRepo, workspace.ID, 2*time.Minute)
+	// Don't require success - queue may have failed items
+
 	// Step 12: Verify results
 	t.Log("=== VERIFICATION RESULTS ===")
 	t.Logf("Final broadcast status: %s", finalStatus)
@@ -244,11 +257,13 @@ func TestBroadcastESPFailure_AllReject(t *testing.T) {
 		t.Logf("  - Failed Count: %d", taskState.FailedCount)
 		t.Logf("  - Recipient Offset: %d", taskState.RecipientOffset)
 
-		// Verify all emails failed (since SMTP is unreachable)
-		assert.Equal(t, 0, taskState.EnqueuedCount,
-			"No emails should be enqueued successfully (SMTP unreachable)")
-		assert.Greater(t, taskState.FailedCount, 0,
-			"Failed count should be greater than 0")
+		// With email queue architecture, EnqueuedCount = emails added to queue (always succeeds)
+		// The actual SMTP failures are tracked in the email_queue table, not in FailedCount
+		assert.Equal(t, contactCount, taskState.EnqueuedCount,
+			"All emails should be enqueued to queue (enqueue != send)")
+
+		// Note: FailedCount tracks orchestrator-level failures (template rendering, etc.)
+		// SMTP failures happen in the worker and are tracked in email_queue.status
 
 		// The offset should have advanced (attempted to process recipients)
 		assert.Greater(t, int(taskState.RecipientOffset), 0,
@@ -407,6 +422,18 @@ func TestBroadcastESPFailure_PartialSuccess(t *testing.T) {
 	require.NoError(t, err)
 	t.Logf("Broadcast completed with status: %s", finalStatus)
 
+	// Step 12.5: Start email queue worker to actually send emails
+	t.Log("Step 12.5: Starting email queue worker...")
+	workerCtx := context.Background()
+	err = suite.ServerManager.StartBackgroundWorkers(workerCtx)
+	require.NoError(t, err, "Should be able to start background workers")
+
+	// Step 12.6: Wait for email queue to finish sending
+	t.Log("Step 12.6: Waiting for email queue to drain...")
+	queueRepo := suite.ServerManager.GetApp().GetEmailQueueRepository()
+	err = testutil.WaitForQueueEmpty(t, queueRepo, workspace.ID, 2*time.Minute)
+	require.NoError(t, err, "Email queue should drain")
+
 	// Step 13: Get final task state
 	t.Log("Step 13: Checking task state...")
 	tasksResp, err := client.ListTasks(map[string]string{
@@ -425,13 +452,13 @@ func TestBroadcastESPFailure_PartialSuccess(t *testing.T) {
 		if task, ok := tasks[0].(map[string]interface{}); ok {
 			if state, ok := task["state"].(map[string]interface{}); ok {
 				if sendBroadcast, ok := state["send_broadcast"].(map[string]interface{}); ok {
-					processedCount := int(sendBroadcast["processed_count"].(float64))
+					enqueuedCount := int(sendBroadcast["enqueued_count"].(float64))
 					failedCount := int(sendBroadcast["failed_count"].(float64))
 					totalRecipients := int(sendBroadcast["total_recipients"].(float64))
 					recipientOffset := int(sendBroadcast["recipient_offset"].(float64))
 
 					taskState = &domain.SendBroadcastState{
-						EnqueuedCount:   processedCount,
+						EnqueuedCount:   enqueuedCount,
 						FailedCount:     failedCount,
 						TotalRecipients: totalRecipients,
 						RecipientOffset: int64(recipientOffset),
@@ -441,12 +468,40 @@ func TestBroadcastESPFailure_PartialSuccess(t *testing.T) {
 		}
 	}
 
-	// Step 14: Verify Mailpit received emails
-	t.Log("Step 14: Verifying Mailpit received emails...")
+	// Step 14: Verify broadcast API enqueued_count matches task state
+	t.Log("Step 14: Verifying broadcast enqueued_count...")
+	broadcastResp, err := client.GetBroadcast(broadcast.ID)
+	require.NoError(t, err)
+	defer broadcastResp.Body.Close()
+
+	var broadcastResult map[string]interface{}
+	err = json.NewDecoder(broadcastResp.Body).Decode(&broadcastResult)
+	require.NoError(t, err)
+
+	if broadcastData, ok := broadcastResult["broadcast"].(map[string]interface{}); ok {
+		if enqueuedCountVal, ok := broadcastData["enqueued_count"].(float64); ok {
+			broadcastEnqueuedCount := int(enqueuedCountVal)
+			t.Logf("Broadcast API enqueued_count: %d", broadcastEnqueuedCount)
+
+			if taskState != nil {
+				assert.Equal(t, taskState.EnqueuedCount, broadcastEnqueuedCount,
+					"Broadcast enqueued_count should match task state EnqueuedCount")
+			}
+			assert.Equal(t, contactCount, broadcastEnqueuedCount,
+				"Broadcast enqueued_count should equal contact count")
+		} else {
+			t.Error("enqueued_count not found in broadcast response")
+		}
+	} else {
+		t.Error("broadcast not found in API response")
+	}
+
+	// Step 15: Verify Mailpit received emails
+	t.Log("Step 15: Verifying Mailpit received emails...")
 	receivedEmails, err := testutil.GetAllMailpitRecipients(t, uniqueSubject)
 	require.NoError(t, err)
 
-	// Step 15: Log results
+	// Step 16: Log results
 	t.Log("=== VERIFICATION RESULTS ===")
 	t.Logf("Expected recipients: %d", contactCount)
 	t.Logf("Emails in Mailpit: %d", len(receivedEmails))
@@ -471,6 +526,74 @@ func TestBroadcastESPFailure_PartialSuccess(t *testing.T) {
 	assert.Equal(t, contactCount, len(receivedEmails),
 		"Mailpit should have received all emails")
 
+	// Step 17: Verify message_history entries are created correctly
+	t.Log("Step 17: Verifying message_history entries...")
+	appInstance := suite.ServerManager.GetApp()
+	messageHistoryRepo := appInstance.GetMessageHistoryRepository()
+
+	// Queue already drained above, so message_history should be populated
+	messages, _, err := messageHistoryRepo.ListMessages(
+		context.Background(),
+		workspace.ID,
+		workspace.Settings.SecretKey,
+		domain.MessageListParams{
+			BroadcastID: broadcast.ID,
+			Limit:       100,
+		},
+	)
+	require.NoError(t, err, "Failed to list message history")
+
+	t.Logf("Message history entries found: %d", len(messages))
+
+	// Verify we have message_history entries for all contacts
+	assert.Equal(t, contactCount, len(messages),
+		"Message history should have entries for all contacts")
+
+	// Verify the first message has correct fields
+	if len(messages) > 0 {
+		msg := messages[0]
+		t.Logf("Sample message_history entry:")
+		t.Logf("  - ID: %s", msg.ID)
+		t.Logf("  - ContactEmail: %s", msg.ContactEmail)
+		t.Logf("  - BroadcastID: %v", msg.BroadcastID)
+		t.Logf("  - TemplateID: %s", msg.TemplateID)
+		t.Logf("  - TemplateVersion: %d", msg.TemplateVersion)
+		t.Logf("  - ListID: %v", msg.ListID)
+		t.Logf("  - Channel: %s", msg.Channel)
+		t.Logf("  - SentAt: %v", msg.SentAt)
+		t.Logf("  - FailedAt: %v", msg.FailedAt)
+
+		// Verify broadcast_id is set correctly
+		require.NotNil(t, msg.BroadcastID, "BroadcastID should not be nil")
+		assert.Equal(t, broadcast.ID, *msg.BroadcastID,
+			"BroadcastID should match the broadcast")
+
+		// Verify template_id is set correctly
+		assert.Equal(t, template.ID, msg.TemplateID,
+			"TemplateID should match the template")
+
+		// Verify template_version is set (should be > 0)
+		assert.Greater(t, msg.TemplateVersion, int64(0),
+			"TemplateVersion should be set")
+
+		// Verify list_id is set correctly
+		require.NotNil(t, msg.ListID, "ListID should not be nil")
+		assert.Equal(t, list.ID, *msg.ListID,
+			"ListID should match the list")
+
+		// Verify channel is email
+		assert.Equal(t, "email", msg.Channel,
+			"Channel should be email")
+
+		// Verify sent_at is set (not zero time)
+		assert.False(t, msg.SentAt.IsZero(),
+			"SentAt should be set")
+
+		// Verify failed_at is nil (successful send)
+		assert.Nil(t, msg.FailedAt,
+			"FailedAt should be nil for successful sends")
+	}
+
 	t.Log("=== Test completed successfully ===")
 }
 
@@ -489,8 +612,8 @@ func TestBroadcastESPFailure_CircuitBreaker(t *testing.T) {
 	client := suite.APIClient
 	factory := suite.DataFactory
 
-	// Use enough contacts to trigger circuit breaker (default threshold is usually 10-20 failures)
-	contactCount := 100
+	// Use a smaller number of contacts for faster test
+	contactCount := 20
 
 	t.Log("=== Starting Circuit Breaker Test ===")
 	t.Logf("Contact count: %d", contactCount)
@@ -587,16 +710,15 @@ func TestBroadcastESPFailure_CircuitBreaker(t *testing.T) {
 	require.NoError(t, err)
 	defer scheduleResp.Body.Close()
 
-	// Monitor broadcast for circuit breaker triggering
-	t.Log("Monitoring broadcast for circuit breaker activation...")
-	timeout := 3 * time.Minute
+	// Step 1: Wait for broadcast to be processed (all emails enqueued)
+	t.Log("Step 1: Waiting for broadcast to process and enqueue all emails...")
+	timeout := 2 * time.Minute
 	deadline := time.Now().Add(timeout)
 	var finalStatus string
-	var finalFailedCount int
-	var finalRecipientOffset int
+	var enqueuedCount int
 
 	for time.Now().Before(deadline) {
-		// Execute tasks
+		// Execute tasks to process the broadcast
 		_, _ = client.ExecutePendingTasks(10)
 		time.Sleep(500 * time.Millisecond)
 
@@ -610,62 +732,101 @@ func TestBroadcastESPFailure_CircuitBreaker(t *testing.T) {
 			if json.Unmarshal(body, &result) == nil {
 				if bd, ok := result["broadcast"].(map[string]interface{}); ok {
 					finalStatus, _ = bd["status"].(string)
-				}
-			}
-		}
-
-		// Get task state
-		tasksResp, _ := client.ListTasks(map[string]string{"broadcast_id": broadcast.ID})
-		if tasksResp != nil {
-			taskBody, _ := io.ReadAll(tasksResp.Body)
-			tasksResp.Body.Close()
-
-			var tasksResult map[string]interface{}
-			if json.Unmarshal(taskBody, &tasksResult) == nil {
-				if tasks, ok := tasksResult["tasks"].([]interface{}); ok && len(tasks) > 0 {
-					if task, ok := tasks[0].(map[string]interface{}); ok {
-						if state, ok := task["state"].(map[string]interface{}); ok {
-							if sb, ok := state["send_broadcast"].(map[string]interface{}); ok {
-								finalFailedCount = int(sb["failed_count"].(float64))
-								finalRecipientOffset = int(sb["recipient_offset"].(float64))
-								t.Logf("Status: %s, Failed: %d, Offset: %d",
-									finalStatus, finalFailedCount, finalRecipientOffset)
-							}
-						}
+					if ec, ok := bd["enqueued_count"].(float64); ok {
+						enqueuedCount = int(ec)
 					}
+					t.Logf("Broadcast status: %s, enqueued: %d/%d", finalStatus, enqueuedCount, contactCount)
 				}
 			}
 		}
 
-		// Check for circuit breaker (broadcast should pause)
-		if finalStatus == "paused" || finalStatus == "failed" {
-			t.Logf("Circuit breaker appears to have triggered! Status: %s", finalStatus)
+		// Check if broadcast is processed (all emails enqueued)
+		if finalStatus == "processed" {
+			t.Log("Broadcast is processed, all emails enqueued!")
+			break
+		}
+	}
+
+	require.Equal(t, "processed", finalStatus, "Broadcast should be processed")
+	require.Equal(t, contactCount, enqueuedCount, "All contacts should be enqueued")
+
+	// Step 2: Start the email queue worker and wait for it to process emails
+	t.Log("Step 2: Starting email queue worker to process emails...")
+
+	// Get the email queue repository from the app
+	queueRepo := suite.ServerManager.GetApp().GetEmailQueueRepository()
+
+	// Start the background workers (email queue worker)
+	ctx := context.Background()
+	err = suite.ServerManager.StartBackgroundWorkers(ctx)
+	require.NoError(t, err, "Should be able to start background workers")
+
+	// Wait for either:
+	// 1. Circuit breaker to open (some emails fail, rest pending due to circuit open)
+	// 2. Or queue to be fully processed (all fail without circuit breaker triggering)
+	// The circuit breaker opens after ~5 consecutive failures (default threshold)
+	t.Log("Waiting for circuit breaker to trigger or queue to process...")
+
+	// Wait for some failures to be recorded (circuit breaker should trigger after threshold)
+	timeout = 2 * time.Minute
+	deadline = time.Now().Add(timeout)
+	var finalQueueStats *domain.EmailQueueStats
+
+	for time.Now().Before(deadline) {
+		stats, err := queueRepo.GetStats(ctx, workspace.ID)
+		if err != nil {
+			t.Logf("Warning: failed to get queue stats: %v", err)
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+
+		t.Logf("Queue status - pending: %d, processing: %d, failed: %d",
+			stats.Pending, stats.Processing, stats.Failed)
+
+		finalQueueStats = stats
+
+		// Circuit breaker should have triggered - we should see:
+		// - Some failures (at least circuit breaker threshold)
+		// - And some pending emails (circuit is open, not processing)
+		if stats.Failed > 0 && stats.Pending > 0 && stats.Processing == 0 {
+			t.Log("Circuit breaker appears to have triggered - queue has failures and pending items")
 			break
 		}
 
-		time.Sleep(1 * time.Second)
+		// Or if all emails are processed (either sent or failed)
+		if stats.Pending == 0 && stats.Processing == 0 {
+			t.Log("All queue items processed")
+			break
+		}
+
+		time.Sleep(500 * time.Millisecond)
 	}
+
+	require.NotNil(t, finalQueueStats, "Should have queue stats")
 
 	t.Log("=== CIRCUIT BREAKER TEST RESULTS ===")
-	t.Logf("Final Status: %s", finalStatus)
-	t.Logf("Failed Count: %d", finalFailedCount)
-	t.Logf("Recipient Offset: %d", finalRecipientOffset)
+	t.Logf("Final Broadcast Status: %s", finalStatus)
+	t.Logf("Enqueued Count: %d", enqueuedCount)
+	t.Logf("Queue Pending: %d", finalQueueStats.Pending)
+	t.Logf("Queue Failed: %d", finalQueueStats.Failed)
 
-	// Circuit breaker should have:
-	// 1. Recorded failures
-	// 2. Either paused the broadcast or processed all with failures
-	assert.Greater(t, finalFailedCount, 0,
-		"Should have recorded some failures")
+	// With the email queue system and circuit breaker:
+	// - Some emails should have failed (at least the threshold count)
+	// - The circuit breaker should have opened, stopping further processing
+	assert.Greater(t, finalQueueStats.Failed, int64(0),
+		"Should have recorded some failures in email queue")
 
-	// Log whether circuit breaker paused the broadcast
-	if finalStatus == "paused" {
-		t.Log("Circuit breaker successfully paused the broadcast!")
-		assert.Less(t, finalRecipientOffset, contactCount,
-			"Circuit breaker should stop before processing all recipients")
+	// If circuit breaker triggered, there should be pending emails that weren't processed
+	// (The circuit breaker stops processing when too many consecutive failures occur)
+	if finalQueueStats.Pending > 0 {
+		t.Logf("Circuit breaker successfully stopped processing! %d emails still pending", finalQueueStats.Pending)
+		assert.Greater(t, finalQueueStats.Failed, int64(0),
+			"Should have some failures that triggered circuit breaker")
 	} else {
-		t.Logf("Broadcast completed/failed with status: %s (circuit breaker may have different threshold)", finalStatus)
+		t.Log("All emails processed (circuit breaker may not have triggered or all retried)")
 	}
 
+	t.Logf("Email queue: %d failed, %d still pending", finalQueueStats.Failed, finalQueueStats.Pending)
 	t.Log("=== Test completed ===")
 }
 
@@ -837,9 +998,17 @@ func TestBroadcastConcurrentExecution(t *testing.T) {
 
 	t.Logf("Broadcast final status: %s", finalStatus)
 
-	// Wait for Mailpit to receive all emails
-	t.Log("Waiting for emails in Mailpit...")
-	time.Sleep(5 * time.Second)
+	// Start email queue worker to actually send emails
+	t.Log("Starting email queue worker...")
+	workerCtx := context.Background()
+	err = suite.ServerManager.StartBackgroundWorkers(workerCtx)
+	require.NoError(t, err, "Should be able to start background workers")
+
+	// Wait for email queue to process all emails
+	t.Log("Waiting for email queue to drain...")
+	queueRepo := suite.ServerManager.GetApp().GetEmailQueueRepository()
+	err = testutil.WaitForQueueEmpty(t, queueRepo, workspace.ID, 3*time.Minute)
+	require.NoError(t, err, "Email queue should drain")
 
 	// Verify emails in Mailpit
 	receivedEmails, err := testutil.GetAllMailpitRecipients(t, uniqueSubject)

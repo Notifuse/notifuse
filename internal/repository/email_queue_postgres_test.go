@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"testing"
@@ -386,65 +385,37 @@ func TestEmailQueueRepository_MarkAsFailed(t *testing.T) {
 	})
 }
 
-func TestEmailQueueRepository_MoveToDeadLetter(t *testing.T) {
+func TestEmailQueueRepository_Delete(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("successfully moves entry to dead letter", func(t *testing.T) {
+	t.Run("successfully deletes entry", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
 
 		repo := NewEmailQueueRepositoryWithDB(db)
 
-		entry := &domain.EmailQueueEntry{
-			ID:           "entry-123",
-			SourceType:   domain.EmailQueueSourceBroadcast,
-			SourceID:     "broadcast-456",
-			ContactEmail: "user@example.com",
-			MessageID:    "msg-001",
-			Attempts:     3,
-			CreatedAt:    time.Now().UTC(),
-			Payload:      domain.EmailQueuePayload{Subject: "Test"},
-		}
-
-		mock.ExpectBegin()
-		mock.ExpectExec(`INSERT INTO email_queue_dead_letter`).
-			WithArgs(
-				sqlmock.AnyArg(), // deadLetterID
-				"entry-123", domain.EmailQueueSourceBroadcast, "broadcast-456", "user@example.com",
-				"msg-001", sqlmock.AnyArg(), "max retries exceeded", 3, sqlmock.AnyArg(), sqlmock.AnyArg(),
-			).
-			WillReturnResult(sqlmock.NewResult(1, 1))
 		mock.ExpectExec(`DELETE FROM email_queue WHERE id = \$1`).
 			WithArgs("entry-123").
 			WillReturnResult(sqlmock.NewResult(0, 1))
-		mock.ExpectCommit()
 
-		err := repo.MoveToDeadLetter(ctx, "workspace-123", entry, "max retries exceeded")
+		err := repo.Delete(ctx, "workspace-123", "entry-123")
 		assert.NoError(t, err)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
-	t.Run("rolls back on insert failure", func(t *testing.T) {
+	t.Run("handles database error", func(t *testing.T) {
 		db, mock, cleanup := testutil.SetupMockDB(t)
 		defer cleanup()
 
 		repo := NewEmailQueueRepositoryWithDB(db)
 
-		entry := &domain.EmailQueueEntry{
-			ID:           "entry-123",
-			SourceType:   domain.EmailQueueSourceBroadcast,
-			ContactEmail: "user@example.com",
-			Payload:      domain.EmailQueuePayload{},
-		}
+		mock.ExpectExec(`DELETE FROM email_queue WHERE id = \$1`).
+			WithArgs("entry-123").
+			WillReturnError(errors.New("database error"))
 
-		mock.ExpectBegin()
-		mock.ExpectExec(`INSERT INTO email_queue_dead_letter`).
-			WillReturnError(errors.New("insert failed"))
-		mock.ExpectRollback()
-
-		err := repo.MoveToDeadLetter(ctx, "workspace-123", entry, "error")
+		err := repo.Delete(ctx, "workspace-123", "entry-123")
 		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "failed to insert into dead letter queue")
+		assert.Contains(t, err.Error(), "failed to delete queue entry")
 	})
 }
 
@@ -462,16 +433,11 @@ func TestEmailQueueRepository_GetStats(t *testing.T) {
 			WillReturnRows(sqlmock.NewRows([]string{"pending", "processing", "failed"}).
 				AddRow(10, 5, 3))
 
-		// Dead letter count
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM email_queue_dead_letter`).
-			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(2))
-
 		stats, err := repo.GetStats(ctx, "workspace-123")
 		require.NoError(t, err)
 		assert.Equal(t, int64(10), stats.Pending)
 		assert.Equal(t, int64(5), stats.Processing)
 		assert.Equal(t, int64(3), stats.Failed)
-		assert.Equal(t, int64(2), stats.DeadLetter)
 		assert.NoError(t, mock.ExpectationsWereMet())
 	})
 
@@ -580,146 +546,6 @@ func TestEmailQueueRepository_CountBySourceAndStatus(t *testing.T) {
 
 // Note: CleanupSent test removed - sent entries are now deleted immediately
 // so there's no need for a cleanup operation
-
-func TestEmailQueueRepository_CleanupDeadLetter(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("deletes dead letter entries older than duration", func(t *testing.T) {
-		db, mock, cleanup := testutil.SetupMockDB(t)
-		defer cleanup()
-
-		repo := NewEmailQueueRepositoryWithDB(db)
-
-		mock.ExpectExec(`DELETE FROM email_queue_dead_letter WHERE failed_at < \$1`).
-			WithArgs(sqlmock.AnyArg()).
-			WillReturnResult(sqlmock.NewResult(0, 10))
-
-		count, err := repo.CleanupDeadLetter(ctx, "workspace-123", 30*24*time.Hour)
-		require.NoError(t, err)
-		assert.Equal(t, int64(10), count)
-	})
-}
-
-func TestEmailQueueRepository_GetDeadLetterEntries(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("returns paginated dead letter entries", func(t *testing.T) {
-		db, mock, cleanup := testutil.SetupMockDB(t)
-		defer cleanup()
-
-		repo := NewEmailQueueRepositoryWithDB(db)
-
-		now := time.Now().UTC()
-		payload := domain.EmailQueuePayload{Subject: "Test"}
-		payloadJSON, _ := json.Marshal(payload)
-
-		// Count query
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM email_queue_dead_letter`).
-			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(25))
-
-		// Data query
-		rows := sqlmock.NewRows([]string{
-			"id", "original_entry_id", "source_type", "source_id", "contact_email",
-			"message_id", "payload", "final_error", "attempts", "created_at", "failed_at",
-		}).AddRow(
-			"dl-1", "entry-1", "broadcast", "bcast-1", "user@example.com",
-			"msg-1", payloadJSON, "max retries", 3, now, now,
-		)
-
-		mock.ExpectQuery(`SELECT .+ FROM email_queue_dead_letter ORDER BY failed_at DESC`).
-			WithArgs(10, 0).
-			WillReturnRows(rows)
-
-		entries, total, err := repo.GetDeadLetterEntries(ctx, "workspace-123", 10, 0)
-		require.NoError(t, err)
-		assert.Equal(t, int64(25), total)
-		assert.Len(t, entries, 1)
-		assert.Equal(t, "dl-1", entries[0].ID)
-		assert.Equal(t, "max retries", entries[0].FinalError)
-	})
-
-	t.Run("handles empty results", func(t *testing.T) {
-		db, mock, cleanup := testutil.SetupMockDB(t)
-		defer cleanup()
-
-		repo := NewEmailQueueRepositoryWithDB(db)
-
-		mock.ExpectQuery(`SELECT COUNT\(\*\) FROM email_queue_dead_letter`).
-			WillReturnRows(sqlmock.NewRows([]string{"count"}).AddRow(0))
-
-		mock.ExpectQuery(`SELECT .+ FROM email_queue_dead_letter`).
-			WithArgs(10, 0).
-			WillReturnRows(sqlmock.NewRows([]string{
-				"id", "original_entry_id", "source_type", "source_id", "contact_email",
-				"message_id", "payload", "final_error", "attempts", "created_at", "failed_at",
-			}))
-
-		entries, total, err := repo.GetDeadLetterEntries(ctx, "workspace-123", 10, 0)
-		require.NoError(t, err)
-		assert.Equal(t, int64(0), total)
-		assert.Empty(t, entries)
-	})
-}
-
-func TestEmailQueueRepository_RetryDeadLetter(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("moves entry back to queue", func(t *testing.T) {
-		db, mock, cleanup := testutil.SetupMockDB(t)
-		defer cleanup()
-
-		repo := NewEmailQueueRepositoryWithDB(db)
-
-		now := time.Now().UTC()
-		payload := domain.EmailQueuePayload{Subject: "Test"}
-		payloadJSON, _ := json.Marshal(payload)
-
-		mock.ExpectBegin()
-
-		// Get dead letter entry
-		mock.ExpectQuery(`SELECT .+ FROM email_queue_dead_letter WHERE id = \$1`).
-			WithArgs("dl-123").
-			WillReturnRows(sqlmock.NewRows([]string{
-				"id", "original_entry_id", "source_type", "source_id", "contact_email",
-				"message_id", "payload", "final_error", "attempts", "created_at", "failed_at",
-			}).AddRow(
-				"dl-123", "entry-123", "broadcast", "bcast-1", "user@example.com",
-				"msg-1", payloadJSON, "error", 3, now, now,
-			))
-
-		// Insert back to queue
-		mock.ExpectExec(`INSERT INTO email_queue`).
-			WillReturnResult(sqlmock.NewResult(1, 1))
-
-		// Delete from dead letter
-		mock.ExpectExec(`DELETE FROM email_queue_dead_letter WHERE id = \$1`).
-			WithArgs("dl-123").
-			WillReturnResult(sqlmock.NewResult(0, 1))
-
-		mock.ExpectCommit()
-
-		err := repo.RetryDeadLetter(ctx, "workspace-123", "dl-123")
-		assert.NoError(t, err)
-		assert.NoError(t, mock.ExpectationsWereMet())
-	})
-
-	t.Run("returns error when entry not found", func(t *testing.T) {
-		db, mock, cleanup := testutil.SetupMockDB(t)
-		defer cleanup()
-
-		repo := NewEmailQueueRepositoryWithDB(db)
-
-		mock.ExpectBegin()
-		mock.ExpectQuery(`SELECT .+ FROM email_queue_dead_letter WHERE id = \$1`).
-			WithArgs("nonexistent").
-			WillReturnError(sql.ErrNoRows)
-		mock.ExpectRollback()
-
-		err := repo.RetryDeadLetter(ctx, "workspace-123", "nonexistent")
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "dead letter entry not found")
-	})
-}
 
 func TestEmailQueueRepository_EnqueueTx(t *testing.T) {
 	ctx := context.Background()

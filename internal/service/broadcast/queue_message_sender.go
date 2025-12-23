@@ -283,6 +283,8 @@ func (s *queueMessageSender) buildQueueEntry(
 			HTMLContent:        htmlContent,
 			RateLimitPerMinute: emailProvider.RateLimitPerMinute,
 			EmailOptions:       domain.EmailOptions{},
+			TemplateVersion:    int(template.Version),
+			ListID:             broadcast.Audience.List,
 		},
 		MaxAttempts: 3,
 		CreatedAt:   time.Now().UTC(),

@@ -214,6 +214,80 @@ func (r *MessageHistoryRepository) Create(ctx context.Context, workspaceID strin
 	return nil
 }
 
+// Upsert creates or updates a message history record (for retry handling)
+// On conflict, updates failed_at, status_info, and updated_at fields
+func (r *MessageHistoryRepository) Upsert(ctx context.Context, workspaceID string, secretKey string, message *domain.MessageHistory) error {
+	// Get the workspace database connection
+	workspaceDB, err := r.workspaceRepo.GetConnection(ctx, workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace connection: %w", err)
+	}
+
+	// Encrypt message data before storage
+	encryptedMessageData, err := encryptMessageData(message.MessageData, secretKey)
+	if err != nil {
+		return fmt.Errorf("failed to encrypt message data: %w", err)
+	}
+
+	// Serialize attachments to JSON for storage
+	var attachmentsJSON interface{}
+	if len(message.Attachments) > 0 {
+		attachmentsJSON = message.Attachments
+	}
+
+	query := `
+		INSERT INTO message_history (
+			id, external_id, contact_email, broadcast_id, automation_id, list_id, template_id, template_version,
+			channel, status_info, message_data, channel_options, attachments, sent_at, delivered_at,
+			failed_at, opened_at, clicked_at, bounced_at, complained_at,
+			unsubscribed_at, created_at, updated_at
+		) VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8,
+			$9, LEFT($10, 255), $11, $12, $13, $14, $15,
+			$16, $17, $18, $19, $20,
+			$21, $22, $23
+		)
+		ON CONFLICT (id) DO UPDATE SET
+			failed_at = EXCLUDED.failed_at,
+			status_info = EXCLUDED.status_info,
+			updated_at = EXCLUDED.updated_at
+	`
+
+	_, err = workspaceDB.ExecContext(
+		ctx,
+		query,
+		message.ID,
+		message.ExternalID,
+		message.ContactEmail,
+		message.BroadcastID,
+		message.AutomationID,
+		message.ListID,
+		message.TemplateID,
+		message.TemplateVersion,
+		message.Channel,
+		message.StatusInfo,
+		encryptedMessageData,
+		message.ChannelOptions,
+		attachmentsJSON,
+		message.SentAt,
+		message.DeliveredAt,
+		message.FailedAt,
+		message.OpenedAt,
+		message.ClickedAt,
+		message.BouncedAt,
+		message.ComplainedAt,
+		message.UnsubscribedAt,
+		message.CreatedAt,
+		message.UpdatedAt,
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to upsert message history: %w", err)
+	}
+
+	return nil
+}
+
 // Update updates an existing message history record
 func (r *MessageHistoryRepository) Update(ctx context.Context, workspaceID string, message *domain.MessageHistory) error {
 	// Get the workspace database connection

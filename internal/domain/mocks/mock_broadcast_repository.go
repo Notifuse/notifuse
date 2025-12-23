@@ -122,34 +122,6 @@ func (mr *MockBroadcastRepositoryMockRecorder) GetBroadcastTx(arg0, arg1, arg2, 
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBroadcastTx", reflect.TypeOf((*MockBroadcastRepository)(nil).GetBroadcastTx), arg0, arg1, arg2, arg3)
 }
 
-// IncrementFailedCount mocks base method.
-func (m *MockBroadcastRepository) IncrementFailedCount(arg0 context.Context, arg1, arg2 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IncrementFailedCount", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// IncrementFailedCount indicates an expected call of IncrementFailedCount.
-func (mr *MockBroadcastRepositoryMockRecorder) IncrementFailedCount(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementFailedCount", reflect.TypeOf((*MockBroadcastRepository)(nil).IncrementFailedCount), arg0, arg1, arg2)
-}
-
-// IncrementSentCount mocks base method.
-func (m *MockBroadcastRepository) IncrementSentCount(arg0 context.Context, arg1, arg2 string) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "IncrementSentCount", arg0, arg1, arg2)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// IncrementSentCount indicates an expected call of IncrementSentCount.
-func (mr *MockBroadcastRepositoryMockRecorder) IncrementSentCount(arg0, arg1, arg2 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncrementSentCount", reflect.TypeOf((*MockBroadcastRepository)(nil).IncrementSentCount), arg0, arg1, arg2)
-}
-
 // ListBroadcasts mocks base method.
 func (m *MockBroadcastRepository) ListBroadcasts(arg0 context.Context, arg1 domain.ListBroadcastsParams) (*domain.BroadcastListResponse, error) {
 	m.ctrl.T.Helper()
@@ -178,20 +150,6 @@ func (m *MockBroadcastRepository) ListBroadcastsTx(arg0 context.Context, arg1 *s
 func (mr *MockBroadcastRepositoryMockRecorder) ListBroadcastsTx(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ListBroadcastsTx", reflect.TypeOf((*MockBroadcastRepository)(nil).ListBroadcastsTx), arg0, arg1, arg2)
-}
-
-// SetEnqueuedCount mocks base method.
-func (m *MockBroadcastRepository) SetEnqueuedCount(arg0 context.Context, arg1, arg2 string, arg3 int) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SetEnqueuedCount", arg0, arg1, arg2, arg3)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// SetEnqueuedCount indicates an expected call of SetEnqueuedCount.
-func (mr *MockBroadcastRepositoryMockRecorder) SetEnqueuedCount(arg0, arg1, arg2, arg3 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetEnqueuedCount", reflect.TypeOf((*MockBroadcastRepository)(nil).SetEnqueuedCount), arg0, arg1, arg2, arg3)
 }
 
 // UpdateBroadcast mocks base method.

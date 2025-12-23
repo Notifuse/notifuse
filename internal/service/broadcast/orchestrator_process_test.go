@@ -49,12 +49,6 @@ func setupTestEnvironment(t *testing.T) (
 	mockTimeProvider := mocks.NewMockTimeProvider(ctrl)
 	mockEventBus := domainmocks.NewMockEventBus(ctrl)
 
-	// Setup common broadcast repository expectations for count updates
-	mockBroadcastRepository.EXPECT().
-		SetEnqueuedCount(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
-		Return(nil).
-		AnyTimes()
-
 	// Setup common logger expectations
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLogger).AnyTimes()
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()

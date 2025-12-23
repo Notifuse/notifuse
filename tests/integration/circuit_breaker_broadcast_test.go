@@ -68,7 +68,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 			SELECT status, pause_reason FROM broadcasts WHERE id = $1
 		`, broadcastID).Scan(&initialStatus, &initialPauseReason)
 		require.NoError(t, err)
-		assert.Equal(t, "processing", initialStatus, "Broadcast should initially be in processing status")
+		assert.Equal(t, "sending", initialStatus, "Broadcast should initially be in sending status")
 		assert.False(t, initialPauseReason.Valid, "Pause reason should initially be NULL")
 
 		// Step 3: Create a task for this broadcast in system database
@@ -333,7 +333,7 @@ func TestCircuitBreakerBroadcastPause(t *testing.T) {
 			SELECT status, pause_reason FROM broadcasts WHERE id = $1
 		`, broadcastID).Scan(&resumedStatus, &preservedReason)
 		require.NoError(t, err)
-		assert.Equal(t, "processing", resumedStatus, "Broadcast should be resumed")
+		assert.Equal(t, "sending", resumedStatus, "Broadcast should be resumed")
 		assert.True(t, preservedReason.Valid)
 		assert.Equal(t, circuitBreakerReason, preservedReason.String, "Pause reason should be preserved for historical tracking")
 	})
@@ -378,6 +378,7 @@ func initializeWorkspaceSchema(workspaceDB *sql.DB) error {
 			winner_sent_at TIMESTAMP WITH TIME ZONE,
 			test_phase_recipient_count INTEGER DEFAULT 0,
 			winner_phase_recipient_count INTEGER DEFAULT 0,
+			enqueued_count INTEGER DEFAULT 0,
 			created_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			updated_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			started_at TIMESTAMP WITH TIME ZONE,
