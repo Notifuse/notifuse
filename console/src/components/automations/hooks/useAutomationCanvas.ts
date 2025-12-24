@@ -68,6 +68,10 @@ export interface UseAutomationCanvasReturn {
 
   // Last added node tracking (for auto-selection)
   lastAddedNodeId: string | undefined
+
+  // Reorganization signaling (for auto-reorganize after manual connect)
+  needsReorganize: boolean
+  clearReorganizeFlag: () => void
 }
 
 export function useAutomationCanvas(): UseAutomationCanvasReturn {
@@ -78,6 +82,9 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [lastAddedNodeId, setLastAddedNodeId] = useState<string | undefined>(undefined)
   const appliedInitialSelectionRef = useRef<string | null>(null)
+
+  // Reorganization flag (for auto-reorganize after manual connect)
+  const [needsReorganize, setNeedsReorganize] = useState(false)
 
   // Apply initial selection once
   useEffect(() => {
@@ -235,6 +242,8 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       setEdges(eds => addEdge({ ...params, type: 'smoothstep' }, eds))
     }
 
+    // Trigger auto-reorganization after manual connection
+    setNeedsReorganize(true)
     markAsChanged()
   }, [nodes, setNodes, setEdges, markAsChanged, pushHistory])
 
@@ -789,6 +798,11 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     markAsChanged()
   }, [nodes, edges, setNodes, markAsChanged, pushHistory])
 
+  // Clear reorganize flag (called after reorganization is handled)
+  const clearReorganizeFlag = useCallback(() => {
+    setNeedsReorganize(false)
+  }, [])
+
   // Compute validation errors
   const validationErrors = useMemo(() => {
     return validateFlow(nodes, edges, listId)
@@ -816,6 +830,8 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
     unconnectedOutputs,
     validationErrors,
     lastAddedNodeId,
-    orphanNodeIds
+    orphanNodeIds,
+    needsReorganize,
+    clearReorganizeFlag
   }
 }

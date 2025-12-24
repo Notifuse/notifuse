@@ -108,15 +108,20 @@ const AutomationFlowEditorInner: React.FC = () => {
     onNodeDragStop,
     handleIsValidConnection,
     unconnectedOutputs,
-    orphanNodeIds
+    orphanNodeIds,
+    needsReorganize,
+    clearReorganizeFlag
   } = useAutomationCanvas()
 
   const hasListSelected = !!listId
 
   // Effect to handle pending reorganization after state updates
   useEffect(() => {
-    if (pendingReorganizeRef.current) {
+    if (pendingReorganizeRef.current || needsReorganize) {
       pendingReorganizeRef.current = false
+      if (needsReorganize) {
+        clearReorganizeFlag()
+      }
       // Small delay to ensure React has fully committed the state
       setTimeout(() => {
         reorganizeNodes()
@@ -125,7 +130,7 @@ const AutomationFlowEditorInner: React.FC = () => {
         }, 50)
       }, 50)
     }
-  }, [nodes, reorganizeNodes, fitView])
+  }, [nodes, needsReorganize, reorganizeNodes, fitView, clearReorganizeFlag])
 
   // Handler for adding node via plus button
   const handleAddNodeFromTerminal = useCallback(

@@ -461,19 +461,15 @@ export function validateFlow(
 export function isValidConnection(
   sourceNodeType: NodeType,
   targetNodeType: NodeType,
-  existingEdges: Edge[],
-  targetNodeId: string
+  _existingEdges: Edge[],
+  _targetNodeId: string
 ): boolean {
-  // Cannot connect TO trigger node (it's the entry)
+  // Cannot connect TO trigger node (it's the entry point)
   if (targetNodeType === 'trigger') {
     return false
   }
 
-  // Phase 2: Only one incoming connection per node (simple linear flow)
-  const hasIncomingConnection = existingEdges.some((e) => e.target === targetNodeId)
-  if (hasIncomingConnection) {
-    return false
-  }
-
+  // Multiple parent nodes can connect to the same child node
+  // Each parent path executes the child independently
   return true
 }

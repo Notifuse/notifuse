@@ -1,5 +1,5 @@
 import type { Node } from '@xyflow/react'
-import type { ABTestNodeConfig, NodeType } from '../../../services/api/automation'
+import type { ABTestNodeConfig, FilterNodeConfig, NodeType } from '../../../services/api/automation'
 
 interface LayoutOptions {
   horizontalSpacing?: number
@@ -20,13 +20,14 @@ interface NodeWithType {
 const DEFAULT_OPTIONS: Required<LayoutOptions> = {
   horizontalSpacing: 80,
   verticalSpacing: 200,
-  nodeWidth: 220,
+  nodeWidth: 300, // Matches BaseNode minWidth
   startX: 400,
   startY: 50
 }
 
 /**
  * Reorganize nodes in a clean hierarchical layout.
+ * Supports DAG structure (nodes with multiple parents).
  * Works with center coordinates internally, converts to left-edge for ReactFlow.
  */
 export function layoutNodes<T extends NodeWithType>(
@@ -40,14 +41,23 @@ export function layoutNodes<T extends NodeWithType>(
   const triggerNode = nodes.find((n) => n.data.nodeType === 'trigger')
   if (!triggerNode) return nodes
 
-  // Build adjacency list (parent → children) with edge info for ordering
+  // === PASS 1: Build parent/child maps ===
+
+  // Build child → parents map
+  const parents = new Map<string, string[]>()
+  edges.forEach((e) => {
+    const existing = parents.get(e.target) || []
+    parents.set(e.target, [...existing, e.source])
+  })
+
+  // Build parent → children map with edge info for ordering
   const childrenWithHandles = new Map<string, { target: string; sourceHandle?: string }[]>()
   edges.forEach((e) => {
     if (!childrenWithHandles.has(e.source)) childrenWithHandles.set(e.source, [])
     childrenWithHandles.get(e.source)!.push({ target: e.target, sourceHandle: e.sourceHandle })
   })
 
-  // Get ordered children for a node (A/B Test children sorted by variant order)
+  // Get ordered children for a node (A/B Test and Filter children sorted by variant/branch order)
   const getOrderedChildren = (nodeId: string): string[] => {
     const node = nodes.find((n) => n.id === nodeId)
     const childEdges = childrenWithHandles.get(nodeId) || []
@@ -75,67 +85,241 @@ export function layoutNodes<T extends NodeWithType>(
         .map((e) => e.target)
     }
 
+    if (node?.data.nodeType === 'list_status_branch') {
+      return childEdges
+        .sort((a, b) => {
+          const order: Record<string, number> = { not_in_list: 0, active: 1, non_active: 2 }
+          const aOrder = order[a.sourceHandle || ''] ?? 3
+          const bOrder = order[b.sourceHandle || ''] ?? 3
+          return aOrder - bOrder
+        })
+        .map((e) => e.target)
+    }
+
     return childEdges.map((e) => e.target)
   }
 
-  // Build children map
+  // Build children map with ordering
   const children = new Map<string, string[]>()
   nodes.forEach((n) => {
     children.set(n.id, getOrderedChildren(n.id))
   })
 
-  // Calculate subtree widths (bottom-up)
-  const subtreeWidthCache = new Map<string, number>()
-  const getSubtreeWidth = (nodeId: string, visited: Set<string> = new Set()): number => {
-    if (visited.has(nodeId)) return 0
-    visited.add(nodeId)
+  // === PASS 2: Calculate levels (depth) for each node ===
+  // Level = max(parent levels) + 1 (ensures multi-parent nodes are below ALL parents)
 
-    if (subtreeWidthCache.has(nodeId)) return subtreeWidthCache.get(nodeId)!
+  const levels = new Map<string, number>()
 
-    const kids = children.get(nodeId) || []
-    let width: number
-    if (kids.length === 0) {
-      width = nodeWidth
-    } else {
-      width =
-        kids.reduce((sum, kid) => sum + getSubtreeWidth(kid, new Set(visited)), 0) +
-        (kids.length - 1) * horizontalSpacing
+  const calculateLevel = (nodeId: string, visiting: Set<string> = new Set()): number => {
+    if (levels.has(nodeId)) return levels.get(nodeId)!
+    if (visiting.has(nodeId)) return 0 // Cycle detection
+    visiting.add(nodeId)
+
+    const nodeParents = parents.get(nodeId) || []
+    if (nodeParents.length === 0) {
+      // No parents = root node (trigger)
+      levels.set(nodeId, 0)
+      return 0
     }
-    subtreeWidthCache.set(nodeId, width)
-    return width
+
+    const maxParentLevel = Math.max(...nodeParents.map((p) => calculateLevel(p, new Set(visiting))))
+    const level = maxParentLevel + 1
+    levels.set(nodeId, level)
+    return level
   }
 
-  // Assign positions (top-down) - using CENTER x coordinates
+  // Calculate levels for all nodes
+  nodes.forEach((n) => calculateLevel(n.id))
+
+  // === PASS 3: Group nodes by level ===
+
+  const nodesByLevel = new Map<number, string[]>()
+  nodes.forEach((n) => {
+    const level = levels.get(n.id) ?? 0
+    const existing = nodesByLevel.get(level) || []
+    nodesByLevel.set(level, [...existing, n.id])
+  })
+
+  // === PASS 4: Position nodes level by level ===
+
   const newPositions = new Map<string, { x: number; y: number }>()
+  const maxLevel = Math.max(...Array.from(levels.values()), 0)
 
-  const layoutNode = (nodeId: string, x: number, y: number, visited: Set<string> = new Set()) => {
-    if (visited.has(nodeId)) return
-    visited.add(nodeId)
+  // Track child order for consistent horizontal positioning
+  const childOrderIndex = new Map<string, number>()
 
-    newPositions.set(nodeId, { x, y })
+  // Get X offset from node center for a specific handle
+  const getHandleOffsetX = (nodeType: NodeType, handleId: string | undefined): number => {
+    const halfWidth = nodeWidth / 2
 
-    const kids = children.get(nodeId) || []
-    if (kids.length === 0) return
-
-    const childWidths = kids.map((k) => getSubtreeWidth(k))
-    const totalWidth =
-      childWidths.reduce((a, b) => a + b, 0) + (kids.length - 1) * horizontalSpacing
-
-    let childX = x - totalWidth / 2 + childWidths[0] / 2
-    const childY = y + verticalSpacing
-
-    kids.forEach((kid, i) => {
-      layoutNode(kid, childX, childY, new Set(visited))
-      if (i < kids.length - 1) {
-        childX += childWidths[i] / 2 + horizontalSpacing + childWidths[i + 1] / 2
+    if (nodeType === 'list_status_branch') {
+      // Handles at 20%, 50%, 80% from left edge
+      const offsets: Record<string, number> = {
+        not_in_list: -halfWidth * 0.6, // 20% from left = 40% left of center
+        active: 0, // 50% = center
+        non_active: halfWidth * 0.6 // 80% from left = 40% right of center
       }
-    })
+      return offsets[handleId || ''] ?? 0
+    }
+
+    if (nodeType === 'filter') {
+      const offsets: Record<string, number> = {
+        continue: -halfWidth * 0.4,
+        yes: -halfWidth * 0.4,
+        exit: halfWidth * 0.4,
+        no: halfWidth * 0.4
+      }
+      return offsets[handleId || ''] ?? 0
+    }
+
+    if (nodeType === 'ab_test') {
+      // A/B test handles are evenly distributed - handled by child order
+      return 0
+    }
+
+    return 0
   }
 
-  // Start layout from trigger at top-center
-  layoutNode(triggerNode.id, startX, startY)
+  // Get target X for a node based on highest-level parent's handle position
+  // Also checks for skip edges and clears intermediate obstacles (Sugiyama-style)
+  const getTargetX = (nodeId: string): number => {
+    const incomingEdges = edges.filter((e) => e.target === nodeId)
+    if (incomingEdges.length === 0) return startX
 
-  // Handle orphan nodes
+    const myLevel = levels.get(nodeId) ?? 0
+
+    // Find highest-level parent for base position
+    let bestEdge = incomingEdges[0]
+    let bestLevel = levels.get(bestEdge.source) ?? 999
+    for (const edge of incomingEdges) {
+      const lvl = levels.get(edge.source) ?? 999
+      if (lvl < bestLevel) {
+        bestLevel = lvl
+        bestEdge = edge
+      }
+    }
+
+    const parentPos = newPositions.get(bestEdge.source)
+    if (!parentPos) return startX
+
+    const parentNode = nodes.find((n) => n.id === bestEdge.source)
+    const handleOffset = getHandleOffsetX(parentNode?.data.nodeType || 'trigger', bestEdge.sourceHandle)
+    let targetX = parentPos.x + handleOffset
+
+    // Check for skip edges (long edges spanning >1 level) and clear intermediate obstacles
+    for (const edge of incomingEdges) {
+      const sourceLevel = levels.get(edge.source) ?? 0
+      const levelGap = myLevel - sourceLevel
+
+      // Skip edge = more than 1 level gap
+      if (levelGap > 1) {
+        const edgeParentPos = newPositions.get(edge.source)
+        if (!edgeParentPos) continue
+
+        const edgeParentNode = nodes.find((n) => n.id === edge.source)
+        const edgeHandleOffset = getHandleOffsetX(
+          edgeParentNode?.data.nodeType || 'trigger',
+          edge.sourceHandle
+        )
+        const edgeHandleX = edgeParentPos.x + edgeHandleOffset
+
+        // Check all intermediate levels for obstacles
+        for (let lvl = sourceLevel + 1; lvl < myLevel; lvl++) {
+          const nodesAtLevel = nodesByLevel.get(lvl) || []
+
+          for (const intermediateId of nodesAtLevel) {
+            // Skip if this intermediate node is also a parent (edge connects to it, not crosses it)
+            const isParent = incomingEdges.some((e) => e.source === intermediateId)
+            if (isParent) continue
+
+            const intermediatePos = newPositions.get(intermediateId)
+            if (!intermediatePos) continue
+
+            // Check if edge would cross this node's bounding box
+            const nodeLeft = intermediatePos.x - nodeWidth / 2
+            const nodeRight = intermediatePos.x + nodeWidth / 2
+
+            if (edgeHandleX >= nodeLeft && edgeHandleX <= nodeRight) {
+              // Edge would cross! Position to the right of this obstacle
+              const clearX = nodeRight + horizontalSpacing
+              if (clearX > targetX) {
+                targetX = clearX
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return targetX
+  }
+
+  for (let level = 0; level <= maxLevel; level++) {
+    const nodesAtLevel = nodesByLevel.get(level) || []
+    const y = startY + level * verticalSpacing
+
+    if (level === 0) {
+      // Root level (trigger) - position at center
+      nodesAtLevel.forEach((nodeId) => {
+        newPositions.set(nodeId, { x: startX, y })
+      })
+      // Record child order for next level
+      nodesAtLevel.forEach((nodeId) => {
+        const kids = children.get(nodeId) || []
+        kids.forEach((kid, idx) => {
+          if (!childOrderIndex.has(kid)) {
+            childOrderIndex.set(kid, idx)
+          }
+        })
+      })
+    } else {
+      // Sort nodes by target X (based on parent handle position)
+      const sortedNodes = [...nodesAtLevel].sort((a, b) => {
+        const aTargetX = getTargetX(a)
+        const bTargetX = getTargetX(b)
+
+        // Primary sort: by target X position
+        if (Math.abs(aTargetX - bTargetX) > 10) {
+          return aTargetX - bTargetX
+        }
+
+        // Secondary sort: by child order (for siblings from same parent)
+        const aOrder = childOrderIndex.get(a) ?? 999
+        const bOrder = childOrderIndex.get(b) ?? 999
+        return aOrder - bOrder
+      })
+
+      // Position each node at its target X with overlap prevention
+      const positionedX: number[] = []
+      sortedNodes.forEach((nodeId) => {
+        let targetX = getTargetX(nodeId)
+
+        // Prevent overlap with previously positioned nodes at this level
+        for (const prevX of positionedX) {
+          if (Math.abs(targetX - prevX) < nodeWidth + horizontalSpacing) {
+            // Push right to avoid overlap
+            targetX = prevX + nodeWidth + horizontalSpacing
+          }
+        }
+
+        positionedX.push(targetX)
+        newPositions.set(nodeId, { x: targetX, y })
+      })
+
+      // Record child order for next level
+      sortedNodes.forEach((nodeId) => {
+        const kids = children.get(nodeId) || []
+        kids.forEach((kid, idx) => {
+          if (!childOrderIndex.has(kid)) {
+            childOrderIndex.set(kid, idx)
+          }
+        })
+      })
+    }
+  }
+
+  // === PASS 5: Handle orphan nodes ===
+
   const orphanNodes = nodes.filter((n) => !newPositions.has(n.id))
   if (orphanNodes.length > 0) {
     let maxX = startX
@@ -151,7 +335,9 @@ export function layoutNodes<T extends NodeWithType>(
     })
   }
 
-  // Apply new positions - convert from center coordinates to left-edge
+  // === Apply new positions ===
+  // Convert from center coordinates to left-edge for ReactFlow
+
   return nodes.map((n) => {
     const centerPos = newPositions.get(n.id)
     if (!centerPos) return n
