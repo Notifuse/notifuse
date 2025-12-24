@@ -110,8 +110,25 @@ export function layoutNodes<T extends NodeWithType>(
 
   // === PASS 2: Calculate levels (depth) for each node ===
   // Level = max(parent levels) + 1 (ensures multi-parent nodes are below ALL parents)
+  // Only calculate for nodes reachable from trigger (orphans excluded)
 
   const levels = new Map<string, number>()
+
+  // First, find all nodes reachable from trigger using BFS
+  const reachableFromTrigger = new Set<string>()
+  const bfsQueue: string[] = [triggerNode.id]
+  reachableFromTrigger.add(triggerNode.id)
+
+  while (bfsQueue.length > 0) {
+    const nodeId = bfsQueue.shift()!
+    const kids = children.get(nodeId) || []
+    for (const childId of kids) {
+      if (!reachableFromTrigger.has(childId)) {
+        reachableFromTrigger.add(childId)
+        bfsQueue.push(childId)
+      }
+    }
+  }
 
   const calculateLevel = (nodeId: string, visiting: Set<string> = new Set()): number => {
     if (levels.has(nodeId)) return levels.get(nodeId)!
@@ -119,28 +136,33 @@ export function layoutNodes<T extends NodeWithType>(
     visiting.add(nodeId)
 
     const nodeParents = parents.get(nodeId) || []
-    if (nodeParents.length === 0) {
-      // No parents = root node (trigger)
+    // Filter to only reachable parents
+    const reachableParents = nodeParents.filter((p) => reachableFromTrigger.has(p))
+    if (reachableParents.length === 0) {
+      // No reachable parents = root node (trigger)
       levels.set(nodeId, 0)
       return 0
     }
 
-    const maxParentLevel = Math.max(...nodeParents.map((p) => calculateLevel(p, new Set(visiting))))
+    const maxParentLevel = Math.max(...reachableParents.map((p) => calculateLevel(p, new Set(visiting))))
     const level = maxParentLevel + 1
     levels.set(nodeId, level)
     return level
   }
 
-  // Calculate levels for all nodes
-  nodes.forEach((n) => calculateLevel(n.id))
+  // Calculate levels only for reachable nodes (orphans excluded)
+  reachableFromTrigger.forEach((nodeId) => calculateLevel(nodeId))
 
   // === PASS 3: Group nodes by level ===
+  // Only group reachable nodes (those with calculated levels)
 
   const nodesByLevel = new Map<number, string[]>()
-  nodes.forEach((n) => {
-    const level = levels.get(n.id) ?? 0
-    const existing = nodesByLevel.get(level) || []
-    nodesByLevel.set(level, [...existing, n.id])
+  reachableFromTrigger.forEach((nodeId) => {
+    const level = levels.get(nodeId)
+    if (level !== undefined) {
+      const existing = nodesByLevel.get(level) || []
+      nodesByLevel.set(level, [...existing, nodeId])
+    }
   })
 
   // === PASS 4: Position nodes level by level ===
@@ -322,19 +344,40 @@ export function layoutNodes<T extends NodeWithType>(
   }
 
   // === PASS 5: Handle orphan nodes ===
+  // Preserve orphan nodes at their current Y level, positioned to the right
 
   const orphanNodes = nodes.filter((n) => !newPositions.has(n.id))
   if (orphanNodes.length > 0) {
+    // Find rightmost X position of all positioned nodes
     let maxX = startX
     newPositions.forEach((pos) => {
       if (pos.x > maxX) maxX = pos.x
     })
 
-    let orphanX = maxX + 400
-    let orphanY = startY
+    const orphanX = maxX + 400
+
+    // Group orphans by their current Y level to handle multiple orphans at same level
+    const orphansByLevel = new Map<number, typeof orphanNodes>()
     orphanNodes.forEach((node) => {
-      newPositions.set(node.id, { x: orphanX, y: orphanY })
-      orphanY += verticalSpacing
+      // Get the node's current Y position
+      const currentY = (node as unknown as Node).position?.y ?? startY
+      // Snap to nearest level
+      const level = Math.round((currentY - startY) / verticalSpacing)
+      const levelY = startY + level * verticalSpacing
+
+      if (!orphansByLevel.has(levelY)) {
+        orphansByLevel.set(levelY, [])
+      }
+      orphansByLevel.get(levelY)!.push(node)
+    })
+
+    // Position orphans at their level, stacking horizontally if multiple at same level
+    orphansByLevel.forEach((nodesAtLevel, levelY) => {
+      let currentX = orphanX
+      nodesAtLevel.forEach((node) => {
+        newPositions.set(node.id, { x: currentX, y: levelY })
+        currentX += nodeWidth + horizontalSpacing
+      })
     })
   }
 

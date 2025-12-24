@@ -1,5 +1,5 @@
 import React from 'react'
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { ListChecks } from 'lucide-react'
 import { BaseNode } from './BaseNode'
 import { nodeTypeColors } from './constants'
@@ -14,14 +14,22 @@ export const ListStatusBranchNode: React.FC<ListStatusBranchNodeProps> = ({ data
   const config = data.config as ListStatusBranchNodeConfig
   const listName = lists.find((l) => l.id === config?.list_id)?.name
 
-  const handleColor = data.isOrphan ? '#f97316' : '#3b82f6'
+  const connection = useConnection()
+  const isConnecting = connection.inProgress
+  const targetHandleSize = isConnecting ? 16 : 10
+  const targetHandleColor = isConnecting ? '#22c55e' : data.isOrphan ? '#f97316' : '#3b82f6'
 
   return (
     <>
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: handleColor, width: 10, height: 10 }}
+        style={{
+          background: targetHandleColor,
+          width: targetHandleSize,
+          height: targetHandleSize,
+          transition: 'all 0.15s ease'
+        }}
       />
       <BaseNode
         type="list_status_branch"

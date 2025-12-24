@@ -1,5 +1,5 @@
 import React from 'react'
-import { Handle, Position, type NodeProps } from '@xyflow/react'
+import { Handle, Position, useConnection, type NodeProps } from '@xyflow/react'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faFlask } from '@fortawesome/free-solid-svg-icons'
 import { BaseNode } from './BaseNode'
@@ -13,7 +13,11 @@ export const ABTestNode: React.FC<ABTestNodeProps> = ({ data, selected }) => {
   const config = data.config as ABTestNodeConfig
   const variants = config?.variants || []
 
-  const handleColor = data.isOrphan ? '#f97316' : '#3b82f6'
+  const connection = useConnection()
+  const isConnecting = connection.inProgress
+  const targetHandleSize = isConnecting ? 16 : 10
+  const targetHandleColor = isConnecting ? '#22c55e' : data.isOrphan ? '#f97316' : '#3b82f6'
+  const sourceHandleColor = data.isOrphan ? '#f97316' : '#3b82f6'
 
   // Calculate handle positions to spread evenly across bottom
   const getHandlePosition = (index: number, total: number): number => {
@@ -29,7 +33,12 @@ export const ABTestNode: React.FC<ABTestNodeProps> = ({ data, selected }) => {
       <Handle
         type="target"
         position={Position.Top}
-        style={{ background: handleColor, width: 10, height: 10 }}
+        style={{
+          background: targetHandleColor,
+          width: targetHandleSize,
+          height: targetHandleSize,
+          transition: 'all 0.15s ease'
+        }}
       />
       <BaseNode
         type="ab_test"
@@ -67,7 +76,7 @@ export const ABTestNode: React.FC<ABTestNodeProps> = ({ data, selected }) => {
           position={Position.Bottom}
           id={variant.id}
           style={{
-            background: handleColor,
+            background: sourceHandleColor,
             width: 10,
             height: 10,
             left: `${getHandlePosition(index, variants.length)}%`
@@ -79,7 +88,7 @@ export const ABTestNode: React.FC<ABTestNodeProps> = ({ data, selected }) => {
         <Handle
           type="source"
           position={Position.Bottom}
-          style={{ background: handleColor, width: 10, height: 10 }}
+          style={{ background: sourceHandleColor, width: 10, height: 10 }}
         />
       )}
     </>

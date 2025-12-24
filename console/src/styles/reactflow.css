@@ -27,6 +27,7 @@
   height: 10px;
   background-color: #1890ff;
   border: 2px solid #fff;
+  transition: all 0.15s ease;
 }
 
 .react-flow__handle-top {
@@ -35,6 +36,12 @@
 
 .react-flow__handle-bottom {
   bottom: -5px;
+}
+
+/* Enlarge source (output) handles on hover */
+.react-flow__handle-bottom:hover {
+  width: 16px !important;
+  height: 16px !important;
 }
 
 /* Background */
