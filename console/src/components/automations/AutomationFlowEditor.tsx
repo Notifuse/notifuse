@@ -20,6 +20,7 @@ import { NodeConfigPanel } from './NodeConfigPanel'
 import { AddNodeEdge, type AddNodeEdgeData } from './edges/AddNodeEdge'
 import { AutomationEdge, type AutomationEdgeData } from './edges/AutomationEdge'
 import { AddNodeButton } from './AddNodeButton'
+import { NodePalette } from './NodePalette'
 import { useAutomation } from './context'
 import { useAutomationCanvas } from './hooks'
 import type { AutomationNodeData } from './utils/flowConverter'
@@ -86,7 +87,7 @@ const AutomationFlowEditorInner: React.FC = () => {
   const fitViewCalledRef = useRef(false)
   const pendingReorganizeRef = useRef(false)
 
-  const { getViewport, setViewport, fitView } = useReactFlow()
+  const { getViewport, setViewport, fitView, screenToFlowPosition } = useReactFlow()
 
   // Get context and hook
   const { listId, workspace, isEditing } = useAutomation()
@@ -96,6 +97,7 @@ const AutomationFlowEditorInner: React.FC = () => {
     selectedNode,
     selectNode,
     unselectNode,
+    addNode,
     addNodeWithEdge,
     insertNodeOnEdge,
     removeNode,
@@ -327,9 +329,36 @@ const AutomationFlowEditorInner: React.FC = () => {
     }, 50)
   }, [reorganizeNodes, fitView])
 
+  // Handle drag over for node palette drag and drop
+  const handleDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'move'
+  }, [])
+
+  // Handle drop for node palette drag and drop
+  const handleDrop = useCallback(
+    (event: React.DragEvent) => {
+      event.preventDefault()
+      const type = event.dataTransfer.getData('application/reactflow') as NodeType
+      if (!type) return
+
+      // Don't allow email nodes without list
+      if (type === 'email' && !hasListSelected) return
+
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY
+      })
+      addNode(type, position)
+    },
+    [screenToFlowPosition, addNode, hasListSelected]
+  )
+
   return (
-    <div className="h-full relative" ref={reactFlowWrapper}>
-      <ReactFlow
+    <div className="h-full flex">
+      <NodePalette hasListSelected={hasListSelected} />
+      <div className="flex-1 relative" ref={reactFlowWrapper}>
+        <ReactFlow
         nodes={nodesWithPlaceholders}
         edges={edgesWithPlaceholders}
         nodeTypes={nodeTypes}
@@ -341,6 +370,8 @@ const AutomationFlowEditorInner: React.FC = () => {
         onPaneClick={handlePaneClick}
         onMove={handleMove}
         onNodeDragStop={onNodeDragStop}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
         isValidConnection={handleIsValidConnection}
         minZoom={0.2}
         maxZoom={1.5}
@@ -413,6 +444,7 @@ const AutomationFlowEditorInner: React.FC = () => {
           />
         </div>
       )}
+      </div>
     </div>
   )
 }
