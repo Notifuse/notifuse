@@ -25,6 +25,9 @@ const DEFAULT_OPTIONS: Required<LayoutOptions> = {
   startY: 50
 }
 
+// Node height from BaseNode component
+const NODE_HEIGHT = 86
+
 /**
  * Reorganize nodes in a clean hierarchical layout.
  * Supports DAG structure (nodes with multiple parents).
@@ -333,6 +336,123 @@ export function layoutNodes<T extends NodeWithType>(
       newPositions.set(node.id, { x: orphanX, y: orphanY })
       orphanY += verticalSpacing
     })
+  }
+
+  // === PASS 6: Edge-aware obstacle resolution ===
+  // Check all edges and move intermediate nodes that would be crossed by edges
+  // This handles the case where a long edge (spanning multiple levels) passes through a node
+
+  // Helper: Check if a vertical line segment intersects a rectangle
+  const lineIntersectsNode = (
+    lineX: number,
+    lineY1: number,
+    lineY2: number,
+    nodeX: number,
+    nodeY: number
+  ): boolean => {
+    const nodeLeft = nodeX - nodeWidth / 2 - horizontalSpacing / 4
+    const nodeRight = nodeX + nodeWidth / 2 + horizontalSpacing / 4
+    const nodeTop = nodeY
+    const nodeBottom = nodeY + NODE_HEIGHT
+
+    // Check if line X is within node's horizontal bounds
+    if (lineX < nodeLeft || lineX > nodeRight) return false
+
+    // Check if line's Y range overlaps with node's Y range
+    const minY = Math.min(lineY1, lineY2)
+    const maxY = Math.max(lineY1, lineY2)
+    return !(maxY < nodeTop || minY > nodeBottom)
+  }
+
+  // Iterate multiple times to resolve cascading conflicts
+  for (let iteration = 0; iteration < 3; iteration++) {
+    let changed = false
+
+    // Check each edge for intersections with non-connected nodes
+    for (const edge of edges) {
+      const sourcePos = newPositions.get(edge.source)
+      const targetPos = newPositions.get(edge.target)
+      if (!sourcePos || !targetPos) continue
+
+      const sourceLevel = levels.get(edge.source) ?? 0
+      const targetLevel = levels.get(edge.target) ?? 0
+      const levelGap = targetLevel - sourceLevel
+
+      // Only check edges that span more than 1 level (skip edges)
+      if (levelGap <= 1) continue
+
+      // Calculate edge X position (from source handle)
+      const sourceNode = nodes.find((n) => n.id === edge.source)
+      const handleOffset = getHandleOffsetX(sourceNode?.data.nodeType || 'trigger', edge.sourceHandle)
+      const edgeX = sourcePos.x + handleOffset
+
+      // Check all intermediate levels for obstacles
+      for (let lvl = sourceLevel + 1; lvl < targetLevel; lvl++) {
+        const nodesAtLevel = nodesByLevel.get(lvl) || []
+
+        for (const intermediateId of nodesAtLevel) {
+          // Skip if this node is connected to the edge
+          if (intermediateId === edge.source || intermediateId === edge.target) continue
+
+          const intermediatePos = newPositions.get(intermediateId)
+          if (!intermediatePos) continue
+
+          const levelY = startY + lvl * verticalSpacing
+
+          // Check if edge would cross this node
+          if (lineIntersectsNode(edgeX, sourcePos.y, targetPos.y, intermediatePos.x, levelY)) {
+            // Move the intermediate node out of the way
+            // Determine direction: move away from edge
+            const nodeCenter = intermediatePos.x
+            const moveDirection = edgeX <= nodeCenter ? 1 : -1 // Move right if edge is on left, vice versa
+            const clearanceNeeded = nodeWidth / 2 + horizontalSpacing
+
+            // Calculate new X position
+            let newX: number
+            if (moveDirection > 0) {
+              // Move right: position node so its left edge clears the edge
+              newX = edgeX + clearanceNeeded
+            } else {
+              // Move left: position node so its right edge clears the edge
+              newX = edgeX - clearanceNeeded
+            }
+
+            // Only move if it's actually different
+            if (Math.abs(newX - intermediatePos.x) > 10) {
+              newPositions.set(intermediateId, { x: newX, y: intermediatePos.y })
+              changed = true
+            }
+          }
+        }
+      }
+    }
+
+    // Also check for same-level overlaps after moving nodes
+    for (let level = 1; level <= maxLevel; level++) {
+      const nodesAtLevel = nodesByLevel.get(level) || []
+      const positions = nodesAtLevel
+        .map((id) => ({ id, x: newPositions.get(id)?.x ?? 0 }))
+        .sort((a, b) => a.x - b.x)
+
+      for (let i = 1; i < positions.length; i++) {
+        const prev = positions[i - 1]
+        const curr = positions[i]
+        const minDistance = nodeWidth + horizontalSpacing
+
+        if (curr.x - prev.x < minDistance) {
+          // Push current node right
+          const newX = prev.x + minDistance
+          const currPos = newPositions.get(curr.id)
+          if (currPos) {
+            newPositions.set(curr.id, { x: newX, y: currPos.y })
+            curr.x = newX // Update for next iteration
+            changed = true
+          }
+        }
+      }
+    }
+
+    if (!changed) break
   }
 
   // === Apply new positions ===
