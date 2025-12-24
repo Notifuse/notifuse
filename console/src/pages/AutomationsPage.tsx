@@ -202,6 +202,7 @@ export function AutomationsPage() {
               lists={lists}
               segments={segments}
               permissions={permissions}
+              workspaceId={workspaceId}
               onActivate={handleActivate}
               onPause={handlePause}
               onDelete={handleDelete}

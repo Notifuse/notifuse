@@ -14,7 +14,7 @@ import {
 } from '@xyflow/react'
 import { LayoutGrid } from 'lucide-react'
 import { Tooltip } from 'antd'
-import { TriggerNode, DelayNode, EmailNode, ABTestNode, AddToListNode, RemoveFromListNode, FilterNode, WebhookNode } from './nodes'
+import { TriggerNode, DelayNode, EmailNode, ABTestNode, AddToListNode, RemoveFromListNode, FilterNode, WebhookNode, ListStatusBranchNode } from './nodes'
 import { PlaceholderNode } from './nodes/PlaceholderNode'
 import { NodeConfigPanel } from './NodeConfigPanel'
 import { AddNodeEdge, type AddNodeEdgeData } from './edges/AddNodeEdge'
@@ -35,6 +35,7 @@ const nodeTypes: NodeTypes = {
   remove_from_list: RemoveFromListNode,
   filter: FilterNode,
   webhook: WebhookNode,
+  list_status_branch: ListStatusBranchNode,
   placeholder: PlaceholderNode
 }
 
@@ -142,7 +143,7 @@ const AutomationFlowEditorInner: React.FC = () => {
 
       let offsetX = 0
 
-      if (sourceNode.data.nodeType === 'filter' || sourceNode.data.nodeType === 'ab_test') {
+      if (sourceNode.data.nodeType === 'filter' || sourceNode.data.nodeType === 'ab_test' || sourceNode.data.nodeType === 'list_status_branch') {
         if (existingChildren.length === 0) {
           // First child: position on the LEFT (centered under left handle area)
           offsetX = -150
@@ -163,12 +164,14 @@ const AutomationFlowEditorInner: React.FC = () => {
         y: sourceNode.position.y + 150
       }
 
-      // Auto-reorganize when adding filter/ab_test or adding children to filter/ab_test
+      // Auto-reorganize when adding multi-branch nodes or adding children to them
       const shouldReorganize =
         nodeType === 'filter' ||
         nodeType === 'ab_test' ||
+        nodeType === 'list_status_branch' ||
         sourceNode.data.nodeType === 'filter' ||
-        sourceNode.data.nodeType === 'ab_test'
+        sourceNode.data.nodeType === 'ab_test' ||
+        sourceNode.data.nodeType === 'list_status_branch'
 
       if (shouldReorganize) {
         pendingReorganizeRef.current = true

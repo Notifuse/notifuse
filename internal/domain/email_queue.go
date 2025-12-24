@@ -3,7 +3,7 @@ package domain
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"os"
 	"time"
 )
 
@@ -149,34 +149,26 @@ type EmailQueueRepository interface {
 	CountBySourceAndStatus(ctx context.Context, workspaceID string, sourceType EmailQueueSourceType, sourceID string, status EmailQueueStatus) (int64, error)
 }
 
+// getEmailQueueRetryBase returns the base retry interval for exponential backoff.
+// Can be overridden via EMAIL_QUEUE_RETRY_BASE environment variable for testing.
+// Default is 1 minute.
+func getEmailQueueRetryBase() time.Duration {
+	if base := os.Getenv("EMAIL_QUEUE_RETRY_BASE"); base != "" {
+		if d, err := time.ParseDuration(base); err == nil {
+			return d
+		}
+	}
+	return 1 * time.Minute
+}
+
 // CalculateNextRetryTime calculates the next retry time using exponential backoff
-// Backoff: 1min, 2min, 4min for attempts 1, 2, 3
+// Backoff: base, 2*base, 4*base for attempts 1, 2, 3 (default base = 1min)
 func CalculateNextRetryTime(attempts int) time.Time {
 	if attempts <= 0 {
 		attempts = 1
 	}
-	// 2^(attempts-1) minutes
-	backoffMinutes := 1 << uint(attempts-1)
-	return time.Now().UTC().Add(time.Duration(backoffMinutes) * time.Minute)
-}
-
-// GetEmailQueueStatsRequest represents a request to get queue statistics
-type GetEmailQueueStatsRequest struct {
-	WorkspaceID string `json:"workspace_id"`
-}
-
-// FromURLParams populates the request from URL parameters
-func (r *GetEmailQueueStatsRequest) FromURLParams(params map[string][]string) error {
-	if ids, ok := params["workspace_id"]; ok && len(ids) > 0 {
-		r.WorkspaceID = ids[0]
-	}
-	return r.Validate()
-}
-
-// Validate validates the request
-func (r *GetEmailQueueStatsRequest) Validate() error {
-	if r.WorkspaceID == "" {
-		return fmt.Errorf("workspace_id is required")
-	}
-	return nil
+	// 2^(attempts-1) * base
+	base := getEmailQueueRetryBase()
+	multiplier := 1 << uint(attempts-1)
+	return time.Now().UTC().Add(time.Duration(multiplier) * base)
 }

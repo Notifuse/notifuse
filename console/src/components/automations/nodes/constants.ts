@@ -10,5 +10,6 @@ export const nodeTypeColors: Record<NodeType, string> = {
   add_to_list: '#13c2c2', // cyan
   remove_from_list: '#fa541c', // orange
   ab_test: '#2f54eb', // geekblue
-  webhook: '#9254de' // violet
+  webhook: '#9254de', // violet
+  list_status_branch: '#389e0d' // green-7 (for list-related branching)
 }

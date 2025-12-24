@@ -10,7 +10,7 @@ import (
 
 func TestPredefinedSchemas(t *testing.T) {
 	// Test that all expected schemas exist
-	expectedSchemas := []string{"message_history", "contacts", "broadcasts"}
+	expectedSchemas := []string{"message_history", "contacts", "broadcasts", "webhook_deliveries", "email_queue", "automation_node_executions"}
 
 	for _, schemaName := range expectedSchemas {
 		t.Run("schema_"+schemaName, func(t *testing.T) {
@@ -193,6 +193,38 @@ func TestBroadcastsSchema(t *testing.T) {
 	}
 }
 
+func TestEmailQueueSchema(t *testing.T) {
+	schema := PredefinedSchemas["email_queue"]
+
+	// Test measures
+	requiredMeasures := []string{"count", "count_pending", "count_processing", "count_failed", "count_broadcast", "count_automation", "avg_attempts", "max_attempts", "count_retryable"}
+	for _, measure := range requiredMeasures {
+		assert.Contains(t, schema.Measures, measure, "email_queue should have measure %s", measure)
+	}
+
+	// Test dimensions
+	requiredDimensions := []string{"created_at", "updated_at", "next_retry_at", "status", "source_type", "source_id", "integration_id", "provider_kind", "priority", "template_id", "contact_email"}
+	for _, dimension := range requiredDimensions {
+		assert.Contains(t, schema.Dimensions, dimension, "email_queue should have dimension %s", dimension)
+	}
+}
+
+func TestAutomationNodeExecutionsSchema(t *testing.T) {
+	schema := PredefinedSchemas["automation_node_executions"]
+
+	// Test measures
+	requiredMeasures := []string{"count", "count_entered", "count_completed", "count_failed", "count_skipped"}
+	for _, measure := range requiredMeasures {
+		assert.Contains(t, schema.Measures, measure, "automation_node_executions should have measure %s", measure)
+	}
+
+	// Test dimensions
+	requiredDimensions := []string{"automation_id", "node_id", "node_type", "action", "entered_at"}
+	for _, dimension := range requiredDimensions {
+		assert.Contains(t, schema.Dimensions, dimension, "automation_node_executions should have dimension %s", dimension)
+	}
+}
+
 func TestPredefinedSchemasWithFilters(t *testing.T) {
 	// Test that our new filter-based measures generate valid SQL
 	builder := analytics.NewSQLBuilder()
@@ -232,6 +264,30 @@ func TestPredefinedSchemasWithFilters(t *testing.T) {
 			schema:   "broadcasts",
 			measure:  "avg_recipients_completed",
 			expected: "AVG(recipient_count) FILTER (WHERE status = 'completed')",
+		},
+		{
+			name:     "email_queue - count pending",
+			schema:   "email_queue",
+			measure:  "count_pending",
+			expected: "COUNT(*) FILTER (WHERE status = 'pending')",
+		},
+		{
+			name:     "email_queue - count retryable",
+			schema:   "email_queue",
+			measure:  "count_retryable",
+			expected: "COUNT(*) FILTER (WHERE status = 'failed' AND attempts < max_attempts)",
+		},
+		{
+			name:     "automation_node_executions - count entered",
+			schema:   "automation_node_executions",
+			measure:  "count_entered",
+			expected: "COUNT(*) FILTER (WHERE action = 'entered')",
+		},
+		{
+			name:     "automation_node_executions - count completed",
+			schema:   "automation_node_executions",
+			measure:  "count_completed",
+			expected: "COUNT(*) FILTER (WHERE action = 'completed')",
 		},
 	}
 

@@ -1,6 +1,7 @@
 package integration
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -248,9 +249,15 @@ func TestTaskConcurrentExecutionRaceCondition(t *testing.T) {
 
 	t.Logf("Broadcast final status: %s", finalStatus)
 
-	// Step 10: Wait for emails to arrive
-	t.Log("Step 10: Waiting for emails in Mailpit...")
-	time.Sleep(5 * time.Second)
+	// Step 10: Start email queue worker and wait for queue to drain
+	t.Log("Step 10: Starting email queue worker and waiting for queue to drain...")
+	workerCtx := context.Background()
+	err = suite.ServerManager.StartBackgroundWorkers(workerCtx)
+	require.NoError(t, err, "Should be able to start background workers")
+
+	queueRepo := suite.ServerManager.GetApp().GetEmailQueueRepository()
+	err = testutil.WaitForQueueEmpty(t, queueRepo, workspace.ID, 2*time.Minute)
+	require.NoError(t, err, "Email queue should drain")
 
 	// Step 11: Verify results
 	t.Log("Step 11: Verifying results...")

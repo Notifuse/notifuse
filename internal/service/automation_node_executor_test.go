@@ -1643,6 +1643,295 @@ func TestRemoveFromListNodeExecutor_NodeType(t *testing.T) {
 	assert.Equal(t, domain.NodeTypeRemoveFromList, executor.NodeType())
 }
 
+// ListStatusBranchNodeExecutor tests
+
+func TestListStatusBranchNodeExecutor_NodeType(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+	executor := NewListStatusBranchNodeExecutor(mockContactListRepo)
+	assert.Equal(t, domain.NodeTypeListStatusBranch, executor.NodeType())
+}
+
+func TestParseListStatusBranchNodeConfig(t *testing.T) {
+	t.Run("valid config", func(t *testing.T) {
+		config := map[string]interface{}{
+			"list_id":              "list123",
+			"not_in_list_node_id":  "node1",
+			"active_node_id":       "node2",
+			"non_active_node_id":   "node3",
+		}
+
+		c, err := parseListStatusBranchNodeConfig(config)
+		require.NoError(t, err)
+		assert.Equal(t, "list123", c.ListID)
+		assert.Equal(t, "node1", c.NotInListNodeID)
+		assert.Equal(t, "node2", c.ActiveNodeID)
+		assert.Equal(t, "node3", c.NonActiveNodeID)
+	})
+
+	t.Run("missing list_id", func(t *testing.T) {
+		config := map[string]interface{}{
+			"not_in_list_node_id": "node1",
+		}
+
+		_, err := parseListStatusBranchNodeConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "list_id is required")
+	})
+
+	t.Run("no branch targets", func(t *testing.T) {
+		config := map[string]interface{}{
+			"list_id": "list123",
+		}
+
+		_, err := parseListStatusBranchNodeConfig(config)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "at least one branch must have a target node")
+	})
+}
+
+func TestListStatusBranchNodeExecutor_Execute_NotInList(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+	mockContactListRepo.EXPECT().
+		GetContactListByIDs(gomock.Any(), "ws1", "test@example.com", "list123").
+		Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+
+	executor := NewListStatusBranchNodeExecutor(mockContactListRepo)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:   "list_status_branch1",
+			Type: domain.NodeTypeListStatusBranch,
+			Config: map[string]interface{}{
+				"list_id":              "list123",
+				"not_in_list_node_id":  "node_not_in_list",
+				"active_node_id":       "node_active",
+				"non_active_node_id":   "node_non_active",
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Equal(t, "node_not_in_list", *result.NextNodeID)
+	assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
+	assert.Equal(t, "list_status_branch", result.Output["node_type"])
+	assert.Equal(t, "list123", result.Output["list_id"])
+	assert.Equal(t, "not_in_list", result.Output["branch_taken"])
+	assert.Equal(t, "not_found", result.Output["contact_status"])
+}
+
+func TestListStatusBranchNodeExecutor_Execute_ActiveStatus(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+	mockContactListRepo.EXPECT().
+		GetContactListByIDs(gomock.Any(), "ws1", "test@example.com", "list123").
+		Return(&domain.ContactList{
+			Email:  "test@example.com",
+			ListID: "list123",
+			Status: domain.ContactListStatusActive,
+		}, nil)
+
+	executor := NewListStatusBranchNodeExecutor(mockContactListRepo)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:   "list_status_branch1",
+			Type: domain.NodeTypeListStatusBranch,
+			Config: map[string]interface{}{
+				"list_id":              "list123",
+				"not_in_list_node_id":  "node_not_in_list",
+				"active_node_id":       "node_active",
+				"non_active_node_id":   "node_non_active",
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Equal(t, "node_active", *result.NextNodeID)
+	assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
+	assert.Equal(t, "active", result.Output["branch_taken"])
+	assert.Equal(t, "active", result.Output["contact_status"])
+}
+
+func TestListStatusBranchNodeExecutor_Execute_NonActiveStatuses(t *testing.T) {
+	nonActiveStatuses := []domain.ContactListStatus{
+		domain.ContactListStatusPending,
+		domain.ContactListStatusUnsubscribed,
+		domain.ContactListStatusBounced,
+		domain.ContactListStatusComplained,
+	}
+
+	for _, status := range nonActiveStatuses {
+		t.Run(string(status), func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+			mockContactListRepo.EXPECT().
+				GetContactListByIDs(gomock.Any(), "ws1", "test@example.com", "list123").
+				Return(&domain.ContactList{
+					Email:  "test@example.com",
+					ListID: "list123",
+					Status: status,
+				}, nil)
+
+			executor := NewListStatusBranchNodeExecutor(mockContactListRepo)
+
+			params := NodeExecutionParams{
+				WorkspaceID: "ws1",
+				Node: &domain.AutomationNode{
+					ID:   "list_status_branch1",
+					Type: domain.NodeTypeListStatusBranch,
+					Config: map[string]interface{}{
+						"list_id":              "list123",
+						"not_in_list_node_id":  "node_not_in_list",
+						"active_node_id":       "node_active",
+						"non_active_node_id":   "node_non_active",
+					},
+				},
+				Contact: &domain.ContactAutomation{
+					ID:           "ca1",
+					ContactEmail: "test@example.com",
+				},
+			}
+
+			result, err := executor.Execute(context.Background(), params)
+			require.NoError(t, err)
+			require.NotNil(t, result)
+
+			assert.Equal(t, "node_non_active", *result.NextNodeID)
+			assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
+			assert.Equal(t, "non_active", result.Output["branch_taken"])
+			assert.Equal(t, string(status), result.Output["contact_status"])
+		})
+	}
+}
+
+func TestListStatusBranchNodeExecutor_Execute_RepositoryError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+	mockContactListRepo.EXPECT().
+		GetContactListByIDs(gomock.Any(), "ws1", "test@example.com", "list123").
+		Return(nil, errors.New("database connection error"))
+
+	executor := NewListStatusBranchNodeExecutor(mockContactListRepo)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:   "list_status_branch1",
+			Type: domain.NodeTypeListStatusBranch,
+			Config: map[string]interface{}{
+				"list_id":              "list123",
+				"not_in_list_node_id":  "node_not_in_list",
+				"active_node_id":       "node_active",
+				"non_active_node_id":   "node_non_active",
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "failed to check contact list status")
+}
+
+func TestListStatusBranchNodeExecutor_Execute_InvalidConfig(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+
+	executor := NewListStatusBranchNodeExecutor(mockContactListRepo)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:   "list_status_branch1",
+			Type: domain.NodeTypeListStatusBranch,
+			Config: map[string]interface{}{
+				// Missing list_id
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	assert.Error(t, err)
+	assert.Nil(t, result)
+	assert.Contains(t, err.Error(), "invalid list_status_branch node config")
+}
+
+func TestListStatusBranchNodeExecutor_Execute_EmptyBranchCompletes(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
+	mockContactListRepo.EXPECT().
+		GetContactListByIDs(gomock.Any(), "ws1", "test@example.com", "list123").
+		Return(nil, &domain.ErrContactListNotFound{Message: "not found"})
+
+	executor := NewListStatusBranchNodeExecutor(mockContactListRepo)
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:   "list_status_branch1",
+			Type: domain.NodeTypeListStatusBranch,
+			Config: map[string]interface{}{
+				"list_id":              "list123",
+				"not_in_list_node_id":  "", // Empty - should complete
+				"active_node_id":       "node_active",
+				"non_active_node_id":   "node_non_active",
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "test@example.com",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+
+	assert.Nil(t, result.NextNodeID)
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, result.Status)
+	assert.Equal(t, "not_in_list", result.Output["branch_taken"])
+}
+
 // ABTestNodeExecutor tests
 
 func TestABTestNodeExecutor_NodeType(t *testing.T) {

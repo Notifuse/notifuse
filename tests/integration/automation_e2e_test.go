@@ -129,6 +129,9 @@ func TestAutomation(t *testing.T) {
 	t.Run("FilterNode", func(t *testing.T) {
 		testAutomationFilterNode(t, factory, workspace.ID)
 	})
+	t.Run("ListStatusBranch", func(t *testing.T) {
+		testAutomationListStatusBranch(t, factory, workspace.ID)
+	})
 	t.Run("ListOperations", func(t *testing.T) {
 		testAutomationListOperations(t, factory, workspace.ID)
 	})
@@ -703,6 +706,120 @@ func testAutomationFilterNode(t *testing.T, factory *testutil.TestDataFactory, w
 	assert.Equal(t, domain.ContactAutomationStatusActive, failCA.Status)
 
 	t.Logf("Filter node test passed: both contacts enrolled")
+}
+
+// testAutomationListStatusBranch tests the list_status_branch node routing based on contact list status
+func testAutomationListStatusBranch(t *testing.T, factory *testutil.TestDataFactory, workspaceID string) {
+	// Create a list to check status against
+	checkList, err := factory.CreateList(workspaceID, testutil.WithListName("Status Check List"))
+	require.NoError(t, err)
+
+	// Create automation with list_status_branch node
+	automation, err := factory.CreateAutomation(workspaceID,
+		testutil.WithAutomationName("List Status Branch Test"),
+		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
+			EventKind: "list_status_branch_test_event",
+			Frequency: domain.TriggerFrequencyOnce,
+		}),
+	)
+	require.NoError(t, err)
+
+	// Create nodes: trigger → list_status_branch (all 3 branches lead to terminal - empty string)
+	triggerNode, err := factory.CreateAutomationNode(workspaceID,
+		testutil.WithNodeAutomationID(automation.ID),
+		testutil.WithNodeType(domain.NodeTypeTrigger),
+	)
+	require.NoError(t, err)
+
+	// List status branch node: check status in checkList
+	listStatusBranchNode, err := factory.CreateAutomationNode(workspaceID,
+		testutil.WithNodeAutomationID(automation.ID),
+		testutil.WithNodeType(domain.NodeTypeListStatusBranch),
+		testutil.WithNodeConfig(map[string]interface{}{
+			"list_id":             checkList.ID,
+			"not_in_list_node_id": "",
+			"active_node_id":      "",
+			"non_active_node_id":  "",
+		}),
+	)
+	require.NoError(t, err)
+
+	err = factory.UpdateAutomationNodeNextNodeID(workspaceID, automation.ID, triggerNode.ID, listStatusBranchNode.ID)
+	require.NoError(t, err)
+
+	err = factory.UpdateAutomationRootNode(workspaceID, automation.ID, triggerNode.ID)
+	require.NoError(t, err)
+
+	err = factory.ActivateAutomation(workspaceID, automation.ID)
+	require.NoError(t, err)
+
+	// Test 1: Contact not in list → should route to not_in_list branch
+	notInListContact, err := factory.CreateContact(workspaceID,
+		testutil.WithContactEmail("not-in-list@example.com"),
+	)
+	require.NoError(t, err)
+
+	err = factory.CreateContactTimelineEvent(workspaceID, notInListContact.Email, "list_status_branch_test_event", nil)
+	require.NoError(t, err)
+
+	// Wait for enrollment
+	notInListCA := waitForEnrollment(t, factory, workspaceID, automation.ID, notInListContact.Email, 2*time.Second)
+	require.NotNil(t, notInListCA)
+	assert.Equal(t, domain.ContactAutomationStatusActive, notInListCA.Status)
+	t.Logf("Not in list contact enrolled successfully")
+
+	// Test 2: Contact with active status → should route to active branch
+	activeContact, err := factory.CreateContact(workspaceID,
+		testutil.WithContactEmail("active-status@example.com"),
+	)
+	require.NoError(t, err)
+
+	// Add contact to list with active status
+	_, err = factory.CreateContactList(workspaceID,
+		testutil.WithContactListEmail(activeContact.Email),
+		testutil.WithContactListListID(checkList.ID),
+		testutil.WithContactListStatus(domain.ContactListStatusActive),
+	)
+	require.NoError(t, err)
+
+	err = factory.CreateContactTimelineEvent(workspaceID, activeContact.Email, "list_status_branch_test_event", nil)
+	require.NoError(t, err)
+
+	// Wait for enrollment
+	activeCA := waitForEnrollment(t, factory, workspaceID, automation.ID, activeContact.Email, 2*time.Second)
+	require.NotNil(t, activeCA)
+	assert.Equal(t, domain.ContactAutomationStatusActive, activeCA.Status)
+	t.Logf("Active status contact enrolled successfully")
+
+	// Test 3: Contact with unsubscribed status → should route to non_active branch
+	unsubContact, err := factory.CreateContact(workspaceID,
+		testutil.WithContactEmail("unsubscribed-status@example.com"),
+	)
+	require.NoError(t, err)
+
+	// Add contact to list with unsubscribed status
+	_, err = factory.CreateContactList(workspaceID,
+		testutil.WithContactListEmail(unsubContact.Email),
+		testutil.WithContactListListID(checkList.ID),
+		testutil.WithContactListStatus(domain.ContactListStatusUnsubscribed),
+	)
+	require.NoError(t, err)
+
+	err = factory.CreateContactTimelineEvent(workspaceID, unsubContact.Email, "list_status_branch_test_event", nil)
+	require.NoError(t, err)
+
+	// Wait for enrollment
+	unsubCA := waitForEnrollment(t, factory, workspaceID, automation.ID, unsubContact.Email, 2*time.Second)
+	require.NotNil(t, unsubCA)
+	assert.Equal(t, domain.ContactAutomationStatusActive, unsubCA.Status)
+	t.Logf("Unsubscribed status contact enrolled successfully")
+
+	// Verify stats show all 3 enrolled
+	stats, err := factory.GetAutomationStats(workspaceID, automation.ID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(3), stats.Enrolled, "All 3 contacts should be enrolled")
+
+	t.Logf("List status branch test passed: all 3 contacts enrolled correctly")
 }
 
 // testAutomationListOperations tests add_to_list and remove_from_list nodes

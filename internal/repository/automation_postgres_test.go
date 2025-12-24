@@ -93,6 +93,7 @@ func createTestNodeExecution(id, contactAutomationID, nodeID string) *domain.Nod
 	return &domain.NodeExecution{
 		ID:                  id,
 		ContactAutomationID: contactAutomationID,
+		AutomationID:        "automation-123",
 		NodeID:              nodeID,
 		NodeType:            domain.NodeTypeEmail,
 		Action:              domain.NodeActionEntered,
@@ -729,6 +730,7 @@ func TestAutomationRepository_CreateNodeExecution(t *testing.T) {
 		WithArgs(
 			entry.ID,
 			entry.ContactAutomationID,
+			entry.AutomationID,
 			entry.NodeID,
 			entry.NodeType,
 			entry.Action,
@@ -749,6 +751,7 @@ func TestAutomationRepository_CreateNodeExecution(t *testing.T) {
 		WithArgs(
 			entry.ID,
 			entry.ContactAutomationID,
+			entry.AutomationID,
 			entry.NodeID,
 			entry.NodeType,
 			entry.Action,

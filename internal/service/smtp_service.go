@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net"
+	"os"
 	"strings"
 	"time"
 
@@ -15,6 +16,18 @@ import (
 	"github.com/Notifuse/notifuse/pkg/logger"
 	"github.com/wneessen/go-mail"
 )
+
+// getSMTPDialTimeout returns the SMTP dial timeout.
+// Can be overridden via SMTP_DIAL_TIMEOUT environment variable for testing.
+// Default is 30 seconds (industry standard for SMTP).
+func getSMTPDialTimeout() time.Duration {
+	if timeout := os.Getenv("SMTP_DIAL_TIMEOUT"); timeout != "" {
+		if d, err := time.ParseDuration(timeout); err == nil {
+			return d
+		}
+	}
+	return 30 * time.Second
+}
 
 // smtpConnection wraps a connection to an SMTP server and provides low-level
 // command sending that avoids the SMTP extension issues (BODY=8BITMIME, SMTPUTF8)
@@ -103,8 +116,8 @@ func (c *smtpConnection) Close() error {
 func sendRawEmail(host string, port int, username, password string, useTLS bool, from string, to []string, msg []byte) error {
 	addr := fmt.Sprintf("%s:%d", host, port)
 
-	// Connect to SMTP server
-	dialer := &net.Dialer{Timeout: 30 * time.Second}
+	// Connect to SMTP server with configurable timeout
+	dialer := &net.Dialer{Timeout: getSMTPDialTimeout()}
 	conn, err := dialer.Dial("tcp", addr)
 	if err != nil {
 		return fmt.Errorf("failed to connect: %w", err)

@@ -1,4 +1,5 @@
 import { api } from './client'
+import { analyticsService } from './analytics'
 import { TreeNode } from './segment'
 
 // Automation status types
@@ -18,6 +19,7 @@ export type NodeType =
   | 'remove_from_list'
   | 'ab_test'
   | 'webhook'
+  | 'list_status_branch'
 
 // Contact automation status
 export type ContactAutomationStatus = 'active' | 'completed' | 'exited' | 'failed'
@@ -123,6 +125,13 @@ export interface RemoveFromListNodeConfig {
   list_id: string
 }
 
+export interface ListStatusBranchNodeConfig {
+  list_id: string
+  not_in_list_node_id: string
+  active_node_id: string
+  non_active_node_id: string
+}
+
 export interface ABTestVariant {
   id: string
   name: string
@@ -147,6 +156,7 @@ export type NodeConfig =
   | FilterNodeConfig
   | AddToListNodeConfig
   | RemoveFromListNodeConfig
+  | ListStatusBranchNodeConfig
   | ABTestNodeConfig
   | WebhookNodeConfig
   | Record<string, unknown> // For trigger nodes with no config
@@ -269,6 +279,25 @@ export interface GetNodeExecutionsResponse {
   node_executions: NodeExecution[]
 }
 
+// Node stats for flow viewer
+export interface AutomationNodeStats {
+  node_id: string
+  node_type: NodeType
+  entered: number
+  completed: number
+  failed: number
+  skipped: number
+}
+
+export interface GetNodeStatsRequest {
+  workspace_id: string
+  automation_id: string
+}
+
+export interface GetNodeStatsResponse {
+  node_stats: Record<string, AutomationNodeStats>
+}
+
 // API client
 export const automationApi = {
   list: async (params: ListAutomationsRequest): Promise<ListAutomationsResponse> => {
@@ -319,5 +348,38 @@ export const automationApi = {
     searchParams.append('email', params.email)
 
     return api.get<GetNodeExecutionsResponse>(`/api/automations.nodeExecutions?${searchParams.toString()}`)
+  },
+
+  getNodeStats: async (params: GetNodeStatsRequest): Promise<GetNodeStatsResponse> => {
+    const response = await analyticsService.query(
+      {
+        schema: 'automation_node_executions',
+        measures: ['count_entered', 'count_completed', 'count_failed', 'count_skipped'],
+        dimensions: ['node_id', 'node_type'],
+        filters: [
+          {
+            member: 'automation_id',
+            operator: 'equals',
+            values: [params.automation_id]
+          }
+        ]
+      },
+      params.workspace_id
+    )
+
+    // Transform analytics response (array) to map format expected by components
+    const node_stats: Record<string, AutomationNodeStats> = {}
+    for (const row of response.data) {
+      const nodeId = row.node_id as string
+      node_stats[nodeId] = {
+        node_id: nodeId,
+        node_type: row.node_type as NodeType,
+        entered: (row.count_entered as number) || 0,
+        completed: (row.count_completed as number) || 0,
+        failed: (row.count_failed as number) || 0,
+        skipped: (row.count_skipped as number) || 0
+      }
+    }
+    return { node_stats }
   }
 }

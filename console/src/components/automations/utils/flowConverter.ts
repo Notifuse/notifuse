@@ -10,7 +10,8 @@ import type {
   FilterNodeConfig,
   ABTestNodeConfig,
   AddToListNodeConfig,
-  RemoveFromListNodeConfig
+  RemoveFromListNodeConfig,
+  ListStatusBranchNodeConfig
 } from '../../../services/api/automation'
 
 // Node data stored in ReactFlow nodes
@@ -23,7 +24,7 @@ export interface AutomationNodeData {
 }
 
 // Node types that support multiple outgoing connections
-const MULTI_CHILD_NODE_TYPES: NodeType[] = ['branch', 'filter', 'ab_test']
+const MULTI_CHILD_NODE_TYPES: NodeType[] = ['branch', 'filter', 'ab_test', 'list_status_branch']
 
 export function canHaveMultipleChildren(nodeType: NodeType): boolean {
   return MULTI_CHILD_NODE_TYPES.includes(nodeType)
@@ -39,7 +40,9 @@ export function getNodeLabel(type: NodeType): string {
     filter: 'Filter',
     add_to_list: 'Add to List',
     remove_from_list: 'Remove from List',
-    ab_test: 'A/B Test'
+    ab_test: 'A/B Test',
+    webhook: 'Webhook',
+    list_status_branch: 'List Status'
   }
   return labels[type] || type
 }
@@ -168,6 +171,38 @@ export function automationToFlow(automation: Automation): {
               label: `${variant.name} (${variant.weight}%)`
             })
           }
+        })
+      }
+    }
+
+    // Handle list status branch nodes with three paths
+    if (node.type === 'list_status_branch' && node.config) {
+      const config = node.config as ListStatusBranchNodeConfig
+      if (config.not_in_list_node_id) {
+        edges.push({
+          id: `${node.id}-not_in_list-${config.not_in_list_node_id}`,
+          source: node.id,
+          sourceHandle: 'not_in_list',
+          target: config.not_in_list_node_id,
+          type: 'smoothstep'
+        })
+      }
+      if (config.active_node_id) {
+        edges.push({
+          id: `${node.id}-active-${config.active_node_id}`,
+          source: node.id,
+          sourceHandle: 'active',
+          target: config.active_node_id,
+          type: 'smoothstep'
+        })
+      }
+      if (config.non_active_node_id) {
+        edges.push({
+          id: `${node.id}-non_active-${config.non_active_node_id}`,
+          source: node.id,
+          sourceHandle: 'non_active',
+          target: config.non_active_node_id,
+          type: 'smoothstep'
         })
       }
     }
@@ -401,6 +436,20 @@ export function validateFlow(
           nodeId: node.id,
           field: 'conditions',
           message: 'Filter node must have at least one condition'
+        })
+      }
+    })
+
+  // Check list_status_branch nodes have list selected
+  nodes
+    .filter((n) => n.data.nodeType === 'list_status_branch')
+    .forEach((node) => {
+      const config = node.data.config as ListStatusBranchNodeConfig
+      if (!config.list_id) {
+        errors.push({
+          nodeId: node.id,
+          field: 'list_id',
+          message: 'List Status node must have a list selected'
         })
       }
     })

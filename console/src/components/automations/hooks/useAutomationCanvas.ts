@@ -19,7 +19,11 @@ import {
   type AutomationNodeData,
   type ValidationError
 } from '../utils/flowConverter'
-import type { NodeType, ABTestNodeConfig, FilterNodeConfig } from '../../../services/api/automation'
+import { layoutNodes } from '../utils/layoutNodes'
+import type { NodeType, ABTestNodeConfig, FilterNodeConfig, ListStatusBranchNodeConfig } from '../../../services/api/automation'
+
+// Editor uses larger nodes
+const EDITOR_NODE_WIDTH = 300
 
 // Represents an unconnected output handle that needs a placeholder edge
 export interface UnconnectedOutput {
@@ -200,6 +204,26 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
       )
     }
 
+    // For list_status_branch nodes, update the appropriate branch node ID based on sourceHandle
+    if (sourceNode.data.nodeType === 'list_status_branch' && params.sourceHandle) {
+      const config = sourceNode.data.config as ListStatusBranchNodeConfig
+      const fieldMap: Record<string, string> = {
+        not_in_list: 'not_in_list_node_id',
+        active: 'active_node_id',
+        non_active: 'non_active_node_id'
+      }
+      const field = fieldMap[params.sourceHandle]
+      if (field) {
+        setNodes(nds =>
+          nds.map(n =>
+            n.id === params.source
+              ? { ...n, data: { ...n.data, config: { ...config, [field]: params.target } } }
+              : n
+          )
+        )
+      }
+    }
+
     // For single-child nodes, remove existing outgoing edge before adding new one
     if (!canHaveMultipleChildren(sourceNode.data.nodeType)) {
       setEdges(eds => {
@@ -235,6 +259,13 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
           conditions: { kind: 'branch', branch: { operator: 'and', leaves: [] } },
           continue_node_id: '',
           exit_node_id: ''
+        }
+      case 'list_status_branch':
+        return {
+          list_id: '',
+          not_in_list_node_id: '',
+          active_node_id: '',
+          non_active_node_id: ''
         }
       default:
         return {}
@@ -300,6 +331,27 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
         ),
         newNode
       ])
+    } else if (sourceHandle && sourceNode.data.nodeType === 'list_status_branch') {
+      // Update list_status_branch config when adding via handle
+      const config = sourceNode.data.config as ListStatusBranchNodeConfig
+      const fieldMap: Record<string, string> = {
+        not_in_list: 'not_in_list_node_id',
+        active: 'active_node_id',
+        non_active: 'non_active_node_id'
+      }
+      const field = fieldMap[sourceHandle]
+      if (field) {
+        setNodes(nds => [
+          ...nds.map(n =>
+            n.id === sourceNodeId
+              ? { ...n, data: { ...n.data, config: { ...config, [field]: newNodeId } } }
+              : n
+          ),
+          newNode
+        ])
+      } else {
+        setNodes(nds => [...nds, newNode])
+      }
     } else if (sourceHandle && sourceNode.data.nodeType === 'ab_test') {
       // Update A/B test variant config when adding via handle
       const config = sourceNode.data.config as ABTestNodeConfig
@@ -439,6 +491,21 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
         ...newNode,
         data: { ...newNode.data, config: { ...config, continue_node_id: edge.target } }
       }
+    } else if (type === 'list_status_branch') {
+      // Connect via the 'active' handle by default (most common case)
+      edgeFromNew = {
+        id: `${newNodeId}-active-${edge.target}`,
+        source: newNodeId,
+        sourceHandle: 'active',
+        target: edge.target,
+        type: 'smoothstep'
+      }
+      // Update active_node_id in config
+      const config = newNode.data.config as ListStatusBranchNodeConfig
+      updatedNewNode = {
+        ...newNode,
+        data: { ...newNode.data, config: { ...config, active_node_id: edge.target } }
+      }
     } else {
       // Single-output nodes - no sourceHandle needed
       edgeFromNew = {
@@ -506,6 +573,26 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
               : n
           )
         )
+      }
+
+      // For list_status_branch nodes, clear the appropriate branch node ID when edge is deleted
+      if (sourceNode?.data.nodeType === 'list_status_branch') {
+        const config = sourceNode.data.config as ListStatusBranchNodeConfig
+        const fieldMap: Record<string, string> = {
+          not_in_list: 'not_in_list_node_id',
+          active: 'active_node_id',
+          non_active: 'non_active_node_id'
+        }
+        const field = fieldMap[edge.sourceHandle || '']
+        if (field) {
+          setNodes(nds =>
+            nds.map(n =>
+              n.id === edge.source
+                ? { ...n, data: { ...n.data, config: { ...config, [field]: '' } } }
+                : n
+            )
+          )
+        }
       }
     }
 
@@ -611,6 +698,37 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
             })
           }
         })
+      } else if (node.data.nodeType === 'list_status_branch') {
+        // List status branch has 3 outputs: not_in_list, active, non_active
+        const hasNotInListEdge = edges.some(e => e.source === node.id && e.sourceHandle === 'not_in_list')
+        const hasActiveEdge = edges.some(e => e.source === node.id && e.sourceHandle === 'active')
+        const hasNonActiveEdge = edges.some(e => e.source === node.id && e.sourceHandle === 'non_active')
+
+        const nodeWidth = node.measured?.width || 300
+        if (!hasNotInListEdge) {
+          outputs.push({
+            nodeId: node.id,
+            handleId: 'not_in_list',
+            position: { x: node.position.x + (nodeWidth * 0.2), y: node.position.y + 120 },
+            color: '#9ca3af'  // gray
+          })
+        }
+        if (!hasActiveEdge) {
+          outputs.push({
+            nodeId: node.id,
+            handleId: 'active',
+            position: { x: node.position.x + (nodeWidth * 0.5), y: node.position.y + 120 },
+            color: '#22c55e'  // green
+          })
+        }
+        if (!hasNonActiveEdge) {
+          outputs.push({
+            nodeId: node.id,
+            handleId: 'non_active',
+            position: { x: node.position.x + (nodeWidth * 0.8), y: node.position.y + 120 },
+            color: '#f97316'  // orange
+          })
+        }
       } else {
         // Single-output nodes
         const hasOutgoingEdge = edges.some(e => e.source === node.id)
@@ -662,143 +780,12 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
   // Reorganize nodes in a clean hierarchical layout
   const reorganizeNodes = useCallback(() => {
-    const triggerNode = nodes.find(n => n.data.nodeType === 'trigger')
-    if (!triggerNode) return
+    if (!nodes.find(n => n.data.nodeType === 'trigger')) return
 
     pushHistory()
 
-    const HORIZONTAL_SPACING = 50
-    const VERTICAL_SPACING = 150
-    const DEFAULT_NODE_WIDTH = 300
-
-    // Build adjacency list (parent → children) with edge info for ordering
-    const childrenWithHandles = new Map<string, { target: string; sourceHandle?: string }[]>()
-    edges.forEach(e => {
-      if (!childrenWithHandles.has(e.source)) childrenWithHandles.set(e.source, [])
-      childrenWithHandles.get(e.source)!.push({ target: e.target, sourceHandle: e.sourceHandle })
-    })
-
-    // Get ordered children for a node (A/B Test children sorted by variant order)
-    const getOrderedChildren = (nodeId: string): string[] => {
-      const node = nodes.find(n => n.id === nodeId)
-      const childEdges = childrenWithHandles.get(nodeId) || []
-
-      if (node?.data.nodeType === 'ab_test') {
-        // Sort by variant order (A, B, C, D...)
-        const config = node.data.config as ABTestNodeConfig
-        const variantOrder = config?.variants?.map(v => v.id) || []
-        return childEdges
-          .sort((a, b) => {
-            const aIndex = variantOrder.indexOf(a.sourceHandle || '')
-            const bIndex = variantOrder.indexOf(b.sourceHandle || '')
-            return aIndex - bIndex
-          })
-          .map(e => e.target)
-      }
-
-      if (node?.data.nodeType === 'filter') {
-        // Sort: 'continue' (Yes) first, then 'exit' (No)
-        return childEdges
-          .sort((a, b) => {
-            const order = { continue: 0, exit: 1 }
-            const aOrder = order[a.sourceHandle as keyof typeof order] ?? 2
-            const bOrder = order[b.sourceHandle as keyof typeof order] ?? 2
-            return aOrder - bOrder
-          })
-          .map(e => e.target)
-      }
-
-      return childEdges.map(e => e.target)
-    }
-
-    // Legacy children map for compatibility
-    const children = new Map<string, string[]>()
-    nodes.forEach(n => {
-      children.set(n.id, getOrderedChildren(n.id))
-    })
-
-    // Get measured width for a node
-    const getNodeWidth = (nodeId: string): number => {
-      const node = nodes.find(n => n.id === nodeId)
-      return node?.measured?.width || DEFAULT_NODE_WIDTH
-    }
-
-    // Calculate subtree widths (bottom-up) using measured widths
-    const subtreeWidthCache = new Map<string, number>()
-    const getSubtreeWidth = (nodeId: string, visited: Set<string> = new Set()): number => {
-      if (visited.has(nodeId)) return 0  // Prevent cycles
-      visited.add(nodeId)
-
-      if (subtreeWidthCache.has(nodeId)) return subtreeWidthCache.get(nodeId)!
-
-      const kids = children.get(nodeId) || []
-      let width: number
-      if (kids.length === 0) {
-        width = getNodeWidth(nodeId)
-      } else {
-        width = kids.reduce((sum, kid) => sum + getSubtreeWidth(kid, new Set(visited)), 0)
-               + (kids.length - 1) * HORIZONTAL_SPACING
-      }
-      subtreeWidthCache.set(nodeId, width)
-      return width
-    }
-
-    // Assign positions (top-down)
-    const newPositions = new Map<string, { x: number; y: number }>()
-
-    const layoutNode = (nodeId: string, x: number, y: number, visited: Set<string> = new Set()) => {
-      if (visited.has(nodeId)) return  // Prevent cycles
-      visited.add(nodeId)
-
-      newPositions.set(nodeId, { x, y })
-
-      const kids = children.get(nodeId) || []
-      if (kids.length === 0) return
-
-      // Calculate total width of children
-      const childWidths = kids.map(k => getSubtreeWidth(k))
-      const totalWidth = childWidths.reduce((a, b) => a + b, 0)
-                         + (kids.length - 1) * HORIZONTAL_SPACING
-
-      // Start position for first child (centered under parent)
-      let childX = x - totalWidth / 2 + childWidths[0] / 2
-      const childY = y + VERTICAL_SPACING
-
-      kids.forEach((kid, i) => {
-        layoutNode(kid, childX, childY, new Set(visited))
-        if (i < kids.length - 1) {
-          childX += childWidths[i] / 2 + HORIZONTAL_SPACING + childWidths[i + 1] / 2
-        }
-      })
-    }
-
-    // Start layout from trigger at top-center
-    layoutNode(triggerNode.id, 400, 50)
-
-    // Handle orphan nodes - position them to the right of the main tree
-    const orphanNodes = nodes.filter(n => !newPositions.has(n.id))
-    if (orphanNodes.length > 0) {
-      // Find the rightmost position in the main tree
-      let maxX = 400
-      newPositions.forEach(pos => {
-        if (pos.x > maxX) maxX = pos.x
-      })
-
-      // Position orphans to the right
-      let orphanX = maxX + 400
-      let orphanY = 50
-      orphanNodes.forEach(node => {
-        newPositions.set(node.id, { x: orphanX, y: orphanY })
-        orphanY += VERTICAL_SPACING
-      })
-    }
-
-    // Apply new positions
-    setNodes(nds => nds.map(n => ({
-      ...n,
-      position: newPositions.get(n.id) || n.position
-    })))
-
+    const layoutedNodes = layoutNodes(nodes, edges, { nodeWidth: EDITOR_NODE_WIDTH })
+    setNodes(layoutedNodes)
     markAsChanged()
   }, [nodes, edges, setNodes, markAsChanged, pushHistory])
 

@@ -347,6 +347,18 @@ func SetupTestEnvironment() {
 	os.Setenv("TEST_DB_USER", "notifuse_test")
 	os.Setenv("TEST_DB_PASSWORD", "test_password")
 	os.Setenv("ENVIRONMENT", "test")
+
+	// Use faster SMTP dial timeout for tests (2s instead of 30s)
+	// This dramatically speeds up ESP failure tests that connect to non-existent ports
+	os.Setenv("SMTP_DIAL_TIMEOUT", "2s")
+
+	// Use faster circuit breaker cooldown for tests (2s instead of 1min)
+	// This dramatically speeds up ESP failure tests that wait for circuit breaker to reset
+	os.Setenv("CIRCUIT_BREAKER_COOLDOWN", "2s")
+
+	// Use faster retry backoff base for tests (2s instead of 1min)
+	// This speeds up tests that verify retry behavior
+	os.Setenv("EMAIL_QUEUE_RETRY_BASE", "2s")
 }
 
 // CleanupTestEnvironment cleans up test environment variables and connections
@@ -359,6 +371,9 @@ func CleanupTestEnvironment() {
 	os.Unsetenv("TEST_DB_USER")
 	os.Unsetenv("TEST_DB_PASSWORD")
 	os.Unsetenv("ENVIRONMENT")
+	os.Unsetenv("SMTP_DIAL_TIMEOUT")
+	os.Unsetenv("CIRCUIT_BREAKER_COOLDOWN")
+	os.Unsetenv("EMAIL_QUEUE_RETRY_BASE")
 }
 
 // CleanupAllTestConnections cleans up the global connection pool

@@ -37,12 +37,12 @@ func DefaultTimingConfig() TestConnectionPoolTimingConfig {
 // FastTimingConfig returns aggressive timings for performance tests
 func FastTimingConfig() TestConnectionPoolTimingConfig {
 	return TestConnectionPoolTimingConfig{
-		CleanupWorkspaceSleep:    50 * time.Millisecond,
-		CleanupBatchSleep:        100 * time.Millisecond,
-		CleanupPerWorkspaceSleep: 5 * time.Millisecond,
-		DropDatabaseSleep:        25 * time.Millisecond,
-		SystemPoolPreCloseSleep:  20 * time.Millisecond,
-		SystemPoolPostCloseSleep: 50 * time.Millisecond,
+		CleanupWorkspaceSleep:    25 * time.Millisecond,
+		CleanupBatchSleep:        50 * time.Millisecond,
+		CleanupPerWorkspaceSleep: 2 * time.Millisecond,
+		DropDatabaseSleep:        10 * time.Millisecond,
+		SystemPoolPreCloseSleep:  10 * time.Millisecond,
+		SystemPoolPostCloseSleep: 25 * time.Millisecond,
 	}
 }
 
@@ -58,9 +58,9 @@ type TestConnectionPool struct {
 	connectionCount int
 }
 
-// NewTestConnectionPool creates a new connection pool for tests with default timing
+// NewTestConnectionPool creates a new connection pool for tests with fast timing
 func NewTestConnectionPool(cfg *config.DatabaseConfig) *TestConnectionPool {
-	return NewTestConnectionPoolWithTiming(cfg, DefaultTimingConfig())
+	return NewTestConnectionPoolWithTiming(cfg, FastTimingConfig())
 }
 
 // NewTestConnectionPoolWithTiming creates a new connection pool with custom timing configuration
@@ -362,7 +362,7 @@ func GetGlobalTestPool() *TestConnectionPool {
 			Prefix:   "notifuse_test",
 			SSLMode:  "disable",
 		}
-		globalTestPool = NewTestConnectionPool(config)
+		globalTestPool = NewTestConnectionPoolWithTiming(config, FastTimingConfig())
 	})
 	return globalTestPool
 }

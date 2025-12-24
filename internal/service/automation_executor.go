@@ -41,14 +41,15 @@ func NewAutomationExecutor(
 	qb := NewQueryBuilder()
 
 	executors := map[domain.NodeType]NodeExecutor{
-		domain.NodeTypeDelay:          NewDelayNodeExecutor(),
-		domain.NodeTypeEmail:          NewEmailNodeExecutor(emailQueueRepo, templateRepo, workspaceRepo, apiEndpoint, log),
-		domain.NodeTypeBranch:         NewBranchNodeExecutor(qb, workspaceRepo),
-		domain.NodeTypeFilter:         NewFilterNodeExecutor(qb, workspaceRepo),
-		domain.NodeTypeAddToList:      NewAddToListNodeExecutor(contactListRepo),
-		domain.NodeTypeRemoveFromList: NewRemoveFromListNodeExecutor(contactListRepo),
-		domain.NodeTypeABTest:         NewABTestNodeExecutor(),
-		domain.NodeTypeWebhook:        NewWebhookNodeExecutor(log),
+		domain.NodeTypeDelay:            NewDelayNodeExecutor(),
+		domain.NodeTypeEmail:            NewEmailNodeExecutor(emailQueueRepo, templateRepo, workspaceRepo, apiEndpoint, log),
+		domain.NodeTypeBranch:           NewBranchNodeExecutor(qb, workspaceRepo),
+		domain.NodeTypeFilter:           NewFilterNodeExecutor(qb, workspaceRepo),
+		domain.NodeTypeAddToList:        NewAddToListNodeExecutor(contactListRepo),
+		domain.NodeTypeRemoveFromList:   NewRemoveFromListNodeExecutor(contactListRepo),
+		domain.NodeTypeABTest:           NewABTestNodeExecutor(),
+		domain.NodeTypeWebhook:          NewWebhookNodeExecutor(log),
+		domain.NodeTypeListStatusBranch: NewListStatusBranchNodeExecutor(contactListRepo),
 	}
 
 	return &AutomationExecutor{
@@ -270,6 +271,7 @@ func (e *AutomationExecutor) handleError(ctx context.Context, workspaceID string
 		entry := &domain.NodeExecution{
 			ID:                  uuid.NewString(),
 			ContactAutomationID: ca.ID,
+			AutomationID:        ca.AutomationID,
 			NodeID:              *ca.CurrentNodeID,
 			NodeType:            domain.NodeTypeTrigger, // Placeholder - actual type not available in error context
 			Action:              domain.NodeActionFailed,
@@ -327,6 +329,7 @@ func (e *AutomationExecutor) createNodeExecution(ca *domain.ContactAutomation, n
 	return &domain.NodeExecution{
 		ID:                  uuid.NewString(),
 		ContactAutomationID: ca.ID,
+		AutomationID:        ca.AutomationID,
 		NodeID:              node.ID,
 		NodeType:            node.Type,
 		Action:              action,

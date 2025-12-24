@@ -902,11 +902,11 @@ func (r *AutomationRepository) CreateNodeExecutionTx(ctx context.Context, tx *sq
 	query, args, err := automationPsql.
 		Insert("automation_node_executions").
 		Columns(
-			"id", "contact_automation_id", "node_id", "node_type", "action",
+			"id", "contact_automation_id", "automation_id", "node_id", "node_type", "action",
 			"entered_at", "completed_at", "duration_ms", "output", "error",
 		).
 		Values(
-			entry.ID, entry.ContactAutomationID, entry.NodeID, entry.NodeType, entry.Action,
+			entry.ID, entry.ContactAutomationID, entry.AutomationID, entry.NodeID, entry.NodeType, entry.Action,
 			entry.EnteredAt, entry.CompletedAt, entry.DurationMs, outputJSON, entry.Error,
 		).
 		ToSql()

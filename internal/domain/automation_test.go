@@ -1049,6 +1049,78 @@ func TestRemoveFromListNodeConfig_Validate(t *testing.T) {
 	}
 }
 
+func TestListStatusBranchNodeConfig_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		config  ListStatusBranchNodeConfig
+		wantErr bool
+		errMsg  string
+	}{
+		{
+			name: "valid config with all branches",
+			config: ListStatusBranchNodeConfig{
+				ListID:          "list123",
+				NotInListNodeID: "node1",
+				ActiveNodeID:    "node2",
+				NonActiveNodeID: "node3",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid config with only not_in_list branch",
+			config: ListStatusBranchNodeConfig{
+				ListID:          "list123",
+				NotInListNodeID: "node1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid config with only active branch",
+			config: ListStatusBranchNodeConfig{
+				ListID:       "list123",
+				ActiveNodeID: "node1",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid config with only non_active branch",
+			config: ListStatusBranchNodeConfig{
+				ListID:          "list123",
+				NonActiveNodeID: "node1",
+			},
+			wantErr: false,
+		},
+		{
+			name:    "empty list ID",
+			config:  ListStatusBranchNodeConfig{ListID: "", NotInListNodeID: "node1"},
+			wantErr: true,
+			errMsg:  "list_id is required",
+		},
+		{
+			name:    "no branch targets",
+			config:  ListStatusBranchNodeConfig{ListID: "list123"},
+			wantErr: true,
+			errMsg:  "at least one branch must have a target node",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.config.Validate()
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestNodeType_IsValid_ListStatusBranch(t *testing.T) {
+	assert.True(t, NodeTypeListStatusBranch.IsValid())
+}
+
 // Helper function - using automationStringPtr to avoid conflict with other test files
 func automationStringPtr(s string) *string {
 	return &s

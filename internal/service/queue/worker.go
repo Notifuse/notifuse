@@ -31,7 +31,7 @@ func DefaultWorkerConfig() *EmailQueueWorkerConfig {
 		BatchSize:               50,
 		MaxRetries:              3,
 		CircuitBreakerThreshold: 5,
-		CircuitBreakerCooldown:  1 * time.Minute,
+		CircuitBreakerCooldown:  getCircuitBreakerCooldown(),
 	}
 }
 
@@ -87,7 +87,7 @@ func NewEmailQueueWorker(
 		cbConfig.Threshold = 5
 	}
 	if cbConfig.CooldownPeriod == 0 {
-		cbConfig.CooldownPeriod = 1 * time.Minute
+		cbConfig.CooldownPeriod = getCircuitBreakerCooldown()
 	}
 
 	return &EmailQueueWorker{

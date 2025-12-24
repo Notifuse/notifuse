@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -273,6 +274,9 @@ func TestIntegrationCircuitBreaker_Remove(t *testing.T) {
 }
 
 func TestIntegrationCircuitBreaker_DefaultConfig(t *testing.T) {
+	// Ensure env var is not set for this test
+	os.Unsetenv("CIRCUIT_BREAKER_COOLDOWN")
+
 	// Test with zero config values - should use defaults
 	icb := NewIntegrationCircuitBreaker(CircuitBreakerConfig{})
 
@@ -282,8 +286,42 @@ func TestIntegrationCircuitBreaker_DefaultConfig(t *testing.T) {
 }
 
 func TestDefaultCircuitBreakerConfig(t *testing.T) {
+	// Ensure env var is not set for this test
+	os.Unsetenv("CIRCUIT_BREAKER_COOLDOWN")
+
 	config := DefaultCircuitBreakerConfig()
 
 	assert.Equal(t, 5, config.Threshold)
 	assert.Equal(t, 1*time.Minute, config.CooldownPeriod)
+}
+
+func TestGetCircuitBreakerCooldown(t *testing.T) {
+	t.Run("default value when not set", func(t *testing.T) {
+		os.Unsetenv("CIRCUIT_BREAKER_COOLDOWN")
+		assert.Equal(t, 1*time.Minute, getCircuitBreakerCooldown())
+	})
+
+	t.Run("custom value from environment", func(t *testing.T) {
+		os.Setenv("CIRCUIT_BREAKER_COOLDOWN", "2s")
+		defer os.Unsetenv("CIRCUIT_BREAKER_COOLDOWN")
+		assert.Equal(t, 2*time.Second, getCircuitBreakerCooldown())
+	})
+
+	t.Run("custom value with different duration", func(t *testing.T) {
+		os.Setenv("CIRCUIT_BREAKER_COOLDOWN", "30s")
+		defer os.Unsetenv("CIRCUIT_BREAKER_COOLDOWN")
+		assert.Equal(t, 30*time.Second, getCircuitBreakerCooldown())
+	})
+
+	t.Run("invalid value uses default", func(t *testing.T) {
+		os.Setenv("CIRCUIT_BREAKER_COOLDOWN", "invalid")
+		defer os.Unsetenv("CIRCUIT_BREAKER_COOLDOWN")
+		assert.Equal(t, 1*time.Minute, getCircuitBreakerCooldown())
+	})
+
+	t.Run("empty value uses default", func(t *testing.T) {
+		os.Setenv("CIRCUIT_BREAKER_COOLDOWN", "")
+		defer os.Unsetenv("CIRCUIT_BREAKER_COOLDOWN")
+		assert.Equal(t, 1*time.Minute, getCircuitBreakerCooldown())
+	})
 }

@@ -22,6 +22,7 @@ import {
   type ValidationError
 } from '../utils/flowConverter'
 import { useUndoRedo, type HistoryEntry } from '../hooks/useUndoRedo'
+import { layoutNodes } from '../utils/layoutNodes'
 
 // Canvas state interface - managed by useAutomationCanvas hook
 export interface CanvasState {
@@ -167,9 +168,77 @@ export function AutomationProvider({
         return
       }
     }
+
+    // Auto-generate nodes for new automation (only trigger exists)
+    if (newListId && nodes.length === 1 && nodes[0].data.nodeType === 'trigger') {
+      const triggerNode = nodes[0]
+
+      // Generate unique IDs
+      const listStatusBranchId = uuidv4()
+      const addToListId = uuidv4()
+
+      // Create ListStatusBranch node
+      const listStatusBranchNode: Node<AutomationNodeData> = {
+        id: listStatusBranchId,
+        type: 'list_status_branch',
+        position: { x: triggerNode.position.x, y: triggerNode.position.y + 150 },
+        data: {
+          nodeType: 'list_status_branch',
+          config: {
+            list_id: newListId,
+            not_in_list_node_id: addToListId,
+            active_node_id: '',
+            non_active_node_id: ''
+          },
+          label: 'List Status'
+        }
+      }
+
+      // Create AddToList node
+      const addToListNode: Node<AutomationNodeData> = {
+        id: addToListId,
+        type: 'add_to_list',
+        position: { x: triggerNode.position.x - 150, y: triggerNode.position.y + 300 },
+        data: {
+          nodeType: 'add_to_list',
+          config: {
+            list_id: newListId,
+            status: 'subscribed'
+          },
+          label: 'Add to List'
+        }
+      }
+
+      // Create edges
+      const triggerToStatusEdge: Edge = {
+        id: `${triggerNode.id}-${listStatusBranchId}`,
+        source: triggerNode.id,
+        target: listStatusBranchId,
+        type: 'smoothstep'
+      }
+
+      const statusToAddEdge: Edge = {
+        id: `${listStatusBranchId}-not_in_list-${addToListId}`,
+        source: listStatusBranchId,
+        sourceHandle: 'not_in_list',
+        target: addToListId,
+        type: 'smoothstep'
+      }
+
+      // Update state with new nodes and edges
+      const newNodes = [...nodes, listStatusBranchNode, addToListNode]
+      const newEdges = [...edges, triggerToStatusEdge, statusToAddEdge]
+
+      // Apply layout to organize nodes hierarchically
+      const layoutedNodes = layoutNodes(newNodes, newEdges, { nodeWidth: 300 })
+
+      setNodes(layoutedNodes)
+      setEdges(newEdges)
+    }
+
     setListId(newListId)
     setHasUnsavedChanges(true)
-  }, [nodes, message])
+  }, [nodes, edges, message])
 
   // Push current canvas state to history (call BEFORE making changes)
   const pushHistory = useCallback(() => {

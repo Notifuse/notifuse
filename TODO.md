@@ -1,6 +1,8 @@
 # TODO
 
-- use analytics endpoint for email queue stats
+- auto add contact to list if not in?
+- drag nodes on canvas
+- auto add condition node after trigger "is unsubscribed from list"
 
 - docs: blog setup / theme / post
 - docs: custom events + segments for goals

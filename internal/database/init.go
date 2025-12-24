@@ -421,6 +421,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		`CREATE TABLE IF NOT EXISTS automation_node_executions (
 			id VARCHAR(36) PRIMARY KEY,
 			contact_automation_id VARCHAR(36) NOT NULL REFERENCES contact_automations(id) ON DELETE CASCADE,
+			automation_id VARCHAR(36),
 			node_id VARCHAR(36) NOT NULL,
 			node_type VARCHAR(50) NOT NULL,
 			action VARCHAR(20) NOT NULL,
@@ -431,6 +432,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			error TEXT
 		)`,
 		`CREATE INDEX IF NOT EXISTS idx_node_executions_contact_automation ON automation_node_executions(contact_automation_id, entered_at DESC)`,
+		`CREATE INDEX IF NOT EXISTS idx_node_executions_automation ON automation_node_executions(automation_id, node_id, action)`,
 		`CREATE TABLE IF NOT EXISTS automation_trigger_log (
 			id VARCHAR(36) PRIMARY KEY,
 			automation_id VARCHAR(36) NOT NULL REFERENCES automations(id),
@@ -1206,10 +1208,11 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 
 			-- 6. Log node execution entry
 			INSERT INTO automation_node_executions (
-				id, contact_automation_id, node_id, node_type, action, entered_at, output
+				id, contact_automation_id, automation_id, node_id, node_type, action, entered_at, output
 			) VALUES (
 				gen_random_uuid()::text,
 				v_new_id,
+				p_automation_id,
 				p_root_node_id,
 				'trigger',
 				'entered',

@@ -728,6 +728,106 @@ func parseRemoveFromListNodeConfig(config map[string]interface{}) (*domain.Remov
 	return &c, nil
 }
 
+// ListStatusBranchNodeExecutor executes list status branch nodes
+type ListStatusBranchNodeExecutor struct {
+	contactListRepo domain.ContactListRepository
+}
+
+// NewListStatusBranchNodeExecutor creates a new list status branch node executor
+func NewListStatusBranchNodeExecutor(contactListRepo domain.ContactListRepository) *ListStatusBranchNodeExecutor {
+	return &ListStatusBranchNodeExecutor{
+		contactListRepo: contactListRepo,
+	}
+}
+
+// NodeType returns the node type this executor handles
+func (e *ListStatusBranchNodeExecutor) NodeType() domain.NodeType {
+	return domain.NodeTypeListStatusBranch
+}
+
+// Execute processes a list status branch node
+func (e *ListStatusBranchNodeExecutor) Execute(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
+	config, err := parseListStatusBranchNodeConfig(params.Node.Config)
+	if err != nil {
+		return nil, fmt.Errorf("invalid list_status_branch node config: %w", err)
+	}
+
+	// Query contact's status in the specified list
+	contactList, err := e.contactListRepo.GetContactListByIDs(
+		ctx,
+		params.WorkspaceID,
+		params.Contact.ContactEmail,
+		config.ListID,
+	)
+
+	var nextNodeID string
+	var branchTaken string
+	var contactStatus string
+
+	if err != nil {
+		// Check if error is "not found" - means contact is not in list
+		if _, ok := err.(*domain.ErrContactListNotFound); ok {
+			nextNodeID = config.NotInListNodeID
+			branchTaken = "not_in_list"
+			contactStatus = "not_found"
+		} else {
+			// Actual error - propagate it
+			return nil, fmt.Errorf("failed to check contact list status: %w", err)
+		}
+	} else {
+		// Contact found in list - check status
+		contactStatus = string(contactList.Status)
+		if contactList.Status == domain.ContactListStatusActive {
+			nextNodeID = config.ActiveNodeID
+			branchTaken = "active"
+		} else {
+			// Any non-active status: pending, unsubscribed, bounced, complained
+			nextNodeID = config.NonActiveNodeID
+			branchTaken = "non_active"
+		}
+	}
+
+	// Handle case where branch has no target (terminal)
+	var nextNodePtr *string
+	if nextNodeID != "" {
+		nextNodePtr = &nextNodeID
+	}
+
+	status := domain.ContactAutomationStatusActive
+	if nextNodePtr == nil {
+		status = domain.ContactAutomationStatusCompleted
+	}
+
+	return &NodeExecutionResult{
+		NextNodeID: nextNodePtr,
+		Status:     status,
+		Output: buildNodeOutput(domain.NodeTypeListStatusBranch, map[string]interface{}{
+			"list_id":        config.ListID,
+			"branch_taken":   branchTaken,
+			"contact_status": contactStatus,
+		}),
+	}, nil
+}
+
+// parseListStatusBranchNodeConfig parses list status branch node configuration from map
+func parseListStatusBranchNodeConfig(config map[string]interface{}) (*domain.ListStatusBranchNodeConfig, error) {
+	data, err := json.Marshal(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	var c domain.ListStatusBranchNodeConfig
+	if err := json.Unmarshal(data, &c); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal config: %w", err)
+	}
+
+	if err := c.Validate(); err != nil {
+		return nil, err
+	}
+
+	return &c, nil
+}
+
 // ABTestNodeExecutor executes A/B test nodes
 type ABTestNodeExecutor struct{}
 

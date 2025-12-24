@@ -514,6 +514,231 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 			},
 		},
 	},
+	"email_queue": {
+		Name: "email_queue",
+		Measures: map[string]analytics.MeasureDefinition{
+			"count": {
+				Type:        "count",
+				Title:       "Total Entries",
+				SQL:         "*",
+				Description: "Total queue entries",
+			},
+			"count_pending": {
+				Type:        "count",
+				Title:       "Pending",
+				SQL:         "*",
+				Description: "Emails waiting to be sent",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "status = 'pending'"},
+				},
+			},
+			"count_processing": {
+				Type:        "count",
+				Title:       "Processing",
+				SQL:         "*",
+				Description: "Emails currently being processed",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "status = 'processing'"},
+				},
+			},
+			"count_failed": {
+				Type:        "count",
+				Title:       "Failed",
+				SQL:         "*",
+				Description: "Emails that failed and awaiting retry",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "status = 'failed'"},
+				},
+			},
+			"count_broadcast": {
+				Type:        "count",
+				Title:       "Broadcast Emails",
+				SQL:         "*",
+				Description: "Emails from broadcasts",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "source_type = 'broadcast'"},
+				},
+			},
+			"count_automation": {
+				Type:        "count",
+				Title:       "Automation Emails",
+				SQL:         "*",
+				Description: "Emails from automations",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "source_type = 'automation'"},
+				},
+			},
+			"avg_attempts": {
+				Type:        "avg",
+				Title:       "Average Attempts",
+				SQL:         "attempts",
+				Description: "Average number of send attempts",
+			},
+			"max_attempts": {
+				Type:        "max",
+				Title:       "Max Attempts",
+				SQL:         "attempts",
+				Description: "Maximum number of send attempts",
+			},
+			"count_retryable": {
+				Type:        "count",
+				Title:       "Retryable",
+				SQL:         "*",
+				Description: "Failed emails that can still be retried",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "status = 'failed'"},
+					{SQL: "attempts < max_attempts"},
+				},
+			},
+		},
+		Dimensions: map[string]analytics.DimensionDefinition{
+			"created_at": {
+				Type:        "time",
+				Title:       "Created At",
+				SQL:         "created_at",
+				Description: "When the email was queued",
+			},
+			"updated_at": {
+				Type:        "time",
+				Title:       "Updated At",
+				SQL:         "updated_at",
+				Description: "Last update timestamp",
+			},
+			"next_retry_at": {
+				Type:        "time",
+				Title:       "Next Retry At",
+				SQL:         "next_retry_at",
+				Description: "Scheduled retry time for failed emails",
+			},
+			"status": {
+				Type:        "string",
+				Title:       "Status",
+				SQL:         "status",
+				Description: "Queue entry status (pending, processing, failed)",
+			},
+			"source_type": {
+				Type:        "string",
+				Title:       "Source Type",
+				SQL:         "source_type",
+				Description: "Origin type (broadcast, automation)",
+			},
+			"source_id": {
+				Type:        "string",
+				Title:       "Source ID",
+				SQL:         "source_id",
+				Description: "Broadcast or automation ID",
+			},
+			"integration_id": {
+				Type:        "string",
+				Title:       "Integration ID",
+				SQL:         "integration_id",
+				Description: "Email provider integration ID",
+			},
+			"provider_kind": {
+				Type:        "string",
+				Title:       "Provider Kind",
+				SQL:         "provider_kind",
+				Description: "Email provider type (ses, smtp, etc.)",
+			},
+			"priority": {
+				Type:        "number",
+				Title:       "Priority",
+				SQL:         "priority",
+				Description: "Queue priority (lower = higher priority)",
+			},
+			"template_id": {
+				Type:        "string",
+				Title:       "Template ID",
+				SQL:         "template_id",
+				Description: "Email template identifier",
+			},
+			"contact_email": {
+				Type:        "string",
+				Title:       "Contact Email",
+				SQL:         "contact_email",
+				Description: "Recipient email address",
+			},
+		},
+	},
+	"automation_node_executions": {
+		Name: "automation_node_executions",
+		Measures: map[string]analytics.MeasureDefinition{
+			"count": {
+				Type:        "count",
+				Title:       "Total Executions",
+				SQL:         "*",
+				Description: "Total node executions",
+			},
+			"count_entered": {
+				Type:        "count",
+				Title:       "Entered",
+				SQL:         "*",
+				Description: "Contacts that entered nodes",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "action = 'entered'"},
+				},
+			},
+			"count_completed": {
+				Type:        "count",
+				Title:       "Completed",
+				SQL:         "*",
+				Description: "Successfully completed executions",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "action = 'completed'"},
+				},
+			},
+			"count_failed": {
+				Type:        "count",
+				Title:       "Failed",
+				SQL:         "*",
+				Description: "Failed executions",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "action = 'failed'"},
+				},
+			},
+			"count_skipped": {
+				Type:        "count",
+				Title:       "Skipped",
+				SQL:         "*",
+				Description: "Skipped executions",
+				Filters: []analytics.MeasureFilter{
+					{SQL: "action = 'skipped'"},
+				},
+			},
+		},
+		Dimensions: map[string]analytics.DimensionDefinition{
+			"automation_id": {
+				Type:        "string",
+				Title:       "Automation ID",
+				SQL:         "automation_id",
+				Description: "Automation identifier",
+			},
+			"node_id": {
+				Type:        "string",
+				Title:       "Node ID",
+				SQL:         "node_id",
+				Description: "Node identifier",
+			},
+			"node_type": {
+				Type:        "string",
+				Title:       "Node Type",
+				SQL:         "node_type",
+				Description: "Type of node",
+			},
+			"action": {
+				Type:        "string",
+				Title:       "Action",
+				SQL:         "action",
+				Description: "Execution action",
+			},
+			"entered_at": {
+				Type:        "time",
+				Title:       "Entered At",
+				SQL:         "entered_at",
+				Description: "When node was entered",
+			},
+		},
+	},
 }
 
 // AnalyticsService defines the analytics business logic interface

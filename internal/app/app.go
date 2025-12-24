@@ -1106,12 +1106,6 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
-	emailQueueHandler := httpHandler.NewEmailQueueHandler(
-		a.emailQueueRepo,
-		a.authService,
-		getJWTSecret,
-		a.logger,
-	)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -1144,7 +1138,6 @@ func (a *App) InitHandlers() error {
 	customEventHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
 	automationHandler.RegisterRoutes(a.mux)
-	emailQueueHandler.RegisterRoutes(a.mux)
 
 	return nil
 }

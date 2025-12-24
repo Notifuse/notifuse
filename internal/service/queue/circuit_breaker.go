@@ -1,11 +1,24 @@
 package queue
 
 import (
+	"os"
 	"sync"
 	"time"
 
 	"github.com/Notifuse/notifuse/pkg/emailerror"
 )
+
+// getCircuitBreakerCooldown returns the circuit breaker cooldown period.
+// Can be overridden via CIRCUIT_BREAKER_COOLDOWN environment variable for testing.
+// Default is 1 minute.
+func getCircuitBreakerCooldown() time.Duration {
+	if cooldown := os.Getenv("CIRCUIT_BREAKER_COOLDOWN"); cooldown != "" {
+		if d, err := time.ParseDuration(cooldown); err == nil {
+			return d
+		}
+	}
+	return 1 * time.Minute
+}
 
 // CircuitBreakerConfig holds configuration for circuit breakers
 type CircuitBreakerConfig struct {
@@ -20,7 +33,7 @@ type CircuitBreakerConfig struct {
 func DefaultCircuitBreakerConfig() CircuitBreakerConfig {
 	return CircuitBreakerConfig{
 		Threshold:      5,
-		CooldownPeriod: 1 * time.Minute,
+		CooldownPeriod: getCircuitBreakerCooldown(),
 	}
 }
 
@@ -121,7 +134,7 @@ func NewIntegrationCircuitBreaker(config CircuitBreakerConfig) *IntegrationCircu
 		config.Threshold = 5
 	}
 	if config.CooldownPeriod == 0 {
-		config.CooldownPeriod = 1 * time.Minute
+		config.CooldownPeriod = getCircuitBreakerCooldown()
 	}
 
 	return &IntegrationCircuitBreaker{

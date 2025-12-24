@@ -1,13 +1,25 @@
-import React from 'react'
-import { Card, Space, Badge, Button, Tooltip, Popconfirm, Descriptions, Tag, Statistic, Row, Col } from 'antd'
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import React, { useState } from 'react'
 import {
-  faCirclePause,
-  faTrashCan,
-  faPenToSquare
-} from '@fortawesome/free-regular-svg-icons'
+  Card,
+  Space,
+  Badge,
+  Button,
+  Tooltip,
+  Popconfirm,
+  Descriptions,
+  Tag,
+  Statistic,
+  Row,
+  Col,
+  Drawer
+} from 'antd'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faCirclePause, faTrashCan, faPenToSquare } from '@fortawesome/free-regular-svg-icons'
+import { PieChart } from 'lucide-react'
 import dayjs from '../../lib/dayjs'
-import type { Automation, AutomationStatus } from '../../services/api/automation'
+import { AutomationFlowViewer } from './AutomationFlowViewer'
+import { automationApi } from '../../services/api/automation'
+import type { Automation, AutomationStatus, AutomationNodeStats } from '../../services/api/automation'
 import type { UserPermissions } from '../../services/api/workspace'
 import type { List } from '../../services/api/list'
 import type { Segment } from '../../services/api/segment'
@@ -31,6 +43,7 @@ interface AutomationCardProps {
   lists: List[]
   segments?: Segment[]
   permissions: UserPermissions | null
+  workspaceId: string
   onActivate: (automation: Automation) => void
   onPause: (automation: Automation) => void
   onDelete: (automation: Automation) => void
@@ -42,11 +55,40 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
   lists,
   segments = [],
   permissions,
+  workspaceId,
   onActivate,
   onPause,
   onDelete,
   onEdit
 }) => {
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const [nodeStats, setNodeStats] = useState<Record<string, AutomationNodeStats> | null>(null)
+  const [statsLoading, setStatsLoading] = useState(false)
+  const [flowHeight, setFlowHeight] = useState(300)
+
+  const fetchNodeStats = async () => {
+    setStatsLoading(true)
+    try {
+      const response = await automationApi.getNodeStats({
+        workspace_id: workspaceId,
+        automation_id: automation.id
+      })
+      setNodeStats(response.node_stats)
+    } catch (error) {
+      console.error('Failed to fetch node stats:', error)
+      setNodeStats({}) // Set empty to prevent re-fetching
+    } finally {
+      setStatsLoading(false)
+    }
+  }
+
+  const handleOpenDrawer = () => {
+    setDrawerOpen(true)
+    // Always fetch fresh stats when opening drawer
+    setNodeStats(null)
+    fetchNodeStats()
+  }
+
   // Find the list name if list_id is set
   const listName = automation.list_id
     ? lists.find((l) => l.id === automation.list_id)?.name || automation.list_id
@@ -140,6 +182,16 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
             </Tooltip>
           )}
 
+          {/* Stats button - always visible */}
+          <Tooltip title="View Flow Stats">
+            <Button
+              type="text"
+              size="small"
+              icon={<PieChart size={14} style={{ opacity: 0.7 }} />}
+              onClick={handleOpenDrawer}
+            />
+          </Tooltip>
+
           {/* Activate button - for draft and paused */}
           {(automation.status === 'draft' || automation.status === 'paused') && (
             <Tooltip
@@ -157,11 +209,7 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
                 cancelText="Cancel"
                 disabled={!permissions?.automations?.write}
               >
-                <Button
-                  type="primary"
-                  size="small"
-                  disabled={!permissions?.automations?.write}
-                >
+                <Button type="primary" size="small" disabled={!permissions?.automations?.write}>
                   Activate
                 </Button>
               </Popconfirm>
@@ -204,7 +252,11 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
         <div className="px-6 py-4 border-b border-gray-100">
           <Row gutter={24}>
             <Col span={6}>
-              <Statistic title="Enrolled" value={automation.stats.enrolled} valueStyle={{ fontSize: '20px' }} />
+              <Statistic
+                title="Enrolled"
+                value={automation.stats.enrolled}
+                valueStyle={{ fontSize: '20px' }}
+              />
             </Col>
             <Col span={6}>
               <Statistic
@@ -232,7 +284,7 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
       )}
 
       {/* Details */}
-      <div className="px-6 py-4">
+      <div className="px-6 py-4 border-b border-gray-100">
         <Descriptions size="small" column={2}>
           <Descriptions.Item label="ID">{automation.id}</Descriptions.Item>
           <Descriptions.Item label="Trigger">
@@ -251,11 +303,29 @@ export const AutomationCard: React.FC<AutomationCardProps> = ({
           <Descriptions.Item label="Frequency">
             {automation.trigger?.frequency === 'once' ? 'Once per contact' : 'Every time'}
           </Descriptions.Item>
-          <Descriptions.Item label="Updated">
-            {dayjs(automation.updated_at).fromNow()}
-          </Descriptions.Item>
+          <Descriptions.Item label="Updated">{dayjs(automation.updated_at).fromNow()}</Descriptions.Item>
         </Descriptions>
       </div>
+
+      {/* Flow Stats Drawer */}
+      <Drawer
+        title={`Flow Stats: ${automation.name}`}
+        placement="right"
+        width="100%"
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+      >
+        <div style={{ height: 'calc(100vh - 120px)', overflowY: 'auto' }}>
+          <div style={{ height: flowHeight }}>
+            <AutomationFlowViewer
+              automation={automation}
+              nodeStats={nodeStats}
+              loading={statsLoading}
+              onHeightCalculated={setFlowHeight}
+            />
+          </div>
+        </div>
+      </Drawer>
     </Card>
   )
 }

@@ -218,10 +218,11 @@ func (m *V21Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 
 			-- 6. Log node execution entry
 			INSERT INTO automation_node_executions (
-				id, contact_automation_id, node_id, node_type, action, entered_at, output
+				id, contact_automation_id, automation_id, node_id, node_type, action, entered_at, output
 			) VALUES (
 				gen_random_uuid()::text,
 				v_new_id,
+				p_automation_id,
 				p_root_node_id,
 				'trigger',
 				'entered',
@@ -249,6 +250,36 @@ func (m *V21Migration) UpdateWorkspace(ctx context.Context, cfg *config.Config, 
 	`)
 	if err != nil {
 		return fmt.Errorf("failed to update automation_enroll_contact function: %w", err)
+	}
+
+	// PART 6: Add automation_id column to automation_node_executions for analytics
+	_, err = db.ExecContext(ctx, `
+		ALTER TABLE automation_node_executions
+		ADD COLUMN IF NOT EXISTS automation_id VARCHAR(36)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to add automation_id column: %w", err)
+	}
+
+	// Backfill existing data
+	_, err = db.ExecContext(ctx, `
+		UPDATE automation_node_executions ne
+		SET automation_id = ca.automation_id
+		FROM contact_automations ca
+		WHERE ne.contact_automation_id = ca.id
+		AND ne.automation_id IS NULL
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to backfill automation_id: %w", err)
+	}
+
+	// Add index for analytics queries
+	_, err = db.ExecContext(ctx, `
+		CREATE INDEX IF NOT EXISTS idx_node_executions_automation
+		ON automation_node_executions(automation_id, node_id, action)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create automation_id index: %w", err)
 	}
 
 	return nil

@@ -15,9 +15,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// TestBlogRoutingLogic tests the critical blog routing logic
-// The blog should ONLY be served when a workspace has a matching custom domain AND blog is enabled
-func TestBlogRoutingLogic(t *testing.T) {
+// TestBlogAPI runs all blog-related integration tests with a shared test suite.
+// This consolidates 7 separate test functions into one to reduce setup/teardown overhead
+// from ~30-55 seconds (7x setup) to ~4-8 seconds (1x setup).
+func TestBlogAPI(t *testing.T) {
 	testutil.SkipIfShort(t)
 	testutil.SetupTestEnvironment()
 	defer testutil.CleanupTestEnvironment()
@@ -27,6 +28,18 @@ func TestBlogRoutingLogic(t *testing.T) {
 	})
 	defer suite.Cleanup()
 
+	t.Run("RoutingLogic", func(t *testing.T) { runBlogRoutingLogicTests(t, suite) })
+	t.Run("CategoryAPI", func(t *testing.T) { runBlogCategoryAPITests(t, suite) })
+	t.Run("PostAPI", func(t *testing.T) { runBlogPostAPITests(t, suite) })
+	t.Run("ThemeAPI", func(t *testing.T) { runBlogThemeAPITests(t, suite) })
+	t.Run("PublicRendering", func(t *testing.T) { runBlogPublicRenderingTests(t, suite) })
+	t.Run("DataFactory", func(t *testing.T) { runBlogDataFactoryTests(t, suite) })
+	t.Run("E2EFlow", func(t *testing.T) { runBlogE2EFlowTests(t, suite) })
+}
+
+// runBlogRoutingLogicTests tests the critical blog routing logic
+// The blog should ONLY be served when a workspace has a matching custom domain AND blog is enabled
+func runBlogRoutingLogicTests(t *testing.T, suite *testutil.IntegrationTestSuite) {
 	// Create a client that does NOT follow redirects for these routing tests
 	noRedirectClient := testutil.NewAPIClientNoRedirect(suite.ServerManager.GetURL())
 	noRedirectClient.SetToken(suite.APIClient.GetToken())
@@ -146,17 +159,8 @@ func TestBlogRoutingLogic(t *testing.T) {
 	})
 }
 
-// TestBlogCategoryAPIEndpoints tests the blog category CRUD operations
-func TestBlogCategoryAPIEndpoints(t *testing.T) {
-	testutil.SkipIfShort(t)
-	testutil.SetupTestEnvironment()
-	defer testutil.CleanupTestEnvironment()
-
-	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
-		return app.NewApp(cfg)
-	})
-	defer suite.Cleanup()
-
+// runBlogCategoryAPITests tests the blog category CRUD operations
+func runBlogCategoryAPITests(t *testing.T, suite *testutil.IntegrationTestSuite) {
 	client := suite.APIClient
 
 	// Create a test user and workspace
@@ -302,17 +306,8 @@ func TestBlogCategoryAPIEndpoints(t *testing.T) {
 	})
 }
 
-// TestBlogPostAPIEndpoints tests the blog post CRUD operations including publish/unpublish
-func TestBlogPostAPIEndpoints(t *testing.T) {
-	testutil.SkipIfShort(t)
-	testutil.SetupTestEnvironment()
-	defer testutil.CleanupTestEnvironment()
-
-	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
-		return app.NewApp(cfg)
-	})
-	defer suite.Cleanup()
-
+// runBlogPostAPITests tests the blog post CRUD operations including publish/unpublish
+func runBlogPostAPITests(t *testing.T, suite *testutil.IntegrationTestSuite) {
 	client := suite.APIClient
 
 	// Setup
@@ -556,17 +551,8 @@ func TestBlogPostAPIEndpoints(t *testing.T) {
 	})
 }
 
-// TestBlogThemeAPIEndpoints tests the blog theme management
-func TestBlogThemeAPIEndpoints(t *testing.T) {
-	testutil.SkipIfShort(t)
-	testutil.SetupTestEnvironment()
-	defer testutil.CleanupTestEnvironment()
-
-	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
-		return app.NewApp(cfg)
-	})
-	defer suite.Cleanup()
-
+// runBlogThemeAPITests tests the blog theme management
+func runBlogThemeAPITests(t *testing.T, suite *testutil.IntegrationTestSuite) {
 	client := suite.APIClient
 
 	// Setup
@@ -688,17 +674,8 @@ func TestBlogThemeAPIEndpoints(t *testing.T) {
 	})
 }
 
-// TestBlogPublicRendering tests public blog pages (no authentication required)
-func TestBlogPublicRendering(t *testing.T) {
-	testutil.SkipIfShort(t)
-	testutil.SetupTestEnvironment()
-	defer testutil.CleanupTestEnvironment()
-
-	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
-		return app.NewApp(cfg)
-	})
-	defer suite.Cleanup()
-
+// runBlogPublicRenderingTests tests public blog pages (no authentication required)
+func runBlogPublicRenderingTests(t *testing.T, suite *testutil.IntegrationTestSuite) {
 	// Create workspace with blog enabled and custom domain
 	workspace, err := suite.DataFactory.CreateWorkspace(
 		testutil.WithCustomDomain("public.blog"),
@@ -789,17 +766,8 @@ func TestBlogPublicRendering(t *testing.T) {
 	})
 }
 
-// TestBlogDataFactory tests the blog factory methods
-func TestBlogDataFactory(t *testing.T) {
-	testutil.SkipIfShort(t)
-	testutil.SetupTestEnvironment()
-	defer testutil.CleanupTestEnvironment()
-
-	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
-		return app.NewApp(cfg)
-	})
-	defer suite.Cleanup()
-
+// runBlogDataFactoryTests tests the blog factory methods
+func runBlogDataFactoryTests(t *testing.T, suite *testutil.IntegrationTestSuite) {
 	factory := suite.DataFactory
 
 	workspace, err := factory.CreateWorkspace()
@@ -887,17 +855,8 @@ func TestBlogDataFactory(t *testing.T) {
 	})
 }
 
-// TestBlogE2EFlow tests a complete end-to-end workflow
-func TestBlogE2EFlow(t *testing.T) {
-	testutil.SkipIfShort(t)
-	testutil.SetupTestEnvironment()
-	defer testutil.CleanupTestEnvironment()
-
-	suite := testutil.NewIntegrationTestSuite(t, func(cfg *config.Config) testutil.AppInterface {
-		return app.NewApp(cfg)
-	})
-	defer suite.Cleanup()
-
+// runBlogE2EFlowTests tests a complete end-to-end workflow
+func runBlogE2EFlowTests(t *testing.T, suite *testutil.IntegrationTestSuite) {
 	factory := suite.DataFactory
 	client := suite.APIClient
 

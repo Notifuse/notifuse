@@ -78,15 +78,16 @@ func IsValidEventKind(kind string) bool {
 type NodeType string
 
 const (
-	NodeTypeTrigger        NodeType = "trigger"
-	NodeTypeDelay          NodeType = "delay"
-	NodeTypeEmail          NodeType = "email"
-	NodeTypeBranch         NodeType = "branch"
-	NodeTypeFilter         NodeType = "filter"
-	NodeTypeAddToList      NodeType = "add_to_list"
-	NodeTypeRemoveFromList NodeType = "remove_from_list"
-	NodeTypeABTest         NodeType = "ab_test"
-	NodeTypeWebhook        NodeType = "webhook"
+	NodeTypeTrigger          NodeType = "trigger"
+	NodeTypeDelay            NodeType = "delay"
+	NodeTypeEmail            NodeType = "email"
+	NodeTypeBranch           NodeType = "branch"
+	NodeTypeFilter           NodeType = "filter"
+	NodeTypeAddToList        NodeType = "add_to_list"
+	NodeTypeRemoveFromList   NodeType = "remove_from_list"
+	NodeTypeABTest           NodeType = "ab_test"
+	NodeTypeWebhook          NodeType = "webhook"
+	NodeTypeListStatusBranch NodeType = "list_status_branch"
 )
 
 // IsValid checks if the node type is valid
@@ -94,7 +95,7 @@ func (t NodeType) IsValid() bool {
 	switch t {
 	case NodeTypeTrigger, NodeTypeDelay, NodeTypeEmail, NodeTypeBranch,
 		NodeTypeFilter, NodeTypeAddToList, NodeTypeRemoveFromList,
-		NodeTypeABTest, NodeTypeWebhook:
+		NodeTypeABTest, NodeTypeWebhook, NodeTypeListStatusBranch:
 		return true
 	default:
 		return false
@@ -199,6 +200,16 @@ type AutomationStats struct {
 	Completed int64 `json:"completed"`
 	Exited    int64 `json:"exited"`
 	Failed    int64 `json:"failed"`
+}
+
+// AutomationNodeStats holds statistics for a single automation node
+type AutomationNodeStats struct {
+	NodeID    string `json:"node_id"`
+	NodeType  string `json:"node_type"`
+	Entered   int64  `json:"entered"`
+	Completed int64  `json:"completed"`
+	Failed    int64  `json:"failed"`
+	Skipped   int64  `json:"skipped"`
 }
 
 // Automation represents an email marketing automation workflow
@@ -418,6 +429,7 @@ type ContactAutomationWithWorkspace struct {
 type NodeExecution struct {
 	ID                  string                 `json:"id"`
 	ContactAutomationID string                 `json:"contact_automation_id"`
+	AutomationID        string                 `json:"automation_id"`
 	NodeID              string                 `json:"node_id"`
 	NodeType            NodeType               `json:"node_type"`
 	Action              NodeAction             `json:"action"`
@@ -539,6 +551,26 @@ type RemoveFromListNodeConfig struct {
 func (c RemoveFromListNodeConfig) Validate() error {
 	if c.ListID == "" {
 		return fmt.Errorf("list_id is required")
+	}
+	return nil
+}
+
+// ListStatusBranchNodeConfig configures a list status branch node
+// This node checks a contact's subscription status in a list and branches accordingly
+type ListStatusBranchNodeConfig struct {
+	ListID          string `json:"list_id"`              // List to check status in
+	NotInListNodeID string `json:"not_in_list_node_id"`  // Next node when contact is not in list
+	ActiveNodeID    string `json:"active_node_id"`       // Next node when status is "active"
+	NonActiveNodeID string `json:"non_active_node_id"`   // Next node when status is non-active (pending, unsubscribed, bounced, complained)
+}
+
+// Validate validates the list status branch node config
+func (c ListStatusBranchNodeConfig) Validate() error {
+	if c.ListID == "" {
+		return fmt.Errorf("list_id is required")
+	}
+	if c.NotInListNodeID == "" && c.ActiveNodeID == "" && c.NonActiveNodeID == "" {
+		return fmt.Errorf("at least one branch must have a target node")
 	}
 	return nil
 }

@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"os"
 	"testing"
 	"time"
 
@@ -69,6 +70,9 @@ func TestEmailQueuePriorityMarketing(t *testing.T) {
 }
 
 func TestCalculateNextRetryTime(t *testing.T) {
+	// Ensure env var is not set for this test (use default 1 minute base)
+	os.Unsetenv("EMAIL_QUEUE_RETRY_BASE")
+
 	tests := []struct {
 		name            string
 		attempts        int
@@ -128,6 +132,83 @@ func TestCalculateNextRetryTime(t *testing.T) {
 			// Allow a small margin for test execution time
 			minExpected := before.Add(expectedDuration)
 			maxExpected := after.Add(expectedDuration).Add(time.Second) // 1 second margin
+
+			assert.True(t, result.After(minExpected) || result.Equal(minExpected),
+				"result %v should be >= %v", result, minExpected)
+			assert.True(t, result.Before(maxExpected) || result.Equal(maxExpected),
+				"result %v should be <= %v", result, maxExpected)
+		})
+	}
+}
+
+func TestGetEmailQueueRetryBase(t *testing.T) {
+	t.Run("default value when not set", func(t *testing.T) {
+		os.Unsetenv("EMAIL_QUEUE_RETRY_BASE")
+		assert.Equal(t, 1*time.Minute, getEmailQueueRetryBase())
+	})
+
+	t.Run("custom value from environment", func(t *testing.T) {
+		os.Setenv("EMAIL_QUEUE_RETRY_BASE", "2s")
+		defer os.Unsetenv("EMAIL_QUEUE_RETRY_BASE")
+		assert.Equal(t, 2*time.Second, getEmailQueueRetryBase())
+	})
+
+	t.Run("custom value with different duration", func(t *testing.T) {
+		os.Setenv("EMAIL_QUEUE_RETRY_BASE", "30s")
+		defer os.Unsetenv("EMAIL_QUEUE_RETRY_BASE")
+		assert.Equal(t, 30*time.Second, getEmailQueueRetryBase())
+	})
+
+	t.Run("invalid value uses default", func(t *testing.T) {
+		os.Setenv("EMAIL_QUEUE_RETRY_BASE", "invalid")
+		defer os.Unsetenv("EMAIL_QUEUE_RETRY_BASE")
+		assert.Equal(t, 1*time.Minute, getEmailQueueRetryBase())
+	})
+
+	t.Run("empty value uses default", func(t *testing.T) {
+		os.Setenv("EMAIL_QUEUE_RETRY_BASE", "")
+		defer os.Unsetenv("EMAIL_QUEUE_RETRY_BASE")
+		assert.Equal(t, 1*time.Minute, getEmailQueueRetryBase())
+	})
+}
+
+func TestCalculateNextRetryTime_WithCustomBase(t *testing.T) {
+	// Test with custom base of 2 seconds
+	os.Setenv("EMAIL_QUEUE_RETRY_BASE", "2s")
+	defer os.Unsetenv("EMAIL_QUEUE_RETRY_BASE")
+
+	tests := []struct {
+		name             string
+		attempts         int
+		expectedDuration time.Duration
+	}{
+		{
+			name:             "first attempt - 2 seconds backoff",
+			attempts:         1,
+			expectedDuration: 2 * time.Second,
+		},
+		{
+			name:             "second attempt - 4 seconds backoff",
+			attempts:         2,
+			expectedDuration: 4 * time.Second,
+		},
+		{
+			name:             "third attempt - 8 seconds backoff",
+			attempts:         3,
+			expectedDuration: 8 * time.Second,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			before := time.Now().UTC()
+			result := CalculateNextRetryTime(tt.attempts)
+			after := time.Now().UTC()
+
+			// Result should be between before+expectedDuration and after+expectedDuration
+			// Allow a small margin for test execution time
+			minExpected := before.Add(tt.expectedDuration)
+			maxExpected := after.Add(tt.expectedDuration).Add(time.Second) // 1 second margin
 
 			assert.True(t, result.After(minExpected) || result.Equal(minExpected),
 				"result %v should be >= %v", result, minExpected)
