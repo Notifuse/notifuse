@@ -145,6 +145,7 @@ func (r *EmailQueueRepository) FetchPending(ctx context.Context, workspaceID str
 
 	// Fetch pending emails ordered by priority (lower = higher priority), then by creation time
 	// Include failed emails that are ready for retry
+	// Include stuck processing entries (>2 minutes old) for recovery after worker crash
 	query := `
 		SELECT id, status, priority, source_type, source_id, integration_id, provider_kind,
 		       contact_email, message_id, template_id, payload, attempts, max_attempts,
@@ -152,6 +153,7 @@ func (r *EmailQueueRepository) FetchPending(ctx context.Context, workspaceID str
 		FROM email_queue
 		WHERE (status = 'pending' AND (next_retry_at IS NULL OR next_retry_at <= NOW()))
 		   OR (status = 'failed' AND attempts < max_attempts AND next_retry_at <= NOW())
+		   OR (status = 'processing' AND updated_at < NOW() - INTERVAL '2 minutes')
 		ORDER BY priority ASC, created_at ASC
 		LIMIT $1
 		FOR UPDATE SKIP LOCKED
@@ -189,7 +191,10 @@ func (r *EmailQueueRepository) MarkAsProcessing(ctx context.Context, workspaceID
 	query := `
 		UPDATE email_queue
 		SET status = 'processing', updated_at = NOW(), attempts = attempts + 1
-		WHERE id = $1 AND status IN ('pending', 'failed')
+		WHERE id = $1 AND (
+			status IN ('pending', 'failed')
+			OR (status = 'processing' AND updated_at < NOW() - INTERVAL '2 minutes')
+		)
 	`
 
 	result, err := db.ExecContext(ctx, query, id)

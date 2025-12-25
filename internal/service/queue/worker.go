@@ -209,8 +209,19 @@ func (w *EmailQueueWorker) processAllWorkspaces() {
 
 // processWorkspace processes pending emails for a single workspace
 func (w *EmailQueueWorker) processWorkspace(workspace *domain.Workspace) {
+	// Calculate dynamic batch size based on rate limit
+	// Use 45 seconds as time budget (leave 15s buffer for shutdown)
+	minRate := w.getMinEmailRateLimit(workspace)
+	effectiveBatchSize := (minRate * 45) / 60 // 75% of what we can send in 1 minute
+	if effectiveBatchSize < 1 {
+		effectiveBatchSize = 1
+	}
+	if effectiveBatchSize > w.config.BatchSize {
+		effectiveBatchSize = w.config.BatchSize
+	}
+
 	// Fetch pending emails
-	entries, err := w.queueRepo.FetchPending(w.ctx, workspace.ID, w.config.BatchSize)
+	entries, err := w.queueRepo.FetchPending(w.ctx, workspace.ID, effectiveBatchSize)
 	if err != nil {
 		w.logger.WithFields(map[string]interface{}{
 			"workspace_id": workspace.ID,
@@ -498,4 +509,21 @@ func (w *EmailQueueWorker) GetConfig() *EmailQueueWorkerConfig {
 // GetCircuitBreakerStats returns statistics about all circuit breakers
 func (w *EmailQueueWorker) GetCircuitBreakerStats() map[string]CircuitBreakerStats {
 	return w.circuitBreaker.GetStats()
+}
+
+// getMinEmailRateLimit returns the minimum rate limit across all email integrations
+// Returns default of 60 if no email integrations found
+func (w *EmailQueueWorker) getMinEmailRateLimit(workspace *domain.Workspace) int {
+	emailIntegrations := workspace.GetIntegrationsByType(domain.IntegrationTypeEmail)
+	if len(emailIntegrations) == 0 {
+		return 60 // Default: 1 per second
+	}
+
+	minRate := emailIntegrations[0].EmailProvider.RateLimitPerMinute
+	for _, integration := range emailIntegrations[1:] {
+		if integration.EmailProvider.RateLimitPerMinute < minRate {
+			minRate = integration.EmailProvider.RateLimitPerMinute
+		}
+	}
+	return minRate
 }

@@ -587,3 +587,78 @@ func TestEmailQueueRepository_EnqueueTx(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestEmailQueueRepository_FetchPending_StuckProcessing(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("includes stuck processing entries older than 2 minutes", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		now := time.Now().UTC()
+		stuckTime := now.Add(-3 * time.Minute) // 3 minutes ago = stuck
+		payload := domain.EmailQueuePayload{FromAddress: "sender@example.com"}
+		payloadJSON, _ := json.Marshal(payload)
+
+		// Return a stuck processing entry
+		rows := sqlmock.NewRows([]string{
+			"id", "status", "priority", "source_type", "source_id", "integration_id", "provider_kind",
+			"contact_email", "message_id", "template_id", "payload", "attempts", "max_attempts",
+			"last_error", "next_retry_at", "created_at", "updated_at", "processed_at",
+		}).AddRow(
+			"stuck-entry", "processing", 1, "broadcast", "bcast-1", "integ-1", "smtp",
+			"user@example.com", "msg-1", "tpl-1", payloadJSON, 1, 3,
+			"previous error", nil, stuckTime, stuckTime, nil,
+		)
+
+		// The query should include the stuck processing condition
+		mock.ExpectQuery(`SELECT .+ FROM email_queue WHERE .+ OR \(status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\)`).
+			WithArgs(10).
+			WillReturnRows(rows)
+
+		entries, err := repo.FetchPending(ctx, "workspace-123", 10)
+		require.NoError(t, err)
+		assert.Len(t, entries, 1)
+		assert.Equal(t, "stuck-entry", entries[0].ID)
+		assert.Equal(t, domain.EmailQueueStatusProcessing, entries[0].Status)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+}
+
+func TestEmailQueueRepository_MarkAsProcessing_StuckRecovery(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("marks stuck processing entry as processing again", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		// The query should include the stuck processing condition in WHERE clause
+		mock.ExpectExec(`UPDATE email_queue SET status = 'processing'.+ WHERE id = \$1 AND \( status IN \('pending', 'failed'\) OR \(status = 'processing' AND updated_at < NOW\(\) - INTERVAL '2 minutes'\) \)`).
+			WithArgs("stuck-entry").
+			WillReturnResult(sqlmock.NewResult(0, 1))
+
+		err := repo.MarkAsProcessing(ctx, "workspace-123", "stuck-entry")
+		require.NoError(t, err)
+		assert.NoError(t, mock.ExpectationsWereMet())
+	})
+
+	t.Run("returns error when entry not found or recently processing", func(t *testing.T) {
+		db, mock, cleanup := testutil.SetupMockDB(t)
+		defer cleanup()
+
+		repo := NewEmailQueueRepositoryWithDB(db)
+
+		// No rows affected - entry is either not found or recently processing
+		mock.ExpectExec(`UPDATE email_queue`).
+			WithArgs("recent-processing-entry").
+			WillReturnResult(sqlmock.NewResult(0, 0))
+
+		err := repo.MarkAsProcessing(ctx, "workspace-123", "recent-processing-entry")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not found or already processing")
+	})
+}

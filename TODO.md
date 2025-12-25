@@ -1,9 +1,5 @@
 # TODO
 
-https://docs.dify.ai/en/develop-plugin/getting-started/getting-started-dify-plugin
-
-- drag nodes on canvas
-
 ## Content
 
 - docs: blog setup / theme / post
@@ -21,6 +17,11 @@ https://docs.dify.ai/en/develop-plugin/getting-started/getting-started-dify-plug
 - post supabase on twitter and facebook
 - page vs mailerlite
 - page vs mautic
+
+## Plugins
+
+- https://docs.dify.ai/en/develop-plugin/getting-started/getting-started-dify-plugin
+- n8N
 
 ## Eventual features
 

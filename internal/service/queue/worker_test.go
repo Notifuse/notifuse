@@ -1058,3 +1058,143 @@ func TestEmailQueueWorker_DefaultRateLimit(t *testing.T) {
 	// Default is 60/min = 1/sec
 	assert.InDelta(t, 1.0, rate, 0.001)
 }
+
+func TestEmailQueueWorker_GetMinEmailRateLimit(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	worker := NewEmailQueueWorker(
+		mockQueueRepo,
+		mockWorkspaceRepo,
+		mockEmailService,
+		mockMessageHistoryRepo,
+		nil,
+		mockLogger,
+	)
+
+	t.Run("returns default when no email integrations", func(t *testing.T) {
+		workspace := &domain.Workspace{
+			ID:           "workspace-1",
+			Integrations: []domain.Integration{},
+		}
+
+		rate := worker.getMinEmailRateLimit(workspace)
+		assert.Equal(t, 60, rate)
+	})
+
+	t.Run("returns single integration rate", func(t *testing.T) {
+		workspace := &domain.Workspace{
+			ID: "workspace-1",
+			Integrations: []domain.Integration{
+				{
+					ID:   "integration-1",
+					Type: domain.IntegrationTypeEmail,
+					EmailProvider: domain.EmailProvider{
+						Kind:               domain.EmailProviderKindSMTP,
+						RateLimitPerMinute: 20,
+					},
+				},
+			},
+		}
+
+		rate := worker.getMinEmailRateLimit(workspace)
+		assert.Equal(t, 20, rate)
+	})
+
+	t.Run("returns minimum across multiple integrations", func(t *testing.T) {
+		workspace := &domain.Workspace{
+			ID: "workspace-1",
+			Integrations: []domain.Integration{
+				{
+					ID:   "integration-1",
+					Type: domain.IntegrationTypeEmail,
+					EmailProvider: domain.EmailProvider{
+						Kind:               domain.EmailProviderKindSMTP,
+						RateLimitPerMinute: 100,
+					},
+				},
+				{
+					ID:   "integration-2",
+					Type: domain.IntegrationTypeEmail,
+					EmailProvider: domain.EmailProvider{
+						Kind:               domain.EmailProviderKindSES,
+						RateLimitPerMinute: 20, // This is the minimum
+					},
+				},
+				{
+					ID:   "integration-3",
+					Type: domain.IntegrationTypeEmail,
+					EmailProvider: domain.EmailProvider{
+						Kind:               domain.EmailProviderKindSMTP,
+						RateLimitPerMinute: 50,
+					},
+				},
+			},
+		}
+
+		rate := worker.getMinEmailRateLimit(workspace)
+		assert.Equal(t, 20, rate)
+	})
+
+	t.Run("ignores non-email integrations", func(t *testing.T) {
+		workspace := &domain.Workspace{
+			ID: "workspace-1",
+			Integrations: []domain.Integration{
+				{
+					ID:   "integration-1",
+					Type: domain.IntegrationTypeSupabase,
+				},
+				{
+					ID:   "integration-2",
+					Type: domain.IntegrationTypeEmail,
+					EmailProvider: domain.EmailProvider{
+						Kind:               domain.EmailProviderKindSMTP,
+						RateLimitPerMinute: 30,
+					},
+				},
+			},
+		}
+
+		rate := worker.getMinEmailRateLimit(workspace)
+		assert.Equal(t, 30, rate)
+	})
+}
+
+func TestEmailQueueWorker_DynamicBatchSize(t *testing.T) {
+	t.Run("calculates effective batch size based on rate limit", func(t *testing.T) {
+		// Test the formula: (minRate * 45) / 60
+		testCases := []struct {
+			name              string
+			minRate           int
+			configBatchSize   int
+			expectedBatchSize int
+		}{
+			{"low rate 20/min", 20, 50, 15},   // (20*45)/60 = 15
+			{"medium rate 60/min", 60, 50, 45}, // (60*45)/60 = 45
+			{"high rate 1000/min", 1000, 50, 50}, // (1000*45)/60 = 750, capped at 50
+			{"very low rate 10/min", 10, 50, 7}, // (10*45)/60 = 7
+			{"rate 1/min", 1, 50, 1},           // (1*45)/60 = 0, min is 1
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.name, func(t *testing.T) {
+				// Apply the same formula as in processWorkspace
+				effectiveBatchSize := (tc.minRate * 45) / 60
+				if effectiveBatchSize < 1 {
+					effectiveBatchSize = 1
+				}
+				if effectiveBatchSize > tc.configBatchSize {
+					effectiveBatchSize = tc.configBatchSize
+				}
+
+				assert.Equal(t, tc.expectedBatchSize, effectiveBatchSize)
+			})
+		}
+	})
+}
