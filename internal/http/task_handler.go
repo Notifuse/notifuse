@@ -239,23 +239,35 @@ func (h *TaskHandler) ExecuteTask(w http.ResponseWriter, r *http.Request) {
 			}).Debug("Task already running, rejecting concurrent execution")
 			WriteJSONError(w, e.Error(), http.StatusConflict)
 		case *domain.ErrTaskExecution:
-			// Log detailed error for debugging
-			h.logger.WithFields(map[string]interface{}{
-				"task_id":      executeRequest.ID,
-				"workspace_id": executeRequest.WorkspaceID,
-				"reason":       e.Reason,
-				"error":        err.Error(),
-			}).Error("Task execution failed")
-
-			// Check if this is an "already running" error wrapped in ErrTaskExecution
-			if alreadyRunning, ok := e.Err.(*domain.ErrTaskAlreadyRunning); ok {
-				WriteJSONError(w, alreadyRunning.Error(), http.StatusConflict)
-			} else if e.Reason == "no processor registered for task type" {
-				WriteJSONError(w, "Unsupported task type", http.StatusBadRequest)
+			// Check if this is an "already running" error - expected in concurrent environments
+			if _, ok := e.Err.(*domain.ErrTaskAlreadyRunning); ok {
+				h.logger.WithFields(map[string]interface{}{
+					"task_id":      executeRequest.ID,
+					"workspace_id": executeRequest.WorkspaceID,
+				}).Debug("Task already running (wrapped), rejecting concurrent execution")
+				WriteJSONError(w, "Task is already being processed", http.StatusConflict)
 			} else if e.Reason == "failed to mark task as running" {
 				// This happens when another executor already claimed the task
+				h.logger.WithFields(map[string]interface{}{
+					"task_id":      executeRequest.ID,
+					"workspace_id": executeRequest.WorkspaceID,
+				}).Debug("Task already claimed by another executor")
 				WriteJSONError(w, "Task is already being processed", http.StatusConflict)
+			} else if e.Reason == "no processor registered for task type" {
+				h.logger.WithFields(map[string]interface{}{
+					"task_id":      executeRequest.ID,
+					"workspace_id": executeRequest.WorkspaceID,
+					"error":        err.Error(),
+				}).Warn("No processor registered for task type")
+				WriteJSONError(w, "Unsupported task type", http.StatusBadRequest)
 			} else {
+				// Log genuine errors at ERROR level
+				h.logger.WithFields(map[string]interface{}{
+					"task_id":      executeRequest.ID,
+					"workspace_id": executeRequest.WorkspaceID,
+					"reason":       e.Reason,
+					"error":        err.Error(),
+				}).Error("Task execution failed")
 				WriteJSONError(w, "Task execution failed: "+e.Reason, http.StatusInternalServerError)
 			}
 		case *domain.ErrTaskTimeout:

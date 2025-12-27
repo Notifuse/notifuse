@@ -7,7 +7,7 @@ export type TaskStatus = 'pending' | 'running' | 'completed' | 'failed' | 'cance
 export interface SendBroadcastState {
   broadcast_id: string
   total_recipients: number
-  sent_count: number
+  enqueued_count: number
   failed_count: number
   channel_type: string
   recipient_offset: number

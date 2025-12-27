@@ -102,8 +102,8 @@ const getStatusBadge = (broadcast: Broadcast, remainingTime?: string | null) => 
       return <Badge status="default" text="Draft" />
     case 'scheduled':
       return <Badge status="processing" text="Scheduled" />
-    case 'sending':
-      return <Badge status="processing" text="Sending" />
+    case 'processing':
+      return <Badge status="processing" text="Processing" />
     case 'paused':
       return (
         <Space size="small">
@@ -119,8 +119,8 @@ const getStatusBadge = (broadcast: Broadcast, remainingTime?: string | null) => 
           )}
         </Space>
       )
-    case 'sent':
-      return <Badge status="success" text="Sent" />
+    case 'processed':
+      return <Badge status="success" text="Processed" />
     case 'cancelled':
       return <Badge status="error" text="Cancelled" />
     case 'failed':
@@ -194,10 +194,10 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
       return taskApi.findByBroadcastId(workspaceId, broadcast.id)
     },
     // Only fetch task data if the broadcast status indicates a task might exist
-    // enabled: ['scheduled', 'sending', 'paused', 'failed'].includes(broadcast.status),
+    // enabled: ['scheduled', 'processing', 'paused', 'failed'].includes(broadcast.status),
     refetchInterval:
-      broadcast.status === 'sending'
-        ? 5000 // Refetch every 5 seconds for sending broadcasts
+      broadcast.status === 'processing'
+        ? 5000 // Refetch every 5 seconds for processing broadcasts
         : broadcast.status === 'scheduled'
           ? 30000 // Refetch every 30 seconds for scheduled broadcasts
           : false // Don't auto-refetch for other statuses
@@ -279,7 +279,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
           <div>{getTaskStatusBadge(task.status)}</div>
         </div>
 
-        {task.next_run_after && (
+        {task.next_run_after && task.status !== 'completed' && (
           <div className="mb-2">
             <div className="font-medium text-gray-500">Next Run</div>
             <div className="text-sm">
@@ -306,7 +306,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
             <Progress
               percent={Math.round(
                 task.state?.send_broadcast
-                  ? (task.state.send_broadcast.sent_count /
+                  ? (task.state.send_broadcast.enqueued_count /
                       task.state.send_broadcast.total_recipients) *
                       100
                   : task.progress * 100
@@ -323,16 +323,10 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
           </div>
         )}
 
-        {task.state?.send_broadcast && (
+        {task.state?.send_broadcast && task.state.send_broadcast.failed_count > 0 && (
           <div className="mb-2">
-            <div className="font-medium text-gray-500">Broadcast Progress</div>
-            <div className="text-sm">
-              Sent: {task.state.send_broadcast.sent_count} of{' '}
-              {task.state.send_broadcast.total_recipients}
-              {task.state.send_broadcast.failed_count > 0 && (
-                <div className="text-red-500">Failed: {task.state.send_broadcast.failed_count}</div>
-              )}
-            </div>
+            <div className="font-medium text-gray-500">Failed</div>
+            <div className="text-sm text-red-500">{task.state.send_broadcast.failed_count}</div>
           </div>
         )}
 
@@ -423,7 +417,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               </div>
             </Tooltip>
           )}
-          {broadcast.status === 'sending' && (
+          {broadcast.status === 'processing' && (
             <Tooltip
               title={
                 !permissions?.broadcasts?.write

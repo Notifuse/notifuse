@@ -84,9 +84,9 @@ export interface ScheduleSettings {
 export type BroadcastStatus =
   | 'draft'
   | 'scheduled'
-  | 'sending'
+  | 'processing'
   | 'paused'
-  | 'sent'
+  | 'processed'
   | 'cancelled'
   | 'failed'
   | 'testing'

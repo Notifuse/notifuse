@@ -32,6 +32,8 @@ func TestTaskHandler_ExecuteTask(t *testing.T) {
 	mockLogger.EXPECT().WithField(gomock.Any(), gomock.Any()).Return(mockLoggerWithField).AnyTimes()
 	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLoggerWithField).AnyTimes()
 	mockLoggerWithField.EXPECT().Error(gomock.Any()).AnyTimes()
+	mockLoggerWithField.EXPECT().Warn(gomock.Any()).AnyTimes()
+	mockLoggerWithField.EXPECT().Debug(gomock.Any()).AnyTimes()
 
 	secretKey := "test-secret-key"
 

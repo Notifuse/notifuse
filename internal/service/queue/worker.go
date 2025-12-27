@@ -295,11 +295,8 @@ func (w *EmailQueueWorker) processEntry(workspace *domain.Workspace, entry *doma
 		return
 	}
 
-	// Wait for rate limiter
-	ratePerMinute := entry.Payload.RateLimitPerMinute
-	if ratePerMinute <= 0 {
-		ratePerMinute = integration.EmailProvider.RateLimitPerMinute
-	}
+	// Wait for rate limiter - always use current integration rate limit (not stale payload value)
+	ratePerMinute := integration.EmailProvider.RateLimitPerMinute
 	if ratePerMinute <= 0 {
 		ratePerMinute = 60 // Default to 1 per second if not configured
 	}
