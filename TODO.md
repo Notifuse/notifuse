@@ -32,21 +32,3 @@
 ## Roadmap
 
 - check for updates + newsletter box
-
----
-
-Issue 8: Rate Limiter Not Workspace-Isolated
-
-Status: VALID ✓
-
-Confirmed at worker.go:296. Rate limiter key is entry.IntegrationID
-only, not workspace-scoped.
-
----
-
-Issue 9: Message History in Hot Path
-
-Status: VALID ✓
-
-Confirmed at worker.go:436-485. Individual upsert per email with
-JSON marshaling and encryption.
