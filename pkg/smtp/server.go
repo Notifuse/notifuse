@@ -116,6 +116,12 @@ func (s *Server) Start() error {
 func (s *Server) Shutdown(ctx context.Context) error {
 	s.logger.Info("Shutting down SMTP relay server")
 
+	// Check if context is already cancelled before starting shutdown
+	if err := ctx.Err(); err != nil {
+		s.logger.Warn("SMTP server shutdown context already cancelled")
+		return err
+	}
+
 	// Close the listener first, which will cause Serve() to return
 	s.mu.Lock()
 	listener := s.listener

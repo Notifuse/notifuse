@@ -13,13 +13,15 @@ All notable changes to this project will be documented in this file.
 
 ### Features
 
-- **Email Queue System**: Centralized queue for all outbound emails
+- **Email Queue System**: Centralized queue for all outbound marketing emails
+
   - Unified delivery for broadcasts and automations
   - Priority-based processing with retry logic
   - Per-integration rate limiting
   - Background worker with graceful shutdown
 
 - **Automation Performance**: Single-tick execution optimization
+
   - Process multiple nodes per scheduler tick until delay or completion
   - 10-node safety limit per tick prevents runaway loops
   - State persisted after each node for crash recovery
@@ -45,12 +47,14 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 - **Marketing Automations**: Visual workflow builder for automated contact journeys
+
   - Event-driven triggers from contact timeline (contact, list, segment, email, custom events)
   - Trigger frequency control: `once` (first occurrence) or `every_time`
   - Conditional triggers using segment filter conditions
   - Field-specific triggers for contact updates (e.g., trigger only when `custom_string_1` changes)
 
 - **Automation Node Types**:
+
   - **Trigger**: Entry point based on timeline events with configurable conditions
   - **Delay**: Pause workflow for minutes, hours, or days
   - **Email**: Send templated emails using workspace email provider with tracking
@@ -62,23 +66,27 @@ All notable changes to this project will be documented in this file.
   - **Webhook**: POST contact data to external URLs with authorization headers
 
 - **Visual Flow Editor**: Drag-and-drop canvas for designing automation workflows
+
   - Node positioning with visual connections
   - Type-specific configuration panels
   - Real-time validation
 
 - **Automation Lifecycle Management**:
+
   - Draft mode for building and testing
   - Activate to go live (creates PostgreSQL triggers)
   - Pause to stop new enrollments while preserving in-progress journeys
   - Soft-delete with recovery capability
 
 - **Contact Journey Tracking**:
+
   - Full audit trail of node executions with timestamps and duration
   - Contact status tracking (active, completed, exited, failed)
   - Exit reasons for debugging
   - Node execution output logging
 
 - **Execution Engine**:
+
   - Background scheduler polling every 10 seconds
   - Batch processing (50 contacts per batch)
   - Round-robin workload distribution across workspaces
@@ -86,6 +94,7 @@ All notable changes to this project will be documented in this file.
   - Graceful shutdown handling
 
 - **Statistics Dashboard**:
+
   - Enrolled contacts count
   - Completed journeys
   - Exited contacts (with reasons)
