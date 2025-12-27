@@ -91,6 +91,7 @@ type IntegrationType string
 const (
 	IntegrationTypeEmail    IntegrationType = "email"
 	IntegrationTypeSupabase IntegrationType = "supabase"
+	IntegrationTypeLLM      IntegrationType = "llm"
 )
 
 // Integrations is a slice of Integration with database serialization methods
@@ -127,6 +128,7 @@ type Integration struct {
 	Type             IntegrationType              `json:"type"`
 	EmailProvider    EmailProvider                `json:"email_provider,omitempty"`
 	SupabaseSettings *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`
+	LLMProvider      *LLMProvider                 `json:"llm_provider,omitempty"`
 	CreatedAt        time.Time                    `json:"created_at"`
 	UpdatedAt        time.Time                    `json:"updated_at"`
 }
@@ -160,6 +162,14 @@ func (i *Integration) Validate(passphrase string) error {
 		if err := i.SupabaseSettings.Validate(passphrase); err != nil {
 			return fmt.Errorf("invalid supabase settings: %w", err)
 		}
+	case IntegrationTypeLLM:
+		// Validate LLM provider settings
+		if i.LLMProvider == nil {
+			return fmt.Errorf("llm provider settings are required for llm integration")
+		}
+		if err := i.LLMProvider.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid llm provider settings: %w", err)
+		}
 	default:
 		return fmt.Errorf("unsupported integration type: %s", i.Type)
 	}
@@ -181,6 +191,12 @@ func (i *Integration) BeforeSave(secretkey string) error {
 				return fmt.Errorf("failed to encrypt supabase signature keys: %w", err)
 			}
 		}
+	case IntegrationTypeLLM:
+		if i.LLMProvider != nil {
+			if err := i.LLMProvider.EncryptSecretKeys(secretkey); err != nil {
+				return fmt.Errorf("failed to encrypt llm provider secrets: %w", err)
+			}
+		}
 	}
 
 	return nil
@@ -198,6 +214,12 @@ func (i *Integration) AfterLoad(secretkey string) error {
 		if i.SupabaseSettings != nil {
 			if err := i.SupabaseSettings.DecryptSignatureKeys(secretkey); err != nil {
 				return fmt.Errorf("failed to decrypt supabase signature keys: %w", err)
+			}
+		}
+	case IntegrationTypeLLM:
+		if i.LLMProvider != nil {
+			if err := i.LLMProvider.DecryptSecretKeys(secretkey); err != nil {
+				return fmt.Errorf("failed to decrypt llm provider secrets: %w", err)
 			}
 		}
 	}
@@ -917,6 +939,7 @@ type CreateIntegrationRequest struct {
 	Type             IntegrationType              `json:"type"`
 	Provider         EmailProvider                `json:"provider,omitempty"`          // For email integrations
 	SupabaseSettings *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"` // For Supabase integrations
+	LLMProvider      *LLMProvider                 `json:"llm_provider,omitempty"`      // For LLM integrations
 }
 
 func (r *CreateIntegrationRequest) Validate(passphrase string) error {
@@ -945,6 +968,13 @@ func (r *CreateIntegrationRequest) Validate(passphrase string) error {
 		if err := r.SupabaseSettings.Validate(passphrase); err != nil {
 			return fmt.Errorf("invalid supabase settings: %w", err)
 		}
+	case IntegrationTypeLLM:
+		if r.LLMProvider == nil {
+			return fmt.Errorf("llm provider settings are required for llm integration")
+		}
+		if err := r.LLMProvider.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid llm provider configuration: %w", err)
+		}
 	default:
 		return fmt.Errorf("unsupported integration type: %s", r.Type)
 	}
@@ -959,6 +989,7 @@ type UpdateIntegrationRequest struct {
 	Name             string                       `json:"name"`
 	Provider         EmailProvider                `json:"provider,omitempty"`          // For email integrations
 	SupabaseSettings *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"` // For Supabase integrations
+	LLMProvider      *LLMProvider                 `json:"llm_provider,omitempty"`      // For LLM integrations
 }
 
 func (r *UpdateIntegrationRequest) Validate(passphrase string) error {
@@ -983,6 +1014,10 @@ func (r *UpdateIntegrationRequest) Validate(passphrase string) error {
 	} else if r.SupabaseSettings != nil {
 		if err := r.SupabaseSettings.Validate(passphrase); err != nil {
 			return fmt.Errorf("invalid supabase settings: %w", err)
+		}
+	} else if r.LLMProvider != nil {
+		if err := r.LLMProvider.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid llm provider configuration: %w", err)
 		}
 	}
 

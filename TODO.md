@@ -2,9 +2,6 @@
 
 ## Content
 
-- docs: blog setup / theme / post
-- docs: custom events + segments for goals
-
 - create notifuse blog
 - pages on homepage for:
 
