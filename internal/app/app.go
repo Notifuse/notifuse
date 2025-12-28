@@ -152,6 +152,7 @@ type App struct {
 	webhookDeliveryWorker            *service.WebhookDeliveryWorker
 	automationService                *service.AutomationService
 	automationScheduler              *service.AutomationScheduler
+	llmService                       *service.LLMService
 	emailQueueWorker                 *queue.EmailQueueWorker
 	// providers
 	postmarkService  *service.PostmarkService
@@ -912,6 +913,20 @@ func (a *App) InitServices() error {
 		a.logger,
 	)
 
+	// Initialize Firecrawl service
+	firecrawlService := service.NewFirecrawlService(a.logger)
+
+	// Initialize server-side tool registry
+	toolRegistry := service.NewServerSideToolRegistry(firecrawlService, a.logger)
+
+	// Initialize LLM service with tool registry
+	a.llmService = service.NewLLMService(service.LLMServiceConfig{
+		AuthService:   a.authService,
+		WorkspaceRepo: a.workspaceRepo,
+		Logger:        a.logger,
+		ToolRegistry:  toolRegistry,
+	})
+
 	// Initialize automation executor and scheduler
 	automationExecutor := service.NewAutomationExecutor(
 		a.automationRepo,
@@ -1106,6 +1121,11 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
+	llmHandler := httpHandler.NewLLMHandler(
+		a.llmService,
+		getJWTSecret,
+		a.logger,
+	)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -1138,6 +1158,7 @@ func (a *App) InitHandlers() error {
 	customEventHandler.RegisterRoutes(a.mux)
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
 	automationHandler.RegisterRoutes(a.mux)
+	llmHandler.RegisterRoutes(a.mux)
 
 	return nil
 }

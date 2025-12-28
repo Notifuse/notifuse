@@ -35,6 +35,7 @@ import {
 } from '../blog_editor'
 import { jsonToHtml, extractTextContent } from './utils'
 import type { Workspace } from '../../services/api/types'
+import { BlogAIAssistant } from './BlogAIAssistant'
 
 // TiptapNode interface matching the structure expected by utils
 interface TiptapNode {
@@ -97,6 +98,9 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
   // Table of Contents state
   const [tableOfContents, setTableOfContents] = useState<TOCAnchor[]>([])
 
+  // Editor key counter - increment to force editor remount when restoring draft
+  const [editorKeyCounter, setEditorKeyCounter] = useState(0)
+
   // Window width for responsive TOC display
   const [windowWidth, setWindowWidth] = useState<number>(
     typeof window !== 'undefined' ? window.innerWidth : 1920
@@ -119,22 +123,25 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     })
   }
 
-  // Debounced save to localStorage
+  // Debounced save to localStorage - saves both content and form values
   const debouncedLocalSave = useMemo(
     () =>
-      debounce((content: TiptapNode | null) => {
-        // Don't save if content is empty
-        if (isContentEmpty(content)) {
+      debounce((content: TiptapNode | null, formValues?: Record<string, unknown>) => {
+        // Don't save if content is empty and no form values
+        if (isContentEmpty(content) && !formValues) {
           // Remove any existing draft if content becomes empty
           localStorage.removeItem(draftKey)
           return
         }
 
         try {
+          // Get current form values if not provided
+          const valuesToSave = formValues || form.getFieldsValue()
           localStorage.setItem(
             draftKey,
             JSON.stringify({
               content,
+              formValues: valuesToSave,
               savedAt: new Date().toISOString()
             })
           )
@@ -142,7 +149,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
           console.error('Failed to save draft:', e)
         }
       }, 1000),
-    [draftKey]
+    [draftKey, form]
   )
 
   // Handle content change with auto-save
@@ -256,13 +263,25 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
         const savedDraft = localStorage.getItem(draftKey)
         if (savedDraft) {
           try {
-            const { content, savedAt } = JSON.parse(savedDraft)
+            const { content, formValues, savedAt } = JSON.parse(savedDraft)
             modal.confirm({
               title: 'Restore Draft?',
               content: `Found unsaved changes from ${new Date(savedAt).toLocaleString()}`,
               okText: 'Yes',
               cancelText: 'No',
-              onOk: () => setBlogContent(content),
+              onOk: () => {
+                // Restore editor content
+                setBlogContent(content)
+                // Force editor remount with restored content
+                setEditorKeyCounter((prev) => prev + 1)
+                // Restore form values (title, excerpt, SEO, etc.)
+                if (formValues) {
+                  form.setFieldsValue(formValues)
+                  if (formValues.slug) {
+                    setCurrentSlug(formValues.slug as string)
+                  }
+                }
+              },
               onCancel: () => localStorage.removeItem(draftKey)
             })
           } catch (error) {
@@ -321,10 +340,12 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       const plainText = extractTextContent(blogContent)
 
       // First, create the template
+      // Template name is limited to 32 characters, so truncate if needed
+      const templateName = `Blog: ${values.title}`.substring(0, 32)
       const templateCreateResponse = await templatesApi.create({
         workspace_id: workspace.id,
         id: newTemplateId,
-        name: `Blog: ${values.title}`,
+        name: templateName,
         channel: 'web',
         category: 'blog',
         web: {
@@ -369,10 +390,12 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
       const plainText = extractTextContent(blogContent)
 
       // First, update the template (backend creates new version)
+      // Template name is limited to 32 characters, so truncate if needed
+      const templateName = `Blog: ${values.title}`.substring(0, 32)
       await templatesApi.update({
         workspace_id: workspace.id,
         id: post!.settings.template.template_id,
-        name: `Blog: ${values.title}`,
+        name: templateName,
         channel: 'web',
         category: 'blog',
         web: {
@@ -476,6 +499,62 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
     setFormTouched(false)
     setBlogContent(null)
     setLoading(false)
+    setEditorKeyCounter(0)
+  }
+
+  // Handler for AI assistant content updates
+  const handleAIUpdateContent = (json: Record<string, unknown>) => {
+    if (editorRef.current && json.type === 'doc') {
+      editorRef.current.setContent(json)
+      setBlogContent(json as TiptapNode)
+      setFormTouched(true)
+    }
+  }
+
+  // Handler for AI assistant metadata updates
+  const handleAIUpdateMetadata = (metadata: {
+    title?: string
+    excerpt?: string
+    meta_title?: string
+    meta_description?: string
+    keywords?: string[]
+    og_title?: string
+    og_description?: string
+  }) => {
+    const updates: Record<string, unknown> = {}
+
+    if (metadata.title !== undefined) {
+      updates.title = metadata.title
+      // Also update slug for new posts
+      if (!isEditMode) {
+        const newSlug = normalizeSlug(metadata.title)
+        updates.slug = newSlug
+        setCurrentSlug(newSlug)
+      }
+    }
+    if (metadata.excerpt !== undefined) updates.excerpt = metadata.excerpt
+    if (metadata.meta_title !== undefined) updates['seo'] = { ...form.getFieldValue('seo'), meta_title: metadata.meta_title }
+    if (metadata.meta_description !== undefined) updates['seo'] = { ...form.getFieldValue('seo'), ...updates['seo'] as object, meta_description: metadata.meta_description }
+    if (metadata.keywords !== undefined) updates['seo'] = { ...form.getFieldValue('seo'), ...updates['seo'] as object, keywords: metadata.keywords }
+    if (metadata.og_title !== undefined) updates['seo'] = { ...form.getFieldValue('seo'), ...updates['seo'] as object, og_title: metadata.og_title }
+    if (metadata.og_description !== undefined) updates['seo'] = { ...form.getFieldValue('seo'), ...updates['seo'] as object, og_description: metadata.og_description }
+
+    form.setFieldsValue(updates)
+    setFormTouched(true)
+  }
+
+  // Get current metadata for AI assistant
+  const getCurrentMetadata = () => {
+    const seo = form.getFieldValue('seo') || {}
+    return {
+      title: form.getFieldValue('title'),
+      excerpt: form.getFieldValue('excerpt'),
+      meta_title: seo.meta_title,
+      meta_description: seo.meta_description,
+      keywords: seo.keywords,
+      og_title: seo.og_title,
+      og_description: seo.og_description
+    }
   }
 
   const onFinish = (values: PostFormValues) => {
@@ -549,8 +628,10 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
           }
           setLoading(false)
         }}
-        onValuesChange={() => {
+        onValuesChange={(_, allValues) => {
           setFormTouched(true)
+          // Auto-save form values along with content
+          debouncedLocalSave(blogContent, allValues)
         }}
         initialValues={{
           authors: [],
@@ -659,7 +740,7 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
                   </div>
                 ) : (
                   <NotifuseEditor
-                    key={`editor-${post?.id || 'new'}-${post?.settings.template.template_id || 'no-template'}-${post?.settings.template.template_version || 0}`}
+                    key={`editor-${post?.id || 'new'}-${post?.settings.template.template_id || 'no-template'}-${post?.settings.template.template_version || 0}-${editorKeyCounter}`}
                     ref={editorRef}
                     placeholder="Start writing your blog post..."
                     initialContent={
@@ -686,7 +767,8 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
               maxWidth: '450px',
               borderLeft: '1px solid #f0f0f0',
               overflow: 'auto',
-              padding: '24px'
+              padding: '24px',
+              paddingBottom: '120px'
             }}
           >
             <Form.Item
@@ -769,6 +851,14 @@ export function PostDrawer({ open, onClose, post, workspace, initialCategoryId }
           </div>
         </div>
       </Form>
+
+      <BlogAIAssistant
+        workspace={workspace}
+        onUpdateContent={handleAIUpdateContent}
+        onUpdateMetadata={handleAIUpdateMetadata}
+        currentContent={blogContent}
+        currentMetadata={getCurrentMetadata()}
+      />
     </Drawer>
   )
 }

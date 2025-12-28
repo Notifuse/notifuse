@@ -1,15 +1,14 @@
 import React, { useEffect } from 'react'
-import { Form, Input, message, AutoComplete } from 'antd'
+import { Form, Input, message, Select } from 'antd'
 import { Integration, LLMProviderKind, Workspace } from '../../services/api/types'
 import { llmProviders } from './LLMProviders'
 
-// Available Anthropic models
+// Available Anthropic models with pricing (input/output per million tokens)
+// Model IDs from: https://docs.anthropic.com/en/docs/about-claude/models/overview
 const anthropicModels = [
-  { value: 'claude-opus-4-5-20251101', label: 'Claude Opus 4.5 (Recommended)' },
-  { value: 'claude-sonnet-4-5-20251101', label: 'Claude Sonnet 4.5' },
-  { value: 'claude-opus-4-1-20250805', label: 'Claude Opus 4.1' },
-  { value: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-  { value: 'claude-haiku-4-20250514', label: 'Claude Haiku 4' }
+  { value: 'claude-opus-4-5-20251101', label: 'Claude Opus 4.5 ($5/$25 per MTok)' },
+  { value: 'claude-sonnet-4-5-20250929', label: 'Claude Sonnet 4.5 ($3/$15 per MTok)' },
+  { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5 ($1/$5 per MTok)' }
 ]
 
 interface LLMIntegrationProps {
@@ -51,7 +50,7 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
       // Default values for new integration
       form.setFieldsValue({
         name: providerInfo?.name || 'Anthropic',
-        model: providerInfo?.defaultModel || 'claude-opus-4-5-20251101'
+        model: providerInfo?.defaultModel || 'claude-sonnet-4-5-20250929'
       })
     }
   }, [integration, providerKind, form, providerInfo])
@@ -113,17 +112,9 @@ export const LLMIntegration: React.FC<LLMIntegrationProps> = ({
       <Form.Item
         label="Model"
         name="model"
-        rules={[{ required: true, message: 'Please select or enter a model name' }]}
-        extra="Select a model or type a custom model name"
+        rules={[{ required: true, message: 'Please select a model' }]}
       >
-        <AutoComplete
-          placeholder="Select or enter a model"
-          options={anthropicModels}
-          filterOption={(input, option) =>
-            (option?.label as string ?? '').toLowerCase().includes(input.toLowerCase()) ||
-            (option?.value ?? '').toLowerCase().includes(input.toLowerCase())
-          }
-        />
+        <Select placeholder="Select a model" options={anthropicModels} />
       </Form.Item>
     </Form>
   )

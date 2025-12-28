@@ -86,5 +86,13 @@ func (trw *traceResponseWriter) WriteHeader(code int) {
 	trw.ResponseWriter.WriteHeader(code)
 }
 
-// Ensure traceResponseWriter implements http.ResponseWriter
+// Flush implements http.Flusher for SSE streaming support
+func (trw *traceResponseWriter) Flush() {
+	if flusher, ok := trw.ResponseWriter.(http.Flusher); ok {
+		flusher.Flush()
+	}
+}
+
+// Ensure traceResponseWriter implements http.ResponseWriter and http.Flusher
 var _ http.ResponseWriter = (*traceResponseWriter)(nil)
+var _ http.Flusher = (*traceResponseWriter)(nil)

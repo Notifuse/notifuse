@@ -222,6 +222,7 @@ export interface NotifuseEditorRef {
   redo: () => void
   canUndo: () => boolean
   canRedo: () => boolean
+  setContent: (content: unknown) => void
   editor: Editor | null
 }
 
@@ -463,6 +464,9 @@ export const EditorProvider = forwardRef<NotifuseEditorRef, EditorProviderProps>
       redo: () => editor?.chain().focus().redo().run(),
       canUndo: () => editor?.can().undo() ?? false,
       canRedo: () => editor?.can().redo() ?? false,
+      setContent: (content: unknown) => {
+        editor?.commands.setContent(content)
+      },
       editor: editor
     }),
     [editor, styleConfig]

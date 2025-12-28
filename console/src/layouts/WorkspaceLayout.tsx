@@ -430,7 +430,13 @@ export function WorkspaceLayout() {
             <Menu
               mode="inline"
               selectedKeys={[selectedKey]}
-              style={{ height: 'calc(100% - 120px)', borderRight: 0, backgroundColor: '#F9F9F9' }}
+              style={{
+                height: 'calc(100% - 120px)',
+                borderRight: 0,
+                backgroundColor: '#F9F9F9',
+                fontSize: '13px',
+                fontWeight: 600
+              }}
               items={loadingPermissions ? [] : menuItems}
               theme="light"
             />

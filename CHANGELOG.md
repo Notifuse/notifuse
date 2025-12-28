@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [22.0] - 2025-12-28
+
+### Features
+
+- **Blog AI Assistant**: AI-powered writing assistant for blog posts
+  - Streaming chat with Anthropic Claude models (Opus, Sonnet, Haiku)
+  - Tool use for updating blog content and metadata directly in editor
+  - Server-side web scraping and search via Firecrawl integration
+  - Session cost tracking with input/output token breakdown
+
+- **LLM Integration**: Anthropic API support with encrypted API key storage
+- **Firecrawl Integration**: Web scraping (`scrape_url`) and search (`search_web`) tools
+
 ## [21.0] - 2025-12-23
 
 ### Database Schema Changes

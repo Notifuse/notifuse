@@ -27,6 +27,7 @@ const (
 	PermissionResourceMessageHistory PermissionResource = "message_history"
 	PermissionResourceBlog           PermissionResource = "blog"
 	PermissionResourceAutomations    PermissionResource = "automations"
+	PermissionResourceLLM            PermissionResource = "llm"
 )
 
 // PermissionType defines the types of permissions (read/write)
@@ -47,6 +48,7 @@ var FullPermissions = UserPermissions{
 	PermissionResourceMessageHistory: ResourcePermissions{Read: true, Write: true},
 	PermissionResourceBlog:           ResourcePermissions{Read: true, Write: true},
 	PermissionResourceAutomations:    ResourcePermissions{Read: true, Write: true},
+	PermissionResourceLLM:            ResourcePermissions{Read: true, Write: true},
 }
 
 // ResourcePermissions defines read/write permissions for a specific resource
@@ -89,9 +91,10 @@ func (up *UserPermissions) Scan(value interface{}) error {
 type IntegrationType string
 
 const (
-	IntegrationTypeEmail    IntegrationType = "email"
-	IntegrationTypeSupabase IntegrationType = "supabase"
-	IntegrationTypeLLM      IntegrationType = "llm"
+	IntegrationTypeEmail     IntegrationType = "email"
+	IntegrationTypeSupabase  IntegrationType = "supabase"
+	IntegrationTypeLLM       IntegrationType = "llm"
+	IntegrationTypeFirecrawl IntegrationType = "firecrawl"
 )
 
 // Integrations is a slice of Integration with database serialization methods
@@ -123,14 +126,15 @@ func (i *Integrations) Scan(value interface{}) error {
 
 // Integration represents a third-party service integration that's embedded in workspace settings
 type Integration struct {
-	ID               string                       `json:"id"`
-	Name             string                       `json:"name"`
-	Type             IntegrationType              `json:"type"`
-	EmailProvider    EmailProvider                `json:"email_provider,omitempty"`
-	SupabaseSettings *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`
-	LLMProvider      *LLMProvider                 `json:"llm_provider,omitempty"`
-	CreatedAt        time.Time                    `json:"created_at"`
-	UpdatedAt        time.Time                    `json:"updated_at"`
+	ID                string                       `json:"id"`
+	Name              string                       `json:"name"`
+	Type              IntegrationType              `json:"type"`
+	EmailProvider     EmailProvider                `json:"email_provider,omitempty"`
+	SupabaseSettings  *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`
+	LLMProvider       *LLMProvider                 `json:"llm_provider,omitempty"`
+	FirecrawlSettings *FirecrawlSettings           `json:"firecrawl_settings,omitempty"`
+	CreatedAt         time.Time                    `json:"created_at"`
+	UpdatedAt         time.Time                    `json:"updated_at"`
 }
 
 // Validate validates the integration
@@ -170,6 +174,14 @@ func (i *Integration) Validate(passphrase string) error {
 		if err := i.LLMProvider.Validate(passphrase); err != nil {
 			return fmt.Errorf("invalid llm provider settings: %w", err)
 		}
+	case IntegrationTypeFirecrawl:
+		// Validate Firecrawl settings
+		if i.FirecrawlSettings == nil {
+			return fmt.Errorf("firecrawl settings are required for firecrawl integration")
+		}
+		if err := i.FirecrawlSettings.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid firecrawl settings: %w", err)
+		}
 	default:
 		return fmt.Errorf("unsupported integration type: %s", i.Type)
 	}
@@ -197,6 +209,12 @@ func (i *Integration) BeforeSave(secretkey string) error {
 				return fmt.Errorf("failed to encrypt llm provider secrets: %w", err)
 			}
 		}
+	case IntegrationTypeFirecrawl:
+		if i.FirecrawlSettings != nil {
+			if err := i.FirecrawlSettings.EncryptSecretKeys(secretkey); err != nil {
+				return fmt.Errorf("failed to encrypt firecrawl secret keys: %w", err)
+			}
+		}
 	}
 
 	return nil
@@ -220,6 +238,12 @@ func (i *Integration) AfterLoad(secretkey string) error {
 		if i.LLMProvider != nil {
 			if err := i.LLMProvider.DecryptSecretKeys(secretkey); err != nil {
 				return fmt.Errorf("failed to decrypt llm provider secrets: %w", err)
+			}
+		}
+	case IntegrationTypeFirecrawl:
+		if i.FirecrawlSettings != nil {
+			if err := i.FirecrawlSettings.DecryptSecretKeys(secretkey); err != nil {
+				return fmt.Errorf("failed to decrypt firecrawl secret keys: %w", err)
 			}
 		}
 	}
@@ -934,12 +958,13 @@ func (r *CreateAPIKeyRequest) Validate() error {
 
 // CreateIntegrationRequest defines the request structure for creating an integration
 type CreateIntegrationRequest struct {
-	WorkspaceID      string                       `json:"workspace_id"`
-	Name             string                       `json:"name"`
-	Type             IntegrationType              `json:"type"`
-	Provider         EmailProvider                `json:"provider,omitempty"`          // For email integrations
-	SupabaseSettings *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"` // For Supabase integrations
-	LLMProvider      *LLMProvider                 `json:"llm_provider,omitempty"`      // For LLM integrations
+	WorkspaceID       string                       `json:"workspace_id"`
+	Name              string                       `json:"name"`
+	Type              IntegrationType              `json:"type"`
+	Provider          EmailProvider                `json:"provider,omitempty"`           // For email integrations
+	SupabaseSettings  *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`  // For Supabase integrations
+	LLMProvider       *LLMProvider                 `json:"llm_provider,omitempty"`       // For LLM integrations
+	FirecrawlSettings *FirecrawlSettings           `json:"firecrawl_settings,omitempty"` // For Firecrawl integrations
 }
 
 func (r *CreateIntegrationRequest) Validate(passphrase string) error {
@@ -975,6 +1000,13 @@ func (r *CreateIntegrationRequest) Validate(passphrase string) error {
 		if err := r.LLMProvider.Validate(passphrase); err != nil {
 			return fmt.Errorf("invalid llm provider configuration: %w", err)
 		}
+	case IntegrationTypeFirecrawl:
+		if r.FirecrawlSettings == nil {
+			return fmt.Errorf("firecrawl settings are required for firecrawl integration")
+		}
+		if err := r.FirecrawlSettings.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid firecrawl settings: %w", err)
+		}
 	default:
 		return fmt.Errorf("unsupported integration type: %s", r.Type)
 	}
@@ -984,12 +1016,13 @@ func (r *CreateIntegrationRequest) Validate(passphrase string) error {
 
 // UpdateIntegrationRequest defines the request structure for updating an integration
 type UpdateIntegrationRequest struct {
-	WorkspaceID      string                       `json:"workspace_id"`
-	IntegrationID    string                       `json:"integration_id"`
-	Name             string                       `json:"name"`
-	Provider         EmailProvider                `json:"provider,omitempty"`          // For email integrations
-	SupabaseSettings *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"` // For Supabase integrations
-	LLMProvider      *LLMProvider                 `json:"llm_provider,omitempty"`      // For LLM integrations
+	WorkspaceID       string                       `json:"workspace_id"`
+	IntegrationID     string                       `json:"integration_id"`
+	Name              string                       `json:"name"`
+	Provider          EmailProvider                `json:"provider,omitempty"`           // For email integrations
+	SupabaseSettings  *SupabaseIntegrationSettings `json:"supabase_settings,omitempty"`  // For Supabase integrations
+	LLMProvider       *LLMProvider                 `json:"llm_provider,omitempty"`       // For LLM integrations
+	FirecrawlSettings *FirecrawlSettings           `json:"firecrawl_settings,omitempty"` // For Firecrawl integrations
 }
 
 func (r *UpdateIntegrationRequest) Validate(passphrase string) error {
@@ -1018,6 +1051,10 @@ func (r *UpdateIntegrationRequest) Validate(passphrase string) error {
 	} else if r.LLMProvider != nil {
 		if err := r.LLMProvider.Validate(passphrase); err != nil {
 			return fmt.Errorf("invalid llm provider configuration: %w", err)
+		}
+	} else if r.FirecrawlSettings != nil {
+		if err := r.FirecrawlSettings.Validate(passphrase); err != nil {
+			return fmt.Errorf("invalid firecrawl settings: %w", err)
 		}
 	}
 

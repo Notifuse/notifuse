@@ -1150,6 +1150,8 @@ func (s *WorkspaceService) CreateIntegration(ctx context.Context, req domain.Cre
 		integration.SupabaseSettings = req.SupabaseSettings
 	case domain.IntegrationTypeLLM:
 		integration.LLMProvider = req.LLMProvider
+	case domain.IntegrationTypeFirecrawl:
+		integration.FirecrawlSettings = req.FirecrawlSettings
 	}
 
 	// Validate the integration
@@ -1307,6 +1309,22 @@ func (s *WorkspaceService) UpdateIntegration(ctx context.Context, req domain.Upd
 		} else {
 			// If no settings provided, preserve existing
 			updatedIntegration.LLMProvider = existingIntegration.LLMProvider
+		}
+	case domain.IntegrationTypeFirecrawl:
+		// Preserve existing encrypted API key if new key is not provided
+		if req.FirecrawlSettings != nil {
+			updatedIntegration.FirecrawlSettings = req.FirecrawlSettings
+
+			// Preserve encrypted API key if not provided in update
+			if req.FirecrawlSettings.APIKey == "" &&
+				req.FirecrawlSettings.EncryptedAPIKey == "" &&
+				existingIntegration.FirecrawlSettings != nil {
+				updatedIntegration.FirecrawlSettings.EncryptedAPIKey =
+					existingIntegration.FirecrawlSettings.EncryptedAPIKey
+			}
+		} else {
+			// If no settings provided, preserve existing
+			updatedIntegration.FirecrawlSettings = existingIntegration.FirecrawlSettings
 		}
 	}
 

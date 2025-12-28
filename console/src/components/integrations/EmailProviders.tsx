@@ -1,5 +1,3 @@
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faEnvelope } from '@fortawesome/free-solid-svg-icons'
 import { IntegrationType, EmailProviderKind } from '../../services/api/types'
 import React from 'react'
 
@@ -52,10 +50,16 @@ export const getProviderIcon = (
   }
 
   return (
-    <FontAwesomeIcon
-      icon={faEnvelope}
-      className={`${size === 'small' ? 'w-5 h-5' : 'w-16'}`.trim()}
-    />
+    <span
+      style={{
+        fontWeight: 700,
+        fontSize: size === 'small' ? 12 : 16,
+        fontFamily: 'monospace',
+        color: '#666'
+      }}
+    >
+      SMTP
+    </span>
   )
 }
 
@@ -65,10 +69,17 @@ export const emailProviders: ProviderInfo[] = [
     kind: 'smtp',
     name: 'SMTP',
     getIcon: (className = '', size = 'small') => (
-      <FontAwesomeIcon
-        icon={faEnvelope}
-        className={`${size === 'small' ? 'w-5 h-5' : 'w-16'} ${className}`.trim()}
-      />
+      <span
+        className={className}
+        style={{
+          fontWeight: 700,
+          fontSize: size === 'small' ? 12 : 16,
+          fontFamily: 'monospace',
+          color: '#666'
+        }}
+      >
+        SMTP
+      </span>
     )
   },
   {

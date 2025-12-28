@@ -1296,6 +1296,49 @@ func TestWorkspaceService_CreateIntegration(t *testing.T) {
 		require.Empty(t, integrationID)
 		require.Contains(t, err.Error(), "update error")
 	})
+
+	t.Run("successful create firecrawl integration", func(t *testing.T) {
+		expectedUser := &domain.User{
+			ID: userID,
+		}
+
+		expectedUserWorkspace := &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		expectedWorkspace := &domain.Workspace{
+			ID:   workspaceID,
+			Name: "Test Workspace",
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			// Verify the integration was added to the workspace
+			require.Equal(t, 1, len(workspace.Integrations))
+			require.Equal(t, "My Firecrawl", workspace.Integrations[0].Name)
+			require.Equal(t, domain.IntegrationTypeFirecrawl, workspace.Integrations[0].Type)
+			require.NotNil(t, workspace.Integrations[0].FirecrawlSettings)
+			// API key should be encrypted
+			require.NotEmpty(t, workspace.Integrations[0].FirecrawlSettings.EncryptedAPIKey)
+			require.Empty(t, workspace.Integrations[0].FirecrawlSettings.APIKey) // Plain key should be cleared
+			return nil
+		})
+
+		integrationID, err := service.CreateIntegration(ctx, domain.CreateIntegrationRequest{
+			WorkspaceID: workspaceID,
+			Name:        "My Firecrawl",
+			Type:        domain.IntegrationTypeFirecrawl,
+			FirecrawlSettings: &domain.FirecrawlSettings{
+				APIKey: "fc-test-key",
+			},
+		})
+		require.NoError(t, err)
+		require.NotEmpty(t, integrationID)
+	})
 }
 
 func TestWorkspaceService_UpdateIntegration(t *testing.T) {
@@ -1480,6 +1523,121 @@ func TestWorkspaceService_UpdateIntegration(t *testing.T) {
 		})
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "integration not found")
+	})
+
+	t.Run("successful update firecrawl integration preserves API key", func(t *testing.T) {
+		firecrawlIntegrationID := "firecrawl123"
+		expectedUser := &domain.User{
+			ID: userID,
+		}
+
+		expectedUserWorkspace := &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		// Create a workspace with an existing Firecrawl integration
+		existingIntegration := domain.Integration{
+			ID:   firecrawlIntegrationID,
+			Name: "Original Firecrawl",
+			Type: domain.IntegrationTypeFirecrawl,
+			FirecrawlSettings: &domain.FirecrawlSettings{
+				EncryptedAPIKey: "encrypted-existing-key",
+				BaseURL:         "https://custom.firecrawl.dev",
+			},
+			CreatedAt: time.Now().Add(-24 * time.Hour),
+			UpdatedAt: time.Now().Add(-24 * time.Hour),
+		}
+
+		expectedWorkspace := &domain.Workspace{
+			ID:           workspaceID,
+			Name:         "Test Workspace",
+			Integrations: []domain.Integration{existingIntegration},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			// Verify the integration was updated
+			require.Equal(t, 1, len(workspace.Integrations))
+			require.Equal(t, firecrawlIntegrationID, workspace.Integrations[0].ID)
+			require.Equal(t, "Updated Firecrawl", workspace.Integrations[0].Name)
+			require.Equal(t, domain.IntegrationTypeFirecrawl, workspace.Integrations[0].Type)
+			// API key should be preserved since no new key was provided
+			require.Equal(t, "encrypted-existing-key", workspace.Integrations[0].FirecrawlSettings.EncryptedAPIKey)
+			// BaseURL should be updated
+			require.Equal(t, "https://new.firecrawl.dev", workspace.Integrations[0].FirecrawlSettings.BaseURL)
+			return nil
+		})
+
+		err := service.UpdateIntegration(ctx, domain.UpdateIntegrationRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: firecrawlIntegrationID,
+			Name:          "Updated Firecrawl",
+			FirecrawlSettings: &domain.FirecrawlSettings{
+				APIKey:  "", // Empty - should preserve existing encrypted key
+				BaseURL: "https://new.firecrawl.dev",
+			},
+		})
+		require.NoError(t, err)
+	})
+
+	t.Run("successful update firecrawl integration replaces API key", func(t *testing.T) {
+		firecrawlIntegrationID := "firecrawl456"
+		expectedUser := &domain.User{
+			ID: userID,
+		}
+
+		expectedUserWorkspace := &domain.UserWorkspace{
+			UserID:      userID,
+			WorkspaceID: workspaceID,
+			Role:        "owner",
+		}
+
+		// Create a workspace with an existing Firecrawl integration
+		existingIntegration := domain.Integration{
+			ID:   firecrawlIntegrationID,
+			Name: "Original Firecrawl",
+			Type: domain.IntegrationTypeFirecrawl,
+			FirecrawlSettings: &domain.FirecrawlSettings{
+				EncryptedAPIKey: "encrypted-old-key",
+			},
+			CreatedAt: time.Now().Add(-24 * time.Hour),
+			UpdatedAt: time.Now().Add(-24 * time.Hour),
+		}
+
+		expectedWorkspace := &domain.Workspace{
+			ID:           workspaceID,
+			Name:         "Test Workspace",
+			Integrations: []domain.Integration{existingIntegration},
+		}
+
+		mockAuthService.EXPECT().AuthenticateUserForWorkspace(ctx, workspaceID).Return(ctx, expectedUser, nil, nil)
+		mockRepo.EXPECT().GetUserWorkspace(ctx, userID, workspaceID).Return(expectedUserWorkspace, nil)
+		mockRepo.EXPECT().GetByID(ctx, workspaceID).Return(expectedWorkspace, nil)
+		mockRepo.EXPECT().Update(ctx, gomock.Any()).DoAndReturn(func(ctx context.Context, workspace *domain.Workspace) error {
+			// Verify the integration was updated
+			require.Equal(t, 1, len(workspace.Integrations))
+			require.Equal(t, firecrawlIntegrationID, workspace.Integrations[0].ID)
+			// New API key should be encrypted (different from old encrypted key)
+			require.NotEmpty(t, workspace.Integrations[0].FirecrawlSettings.EncryptedAPIKey)
+			require.NotEqual(t, "encrypted-old-key", workspace.Integrations[0].FirecrawlSettings.EncryptedAPIKey)
+			// Plain key should be cleared
+			require.Empty(t, workspace.Integrations[0].FirecrawlSettings.APIKey)
+			return nil
+		})
+
+		err := service.UpdateIntegration(ctx, domain.UpdateIntegrationRequest{
+			WorkspaceID:   workspaceID,
+			IntegrationID: firecrawlIntegrationID,
+			Name:          "Updated Firecrawl",
+			FirecrawlSettings: &domain.FirecrawlSettings{
+				APIKey: "fc-new-api-key", // New key provided - should be encrypted
+			},
+		})
+		require.NoError(t, err)
 	})
 }
 
