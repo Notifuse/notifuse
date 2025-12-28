@@ -423,7 +423,8 @@ func TestRateLimiter_LargeVolume(t *testing.T) {
 	rl := NewRateLimiter()
 	defer rl.Stop()
 
-	rl.SetPolicy("test", 1000, 1*time.Second)
+	// Use a longer window to ensure attempts don't expire during the test loop
+	rl.SetPolicy("test", 1000, 1*time.Minute)
 
 	// Simulate high volume for a single key
 	key := "highvolume@example.com"
