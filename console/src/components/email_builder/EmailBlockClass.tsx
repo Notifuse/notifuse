@@ -833,6 +833,32 @@ export class EmailBlockClass {
   }
 
   /**
+   * Static utility method to get all ancestor block IDs for a given block
+   */
+  static getAncestorIds(tree: EmailBlock, targetId: string): string[] {
+    const findBlockPath = (
+      current: EmailBlock,
+      targetId: string,
+      path: string[] = []
+    ): string[] | null => {
+      if (current.id === targetId) {
+        return path
+      }
+
+      if (current.children) {
+        for (const child of current.children) {
+          const result = findBlockPath(child, targetId, [...path, current.id])
+          if (result) return result
+        }
+      }
+
+      return null
+    }
+
+    return findBlockPath(tree, targetId) || []
+  }
+
+  /**
    * Create the initial email template using EmailBlockClass methods
    * This ensures proper defaults and column width calculations
    */

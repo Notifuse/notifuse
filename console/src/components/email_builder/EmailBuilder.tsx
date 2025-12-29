@@ -129,6 +129,16 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     }
     // Always update local state
     setState((prev) => ({ ...prev, selectedBlockId: blockId }))
+
+    // Auto-expand tree to show selected block
+    if (blockId) {
+      const ancestorIds = EmailBlockClass.getAncestorIds(tree, blockId)
+      setExpandedKeys((prev) => {
+        const newKeys = new Set(prev)
+        ancestorIds.forEach((id) => newKeys.add(id))
+        return Array.from(newKeys)
+      })
+    }
   }
 
   const handleTreeExpand = (keys: string[]) => {
@@ -228,6 +238,18 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [forcedViewMode])
+
+  // Auto-expand tree when external selection changes
+  useEffect(() => {
+    if (externalSelectedBlockId) {
+      const ancestorIds = EmailBlockClass.getAncestorIds(tree, externalSelectedBlockId)
+      setExpandedKeys((prev) => {
+        const newKeys = new Set(prev)
+        ancestorIds.forEach((id) => newKeys.add(id))
+        return Array.from(newKeys)
+      })
+    }
+  }, [externalSelectedBlockId, tree])
 
   const updateTreeWithHistory = (updatedTree: EmailBlock) => {
     // Add to history for undo/redo support
@@ -903,15 +925,17 @@ const EmailBuilderContent: React.FC<EmailBuilderProps> = ({
                   }
                 }}
               >
-                <SettingsPanel
-                  key={`settings-${selectedBlock?.type || 'none'}`}
-                  selectedBlock={selectedBlock}
-                  onUpdateBlock={handleUpdateBlock}
-                  attributeDefaults={EmailBlockClass.extractAttributeDefaults(tree)}
-                  emailTree={tree}
-                  testData={testData}
-                  onTestDataChange={onTestDataChange}
-                />
+                <div className="pb-32">
+                  <SettingsPanel
+                    key={`settings-${selectedBlock?.type || 'none'}`}
+                    selectedBlock={selectedBlock}
+                    onUpdateBlock={handleUpdateBlock}
+                    attributeDefaults={EmailBlockClass.extractAttributeDefaults(tree)}
+                    emailTree={tree}
+                    testData={testData}
+                    onTestDataChange={onTestDataChange}
+                  />
+                </div>
               </OverlayScrollbarsComponent>
             </div>
           </div>

@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [22.1] - 2025-12-28
+
+### Features
+
+- **Email AI Assistant**: AI-powered design assistant for email templates
+  - Streaming chat with Anthropic Claude models
+  - Tool use for modifying email structure, blocks, and content
+  - Server-side web scraping and search for content inspiration
+  - Auto-expand tree to selected block for better navigation
+  - Prompts users to configure Anthropic integration when not set up
+
 ## [22.0] - 2025-12-28
 
 ### Features

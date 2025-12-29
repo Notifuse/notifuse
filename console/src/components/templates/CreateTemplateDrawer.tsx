@@ -29,6 +29,9 @@ import { faQuestion } from '@fortawesome/free-solid-svg-icons'
 import { Tour } from 'antd'
 import { ImportExportButton } from './ImportExportButton'
 import { useAuth } from '../../contexts/AuthContext'
+import { EmailAIAssistant } from '../email_builder/EmailAIAssistant'
+import { EmailBlockClass } from '../email_builder/EmailBlockClass'
+import type { MJMLComponentType } from '../email_builder/types'
 
 /**
  * Validates liquid template tags in a string to ensure they are properly closed
@@ -905,6 +908,93 @@ export function CreateTemplateDrawer({
               </span>
             )}
           />
+
+          {/* AI Email Assistant - persists across tab switches */}
+          <EmailAIAssistant
+              hidden={tab !== 'template'}
+              workspace={workspace}
+              currentSubject={emailSubject}
+              currentPreviewText={emailPreview}
+              onUpdateSubject={(subject) => form.setFieldValue(['email', 'subject'], subject)}
+              onUpdatePreviewText={(preview) => form.setFieldValue(['email', 'subject_preview'], preview)}
+              callbacks={{
+                getEmailTree: () => visualEditorTree,
+                setEmailTree: setVisualEditorTree,
+                onAddBlock: (parentId, blockType, position, content, attributes) => {
+                  // Use functional updater to ensure we have the latest state
+                  setVisualEditorTree(prevTree => {
+                    // Create a new block with defaults
+                    const newBlock = EmailBlockClass.createBlock(
+                      blockType as MJMLComponentType,
+                      undefined,
+                      content,
+                      prevTree
+                    )
+                    // Apply custom attributes if provided
+                    if (attributes) {
+                      newBlock.attributes = { ...newBlock.attributes, ...attributes }
+                    }
+                    // Insert into tree
+                    const updatedTree = EmailBlockClass.insertBlockIntoTree(
+                      prevTree,
+                      parentId,
+                      newBlock,
+                      position ?? (prevTree.children?.length || 0)
+                    )
+                    if (updatedTree) {
+                      // Schedule selection update after state is applied
+                      setTimeout(() => setSelectedBlockId(newBlock.id), 0)
+                      return updatedTree
+                    }
+                    return prevTree
+                  })
+                },
+                onUpdateBlock: (blockId, updates) => {
+                  // Use functional updater to ensure atomic updates
+                  setVisualEditorTree(prevTree => {
+                    const updatedTree = JSON.parse(JSON.stringify(prevTree)) as EmailBlock
+                    const block = EmailBlockClass.findBlockById(updatedTree, blockId)
+                    if (block) {
+                      if (updates.attributes) {
+                        block.attributes = { ...block.attributes, ...updates.attributes }
+                      }
+                      if (updates.content !== undefined) {
+                        block.content = updates.content
+                      }
+                      return updatedTree
+                    }
+                    return prevTree
+                  })
+                },
+                onDeleteBlock: (blockId) => {
+                  setVisualEditorTree(prevTree => {
+                    const updatedTree = EmailBlockClass.removeBlockFromTree(prevTree, blockId)
+                    if (updatedTree) {
+                      // Clear selection if deleted block was selected
+                      if (selectedBlockId === blockId) {
+                        setTimeout(() => setSelectedBlockId(null), 0)
+                      }
+                      return updatedTree
+                    }
+                    return prevTree
+                  })
+                },
+                onMoveBlock: (blockId, newParentId, position) => {
+                  setVisualEditorTree(prevTree => {
+                    const updatedTree = EmailBlockClass.moveBlockInTree(
+                      prevTree,
+                      blockId,
+                      newParentId,
+                      position
+                    )
+                    return updatedTree || prevTree
+                  })
+                },
+                onSelectBlock: (blockId) => {
+                  setSelectedBlockId(blockId)
+                }
+              }}
+            />
         </Drawer>
       )}
     </>
