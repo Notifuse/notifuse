@@ -515,6 +515,141 @@ func TestUserHandler_Logout(t *testing.T) {
 	})
 }
 
+func TestUserHandler_RootSignIn(t *testing.T) {
+	handler, mockUserSvc, _, _ := setupUserHandlerTest(t)
+
+	t.Run("successful root signin", func(t *testing.T) {
+		input := domain.RootSigninInput{
+			Email:     "root@example.com",
+			Timestamp: time.Now().Unix(),
+			Signature: "valid-signature-abc123",
+		}
+
+		mockUserSvc.EXPECT().
+			RootSignin(gomock.Any(), input).
+			Return(&domain.AuthResponse{
+				Token: "jwt-token",
+				User: domain.User{
+					ID:    "root-user-id",
+					Email: "root@example.com",
+				},
+				ExpiresAt: time.Now().Add(24 * time.Hour),
+			}, nil)
+
+		body, err := json.Marshal(input)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/user.rootSignin", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		handler.RootSignIn(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var response domain.AuthResponse
+		err = json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "jwt-token", response.Token)
+		assert.Equal(t, "root@example.com", response.User.Email)
+	})
+
+	t.Run("wrong HTTP method returns 405", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodGet, "/api/user.rootSignin", nil)
+		rec := httptest.NewRecorder()
+
+		handler.RootSignIn(rec, req)
+
+		assert.Equal(t, http.StatusMethodNotAllowed, rec.Code)
+
+		var response map[string]string
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Method not allowed", response["error"])
+	})
+
+	t.Run("invalid JSON body returns 400", func(t *testing.T) {
+		req := httptest.NewRequest(http.MethodPost, "/api/user.rootSignin", bytes.NewReader([]byte("invalid json")))
+		rec := httptest.NewRecorder()
+
+		handler.RootSignIn(rec, req)
+
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		var response map[string]string
+		err := json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Invalid request body", response["error"])
+	})
+
+	t.Run("missing required fields returns 400", func(t *testing.T) {
+		// Missing signature
+		input := map[string]interface{}{
+			"email":     "root@example.com",
+			"timestamp": time.Now().Unix(),
+		}
+
+		body, err := json.Marshal(input)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/user.rootSignin", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		handler.RootSignIn(rec, req)
+
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Contains(t, response["error"], "Missing required fields")
+	})
+
+	t.Run("missing timestamp returns 400", func(t *testing.T) {
+		input := map[string]interface{}{
+			"email":     "root@example.com",
+			"signature": "some-sig",
+		}
+
+		body, err := json.Marshal(input)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/user.rootSignin", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		handler.RootSignIn(rec, req)
+
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	})
+
+	t.Run("service error returns 401 with generic message", func(t *testing.T) {
+		input := domain.RootSigninInput{
+			Email:     "root@example.com",
+			Timestamp: time.Now().Unix(),
+			Signature: "invalid-signature",
+		}
+
+		mockUserSvc.EXPECT().
+			RootSignin(gomock.Any(), input).
+			Return(nil, fmt.Errorf("unauthorized: invalid credentials"))
+
+		body, err := json.Marshal(input)
+		require.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodPost, "/api/user.rootSignin", bytes.NewReader(body))
+		rec := httptest.NewRecorder()
+
+		handler.RootSignIn(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+
+		var response map[string]string
+		err = json.NewDecoder(rec.Body).Decode(&response)
+		require.NoError(t, err)
+		// Should return generic error message, not the actual service error
+		assert.Equal(t, "Invalid credentials", response["error"])
+	})
+}
+
 func TestUserHandler_RegisterRoutes(t *testing.T) {
 	handler, mockUserSvc, mockWorkspaceSvc, jwtSecret := setupUserHandlerTest(t)
 

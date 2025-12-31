@@ -59,6 +59,13 @@ type VerifyCodeInput struct {
 	Code  string `json:"code"`
 }
 
+// RootSigninInput represents the request for root user programmatic signin
+type RootSigninInput struct {
+	Email     string `json:"email"`
+	Timestamp int64  `json:"timestamp"`
+	Signature string `json:"signature"`
+}
+
 type AuthResponse struct {
 	Token     string    `json:"token"`
 	User      User      `json:"user"`
@@ -69,6 +76,7 @@ type AuthResponse struct {
 type UserServiceInterface interface {
 	SignIn(ctx context.Context, input SignInInput) (string, error)
 	VerifyCode(ctx context.Context, input VerifyCodeInput) (*AuthResponse, error)
+	RootSignin(ctx context.Context, input RootSigninInput) (*AuthResponse, error)
 	VerifyUserSession(ctx context.Context, userID string, sessionID string) (*User, error)
 	GetUserByID(ctx context.Context, userID string) (*User, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)

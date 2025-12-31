@@ -1,0 +1,91 @@
+/api/user.rootSignin:
+  post:
+    summary: Root user programmatic signin
+    security: []  # Public endpoint - no authentication required
+    description: |
+      Authenticates the root user using HMAC signature for programmatic access.
+      This endpoint is designed for automation scenarios like Infrastructure-as-Code
+      deployments, CI/CD pipelines, and automated testing where magic link
+      authentication is impractical.
+
+      **Security Features:**
+      - HMAC-SHA256 signature verification using the application's secret key
+      - 60-second timestamp window to prevent replay attacks
+      - Rate limited to 5 attempts per 5 minutes per email
+      - Only works for the configured root email address
+
+      **How to generate the signature:**
+      ```bash
+      SECRET_KEY="your-notifuse-secret-key"
+      ROOT_EMAIL="admin@example.com"
+      TIMESTAMP=$(date +%s)
+      MESSAGE="${ROOT_EMAIL}:${TIMESTAMP}"
+      SIGNATURE=$(echo -n "$MESSAGE" | openssl dgst -sha256 -hmac "$SECRET_KEY" | awk '{print $2}')
+      ```
+    operationId: rootSignin
+    tags:
+      - Authentication
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas/user.yaml#/RootSigninRequest'
+          example:
+            email: admin@example.com
+            timestamp: 1735600000
+            signature: a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456
+    responses:
+      '200':
+        description: Authentication successful
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/user.yaml#/RootSigninResponse'
+            example:
+              token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNyXzEyMzQ1Njc4OTAiLCJzZXNzaW9uX2lkIjoic2VzXzEyMzQ1Njc4OTAiLCJleHAiOjE3MzU2ODY0MDB9.signature
+              user:
+                id: usr_1234567890
+                email: admin@example.com
+                name: Admin User
+                created_at: "2025-01-01T00:00:00Z"
+                updated_at: "2025-01-01T00:00:00Z"
+              expires_at: "2025-01-01T12:00:00Z"
+      '400':
+        description: Bad request - missing required fields
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              missingFields:
+                summary: Missing required fields
+                value:
+                  error: "Missing required fields: email, timestamp, signature"
+              invalidBody:
+                summary: Invalid JSON body
+                value:
+                  error: "Invalid request body"
+      '401':
+        description: Unauthorized - invalid credentials
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            examples:
+              invalidCredentials:
+                summary: Invalid email, timestamp, or signature
+                value:
+                  error: "Invalid credentials"
+              rateLimited:
+                summary: Too many failed attempts
+                value:
+                  error: "Invalid credentials"
+      '405':
+        description: Method not allowed
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas/common.yaml#/ErrorResponse'
+            example:
+              error: "Method not allowed"

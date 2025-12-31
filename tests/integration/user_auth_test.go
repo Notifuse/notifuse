@@ -3,6 +3,7 @@ package integration
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"testing"
 	"time"
@@ -577,6 +578,179 @@ func performCompleteSignInFlow(t *testing.T, client *testutil.APIClient, email s
 	require.NoError(t, err)
 
 	return authResponse.Token
+}
+
+func TestRootSigninFlow(t *testing.T) {
+	testutil.SkipIfShort(t)
+	testutil.SetupTestEnvironment()
+	defer testutil.CleanupTestEnvironment()
+
+	suite := testutil.NewIntegrationTestSuite(t, appFactory)
+	defer func() { suite.Cleanup() }()
+
+	client := suite.APIClient
+
+	t.Run("successful root signin with valid HMAC", func(t *testing.T) {
+		// Get root email and secret from config
+		app := suite.ServerManager.GetApp()
+		rootEmail := app.GetConfig().RootEmail
+		secretKey := app.GetConfig().Security.SecretKey
+
+		// Skip test if root email is not configured
+		if rootEmail == "" {
+			t.Skip("RootEmail not configured in test environment")
+		}
+
+		// Generate valid signature
+		timestamp := time.Now().Unix()
+		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+
+		req := domain.RootSigninInput{
+			Email:     rootEmail,
+			Timestamp: timestamp,
+			Signature: signature,
+		}
+
+		resp, err := client.Post("/api/user.rootSignin", req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var authResp domain.AuthResponse
+		err = json.NewDecoder(resp.Body).Decode(&authResp)
+		require.NoError(t, err)
+		assert.NotEmpty(t, authResp.Token)
+		assert.Equal(t, rootEmail, authResp.User.Email)
+	})
+
+	t.Run("fails with wrong email", func(t *testing.T) {
+		app := suite.ServerManager.GetApp()
+		secretKey := app.GetConfig().Security.SecretKey
+
+		wrongEmail := "wrongemail@example.com"
+		timestamp := time.Now().Unix()
+		message := fmt.Sprintf("%s:%d", wrongEmail, timestamp)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+
+		req := domain.RootSigninInput{
+			Email:     wrongEmail,
+			Timestamp: timestamp,
+			Signature: signature,
+		}
+
+		resp, err := client.Post("/api/user.rootSignin", req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+
+		var response map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&response)
+		require.NoError(t, err)
+		assert.Equal(t, "Invalid credentials", response["error"])
+	})
+
+	t.Run("fails with expired timestamp", func(t *testing.T) {
+		app := suite.ServerManager.GetApp()
+		rootEmail := app.GetConfig().RootEmail
+		secretKey := app.GetConfig().Security.SecretKey
+
+		if rootEmail == "" {
+			t.Skip("RootEmail not configured in test environment")
+		}
+
+		// Timestamp more than 60 seconds ago
+		timestamp := time.Now().Unix() - 120
+		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+
+		req := domain.RootSigninInput{
+			Email:     rootEmail,
+			Timestamp: timestamp,
+			Signature: signature,
+		}
+
+		resp, err := client.Post("/api/user.rootSignin", req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	})
+
+	t.Run("fails with invalid signature", func(t *testing.T) {
+		app := suite.ServerManager.GetApp()
+		rootEmail := app.GetConfig().RootEmail
+
+		if rootEmail == "" {
+			t.Skip("RootEmail not configured in test environment")
+		}
+
+		timestamp := time.Now().Unix()
+
+		req := domain.RootSigninInput{
+			Email:     rootEmail,
+			Timestamp: timestamp,
+			Signature: "invalid-signature-abc123def456",
+		}
+
+		resp, err := client.Post("/api/user.rootSignin", req)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	})
+
+	t.Run("token can be used for authenticated requests", func(t *testing.T) {
+		app := suite.ServerManager.GetApp()
+		rootEmail := app.GetConfig().RootEmail
+		secretKey := app.GetConfig().Security.SecretKey
+
+		if rootEmail == "" {
+			t.Skip("RootEmail not configured in test environment")
+		}
+
+		// Generate valid signature and get token
+		timestamp := time.Now().Unix()
+		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+
+		signinReq := domain.RootSigninInput{
+			Email:     rootEmail,
+			Timestamp: timestamp,
+			Signature: signature,
+		}
+
+		resp, err := client.Post("/api/user.rootSignin", signinReq)
+		require.NoError(t, err)
+		defer func() { _ = resp.Body.Close() }()
+
+		require.Equal(t, http.StatusOK, resp.StatusCode)
+
+		var authResp domain.AuthResponse
+		err = json.NewDecoder(resp.Body).Decode(&authResp)
+		require.NoError(t, err)
+		require.NotEmpty(t, authResp.Token)
+
+		// Use the token to call /api/user.me
+		meReq, err := http.NewRequest("GET", suite.ServerManager.GetURL()+"/api/user.me", nil)
+		require.NoError(t, err)
+		meReq.Header.Set("Authorization", "Bearer "+authResp.Token)
+
+		meResp, err := http.DefaultClient.Do(meReq)
+		require.NoError(t, err)
+		defer func() { _ = meResp.Body.Close() }()
+
+		assert.Equal(t, http.StatusOK, meResp.StatusCode)
+
+		var meResponse map[string]interface{}
+		err = json.NewDecoder(meResp.Body).Decode(&meResponse)
+		require.NoError(t, err)
+		assert.Contains(t, meResponse, "user")
+		user := meResponse["user"].(map[string]interface{})
+		assert.Equal(t, rootEmail, user["email"])
+	})
 }
 
 // getAuthServiceFromApp is an unused test helper

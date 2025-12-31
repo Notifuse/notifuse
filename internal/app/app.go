@@ -481,6 +481,7 @@ func (a *App) InitServices() error {
 		Tracer:        tracing.GetTracer(),
 		RateLimiter:   a.rateLimiter, // Pass global rate limiter
 		SecretKey:     a.config.Security.SecretKey,
+		RootEmail:     a.config.RootEmail,
 	}
 
 	a.userService, err = service.NewUserService(userServiceConfig)

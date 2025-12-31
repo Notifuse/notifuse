@@ -22,6 +22,7 @@ import (
 type UserServiceInterface interface {
 	SignIn(ctx context.Context, input domain.SignInInput) (string, error)
 	VerifyCode(ctx context.Context, input domain.VerifyCodeInput) (*domain.AuthResponse, error)
+	RootSignin(ctx context.Context, input domain.RootSigninInput) (*domain.AuthResponse, error)
 	VerifyUserSession(ctx context.Context, userID string, sessionID string) (*domain.User, error)
 	GetUserByID(ctx context.Context, userID string) (*domain.User, error)
 	Logout(ctx context.Context, userID string) error
@@ -126,6 +127,61 @@ func (h *UserHandler) VerifyCode(w http.ResponseWriter, r *http.Request) {
 	response, err := h.userService.VerifyCode(ctx, input)
 	if err != nil {
 		WriteJSONError(w, err.Error(), http.StatusUnauthorized)
+		h.tracer.MarkSpanError(ctx, err)
+		return
+	}
+
+	// Set user ID in span once we have it
+	if response != nil && response.User.ID != "" {
+		span.AddAttributes(trace.StringAttribute("user.id", response.User.ID))
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_ = json.NewEncoder(w).Encode(response)
+}
+
+// RootSignIn handles programmatic signin for the root user using HMAC signature
+func (h *UserHandler) RootSignIn(w http.ResponseWriter, r *http.Request) {
+	ctx, span := h.tracer.StartSpan(r.Context(), "UserHandler.RootSignIn")
+	defer span.End()
+
+	if r.Method != http.MethodPost {
+		WriteJSONError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		span.SetStatus(trace.Status{
+			Code:    trace.StatusCodeInvalidArgument,
+			Message: "Method not allowed",
+		})
+		return
+	}
+
+	var input domain.RootSigninInput
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		WriteJSONError(w, "Invalid request body", http.StatusBadRequest)
+		span.SetStatus(trace.Status{
+			Code:    trace.StatusCodeInvalidArgument,
+			Message: "Invalid request body",
+		})
+		return
+	}
+
+	// Validate required fields
+	if input.Email == "" || input.Timestamp == 0 || input.Signature == "" {
+		WriteJSONError(w, "Missing required fields: email, timestamp, signature", http.StatusBadRequest)
+		span.SetStatus(trace.Status{
+			Code:    trace.StatusCodeInvalidArgument,
+			Message: "Missing required fields",
+		})
+		return
+	}
+
+	// Add email domain to span for context (masking email for privacy)
+	span.AddAttributes(trace.StringAttribute("user.email.domain", extractEmailDomain(input.Email)))
+
+	h.tracer.AddAttribute(ctx, "operation", "RootSignin")
+	response, err := h.userService.RootSignin(ctx, input)
+	if err != nil {
+		// Use generic error message to prevent enumeration
+		WriteJSONError(w, "Invalid credentials", http.StatusUnauthorized)
 		h.tracer.MarkSpanError(ctx, err)
 		return
 	}
@@ -261,6 +317,7 @@ func (h *UserHandler) RegisterRoutes(mux *http.ServeMux) {
 	// Public routes (no auth required)
 	mux.HandleFunc("/api/user.signin", h.SignIn)
 	mux.HandleFunc("/api/user.verify", h.VerifyCode)
+	mux.HandleFunc("/api/user.rootSignin", h.RootSignIn)
 
 	// Create auth middleware
 	authMiddleware := middleware.NewAuthMiddleware(h.getJWTSecret)

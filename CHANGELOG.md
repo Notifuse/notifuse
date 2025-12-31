@@ -2,7 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
-## [22.1] - 2025-12-28
+## [22.2] - 2025-12-31
+
+### Features
+
+- **Programmatic Root Authentication**: New `/api/user.rootSignin` endpoint for CI/CD and automation
+  - HMAC-SHA256 signature authentication using existing `SECRET_KEY`
+  - 60-second timestamp window to prevent replay attacks
+  - Rate limited (5 attempts per 5 minutes)
+
+## [22.1] - 2025-12-29
 
 ### Features
 
@@ -11,7 +20,12 @@ All notable changes to this project will be documented in this file.
   - Tool use for modifying email structure, blocks, and content
   - Server-side web scraping and search for content inspiration
   - Auto-expand tree to selected block for better navigation
-  - Prompts users to configure Anthropic integration when not set up
+
+### Improvements
+
+- **AI Assistant UX**: Both Email and Blog AI assistants now show a helpful setup prompt when the Anthropic integration is not configured, guiding users to the integration settings
+- **Unified AI Assistant codebase**: Refactored Email and Blog AI assistants to share common code, reducing duplication by ~60% and ensuring consistent behavior
+- **Consistent AI Assistant styling**: Both assistants now use the same color scheme for a unified experience
 
 ## [22.0] - 2025-12-28
 

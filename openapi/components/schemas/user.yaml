@@ -1,0 +1,75 @@
+RootSigninRequest:
+  type: object
+  description: Request payload for root user programmatic signin using HMAC signature
+  properties:
+    email:
+      type: string
+      format: email
+      description: The root user's email address (must match configured ROOT_EMAIL)
+      example: admin@example.com
+    timestamp:
+      type: integer
+      format: int64
+      description: Unix timestamp (seconds since epoch). Must be within 60 seconds of server time.
+      example: 1735600000
+    signature:
+      type: string
+      description: |
+        HMAC-SHA256 signature computed as: HMAC-SHA256(email + ":" + timestamp, SECRET_KEY)
+        The signature should be hex-encoded.
+      example: a1b2c3d4e5f6...
+  required:
+    - email
+    - timestamp
+    - signature
+
+RootSigninResponse:
+  type: object
+  description: Successful authentication response containing JWT token and user details
+  properties:
+    token:
+      type: string
+      description: JWT authentication token for subsequent API requests
+      example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+    user:
+      $ref: '#/User'
+    expires_at:
+      type: string
+      format: date-time
+      description: Token expiration timestamp
+      example: "2025-01-01T12:00:00Z"
+  required:
+    - token
+    - user
+    - expires_at
+
+User:
+  type: object
+  description: User account information
+  properties:
+    id:
+      type: string
+      description: Unique user identifier
+      example: usr_1234567890
+    email:
+      type: string
+      format: email
+      description: User's email address
+      example: admin@example.com
+    name:
+      type: string
+      description: User's display name
+      example: Admin User
+    created_at:
+      type: string
+      format: date-time
+      description: Account creation timestamp
+      example: "2025-01-01T00:00:00Z"
+    updated_at:
+      type: string
+      format: date-time
+      description: Last update timestamp
+      example: "2025-01-01T00:00:00Z"
+  required:
+    - id
+    - email

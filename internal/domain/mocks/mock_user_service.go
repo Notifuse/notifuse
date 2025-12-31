@@ -79,6 +79,21 @@ func (mr *MockUserServiceInterfaceMockRecorder) Logout(arg0, arg1 interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Logout", reflect.TypeOf((*MockUserServiceInterface)(nil).Logout), arg0, arg1)
 }
 
+// RootSignin mocks base method.
+func (m *MockUserServiceInterface) RootSignin(arg0 context.Context, arg1 domain.RootSigninInput) (*domain.AuthResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "RootSignin", arg0, arg1)
+	ret0, _ := ret[0].(*domain.AuthResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// RootSignin indicates an expected call of RootSignin.
+func (mr *MockUserServiceInterfaceMockRecorder) RootSignin(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RootSignin", reflect.TypeOf((*MockUserServiceInterface)(nil).RootSignin), arg0, arg1)
+}
+
 // SignIn mocks base method.
 func (m *MockUserServiceInterface) SignIn(arg0 context.Context, arg1 domain.SignInInput) (string, error) {
 	m.ctrl.T.Helper()

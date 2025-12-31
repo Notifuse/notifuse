@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -92,6 +93,7 @@ func setupUserTest(t *testing.T) (
 		Tracer:        mockTracer,
 		RateLimiter:   rl,
 		SecretKey:     "test-secret-key-for-hmac-verification",
+		RootEmail:     "root@example.com",
 	})
 	require.NoError(t, err)
 
@@ -425,6 +427,161 @@ func TestUserService_GetUserByEmail(t *testing.T) {
 		// Verify it's the correct error type
 		_, ok := err.(*domain.ErrUserNotFound)
 		require.True(t, ok, "Expected ErrUserNotFound error type")
+	})
+}
+
+func TestUserService_RootSignin(t *testing.T) {
+	mockRepo, mockAuthService, service, _ := setupUserTest(t)
+
+	rootEmail := "root@example.com"
+	secretKey := "test-secret-key-for-hmac-verification"
+
+	t.Run("successful root signin with valid HMAC", func(t *testing.T) {
+		timestamp := time.Now().Unix()
+		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+
+		user := &domain.User{
+			ID:    "root-user-id",
+			Email: rootEmail,
+		}
+
+		mockRepo.EXPECT().
+			GetUserByEmail(gomock.Any(), rootEmail).
+			Return(user, nil)
+
+		mockRepo.EXPECT().
+			CreateSession(gomock.Any(), gomock.Any()).
+			Return(nil)
+
+		mockAuthService.EXPECT().
+			GenerateUserAuthToken(user, gomock.Any(), gomock.Any()).
+			Return("jwt-token")
+
+		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
+			Email:     rootEmail,
+			Timestamp: timestamp,
+			Signature: signature,
+		})
+
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.Equal(t, "jwt-token", result.Token)
+		require.Equal(t, rootEmail, result.User.Email)
+	})
+
+	t.Run("fails with wrong email (not root)", func(t *testing.T) {
+		timestamp := time.Now().Unix()
+		wrongEmail := "notroot@example.com"
+		message := fmt.Sprintf("%s:%d", wrongEmail, timestamp)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+
+		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
+			Email:     wrongEmail,
+			Timestamp: timestamp,
+			Signature: signature,
+		})
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.Contains(t, err.Error(), "invalid credentials")
+	})
+
+	t.Run("fails with expired timestamp (too old)", func(t *testing.T) {
+		// Timestamp more than 60 seconds ago
+		timestamp := time.Now().Unix() - 120
+		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+
+		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
+			Email:     rootEmail,
+			Timestamp: timestamp,
+			Signature: signature,
+		})
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.Contains(t, err.Error(), "invalid credentials")
+	})
+
+	t.Run("fails with future timestamp (too far ahead)", func(t *testing.T) {
+		// Timestamp more than 60 seconds in the future
+		timestamp := time.Now().Unix() + 120
+		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+
+		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
+			Email:     rootEmail,
+			Timestamp: timestamp,
+			Signature: signature,
+		})
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.Contains(t, err.Error(), "invalid credentials")
+	})
+
+	t.Run("fails with invalid signature", func(t *testing.T) {
+		timestamp := time.Now().Unix()
+
+		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
+			Email:     rootEmail,
+			Timestamp: timestamp,
+			Signature: "invalid-signature-abc123",
+		})
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.Contains(t, err.Error(), "invalid credentials")
+	})
+
+	t.Run("fails when root user not found in database", func(t *testing.T) {
+		timestamp := time.Now().Unix()
+		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+
+		mockRepo.EXPECT().
+			GetUserByEmail(gomock.Any(), rootEmail).
+			Return(nil, &domain.ErrUserNotFound{Message: "user not found"})
+
+		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
+			Email:     rootEmail,
+			Timestamp: timestamp,
+			Signature: signature,
+		})
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.Contains(t, err.Error(), "invalid credentials")
+	})
+
+	t.Run("fails when session creation fails", func(t *testing.T) {
+		timestamp := time.Now().Unix()
+		message := fmt.Sprintf("%s:%d", rootEmail, timestamp)
+		signature := crypto.ComputeHMAC256([]byte(message), secretKey)
+
+		user := &domain.User{
+			ID:    "root-user-id",
+			Email: rootEmail,
+		}
+
+		mockRepo.EXPECT().
+			GetUserByEmail(gomock.Any(), rootEmail).
+			Return(user, nil)
+
+		mockRepo.EXPECT().
+			CreateSession(gomock.Any(), gomock.Any()).
+			Return(errors.New("database error"))
+
+		result, err := service.RootSignin(context.Background(), domain.RootSigninInput{
+			Email:     rootEmail,
+			Timestamp: timestamp,
+			Signature: signature,
+		})
+
+		require.Error(t, err)
+		require.Nil(t, result)
+		require.Contains(t, err.Error(), "failed to create session")
 	})
 }
 

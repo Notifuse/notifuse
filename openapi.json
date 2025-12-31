@@ -3704,6 +3704,116 @@
           }
         }
       }
+    },
+    "/api/user.rootSignin": {
+      "post": {
+        "summary": "Root user programmatic signin",
+        "security": [],
+        "description": "Authenticates the root user using HMAC signature for programmatic access.\nThis endpoint is designed for automation scenarios like Infrastructure-as-Code\ndeployments, CI/CD pipelines, and automated testing where magic link\nauthentication is impractical.\n\n**Security Features:**\n- HMAC-SHA256 signature verification using the application's secret key\n- 60-second timestamp window to prevent replay attacks\n- Rate limited to 5 attempts per 5 minutes per email\n- Only works for the configured root email address\n\n**How to generate the signature:**\n```bash\nSECRET_KEY=\"your-notifuse-secret-key\"\nROOT_EMAIL=\"admin@example.com\"\nTIMESTAMP=$(date +%s)\nMESSAGE=\"${ROOT_EMAIL}:${TIMESTAMP}\"\nSIGNATURE=$(echo -n \"$MESSAGE\" | openssl dgst -sha256 -hmac \"$SECRET_KEY\" | awk '{print $2}')\n```\n",
+        "operationId": "rootSignin",
+        "tags": [
+          "Authentication"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RootSigninRequest"
+              },
+              "example": {
+                "email": "admin@example.com",
+                "timestamp": 1735600000,
+                "signature": "a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RootSigninResponse"
+                },
+                "example": {
+                  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidXNyXzEyMzQ1Njc4OTAiLCJzZXNzaW9uX2lkIjoic2VzXzEyMzQ1Njc4OTAiLCJleHAiOjE3MzU2ODY0MDB9.signature",
+                  "user": {
+                    "id": "usr_1234567890",
+                    "email": "admin@example.com",
+                    "name": "Admin User",
+                    "created_at": "2025-01-01T00:00:00Z",
+                    "updated_at": "2025-01-01T00:00:00Z"
+                  },
+                  "expires_at": "2025-01-01T12:00:00Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - missing required fields",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "missingFields": {
+                    "summary": "Missing required fields",
+                    "value": {
+                      "error": "Missing required fields: email, timestamp, signature"
+                    }
+                  },
+                  "invalidBody": {
+                    "summary": "Invalid JSON body",
+                    "value": {
+                      "error": "Invalid request body"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - invalid credentials",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "examples": {
+                  "invalidCredentials": {
+                    "summary": "Invalid email, timestamp, or signature",
+                    "value": {
+                      "error": "Invalid credentials"
+                    }
+                  },
+                  "rateLimited": {
+                    "summary": "Too many failed attempts",
+                    "value": {
+                      "error": "Invalid credentials"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Method not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                },
+                "example": {
+                  "error": "Method not allowed"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -5008,16 +5118,6 @@
             "type": "integer",
             "description": "Number of emails added to the queue by orchestrator",
             "example": 1000
-          },
-          "sent_count": {
-            "type": "integer",
-            "description": "Number of emails successfully sent by worker",
-            "example": 985
-          },
-          "failed_count": {
-            "type": "integer",
-            "description": "Number of emails permanently failed (max retries exhausted)",
-            "example": 5
           },
           "test_phase_recipient_count": {
             "type": "integer",
@@ -6913,6 +7013,97 @@
             ]
           }
         }
+      },
+      "RootSigninRequest": {
+        "type": "object",
+        "description": "Request payload for root user programmatic signin using HMAC signature",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "The root user's email address (must match configured ROOT_EMAIL)",
+            "example": "admin@example.com"
+          },
+          "timestamp": {
+            "type": "integer",
+            "format": "int64",
+            "description": "Unix timestamp (seconds since epoch). Must be within 60 seconds of server time.",
+            "example": 1735600000
+          },
+          "signature": {
+            "type": "string",
+            "description": "HMAC-SHA256 signature computed as: HMAC-SHA256(email + \":\" + timestamp, SECRET_KEY)\nThe signature should be hex-encoded.\n",
+            "example": "a1b2c3d4e5f6..."
+          }
+        },
+        "required": [
+          "email",
+          "timestamp",
+          "signature"
+        ]
+      },
+      "RootSigninResponse": {
+        "type": "object",
+        "description": "Successful authentication response containing JWT token and user details",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "JWT authentication token for subsequent API requests",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "expires_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Token expiration timestamp",
+            "example": "2025-01-01T12:00:00Z"
+          }
+        },
+        "required": [
+          "token",
+          "user",
+          "expires_at"
+        ]
+      },
+      "User": {
+        "type": "object",
+        "description": "User account information",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique user identifier",
+            "example": "usr_1234567890"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "User's email address",
+            "example": "admin@example.com"
+          },
+          "name": {
+            "type": "string",
+            "description": "User's display name",
+            "example": "Admin User"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Account creation timestamp",
+            "example": "2025-01-01T00:00:00Z"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Last update timestamp",
+            "example": "2025-01-01T00:00:00Z"
+          }
+        },
+        "required": [
+          "id",
+          "email"
+        ]
       }
     }
   }

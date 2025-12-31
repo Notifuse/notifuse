@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"crypto/hmac"
 	"crypto/rand"
 	"fmt"
 	"time"
@@ -25,6 +26,7 @@ type UserService struct {
 	tracer        tracing.Tracer
 	rateLimiter   *ratelimiter.RateLimiter // Global rate limiter with namespace support
 	secretKey     string
+	rootEmail     string
 }
 
 type EmailSender interface {
@@ -41,6 +43,7 @@ type UserServiceConfig struct {
 	Tracer        tracing.Tracer
 	RateLimiter   *ratelimiter.RateLimiter // Global rate limiter
 	SecretKey     string
+	RootEmail     string
 }
 
 func NewUserService(cfg UserServiceConfig) (*UserService, error) {
@@ -60,6 +63,7 @@ func NewUserService(cfg UserServiceConfig) (*UserService, error) {
 		tracer:        tracer,
 		rateLimiter:   cfg.RateLimiter, // Global rate limiter
 		secretKey:     cfg.SecretKey,
+		rootEmail:     cfg.RootEmail,
 	}, nil
 }
 
@@ -232,6 +236,92 @@ func (s *UserService) VerifyCode(ctx context.Context, input domain.VerifyCodeInp
 		Token:     token,
 		User:      *user,
 		ExpiresAt: matchingSession.ExpiresAt,
+	}, nil
+}
+
+// RootSignin authenticates the root user using HMAC signature.
+// This allows programmatic authentication without magic link for automation scenarios.
+func (s *UserService) RootSignin(ctx context.Context, input domain.RootSigninInput) (*domain.AuthResponse, error) {
+	ctx, span := s.tracer.StartServiceSpan(ctx, "UserService", "RootSignin")
+	defer span.End()
+
+	s.tracer.AddAttribute(ctx, "user.email", input.Email)
+
+	// Check rate limit (reuse "signin" namespace)
+	if s.rateLimiter != nil && !s.rateLimiter.Allow("signin", input.Email) {
+		s.logger.WithField("email", input.Email).Warn("Root sign-in rate limit exceeded")
+		s.tracer.AddAttribute(ctx, "error", "rate_limit_exceeded")
+		s.tracer.MarkSpanError(ctx, fmt.Errorf("rate limit exceeded"))
+		return nil, fmt.Errorf("too many sign-in attempts, please try again in a few minutes")
+	}
+
+	// Verify email matches root user
+	if input.Email != s.rootEmail {
+		s.logger.WithField("email", input.Email).Warn("Root signin attempted with non-root email")
+		s.tracer.AddAttribute(ctx, "error", "invalid_credentials")
+		return nil, fmt.Errorf("unauthorized: invalid credentials")
+	}
+
+	// Validate timestamp (60-second window to prevent replay attacks)
+	now := time.Now().Unix()
+	if input.Timestamp < now-60 || input.Timestamp > now+60 {
+		s.logger.WithField("email", input.Email).WithField("timestamp", input.Timestamp).Warn("Root signin timestamp out of range")
+		s.tracer.AddAttribute(ctx, "error", "invalid_timestamp")
+		return nil, fmt.Errorf("unauthorized: invalid credentials")
+	}
+
+	// Verify HMAC signature using constant-time comparison
+	message := fmt.Sprintf("%s:%d", input.Email, input.Timestamp)
+	expectedSig := crypto.ComputeHMAC256([]byte(message), s.secretKey)
+	if !hmac.Equal([]byte(input.Signature), []byte(expectedSig)) {
+		s.logger.WithField("email", input.Email).Warn("Root signin invalid signature")
+		s.tracer.AddAttribute(ctx, "error", "invalid_signature")
+		return nil, fmt.Errorf("unauthorized: invalid credentials")
+	}
+
+	// Get root user
+	user, err := s.repo.GetUserByEmail(ctx, input.Email)
+	if err != nil {
+		s.logger.WithField("email", input.Email).WithField("error", err.Error()).Error("Root signin user not found")
+		s.tracer.MarkSpanError(ctx, err)
+		return nil, fmt.Errorf("unauthorized: invalid credentials")
+	}
+
+	s.tracer.AddAttribute(ctx, "user.id", user.ID)
+
+	// Create session (no magic code needed for root signin)
+	expiresAt := time.Now().Add(s.sessionExpiry)
+	session := &domain.Session{
+		ID:        generateID(),
+		UserID:    user.ID,
+		ExpiresAt: expiresAt,
+		CreatedAt: time.Now(),
+	}
+
+	s.tracer.AddAttribute(ctx, "session.id", session.ID)
+	s.tracer.AddAttribute(ctx, "session.expires_at", expiresAt.String())
+
+	if err := s.repo.CreateSession(ctx, session); err != nil {
+		s.logger.WithField("user_id", user.ID).WithField("error", err.Error()).Error("Failed to create session for root signin")
+		s.tracer.MarkSpanError(ctx, err)
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	// Generate JWT token
+	token := s.authService.GenerateUserAuthToken(user, session.ID, expiresAt)
+	s.tracer.AddAttribute(ctx, "token.generated", true)
+
+	// Reset rate limiter on success
+	if s.rateLimiter != nil {
+		s.rateLimiter.Reset("signin", input.Email)
+	}
+
+	s.logger.WithField("user_id", user.ID).WithField("email", user.Email).Info("Root user signed in via HMAC")
+
+	return &domain.AuthResponse{
+		Token:     token,
+		User:      *user,
+		ExpiresAt: expiresAt,
 	}, nil
 }
 
