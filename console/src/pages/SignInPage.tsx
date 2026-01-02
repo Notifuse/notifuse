@@ -77,8 +77,77 @@ export function SignInPage() {
     [handleCodeSubmit, message]
   )
 
+  // Auto-login via token parameter (for external app integrations)
+  // This enables SSO from external applications by passing a JWT token in the URL
+  useEffect(() => {
+    const tokenFromUrl = search.token as string | undefined
+
+    if (tokenFromUrl && !hasAutoSubmitted.current) {
+      // Validate JWT format before attempting signin
+      if (!tokenFromUrl.match(/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+$/)) {
+        message.error('Invalid token format')
+        return
+      }
+
+      hasAutoSubmitted.current = true
+      console.log('[SignInPage] Auto-login via token parameter')
+
+      signin(tokenFromUrl)
+        .then(() => {
+          message.success('Successfully signed in')
+          setTimeout(() => {
+            navigate({ to: '/console' })
+          }, 100)
+        })
+        .catch((error) => {
+          console.error('[SignInPage] Auto-login failed:', error)
+          message.error('Auto-login failed. The token may be expired or invalid.')
+          hasAutoSubmitted.current = false // Allow retry
+        })
+    }
+  }, [search.token, signin, message, navigate])
+
+  // Auto-login via magic code parameter (for external app integrations)
+  // Enables magic links with ?email=xxx&code=yyy for external integrations
+  useEffect(() => {
+    const codeFromUrl = search.code as string | undefined
+    const emailFromUrl = search.email as string | undefined
+
+    // Only process if we have both email and code, and haven't submitted yet
+    if (codeFromUrl && emailFromUrl && !hasAutoSubmitted.current) {
+      hasAutoSubmitted.current = true
+
+      // Validate code format (6 digits)
+      if (!codeFromUrl.match(/^\d{6}$/)) {
+        message.error('Invalid code format. Code must be 6 digits.')
+        hasAutoSubmitted.current = false
+        return
+      }
+
+      console.log('[SignInPage] Auto-login via magic code parameters')
+
+      setEmail(emailFromUrl)
+      form.setFieldsValue({ email: emailFromUrl })
+      setShowCodeInput(true)
+
+      // Auto-submit the code after a short delay to ensure UI is ready
+      setTimeout(async () => {
+        try {
+          await handleCodeSubmit({ code: codeFromUrl }, emailFromUrl)
+        } catch (error) {
+          console.error('[SignInPage] Magic code auto-submit failed:', error)
+          message.error('The code may be expired. Please request a new one.')
+          hasAutoSubmitted.current = false // Allow retry
+        }
+      }, 500)
+    }
+  }, [search.code, search.email, form, handleCodeSubmit, message])
+
   // Initialize email from URL parameter or demo mode
   useEffect(() => {
+    // Skip if we already handled token/code auto-login above
+    if (search.token || (search.code && search.email)) return
+
     // Prevent multiple auto-submissions
     if (hasAutoSubmitted.current) return
 
@@ -99,7 +168,7 @@ export function SignInPage() {
       // Automatically submit the form if email is determined
       handleEmailSubmit({ email: emailToUse })
     }
-  }, [search.email, form, handleEmailSubmit])
+  }, [search.email, search.token, search.code, form, handleEmailSubmit])
 
   const handleResendCode = async () => {
     try {
