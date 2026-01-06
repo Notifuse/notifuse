@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [22.4] - 2026-01-06
+
+### Bug Fixes
+
+- **Broadcast Emails**: Fixed regression from v21.0 email queue system where system template variables (`{{ unsubscribe_url }}`, `{{ notification_center_url }}`, `{{ broadcast.name }}`, etc.) were not rendering in broadcast emails (fixes #180)
+- **Message History**: Fixed regression where template data was empty in message history for queue-based sends
+
 ## [22.3] - 2026-01-06
 
 ### Bug Fixes

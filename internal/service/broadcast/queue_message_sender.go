@@ -133,20 +133,47 @@ func (s *queueMessageSender) SendBatch(
 		// Generate message ID
 		messageID := fmt.Sprintf("%s_%s", workspaceID, uuid.New().String())
 
-		// Build template data
-		contactMap, err := recipient.Contact.ToMapOfAny()
+		// Ensure UTM parameters object is present
+		if broadcast.UTMParameters == nil {
+			broadcast.UTMParameters = &domain.UTMParameters{}
+		}
+
+		if broadcast.UTMParameters.Content == "" {
+			broadcast.UTMParameters.Content = template.ID
+		}
+
+		// Build tracking settings for BuildTemplateData
+		trackingSettings := notifuse_mjml.TrackingSettings{
+			Endpoint:       endpoint,
+			EnableTracking: trackingEnabled,
+			UTMSource:      broadcast.UTMParameters.Source,
+			UTMMedium:      broadcast.UTMParameters.Medium,
+			UTMCampaign:    broadcast.UTMParameters.Campaign,
+			UTMContent:     broadcast.UTMParameters.Content,
+			UTMTerm:        broadcast.UTMParameters.Term,
+			WorkspaceID:    workspaceID,
+			MessageID:      messageID,
+		}
+
+		// Build template data with all system variables (unsubscribe_url, notification_center_url, etc.)
+		req := domain.TemplateDataRequest{
+			WorkspaceID:        workspaceID,
+			WorkspaceSecretKey: workspaceSecretKey,
+			ContactWithList:    *recipient,
+			MessageID:          messageID,
+			TrackingSettings:   trackingSettings,
+			Broadcast:          broadcast,
+		}
+		data, err := domain.BuildTemplateData(req)
 		if err != nil {
 			s.logger.WithFields(map[string]interface{}{
 				"broadcast_id": broadcastID,
 				"workspace_id": workspaceID,
 				"recipient":    recipient.Contact.Email,
 				"error":        err.Error(),
-			}).Warn("Failed to convert contact to map")
+			}).Warn("Failed to build template data")
 			buildErrors++
 			continue
-		}
-		data := map[string]interface{}{
-			"contact": contactMap,
 		}
 
 		// Build queue entry
@@ -285,6 +312,7 @@ func (s *queueMessageSender) buildQueueEntry(
 			EmailOptions:       domain.EmailOptions{},
 			TemplateVersion:    int(template.Version),
 			ListID:             broadcast.Audience.List,
+			TemplateData:       data, // Store template data for message history
 		},
 		MaxAttempts: 3,
 		CreatedAt:   time.Now().UTC(),

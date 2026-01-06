@@ -253,6 +253,107 @@ func TestBroadcastLiquidTemplateSubstitution(t *testing.T) {
 		// Subject should still have the unique ID (template rendered, just with empty name)
 		assert.Contains(t, msg.Subject, uniqueID, "Subject should contain unique ID (template was rendered)")
 	})
+
+	t.Run("renders system variables like unsubscribe_url and notification_center_url", func(t *testing.T) {
+		// Clear Mailpit
+		err := testutil.ClearMailpitMessages(t)
+		require.NoError(t, err)
+
+		// Create list with a specific name to verify list.name variable
+		listName := fmt.Sprintf("Subscribers-%s", uuid.New().String()[:8])
+		list, err := factory.CreateList(workspace.ID,
+			testutil.WithListName(listName))
+		require.NoError(t, err)
+
+		// Create contact
+		contactEmail := fmt.Sprintf("sysvar-test-%s@example.com", uuid.New().String()[:8])
+		contact, err := factory.CreateContact(workspace.ID,
+			testutil.WithContactEmail(contactEmail),
+			testutil.WithContactName("Jane", "Smith"))
+		require.NoError(t, err)
+		t.Logf("Created contact: %s", contact.Email)
+
+		// Add contact to list
+		_, err = factory.CreateContactList(workspace.ID,
+			testutil.WithContactListEmail(contact.Email),
+			testutil.WithContactListListID(list.ID),
+			testutil.WithContactListStatus(domain.ContactListStatusActive))
+		require.NoError(t, err)
+
+		// Create template with system variables (Issue #180)
+		uniqueID := uuid.New().String()[:8]
+		template, err := factory.CreateTemplate(workspace.ID,
+			testutil.WithTemplateName("System Vars Template"),
+			testutil.WithTemplateSubject(fmt.Sprintf("Newsletter - %s", uniqueID)),
+			testutil.WithTemplateEmailContent(`Hello {{ contact.first_name }}! <a href="{{ unsubscribe_url }}">Unsubscribe</a> | <a href="{{ notification_center_url }}">Manage Preferences</a>`))
+		require.NoError(t, err)
+		t.Log("Created template with system variables: unsubscribe_url, notification_center_url")
+
+		// Create broadcast with a specific name to verify broadcast.name variable
+		broadcastName := fmt.Sprintf("Weekly Newsletter-%s", uuid.New().String()[:8])
+		broadcast, err := factory.CreateBroadcast(workspace.ID,
+			testutil.WithBroadcastName(broadcastName),
+			testutil.WithBroadcastAudience(domain.AudienceSettings{
+				List:                list.ID,
+				ExcludeUnsubscribed: true,
+			}))
+		require.NoError(t, err)
+
+		// Update broadcast to use our template
+		broadcast.TestSettings.Variations[0].TemplateID = template.ID
+		updateReq := map[string]interface{}{
+			"workspace_id":  workspace.ID,
+			"id":            broadcast.ID,
+			"name":          broadcast.Name,
+			"audience":      broadcast.Audience,
+			"schedule":      broadcast.Schedule,
+			"test_settings": broadcast.TestSettings,
+		}
+		updateResp, err := client.UpdateBroadcast(updateReq)
+		require.NoError(t, err)
+		updateResp.Body.Close()
+
+		// Schedule broadcast to send now
+		t.Log("Scheduling broadcast to send now...")
+		scheduleResp, err := client.ScheduleBroadcast(map[string]interface{}{
+			"workspace_id": workspace.ID,
+			"id":           broadcast.ID,
+			"send_now":     true,
+		})
+		require.NoError(t, err)
+		scheduleResp.Body.Close()
+
+		// Wait for broadcast completion
+		t.Log("Waiting for broadcast completion...")
+		_, err = testutil.WaitForBroadcastStatusWithExecution(t, client, broadcast.ID,
+			[]string{"processed", "completed"}, 60*time.Second)
+		require.NoError(t, err)
+
+		// Fetch email from Mailpit
+		t.Log("Fetching email from Mailpit...")
+		msg, err := waitForEmailByRecipient(t, contactEmail, 15*time.Second)
+		require.NoError(t, err, "Should receive email in Mailpit")
+
+		t.Logf("Email subject: %s", msg.Subject)
+		t.Logf("Email HTML (first 500 chars): %s", truncateString(msg.HTML, 500))
+
+		// Assert system variables are rendered (not empty or raw Liquid)
+		// URLs are wrapped in click tracking, so check for URL-encoded notification-center
+		assert.Contains(t, msg.HTML, "notification-center",
+			"notification_center_url should be rendered to actual URL")
+		assert.Contains(t, msg.HTML, "action",
+			"unsubscribe_url should contain action parameter")
+		assert.NotContains(t, msg.HTML, `href=""`,
+			"System variable URLs should not be empty")
+		assert.NotContains(t, msg.HTML, "{{ unsubscribe_url }}",
+			"Raw Liquid syntax should not appear for unsubscribe_url")
+		assert.NotContains(t, msg.HTML, "{{ notification_center_url }}",
+			"Raw Liquid syntax should not appear for notification_center_url")
+
+		// Verify contact variable still works alongside system variables
+		assert.Contains(t, msg.HTML, "Hello Jane!",
+			"Contact first_name should be rendered")
+	})
 }
 
 // waitForEmailByRecipient waits for an email to arrive for a specific recipient

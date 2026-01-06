@@ -515,6 +515,204 @@ func TestQueueMessageSender_SendBatch(t *testing.T) {
 		assert.Equal(t, 0, sent)
 		assert.Equal(t, 1, failed)
 	})
+
+	t.Run("populates system variables via BuildTemplateData", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		emailSender := domain.NewEmailSender("sender@example.com", "Test Sender")
+		emailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{emailSender},
+		}
+
+		broadcast := &domain.Broadcast{
+			ID:            "broadcast-1",
+			WorkspaceID:   "workspace-1",
+			Name:          "Weekly Newsletter",
+			UTMParameters: &domain.UTMParameters{Source: "newsletter", Medium: "email"},
+		}
+
+		// Template with system variable placeholders that should be rendered
+		template := &domain.Template{
+			ID: "template-1",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Test Subject",
+				VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "<a href=\"{{ unsubscribe_url }}\">Unsubscribe</a> | <a href=\"{{ notification_center_url }}\">Preferences</a>")),
+			},
+		}
+
+		// Recipients with full list info for BuildTemplateData
+		recipients := []*domain.ContactWithList{
+			{
+				Contact:  &domain.Contact{Email: "user@example.com"},
+				ListID:   "list-123",
+				ListName: "Subscribers",
+			},
+		}
+
+		mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-1", "broadcast-1").
+			Return(broadcast, nil)
+
+		// Verify enqueued entry contains rendered system URLs
+		mockQueueRepo.EXPECT().Enqueue(gomock.Any(), "workspace-1", gomock.Any()).
+			DoAndReturn(func(ctx context.Context, workspaceID string, entries []*domain.EmailQueueEntry) error {
+				require.Len(t, entries, 1)
+				entry := entries[0]
+
+				// System variables should be rendered in HTML (not raw Liquid)
+				// URLs are URL-encoded inside click tracking wrapper, so check for encoded format
+				assert.Contains(t, entry.Payload.HTMLContent, "notification-center",
+					"notification_center_url should be rendered to actual URL")
+				assert.Contains(t, entry.Payload.HTMLContent, "action%3Dunsubscribe",
+					"unsubscribe_url should be rendered to actual URL (URL-encoded in tracking)")
+				assert.NotContains(t, entry.Payload.HTMLContent, "{{ unsubscribe_url }}",
+					"Raw Liquid syntax should not appear in HTML")
+				assert.NotContains(t, entry.Payload.HTMLContent, "{{ notification_center_url }}",
+					"Raw Liquid syntax should not appear in HTML")
+				// Verify href is not empty (it was empty before fix)
+				assert.NotContains(t, entry.Payload.HTMLContent, `href=""`,
+					"Links should have actual URLs, not empty hrefs")
+
+				// RFC-8058 List-Unsubscribe URL should be extracted
+				assert.NotEmpty(t, entry.Payload.EmailOptions.ListUnsubscribeURL,
+					"oneclick_unsubscribe_url should be set for RFC-8058")
+				assert.Contains(t, entry.Payload.EmailOptions.ListUnsubscribeURL, "unsubscribe-oneclick",
+					"List-Unsubscribe URL should contain oneclick endpoint")
+
+				return nil
+			})
+
+		sender := NewQueueMessageSender(
+			mockQueueRepo,
+			mockBroadcastRepo,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockLogger,
+			nil,
+			"https://api.example.com",
+		)
+
+		sent, failed, err := sender.SendBatch(
+			context.Background(),
+			"workspace-1",
+			"integration-1",
+			"test-secret-key",
+			"https://api.example.com",
+			true,
+			"broadcast-1",
+			recipients,
+			map[string]*domain.Template{"template-1": template},
+			emailProvider,
+			time.Now().Add(5*time.Minute),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, sent)
+		assert.Equal(t, 0, failed)
+	})
+
+	t.Run("renders system variables in subject line", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+		mockBroadcastRepo := mocks.NewMockBroadcastRepository(ctrl)
+		mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+		mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+		mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+		mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+		emailSender := domain.NewEmailSender("sender@example.com", "Test Sender")
+		emailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{emailSender},
+		}
+
+		broadcast := &domain.Broadcast{
+			ID:            "broadcast-1",
+			WorkspaceID:   "workspace-1",
+			Name:          "Weekly Newsletter",
+			UTMParameters: &domain.UTMParameters{},
+		}
+
+		// Template with broadcast.name in subject
+		template := &domain.Template{
+			ID: "template-1",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Newsletter from {{ broadcast.name }}",
+				VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "Hello")),
+			},
+		}
+
+		recipients := []*domain.ContactWithList{
+			{
+				Contact:  &domain.Contact{Email: "user@example.com"},
+				ListID:   "list-123",
+				ListName: "Subscribers",
+			},
+		}
+
+		mockBroadcastRepo.EXPECT().GetBroadcast(gomock.Any(), "workspace-1", "broadcast-1").
+			Return(broadcast, nil)
+
+		mockQueueRepo.EXPECT().Enqueue(gomock.Any(), "workspace-1", gomock.Any()).
+			DoAndReturn(func(ctx context.Context, workspaceID string, entries []*domain.EmailQueueEntry) error {
+				require.Len(t, entries, 1)
+				entry := entries[0]
+
+				// Subject should contain rendered broadcast name, not raw Liquid
+				assert.Contains(t, entry.Payload.Subject, "Weekly Newsletter",
+					"Subject should contain broadcast name")
+				assert.NotContains(t, entry.Payload.Subject, "{{ broadcast.name }}",
+					"Subject should not contain raw Liquid syntax")
+				assert.NotContains(t, entry.Payload.Subject, "{{",
+					"Subject should not contain any raw Liquid syntax")
+
+				return nil
+			})
+
+		sender := NewQueueMessageSender(
+			mockQueueRepo,
+			mockBroadcastRepo,
+			mockMessageHistoryRepo,
+			mockTemplateRepo,
+			mockLogger,
+			nil,
+			"https://api.example.com",
+		)
+
+		sent, failed, err := sender.SendBatch(
+			context.Background(),
+			"workspace-1",
+			"integration-1",
+			"test-secret-key",
+			"https://api.example.com",
+			true,
+			"broadcast-1",
+			recipients,
+			map[string]*domain.Template{"template-1": template},
+			emailProvider,
+			time.Now().Add(5*time.Minute),
+		)
+
+		assert.NoError(t, err)
+		assert.Equal(t, 1, sent)
+		assert.Equal(t, 0, failed)
+	})
 }
 
 func TestQueueMessageSender_SelectTemplate(t *testing.T) {

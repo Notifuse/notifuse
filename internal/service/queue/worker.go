@@ -456,8 +456,8 @@ func (w *EmailQueueWorker) upsertMessageHistory(
 		TemplateID:      entry.TemplateID,
 		TemplateVersion: int64(entry.Payload.TemplateVersion),
 		Channel:         "email",
-		MessageData:     domain.MessageData{}, // Empty - basic tracking only
-		SentAt:          entry.CreatedAt,      // Use queue entry creation time (stable across retries)
+		MessageData:     domain.MessageData{Data: entry.Payload.TemplateData}, // Include template data for logging
+		SentAt:          entry.CreatedAt,                                       // Use queue entry creation time (stable across retries)
 		CreatedAt:       entry.CreatedAt,
 		UpdatedAt:       now,
 	}

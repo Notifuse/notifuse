@@ -1059,6 +1059,118 @@ func TestEmailQueueWorker_DefaultRateLimit(t *testing.T) {
 	assert.InDelta(t, 1.0, rate, 0.001)
 }
 
+func TestEmailQueueWorker_ProcessEntry_StoresTemplateDataInMessageHistory(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockEmailService := mocks.NewMockEmailServiceInterface(ctrl)
+	mockMessageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+	mockLogger := pkgmocks.NewMockLogger(ctrl)
+
+	// Setup logger
+	mockLogger.EXPECT().WithFields(gomock.Any()).Return(mockLogger).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any()).AnyTimes()
+
+	integrationID := "integration-1"
+	entryID := "entry-1"
+	workspaceID := "workspace-1"
+
+	workspace := &domain.Workspace{
+		ID: workspaceID,
+		Settings: domain.WorkspaceSettings{
+			SecretKey: "test-secret",
+		},
+		Integrations: []domain.Integration{
+			{
+				ID: integrationID,
+				EmailProvider: domain.EmailProvider{
+					Kind:               domain.EmailProviderKindSMTP,
+					RateLimitPerMinute: 100,
+				},
+			},
+		},
+	}
+
+	// Create entry with template data (as it would be after the fix)
+	templateData := map[string]interface{}{
+		"contact": map[string]interface{}{
+			"email":      "test@example.com",
+			"first_name": "John",
+		},
+		"unsubscribe_url":         "https://example.com/unsub?token=abc",
+		"notification_center_url": "https://example.com/notification-center?wid=workspace-1",
+		"broadcast": map[string]interface{}{
+			"id":   "broadcast-1",
+			"name": "Weekly Newsletter",
+		},
+	}
+
+	entry := &domain.EmailQueueEntry{
+		ID:            entryID,
+		Status:        domain.EmailQueueStatusPending,
+		SourceType:    domain.EmailQueueSourceBroadcast,
+		SourceID:      "broadcast-1",
+		IntegrationID: integrationID,
+		ContactEmail:  "test@example.com",
+		MessageID:     "msg-1",
+		TemplateID:    "template-1",
+		Payload: domain.EmailQueuePayload{
+			FromAddress:        "sender@example.com",
+			FromName:           "Sender",
+			Subject:            "Test Subject",
+			HTMLContent:        "<p>Hello</p>",
+			RateLimitPerMinute: 100,
+			TemplateVersion:    1,
+			ListID:             "list-1",
+			TemplateData:       templateData, // This is what we're testing
+		},
+		Attempts:    0,
+		MaxAttempts: 3,
+	}
+
+	// Expect calls in order
+	mockQueueRepo.EXPECT().MarkAsProcessing(gomock.Any(), workspaceID, entryID).Return(nil)
+	mockEmailService.EXPECT().SendEmail(gomock.Any(), gomock.Any(), true).Return(nil)
+
+	// Verify that message history receives the template data
+	mockMessageHistoryRepo.EXPECT().Upsert(gomock.Any(), workspaceID, gomock.Any(), gomock.Any()).
+		DoAndReturn(func(ctx context.Context, wid, secretKey string, msg *domain.MessageHistory) error {
+			// Verify template data is passed to message history
+			assert.NotNil(t, msg.MessageData.Data, "MessageData.Data should not be nil")
+			assert.Equal(t, templateData, msg.MessageData.Data, "Template data should be passed to message history")
+
+			// Verify other fields are set correctly
+			assert.Equal(t, "msg-1", msg.ID)
+			assert.Equal(t, "test@example.com", msg.ContactEmail)
+			assert.Equal(t, "template-1", msg.TemplateID)
+			assert.Equal(t, int64(1), msg.TemplateVersion)
+			assert.Equal(t, "email", msg.Channel)
+			assert.NotNil(t, msg.BroadcastID)
+			assert.Equal(t, "broadcast-1", *msg.BroadcastID)
+			assert.NotNil(t, msg.ListID)
+			assert.Equal(t, "list-1", *msg.ListID)
+
+			return nil
+		})
+
+	mockQueueRepo.EXPECT().MarkAsSent(gomock.Any(), workspaceID, entryID).Return(nil)
+
+	worker := NewEmailQueueWorker(
+		mockQueueRepo,
+		mockWorkspaceRepo,
+		mockEmailService,
+		mockMessageHistoryRepo,
+		DefaultWorkerConfig(),
+		mockLogger,
+	)
+	worker.ctx = context.Background()
+
+	// Process the entry
+	worker.processEntry(workspace, entry)
+}
+
 func TestEmailQueueWorker_GetMinEmailRateLimit(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
