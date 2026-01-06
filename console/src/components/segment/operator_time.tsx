@@ -3,6 +3,12 @@ import { DimensionFilter, IOperator, Operator } from '../../services/api/segment
 import Messages from './messages'
 import dayjs from 'dayjs'
 
+// Format date for display (converts ISO8601 to readable format)
+const formatDateDisplay = (dateStr: string | undefined): string => {
+  if (!dateStr) return ''
+  return dayjs(dateStr).format('YYYY-MM-DD HH:mm:ss')
+}
+
 const formItemDatetime = (
   <Form.Item
     name={['string_values', 0]}
@@ -11,7 +17,7 @@ const formItemDatetime = (
     getValueProps={(value: unknown) => {
       return { value: value ? dayjs(value as string) : undefined }
     }}
-    getValueFromEvent={(_date: unknown, dateString: string) => dateString}
+    getValueFromEvent={(date: dayjs.Dayjs | null) => (date ? date.toISOString() : undefined)}
   >
     <DatePicker showTime={{ defaultValue: dayjs().startOf('day') }} />
   </Form.Item>
@@ -29,7 +35,9 @@ const formItemDatetimeRange = (
         })
       }
     }}
-    getValueFromEvent={(_date: unknown, dateStrings: string[]) => dateStrings}
+    getValueFromEvent={(dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null) =>
+      dates ? dates.map((date) => (date ? date.toISOString() : undefined)) : undefined
+    }
   >
     <DatePicker.RangePicker
       showTime={{
@@ -49,7 +57,7 @@ export class OperatorBeforeDate implements IOperator {
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
           <Tag bordered={false} color="blue">
-            {filter.string_values?.[0]}
+            {formatDateDisplay(filter.string_values?.[0])}
           </Tag>
         </span>
       </>
@@ -71,7 +79,7 @@ export class OperatorAfterDate implements IOperator {
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
           <Tag bordered={false} color="blue">
-            {filter.string_values?.[0]}
+            {formatDateDisplay(filter.string_values?.[0])}
           </Tag>
         </span>
       </>
@@ -93,11 +101,11 @@ export class OperatorInDateRange implements IOperator {
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
           <Tag bordered={false} color="blue">
-            {filter.string_values?.[0]}
+            {formatDateDisplay(filter.string_values?.[0])}
           </Tag>
           &rarr;
           <Tag bordered={false} className="ml-3" color="blue">
-            {filter.string_values?.[1]}
+            {formatDateDisplay(filter.string_values?.[1])}
           </Tag>
         </span>
       </>
@@ -119,11 +127,11 @@ export class OperatorNotInDateRange implements IOperator {
         <span className="opacity-60 pt-0.5">{this.label}</span>
         <span>
           <Tag bordered={false} color="blue">
-            {filter.string_values?.[0]}
+            {formatDateDisplay(filter.string_values?.[0])}
           </Tag>
           &rarr;
           <Tag bordered={false} className="ml-3" color="blue">
-            {filter.string_values?.[1]}
+            {formatDateDisplay(filter.string_values?.[1])}
           </Tag>
         </span>
       </>

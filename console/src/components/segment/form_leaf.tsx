@@ -395,7 +395,9 @@ export const LeafActionForm = (props: LeafFormProps) => {
                           })
                         }
                       }}
-                      getValueFromEvent={(_date: [Dayjs | null, Dayjs | null] | null, dateStrings: string[]) => dateStrings}
+                      getValueFromEvent={(dates: [Dayjs | null, Dayjs | null] | null) =>
+                        dates ? dates.map((date) => (date ? date.toISOString() : undefined)) : undefined
+                      }
                     >
                       <DatePicker.RangePicker
                         style={{ width: 370 }}
@@ -420,7 +422,7 @@ export const LeafActionForm = (props: LeafFormProps) => {
                       getValueProps={(value: string) => {
                         return { value: value ? dayjs(value) : undefined }
                       }}
-                      getValueFromEvent={(_date: Dayjs | null, dateString: string) => dateString}
+                      getValueFromEvent={(date: Dayjs | null) => (date ? date.toISOString() : undefined)}
                     >
                       <DatePicker
                         style={{ width: 180 }}
@@ -699,7 +701,9 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                           })
                         }
                       }}
-                      getValueFromEvent={(_date: [Dayjs | null, Dayjs | null] | null, dateStrings: string[]) => dateStrings}
+                      getValueFromEvent={(dates: [Dayjs | null, Dayjs | null] | null) =>
+                        dates ? dates.map((date) => (date ? date.toISOString() : undefined)) : undefined
+                      }
                     >
                       <DatePicker.RangePicker
                         style={{ width: 370 }}
@@ -724,7 +728,7 @@ export const LeafCustomEventsGoalForm = (props: LeafFormProps) => {
                       getValueProps={(value: string) => {
                         return { value: value ? dayjs(value) : undefined }
                       }}
-                      getValueFromEvent={(_date: Dayjs | null, dateString: string) => dateString}
+                      getValueFromEvent={(date: Dayjs | null) => (date ? date.toISOString() : undefined)}
                     >
                       <DatePicker
                         style={{ width: 180 }}

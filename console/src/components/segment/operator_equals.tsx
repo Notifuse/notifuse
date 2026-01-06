@@ -9,6 +9,12 @@ import { TIMEZONE_OPTIONS } from '../../lib/timezones'
 import { Languages } from '../../lib/languages'
 import dayjs from 'dayjs'
 
+// Format date for display (converts ISO8601 to readable format)
+const formatDateDisplay = (dateStr: string | undefined): string => {
+  if (!dateStr) return ''
+  return dayjs(dateStr).format('YYYY-MM-DD HH:mm:ss')
+}
+
 export type OperatorEqualsProps = {
   value: string | undefined
 }
@@ -32,7 +38,7 @@ export class OperatorEquals implements IOperator {
         value = filter.number_values?.[0]
         break
       case 'time':
-        value = filter.string_values?.[0]
+        value = formatDateDisplay(filter.string_values?.[0])
         break
       case 'json':
         // JSON fields store values in string_values or number_values
@@ -183,7 +189,7 @@ export class OperatorEquals implements IOperator {
             getValueProps={(value: string) => {
               return { value: value ? dayjs(value) : undefined }
             }}
-            getValueFromEvent={(_date: unknown, dateString: string) => dateString}
+            getValueFromEvent={(date: dayjs.Dayjs | null) => (date ? date.toISOString() : undefined)}
           >
             <DatePicker showTime={{ defaultValue: dayjs().startOf('day') }} />
           </Form.Item>

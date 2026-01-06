@@ -18,6 +18,13 @@ import {
   BooleanOperator
 } from '../../services/api/segment'
 import type { CascaderProps } from 'antd'
+import dayjs from 'dayjs'
+
+// Format date for display (converts ISO8601 to readable format)
+const formatDateDisplay = (dateStr: string | undefined): string => {
+  if (!dateStr) return ''
+  return dayjs(dateStr).format('YYYY-MM-DD HH:mm:ss')
+}
 
 type CascaderOption = NonNullable<CascaderProps['options']>[number]
 import { FieldTypeString } from './type_string'
@@ -632,11 +639,11 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                       <>
                         <span className="opacity-60">between</span>
                         <Tag bordered={false} color="blue">
-                          {goal.timeframe_values?.[0]}
+                          {formatDateDisplay(goal.timeframe_values?.[0])}
                         </Tag>
                         <span className="opacity-60">&rarr;</span>
                         <Tag bordered={false} color="blue">
-                          {goal.timeframe_values?.[1]}
+                          {formatDateDisplay(goal.timeframe_values?.[1])}
                         </Tag>
                       </>
                     )}
@@ -644,7 +651,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                       <>
                         <span className="opacity-60">before</span>
                         <Tag bordered={false} color="blue">
-                          {goal.timeframe_values?.[0]}
+                          {formatDateDisplay(goal.timeframe_values?.[0])}
                         </Tag>
                       </>
                     )}
@@ -652,7 +659,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                       <>
                         <span className="opacity-60">after</span>
                         <Tag bordered={false} color="blue">
-                          {goal.timeframe_values?.[0]}
+                          {formatDateDisplay(goal.timeframe_values?.[0])}
                         </Tag>
                       </>
                     )}
@@ -747,11 +754,11 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                         <>
                           <span className="opacity-60">between</span>
                           <Tag bordered={false} color="blue">
-                            {node.leaf?.contact_timeline.timeframe_values?.[0]}
+                            {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[0])}
                           </Tag>
                           &rarr;
                           <Tag className="ml-3" bordered={false} color="blue">
-                            {node.leaf?.contact_timeline.timeframe_values?.[1]}
+                            {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[1])}
                           </Tag>
                         </>
                       )}
@@ -759,7 +766,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                         <>
                           <span className="opacity-60">before</span>
                           <Tag bordered={false} color="blue">
-                            {node.leaf?.contact_timeline.timeframe_values?.[0]}
+                            {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[0])}
                           </Tag>
                         </>
                       )}
@@ -767,7 +774,7 @@ export const TreeNodeInput = (props: TreeNodeInputProps) => {
                         <>
                           <span className="opacity-60">after</span>
                           <Tag bordered={false} color="blue">
-                            {node.leaf?.contact_timeline.timeframe_values?.[0]}
+                            {formatDateDisplay(node.leaf?.contact_timeline.timeframe_values?.[0])}
                           </Tag>
                         </>
                       )}

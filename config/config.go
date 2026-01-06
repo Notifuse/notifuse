@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "22.4"
+const VERSION = "22.5"
 
 type Config struct {
 	Server          ServerConfig

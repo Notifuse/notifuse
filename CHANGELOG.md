@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [22.5] - 2026-01-06
+
+### Bug Fixes
+
+- **Segment Date Filters**: Fixed date picker sending dates in wrong format (`YYYY-MM-DD HH:mm:ss` instead of ISO8601). Frontend now sends proper RFC3339 format for all segment date filters including contact fields, timeline timeframes, and custom events goal timeframes (fixes #182)
+
 ## [22.4] - 2026-01-06
 
 ### Bug Fixes
