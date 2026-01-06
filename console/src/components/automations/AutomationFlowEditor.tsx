@@ -86,6 +86,7 @@ const AutomationFlowEditorInner: React.FC = () => {
   const [openMenuKey, setOpenMenuKey] = useState<string | null>(null)
   const fitViewCalledRef = useRef(false)
   const pendingReorganizeRef = useRef(false)
+  const reorganizeNodesRef = useRef<() => void>(() => {})
 
   const { getViewport, setViewport, fitView, screenToFlowPosition } = useReactFlow()
 
@@ -117,6 +118,11 @@ const AutomationFlowEditorInner: React.FC = () => {
 
   const hasListSelected = !!listId
 
+  // Keep ref updated with latest reorganizeNodes to avoid stale closure issues
+  useEffect(() => {
+    reorganizeNodesRef.current = reorganizeNodes
+  }, [reorganizeNodes])
+
   // Effect to handle pending reorganization after state updates
   useEffect(() => {
     if (pendingReorganizeRef.current || needsReorganize) {
@@ -125,14 +131,15 @@ const AutomationFlowEditorInner: React.FC = () => {
         clearReorganizeFlag()
       }
       // Small delay to ensure React has fully committed the state
+      // Use ref to call the LATEST reorganizeNodes (with current edges)
       setTimeout(() => {
-        reorganizeNodes()
+        reorganizeNodesRef.current()
         setTimeout(() => {
           fitView({ padding: 0.4, maxZoom: 0.9, duration: 200 })
         }, 50)
       }, 50)
     }
-  }, [nodes, needsReorganize, reorganizeNodes, fitView, clearReorganizeFlag])
+  }, [nodes, needsReorganize, fitView, clearReorganizeFlag])
 
   // Handler for adding node via plus button
   const handleAddNodeFromTerminal = useCallback(

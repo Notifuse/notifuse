@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [22.3] - 2026-01-06
+
+### Bug Fixes
+
+- **Automation Flow Editor**: Fixed stale closure bug causing nodes to disappear when adding children to ListStatusBranch handles (fixes #179)
+
 ## [22.2] - 2025-12-31
 
 ### Features
