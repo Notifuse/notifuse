@@ -126,8 +126,8 @@ func sendRawEmail(host string, port int, username, password string, useTLS bool,
 	smtpConn := newSMTPConnection(conn)
 	defer smtpConn.Close()
 
-	// Read greeting
-	code, _, err := smtpConn.readResponse()
+	// Read greeting (use multiline to handle RFC 5321 multi-line banners - issue #183)
+	code, err := smtpConn.readMultilineResponse()
 	if err != nil {
 		return fmt.Errorf("failed to read greeting: %w", err)
 	}

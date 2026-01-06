@@ -17,14 +17,15 @@ import (
 
 // mockSMTPServer is a test SMTP server that captures commands and messages
 type mockSMTPServer struct {
-	listener    net.Listener
-	mu          sync.Mutex
-	commands    []string
-	messages    []capturedMessage
-	authSuccess bool
-	closed      bool
-	wg          sync.WaitGroup
-	mailFromCmd string // captures the exact MAIL FROM command
+	listener        net.Listener
+	mu              sync.Mutex
+	commands        []string
+	messages        []capturedMessage
+	authSuccess     bool
+	closed          bool
+	wg              sync.WaitGroup
+	mailFromCmd     string // captures the exact MAIL FROM command
+	multilineBanner bool   // send multi-line 220 banner (RFC 5321 compliant)
 }
 
 type capturedMessage struct {
@@ -42,6 +43,26 @@ func newMockSMTPServer(t *testing.T, authSuccess bool) *mockSMTPServer {
 		authSuccess: authSuccess,
 		commands:    make([]string, 0),
 		messages:    make([]capturedMessage, 0),
+	}
+
+	server.wg.Add(1)
+	go server.serve()
+	return server
+}
+
+// newMockSMTPServerWithMultilineBanner creates a mock SMTP server that sends
+// a multi-line 220 greeting banner (RFC 5321 Section 4.2 compliant).
+// This tests the fix for issue #183.
+func newMockSMTPServerWithMultilineBanner(t *testing.T, authSuccess bool) *mockSMTPServer {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	server := &mockSMTPServer{
+		listener:        listener,
+		authSuccess:     authSuccess,
+		commands:        make([]string, 0),
+		messages:        make([]capturedMessage, 0),
+		multilineBanner: true,
 	}
 
 	server.wg.Add(1)
@@ -73,8 +94,16 @@ func (s *mockSMTPServer) handleConnection(conn net.Conn) {
 
 	reader := bufio.NewReader(conn)
 
-	// Send greeting
-	conn.Write([]byte("220 localhost SMTP Mock Server\r\n"))
+	// Send greeting (multi-line or single-line based on configuration)
+	if s.multilineBanner {
+		// RFC 5321 multi-line 220 banner (issue #183)
+		// Realistic example based on enterprise SMTP relays and ISP servers
+		conn.Write([]byte("220-mail.example.com ESMTP Postfix\r\n"))
+		conn.Write([]byte("220-Authorized use only. All activity may be monitored.\r\n"))
+		conn.Write([]byte("220 Service ready\r\n"))
+	} else {
+		conn.Write([]byte("220 localhost SMTP Mock Server\r\n"))
+	}
 
 	var from string
 	var recipients []string
@@ -313,6 +342,43 @@ func TestSendRawEmail_MultipleRecipients(t *testing.T) {
 	messages := server.GetMessages()
 	require.Len(t, messages, 1)
 	assert.Len(t, messages[0].recipients, 3)
+}
+
+func TestSendRawEmail_MultilineBanner(t *testing.T) {
+	// Test fix for issue #183: Multi-line 220 banner handling
+	// RFC 5321 Section 4.2 allows multi-line greetings like:
+	// 220-smtp.example.com ESMTP
+	// 220-Additional info
+	// 220 Service ready
+
+	server := newMockSMTPServerWithMultilineBanner(t, true)
+	defer server.Close()
+
+	port := server.Port()
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	err := sendRawEmail("127.0.0.1", port, "", "", false, "sender@example.com", []string{"recipient@example.com"}, msg)
+	require.NoError(t, err, "Should handle multi-line 220 banner without error")
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+	assert.Equal(t, "sender@example.com", messages[0].from)
+	assert.Contains(t, messages[0].recipients, "recipient@example.com")
+}
+
+func TestSendRawEmail_MultilineBannerWithAuth(t *testing.T) {
+	// Test multi-line banner with authentication
+	server := newMockSMTPServerWithMultilineBanner(t, true)
+	defer server.Close()
+
+	port := server.Port()
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	err := sendRawEmail("127.0.0.1", port, "user", "pass", false, "sender@example.com", []string{"recipient@example.com"}, msg)
+	require.NoError(t, err, "Should handle multi-line 220 banner with auth without error")
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
 }
 
 // ============================================================================

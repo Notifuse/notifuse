@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [22.6] - 2026-01-06
+
+### Bug Fixes
+
+- **SMTP Multi-line Banner**: Fixed SMTP connections failing with "EHLO rejected with code: 220" error when server sends multi-line 220 greeting banner (RFC 5321 compliant fix for #183)
+
 ## [22.5] - 2026-01-06
 
 ### Bug Fixes
