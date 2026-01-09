@@ -215,12 +215,12 @@ func testAutomationWelcomeSeries(t *testing.T, factory *testutil.TestDataFactory
 	template, err := factory.CreateTemplate(workspaceID, testutil.WithTemplateName("Welcome Email"))
 	require.NoError(t, err)
 
-	// Create automation with trigger on insert_contact_list
+	// Create automation with trigger on list.subscribed (semantic event kind)
 	automation, err := factory.CreateAutomation(workspaceID,
 		testutil.WithAutomationName("Welcome Series"),
 		testutil.WithAutomationListID(list.ID),
 		testutil.WithAutomationTrigger(&domain.TimelineTriggerConfig{
-			EventKind: "insert_contact_list",
+			EventKind: "list.subscribed",
 			Frequency: domain.TriggerFrequencyOnce,
 		}),
 	)
@@ -262,18 +262,13 @@ func testAutomationWelcomeSeries(t *testing.T, factory *testutil.TestDataFactory
 	)
 	require.NoError(t, err)
 
-	// Add contact to list
+	// Add contact to list - the database trigger will automatically create
+	// a timeline event with kind='list.subscribed' which fires the automation
 	_, err = factory.CreateContactList(workspaceID,
 		testutil.WithContactListEmail(contact.Email),
 		testutil.WithContactListListID(list.ID),
 		testutil.WithContactListStatus(domain.ContactListStatusActive),
 	)
-	require.NoError(t, err)
-
-	// Insert timeline event (simulates what the contact_list trigger does)
-	err = factory.CreateContactTimelineEvent(workspaceID, contact.Email, "insert_contact_list", map[string]interface{}{
-		"list_id": list.ID,
-	})
 	require.NoError(t, err)
 
 	// Wait for enrollment using polling

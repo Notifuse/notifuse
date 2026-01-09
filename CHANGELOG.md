@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented in this file.
 
+## [23.0] - 2026-01-09
+
+### Bug Fixes
+
+- **Automation Triggers Not Firing**: Fixed critical bug where automations with "List / Subscribed" trigger never fired for workspaces created after v18 (#190)
+  - Root cause: `init.go` had outdated trigger functions producing generic event kinds (`insert_contact_list`) instead of semantic event kinds (`list.subscribed`)
+  - New workspaces only got `InitializeWorkspaceDatabase()` without running migrations, so they never received the v18 trigger updates
+  - V23 migration reinstalls correct trigger functions on ALL existing workspaces
+  - Updated `init.go` to use semantic event kinds for new workspaces
+  - Fixed e2e test that was masking the bug by manually inserting timeline events
+
+### Database Schema Changes
+
+- Migration v23.0 reinstalls three PostgreSQL trigger functions with semantic event naming:
+  - `track_contact_list_changes()`: `insert_contact_list` → `list.subscribed`, `list.confirmed`, etc.
+  - `track_contact_segment_changes()`: `join_segment` → `segment.joined`, `leave_segment` → `segment.left`
+  - `track_contact_changes()`: `insert_contact` → `contact.created`, `update_contact` → `contact.updated`
+
 ## [22.6] - 2026-01-06
 
 ### Bug Fixes
