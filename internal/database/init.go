@@ -528,32 +528,74 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			END IF;
 		IF TG_OP = 'INSERT' THEN
 			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at)
-			VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, NEW.created_at);
+			VALUES (NEW.email, op, 'contact', 'contact.created', changes_json, NEW.created_at);
 		ELSE
 			INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at)
-			VALUES (NEW.email, op, 'contact', op || '_contact', changes_json, CURRENT_TIMESTAMP);
+			VALUES (NEW.email, op, 'contact', 'contact.updated', changes_json, NEW.updated_at);
 		END IF;
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
-		// Contact list changes trigger function
+		// Contact list changes trigger function - uses semantic event kinds (list.subscribed, list.confirmed, etc.)
 		`CREATE OR REPLACE FUNCTION track_contact_list_changes()
 		RETURNS TRIGGER AS $$
 		DECLARE
 			changes_json JSONB := '{}'::jsonb;
 			op VARCHAR(20);
+			kind_value VARCHAR(50);
 		BEGIN
 			IF TG_OP = 'INSERT' THEN
 				op := 'insert';
-				changes_json := jsonb_build_object('list_id', jsonb_build_object('new', NEW.list_id), 'status', jsonb_build_object('new', NEW.status));
+
+				-- Map initial status to semantic event kind (dotted format)
+				kind_value := CASE NEW.status
+					WHEN 'active' THEN 'list.subscribed'
+					WHEN 'pending' THEN 'list.pending'
+					WHEN 'unsubscribed' THEN 'list.unsubscribed'
+					WHEN 'bounced' THEN 'list.bounced'
+					WHEN 'complained' THEN 'list.complained'
+					ELSE 'list.subscribed'
+				END;
+
+				changes_json := jsonb_build_object(
+					'list_id', jsonb_build_object('new', NEW.list_id),
+					'status', jsonb_build_object('new', NEW.status)
+				);
+
 			ELSIF TG_OP = 'UPDATE' THEN
 				op := 'update';
-				IF OLD.status IS DISTINCT FROM NEW.status THEN changes_json := changes_json || jsonb_build_object('status', jsonb_build_object('old', OLD.status, 'new', NEW.status)); END IF;
-				IF OLD.deleted_at IS DISTINCT FROM NEW.deleted_at THEN changes_json := changes_json || jsonb_build_object('deleted_at', jsonb_build_object('old', OLD.deleted_at, 'new', NEW.deleted_at)); END IF;
-				IF changes_json = '{}'::jsonb THEN RETURN NEW; END IF;
+
+				-- Handle soft delete
+				IF OLD.deleted_at IS DISTINCT FROM NEW.deleted_at AND NEW.deleted_at IS NOT NULL THEN
+					kind_value := 'list.removed';
+					changes_json := jsonb_build_object(
+						'deleted_at', jsonb_build_object('old', OLD.deleted_at, 'new', NEW.deleted_at)
+					);
+
+				-- Handle status transitions
+				ELSIF OLD.status IS DISTINCT FROM NEW.status THEN
+					kind_value := CASE
+						WHEN OLD.status = 'pending' AND NEW.status = 'active' THEN 'list.confirmed'
+						WHEN OLD.status IN ('unsubscribed', 'bounced', 'complained') AND NEW.status = 'active' THEN 'list.resubscribed'
+						WHEN NEW.status = 'unsubscribed' THEN 'list.unsubscribed'
+						WHEN NEW.status = 'bounced' THEN 'list.bounced'
+						WHEN NEW.status = 'complained' THEN 'list.complained'
+						WHEN NEW.status = 'pending' THEN 'list.pending'
+						WHEN NEW.status = 'active' THEN 'list.subscribed'
+						ELSE 'list.status_changed'
+					END;
+
+					changes_json := jsonb_build_object(
+						'status', jsonb_build_object('old', OLD.status, 'new', NEW.status)
+					);
+				ELSE
+					RETURN NEW;
+				END IF;
 			END IF;
-			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
-			VALUES (NEW.email, op, 'contact_list', op || '_contact_list', NEW.list_id, changes_json, CURRENT_TIMESTAMP);
+
+			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
+			VALUES (NEW.email, op, 'contact_list', kind_value, NEW.list_id, changes_json, CURRENT_TIMESTAMP);
+
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql;`,
@@ -641,11 +683,11 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 		BEGIN
 			IF TG_OP = 'INSERT' THEN
 				op := 'insert';
-				kind_value := 'join_segment';
+				kind_value := 'segment.joined';
 				changes_json := jsonb_build_object('segment_id', jsonb_build_object('new', NEW.segment_id), 'version', jsonb_build_object('new', NEW.version), 'matched_at', jsonb_build_object('new', NEW.matched_at));
 			ELSIF TG_OP = 'DELETE' THEN
 				op := 'delete';
-				kind_value := 'leave_segment';
+				kind_value := 'segment.left';
 				changes_json := jsonb_build_object('segment_id', jsonb_build_object('old', OLD.segment_id), 'version', jsonb_build_object('old', OLD.version));
 				INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at) 
 				VALUES (OLD.email, op, 'contact_segment', kind_value, OLD.segment_id, changes_json, CURRENT_TIMESTAMP);
