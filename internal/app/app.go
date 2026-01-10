@@ -153,6 +153,7 @@ type App struct {
 	automationService                *service.AutomationService
 	automationScheduler              *service.AutomationScheduler
 	llmService                       *service.LLMService
+	schemaVerificationService        *service.SchemaVerificationService
 	emailQueueWorker                 *queue.EmailQueueWorker
 	// providers
 	postmarkService  *service.PostmarkService
@@ -1003,6 +1004,17 @@ func (a *App) InitServices() error {
 		}).Info("SMTP relay server initialized successfully")
 	}
 
+	// Initialize schema verification service
+	connManager, err := pkgDatabase.GetConnectionManager()
+	if err != nil {
+		return fmt.Errorf("failed to get connection manager for schema verification: %w", err)
+	}
+	a.schemaVerificationService = service.NewSchemaVerificationService(
+		connManager,
+		a.workspaceRepo,
+		a.logger,
+	)
+
 	return nil
 }
 
@@ -1127,6 +1139,13 @@ func (a *App) InitHandlers() error {
 		getJWTSecret,
 		a.logger,
 	)
+	schemaVerificationHandler := httpHandler.NewSchemaVerificationHandler(
+		a.schemaVerificationService,
+		a.authService,
+		getJWTSecret,
+		a.config.RootEmail,
+		a.logger,
+	)
 	if !a.config.IsProduction() {
 		demoHandler := httpHandler.NewDemoHandler(a.demoService, a.logger)
 		demoHandler.RegisterRoutes(a.mux)
@@ -1160,6 +1179,7 @@ func (a *App) InitHandlers() error {
 	webhookSubscriptionHandler.RegisterRoutes(a.mux)
 	automationHandler.RegisterRoutes(a.mux)
 	llmHandler.RegisterRoutes(a.mux)
+	schemaVerificationHandler.RegisterRoutes(a.mux)
 
 	return nil
 }

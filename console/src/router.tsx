@@ -18,6 +18,7 @@ import { TransactionalNotificationsPage } from './pages/TransactionalNotificatio
 import { LogsPage } from './pages/LogsPage'
 import { AnalyticsPage } from './pages/AnalyticsPage'
 import { DebugSegmentPage } from './pages/DebugSegmentPage'
+import { DebugSchemaPage } from './pages/DebugSchemaPage'
 import { BlogPage } from './pages/BlogPage'
 import SetupWizard from './pages/SetupWizard'
 import { createRouter } from '@tanstack/react-router'
@@ -101,6 +102,13 @@ const workspaceCreateRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/console/workspace/create',
   component: CreateWorkspacePage
+})
+
+// Create the debug schema route (root user only)
+const debugSchemaRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/console/debug',
+  component: DebugSchemaPage
 })
 
 // Create the workspace route
@@ -241,6 +249,7 @@ const routeTree = rootRoute.addChildren([
   setupRoute,
   acceptInvitationRoute,
   workspaceCreateRoute,
+  debugSchemaRoute,
   workspaceRoute.addChildren([
     workspaceIndexRoute,
     workspaceBroadcastsRoute,
