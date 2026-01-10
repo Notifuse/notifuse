@@ -224,6 +224,9 @@ func TestAutomation(t *testing.T) {
 	t.Run("TimelineEndEvent_Completed", func(t *testing.T) {
 		testAutomationTimelineEndEvent(t, factory, client, workspace.ID)
 	})
+	t.Run("ContactCreatedTrigger", func(t *testing.T) {
+		testAutomationContactCreatedTrigger(t, factory, client, workspace.ID)
+	})
 	t.Run("PrintBugReport", func(t *testing.T) {
 		printBugReport(t)
 	})
@@ -2130,6 +2133,177 @@ func testAutomationTimelineEndEvent(t *testing.T, factory *testutil.TestDataFact
 
 	t.Logf("Timeline end event test: enrollment verified, automation.end requires scheduler execution")
 	t.Logf("Contact status: %s (scheduler needed for completion)", caFromFactory.Status)
+}
+
+// testAutomationContactCreatedTrigger tests the contact.created trigger scenario
+// This is a true e2e test for GitHub issue #191:
+// - Create automation with contact.created trigger AND a list_id (for unsubscribe URLs)
+// - Activate automation
+// - Create a new contact via HTTP API (contact is NOT subscribed to the list yet)
+// - Verify the contact is automatically enrolled in the automation
+//
+// BUG: The automation_enroll_contact() function incorrectly checks if the contact
+// is subscribed to the automation's list_id. But list_id is only meant for generating
+// unsubscribe URLs in email templates, NOT for filtering enrollment.
+// A newly created contact can never be subscribed to a list, so enrollment fails silently.
+func testAutomationContactCreatedTrigger(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
+	// 1. Create a list (required for automation with email nodes to have unsubscribe URLs)
+	list, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	listID := list.ID
+	t.Logf("List created: %s", listID)
+
+	// 2. Create automation via HTTP with contact.created trigger AND list_id
+	// The list_id is used for unsubscribe URLs in email templates, NOT for filtering enrollment
+	automationID := shortuuid.New()
+	triggerNodeID := shortuuid.New()
+	delayNodeID := shortuuid.New()
+
+	createReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"automation": map[string]interface{}{
+			"id":           automationID,
+			"workspace_id": workspaceID,
+			"name":         "Contact Created Trigger E2E Test",
+			"status":       "draft",
+			"list_id":      listID, // This is for unsubscribe URLs, should NOT affect enrollment
+			"trigger": map[string]interface{}{
+				"event_kind": "contact.created",
+				"frequency":  "every_time",
+			},
+			"root_node_id": triggerNodeID,
+			"nodes": []map[string]interface{}{
+				{
+					"id":            triggerNodeID,
+					"automation_id": automationID,
+					"type":          "trigger",
+					"config":        map[string]interface{}{},
+					"next_node_id":  delayNodeID,
+					"position":      map[string]interface{}{"x": 0, "y": 0},
+				},
+				{
+					"id":            delayNodeID,
+					"automation_id": automationID,
+					"type":          "delay",
+					"config": map[string]interface{}{
+						"delay_value": 1,
+						"delay_unit":  "days",
+					},
+					"position": map[string]interface{}{"x": 0, "y": 100},
+				},
+			},
+			"stats": map[string]interface{}{
+				"enrolled":  0,
+				"completed": 0,
+				"exited":    0,
+				"failed":    0,
+			},
+		},
+	}
+
+	resp, err := client.CreateAutomation(createReq)
+	require.NoError(t, err)
+	if resp.StatusCode != http.StatusCreated {
+		body, _ := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		t.Fatalf("ContactCreatedTrigger CreateAutomation: Expected 201, got %d: %s", resp.StatusCode, string(body))
+	}
+	resp.Body.Close()
+	t.Logf("Automation created: %s (with list_id: %s)", automationID, listID)
+
+	// 3. Activate automation via HTTP
+	activateResp, err := client.ActivateAutomation(map[string]interface{}{
+		"workspace_id":  workspaceID,
+		"automation_id": automationID,
+	})
+	require.NoError(t, err)
+	if activateResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(activateResp.Body)
+		activateResp.Body.Close()
+		t.Fatalf("ContactCreatedTrigger ActivateAutomation: Expected 200, got %d: %s", activateResp.StatusCode, string(body))
+	}
+	activateResp.Body.Close()
+	t.Logf("Automation activated: %s", automationID)
+
+	// 4. Create a NEW contact via HTTP API (this is the exact scenario from issue #191)
+	// IMPORTANT: The contact is NOT subscribed to the list - this is the bug trigger condition
+	// The contact.created event should be triggered by the database trigger
+	email := fmt.Sprintf("contact-created-test-%s@example.com", shortuuid.New()[:8])
+	contactResp, err := client.CreateContact(map[string]interface{}{
+		"workspace_id": workspaceID,
+		"contact": map[string]interface{}{
+			"email":      email,
+			"first_name": "Test",
+			"last_name":  "ContactCreated",
+		},
+	})
+	require.NoError(t, err)
+	if contactResp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(contactResp.Body)
+		contactResp.Body.Close()
+		t.Fatalf("ContactCreatedTrigger CreateContact: Expected 200, got %d: %s", contactResp.StatusCode, string(body))
+	}
+	contactResp.Body.Close()
+	t.Logf("Contact created via HTTP API: %s (NOT subscribed to list %s)", email, listID)
+
+	// 5. Wait for contact.created timeline event to be created
+	timelineEvents := waitForTimelineEvent(t, factory, workspaceID, email, "contact.created", 3*time.Second)
+	require.NotEmpty(t, timelineEvents, "contact.created timeline event should exist")
+	t.Logf("contact.created timeline event found for %s", email)
+
+	// 6. Wait for enrollment in automation via HTTP API
+	// BUG: This will fail if automation_enroll_contact() checks list subscription
+	// when the automation has a list_id set (for unsubscribe URLs)
+	ca := waitForEnrollmentViaAPI(t, client, automationID, email, 3*time.Second)
+	if ca == nil {
+		addBug("TestAutomation_ContactCreatedTrigger",
+			"Contact not enrolled in automation with list_id after contact.created event. "+
+				"The automation_enroll_contact() function incorrectly checks if contact is subscribed to automation.list_id, "+
+				"but list_id is only for unsubscribe URLs, not enrollment filtering.",
+			"Critical",
+			"automation_enroll_contact() has incorrect list subscription check for non-list triggers",
+			"internal/database/init.go:automation_enroll_contact lines 1191-1203")
+		t.Fatal("Contact not enrolled - GitHub Issue #191 reproduced! Bug: list_id check blocks enrollment for contact.created trigger")
+	}
+
+	// 7. Verify enrollment details
+	assert.Equal(t, "active", ca["status"], "Contact should be active in automation")
+	assert.NotNil(t, ca["current_node_id"], "Current node should be set")
+	t.Logf("Contact enrolled with status: %s, current_node: %v", ca["status"], ca["current_node_id"])
+
+	// 8. Verify automation.start timeline event was created
+	startEvents := waitForTimelineEvent(t, factory, workspaceID, email, "automation.start", 2*time.Second)
+	require.NotEmpty(t, startEvents, "automation.start timeline event should exist")
+	t.Logf("automation.start timeline event found")
+
+	// 9. Verify automation stats were updated
+	stats, err := factory.GetAutomationStats(workspaceID, automationID)
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled count should be 1")
+	t.Logf("Automation stats: enrolled=%d, completed=%d, exited=%d, failed=%d",
+		stats.Enrolled, stats.Completed, stats.Exited, stats.Failed)
+
+	// 10. Verify deduplication works (creating the same contact again should not re-enroll)
+	// Update the contact (not create) - this should trigger contact.updated, not contact.created
+	updateResp, err := client.CreateContact(map[string]interface{}{
+		"workspace_id": workspaceID,
+		"contact": map[string]interface{}{
+			"email":      email,
+			"first_name": "Updated",
+			"last_name":  "Name",
+		},
+	})
+	require.NoError(t, err)
+	updateResp.Body.Close()
+	t.Logf("Contact updated via HTTP API: %s", email)
+
+	// Wait a bit and verify enrollment count is still 1
+	time.Sleep(500 * time.Millisecond)
+	count, err := factory.CountContactAutomations(workspaceID, automationID)
+	require.NoError(t, err)
+	assert.Equal(t, 1, count, "Should still have exactly 1 enrollment (update should not trigger contact.created)")
+
+	t.Logf("ContactCreatedTrigger E2E test passed: GitHub issue #191 scenario verified working!")
 }
 
 // printBugReport outputs all bugs found during testing

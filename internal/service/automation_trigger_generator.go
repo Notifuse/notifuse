@@ -177,7 +177,6 @@ BEGIN
         '%s',
         NEW.email,
         '%s',
-        '%s',
         '%s'
     );
     RETURN NEW;
@@ -186,7 +185,6 @@ $$ LANGUAGE plpgsql`,
 		functionName,
 		escapeString(automation.ID),
 		escapeString(automation.RootNodeID),
-		escapeString(automation.ListID),
 		escapeString(frequency),
 	)
 }

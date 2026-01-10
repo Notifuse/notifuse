@@ -1180,30 +1180,13 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			p_automation_id VARCHAR(36),
 			p_contact_email VARCHAR(255),
 			p_root_node_id VARCHAR(36),
-			p_list_id VARCHAR(36),
 			p_frequency VARCHAR(20)
 		) RETURNS VOID AS $$
 		DECLARE
-			v_is_subscribed BOOLEAN;
 			v_already_triggered BOOLEAN;
 			v_new_id VARCHAR(36);
 		BEGIN
-			-- 1. Check list subscription (only if list_id is provided)
-			IF p_list_id IS NOT NULL AND p_list_id != '' THEN
-				SELECT EXISTS(
-					SELECT 1 FROM contact_lists
-					WHERE email = p_contact_email
-					AND list_id = p_list_id
-					AND status = 'active'
-					AND deleted_at IS NULL
-				) INTO v_is_subscribed;
-
-				IF NOT v_is_subscribed THEN
-					RETURN;  -- Contact not subscribed to list, skip enrollment
-				END IF;
-			END IF;
-
-			-- 2. For "once" frequency, check if already triggered
+			-- 1. For "once" frequency, check if already triggered
 			IF p_frequency = 'once' THEN
 				SELECT EXISTS(
 					SELECT 1 FROM automation_trigger_log
@@ -1221,10 +1204,10 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				ON CONFLICT (automation_id, contact_email) DO NOTHING;
 			END IF;
 
-			-- 3. Generate new ID for contact_automation
+			-- 2. Generate new ID for contact_automation
 			v_new_id := gen_random_uuid()::text;
 
-			-- 4. Enroll contact in automation
+			-- 3. Enroll contact in automation
 			INSERT INTO contact_automations (
 				id, automation_id, contact_email, current_node_id,
 				status, entered_at, scheduled_at
@@ -1238,7 +1221,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				NOW()
 			);
 
-			-- 5. Increment enrolled stat
+			-- 4. Increment enrolled stat
 			UPDATE automations
 			SET stats = jsonb_set(
 				COALESCE(stats, '{}'::jsonb),
@@ -1248,7 +1231,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 			updated_at = NOW()
 			WHERE id = p_automation_id;
 
-			-- 6. Log node execution entry
+			-- 5. Log node execution entry
 			INSERT INTO automation_node_executions (
 				id, contact_automation_id, automation_id, node_id, node_type, action, entered_at, output
 			) VALUES (
@@ -1262,7 +1245,7 @@ func InitializeWorkspaceDatabase(db *sql.DB) error {
 				'{}'::jsonb
 			);
 
-			-- 7. Create automation.start timeline event
+			-- 6. Create automation.start timeline event
 			INSERT INTO contact_timeline (email, operation, entity_type, kind, entity_id, changes, created_at)
 			VALUES (
 				p_contact_email,
