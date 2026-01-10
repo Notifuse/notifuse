@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [24.0] - 2026-01-10
+
+### Bug Fixes
+
+- **Automation Enrollment Failure**: Fixed "cannot set path in scalar" error when enrolling contacts in automations where the `stats` field contained a JSONB scalar value instead of an object
+  - Migration v24 fixes existing automations by setting `stats = '{}'` where `jsonb_typeof(stats) != 'object'`
+
 ## [23.0] - 2026-01-09
 
 ### Bug Fixes

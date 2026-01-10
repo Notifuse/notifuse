@@ -738,3 +738,52 @@ func (c *APIClient) UpdateBlogTheme(theme map[string]interface{}) (*http.Respons
 func (c *APIClient) PublishBlogTheme(request map[string]interface{}) (*http.Response, error) {
 	return c.Post("/api/blogThemes.publish", request)
 }
+
+// Automation API methods
+
+// CreateAutomation creates a new automation
+func (c *APIClient) CreateAutomation(automation map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/automations.create", automation)
+}
+
+// GetAutomation retrieves an automation by ID
+func (c *APIClient) GetAutomation(automationID string) (*http.Response, error) {
+	params := map[string]string{
+		"automation_id": automationID,
+	}
+	return c.Get("/api/automations.get", params)
+}
+
+// ListAutomations lists automations with optional filtering
+func (c *APIClient) ListAutomations(params map[string]string) (*http.Response, error) {
+	return c.Get("/api/automations.list", params)
+}
+
+// UpdateAutomation updates an existing automation
+func (c *APIClient) UpdateAutomation(automation map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/automations.update", automation)
+}
+
+// DeleteAutomation deletes an automation (soft delete)
+func (c *APIClient) DeleteAutomation(request map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/automations.delete", request)
+}
+
+// ActivateAutomation activates an automation (creates DB trigger)
+func (c *APIClient) ActivateAutomation(request map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/automations.activate", request)
+}
+
+// PauseAutomation pauses an automation
+func (c *APIClient) PauseAutomation(request map[string]interface{}) (*http.Response, error) {
+	return c.Post("/api/automations.pause", request)
+}
+
+// GetContactNodeExecutions retrieves a contact's node execution history for an automation
+func (c *APIClient) GetContactNodeExecutions(automationID, email string) (*http.Response, error) {
+	params := map[string]string{
+		"automation_id": automationID,
+		"email":         email,
+	}
+	return c.Get("/api/automations.nodeExecutions", params)
+}

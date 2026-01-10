@@ -73,6 +73,13 @@ func (r *AutomationRepository) CreateTx(ctx context.Context, tx *sql.Tx, workspa
 		return fmt.Errorf("failed to marshal nodes: %w", err)
 	}
 
+	// Initialize Stats if nil to prevent JSONB null (scalar) being stored
+	// JSONB null causes "cannot set path in scalar" error when automation_enroll_contact
+	// tries to use jsonb_set on the stats field
+	if automation.Stats == nil {
+		automation.Stats = &domain.AutomationStats{}
+	}
+
 	statsJSON, err := json.Marshal(automation.Stats)
 	if err != nil {
 		return fmt.Errorf("failed to marshal stats: %w", err)
@@ -317,6 +324,11 @@ func (r *AutomationRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspa
 	nodesJSON, err := json.Marshal(automation.Nodes)
 	if err != nil {
 		return fmt.Errorf("failed to marshal nodes: %w", err)
+	}
+
+	// Initialize Stats if nil to prevent JSONB null (scalar) being stored
+	if automation.Stats == nil {
+		automation.Stats = &domain.AutomationStats{}
 	}
 
 	statsJSON, err := json.Marshal(automation.Stats)

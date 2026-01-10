@@ -208,6 +208,82 @@ func (tdf *TestDataFactory) CreateBroadcast(workspaceID string, opts ...Broadcas
 	return broadcast, nil
 }
 
+// CreateSegment creates a test segment using direct DB insert
+func (tdf *TestDataFactory) CreateSegment(workspaceID string) (*domain.Segment, error) {
+	segmentID := fmt.Sprintf("seg%s", uuid.New().String()[:8])
+	now := time.Now().UTC()
+	sql := "SELECT email FROM contacts WHERE 1=1"
+
+	segment := &domain.Segment{
+		ID:       segmentID,
+		Name:     fmt.Sprintf("Test Segment %s", uuid.New().String()[:8]),
+		Color:    "#FF5733",
+		Tree: &domain.TreeNode{
+			Kind: "leaf",
+			Leaf: &domain.TreeNodeLeaf{
+				Source: "contacts",
+				Contact: &domain.ContactCondition{
+					Filters: []*domain.DimensionFilter{
+						{
+							FieldName:    "email",
+							FieldType:    "string",
+							Operator:     "is_set",
+							StringValues: []string{},
+						},
+					},
+				},
+			},
+		},
+		Timezone:      "UTC",
+		Version:       1,
+		Status:        string(domain.SegmentStatusActive),
+		GeneratedSQL:  &sql,
+		GeneratedArgs: domain.JSONArray{},
+		DBCreatedAt:   now,
+		DBUpdatedAt:   now,
+		UsersCount:    0,
+	}
+
+	// Get workspace database connection
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get workspace database: %w", err)
+	}
+
+	// Convert Tree to JSONB
+	treeMap, err := segment.Tree.ToMapOfAny()
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert tree to map: %w", err)
+	}
+	treeJSON, err := json.Marshal(treeMap)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal tree: %w", err)
+	}
+
+	argsJSON, err := json.Marshal(segment.GeneratedArgs)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal args: %w", err)
+	}
+
+	query := `
+		INSERT INTO segments (
+			id, name, color, tree, timezone, version, status,
+			generated_sql, generated_args, recompute_after, db_created_at, db_updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+	`
+
+	_, err = workspaceDB.ExecContext(context.Background(), query,
+		segment.ID, segment.Name, segment.Color, treeJSON,
+		segment.Timezone, segment.Version, segment.Status,
+		segment.GeneratedSQL, argsJSON, nil, segment.DBCreatedAt, segment.DBUpdatedAt,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create segment: %w", err)
+	}
+
+	return segment, nil
+}
+
 // CreateMessageHistory creates a test message history using the message history repository
 func (tdf *TestDataFactory) CreateMessageHistory(workspaceID string, opts ...MessageHistoryOption) (*domain.MessageHistory, error) {
 	now := time.Now().UTC()
@@ -281,6 +357,18 @@ func (tdf *TestDataFactory) CreateContactTimelineEvent(workspaceID, email, kind 
 		return fmt.Errorf("failed to get workspace database: %w", err)
 	}
 
+	// Extract entity_id and entity_type from metadata if present
+	var entityID *string
+	entityType := "message_history" // default
+	if metadata != nil {
+		if id, ok := metadata["entity_id"].(string); ok && id != "" {
+			entityID = &id
+		}
+		if et, ok := metadata["entity_type"].(string); ok && et != "" {
+			entityType = et
+		}
+	}
+
 	// Serialize metadata to JSON
 	metadataJSON, err := json.Marshal(metadata)
 	if err != nil {
@@ -290,13 +378,49 @@ func (tdf *TestDataFactory) CreateContactTimelineEvent(workspaceID, email, kind 
 	// Insert timeline event directly into workspace database
 	// The table has: email, operation, entity_type, kind, changes, entity_id, created_at
 	query := `
-		INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
+		INSERT INTO contact_timeline (email, operation, entity_type, kind, changes, entity_id, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 
-	_, err = workspaceDB.ExecContext(context.Background(), query, email, "insert", "message_history", kind, metadataJSON, time.Now().UTC())
+	_, err = workspaceDB.ExecContext(context.Background(), query, email, "insert", entityType, kind, metadataJSON, entityID, time.Now().UTC())
 	if err != nil {
 		return fmt.Errorf("failed to insert contact timeline event: %w", err)
+	}
+
+	return nil
+}
+
+// CreateCustomEvent creates a custom event which triggers the timeline event with proper format
+// This is used for testing automations with custom_event triggers
+func (tdf *TestDataFactory) CreateCustomEvent(workspaceID, email, eventName string, properties map[string]interface{}) error {
+	// Get workspace database connection
+	workspaceDB, err := tdf.workspaceRepo.GetConnection(context.Background(), workspaceID)
+	if err != nil {
+		return fmt.Errorf("failed to get workspace database: %w", err)
+	}
+
+	// Serialize properties to JSON
+	propsJSON := []byte("{}")
+	if properties != nil {
+		propsJSON, err = json.Marshal(properties)
+		if err != nil {
+			return fmt.Errorf("failed to marshal properties: %w", err)
+		}
+	}
+
+	// Insert into custom_events table - this fires the trigger that creates the timeline entry
+	// with kind = 'custom_event.<event_name>' and entity_type = 'custom_event'
+	// Schema: event_name, external_id (PK), email, properties, occurred_at, source
+	query := `
+		INSERT INTO custom_events (event_name, external_id, email, properties, occurred_at, source)
+		VALUES ($1, $2, $3, $4, $5, 'test')
+	`
+
+	externalID := fmt.Sprintf("test_%s", uuid.New().String()[:8])
+	now := time.Now().UTC()
+	_, err = workspaceDB.ExecContext(context.Background(), query, eventName, externalID, email, propsJSON, now)
+	if err != nil {
+		return fmt.Errorf("failed to insert custom event: %w", err)
 	}
 
 	return nil
