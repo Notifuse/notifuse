@@ -361,7 +361,7 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 	t.Run("function body includes correct parameters", func(t *testing.T) {
 		automation := &domain.Automation{
 			ID:         "auto123",
-			ListID:     "mylist456",
+			ListID:     "mylist456", // list_id is NOT passed to function, only used for unsubscribe URLs
 			RootNodeID: "rootnode789",
 			Trigger: &domain.TimelineTriggerConfig{
 				EventKind: "contact.created",
@@ -373,13 +373,14 @@ func TestAutomationTriggerGenerator_Generate(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 
-		// Check function body contains all parameters
+		// Check function body contains all parameters (no list_id - it's only for unsubscribe URLs)
 		assert.Contains(t, result.FunctionBody, "'auto123'")       // automation ID
 		assert.Contains(t, result.FunctionBody, "'rootnode789'")   // root node ID
-		assert.Contains(t, result.FunctionBody, "'mylist456'")     // list ID
 		assert.Contains(t, result.FunctionBody, "'once'")          // frequency
 		assert.Contains(t, result.FunctionBody, "NEW.email")       // email reference
 		assert.Contains(t, result.FunctionBody, "LANGUAGE plpgsql")
+		// Verify list_id is NOT in the function body
+		assert.NotContains(t, result.FunctionBody, "'mylist456'")
 	})
 
 	t.Run("AND branch with multiple conditions", func(t *testing.T) {

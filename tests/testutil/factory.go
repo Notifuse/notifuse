@@ -2125,13 +2125,13 @@ func (tdf *TestDataFactory) ActivateAutomation(workspaceID, automationID string)
 
 	// Get automation to build trigger
 	var triggerJSON []byte
-	var rootNodeID, listID string
+	var rootNodeID string
 	var frequency string
 
 	err = workspaceDB.QueryRowContext(context.Background(),
-		`SELECT trigger_config, root_node_id, list_id FROM automations WHERE id = $1`,
+		`SELECT trigger_config, root_node_id FROM automations WHERE id = $1`,
 		automationID,
-	).Scan(&triggerJSON, &rootNodeID, &listID)
+	).Scan(&triggerJSON, &rootNodeID)
 	if err != nil {
 		return fmt.Errorf("failed to get automation: %w", err)
 	}
@@ -2146,6 +2146,7 @@ func (tdf *TestDataFactory) ActivateAutomation(workspaceID, automationID string)
 	eventKindFilter := fmt.Sprintf("NEW.kind = '%s'", trigger.EventKind)
 
 	// Create trigger function (remove hyphens from UUID for valid PostgreSQL identifier)
+	// Note: list_id is NOT passed to automation_enroll_contact - it's only for unsubscribe URLs
 	safeID := strings.ReplaceAll(automationID, "-", "")
 	functionName := fmt.Sprintf("automation_trigger_%s", safeID)
 	functionSQL := fmt.Sprintf(`
@@ -2156,13 +2157,12 @@ func (tdf *TestDataFactory) ActivateAutomation(workspaceID, automationID string)
 				'%s',
 				NEW.email,
 				'%s',
-				'%s',
 				'%s'
 			);
 			RETURN NEW;
 		END;
 		$$ LANGUAGE plpgsql
-	`, functionName, automationID, rootNodeID, listID, frequency)
+	`, functionName, automationID, rootNodeID, frequency)
 
 	_, err = workspaceDB.ExecContext(context.Background(), functionSQL)
 	if err != nil {
