@@ -50,6 +50,11 @@ func createTestConfig() *config.Config {
 			JWTSecret: jwtSecret,
 			SecretKey: "test-secret-key-for-encryption",
 		},
+		AutomationScheduler: config.AutomationSchedulerConfig{
+			Delay:     0,                      // No delay for tests
+			Interval:  500 * time.Millisecond, // Fast polling for tests
+			BatchSize: 50,
+		},
 	}
 }
 

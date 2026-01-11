@@ -62,6 +62,7 @@ type AppInterface interface {
 	GetAuthService() interface{} // Returns *service.AuthService but defined as interface{} to avoid import cycle
 	GetTransactionalNotificationService() domain.TransactionalNotificationService
 	GetEmailQueueWorker() *queue.EmailQueueWorker
+	GetAutomationScheduler() *service.AutomationScheduler
 
 	// Server status methods
 	IsServerCreated() bool
@@ -944,8 +945,8 @@ func (a *App) InitServices() error {
 	a.automationScheduler = service.NewAutomationScheduler(
 		automationExecutor,
 		a.logger,
-		10*time.Second, // Poll every 10 seconds
-		50,             // Process 50 contacts per batch
+		a.config.AutomationScheduler.Interval,
+		a.config.AutomationScheduler.BatchSize,
 	)
 
 	// Initialize SMTP relay handler service
@@ -1302,28 +1303,30 @@ func (a *App) Start() error {
 		}()
 	}
 
-	// Start automation scheduler (with 30 second delay)
+	// Start automation scheduler (with configurable delay)
 	// Disabled in demo mode to prevent executing automations
 	if a.automationScheduler != nil && !a.config.IsDemo() {
 		go func() {
-			a.logger.Info("Automation scheduler will start in 30 seconds...")
-
 			ctx := a.GetShutdownContext()
+			delay := a.config.AutomationScheduler.Delay
 
-			// Use a timer that respects the shutdown context
-			select {
-			case <-time.After(30 * time.Second):
-				// Check if we're shutting down before starting
-				if ctx.Err() != nil {
-					a.logger.Info("Server shutting down, automation scheduler will not start")
+			if delay > 0 {
+				a.logger.WithField("delay", delay).Info("Automation scheduler will start after delay...")
+				select {
+				case <-time.After(delay):
+					// continue
+				case <-ctx.Done():
+					a.logger.Info("Server shutdown during automation scheduler delay")
 					return
 				}
-				a.logger.Info("Starting automation scheduler now")
-				a.automationScheduler.Start(ctx)
-			case <-ctx.Done():
-				a.logger.Info("Server shutdown initiated during automation scheduler delay, scheduler will not start")
+			}
+
+			if ctx.Err() != nil {
+				a.logger.Info("Server shutting down, automation scheduler will not start")
 				return
 			}
+			a.logger.Info("Starting automation scheduler now")
+			a.automationScheduler.Start(ctx)
 		}()
 	}
 
@@ -1707,6 +1710,11 @@ func (a *App) GetAuthService() interface{} {
 
 func (a *App) GetTransactionalNotificationService() domain.TransactionalNotificationService {
 	return a.transactionalNotificationService
+}
+
+// GetAutomationScheduler returns the automation scheduler instance
+func (a *App) GetAutomationScheduler() *service.AutomationScheduler {
+	return a.automationScheduler
 }
 
 // SetHandler allows setting a custom HTTP handler

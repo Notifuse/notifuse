@@ -51,6 +51,30 @@ func buildNodeOutput(nodeType domain.NodeType, data map[string]interface{}) map[
 	return data
 }
 
+// TriggerNodeExecutor handles trigger nodes (pass-through to next node)
+// Trigger nodes are entry points - the actual trigger logic is handled by the
+// database trigger during enrollment. This executor just advances to the next node.
+type TriggerNodeExecutor struct{}
+
+// NewTriggerNodeExecutor creates a new trigger node executor
+func NewTriggerNodeExecutor() *TriggerNodeExecutor {
+	return &TriggerNodeExecutor{}
+}
+
+// NodeType returns the node type this executor handles
+func (e *TriggerNodeExecutor) NodeType() domain.NodeType {
+	return domain.NodeTypeTrigger
+}
+
+// Execute passes through to the next node
+func (e *TriggerNodeExecutor) Execute(ctx context.Context, params NodeExecutionParams) (*NodeExecutionResult, error) {
+	return &NodeExecutionResult{
+		NextNodeID: params.Node.NextNodeID,
+		Status:     domain.ContactAutomationStatusActive,
+		Output:     buildNodeOutput(domain.NodeTypeTrigger, map[string]interface{}{"trigger_type": "timeline"}),
+	}, nil
+}
+
 // DelayNodeExecutor executes delay nodes
 type DelayNodeExecutor struct{}
 

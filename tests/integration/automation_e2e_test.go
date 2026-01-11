@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -99,6 +100,49 @@ func waitForEnrollmentViaAPI(t *testing.T, client *testutil.APIClient, automatio
 	return ca
 }
 
+// waitForAutomationComplete polls until contact automation status is "completed"
+func waitForAutomationComplete(t *testing.T, factory *testutil.TestDataFactory, workspaceID, automationID, email string, timeout time.Duration) *domain.ContactAutomation {
+	var ca *domain.ContactAutomation
+	testutil.WaitForCondition(t, func() bool {
+		var err error
+		ca, err = factory.GetContactAutomation(workspaceID, automationID, email)
+		if err != nil || ca == nil {
+			return false
+		}
+		return ca.Status == domain.ContactAutomationStatusCompleted
+	}, timeout, fmt.Sprintf("waiting for automation to complete for %s in automation %s", email, automationID))
+	return ca
+}
+
+// waitForAutomationStatus polls until contact automation reaches the expected status
+func waitForAutomationStatus(t *testing.T, factory *testutil.TestDataFactory, workspaceID, automationID, email string, expectedStatus domain.ContactAutomationStatus, timeout time.Duration) *domain.ContactAutomation {
+	var ca *domain.ContactAutomation
+	testutil.WaitForCondition(t, func() bool {
+		var err error
+		ca, err = factory.GetContactAutomation(workspaceID, automationID, email)
+		if err != nil || ca == nil {
+			return false
+		}
+		return ca.Status == expectedStatus
+	}, timeout, fmt.Sprintf("waiting for status %s for %s in automation %s", expectedStatus, email, automationID))
+	return ca
+}
+
+// waitForStatsCompleted polls until automation stats show expected completed count
+// This is needed because stats are updated separately from contact automation status
+func waitForStatsCompleted(t *testing.T, factory *testutil.TestDataFactory, workspaceID, automationID string, expectedCompleted int64, timeout time.Duration) *domain.AutomationStats {
+	var stats *domain.AutomationStats
+	testutil.WaitForCondition(t, func() bool {
+		var err error
+		stats, err = factory.GetAutomationStats(workspaceID, automationID)
+		if err != nil || stats == nil {
+			return false
+		}
+		return stats.Completed >= expectedCompleted
+	}, timeout, fmt.Sprintf("waiting for stats.Completed >= %d for automation %s", expectedCompleted, automationID))
+	return stats
+}
+
 // ============================================================================
 // Main Test Function with Shared Setup
 // ============================================================================
@@ -114,6 +158,11 @@ func TestAutomation(t *testing.T) {
 		return app.NewApp(cfg)
 	})
 	defer suite.Cleanup()
+
+	// Start automation scheduler for processing contacts through workflows
+	ctx := context.Background()
+	err := suite.ServerManager.StartBackgroundWorkers(ctx)
+	require.NoError(t, err)
 
 	factory := suite.DataFactory
 	client := suite.APIClient
@@ -226,6 +275,12 @@ func TestAutomation(t *testing.T) {
 	})
 	t.Run("ContactCreatedTrigger", func(t *testing.T) {
 		testAutomationContactCreatedTrigger(t, factory, client, workspace.ID)
+	})
+	t.Run("ConsecutiveAddToList", func(t *testing.T) {
+		testAutomationConsecutiveAddToList(t, factory, client, workspace.ID)
+	})
+	t.Run("WebhookNode", func(t *testing.T) {
+		testWebhookNode(t, factory, client, workspace.ID)
 	})
 	t.Run("PrintBugReport", func(t *testing.T) {
 		printBugReport(t)
@@ -340,16 +395,22 @@ func testAutomationWelcomeSeries(t *testing.T, factory *testutil.TestDataFactory
 			"internal/migrations/v20.go:automation_enroll_contact")
 		t.Fatal("Contact not enrolled")
 	}
+	t.Logf("Contact enrolled with status: %s", ca["status"])
 
-	assert.Equal(t, "active", ca["status"])
-	assert.NotNil(t, ca["current_node_id"], "Current node should be set")
+	// 8. Wait for automation to complete (scheduler must process the email node)
+	completedCA := waitForAutomationComplete(t, factory, workspaceID, automationID, email, 10*time.Second)
+	require.NotNil(t, completedCA, "Automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status, "Status should be completed")
+	t.Logf("Automation completed for contact %s", email)
 
-	// 8. Verify stats (factory - no HTTP API for stats)
-	stats, err := factory.GetAutomationStats(workspaceID, automationID)
-	require.NoError(t, err)
+	// 9. Verify stats show completion (wait for stats to update after contact completion)
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 1, 2*time.Second)
+	require.NotNil(t, stats, "Stats should exist")
 	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled count should be 1")
+	assert.Equal(t, int64(1), stats.Completed, "Completed count should be 1")
+	t.Logf("Automation stats: enrolled=%d, completed=%d", stats.Enrolled, stats.Completed)
 
-	t.Logf("Welcome Series E2E test passed: contact enrolled via HTTP endpoints, stats updated")
+	t.Logf("Welcome Series E2E test passed: automation completed successfully")
 }
 
 // testAutomationDeduplication tests frequency: once prevents duplicate enrollments
@@ -432,17 +493,25 @@ func testAutomationDeduplication(t *testing.T, factory *testutil.TestDataFactory
 	}
 	assert.Equal(t, 1, count, "Should have exactly 1 contact automation record")
 
-	// 7. Verify trigger log entry exists (factory - no HTTP API)
+	// 7. Wait for automation to complete (trigger-only automation should complete immediately)
+	completedCA := waitForAutomationComplete(t, factory, workspaceID, automationID, email, 10*time.Second)
+	require.NotNil(t, completedCA, "Automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status, "Status should be completed")
+	t.Logf("Automation completed for contact %s", email)
+
+	// 8. Verify trigger log entry exists (factory - no HTTP API)
 	hasEntry, err := factory.GetTriggerLogEntry(workspaceID, automationID, email)
 	require.NoError(t, err)
 	assert.True(t, hasEntry, "Trigger log entry should exist")
 
-	// 8. Verify stats (factory - no HTTP API for stats)
-	stats, err := factory.GetAutomationStats(workspaceID, automationID)
-	require.NoError(t, err)
+	// 9. Verify stats show completion (wait for stats to update after contact completion)
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 1, 2*time.Second)
+	require.NotNil(t, stats, "Stats should exist")
 	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled should be 1, not 3")
+	assert.Equal(t, int64(1), stats.Completed, "Completed should be 1")
+	t.Logf("Automation stats: enrolled=%d, completed=%d", stats.Enrolled, stats.Completed)
 
-	t.Logf("Deduplication E2E test passed: frequency=once working correctly")
+	t.Logf("Deduplication E2E test passed: frequency=once working correctly, automation completed")
 }
 
 // testAutomationMultipleEntries tests frequency: every_time allows multiple enrollments
@@ -530,21 +599,39 @@ func testAutomationMultipleEntries(t *testing.T, factory *testutil.TestDataFacto
 	require.NoError(t, err)
 	assert.Len(t, cas, 3, "Should have 3 records")
 
-	// 8. Verify stats (factory - no HTTP API for stats)
+	// 8. Wait for all automations to complete
+	testutil.WaitForCondition(t, func() bool {
+		stats, err := factory.GetAutomationStats(workspaceID, automationID)
+		if err != nil {
+			return false
+		}
+		return stats.Completed == 3
+	}, 10*time.Second, "waiting for all 3 automations to complete")
+
+	// 9. Verify stats show all completed (factory - no HTTP API for stats)
 	stats, err := factory.GetAutomationStats(workspaceID, automationID)
 	require.NoError(t, err)
 	assert.Equal(t, int64(3), stats.Enrolled, "Enrolled should be 3")
+	assert.Equal(t, int64(3), stats.Completed, "Completed should be 3")
+	t.Logf("Automation stats: enrolled=%d, completed=%d", stats.Enrolled, stats.Completed)
 
-	t.Logf("Multiple entries E2E test passed: frequency=every_time working correctly")
+	t.Logf("Multiple entries E2E test passed: frequency=every_time working correctly, all completed")
 }
 
-// testAutomationDelayTiming tests delay node calculations
+// testAutomationDelayTiming tests delay node calculations and full workflow execution
 // Uses HTTP for automation CRUD, factory for timeline events (intentional)
+// Workflow: trigger → delay (5min) → add_to_list (terminal)
 func testAutomationDelayTiming(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
-	// 1. Create automation via HTTP with delay node
+	// 1. Create list via factory (for add_to_list terminal node)
+	list, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	listID := list.ID
+
+	// 2. Create automation via HTTP with delay node
 	automationID := shortuuid.New()
 	triggerNodeID := shortuuid.New()
 	delayNodeID := shortuuid.New()
+	addToListNodeID := shortuuid.New()
 
 	createReq := map[string]interface{}{
 		"workspace_id": workspaceID,
@@ -572,7 +659,15 @@ func testAutomationDelayTiming(t *testing.T, factory *testutil.TestDataFactory, 
 					"automation_id": automationID,
 					"type":          "delay",
 					"config":        map[string]interface{}{"duration": 5, "unit": "minutes"},
+					"next_node_id":  addToListNodeID,
 					"position":      map[string]interface{}{"x": 0, "y": 100},
+				},
+				{
+					"id":            addToListNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": listID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": 0, "y": 200},
 				},
 			},
 			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
@@ -615,32 +710,60 @@ func testAutomationDelayTiming(t *testing.T, factory *testutil.TestDataFactory, 
 	// 6. Verify enrollment
 	assert.Equal(t, "active", caMap["status"])
 
-	// 7. Verify scheduled_at is approximately 5 minutes in the future (factory for detailed timing)
-	ca := waitForEnrollment(t, factory, workspaceID, automationID, email, 100*time.Millisecond)
-	if ca != nil && ca.ScheduledAt != nil {
-		expectedMin := beforeTrigger.Add(4 * time.Minute)
-		expectedMax := beforeTrigger.Add(6 * time.Minute)
-
-		if ca.ScheduledAt.After(beforeTrigger.Add(1 * time.Minute)) {
-			if ca.ScheduledAt.Before(expectedMin) || ca.ScheduledAt.After(expectedMax) {
-				addBug("TestAutomation_DelayTiming",
-					fmt.Sprintf("Delay timing incorrect: expected ~5min future, got %v", ca.ScheduledAt.Sub(beforeTrigger)),
-					"High", "Delay calculation error",
-					"internal/service/automation_node_executor.go:DelayNodeExecutor")
-			}
+	// 7. Wait for scheduler to process through trigger → delay
+	// After delay node executes, CurrentNodeID is set to the NEXT node (add_to_list),
+	// and ScheduledAt is set to the future time when the delay expires
+	var ca *domain.ContactAutomation
+	testutil.WaitForCondition(t, func() bool {
+		var err error
+		ca, err = factory.GetContactAutomation(workspaceID, automationID, email)
+		if err != nil || ca == nil {
+			return false
 		}
-	}
+		// Contact should be scheduled for the add_to_list node (after delay) with future scheduled_at
+		return ca.CurrentNodeID != nil && *ca.CurrentNodeID == addToListNodeID && ca.ScheduledAt != nil
+	}, 10*time.Second, "waiting for scheduler to process delay node")
 
-	t.Logf("Delay timing E2E test passed: delay node scheduled correctly")
+	require.NotNil(t, ca, "Contact automation should exist")
+	require.NotNil(t, ca.CurrentNodeID, "Current node should be set")
+	assert.Equal(t, addToListNodeID, *ca.CurrentNodeID, "Contact should be scheduled for add_to_list node after delay")
+	t.Logf("Contact processed delay node, waiting for: %s", *ca.CurrentNodeID)
+
+	// 8. Verify scheduled_at is approximately 5 minutes in the future
+	require.NotNil(t, ca.ScheduledAt, "Scheduled time should be set for delay node")
+	expectedMin := beforeTrigger.Add(4 * time.Minute)
+	expectedMax := beforeTrigger.Add(6 * time.Minute)
+
+	if ca.ScheduledAt.Before(expectedMin) || ca.ScheduledAt.After(expectedMax) {
+		addBug("TestAutomation_DelayTiming",
+			fmt.Sprintf("Delay timing incorrect: expected ~5min future, got %v", ca.ScheduledAt.Sub(beforeTrigger)),
+			"High", "Delay calculation error",
+			"internal/service/automation_node_executor.go:DelayNodeExecutor")
+	}
+	t.Logf("Delay scheduled at: %v (%.1f minutes from trigger)", ca.ScheduledAt, ca.ScheduledAt.Sub(beforeTrigger).Minutes())
+
+	t.Logf("Delay timing E2E test passed: scheduler advanced to delay node with correct timing")
 }
 
-// testAutomationABTestDeterminism tests A/B test variant selection is deterministic
+// testAutomationABTestDeterminism tests A/B test variant selection and full workflow execution
 // Uses HTTP for automation CRUD, factory for timeline events (intentional)
+// Workflow: trigger → ab_test → (variant A → add_to_list_a OR variant B → add_to_list_b)
 func testAutomationABTestDeterminism(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
-	// 1. Create automation via HTTP with A/B test node
+	// 1. Create lists to track which variant was selected
+	listA, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	listAID := listA.ID
+
+	listB, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	listBID := listB.ID
+
+	// 2. Create automation via HTTP with A/B test node that routes to different lists
 	automationID := shortuuid.New()
 	triggerNodeID := shortuuid.New()
 	abNodeID := shortuuid.New()
+	addToListANodeID := shortuuid.New()
+	addToListBNodeID := shortuuid.New()
 
 	createReq := map[string]interface{}{
 		"workspace_id": workspaceID,
@@ -669,11 +792,25 @@ func testAutomationABTestDeterminism(t *testing.T, factory *testutil.TestDataFac
 					"type":          "ab_test",
 					"config": map[string]interface{}{
 						"variants": []map[string]interface{}{
-							{"id": "A", "name": "Variant A", "weight": 50, "next_node_id": ""},
-							{"id": "B", "name": "Variant B", "weight": 50, "next_node_id": ""},
+							{"id": "A", "name": "Variant A", "weight": 50, "next_node_id": addToListANodeID},
+							{"id": "B", "name": "Variant B", "weight": 50, "next_node_id": addToListBNodeID},
 						},
 					},
 					"position": map[string]interface{}{"x": 0, "y": 100},
+				},
+				{
+					"id":            addToListANodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": listAID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": -100, "y": 200},
+				},
+				{
+					"id":            addToListBNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": listBID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": 100, "y": 200},
 				},
 			},
 			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
@@ -711,18 +848,43 @@ func testAutomationABTestDeterminism(t *testing.T, factory *testutil.TestDataFac
 	// 5. Wait for enrollment via HTTP
 	caMap := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
 	require.NotNil(t, caMap)
-	assert.Equal(t, "active", caMap["status"])
+	t.Logf("Contact enrolled with status: %s", caMap["status"])
 
-	t.Logf("A/B test determinism E2E test passed: enrollment working")
+	// 6. Wait for automation to complete (A/B test with no next nodes should complete)
+	completedCA := waitForAutomationComplete(t, factory, workspaceID, automationID, email, 10*time.Second)
+	require.NotNil(t, completedCA, "Automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status, "Status should be completed")
+	t.Logf("Automation completed for contact %s", email)
+
+	// 7. Verify stats show completion (wait for stats to update after contact completion)
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 1, 2*time.Second)
+	require.NotNil(t, stats, "Stats should exist")
+	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled count should be 1")
+	assert.Equal(t, int64(1), stats.Completed, "Completed count should be 1")
+	t.Logf("Automation stats: enrolled=%d, completed=%d", stats.Enrolled, stats.Completed)
+
+	t.Logf("A/B test determinism E2E test passed: automation completed successfully")
 }
 
 // testAutomationBranchRouting tests branch node routing based on conditions
 // Uses HTTP for automation CRUD, factory for timeline events (intentional)
+// Workflow: trigger → branch → (VIP path → add_to_vip_list OR default → add_to_default_list)
 func testAutomationBranchRouting(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
-	// 1. Create automation via HTTP with branch node
+	// 1. Create lists to track which path was taken
+	vipList, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	vipListID := vipList.ID
+
+	defaultList, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	defaultListID := defaultList.ID
+
+	// 2. Create automation via HTTP with branch node
 	automationID := shortuuid.New()
 	triggerNodeID := shortuuid.New()
 	branchNodeID := shortuuid.New()
+	addToVIPListNodeID := shortuuid.New()
+	addToDefaultListNodeID := shortuuid.New()
 
 	createReq := map[string]interface{}{
 		"workspace_id": workspaceID,
@@ -753,19 +915,43 @@ func testAutomationBranchRouting(t *testing.T, factory *testutil.TestDataFactory
 						"paths": []map[string]interface{}{
 							{
 								"id":   "vip_path",
-								"name": "VIP Path",
+								"name": "VIP Path (US)",
 								"conditions": map[string]interface{}{
-									"operator": "and",
-									"children": []map[string]interface{}{
-										{"operator": "equals", "field": "country", "value": "US"},
+									"kind": "leaf",
+									"leaf": map[string]interface{}{
+										"source": "contacts",
+										"contact": map[string]interface{}{
+											"filters": []map[string]interface{}{
+												{
+													"field_name":    "country",
+													"field_type":    "string",
+													"operator":      "equals",
+													"string_values": []string{"US"},
+												},
+											},
+										},
 									},
 								},
-								"next_node_id": "",
+								"next_node_id": addToVIPListNodeID,
 							},
 						},
-						"default_path_id": "",
+						"default_path_id": addToDefaultListNodeID,
 					},
 					"position": map[string]interface{}{"x": 0, "y": 100},
+				},
+				{
+					"id":            addToVIPListNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": vipListID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": -100, "y": 200},
+				},
+				{
+					"id":            addToDefaultListNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": defaultListID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": 100, "y": 200},
 				},
 			},
 			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
@@ -803,18 +989,43 @@ func testAutomationBranchRouting(t *testing.T, factory *testutil.TestDataFactory
 	// 5. Wait for enrollment via HTTP
 	caMap := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
 	require.NotNil(t, caMap)
-	assert.Equal(t, "active", caMap["status"])
+	t.Logf("Contact enrolled with status: %s", caMap["status"])
 
-	t.Logf("Branch routing E2E test passed: contact enrolled")
+	// 6. Wait for automation to complete (branch with no next nodes should complete)
+	completedCA := waitForAutomationComplete(t, factory, workspaceID, automationID, email, 10*time.Second)
+	require.NotNil(t, completedCA, "Automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status, "Status should be completed")
+	t.Logf("Automation completed for contact %s", email)
+
+	// 7. Verify stats show completion (wait for stats to update after contact completion)
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 1, 2*time.Second)
+	require.NotNil(t, stats, "Stats should exist")
+	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled count should be 1")
+	assert.Equal(t, int64(1), stats.Completed, "Completed count should be 1")
+	t.Logf("Automation stats: enrolled=%d, completed=%d", stats.Enrolled, stats.Completed)
+
+	t.Logf("Branch routing E2E test passed: automation completed successfully")
 }
 
 // testAutomationFilterNode tests filter node pass/fail paths
 // Uses HTTP for automation CRUD, factory for timeline events (intentional)
+// Workflow: trigger → filter (FR?) → (pass → add_to_pass_list OR fail → add_to_fail_list)
 func testAutomationFilterNode(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
-	// 1. Create automation via HTTP with filter node
+	// 1. Create lists to track which path was taken
+	passedList, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	passedListID := passedList.ID
+
+	failedList, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	failedListID := failedList.ID
+
+	// 2. Create automation via HTTP with filter node
 	automationID := shortuuid.New()
 	triggerNodeID := shortuuid.New()
 	filterNodeID := shortuuid.New()
+	addToPassListNodeID := shortuuid.New()
+	addToFailListNodeID := shortuuid.New()
 
 	createReq := map[string]interface{}{
 		"workspace_id": workspaceID,
@@ -843,15 +1054,39 @@ func testAutomationFilterNode(t *testing.T, factory *testutil.TestDataFactory, c
 					"type":          "filter",
 					"config": map[string]interface{}{
 						"conditions": map[string]interface{}{
-							"operator": "and",
-							"children": []map[string]interface{}{
-								{"operator": "equals", "field": "country", "value": "FR"},
+							"kind": "leaf",
+							"leaf": map[string]interface{}{
+								"source": "contacts",
+								"contact": map[string]interface{}{
+									"filters": []map[string]interface{}{
+										{
+											"field_name":    "country",
+											"field_type":    "string",
+											"operator":      "equals",
+											"string_values": []string{"FR"},
+										},
+									},
+								},
 							},
 						},
-						"continue_node_id": "",
-						"exit_node_id":     "",
+						"continue_node_id": addToPassListNodeID,
+						"exit_node_id":     addToFailListNodeID,
 					},
 					"position": map[string]interface{}{"x": 0, "y": 100},
+				},
+				{
+					"id":            addToPassListNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": passedListID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": -100, "y": 200},
+				},
+				{
+					"id":            addToFailListNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": failedListID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": 100, "y": 200},
 				},
 			},
 			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
@@ -901,27 +1136,60 @@ func testAutomationFilterNode(t *testing.T, factory *testutil.TestDataFactory, c
 	// 6. Wait for both enrollments via HTTP
 	passCA := waitForEnrollmentViaAPI(t, client, automationID, passEmail, 2*time.Second)
 	require.NotNil(t, passCA)
-	assert.Equal(t, "active", passCA["status"])
+	t.Logf("Pass contact enrolled with status: %s", passCA["status"])
 
 	failCA := waitForEnrollmentViaAPI(t, client, automationID, failEmail, 2*time.Second)
 	require.NotNil(t, failCA)
-	assert.Equal(t, "active", failCA["status"])
+	t.Logf("Fail contact enrolled with status: %s", failCA["status"])
 
-	t.Logf("Filter node E2E test passed: both contacts enrolled")
+	// 7. Wait for both automations to complete
+	passCompleted := waitForAutomationComplete(t, factory, workspaceID, automationID, passEmail, 10*time.Second)
+	require.NotNil(t, passCompleted, "Pass contact automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, passCompleted.Status, "Pass contact status should be completed")
+
+	failCompleted := waitForAutomationComplete(t, factory, workspaceID, automationID, failEmail, 10*time.Second)
+	require.NotNil(t, failCompleted, "Fail contact automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, failCompleted.Status, "Fail contact status should be completed")
+
+	// 8. Verify stats show both completed (wait for stats to update after contact completion)
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 2, 2*time.Second)
+	require.NotNil(t, stats, "Stats should exist")
+	assert.Equal(t, int64(2), stats.Enrolled, "Enrolled count should be 2")
+	assert.Equal(t, int64(2), stats.Completed, "Completed count should be 2")
+	t.Logf("Automation stats: enrolled=%d, completed=%d", stats.Enrolled, stats.Completed)
+
+	t.Logf("Filter node E2E test passed: both contacts completed automation")
 }
 
 // testAutomationListStatusBranch tests the list_status_branch node routing based on contact list status
 // Uses HTTP for automation CRUD, factory for timeline events (intentional)
+// Workflow: trigger → list_status_branch → (not_in_list → add_to_not_in_list, active → add_to_active_list, non_active → add_to_non_active_list)
 func testAutomationListStatusBranch(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
-	// 1. Create a list via factory (complex validation requirements)
+	// 1. Create the list to check status against
 	list, err := factory.CreateList(workspaceID)
 	require.NoError(t, err)
 	listID := list.ID
 
-	// 2. Create automation via HTTP with list_status_branch node
+	// 2. Create lists to track which branch was taken
+	notInListTargetList, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	notInListTargetListID := notInListTargetList.ID
+
+	activeTargetList, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	activeTargetListID := activeTargetList.ID
+
+	nonActiveTargetList, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	nonActiveTargetListID := nonActiveTargetList.ID
+
+	// 3. Create automation via HTTP with list_status_branch node
 	automationID := shortuuid.New()
 	triggerNodeID := shortuuid.New()
 	listStatusNodeID := shortuuid.New()
+	addToNotInListNodeID := shortuuid.New()
+	addToActiveListNodeID := shortuuid.New()
+	addToNonActiveListNodeID := shortuuid.New()
 
 	createReq := map[string]interface{}{
 		"workspace_id": workspaceID,
@@ -950,11 +1218,32 @@ func testAutomationListStatusBranch(t *testing.T, factory *testutil.TestDataFact
 					"type":          "list_status_branch",
 					"config": map[string]interface{}{
 						"list_id":             listID,
-						"not_in_list_node_id": "",
-						"active_node_id":      "",
-						"non_active_node_id":  "",
+						"not_in_list_node_id": addToNotInListNodeID,
+						"active_node_id":      addToActiveListNodeID,
+						"non_active_node_id":  addToNonActiveListNodeID,
 					},
 					"position": map[string]interface{}{"x": 0, "y": 100},
+				},
+				{
+					"id":            addToNotInListNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": notInListTargetListID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": -150, "y": 200},
+				},
+				{
+					"id":            addToActiveListNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": activeTargetListID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": 0, "y": 200},
+				},
+				{
+					"id":            addToNonActiveListNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": nonActiveTargetListID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": 150, "y": 200},
 				},
 			},
 			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
@@ -990,7 +1279,9 @@ func testAutomationListStatusBranch(t *testing.T, factory *testutil.TestDataFact
 
 	notInListCA := waitForEnrollmentViaAPI(t, client, automationID, notInListEmail, 2*time.Second)
 	require.NotNil(t, notInListCA)
-	assert.Equal(t, "active", notInListCA["status"])
+	// Status can be "active" or "completed" depending on scheduler timing
+	notInListStatus := notInListCA["status"].(string)
+	assert.True(t, notInListStatus == "active" || notInListStatus == "completed", "Status should be active or completed")
 
 	// Test 2: Contact with active status
 	activeEmail := "active-status-e2e@example.com"
@@ -1013,7 +1304,9 @@ func testAutomationListStatusBranch(t *testing.T, factory *testutil.TestDataFact
 
 	activeCA := waitForEnrollmentViaAPI(t, client, automationID, activeEmail, 2*time.Second)
 	require.NotNil(t, activeCA)
-	assert.Equal(t, "active", activeCA["status"])
+	// Status can be "active" or "completed" depending on scheduler timing
+	activeStatus := activeCA["status"].(string)
+	assert.True(t, activeStatus == "active" || activeStatus == "completed", "Status should be active or completed")
 
 	// Test 3: Contact with unsubscribed status
 	unsubEmail := "unsubscribed-status-e2e@example.com"
@@ -1040,14 +1333,29 @@ func testAutomationListStatusBranch(t *testing.T, factory *testutil.TestDataFact
 
 	unsubCA := waitForEnrollmentViaAPI(t, client, automationID, unsubEmail, 2*time.Second)
 	require.NotNil(t, unsubCA)
-	assert.Equal(t, "active", unsubCA["status"])
+	t.Logf("Unsubscribed contact enrolled with status: %s", unsubCA["status"])
 
-	// Verify stats (factory - no HTTP API for stats)
-	stats, err := factory.GetAutomationStats(workspaceID, automationID)
-	require.NoError(t, err)
+	// Wait for all 3 automations to complete
+	notInListCompleted := waitForAutomationComplete(t, factory, workspaceID, automationID, notInListEmail, 10*time.Second)
+	require.NotNil(t, notInListCompleted, "Not-in-list contact automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, notInListCompleted.Status)
+
+	activeCompleted := waitForAutomationComplete(t, factory, workspaceID, automationID, activeEmail, 10*time.Second)
+	require.NotNil(t, activeCompleted, "Active contact automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, activeCompleted.Status)
+
+	unsubCompleted := waitForAutomationComplete(t, factory, workspaceID, automationID, unsubEmail, 10*time.Second)
+	require.NotNil(t, unsubCompleted, "Unsubscribed contact automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, unsubCompleted.Status)
+
+	// Verify stats show all completed (wait for stats to update after contact completion)
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 3, 2*time.Second)
+	require.NotNil(t, stats, "Stats should exist")
 	assert.Equal(t, int64(3), stats.Enrolled, "All 3 contacts should be enrolled")
+	assert.Equal(t, int64(3), stats.Completed, "All 3 contacts should be completed")
+	t.Logf("Automation stats: enrolled=%d, completed=%d", stats.Enrolled, stats.Completed)
 
-	t.Logf("List status branch E2E test passed: all 3 contacts enrolled correctly")
+	t.Logf("List status branch E2E test passed: all 3 contacts completed automation")
 }
 
 // testAutomationListOperations tests add_to_list and remove_from_list nodes
@@ -1145,9 +1453,45 @@ func testAutomationListOperations(t *testing.T, factory *testutil.TestDataFactor
 	// 6. Wait for enrollment via HTTP
 	caMap := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
 	require.NotNil(t, caMap)
-	assert.Equal(t, "active", caMap["status"])
+	t.Logf("Contact enrolled with status: %s", caMap["status"])
 
-	t.Logf("List operations E2E test passed: contact enrolled")
+	// 7. Wait for automation to complete
+	completedCA := waitForAutomationComplete(t, factory, workspaceID, automationID, email, 10*time.Second)
+	require.NotNil(t, completedCA, "Automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status, "Status should be completed")
+	t.Logf("Automation completed for contact %s", email)
+
+	// 8. Verify contact was added to premium list (first action node)
+	premiumListResp, err := client.GetContactListByIDs(workspaceID, email, premiumListID)
+	require.NoError(t, err)
+	defer premiumListResp.Body.Close()
+	assert.Equal(t, http.StatusOK, premiumListResp.StatusCode, "Contact should be in premium list after add_to_list node")
+	t.Logf("Contact verified in premium list")
+
+	// 9. Verify contact was removed from trial list (second action node)
+	trialListResp, err := client.GetContactListByIDs(workspaceID, email, trialListID)
+	require.NoError(t, err)
+	defer trialListResp.Body.Close()
+	// After remove_from_list, the contact-list record should either not exist or have non-active status
+	// The API returns 404 if not found, or 200 with status that's not "active"
+	if trialListResp.StatusCode == http.StatusOK {
+		var trialResult map[string]interface{}
+		json.NewDecoder(trialListResp.Body).Decode(&trialResult)
+		if cl, ok := trialResult["contact_list"].(map[string]interface{}); ok {
+			status := cl["status"]
+			assert.NotEqual(t, "active", status, "Contact should not be active in trial list after remove_from_list node")
+		}
+	}
+	t.Logf("Contact verified removed from trial list")
+
+	// 10. Verify stats show completion (wait for stats to update after contact completion)
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 1, 2*time.Second)
+	require.NotNil(t, stats, "Stats should exist")
+	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled count should be 1")
+	assert.Equal(t, int64(1), stats.Completed, "Completed count should be 1")
+	t.Logf("Automation stats: enrolled=%d, completed=%d", stats.Enrolled, stats.Completed)
+
+	t.Logf("List operations E2E test passed: both add_to_list and remove_from_list nodes executed")
 }
 
 // testAutomationContextData tests that timeline event data is passed to automation context
@@ -1219,9 +1563,22 @@ func testAutomationContextData(t *testing.T, factory *testutil.TestDataFactory, 
 	// 5. Wait for enrollment via HTTP
 	caMap := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
 	require.NotNil(t, caMap)
-	assert.Equal(t, "active", caMap["status"])
+	t.Logf("Contact enrolled with status: %s", caMap["status"])
 
-	t.Logf("Context data E2E test passed: contact enrolled with purchase event")
+	// 6. Wait for automation to complete (trigger-only automation should complete)
+	completedCA := waitForAutomationComplete(t, factory, workspaceID, automationID, email, 10*time.Second)
+	require.NotNil(t, completedCA, "Automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status, "Status should be completed")
+	t.Logf("Automation completed for contact %s", email)
+
+	// 7. Verify stats show completion (wait for stats to update after contact completion)
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 1, 2*time.Second)
+	require.NotNil(t, stats, "Stats should exist")
+	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled count should be 1")
+	assert.Equal(t, int64(1), stats.Completed, "Completed count should be 1")
+	t.Logf("Automation stats: enrolled=%d, completed=%d", stats.Enrolled, stats.Completed)
+
+	t.Logf("Context data E2E test passed: automation completed with purchase event")
 }
 
 // testAutomationSegmentTrigger tests triggering automation on segment.joined event
@@ -1299,9 +1656,22 @@ func testAutomationSegmentTrigger(t *testing.T, factory *testutil.TestDataFactor
 	// 5. Wait for enrollment via HTTP
 	caMap := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
 	require.NotNil(t, caMap)
-	assert.Equal(t, "active", caMap["status"])
+	t.Logf("Contact enrolled with status: %s", caMap["status"])
 
-	t.Logf("Segment trigger E2E test passed: contact enrolled on segment.joined")
+	// 6. Wait for automation to complete (trigger-only automation should complete)
+	completedCA := waitForAutomationComplete(t, factory, workspaceID, automationID, email, 10*time.Second)
+	require.NotNil(t, completedCA, "Automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status, "Status should be completed")
+	t.Logf("Automation completed for contact %s", email)
+
+	// 7. Verify stats show completion (wait for stats to update after contact completion)
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 1, 2*time.Second)
+	require.NotNil(t, stats, "Stats should exist")
+	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled count should be 1")
+	assert.Equal(t, int64(1), stats.Completed, "Completed count should be 1")
+	t.Logf("Automation stats: enrolled=%d, completed=%d", stats.Enrolled, stats.Completed)
+
+	t.Logf("Segment trigger E2E test passed: automation completed on segment.joined")
 }
 
 // testAutomationDeletionCleanup tests that deleting automation cleans up properly
@@ -1477,7 +1847,9 @@ func testAutomationErrorRecovery(t *testing.T, factory *testutil.TestDataFactory
 	// 5. Wait for enrollment via HTTP (enrollment should succeed even if later execution fails)
 	ca := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
 	require.NotNil(t, ca)
-	assert.Equal(t, "active", ca["status"])
+	// Status can be "active" (just enrolled) or "completed" (scheduler already processed the trigger-only workflow)
+	status := ca["status"].(string)
+	assert.True(t, status == "active" || status == "completed", "Status should be active or completed, got: %s", status)
 
 	// 6. Verify retry infrastructure exists (factory - for deep inspection of retry fields)
 	caFromFactory, err := factory.GetContactAutomation(workspaceID, automationID, email)
@@ -1577,7 +1949,9 @@ func testAutomationSchedulerExecution(t *testing.T, factory *testutil.TestDataFa
 	// 8. Wait for enrollment via HTTP
 	ca := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
 	require.NotNil(t, ca)
-	assert.Equal(t, "active", ca["status"])
+	// Status can be "active" (just enrolled) or "completed" (scheduler already processed)
+	status := ca["status"].(string)
+	assert.True(t, status == "active" || status == "completed", "Status should be active or completed, got: %s", status)
 
 	// 9. Verify node executions (factory - nodeExecutions API returns these)
 	caFromFactory, err := factory.GetContactAutomation(workspaceID, automationID, email)
@@ -1645,7 +2019,7 @@ func testAutomationPauseResume(t *testing.T, factory *testutil.TestDataFactory, 
 					"type":          "delay",
 					"config": map[string]interface{}{
 						"duration": 1,
-						"unit":     "seconds",
+						"unit":     "minutes",
 					},
 					"position": map[string]interface{}{"x": 0, "y": 100},
 				},
@@ -1978,7 +2352,9 @@ func testAutomationTimelineStartEvent(t *testing.T, factory *testutil.TestDataFa
 	// 5. Wait for enrollment via HTTP
 	ca := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
 	require.NotNil(t, ca, "Contact should be enrolled")
-	assert.Equal(t, "active", ca["status"])
+	// Status can be "active" (just enrolled) or "completed" (scheduler already processed the trigger-only workflow)
+	status := ca["status"].(string)
+	assert.True(t, status == "active" || status == "completed", "Status should be active or completed, got: %s", status)
 
 	// 6. Wait for automation.start timeline event (factory - no HTTP API for timeline events)
 	events := waitForTimelineEvent(t, factory, workspaceID, email, "automation.start", 2*time.Second)
@@ -2045,8 +2421,8 @@ func testAutomationTimelineEndEvent(t *testing.T, factory *testutil.TestDataFact
 					"automation_id": automationID,
 					"type":          "delay",
 					"config": map[string]interface{}{
-						"duration": 0, // Completes immediately - this is a terminal node
-						"unit":     "seconds",
+						"duration": 1,
+						"unit":     "minutes",
 					},
 					"position": map[string]interface{}{"x": 0, "y": 100},
 				},
@@ -2186,8 +2562,8 @@ func testAutomationContactCreatedTrigger(t *testing.T, factory *testutil.TestDat
 					"automation_id": automationID,
 					"type":          "delay",
 					"config": map[string]interface{}{
-						"delay_value": 1,
-						"delay_unit":  "days",
+						"duration": 1,
+						"unit":     "days",
 					},
 					"position": map[string]interface{}{"x": 0, "y": 100},
 				},
@@ -2267,23 +2643,48 @@ func testAutomationContactCreatedTrigger(t *testing.T, factory *testutil.TestDat
 	}
 
 	// 7. Verify enrollment details
-	assert.Equal(t, "active", ca["status"], "Contact should be active in automation")
-	assert.NotNil(t, ca["current_node_id"], "Current node should be set")
-	t.Logf("Contact enrolled with status: %s, current_node: %v", ca["status"], ca["current_node_id"])
+	// Status can be "active" (enrolled or waiting for delay) - both are valid
+	// current_node_id can be the trigger node, delay node, or nil (if scheduler already processed to terminal delay)
+	status := ca["status"].(string)
+	assert.True(t, status == "active" || status == "completed", "Status should be active or completed, got: %s", status)
+	t.Logf("Contact enrolled with status: %s, current_node: %v", status, ca["current_node_id"])
 
 	// 8. Verify automation.start timeline event was created
 	startEvents := waitForTimelineEvent(t, factory, workspaceID, email, "automation.start", 2*time.Second)
 	require.NotEmpty(t, startEvents, "automation.start timeline event should exist")
 	t.Logf("automation.start timeline event found")
 
-	// 9. Verify automation stats were updated
+	// 9. Wait for scheduler to process trigger → delay
+	// After delay node executes, CurrentNodeID is set to the NEXT node (nil since delay is terminal),
+	// and ScheduledAt is set to the future time when the delay expires.
+	// Status remains "active" because we're waiting for the delay to expire.
+	var caFromFactory *domain.ContactAutomation
+	testutil.WaitForCondition(t, func() bool {
+		var err error
+		caFromFactory, err = factory.GetContactAutomation(workspaceID, automationID, email)
+		if err != nil || caFromFactory == nil {
+			return false
+		}
+		// Delay node is terminal (no next_node_id), so CurrentNodeID becomes nil
+		// But contact should still be active with ScheduledAt in the future
+		return caFromFactory.CurrentNodeID == nil && caFromFactory.ScheduledAt != nil && caFromFactory.Status == domain.ContactAutomationStatusActive
+	}, 10*time.Second, "waiting for scheduler to process delay node")
+
+	require.NotNil(t, caFromFactory, "Contact automation should exist")
+	assert.Nil(t, caFromFactory.CurrentNodeID, "Current node should be nil (delay is terminal)")
+	assert.Equal(t, domain.ContactAutomationStatusActive, caFromFactory.Status, "Contact should be active (waiting for delay)")
+	require.NotNil(t, caFromFactory.ScheduledAt, "ScheduledAt should be set for delay")
+	assert.True(t, caFromFactory.ScheduledAt.After(time.Now()), "ScheduledAt should be in the future")
+	t.Logf("Contact processed delay node, waiting until: %v", caFromFactory.ScheduledAt)
+
+	// 10. Verify automation stats were updated
 	stats, err := factory.GetAutomationStats(workspaceID, automationID)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled count should be 1")
 	t.Logf("Automation stats: enrolled=%d, completed=%d, exited=%d, failed=%d",
 		stats.Enrolled, stats.Completed, stats.Exited, stats.Failed)
 
-	// 10. Verify deduplication works (creating the same contact again should not re-enroll)
+	// 11. Verify deduplication works (creating the same contact again should not re-enroll)
 	// Update the contact (not create) - this should trigger contact.updated, not contact.created
 	updateResp, err := client.CreateContact(map[string]interface{}{
 		"workspace_id": workspaceID,
@@ -2303,7 +2704,339 @@ func testAutomationContactCreatedTrigger(t *testing.T, factory *testutil.TestDat
 	require.NoError(t, err)
 	assert.Equal(t, 1, count, "Should still have exactly 1 enrollment (update should not trigger contact.created)")
 
-	t.Logf("ContactCreatedTrigger E2E test passed: GitHub issue #191 scenario verified working!")
+	t.Logf("ContactCreatedTrigger E2E test passed: scheduler advanced to delay node, GitHub issue #191 scenario verified!")
+}
+
+// testAutomationConsecutiveAddToList tests two consecutive add_to_list nodes
+// This verifies that the scheduler correctly processes multiple action nodes in sequence
+// without pausing after the first action node completes.
+func testAutomationConsecutiveAddToList(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
+	// 1. Create two lists via factory
+	list1, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	list1ID := list1.ID
+	t.Logf("List 1 created: %s", list1ID)
+
+	list2, err := factory.CreateList(workspaceID)
+	require.NoError(t, err)
+	list2ID := list2.ID
+	t.Logf("List 2 created: %s", list2ID)
+
+	// 2. Create automation via HTTP with trigger → add_to_list → add_to_list
+	automationID := shortuuid.New()
+	triggerNodeID := shortuuid.New()
+	addNode1ID := shortuuid.New()
+	addNode2ID := shortuuid.New()
+
+	createReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"automation": map[string]interface{}{
+			"id":           automationID,
+			"workspace_id": workspaceID,
+			"name":         "Consecutive Add To List E2E",
+			"status":       "draft",
+			"trigger": map[string]interface{}{
+				"event_kind":        "custom_event",
+				"custom_event_name": "consecutive_add_list_event",
+				"frequency":         "once",
+			},
+			"root_node_id": triggerNodeID,
+			"nodes": []map[string]interface{}{
+				{
+					"id":            triggerNodeID,
+					"automation_id": automationID,
+					"type":          "trigger",
+					"config":        map[string]interface{}{},
+					"next_node_id":  addNode1ID,
+					"position":      map[string]interface{}{"x": 0, "y": 0},
+				},
+				{
+					"id":            addNode1ID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": list1ID, "status": "subscribed"},
+					"next_node_id":  addNode2ID,
+					"position":      map[string]interface{}{"x": 0, "y": 100},
+				},
+				{
+					"id":            addNode2ID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": list2ID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": 0, "y": 200},
+				},
+			},
+			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
+		},
+	}
+
+	resp, err := client.CreateAutomation(createReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	resp.Body.Close()
+	t.Logf("Automation created: %s", automationID)
+
+	// 3. Activate automation via HTTP
+	activateResp, err := client.ActivateAutomation(map[string]interface{}{
+		"workspace_id":  workspaceID,
+		"automation_id": automationID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, activateResp.StatusCode)
+	activateResp.Body.Close()
+	t.Logf("Automation activated: %s", automationID)
+
+	// 4. Create contact via HTTP
+	email := "consecutive-add-list@example.com"
+	contactResp, err := client.CreateContact(map[string]interface{}{
+		"workspace_id": workspaceID,
+		"contact": map[string]interface{}{
+			"email":      email,
+			"first_name": "Consecutive",
+			"last_name":  "Test",
+		},
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, contactResp.StatusCode)
+	contactResp.Body.Close()
+	t.Logf("Contact created: %s", email)
+
+	// 5. Trigger automation via custom event (factory - no HTTP API)
+	err = factory.CreateCustomEvent(workspaceID, email, "consecutive_add_list_event", nil)
+	require.NoError(t, err)
+	t.Logf("Custom event triggered for %s", email)
+
+	// 6. Wait for enrollment via HTTP
+	ca := waitForEnrollmentViaAPI(t, client, automationID, email, 2*time.Second)
+	require.NotNil(t, ca, "Contact should be enrolled")
+	t.Logf("Contact enrolled with status: %s, current_node: %v", ca["status"], ca["current_node_id"])
+
+	// 7. Wait for automation to complete - this is where we expect the bug to manifest
+	// The scheduler should process both add_to_list nodes and mark the contact as completed
+	var finalStatus string
+	testutil.WaitForCondition(t, func() bool {
+		caFromFactory, err := factory.GetContactAutomation(workspaceID, automationID, email)
+		if err != nil {
+			return false
+		}
+		finalStatus = string(caFromFactory.Status)
+		currentNode := ""
+		if caFromFactory.CurrentNodeID != nil {
+			currentNode = *caFromFactory.CurrentNodeID
+		}
+		t.Logf("Current automation status: %s, current_node: %s", caFromFactory.Status, currentNode)
+		return caFromFactory.Status == domain.ContactAutomationStatusCompleted
+	}, 10*time.Second, "waiting for automation to complete")
+
+	// 8. Verify the contact was added to BOTH lists
+	// Check list 1
+	list1Resp, err := client.GetContactListByIDs(workspaceID, email, list1ID)
+	require.NoError(t, err)
+	defer list1Resp.Body.Close()
+
+	if list1Resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(list1Resp.Body)
+		t.Logf("List 1 response: %d - %s", list1Resp.StatusCode, string(body))
+		addBug("TestAutomation_ConsecutiveAddToList",
+			"Contact not added to first list - automation may have paused after first add_to_list node",
+			"Critical", "Scheduler not processing consecutive action nodes",
+			"internal/service/automation_executor.go")
+		t.Fatalf("Contact should be added to list 1, got status %d", list1Resp.StatusCode)
+	}
+
+	var list1Result map[string]interface{}
+	err = json.NewDecoder(list1Resp.Body).Decode(&list1Result)
+	require.NoError(t, err)
+	t.Logf("Contact in list 1: %v", list1Result)
+
+	// Check list 2
+	list2Resp, err := client.GetContactListByIDs(workspaceID, email, list2ID)
+	require.NoError(t, err)
+	defer list2Resp.Body.Close()
+
+	if list2Resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(list2Resp.Body)
+		t.Logf("List 2 response: %d - %s", list2Resp.StatusCode, string(body))
+		addBug("TestAutomation_ConsecutiveAddToList",
+			"Contact not added to second list - automation paused after first add_to_list node",
+			"Critical", "Scheduler not advancing to second action node after first completes",
+			"internal/service/automation_executor.go")
+		t.Fatalf("Contact should be added to list 2, got status %d - BUG CONFIRMED: automation paused after first add_to_list", list2Resp.StatusCode)
+	}
+
+	var list2Result map[string]interface{}
+	err = json.NewDecoder(list2Resp.Body).Decode(&list2Result)
+	require.NoError(t, err)
+	t.Logf("Contact in list 2: %v", list2Result)
+
+	// 9. Verify final automation status is completed
+	assert.Equal(t, "completed", finalStatus, "Automation should be completed after processing both nodes")
+
+	// 10. Verify automation stats (wait for stats to update after contact completion)
+	stats := waitForStatsCompleted(t, factory, workspaceID, automationID, 1, 2*time.Second)
+	require.NotNil(t, stats, "Stats should exist")
+	assert.Equal(t, int64(1), stats.Enrolled, "Enrolled count should be 1")
+	assert.Equal(t, int64(1), stats.Completed, "Completed count should be 1")
+	t.Logf("Automation stats: enrolled=%d, completed=%d, exited=%d, failed=%d",
+		stats.Enrolled, stats.Completed, stats.Exited, stats.Failed)
+
+	t.Logf("ConsecutiveAddToList E2E test passed: both add_to_list nodes executed successfully!")
+}
+
+// testWebhookNode tests webhook node sends HTTP POST with correct headers/payload
+func testWebhookNode(t *testing.T, factory *testutil.TestDataFactory, client *testutil.APIClient, workspaceID string) {
+	// 1. Create channel to capture webhook payload
+	type webhookCapture struct {
+		headers http.Header
+		body    []byte
+		method  string
+	}
+	captured := make(chan webhookCapture, 1)
+
+	// 2. Create mock server
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		captured <- webhookCapture{
+			headers: r.Header.Clone(),
+			body:    body,
+			method:  r.Method,
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"ok": true}`))
+	}))
+	defer testServer.Close()
+
+	// 3. Create list for terminal node
+	list, err := factory.CreateList(workspaceID, testutil.WithListName("Webhook Test List"))
+	require.NoError(t, err)
+	listID := list.ID
+
+	// 4. Create automation: trigger → webhook → add_to_list
+	automationID := shortuuid.New()
+	triggerNodeID := shortuuid.New()
+	webhookNodeID := shortuuid.New()
+	terminalNodeID := shortuuid.New()
+	webhookSecret := "test-webhook-secret-123"
+
+	createReq := map[string]interface{}{
+		"workspace_id": workspaceID,
+		"automation": map[string]interface{}{
+			"id":           automationID,
+			"workspace_id": workspaceID,
+			"name":         "Webhook Test Automation E2E",
+			"status":       "draft",
+			"trigger": map[string]interface{}{
+				"event_kind":        "custom_event",
+				"custom_event_name": "webhook_test_event_e2e",
+				"frequency":         "once",
+			},
+			"root_node_id": triggerNodeID,
+			"nodes": []map[string]interface{}{
+				{
+					"id":            triggerNodeID,
+					"automation_id": automationID,
+					"type":          "trigger",
+					"config":        map[string]interface{}{},
+					"next_node_id":  webhookNodeID,
+					"position":      map[string]interface{}{"x": 0, "y": 0},
+				},
+				{
+					"id":            webhookNodeID,
+					"automation_id": automationID,
+					"type":          "webhook",
+					"config":        map[string]interface{}{"url": testServer.URL, "secret": webhookSecret},
+					"next_node_id":  terminalNodeID,
+					"position":      map[string]interface{}{"x": 0, "y": 100},
+				},
+				{
+					"id":            terminalNodeID,
+					"automation_id": automationID,
+					"type":          "add_to_list",
+					"config":        map[string]interface{}{"list_id": listID, "status": "subscribed"},
+					"position":      map[string]interface{}{"x": 0, "y": 200},
+				},
+			},
+			"stats": map[string]interface{}{"enrolled": 0, "completed": 0, "exited": 0, "failed": 0},
+		},
+	}
+
+	resp, err := client.CreateAutomation(createReq)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusCreated, resp.StatusCode)
+	resp.Body.Close()
+
+	// 5. Activate automation
+	activateResp, err := client.ActivateAutomation(map[string]interface{}{
+		"workspace_id":  workspaceID,
+		"automation_id": automationID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, activateResp.StatusCode)
+	activateResp.Body.Close()
+
+	// 6. Create contact
+	email := "webhook-test-e2e@example.com"
+	contact, err := factory.CreateContact(workspaceID, testutil.WithContactEmail(email))
+	require.NoError(t, err)
+	t.Logf("Contact created: %s", contact.Email)
+
+	// 7. Trigger automation via custom event
+	err = factory.CreateCustomEvent(workspaceID, email, "webhook_test_event_e2e", nil)
+	require.NoError(t, err)
+	t.Logf("Custom event triggered for contact")
+
+	// 8. Wait for webhook to be called
+	select {
+	case capture := <-captured:
+		// Verify HTTP method
+		assert.Equal(t, "POST", capture.method)
+
+		// Verify Authorization header with Bearer token
+		authHeader := capture.headers.Get("Authorization")
+		assert.Equal(t, "Bearer "+webhookSecret, authHeader)
+
+		// Verify Content-Type
+		contentType := capture.headers.Get("Content-Type")
+		assert.Equal(t, "application/json", contentType)
+
+		// Verify payload structure
+		var payload map[string]interface{}
+		err := json.Unmarshal(capture.body, &payload)
+		require.NoError(t, err)
+
+		// Check email at top level (from buildWebhookPayload)
+		assert.Equal(t, email, payload["email"])
+
+		// Check automation info
+		assert.Equal(t, automationID, payload["automation_id"])
+		assert.Equal(t, "Webhook Test Automation E2E", payload["automation_name"])
+
+		// Check node_id
+		assert.Equal(t, webhookNodeID, payload["node_id"])
+
+		// Check contact object exists
+		contactData, ok := payload["contact"].(map[string]interface{})
+		require.True(t, ok, "payload should contain contact object")
+		assert.Equal(t, contact.Email, contactData["email"])
+
+		t.Logf("Webhook received with correct headers and payload")
+
+	case <-time.After(10 * time.Second):
+		t.Fatal("timeout waiting for webhook to be called")
+	}
+
+	// 9. Verify automation completed (contact reached terminal node)
+	completedCA := waitForAutomationComplete(t, factory, workspaceID, automationID, email, 10*time.Second)
+	require.NotNil(t, completedCA, "Automation should complete")
+	assert.Equal(t, domain.ContactAutomationStatusCompleted, completedCA.Status)
+
+	// 10. Verify contact was added to list via API
+	listResp, err := client.GetContactListByIDs(workspaceID, email, listID)
+	require.NoError(t, err)
+	defer listResp.Body.Close()
+	require.Equal(t, http.StatusOK, listResp.StatusCode, "Contact should be in list")
+
+	t.Logf("Webhook Node E2E test passed")
 }
 
 // printBugReport outputs all bugs found during testing

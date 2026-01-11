@@ -14,7 +14,7 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "25.0"
+const VERSION = "25.1"
 
 type Config struct {
 	Server          ServerConfig
@@ -24,9 +24,10 @@ type Config struct {
 	SMTP            SMTPConfig
 	SMTPRelay       SMTPRelayConfig
 	Demo            DemoConfig
-	Broadcast       BroadcastConfig
-	TaskScheduler   TaskSchedulerConfig
-	Telemetry       bool
+	Broadcast           BroadcastConfig
+	TaskScheduler       TaskSchedulerConfig
+	AutomationScheduler AutomationSchedulerConfig
+	Telemetry           bool
 	CheckForUpdates bool
 	RootEmail       string
 	Environment     string
@@ -161,6 +162,12 @@ type TaskSchedulerConfig struct {
 	Enabled  bool          // Enable/disable internal scheduler
 	Interval time.Duration // Tick interval (default: 20s)
 	MaxTasks int           // Max tasks per execution (default: 100)
+}
+
+type AutomationSchedulerConfig struct {
+	Delay     time.Duration // Delay before scheduler starts (default: 30s)
+	Interval  time.Duration // Polling interval (default: 10s)
+	BatchSize int           // Contacts per batch (default: 50)
 }
 
 // LoadOptions contains options for loading configuration
@@ -402,6 +409,11 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 	v.SetDefault("TASK_SCHEDULER_ENABLED", true)
 	v.SetDefault("TASK_SCHEDULER_INTERVAL", "20s")
 	v.SetDefault("TASK_SCHEDULER_MAX_TASKS", 100)
+
+	// Automation scheduler defaults
+	v.SetDefault("AUTOMATION_SCHEDULER_DELAY", "30s")
+	v.SetDefault("AUTOMATION_SCHEDULER_INTERVAL", "10s")
+	v.SetDefault("AUTOMATION_SCHEDULER_BATCH_SIZE", 50)
 
 	// Load environment file if specified
 	if opts.EnvFile != "" {
@@ -743,6 +755,11 @@ func LoadWithOptions(opts LoadOptions) (*Config, error) {
 			Enabled:  v.GetBool("TASK_SCHEDULER_ENABLED"),
 			Interval: v.GetDuration("TASK_SCHEDULER_INTERVAL"),
 			MaxTasks: v.GetInt("TASK_SCHEDULER_MAX_TASKS"),
+		},
+		AutomationScheduler: AutomationSchedulerConfig{
+			Delay:     v.GetDuration("AUTOMATION_SCHEDULER_DELAY"),
+			Interval:  v.GetDuration("AUTOMATION_SCHEDULER_INTERVAL"),
+			BatchSize: v.GetInt("AUTOMATION_SCHEDULER_BATCH_SIZE"),
 		},
 
 		RootEmail:       rootEmail,

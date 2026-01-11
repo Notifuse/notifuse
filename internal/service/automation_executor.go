@@ -41,6 +41,7 @@ func NewAutomationExecutor(
 	qb := NewQueryBuilder()
 
 	executors := map[domain.NodeType]NodeExecutor{
+		domain.NodeTypeTrigger:          NewTriggerNodeExecutor(),
 		domain.NodeTypeDelay:            NewDelayNodeExecutor(),
 		domain.NodeTypeEmail:            NewEmailNodeExecutor(emailQueueRepo, templateRepo, workspaceRepo, apiEndpoint, log),
 		domain.NodeTypeBranch:           NewBranchNodeExecutor(qb, workspaceRepo),
@@ -147,8 +148,10 @@ func (e *AutomationExecutor) Execute(ctx context.Context, workspaceID string, co
 		contactAutomation.CurrentNodeID = result.NextNodeID
 		contactAutomation.ScheduledAt = result.ScheduledAt
 
-		// Determine status (terminal node = completed)
-		if result.NextNodeID == nil && result.Status == domain.ContactAutomationStatusActive {
+		// Determine status (terminal node = completed, unless waiting for a delay)
+		isTerminalNode := result.NextNodeID == nil && result.Status == domain.ContactAutomationStatusActive
+		isWaitingDelay := result.ScheduledAt != nil && result.ScheduledAt.After(time.Now())
+		if isTerminalNode && !isWaitingDelay {
 			contactAutomation.Status = domain.ContactAutomationStatusCompleted
 		} else {
 			contactAutomation.Status = result.Status
