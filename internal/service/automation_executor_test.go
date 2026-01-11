@@ -336,15 +336,17 @@ func TestAutomationExecutor_Execute_TerminalNode(t *testing.T) {
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
 	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	executor := &AutomationExecutor{
-		automationRepo: mockAutomationRepo,
-		contactRepo:    mockContactRepo,
-		timelineRepo:   mockTimelineRepo,
+		automationRepo:  mockAutomationRepo,
+		contactRepo:     mockContactRepo,
+		contactListRepo: mockContactListRepo,
+		timelineRepo:    mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeDelay: NewDelayNodeExecutor(),
+			domain.NodeTypeAddToList: NewAddToListNodeExecutor(mockContactListRepo),
 		},
 		logger: mockLogger,
 	}
@@ -360,14 +362,14 @@ func TestAutomationExecutor_Execute_TerminalNode(t *testing.T) {
 		Status:        domain.ContactAutomationStatusActive,
 	}
 
-	// Delay node with no NextNodeID - this is a terminal node
+	// AddToList node with no NextNodeID - this is a terminal node that completes immediately
 	terminalNode := &domain.AutomationNode{
 		ID:         nodeID,
-		Type:       domain.NodeTypeDelay,
+		Type:       domain.NodeTypeAddToList,
 		NextNodeID: nil, // No next node = terminal
 		Config: map[string]interface{}{
-			"duration": 1,
-			"unit":     "minutes",
+			"list_id": "list1",
+			"status":  "subscribed",
 		},
 	}
 
@@ -386,6 +388,8 @@ func TestAutomationExecutor_Execute_TerminalNode(t *testing.T) {
 	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test@example.com").Return(contact, nil)
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
+	// AddToList executor adds contact to list
+	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
@@ -445,15 +449,17 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
 	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	executor := &AutomationExecutor{
-		automationRepo: mockAutomationRepo,
-		contactRepo:    mockContactRepo,
-		timelineRepo:   mockTimelineRepo,
+		automationRepo:  mockAutomationRepo,
+		contactRepo:     mockContactRepo,
+		contactListRepo: mockContactListRepo,
+		timelineRepo:    mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeDelay: NewDelayNodeExecutor(),
+			domain.NodeTypeAddToList: NewAddToListNodeExecutor(mockContactListRepo),
 		},
 		logger: mockLogger,
 	}
@@ -484,14 +490,14 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 		},
 	}
 
-	// Terminal delay node (no next node = completion)
+	// Terminal add_to_list node (no next node = completion)
 	terminalNode := &domain.AutomationNode{
 		ID:         nodeID,
-		Type:       domain.NodeTypeDelay,
+		Type:       domain.NodeTypeAddToList,
 		NextNodeID: nil,
 		Config: map[string]interface{}{
-			"duration": 1,
-			"unit":     "minutes",
+			"list_id": "list1",
+			"status":  "subscribed",
 		},
 	}
 
@@ -512,6 +518,7 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test1@example.com").Return(contact1, nil)
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca1").Return([]*domain.NodeExecution{}, nil)
+	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
@@ -522,6 +529,7 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test2@example.com").Return(contact2, nil)
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca2").Return([]*domain.NodeExecution{}, nil)
+	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)
@@ -558,15 +566,17 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 
 	mockAutomationRepo := mocks.NewMockAutomationRepository(ctrl)
 	mockContactRepo := mocks.NewMockContactRepository(ctrl)
+	mockContactListRepo := mocks.NewMockContactListRepository(ctrl)
 	mockTimelineRepo := mocks.NewMockContactTimelineRepository(ctrl)
 	mockLogger := setupMockLogger(ctrl)
 
 	executor := &AutomationExecutor{
-		automationRepo: mockAutomationRepo,
-		contactRepo:    mockContactRepo,
-		timelineRepo:   mockTimelineRepo,
+		automationRepo:  mockAutomationRepo,
+		contactRepo:     mockContactRepo,
+		contactListRepo: mockContactListRepo,
+		timelineRepo:    mockTimelineRepo,
 		nodeExecutors: map[domain.NodeType]NodeExecutor{
-			domain.NodeTypeDelay: NewDelayNodeExecutor(),
+			domain.NodeTypeAddToList: NewAddToListNodeExecutor(mockContactListRepo),
 		},
 		logger: mockLogger,
 	}
@@ -598,14 +608,14 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 		},
 	}
 
-	// Terminal delay node (no next node = completion)
+	// Terminal add_to_list node (no next node = completion)
 	terminalNode := &domain.AutomationNode{
 		ID:         nodeID,
-		Type:       domain.NodeTypeDelay,
+		Type:       domain.NodeTypeAddToList,
 		NextNodeID: nil,
 		Config: map[string]interface{}{
-			"duration": 1,
-			"unit":     "minutes",
+			"list_id": "list1",
+			"status":  "subscribed",
 		},
 	}
 
@@ -631,6 +641,7 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 	mockContactRepo.EXPECT().GetContactByEmail(gomock.Any(), workspaceID, "test2@example.com").Return(contact2, nil)
 	mockAutomationRepo.EXPECT().CreateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().GetNodeExecutions(gomock.Any(), workspaceID, "ca2").Return([]*domain.NodeExecution{}, nil)
+	mockContactListRepo.EXPECT().AddContactToList(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateContactAutomation(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().UpdateNodeExecution(gomock.Any(), workspaceID, gomock.Any()).Return(nil)
 	mockAutomationRepo.EXPECT().IncrementAutomationStat(gomock.Any(), workspaceID, "auto1", "completed").Return(nil)

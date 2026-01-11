@@ -239,6 +239,65 @@ func TestDelayNodeExecutor_NodeType(t *testing.T) {
 	assert.Equal(t, domain.NodeTypeDelay, executor.NodeType())
 }
 
+func TestTriggerNodeExecutor_Execute(t *testing.T) {
+	executor := NewTriggerNodeExecutor()
+
+	t.Run("passes through to next node", func(t *testing.T) {
+		params := NodeExecutionParams{
+			WorkspaceID: "ws1",
+			Node: &domain.AutomationNode{
+				ID:         "trigger_node",
+				Type:       domain.NodeTypeTrigger,
+				NextNodeID: strPtr("node2"),
+				Config:     map[string]interface{}{},
+			},
+			Contact: &domain.ContactAutomation{
+				ID:           "ca1",
+				ContactEmail: "test@example.com",
+			},
+		}
+
+		result, err := executor.Execute(context.Background(), params)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.NotNil(t, result.NextNodeID)
+		assert.Equal(t, "node2", *result.NextNodeID)
+		assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
+		assert.NotNil(t, result.Output)
+		assert.Equal(t, "trigger", result.Output["node_type"])
+	})
+
+	t.Run("handles terminal trigger (no next node)", func(t *testing.T) {
+		params := NodeExecutionParams{
+			WorkspaceID: "ws1",
+			Node: &domain.AutomationNode{
+				ID:     "trigger_node",
+				Type:   domain.NodeTypeTrigger,
+				Config: map[string]interface{}{},
+				// NextNodeID is nil - terminal trigger
+			},
+			Contact: &domain.ContactAutomation{
+				ID:           "ca1",
+				ContactEmail: "test@example.com",
+			},
+		}
+
+		result, err := executor.Execute(context.Background(), params)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+
+		assert.Nil(t, result.NextNodeID)
+		assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
+		// Main executor loop converts Active + nil NextNodeID to Completed
+	})
+}
+
+func TestTriggerNodeExecutor_NodeType(t *testing.T) {
+	executor := NewTriggerNodeExecutor()
+	assert.Equal(t, domain.NodeTypeTrigger, executor.NodeType())
+}
+
 func TestParseDelayNodeConfig(t *testing.T) {
 	t.Run("valid config", func(t *testing.T) {
 		config := map[string]interface{}{

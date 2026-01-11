@@ -9,6 +9,7 @@ import (
 
 	"github.com/Notifuse/notifuse/config"
 	"github.com/Notifuse/notifuse/internal/domain"
+	"github.com/Notifuse/notifuse/internal/service"
 	"github.com/Notifuse/notifuse/internal/service/queue"
 	"github.com/Notifuse/notifuse/pkg/logger"
 )
@@ -49,6 +50,7 @@ type AppInterface interface {
 	GetAuthService() interface{} // Returns *service.AuthService but defined as interface{} to avoid import cycle
 	GetTransactionalNotificationService() domain.TransactionalNotificationService
 	GetEmailQueueWorker() *queue.EmailQueueWorker
+	GetAutomationScheduler() *service.AutomationScheduler
 }
 
 // NewServerManager creates a new server manager for testing
@@ -83,6 +85,11 @@ func NewServerManager(appFactory func(*config.Config) AppInterface, dbManager *D
 		},
 		TaskScheduler: config.TaskSchedulerConfig{
 			Enabled: false, // Disable task scheduler and autoExecuteImmediate to prevent background goroutines
+		},
+		AutomationScheduler: config.AutomationSchedulerConfig{
+			Delay:     0,                       // No delay for tests
+			Interval:  500 * time.Millisecond,  // Fast polling for tests
+			BatchSize: 50,
 		},
 		Tracing: config.TracingConfig{
 			Enabled: false,
@@ -157,6 +164,13 @@ func (sm *ServerManager) StartBackgroundWorkers(ctx context.Context) error {
 			return fmt.Errorf("failed to start email queue worker: %w", err)
 		}
 	}
+
+	// Start automation scheduler for tests (no delay since config has Delay=0)
+	// Note: Start() spawns its own goroutine internally, no need for `go`
+	if scheduler := sm.app.GetAutomationScheduler(); scheduler != nil {
+		scheduler.Start(ctx)
+	}
+
 	return nil
 }
 

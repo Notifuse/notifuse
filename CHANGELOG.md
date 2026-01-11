@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [25.1] - 2026-01-11
+
+### Bug Fixes
+
+- **Automation Terminal Delay Nodes**: Fixed bug where contacts at terminal delay nodes (delay node with no next node) were incorrectly marked as "completed" instead of staying "active" while waiting for the delay to expire
+  - Contacts now correctly wait at terminal delay nodes until scheduled time, then complete
+
+### Testing Improvements
+
+- Fixed invalid delay node configurations in automation e2e tests (invalid unit "seconds" and duration 0)
+- Added `waitForStatsCompleted()` helper for polling-based stats verification to fix test flakiness
+- Improved test stability for automation scheduler timing edge cases
+
 ## [24.0] - 2026-01-10
 
 ### Bug Fixes
