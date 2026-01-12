@@ -117,7 +117,7 @@ export interface FilterNodeConfig {
 
 export interface AddToListNodeConfig {
   list_id: string
-  status: 'subscribed' | 'pending'
+  status: 'active' | 'pending'
   metadata?: Record<string, unknown>
 }
 

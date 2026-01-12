@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.0] - 2026-01-12
+
+### Bug Fixes
+
+- **Automation Email Templating**: Fixed `{{ contact.first_name }}` rendering as `&{John false}` instead of `John` in automation emails. Contact data is now properly converted before passing to the Liquid template engine.
+- **List Status Values**: Fixed `add_to_list` automation nodes using invalid `subscribed` status instead of `active`
+- **Automation Stats**: Fixed automation stats being reset to 0 when updating automation
+
+### Migration
+
+- **v26**: Automatically fixes `subscribed` → `active` in contact_lists, automation nodes, and timeline entries. Recomputes automation stats from actual data.
+
 ## [25.1] - 2026-01-11
 
 ### Bug Fixes

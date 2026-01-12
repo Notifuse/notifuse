@@ -393,18 +393,18 @@ func TestParseAddToListNodeConfig(t *testing.T) {
 	t.Run("valid config", func(t *testing.T) {
 		config := map[string]interface{}{
 			"list_id": "list123",
-			"status":  "subscribed",
+			"status":  "active",
 		}
 
 		c, err := parseAddToListNodeConfig(config)
 		require.NoError(t, err)
 		assert.Equal(t, "list123", c.ListID)
-		assert.Equal(t, "subscribed", c.Status)
+		assert.Equal(t, "active", c.Status)
 	})
 
 	t.Run("invalid config - missing list_id", func(t *testing.T) {
 		config := map[string]interface{}{
-			"status": "subscribed",
+			"status": "active",
 		}
 
 		_, err := parseAddToListNodeConfig(config)
@@ -527,6 +527,28 @@ func TestBuildAutomationTemplateData(t *testing.T) {
 
 		assert.Equal(t, "john@example.com", data["email"])
 		assert.NotContains(t, data, "first_name")
+	})
+
+	t.Run("contact data renders correctly in liquid templates", func(t *testing.T) {
+		// This test verifies that {{ contact.first_name }} works correctly
+		// Bug: if contact is passed as raw struct, NullableString fields render as "&{John false}"
+		contact := &domain.Contact{
+			Email:     "john@example.com",
+			FirstName: &domain.NullableString{String: "John", IsNull: false},
+			LastName:  &domain.NullableString{String: "Doe", IsNull: false},
+		}
+
+		data := buildAutomationTemplateData(contact, nil)
+
+		// Test that liquid template renders contact.first_name correctly
+		result, err := notifuse_mjml.ProcessLiquidTemplate(
+			"Hello {{ contact.first_name }} {{ contact.last_name }}!",
+			data,
+			"test_subject",
+		)
+
+		require.NoError(t, err)
+		assert.Equal(t, "Hello John Doe!", result, "contact fields should render as plain strings, not struct representations")
 	})
 }
 
@@ -1489,7 +1511,7 @@ func TestAddToListNodeExecutor_Execute_Success(t *testing.T) {
 			NextNodeID: strPtr("next_node"),
 			Config: map[string]interface{}{
 				"list_id": "list123",
-				"status":  "subscribed",
+				"status":  "active",
 			},
 		},
 		Contact: &domain.ContactAutomation{
@@ -1506,7 +1528,7 @@ func TestAddToListNodeExecutor_Execute_Success(t *testing.T) {
 	assert.Equal(t, domain.ContactAutomationStatusActive, result.Status)
 	assert.Equal(t, "add_to_list", result.Output["node_type"])
 	assert.Equal(t, "list123", result.Output["list_id"])
-	assert.Equal(t, "subscribed", result.Output["status"])
+	assert.Equal(t, "active", result.Output["status"])
 	assert.NotContains(t, result.Output, "error")
 }
 
@@ -1530,7 +1552,7 @@ func TestAddToListNodeExecutor_Execute_AlreadyInList(t *testing.T) {
 			NextNodeID: strPtr("next_node"),
 			Config: map[string]interface{}{
 				"list_id": "list123",
-				"status":  "subscribed",
+				"status":  "active",
 			},
 		},
 		Contact: &domain.ContactAutomation{
@@ -1564,7 +1586,7 @@ func TestAddToListNodeExecutor_Execute_InvalidConfig(t *testing.T) {
 			Type: domain.NodeTypeAddToList,
 			Config: map[string]interface{}{
 				// Missing list_id
-				"status": "subscribed",
+				"status": "active",
 			},
 		},
 		Contact: &domain.ContactAutomation{

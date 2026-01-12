@@ -980,8 +980,8 @@ func TestAddToListNodeConfig_Validate(t *testing.T) {
 		errMsg  string
 	}{
 		{
-			name:    "valid config",
-			config:  AddToListNodeConfig{ListID: "list123", Status: "subscribed"},
+			name:    "valid config - active status",
+			config:  AddToListNodeConfig{ListID: "list123", Status: "active"},
 			wantErr: false,
 		},
 		{
@@ -991,12 +991,18 @@ func TestAddToListNodeConfig_Validate(t *testing.T) {
 		},
 		{
 			name:    "empty list ID",
-			config:  AddToListNodeConfig{ListID: "", Status: "subscribed"},
+			config:  AddToListNodeConfig{ListID: "", Status: "active"},
 			wantErr: true,
 			errMsg:  "list_id is required",
 		},
 		{
-			name:    "invalid status",
+			name:    "invalid status - subscribed is not valid",
+			config:  AddToListNodeConfig{ListID: "list123", Status: "subscribed"},
+			wantErr: true,
+			errMsg:  "invalid status: subscribed",
+		},
+		{
+			name:    "invalid status - unknown",
 			config:  AddToListNodeConfig{ListID: "list123", Status: "invalid"},
 			wantErr: true,
 			errMsg:  "invalid status",
