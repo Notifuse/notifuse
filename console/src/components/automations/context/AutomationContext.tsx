@@ -203,7 +203,7 @@ export function AutomationProvider({
           nodeType: 'add_to_list',
           config: {
             list_id: newListId,
-            status: 'subscribed'
+            status: 'active'
           },
           label: 'Add to List'
         }

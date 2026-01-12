@@ -527,7 +527,7 @@ type FilterNodeConfig struct {
 // AddToListNodeConfig configures an add-to-list node
 type AddToListNodeConfig struct {
 	ListID   string                 `json:"list_id"`
-	Status   string                 `json:"status"` // "subscribed", "pending"
+	Status   string                 `json:"status"` // "active", "pending"
 	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
@@ -536,8 +536,8 @@ func (c AddToListNodeConfig) Validate() error {
 	if c.ListID == "" {
 		return fmt.Errorf("list_id is required")
 	}
-	if c.Status != "subscribed" && c.Status != "pending" {
-		return fmt.Errorf("invalid status: %s (must be subscribed or pending)", c.Status)
+	if c.Status != string(ContactListStatusActive) && c.Status != string(ContactListStatusPending) {
+		return fmt.Errorf("invalid status: %s (must be %s or %s)", c.Status, ContactListStatusActive, ContactListStatusPending)
 	}
 	return nil
 }

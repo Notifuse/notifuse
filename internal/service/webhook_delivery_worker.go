@@ -372,7 +372,7 @@ func buildTestPayload(eventType string) map[string]interface{} {
 			"contact_id": "test_contact_123",
 			"list_id":    "test_list_456",
 			"list_name":  "Test Newsletter",
-			"status":     "subscribed",
+			"status":     "active",
 			"created_at": now,
 		}
 	case "segment":

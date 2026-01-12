@@ -369,7 +369,7 @@ func TestAutomationExecutor_Execute_TerminalNode(t *testing.T) {
 		NextNodeID: nil, // No next node = terminal
 		Config: map[string]interface{}{
 			"list_id": "list1",
-			"status":  "subscribed",
+			"status":  "active",
 		},
 	}
 
@@ -497,7 +497,7 @@ func TestAutomationExecutor_ProcessBatch(t *testing.T) {
 		NextNodeID: nil,
 		Config: map[string]interface{}{
 			"list_id": "list1",
-			"status":  "subscribed",
+			"status":  "active",
 		},
 	}
 
@@ -615,7 +615,7 @@ func TestAutomationExecutor_ProcessBatch_PartialFailure(t *testing.T) {
 		NextNodeID: nil,
 		Config: map[string]interface{}{
 			"list_id": "list1",
-			"status":  "subscribed",
+			"status":  "active",
 		},
 	}
 

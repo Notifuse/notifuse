@@ -347,9 +347,17 @@ func buildAutomationTemplateData(contact *domain.Contact, automation *domain.Aut
 	if contact != nil {
 		// Add contact fields
 		data["email"] = contact.Email
-		data["contact"] = contact
 
-		// Add standard contact fields if they exist
+		// Convert contact to map for proper liquid template rendering
+		// This ensures NullableString fields are converted to plain strings
+		contactData, err := contact.ToMapOfAny()
+		if err != nil {
+			// Fallback to empty map if conversion fails
+			contactData = domain.MapOfAny{}
+		}
+		data["contact"] = contactData
+
+		// Add standard contact fields if they exist (for backward compatibility)
 		if contact.FirstName != nil && !contact.FirstName.IsNull {
 			data["first_name"] = contact.FirstName.String
 		}

@@ -326,15 +326,8 @@ func (r *AutomationRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspa
 		return fmt.Errorf("failed to marshal nodes: %w", err)
 	}
 
-	// Initialize Stats if nil to prevent JSONB null (scalar) being stored
-	if automation.Stats == nil {
-		automation.Stats = &domain.AutomationStats{}
-	}
-
-	statsJSON, err := json.Marshal(automation.Stats)
-	if err != nil {
-		return fmt.Errorf("failed to marshal stats: %w", err)
-	}
+	// NOTE: Stats are NOT updated here - they should only be modified via atomic methods
+	// like IncrementAutomationStat or UpdateAutomationStats to prevent accidental resets
 
 	automation.UpdatedAt = time.Now().UTC()
 
@@ -347,7 +340,6 @@ func (r *AutomationRepository) UpdateTx(ctx context.Context, tx *sql.Tx, workspa
 		Set("trigger_sql", automation.TriggerSQL).
 		Set("root_node_id", automation.RootNodeID).
 		Set("nodes", nodesJSON).
-		Set("stats", statsJSON).
 		Set("updated_at", automation.UpdatedAt).
 		Where(sq.Eq{"id": automation.ID, "workspace_id": workspaceID}).
 		ToSql()

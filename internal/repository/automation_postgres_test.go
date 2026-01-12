@@ -307,6 +307,7 @@ func TestAutomationRepository_Update(t *testing.T) {
 	automation.Status = domain.AutomationStatusLive
 
 	// Test successful update
+	// NOTE: stats is NOT included in the update query - it's only modified via atomic methods
 	mock.ExpectExec("UPDATE automations SET").
 		WithArgs(
 			automation.Name,
@@ -316,7 +317,6 @@ func TestAutomationRepository_Update(t *testing.T) {
 			automation.TriggerSQL,
 			automation.RootNodeID,
 			sqlmock.AnyArg(), // nodes JSON
-			sqlmock.AnyArg(), // stats JSON
 			sqlmock.AnyArg(), // updated_at
 			automation.ID,
 			workspaceID,
@@ -333,12 +333,11 @@ func TestAutomationRepository_Update(t *testing.T) {
 			automation.Name,
 			automation.Status,
 			automation.ListID,
-			sqlmock.AnyArg(),
+			sqlmock.AnyArg(), // trigger_config JSON
 			automation.TriggerSQL,
 			automation.RootNodeID,
 			sqlmock.AnyArg(), // nodes JSON
-			sqlmock.AnyArg(),
-			sqlmock.AnyArg(),
+			sqlmock.AnyArg(), // updated_at
 			automation.ID,
 			workspaceID,
 		).
@@ -355,12 +354,11 @@ func TestAutomationRepository_Update(t *testing.T) {
 			automation.Name,
 			automation.Status,
 			automation.ListID,
-			sqlmock.AnyArg(),
+			sqlmock.AnyArg(), // trigger_config JSON
 			automation.TriggerSQL,
 			automation.RootNodeID,
 			sqlmock.AnyArg(), // nodes JSON
-			sqlmock.AnyArg(),
-			sqlmock.AnyArg(),
+			sqlmock.AnyArg(), // updated_at
 			automation.ID,
 			workspaceID,
 		).
@@ -1222,7 +1220,6 @@ func TestAutomationRepository_Update_RowsAffectedError(t *testing.T) {
 			automation.TriggerSQL,
 			automation.RootNodeID,
 			sqlmock.AnyArg(), // nodes
-			sqlmock.AnyArg(), // stats
 			sqlmock.AnyArg(), // updated_at
 			automation.ID,
 			workspaceID,
