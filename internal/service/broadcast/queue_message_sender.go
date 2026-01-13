@@ -309,10 +309,12 @@ func (s *queueMessageSender) buildQueueEntry(
 			Subject:            subject,
 			HTMLContent:        htmlContent,
 			RateLimitPerMinute: emailProvider.RateLimitPerMinute,
-			EmailOptions:       domain.EmailOptions{},
-			TemplateVersion:    int(template.Version),
-			ListID:             broadcast.Audience.List,
-			TemplateData:       data, // Store template data for message history
+			EmailOptions: domain.EmailOptions{
+				ReplyTo: template.Email.ReplyTo,
+			},
+			TemplateVersion: int(template.Version),
+			ListID:          broadcast.Audience.List,
+			TemplateData:    data, // Store template data for message history
 		},
 		MaxAttempts: 3,
 		CreatedAt:   time.Now().UTC(),

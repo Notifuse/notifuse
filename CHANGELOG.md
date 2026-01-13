@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.2] - 2026-01-13
+
+### Bug Fixes
+
+- **Email Reply-To Header**: Fixed Reply-To address from email templates not being included in automation and broadcast queue emails (#193)
+
 ## [26.1] - 2026-01-13
 
 ### Bug Fixes

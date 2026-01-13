@@ -942,6 +942,83 @@ func TestEmailNodeExecutor_NodeType(t *testing.T) {
 	assert.Equal(t, domain.NodeTypeEmail, executor.NodeType())
 }
 
+func TestEmailNodeExecutor_Execute_PreservesReplyTo(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockEmailQueueRepo := mocks.NewMockEmailQueueRepository(ctrl)
+	mockTemplateRepo := mocks.NewMockTemplateRepository(ctrl)
+	mockWorkspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	mockLogger := setupMockLoggerForNodeExecutor(ctrl)
+
+	executor := NewEmailNodeExecutor(mockEmailQueueRepo, mockTemplateRepo, mockWorkspaceRepo, "https://api.example.com", mockLogger)
+
+	workspace := createTestWorkspaceWithEmailProvider()
+
+	// Create template with ReplyTo set
+	templateWithReplyTo := &domain.Template{
+		ID:      "tpl123",
+		Name:    "Test Template",
+		Version: 1,
+		Channel: "email",
+		Email: &domain.EmailTemplate{
+			Subject:          "Test Subject",
+			SenderID:         "sender1",
+			ReplyTo:          "support@example.com", // ReplyTo is set
+			VisualEditorTree: createValidMJMLTree(createTestTextBlock("txt1", "Test content")),
+		},
+	}
+
+	mockWorkspaceRepo.EXPECT().
+		GetByID(gomock.Any(), "ws1").
+		Return(workspace, nil)
+
+	mockTemplateRepo.EXPECT().
+		GetTemplateByID(gomock.Any(), "ws1", "tpl123", int64(0)).
+		Return(templateWithReplyTo, nil)
+
+	// Verify that the enqueued entry has ReplyTo set correctly
+	mockEmailQueueRepo.EXPECT().
+		Enqueue(gomock.Any(), "ws1", gomock.Any()).
+		DoAndReturn(func(ctx context.Context, workspaceID string, entries []*domain.EmailQueueEntry) error {
+			require.Len(t, entries, 1)
+			entry := entries[0]
+
+			// This assertion should FAIL before the fix
+			assert.Equal(t, "support@example.com", entry.Payload.EmailOptions.ReplyTo,
+				"ReplyTo from template should be preserved in queue entry")
+
+			return nil
+		})
+
+	params := NodeExecutionParams{
+		WorkspaceID: "ws1",
+		Node: &domain.AutomationNode{
+			ID:         "email_node1",
+			Type:       domain.NodeTypeEmail,
+			NextNodeID: strPtr("next_node"),
+			Config: map[string]interface{}{
+				"template_id": "tpl123",
+			},
+		},
+		Contact: &domain.ContactAutomation{
+			ID:           "ca1",
+			ContactEmail: "recipient@example.com",
+		},
+		ContactData: &domain.Contact{
+			Email: "recipient@example.com",
+		},
+		Automation: &domain.Automation{
+			ID:   "auto1",
+			Name: "Test Automation",
+		},
+	}
+
+	result, err := executor.Execute(context.Background(), params)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+}
+
 // buildSimpleCondition creates a simple TreeNode condition for testing
 func buildSimpleCondition() *domain.TreeNode {
 	return &domain.TreeNode{

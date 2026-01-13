@@ -289,7 +289,9 @@ func (e *EmailNodeExecutor) Execute(ctx context.Context, params NodeExecutionPar
 			Subject:            subject,
 			HTMLContent:        htmlContent,
 			RateLimitPerMinute: emailProvider.RateLimitPerMinute,
-			EmailOptions:       domain.EmailOptions{},
+			EmailOptions: domain.EmailOptions{
+				ReplyTo: template.Email.ReplyTo,
+			},
 		},
 		MaxAttempts: 3,
 		CreatedAt:   time.Now().UTC(),
