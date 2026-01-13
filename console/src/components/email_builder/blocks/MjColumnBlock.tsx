@@ -266,13 +266,14 @@ export class MjColumnBlock extends BaseEmailBlock {
       attrs.width && attrs.width.includes('%') ? attrs.width.replace('%', '') : '100'
 
     // MJML generates a wrapper div with specific classes and styles
+    // Width is always 100% here because the parent <td> in MjSectionBlock handles the actual width constraint
     const columnWrapperStyle: React.CSSProperties = {
       fontSize: '0px',
       textAlign: 'left',
       direction: 'ltr',
       display: 'inline-block',
       verticalAlign: attrs.verticalAlign || 'top',
-      width: attrs.width || '100%',
+      width: '100%',
       ...selectionStyle
     }
 

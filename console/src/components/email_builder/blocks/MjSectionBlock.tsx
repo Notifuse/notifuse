@@ -369,46 +369,57 @@ export class MjSectionBlock extends BaseEmailBlock {
       </div>
     ) : (
       // Wrap columns in a table row structure as MJML does for multiple columns
-      <table
-        role="presentation"
-        border={0}
-        cellPadding="0"
-        cellSpacing="0"
-        style={{ width: '100%' }}
-      >
-        <tbody>
-          <tr>
-            {this.block.children?.map((child) => {
-              // Get column width from child attributes (for mj-column blocks)
-              const childAttrs = child.attributes as Record<string, unknown> | undefined
-              const columnWidth = childAttrs?.width as string | undefined
+      (() => {
+        // Count columns to calculate default proportional width for columns without explicit width
+        const columnChildren = this.block.children?.filter(c => c.type === 'mj-column') || []
+        const columnCount = columnChildren.length
+        const defaultColumnWidth = columnCount > 0 ? `${(100 / columnCount).toFixed(2)}%` : '100%'
 
-              return (
-                <td
-                  key={child.id}
-                  style={{
-                    verticalAlign: 'top',
-                    width: columnWidth || undefined
-                  }}
-                >
-                  {EmailBlockClass.renderEmailBlock(
-                    child,
-                    attributeDefaults,
-                    selectedBlockId,
-                    onSelectBlock,
-                    emailTree,
-                    onUpdateBlock,
-                    onCloneBlock,
-                    onDeleteBlock,
-                    onSave,
-                    savedBlocks
-                  )}
-                </td>
-              )
-            })}
-          </tr>
-        </tbody>
-      </table>
+        return (
+          <table
+            role="presentation"
+            border={0}
+            cellPadding="0"
+            cellSpacing="0"
+            style={{ width: '100%' }}
+          >
+            <tbody>
+              <tr>
+                {this.block.children?.map((child) => {
+                  // Get column width from child attributes (for mj-column blocks)
+                  const childAttrs = child.attributes as Record<string, unknown> | undefined
+                  const explicitWidth = childAttrs?.width as string | undefined
+                  // Use explicit width if set, otherwise use calculated proportional width for columns
+                  const columnWidth = explicitWidth || (child.type === 'mj-column' ? defaultColumnWidth : undefined)
+
+                  return (
+                    <td
+                      key={child.id}
+                      style={{
+                        verticalAlign: 'top',
+                        width: columnWidth
+                      }}
+                    >
+                      {EmailBlockClass.renderEmailBlock(
+                        child,
+                        attributeDefaults,
+                        selectedBlockId,
+                        onSelectBlock,
+                        emailTree,
+                        onUpdateBlock,
+                        onCloneBlock,
+                        onDeleteBlock,
+                        onSave,
+                        savedBlocks
+                      )}
+                    </td>
+                  )
+                })}
+              </tr>
+            </tbody>
+          </table>
+        )
+      })()
     )
 
     // Simulate MJML's exact structure: wrapper div > table > tbody > tr > td > columns
