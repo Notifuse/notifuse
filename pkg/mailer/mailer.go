@@ -1,14 +1,44 @@
 package mailer
 
 import (
+	"bytes"
+	"errors"
 	"fmt"
+	"io"
 	"log"
+	"net/textproto"
+	"strings"
 	"time"
 
 	"github.com/wneessen/go-mail"
 )
 
 //go:generate mockgen -destination=../mocks/mock_mailer.go -package=pkgmocks github.com/Notifuse/notifuse/pkg/mailer Mailer
+
+// ChineseMailResponseErrorHandler handles non-RFC compliant responses from Chinese email providers
+// QQ Mail (smtp.qq.com) and 163 Mail (smtp.163.com) send binary garbage data after QUIT/RSET commands,
+// causing "short response" errors even though emails are successfully sent
+type ChineseMailResponseErrorHandler struct{}
+
+func (h *ChineseMailResponseErrorHandler) HandleError(hostname, command string, conn *textproto.Conn, err error) error {
+	var tpErr textproto.ProtocolError
+	if !errors.As(err, &tpErr) {
+		return err
+	}
+
+	errMsg := tpErr.Error()
+
+	// QQ/163 specific error: garbage data sent during QUIT or RSET commands
+	if bytes.Contains([]byte(errMsg), []byte("short response")) {
+		// Consume garbage data (8 bytes)
+		_, _ = io.ReadFull(conn.R, make([]byte, 8))
+		// Ignore this error - email has been successfully sent
+		return nil
+	}
+
+	// Return other errors as-is
+	return err
+}
 
 // Mailer is the interface for sending emails
 type Mailer interface {
@@ -290,6 +320,15 @@ func (m *SMTPMailer) createSMTPClient() (*mail.Client, error) {
 	client, err := mail.NewClient(m.config.SMTPHost, clientOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create SMTP client: %w", err)
+	}
+
+	// Register error handler for Chinese email providers
+	// Handles RFC non-compliant QUIT/RSET responses
+	hostLower := strings.ToLower(m.config.SMTPHost)
+	if strings.Contains(hostLower, "qq.com") || strings.Contains(hostLower, "163.com") {
+		handler := &ChineseMailResponseErrorHandler{}
+		client.ErrorHandlerRegistry.RegisterHandler(m.config.SMTPHost, "quit", handler)
+		client.ErrorHandlerRegistry.RegisterHandler(m.config.SMTPHost, "rset", handler)
 	}
 
 	return client, nil
