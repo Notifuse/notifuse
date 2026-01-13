@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.3] - 2026-01-13
+
+### Bug Fixes
+
+- **Email Builder Column Width**: Fixed columns displaying with zero width in WYSIWYG editor, causing text to wrap character-by-character
+
 ## [26.2] - 2026-01-13
 
 ### Bug Fixes
