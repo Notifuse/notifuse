@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.1] - 2026-01-13
+
+### Bug Fixes
+
+- **Supabase Integration**: Fixed incorrect JSON field mapping for new email address in email_change webhooks. Changed `email_new` to `new_email` to match Supabase Auth API specification.
+
 ## [26.0] - 2026-01-12
 
 ### Bug Fixes

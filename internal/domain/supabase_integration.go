@@ -81,7 +81,7 @@ type SupabaseUser struct {
 	Aud          string                 `json:"aud"`
 	Role         string                 `json:"role"`
 	Email        string                 `json:"email"`
-	EmailNew     string                 `json:"email_new,omitempty"` // Present in email_change webhooks
+	EmailNew     string                 `json:"new_email,omitempty"` // Present in email_change webhooks
 	Phone        string                 `json:"phone"`
 	AppMetadata  map[string]interface{} `json:"app_metadata"`
 	UserMetadata map[string]interface{} `json:"user_metadata"`
