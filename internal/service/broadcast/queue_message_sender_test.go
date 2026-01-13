@@ -942,4 +942,46 @@ func TestQueueMessageSender_BuildQueueEntry(t *testing.T) {
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "no sender configured")
 	})
+
+	t.Run("preserves ReplyTo from template", func(t *testing.T) {
+		emailSender := domain.NewEmailSender("sender@example.com", "Test Sender")
+		emailProvider := &domain.EmailProvider{
+			Kind:    domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{emailSender},
+		}
+
+		broadcast := &domain.Broadcast{
+			ID:            "broadcast-1",
+			UTMParameters: &domain.UTMParameters{},
+		}
+
+		// Template with ReplyTo set
+		template := &domain.Template{
+			ID: "template-1",
+			Email: &domain.EmailTemplate{
+				SenderID:         emailSender.ID,
+				Subject:          "Test Subject",
+				ReplyTo:          "support@example.com", // ReplyTo is set
+				VisualEditorTree: createQueueValidTestTree(createQueueTestTextBlock("txt1", "Hello")),
+			},
+		}
+
+		entry, err := qms.buildQueueEntry(
+			context.Background(),
+			"workspace-1",
+			"integration-1",
+			true,
+			broadcast,
+			"msg-123",
+			"test@example.com",
+			template,
+			map[string]interface{}{},
+			emailProvider,
+		)
+
+		require.NoError(t, err)
+		// This assertion should FAIL before the fix
+		assert.Equal(t, "support@example.com", entry.Payload.EmailOptions.ReplyTo,
+			"ReplyTo from template should be preserved in queue entry")
+	})
 }
