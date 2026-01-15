@@ -118,6 +118,8 @@ export const MJ_BUTTON_DEFAULTS = {
 }
 
 // mj-image defaults
+// Note: width is intentionally omitted - MJML mj-image only accepts px values (not %),
+// and when width is not specified, images fill their container width naturally
 export const MJ_IMAGE_DEFAULTS = {
   align: 'center' as const,
   alt: '',
@@ -137,8 +139,7 @@ export const MJ_IMAGE_DEFAULTS = {
   srcset: '',
   target: '_blank' as const,
   title: '',
-  usemap: '',
-  width: '100%'
+  usemap: ''
 }
 
 // mj-head defaults (no visual attributes)
