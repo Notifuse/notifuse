@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.4] - 2026-01-15
+
+### Bug Fixes
+
+- **Supabase Integration**: Fixed "Before User Created" webhook URL mismatch causing HTTP 405 errors (#198)
+- **Email Builder Image Width**: Fixed invalid MJML generated when adding images via the editor. The default `width="100%"` is not valid for mj-image (only px values allowed). Images now default to filling container width when no explicit width is set (#196)
+
 ## [26.3] - 2026-01-13
 
 ### Bug Fixes

@@ -74,7 +74,7 @@ const transactionalEmailOnly: EmailProviderKind[] = ['postmark']
 
 // Helper function to generate Supabase webhook URLs
 const generateSupabaseWebhookURL = (
-  hookType: 'auth-email' | 'user-created',
+  hookType: 'auth-email' | 'before-user-created',
   workspaceID: string,
   integrationID: string
 ): string => {
@@ -1142,7 +1142,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
               integration.id
             )
             const beforeUserCreatedWebhookURL = generateSupabaseWebhookURL(
-              'user-created',
+              'before-user-created',
               workspace.id,
               integration.id
             )

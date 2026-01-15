@@ -135,8 +135,9 @@ export class MjImageBlock extends BaseEmailBlock {
     }
 
     // MJML inner cell style - contains width constraint
+    // When width is undefined, MJML makes images fill parent width, so we use 100% for preview
     const cellStyle: React.CSSProperties = {
-      width: attrs.width
+      width: attrs.width || '100%'
     }
 
     // MJML image style - matches actual generated styles
@@ -256,11 +257,11 @@ export class MjImageBlock extends BaseEmailBlock {
           />
         </InputLayout>
 
-        <InputLayout label="Width">
+        <InputLayout label="Width" help="Leave empty for full container width">
           <WidthPxInput
             value={currentAttributes.width}
             onChange={(value) => onUpdate({ width: value })}
-            placeholder={blockDefaults.width || 'Auto'}
+            placeholder="Auto"
           />
         </InputLayout>
 
