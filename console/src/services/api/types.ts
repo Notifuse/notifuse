@@ -25,6 +25,8 @@ export type {
   EmailProvider,
   AmazonSES,
   SMTPSettings,
+  SMTPAuthType,
+  SMTPOAuth2Provider,
   SparkPostSettings,
   PostmarkSettings,
   MailgunSettings,

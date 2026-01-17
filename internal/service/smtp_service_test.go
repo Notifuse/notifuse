@@ -3,6 +3,8 @@ package service
 import (
 	"bufio"
 	"context"
+	"encoding/base64"
+	"fmt"
 	"net"
 	"strings"
 	"sync"
@@ -914,4 +916,749 @@ func TestSMTPService_SendEmail_EmptyCCAndBCCFiltering(t *testing.T) {
 	require.Len(t, messages, 1)
 	// Should have 3 recipients: to + 1 valid CC + 1 valid BCC (empty strings filtered)
 	assert.Len(t, messages[0].recipients, 3)
+}
+
+// ============================================================================
+// OAuth2 XOAUTH2 Authentication Tests
+// ============================================================================
+
+// mockOAuth2SMTPServer is a test SMTP server that accepts XOAUTH2 authentication
+type mockOAuth2SMTPServer struct {
+	*mockSMTPServer
+	expectedToken    string
+	expectedUsername string
+	authCommands     []string
+}
+
+func newMockOAuth2SMTPServer(t *testing.T, expectedToken, expectedUsername string) *mockOAuth2SMTPServer {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	server := &mockOAuth2SMTPServer{
+		mockSMTPServer: &mockSMTPServer{
+			listener:    listener,
+			authSuccess: true,
+			commands:    make([]string, 0),
+			messages:    make([]capturedMessage, 0),
+		},
+		expectedToken:    expectedToken,
+		expectedUsername: expectedUsername,
+		authCommands:     make([]string, 0),
+	}
+
+	server.wg.Add(1)
+	go server.serveOAuth2()
+	return server
+}
+
+func (s *mockOAuth2SMTPServer) serveOAuth2() {
+	defer s.wg.Done()
+	for {
+		conn, err := s.listener.Accept()
+		if err != nil {
+			s.mu.Lock()
+			closed := s.closed
+			s.mu.Unlock()
+			if closed {
+				return
+			}
+			continue
+		}
+		s.wg.Add(1)
+		go s.handleOAuth2Connection(conn)
+	}
+}
+
+func (s *mockOAuth2SMTPServer) handleOAuth2Connection(conn net.Conn) {
+	defer s.wg.Done()
+	defer conn.Close()
+
+	reader := bufio.NewReader(conn)
+
+	// Send greeting
+	conn.Write([]byte("220 localhost SMTP OAuth2 Mock Server\r\n"))
+
+	var from string
+	var recipients []string
+	var inData bool
+	var dataBuffer strings.Builder
+
+	for {
+		conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return
+		}
+
+		line = strings.TrimSpace(line)
+		s.mu.Lock()
+		s.commands = append(s.commands, line)
+		s.mu.Unlock()
+
+		if inData {
+			if line == "." {
+				inData = false
+				s.mu.Lock()
+				s.messages = append(s.messages, capturedMessage{
+					from:       from,
+					recipients: recipients,
+					data:       []byte(dataBuffer.String()),
+				})
+				s.mu.Unlock()
+				conn.Write([]byte("250 OK message queued\r\n"))
+				continue
+			}
+			dataBuffer.WriteString(line + "\r\n")
+			continue
+		}
+
+		upperLine := strings.ToUpper(line)
+
+		switch {
+		case strings.HasPrefix(upperLine, "EHLO") || strings.HasPrefix(upperLine, "HELO"):
+			conn.Write([]byte("250-localhost\r\n"))
+			conn.Write([]byte("250-AUTH PLAIN LOGIN XOAUTH2\r\n")) // Advertise XOAUTH2
+			conn.Write([]byte("250 SIZE 10485760\r\n"))
+
+		case strings.HasPrefix(upperLine, "AUTH XOAUTH2"):
+			s.mu.Lock()
+			s.authCommands = append(s.authCommands, line)
+			s.mu.Unlock()
+
+			// Extract and validate the XOAUTH2 string
+			parts := strings.SplitN(line, " ", 3)
+			if len(parts) < 3 {
+				conn.Write([]byte("535 5.7.8 Invalid XOAUTH2 token\r\n"))
+				continue
+			}
+
+			// Decode the base64 XOAUTH2 string
+			decoded, err := base64.StdEncoding.DecodeString(parts[2])
+			if err != nil {
+				conn.Write([]byte("535 5.7.8 Invalid base64 encoding\r\n"))
+				continue
+			}
+
+			// Parse XOAUTH2 format: user=<email>\x01auth=Bearer <token>\x01\x01
+			xoauth2Str := string(decoded)
+			if !strings.HasPrefix(xoauth2Str, "user=") {
+				conn.Write([]byte("535 5.7.8 Invalid XOAUTH2 format\r\n"))
+				continue
+			}
+
+			// Extract username and token
+			userEnd := strings.Index(xoauth2Str, "\x01")
+			if userEnd == -1 {
+				conn.Write([]byte("535 5.7.8 Invalid XOAUTH2 format\r\n"))
+				continue
+			}
+			username := strings.TrimPrefix(xoauth2Str[:userEnd], "user=")
+
+			authStart := strings.Index(xoauth2Str, "auth=Bearer ")
+			if authStart == -1 {
+				conn.Write([]byte("535 5.7.8 Invalid XOAUTH2 format\r\n"))
+				continue
+			}
+			tokenStart := authStart + len("auth=Bearer ")
+			tokenEnd := strings.Index(xoauth2Str[tokenStart:], "\x01")
+			if tokenEnd == -1 {
+				conn.Write([]byte("535 5.7.8 Invalid XOAUTH2 format\r\n"))
+				continue
+			}
+			token := xoauth2Str[tokenStart : tokenStart+tokenEnd]
+
+			// Validate credentials
+			if username == s.expectedUsername && token == s.expectedToken {
+				conn.Write([]byte("235 2.7.0 Authentication successful\r\n"))
+			} else {
+				conn.Write([]byte("535 5.7.3 Authentication unsuccessful\r\n"))
+			}
+
+		case strings.HasPrefix(upperLine, "AUTH"):
+			// Basic AUTH PLAIN for fallback
+			if s.authSuccess {
+				conn.Write([]byte("235 Authentication successful\r\n"))
+			} else {
+				conn.Write([]byte("535 Authentication failed\r\n"))
+			}
+
+		case strings.HasPrefix(upperLine, "MAIL FROM:"):
+			s.mu.Lock()
+			s.mailFromCmd = line
+			s.mu.Unlock()
+			start := strings.Index(line, "<")
+			end := strings.Index(line, ">")
+			if start != -1 && end != -1 && end > start {
+				from = line[start+1 : end]
+			}
+			conn.Write([]byte("250 OK\r\n"))
+
+		case strings.HasPrefix(upperLine, "RCPT TO:"):
+			start := strings.Index(line, "<")
+			end := strings.Index(line, ">")
+			if start != -1 && end != -1 && end > start {
+				recipients = append(recipients, line[start+1:end])
+			}
+			conn.Write([]byte("250 OK\r\n"))
+
+		case strings.HasPrefix(upperLine, "DATA"):
+			inData = true
+			dataBuffer.Reset()
+			conn.Write([]byte("354 Start mail input\r\n"))
+
+		case strings.HasPrefix(upperLine, "QUIT"):
+			conn.Write([]byte("221 Bye\r\n"))
+			return
+
+		default:
+			conn.Write([]byte("500 Command not recognized\r\n"))
+		}
+	}
+}
+
+func (s *mockOAuth2SMTPServer) GetAuthCommands() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := make([]string, len(s.authCommands))
+	copy(result, s.authCommands)
+	return result
+}
+
+func TestSendRawEmailWithSettings_OAuth2_XOAUTH2(t *testing.T) {
+	expectedToken := "test-access-token-123"
+	expectedUsername := "user@example.com"
+
+	server := newMockOAuth2SMTPServer(t, expectedToken, expectedUsername)
+	defer server.Close()
+
+	settings := &domain.SMTPSettings{
+		Host:               "127.0.0.1",
+		Port:               server.Port(),
+		UseTLS:             false,
+		AuthType:           "oauth2",
+		OAuth2Provider:     "microsoft",
+		OAuth2TenantID:     "tenant-123",
+		OAuth2ClientID:     "client-123",
+		OAuth2ClientSecret: "secret-123",
+		Username:           expectedUsername,
+	}
+
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	// Mock OAuth2 token service
+	mockTokenService := &mockOAuth2TokenService{
+		token: expectedToken,
+	}
+
+	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
+	require.NoError(t, err)
+
+	// Verify AUTH XOAUTH2 was sent
+	authCommands := server.GetAuthCommands()
+	require.Len(t, authCommands, 1, "Should have sent AUTH XOAUTH2 command")
+	assert.Contains(t, authCommands[0], "AUTH XOAUTH2")
+
+	// Verify message was sent
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+}
+
+func TestSendRawEmailWithSettings_OAuth2_InvalidToken(t *testing.T) {
+	server := newMockOAuth2SMTPServer(t, "correct-token", "user@example.com")
+	defer server.Close()
+
+	settings := &domain.SMTPSettings{
+		Host:               "127.0.0.1",
+		Port:               server.Port(),
+		UseTLS:             false,
+		AuthType:           "oauth2",
+		OAuth2Provider:     "microsoft",
+		OAuth2TenantID:     "tenant-123",
+		OAuth2ClientID:     "client-123",
+		OAuth2ClientSecret: "secret-123",
+		Username:           "user@example.com",
+	}
+
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	// Mock OAuth2 token service with wrong token
+	mockTokenService := &mockOAuth2TokenService{
+		token: "wrong-token",
+	}
+
+	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "authentication")
+}
+
+func TestSendRawEmailWithSettings_BasicAuth_Fallback(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	settings := &domain.SMTPSettings{
+		Host:     "127.0.0.1",
+		Port:     server.Port(),
+		UseTLS:   false,
+		AuthType: "basic",
+		Username: "user",
+		Password: "pass",
+	}
+
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, nil)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+}
+
+func TestSendRawEmailWithSettings_EmptyAuthType_DefaultsToBasic(t *testing.T) {
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	settings := &domain.SMTPSettings{
+		Host:     "127.0.0.1",
+		Port:     server.Port(),
+		UseTLS:   false,
+		AuthType: "", // Empty should default to basic
+		Username: "user",
+		Password: "pass",
+	}
+
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, nil)
+	require.NoError(t, err)
+
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+}
+
+func TestXOAuth2StringFormat(t *testing.T) {
+	// Test the exact format of XOAUTH2 string
+	username := "user@example.com"
+	token := "ya29.test-token"
+
+	// Expected format: base64("user=" + email + "\x01auth=Bearer " + token + "\x01\x01")
+	xoauth2String := fmt.Sprintf("user=%s\x01auth=Bearer %s\x01\x01", username, token)
+	encoded := base64.StdEncoding.EncodeToString([]byte(xoauth2String))
+
+	// Decode and verify format
+	decoded, err := base64.StdEncoding.DecodeString(encoded)
+	require.NoError(t, err)
+
+	decodedStr := string(decoded)
+	assert.True(t, strings.HasPrefix(decodedStr, "user=user@example.com\x01"))
+	assert.Contains(t, decodedStr, "auth=Bearer ya29.test-token")
+	assert.True(t, strings.HasSuffix(decodedStr, "\x01\x01"))
+}
+
+func TestSendRawEmailWithSettings_OAuth2_TokenServiceError(t *testing.T) {
+	server := newMockOAuth2SMTPServer(t, "token", "user@example.com")
+	defer server.Close()
+
+	settings := &domain.SMTPSettings{
+		Host:               "127.0.0.1",
+		Port:               server.Port(),
+		UseTLS:             false,
+		AuthType:           "oauth2",
+		OAuth2Provider:     "microsoft",
+		OAuth2TenantID:     "tenant-123",
+		OAuth2ClientID:     "client-123",
+		OAuth2ClientSecret: "secret-123",
+		Username:           "user@example.com",
+	}
+
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	// Mock OAuth2 token service that returns an error
+	mockTokenService := &mockOAuth2TokenService{
+		err: fmt.Errorf("failed to get access token"),
+	}
+
+	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get OAuth2 token")
+}
+
+// mockOAuth2TokenService is a mock implementation of OAuth2TokenService for testing
+type mockOAuth2TokenService struct {
+	token            string
+	err              error
+	invalidateCalled bool
+	callCount        int
+	tokensOnRetry    []string // tokens to return on subsequent calls (for retry testing)
+}
+
+func (m *mockOAuth2TokenService) GetAccessToken(settings *domain.SMTPSettings) (string, error) {
+	m.callCount++
+	if m.err != nil {
+		return "", m.err
+	}
+	// If we have retry tokens configured and this isn't the first call, use them
+	if len(m.tokensOnRetry) > 0 && m.callCount > 1 {
+		idx := m.callCount - 2 // 0-indexed for tokensOnRetry
+		if idx < len(m.tokensOnRetry) {
+			return m.tokensOnRetry[idx], nil
+		}
+	}
+	return m.token, nil
+}
+
+func (m *mockOAuth2TokenService) InvalidateCacheForSettings(settings *domain.SMTPSettings) {
+	m.invalidateCalled = true
+}
+
+// mockOAuth2SMTPServerWithRetry is an SMTP server that fails the first auth attempt but succeeds on retry
+type mockOAuth2SMTPServerWithRetry struct {
+	*mockSMTPServer
+	expectedToken    string
+	expectedUsername string
+	authAttempts     int
+	authCommands     []string
+}
+
+func newMockOAuth2SMTPServerWithRetry(t *testing.T, expectedToken, expectedUsername string) *mockOAuth2SMTPServerWithRetry {
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	server := &mockOAuth2SMTPServerWithRetry{
+		mockSMTPServer: &mockSMTPServer{
+			listener:    listener,
+			authSuccess: true,
+			commands:    make([]string, 0),
+			messages:    make([]capturedMessage, 0),
+		},
+		expectedToken:    expectedToken,
+		expectedUsername: expectedUsername,
+		authCommands:     make([]string, 0),
+	}
+
+	server.wg.Add(1)
+	go server.serveWithRetry()
+	return server
+}
+
+func (s *mockOAuth2SMTPServerWithRetry) serveWithRetry() {
+	defer s.wg.Done()
+	for {
+		conn, err := s.listener.Accept()
+		if err != nil {
+			s.mu.Lock()
+			closed := s.closed
+			s.mu.Unlock()
+			if closed {
+				return
+			}
+			continue
+		}
+		s.wg.Add(1)
+		go s.handleConnectionWithRetry(conn)
+	}
+}
+
+func (s *mockOAuth2SMTPServerWithRetry) handleConnectionWithRetry(conn net.Conn) {
+	defer s.wg.Done()
+	defer conn.Close()
+
+	reader := bufio.NewReader(conn)
+
+	// Send greeting
+	conn.Write([]byte("220 localhost SMTP OAuth2 Retry Mock Server\r\n"))
+
+	var from string
+	var recipients []string
+	var inData bool
+	var dataBuffer strings.Builder
+
+	for {
+		conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return
+		}
+
+		line = strings.TrimSpace(line)
+		s.mu.Lock()
+		s.commands = append(s.commands, line)
+		s.mu.Unlock()
+
+		if inData {
+			if line == "." {
+				inData = false
+				s.mu.Lock()
+				s.messages = append(s.messages, capturedMessage{
+					from:       from,
+					recipients: recipients,
+					data:       []byte(dataBuffer.String()),
+				})
+				s.mu.Unlock()
+				conn.Write([]byte("250 OK message queued\r\n"))
+				continue
+			}
+			dataBuffer.WriteString(line + "\r\n")
+			continue
+		}
+
+		upperLine := strings.ToUpper(line)
+
+		switch {
+		case strings.HasPrefix(upperLine, "EHLO") || strings.HasPrefix(upperLine, "HELO"):
+			conn.Write([]byte("250-localhost\r\n"))
+			conn.Write([]byte("250-AUTH PLAIN LOGIN XOAUTH2\r\n"))
+			conn.Write([]byte("250 SIZE 10485760\r\n"))
+
+		case strings.HasPrefix(upperLine, "AUTH XOAUTH2"):
+			s.mu.Lock()
+			s.authAttempts++
+			attempt := s.authAttempts
+			s.authCommands = append(s.authCommands, line)
+			s.mu.Unlock()
+
+			// First attempt fails with 535, second succeeds if correct token
+			if attempt == 1 {
+				conn.Write([]byte("535 5.7.3 Token expired\r\n"))
+				continue
+			}
+
+			// Validate credentials on retry
+			parts := strings.SplitN(line, " ", 3)
+			if len(parts) < 3 {
+				conn.Write([]byte("535 5.7.8 Invalid XOAUTH2 token\r\n"))
+				continue
+			}
+
+			decoded, err := base64.StdEncoding.DecodeString(parts[2])
+			if err != nil {
+				conn.Write([]byte("535 5.7.8 Invalid base64 encoding\r\n"))
+				continue
+			}
+
+			xoauth2Str := string(decoded)
+			userEnd := strings.Index(xoauth2Str, "\x01")
+			if userEnd == -1 || !strings.HasPrefix(xoauth2Str, "user=") {
+				conn.Write([]byte("535 5.7.8 Invalid XOAUTH2 format\r\n"))
+				continue
+			}
+			username := strings.TrimPrefix(xoauth2Str[:userEnd], "user=")
+
+			authStart := strings.Index(xoauth2Str, "auth=Bearer ")
+			if authStart == -1 {
+				conn.Write([]byte("535 5.7.8 Invalid XOAUTH2 format\r\n"))
+				continue
+			}
+			tokenStart := authStart + len("auth=Bearer ")
+			tokenEnd := strings.Index(xoauth2Str[tokenStart:], "\x01")
+			if tokenEnd == -1 {
+				conn.Write([]byte("535 5.7.8 Invalid XOAUTH2 format\r\n"))
+				continue
+			}
+			token := xoauth2Str[tokenStart : tokenStart+tokenEnd]
+
+			if username == s.expectedUsername && token == s.expectedToken {
+				conn.Write([]byte("235 2.7.0 Authentication successful\r\n"))
+			} else {
+				conn.Write([]byte("535 5.7.3 Authentication unsuccessful\r\n"))
+			}
+
+		case strings.HasPrefix(upperLine, "MAIL FROM:"):
+			s.mu.Lock()
+			s.mailFromCmd = line
+			s.mu.Unlock()
+			start := strings.Index(line, "<")
+			end := strings.Index(line, ">")
+			if start != -1 && end != -1 && end > start {
+				from = line[start+1 : end]
+			}
+			conn.Write([]byte("250 OK\r\n"))
+
+		case strings.HasPrefix(upperLine, "RCPT TO:"):
+			start := strings.Index(line, "<")
+			end := strings.Index(line, ">")
+			if start != -1 && end != -1 && end > start {
+				recipients = append(recipients, line[start+1:end])
+			}
+			conn.Write([]byte("250 OK\r\n"))
+
+		case strings.HasPrefix(upperLine, "DATA"):
+			inData = true
+			dataBuffer.Reset()
+			conn.Write([]byte("354 Start mail input\r\n"))
+
+		case strings.HasPrefix(upperLine, "QUIT"):
+			conn.Write([]byte("221 Bye\r\n"))
+			return
+
+		default:
+			conn.Write([]byte("500 Command not recognized\r\n"))
+		}
+	}
+}
+
+func (s *mockOAuth2SMTPServerWithRetry) GetAuthAttempts() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.authAttempts
+}
+
+func (s *mockOAuth2SMTPServerWithRetry) GetAuthCommands() []string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	result := make([]string, len(s.authCommands))
+	copy(result, s.authCommands)
+	return result
+}
+
+func TestSendRawEmailWithSettings_OAuth2_RetryOnExpiredToken(t *testing.T) {
+	expectedToken := "new-valid-token"
+	expectedUsername := "user@example.com"
+
+	server := newMockOAuth2SMTPServerWithRetry(t, expectedToken, expectedUsername)
+	defer server.Close()
+
+	settings := &domain.SMTPSettings{
+		Host:               "127.0.0.1",
+		Port:               server.Port(),
+		UseTLS:             false,
+		AuthType:           "oauth2",
+		OAuth2Provider:     "microsoft",
+		OAuth2TenantID:     "tenant-123",
+		OAuth2ClientID:     "client-123",
+		OAuth2ClientSecret: "secret-123",
+		Username:           expectedUsername,
+	}
+
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	// Mock token service that returns expired token first, then valid token on retry
+	mockTokenService := &mockOAuth2TokenService{
+		token:         "expired-token",
+		tokensOnRetry: []string{expectedToken},
+	}
+
+	err := sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
+	require.NoError(t, err)
+
+	// Verify retry happened
+	assert.True(t, mockTokenService.invalidateCalled, "InvalidateCacheForSettings should have been called")
+	assert.Equal(t, 2, mockTokenService.callCount, "GetAccessToken should have been called twice")
+	assert.Equal(t, 2, server.GetAuthAttempts(), "Server should have received 2 auth attempts")
+
+	// Verify message was sent
+	messages := server.GetMessages()
+	require.Len(t, messages, 1)
+}
+
+func TestSendRawEmailWithSettings_OAuth2_ErrorDecoding(t *testing.T) {
+	// Create a server that returns a base64-encoded error response
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+
+	// Start server in background
+	var wg sync.WaitGroup
+	wg.Add(1)
+	closed := false
+	var mu sync.Mutex
+
+	go func() {
+		defer wg.Done()
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				mu.Lock()
+				c := closed
+				mu.Unlock()
+				if c {
+					return
+				}
+				continue
+			}
+
+			reader := bufio.NewReader(conn)
+			conn.Write([]byte("220 localhost SMTP Error Test Server\r\n"))
+
+			for {
+				conn.SetReadDeadline(time.Now().Add(2 * time.Second))
+				line, err := reader.ReadString('\n')
+				if err != nil {
+					conn.Close()
+					break
+				}
+
+				upperLine := strings.ToUpper(strings.TrimSpace(line))
+
+				switch {
+				case strings.HasPrefix(upperLine, "EHLO"):
+					conn.Write([]byte("250-localhost\r\n"))
+					conn.Write([]byte("250 AUTH XOAUTH2\r\n"))
+				case strings.HasPrefix(upperLine, "AUTH XOAUTH2"):
+					// Return a base64-encoded error message
+					errorJSON := `{"status":"401","schemes":"Bearer","scope":"https://mail.google.com/"}`
+					encodedError := base64.StdEncoding.EncodeToString([]byte(errorJSON))
+					conn.Write([]byte(fmt.Sprintf("535 5.7.8 %s\r\n", encodedError)))
+				case strings.HasPrefix(upperLine, "QUIT"):
+					conn.Write([]byte("221 Bye\r\n"))
+					conn.Close()
+					return
+				default:
+					conn.Write([]byte("500 Command not recognized\r\n"))
+				}
+			}
+		}
+	}()
+
+	defer func() {
+		mu.Lock()
+		closed = true
+		mu.Unlock()
+		listener.Close()
+		wg.Wait()
+	}()
+
+	port := listener.Addr().(*net.TCPAddr).Port
+	settings := &domain.SMTPSettings{
+		Host:               "127.0.0.1",
+		Port:               port,
+		UseTLS:             false,
+		AuthType:           "oauth2",
+		OAuth2Provider:     "google",
+		OAuth2ClientID:     "client-123",
+		OAuth2ClientSecret: "secret-123",
+		OAuth2RefreshToken: "refresh-token",
+		Username:           "user@gmail.com",
+	}
+
+	msg := []byte("From: sender@example.com\r\nTo: recipient@example.com\r\nSubject: Test\r\n\r\nTest body")
+
+	mockTokenService := &mockOAuth2TokenService{
+		token: "some-token",
+	}
+
+	err = sendRawEmailWithSettings(settings, "sender@example.com", []string{"recipient@example.com"}, msg, mockTokenService)
+	require.Error(t, err)
+	// The error should contain the decoded JSON message
+	assert.Contains(t, err.Error(), "status")
+	assert.Contains(t, err.Error(), "401")
+}
+
+func TestSMTPService_SetOAuth2Provider(t *testing.T) {
+	log := &noopLogger{}
+	service := NewSMTPService(log)
+
+	mockProvider := &mockOAuth2TokenService{token: "test-token"}
+	service.SetOAuth2Provider(mockProvider)
+
+	assert.Equal(t, mockProvider, service.oauth2Provider)
+}
+
+func TestNewSMTPServiceWithOAuth2(t *testing.T) {
+	log := &noopLogger{}
+	mockProvider := &mockOAuth2TokenService{token: "test-token"}
+
+	service := NewSMTPServiceWithOAuth2(log, mockProvider)
+
+	require.NotNil(t, service)
+	assert.Equal(t, log, service.logger)
+	assert.Equal(t, mockProvider, service.oauth2Provider)
 }

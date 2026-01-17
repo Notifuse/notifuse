@@ -2457,3 +2457,112 @@ func (tdf *TestDataFactory) CountContactAutomations(workspaceID, automationID st
 
 	return count, nil
 }
+
+// ========================================
+// OAuth2 SMTP Factory Methods
+// ========================================
+
+// SMTPOAuth2Config holds configuration for OAuth2 SMTP integration
+type SMTPOAuth2Config struct {
+	Host           string // SMTP server host
+	Port           int    // SMTP server port
+	Provider       string // "microsoft" or "google"
+	TenantID       string // Microsoft only - Azure tenant ID
+	ClientID       string // OAuth2 client ID
+	ClientSecret   string // OAuth2 client secret
+	RefreshToken   string // Google only - refresh token
+	Username       string // Email address for XOAUTH2
+	SenderEmail    string // Sender email address (defaults to Username if empty)
+	SenderName     string // Sender display name
+}
+
+// WithSMTPOAuth2 creates an integration option for OAuth2 SMTP configuration
+func WithSMTPOAuth2(config SMTPOAuth2Config) IntegrationOption {
+	return func(integration *domain.Integration) {
+		// Use username as sender email if not specified
+		senderEmail := config.SenderEmail
+		if senderEmail == "" {
+			senderEmail = config.Username
+		}
+
+		// Default sender name
+		senderName := config.SenderName
+		if senderName == "" {
+			senderName = "OAuth2 Test Sender"
+		}
+
+		integration.EmailProvider = domain.EmailProvider{
+			Kind: domain.EmailProviderKindSMTP,
+			Senders: []domain.EmailSender{
+				domain.NewEmailSender(senderEmail, senderName),
+			},
+			SMTP: &domain.SMTPSettings{
+				Host:               config.Host,
+				Port:               config.Port,
+				Username:           config.Username,
+				AuthType:           "oauth2",
+				OAuth2Provider:     config.Provider,
+				OAuth2TenantID:     config.TenantID,
+				OAuth2ClientID:     config.ClientID,
+				OAuth2ClientSecret: config.ClientSecret,
+				OAuth2RefreshToken: config.RefreshToken,
+				UseTLS:             false, // Test servers typically don't use TLS
+			},
+			RateLimitPerMinute: 100,
+		}
+	}
+}
+
+// CreateMicrosoftOAuth2SMTPIntegration creates an SMTP integration configured for Microsoft OAuth2
+func (tdf *TestDataFactory) CreateMicrosoftOAuth2SMTPIntegration(
+	workspaceID string,
+	host string,
+	port int,
+	tenantID, clientID, clientSecret, username string,
+	opts ...IntegrationOption,
+) (*domain.Integration, error) {
+	oauth2Opts := []IntegrationOption{
+		WithIntegrationName("Microsoft OAuth2 SMTP"),
+		WithSMTPOAuth2(SMTPOAuth2Config{
+			Host:         host,
+			Port:         port,
+			Provider:     "microsoft",
+			TenantID:     tenantID,
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			Username:     username,
+		}),
+	}
+
+	// Append user-provided options
+	oauth2Opts = append(oauth2Opts, opts...)
+
+	return tdf.CreateIntegration(workspaceID, oauth2Opts...)
+}
+
+// CreateGoogleOAuth2SMTPIntegration creates an SMTP integration configured for Google OAuth2
+func (tdf *TestDataFactory) CreateGoogleOAuth2SMTPIntegration(
+	workspaceID string,
+	host string,
+	port int,
+	clientID, clientSecret, refreshToken, username string,
+	opts ...IntegrationOption,
+) (*domain.Integration, error) {
+	oauth2Opts := []IntegrationOption{
+		WithIntegrationName("Google OAuth2 SMTP"),
+		WithSMTPOAuth2(SMTPOAuth2Config{
+			Host:         host,
+			Port:         port,
+			Provider:     "google",
+			ClientID:     clientID,
+			ClientSecret: clientSecret,
+			RefreshToken: refreshToken,
+			Username:     username,
+		}),
+	}
+
+	// Append user-provided options
+	oauth2Opts = append(oauth2Opts, opts...)
+
+	return tdf.CreateIntegration(workspaceID, oauth2Opts...)
+}

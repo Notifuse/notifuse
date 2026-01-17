@@ -252,6 +252,325 @@ func TestSMTPSettings_Validate(t *testing.T) {
 	}
 }
 
+// ============================================================================
+// OAuth2 Authentication Tests
+// ============================================================================
+
+func TestSMTPSettings_OAuth2_Validation(t *testing.T) {
+	passphrase := "test-passphrase"
+
+	tests := []struct {
+		name     string
+		settings domain.SMTPSettings
+		wantErr  bool
+		errMsg   string
+	}{
+		{
+			name: "valid OAuth2 Microsoft settings",
+			settings: domain.SMTPSettings{
+				Host:                "smtp.office365.com",
+				Port:                587,
+				UseTLS:              true,
+				AuthType:            "oauth2",
+				OAuth2Provider:      "microsoft",
+				OAuth2TenantID:      "tenant-123",
+				OAuth2ClientID:      "client-123",
+				OAuth2ClientSecret:  "secret-123",
+				Username:            "user@example.com",
+			},
+			wantErr: false,
+		},
+		{
+			name: "valid OAuth2 Google settings",
+			settings: domain.SMTPSettings{
+				Host:               "smtp.gmail.com",
+				Port:               587,
+				UseTLS:             true,
+				AuthType:           "oauth2",
+				OAuth2Provider:     "google",
+				OAuth2ClientID:     "client-123",
+				OAuth2ClientSecret: "secret-123",
+				OAuth2RefreshToken: "refresh-token-123",
+				Username:           "user@gmail.com",
+			},
+			wantErr: false,
+		},
+		{
+			name: "OAuth2 missing provider",
+			settings: domain.SMTPSettings{
+				Host:               "smtp.example.com",
+				Port:               587,
+				UseTLS:             true,
+				AuthType:           "oauth2",
+				OAuth2Provider:     "", // Missing
+				OAuth2ClientID:     "client-123",
+				OAuth2ClientSecret: "secret-123",
+				Username:           "user@example.com",
+			},
+			wantErr: true,
+			errMsg:  "oauth2_provider is required",
+		},
+		{
+			name: "OAuth2 invalid provider",
+			settings: domain.SMTPSettings{
+				Host:               "smtp.example.com",
+				Port:               587,
+				UseTLS:             true,
+				AuthType:           "oauth2",
+				OAuth2Provider:     "invalid",
+				OAuth2ClientID:     "client-123",
+				OAuth2ClientSecret: "secret-123",
+				Username:           "user@example.com",
+			},
+			wantErr: true,
+			errMsg:  "oauth2_provider must be 'microsoft' or 'google'",
+		},
+		{
+			name: "OAuth2 missing client ID",
+			settings: domain.SMTPSettings{
+				Host:               "smtp.office365.com",
+				Port:               587,
+				UseTLS:             true,
+				AuthType:           "oauth2",
+				OAuth2Provider:     "microsoft",
+				OAuth2TenantID:     "tenant-123",
+				OAuth2ClientID:     "", // Missing
+				OAuth2ClientSecret: "secret-123",
+				Username:           "user@example.com",
+			},
+			wantErr: true,
+			errMsg:  "oauth2_client_id is required",
+		},
+		{
+			name: "OAuth2 missing client secret",
+			settings: domain.SMTPSettings{
+				Host:               "smtp.office365.com",
+				Port:               587,
+				UseTLS:             true,
+				AuthType:           "oauth2",
+				OAuth2Provider:     "microsoft",
+				OAuth2TenantID:     "tenant-123",
+				OAuth2ClientID:     "client-123",
+				OAuth2ClientSecret: "", // Missing
+				Username:           "user@example.com",
+			},
+			wantErr: true,
+			errMsg:  "oauth2_client_secret is required",
+		},
+		{
+			name: "OAuth2 Microsoft missing tenant ID",
+			settings: domain.SMTPSettings{
+				Host:               "smtp.office365.com",
+				Port:               587,
+				UseTLS:             true,
+				AuthType:           "oauth2",
+				OAuth2Provider:     "microsoft",
+				OAuth2TenantID:     "", // Missing for Microsoft
+				OAuth2ClientID:     "client-123",
+				OAuth2ClientSecret: "secret-123",
+				Username:           "user@example.com",
+			},
+			wantErr: true,
+			errMsg:  "oauth2_tenant_id is required for Microsoft",
+		},
+		{
+			name: "OAuth2 Google missing refresh token",
+			settings: domain.SMTPSettings{
+				Host:               "smtp.gmail.com",
+				Port:               587,
+				UseTLS:             true,
+				AuthType:           "oauth2",
+				OAuth2Provider:     "google",
+				OAuth2ClientID:     "client-123",
+				OAuth2ClientSecret: "secret-123",
+				OAuth2RefreshToken: "", // Missing for Google
+				Username:           "user@gmail.com",
+			},
+			wantErr: true,
+			errMsg:  "oauth2_refresh_token is required for Google",
+		},
+		{
+			name: "OAuth2 missing username",
+			settings: domain.SMTPSettings{
+				Host:               "smtp.office365.com",
+				Port:               587,
+				UseTLS:             true,
+				AuthType:           "oauth2",
+				OAuth2Provider:     "microsoft",
+				OAuth2TenantID:     "tenant-123",
+				OAuth2ClientID:     "client-123",
+				OAuth2ClientSecret: "secret-123",
+				Username:           "", // Missing - required for OAuth2
+			},
+			wantErr: true,
+			errMsg:  "username is required for OAuth2",
+		},
+		{
+			name: "basic auth type still works",
+			settings: domain.SMTPSettings{
+				Host:     "smtp.example.com",
+				Port:     587,
+				Username: "user@example.com",
+				Password: "password",
+				UseTLS:   true,
+				AuthType: "basic",
+			},
+			wantErr: false,
+		},
+		{
+			name: "empty auth type defaults to basic (backward compatible)",
+			settings: domain.SMTPSettings{
+				Host:     "smtp.example.com",
+				Port:     587,
+				Username: "user@example.com",
+				Password: "password",
+				UseTLS:   true,
+				AuthType: "", // Empty should default to basic
+			},
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.settings.Validate(passphrase)
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errMsg != "" {
+					assert.Contains(t, err.Error(), tt.errMsg)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestSMTPSettings_EncryptDecryptOAuth2ClientSecret(t *testing.T) {
+	passphrase := "test-passphrase"
+	clientSecret := "my-super-secret-client-secret"
+
+	settings := domain.SMTPSettings{
+		Host:               "smtp.office365.com",
+		Port:               587,
+		UseTLS:             true,
+		AuthType:           "oauth2",
+		OAuth2Provider:     "microsoft",
+		OAuth2TenantID:     "tenant-123",
+		OAuth2ClientID:     "client-123",
+		OAuth2ClientSecret: clientSecret,
+		Username:           "user@example.com",
+	}
+
+	// Test encryption
+	err := settings.EncryptOAuth2ClientSecret(passphrase)
+	require.NoError(t, err)
+	assert.NotEmpty(t, settings.EncryptedOAuth2ClientSecret)
+	assert.Equal(t, clientSecret, settings.OAuth2ClientSecret) // Original should be unchanged
+
+	// Save encrypted value
+	encryptedSecret := settings.EncryptedOAuth2ClientSecret
+
+	// Test decryption
+	settings.OAuth2ClientSecret = "" // Clear secret
+	err = settings.DecryptOAuth2ClientSecret(passphrase)
+	require.NoError(t, err)
+	assert.Equal(t, clientSecret, settings.OAuth2ClientSecret)
+
+	// Test decryption with wrong passphrase
+	settings.OAuth2ClientSecret = ""
+	settings.EncryptedOAuth2ClientSecret = encryptedSecret
+	err = settings.DecryptOAuth2ClientSecret("wrong-passphrase")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decrypt OAuth2 client secret")
+}
+
+func TestSMTPSettings_EncryptDecryptOAuth2RefreshToken(t *testing.T) {
+	passphrase := "test-passphrase"
+	refreshToken := "my-refresh-token"
+
+	settings := domain.SMTPSettings{
+		Host:               "smtp.gmail.com",
+		Port:               587,
+		UseTLS:             true,
+		AuthType:           "oauth2",
+		OAuth2Provider:     "google",
+		OAuth2ClientID:     "client-123",
+		OAuth2ClientSecret: "secret-123",
+		OAuth2RefreshToken: refreshToken,
+		Username:           "user@gmail.com",
+	}
+
+	// Test encryption
+	err := settings.EncryptOAuth2RefreshToken(passphrase)
+	require.NoError(t, err)
+	assert.NotEmpty(t, settings.EncryptedOAuth2RefreshToken)
+	assert.Equal(t, refreshToken, settings.OAuth2RefreshToken) // Original should be unchanged
+
+	// Save encrypted value
+	encryptedToken := settings.EncryptedOAuth2RefreshToken
+
+	// Test decryption
+	settings.OAuth2RefreshToken = "" // Clear token
+	err = settings.DecryptOAuth2RefreshToken(passphrase)
+	require.NoError(t, err)
+	assert.Equal(t, refreshToken, settings.OAuth2RefreshToken)
+
+	// Test decryption with wrong passphrase
+	settings.OAuth2RefreshToken = ""
+	settings.EncryptedOAuth2RefreshToken = encryptedToken
+	err = settings.DecryptOAuth2RefreshToken("wrong-passphrase")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to decrypt OAuth2 refresh token")
+}
+
+func TestSMTPSettings_OAuth2_EncryptionInValidate(t *testing.T) {
+	passphrase := "test-passphrase"
+
+	// Test Microsoft OAuth2 encryption during validation
+	t.Run("Microsoft OAuth2 secrets encrypted", func(t *testing.T) {
+		settings := domain.SMTPSettings{
+			Host:               "smtp.office365.com",
+			Port:               587,
+			UseTLS:             true,
+			AuthType:           "oauth2",
+			OAuth2Provider:     "microsoft",
+			OAuth2TenantID:     "tenant-123",
+			OAuth2ClientID:     "client-123",
+			OAuth2ClientSecret: "secret-123",
+			Username:           "user@example.com",
+		}
+
+		err := settings.Validate(passphrase)
+		require.NoError(t, err)
+
+		// Client secret should be encrypted
+		assert.NotEmpty(t, settings.EncryptedOAuth2ClientSecret)
+	})
+
+	// Test Google OAuth2 encryption during validation
+	t.Run("Google OAuth2 secrets encrypted", func(t *testing.T) {
+		settings := domain.SMTPSettings{
+			Host:               "smtp.gmail.com",
+			Port:               587,
+			UseTLS:             true,
+			AuthType:           "oauth2",
+			OAuth2Provider:     "google",
+			OAuth2ClientID:     "client-123",
+			OAuth2ClientSecret: "secret-123",
+			OAuth2RefreshToken: "refresh-123",
+			Username:           "user@gmail.com",
+		}
+
+		err := settings.Validate(passphrase)
+		require.NoError(t, err)
+
+		// Both client secret and refresh token should be encrypted
+		assert.NotEmpty(t, settings.EncryptedOAuth2ClientSecret)
+		assert.NotEmpty(t, settings.EncryptedOAuth2RefreshToken)
+	})
+}
+
 func TestSMTPWebhookPayload(t *testing.T) {
 	// Test struct mapping with JSON
 	payload := domain.SMTPWebhookPayload{

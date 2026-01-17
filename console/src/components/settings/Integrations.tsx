@@ -1532,18 +1532,162 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                 </Form.Item>
               </Col>
             </Row>
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item name={['smtp', 'username']} label="SMTP Username">
-                  <Input placeholder="Username (optional)" disabled={!isOwner} />
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item name={['smtp', 'password']} label="SMTP Password">
-                  <Input.Password placeholder="Password (optional)" disabled={!isOwner} />
-                </Form.Item>
-              </Col>
-            </Row>
+
+            <Form.Item
+              name={['smtp', 'auth_type']}
+              label="Authentication Type"
+              initialValue="basic"
+            >
+              <Select disabled={!isOwner}>
+                <Select.Option value="basic">Basic Authentication (Username/Password)</Select.Option>
+                <Select.Option value="oauth2">OAuth2 (Microsoft 365 / Google)</Select.Option>
+              </Select>
+            </Form.Item>
+
+            <Form.Item noStyle shouldUpdate={(prev, curr) => prev?.smtp?.auth_type !== curr?.smtp?.auth_type}>
+              {({ getFieldValue }) => {
+                const authType = getFieldValue(['smtp', 'auth_type']) || 'basic'
+
+                if (authType === 'oauth2') {
+                  return (
+                    <>
+                      <Form.Item
+                        name={['smtp', 'oauth2_provider']}
+                        label="OAuth2 Provider"
+                        rules={[{ required: true, message: 'Please select an OAuth2 provider' }]}
+                      >
+                        <Select placeholder="Select OAuth2 Provider" disabled={!isOwner}>
+                          <Select.Option value="microsoft">Microsoft 365 / Office 365</Select.Option>
+                          <Select.Option value="google">Google Workspace / Gmail</Select.Option>
+                        </Select>
+                      </Form.Item>
+
+                      <Form.Item
+                        name={['smtp', 'username']}
+                        label="Email Address"
+                        rules={[{ required: true, message: 'Email address is required for OAuth2' }]}
+                        tooltip="The email address that will be used as the SMTP user for authentication"
+                      >
+                        <Input placeholder="user@yourdomain.com" disabled={!isOwner} />
+                      </Form.Item>
+
+                      <Form.Item noStyle shouldUpdate={(prev, curr) => prev?.smtp?.oauth2_provider !== curr?.smtp?.oauth2_provider}>
+                        {({ getFieldValue: getInnerValue }) => {
+                          const provider = getInnerValue(['smtp', 'oauth2_provider'])
+
+                          if (provider === 'microsoft') {
+                            return (
+                              <>
+                                <Form.Item
+                                  name={['smtp', 'oauth2_tenant_id']}
+                                  label="Azure AD Tenant ID"
+                                  rules={[{ required: true, message: 'Tenant ID is required for Microsoft' }]}
+                                  tooltip="Find this in Azure Portal > Azure Active Directory > Overview"
+                                >
+                                  <Input placeholder="00000000-0000-0000-0000-000000000000" disabled={!isOwner} />
+                                </Form.Item>
+                                <Form.Item
+                                  name={['smtp', 'oauth2_client_id']}
+                                  label="Application (Client) ID"
+                                  rules={[{ required: true, message: 'Client ID is required' }]}
+                                  tooltip="Find this in Azure Portal > App registrations > Your App > Overview"
+                                >
+                                  <Input placeholder="Application (Client) ID" disabled={!isOwner} />
+                                </Form.Item>
+                                <Form.Item
+                                  name={['smtp', 'oauth2_client_secret']}
+                                  label="Client Secret"
+                                  rules={[{ required: true, message: 'Client Secret is required' }]}
+                                  tooltip="Create this in Azure Portal > App registrations > Your App > Certificates & secrets"
+                                >
+                                  <Input.Password placeholder="Client Secret Value" disabled={!isOwner} />
+                                </Form.Item>
+                                <Alert
+                                  message="Microsoft 365 OAuth2 Setup"
+                                  description={
+                                    <ul className="list-disc ml-4 mt-2 space-y-1">
+                                      <li>Create an app registration in Azure Portal</li>
+                                      <li>Add API permission: <code>https://outlook.office365.com/SMTP.Send</code></li>
+                                      <li>Grant admin consent for the organization</li>
+                                      <li>SMTP server: <code>smtp.office365.com:587</code></li>
+                                    </ul>
+                                  }
+                                  type="info"
+                                  className="mb-4"
+                                />
+                              </>
+                            )
+                          }
+
+                          if (provider === 'google') {
+                            return (
+                              <>
+                                <Form.Item
+                                  name={['smtp', 'oauth2_client_id']}
+                                  label="Client ID"
+                                  rules={[{ required: true, message: 'Client ID is required' }]}
+                                  tooltip="Find this in Google Cloud Console > APIs & Services > Credentials"
+                                >
+                                  <Input placeholder="Client ID" disabled={!isOwner} />
+                                </Form.Item>
+                                <Form.Item
+                                  name={['smtp', 'oauth2_client_secret']}
+                                  label="Client Secret"
+                                  rules={[{ required: true, message: 'Client Secret is required' }]}
+                                  tooltip="Find this in Google Cloud Console > APIs & Services > Credentials"
+                                >
+                                  <Input.Password placeholder="Client Secret" disabled={!isOwner} />
+                                </Form.Item>
+                                <Form.Item
+                                  name={['smtp', 'oauth2_refresh_token']}
+                                  label="Refresh Token"
+                                  rules={[{ required: true, message: 'Refresh Token is required for Google' }]}
+                                  tooltip="Obtain this using the OAuth2 playground or your own OAuth flow"
+                                >
+                                  <Input.Password placeholder="Refresh Token" disabled={!isOwner} />
+                                </Form.Item>
+                                <Alert
+                                  message="Google Workspace OAuth2 Setup"
+                                  description={
+                                    <ul className="list-disc ml-4 mt-2 space-y-1">
+                                      <li>Create OAuth2 credentials in Google Cloud Console</li>
+                                      <li>Enable the Gmail API for your project</li>
+                                      <li>Add scope: <code>https://mail.google.com/</code></li>
+                                      <li>Generate a refresh token using OAuth2 Playground</li>
+                                      <li>SMTP server: <code>smtp.gmail.com:587</code></li>
+                                    </ul>
+                                  }
+                                  type="info"
+                                  className="mb-4"
+                                />
+                              </>
+                            )
+                          }
+
+                          return null
+                        }}
+                      </Form.Item>
+                    </>
+                  )
+                }
+
+                // Basic authentication fields
+                return (
+                  <Row gutter={16}>
+                    <Col span={12}>
+                      <Form.Item name={['smtp', 'username']} label="SMTP Username">
+                        <Input placeholder="Username (optional)" disabled={!isOwner} />
+                      </Form.Item>
+                    </Col>
+                    <Col span={12}>
+                      <Form.Item name={['smtp', 'password']} label="SMTP Password">
+                        <Input.Password placeholder="Password (optional)" disabled={!isOwner} />
+                      </Form.Item>
+                    </Col>
+                  </Row>
+                )
+              }}
+            </Form.Item>
           </>
         )}
 
@@ -1763,6 +1907,15 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
         </Descriptions.Item>,
         <Descriptions.Item key="tls" label="TLS Enabled">
           {provider.smtp.use_tls ? 'Yes' : 'No'}
+        </Descriptions.Item>,
+        <Descriptions.Item key="auth" label="Authentication">
+          {provider.smtp.auth_type === 'oauth2' ? (
+            <span>
+              OAuth2 ({provider.smtp.oauth2_provider === 'microsoft' ? 'Microsoft 365' : 'Google'})
+            </span>
+          ) : (
+            'Basic (Username/Password)'
+          )}
         </Descriptions.Item>
       )
     } else if (provider.kind === 'ses' && provider.ses) {

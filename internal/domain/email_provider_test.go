@@ -457,6 +457,83 @@ func TestEmailProviderEncryptDecryptSecretKeys(t *testing.T) {
 		assert.Equal(t, "test-password", provider.SMTP.Password)
 	})
 
+	t.Run("SMTP provider OAuth2 client secret", func(t *testing.T) {
+		provider := EmailProvider{
+			Kind: EmailProviderKindSMTP,
+			SMTP: &SMTPSettings{
+				Host:               "smtp.office365.com",
+				Port:               587,
+				Username:           "user@example.com",
+				AuthType:           "oauth2",
+				OAuth2Provider:     "microsoft",
+				OAuth2ClientSecret: "test-client-secret",
+			},
+		}
+
+		err := provider.EncryptSecretKeys(passphrase)
+		require.NoError(t, err)
+		assert.Empty(t, provider.SMTP.OAuth2ClientSecret)
+		assert.NotEmpty(t, provider.SMTP.EncryptedOAuth2ClientSecret)
+
+		err = provider.DecryptSecretKeys(passphrase)
+		require.NoError(t, err)
+		assert.Equal(t, "test-client-secret", provider.SMTP.OAuth2ClientSecret)
+	})
+
+	t.Run("SMTP provider OAuth2 refresh token", func(t *testing.T) {
+		provider := EmailProvider{
+			Kind: EmailProviderKindSMTP,
+			SMTP: &SMTPSettings{
+				Host:               "smtp.gmail.com",
+				Port:               587,
+				Username:           "user@gmail.com",
+				AuthType:           "oauth2",
+				OAuth2Provider:     "google",
+				OAuth2RefreshToken: "test-refresh-token",
+			},
+		}
+
+		err := provider.EncryptSecretKeys(passphrase)
+		require.NoError(t, err)
+		assert.Empty(t, provider.SMTP.OAuth2RefreshToken)
+		assert.NotEmpty(t, provider.SMTP.EncryptedOAuth2RefreshToken)
+
+		err = provider.DecryptSecretKeys(passphrase)
+		require.NoError(t, err)
+		assert.Equal(t, "test-refresh-token", provider.SMTP.OAuth2RefreshToken)
+	})
+
+	t.Run("SMTP provider OAuth2 all secrets", func(t *testing.T) {
+		provider := EmailProvider{
+			Kind: EmailProviderKindSMTP,
+			SMTP: &SMTPSettings{
+				Host:               "smtp.gmail.com",
+				Port:               587,
+				Username:           "user@gmail.com",
+				Password:           "test-password",
+				AuthType:           "oauth2",
+				OAuth2Provider:     "google",
+				OAuth2ClientSecret: "test-client-secret",
+				OAuth2RefreshToken: "test-refresh-token",
+			},
+		}
+
+		err := provider.EncryptSecretKeys(passphrase)
+		require.NoError(t, err)
+		assert.Empty(t, provider.SMTP.Password)
+		assert.Empty(t, provider.SMTP.OAuth2ClientSecret)
+		assert.Empty(t, provider.SMTP.OAuth2RefreshToken)
+		assert.NotEmpty(t, provider.SMTP.EncryptedPassword)
+		assert.NotEmpty(t, provider.SMTP.EncryptedOAuth2ClientSecret)
+		assert.NotEmpty(t, provider.SMTP.EncryptedOAuth2RefreshToken)
+
+		err = provider.DecryptSecretKeys(passphrase)
+		require.NoError(t, err)
+		assert.Equal(t, "test-password", provider.SMTP.Password)
+		assert.Equal(t, "test-client-secret", provider.SMTP.OAuth2ClientSecret)
+		assert.Equal(t, "test-refresh-token", provider.SMTP.OAuth2RefreshToken)
+	})
+
 	t.Run("SES provider secret keys", func(t *testing.T) {
 		provider := EmailProvider{
 			Kind: EmailProviderKindSES,
@@ -925,6 +1002,34 @@ func TestDecryptionErrors(t *testing.T) {
 		err := provider.DecryptSecretKeys("any-passphrase")
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "failed to decrypt SMTP password")
+	})
+
+	// SMTP OAuth2 client secret decryption error
+	t.Run("SMTP OAuth2 client secret decryption error", func(t *testing.T) {
+		provider := EmailProvider{
+			Kind: EmailProviderKindSMTP,
+			SMTP: &SMTPSettings{
+				EncryptedOAuth2ClientSecret: "invalid-encrypted-data",
+			},
+		}
+
+		err := provider.DecryptSecretKeys("any-passphrase")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to decrypt OAuth2 client secret")
+	})
+
+	// SMTP OAuth2 refresh token decryption error
+	t.Run("SMTP OAuth2 refresh token decryption error", func(t *testing.T) {
+		provider := EmailProvider{
+			Kind: EmailProviderKindSMTP,
+			SMTP: &SMTPSettings{
+				EncryptedOAuth2RefreshToken: "invalid-encrypted-data",
+			},
+		}
+
+		err := provider.DecryptSecretKeys("any-passphrase")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to decrypt OAuth2 refresh token")
 	})
 
 	// SparkPost decryption error

@@ -162,11 +162,25 @@ func (e *EmailProvider) EncryptSecretKeys(passphrase string) error {
 		e.SES.SecretKey = ""
 	}
 
-	if e.Kind == EmailProviderKindSMTP && e.SMTP != nil && e.SMTP.Password != "" {
-		if err := e.SMTP.EncryptPassword(passphrase); err != nil {
-			return err
+	if e.Kind == EmailProviderKindSMTP && e.SMTP != nil {
+		if e.SMTP.Password != "" {
+			if err := e.SMTP.EncryptPassword(passphrase); err != nil {
+				return err
+			}
+			e.SMTP.Password = ""
 		}
-		e.SMTP.Password = ""
+		if e.SMTP.OAuth2ClientSecret != "" {
+			if err := e.SMTP.EncryptOAuth2ClientSecret(passphrase); err != nil {
+				return err
+			}
+			e.SMTP.OAuth2ClientSecret = ""
+		}
+		if e.SMTP.OAuth2RefreshToken != "" {
+			if err := e.SMTP.EncryptOAuth2RefreshToken(passphrase); err != nil {
+				return err
+			}
+			e.SMTP.OAuth2RefreshToken = ""
+		}
 	}
 
 	if e.Kind == EmailProviderKindSparkPost && e.SparkPost != nil && e.SparkPost.APIKey != "" {
@@ -225,6 +239,16 @@ func (e *EmailProvider) DecryptSecretKeys(passphrase string) error {
 		}
 		if e.SMTP.EncryptedPassword != "" {
 			if err := e.SMTP.DecryptPassword(passphrase); err != nil {
+				return err
+			}
+		}
+		if e.SMTP.EncryptedOAuth2ClientSecret != "" {
+			if err := e.SMTP.DecryptOAuth2ClientSecret(passphrase); err != nil {
+				return err
+			}
+		}
+		if e.SMTP.EncryptedOAuth2RefreshToken != "" {
+			if err := e.SMTP.DecryptOAuth2RefreshToken(passphrase); err != nil {
 				return err
 			}
 		}
