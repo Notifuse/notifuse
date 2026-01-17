@@ -914,7 +914,6 @@ export class EmailBlockClass {
     const imageDefaults = EmailBlockClass.createBlock('mj-image', 'image-defaults-1')
     imageDefaults.attributes = {
       ...defaults['mj-image'],
-      width: '150px',
       align: 'center',
       src: 'https://placehold.co/150x60/E3F2FD/1976D2?font=playfair-display&text=LOGO'
     }

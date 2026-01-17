@@ -128,16 +128,20 @@ export class MjImageBlock extends BaseEmailBlock {
     }
 
     // MJML table style for image presentation
+    // Per MJML spec: "if no width is provided, the image will use the parent column width"
+    // When explicit width is set, use inline-block so alignment (text-align) works
+    // When no width, use block with 100% width to fill the column
+    const hasExplicitWidth = attrs.width && attrs.width !== '100%'
     const tableStyle: React.CSSProperties = {
       borderCollapse: 'collapse',
       borderSpacing: '0px',
-      display: 'inline-block' // This makes the table respect the text-align from container
+      display: hasExplicitWidth ? 'inline-block' : 'block',
+      width: hasExplicitWidth ? undefined : '100%'
     }
 
     // MJML inner cell style - contains width constraint
-    // When width is undefined, MJML makes images fill parent width, so we use 100% for preview
     const cellStyle: React.CSSProperties = {
-      width: attrs.width || '100%'
+      width: hasExplicitWidth ? attrs.width : '100%'
     }
 
     // MJML image style - matches actual generated styles
