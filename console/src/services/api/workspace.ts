@@ -89,13 +89,29 @@ export interface AmazonSES {
   encrypted_secret_key?: string
 }
 
+export type SMTPAuthType = 'basic' | 'oauth2'
+export type SMTPOAuth2Provider = 'microsoft' | 'google'
+
 export interface SMTPSettings {
   host: string
   port: number
   username: string
   password?: string
   encrypted_password?: string
+  encrypted_username?: string
   use_tls: boolean
+
+  // Authentication type: 'basic' (default) or 'oauth2'
+  auth_type?: SMTPAuthType
+
+  // OAuth2 fields
+  oauth2_provider?: SMTPOAuth2Provider // 'microsoft' or 'google'
+  oauth2_tenant_id?: string // Microsoft only
+  oauth2_client_id?: string
+  oauth2_client_secret?: string
+  encrypted_oauth2_client_secret?: string
+  oauth2_refresh_token?: string // Google only
+  encrypted_oauth2_refresh_token?: string // Google only
 }
 
 export interface SparkPostSettings {

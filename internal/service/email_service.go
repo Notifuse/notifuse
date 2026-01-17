@@ -51,8 +51,11 @@ func NewEmailService(
 	webhookEndpoint string,
 	apiEndpoint string,
 ) *EmailService {
+	// Initialize OAuth2 token service for SMTP OAuth2 support
+	oauth2TokenService := NewOAuth2TokenService(logger)
+
 	// Initialize provider services
-	smtpService := NewSMTPService(logger)
+	smtpService := NewSMTPServiceWithOAuth2(logger, oauth2TokenService)
 	sesService := NewSESService(authService, logger)
 	sparkPostService := NewSparkPostService(httpClient, authService, logger)
 	postmarkService := NewPostmarkService(httpClient, authService, logger)

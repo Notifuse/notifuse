@@ -106,6 +106,12 @@ func (c *smtpConnection) Close() error {
 	return c.conn.Close()
 }
 
+// OAuth2TokenProvider is an interface for getting OAuth2 access tokens
+type OAuth2TokenProvider interface {
+	GetAccessToken(settings *domain.SMTPSettings) (string, error)
+	InvalidateCacheForSettings(settings *domain.SMTPSettings)
+}
+
 // sendRawEmail sends an email using raw SMTP commands without the problematic
 // SMTP extensions (BODY=8BITMIME, SMTPUTF8) that cause issues with strict SMTP
 // servers like Sender.net (issue #172).
@@ -113,8 +119,24 @@ func (c *smtpConnection) Close() error {
 // Both go-mail and Go's standard library smtp.Client.Mail() automatically add
 // these extensions when the server advertises support, so we need to bypass
 // them by sending raw SMTP commands.
+//
+// Deprecated: Use sendRawEmailWithSettings for new code that needs OAuth2 support.
 func sendRawEmail(host string, port int, username, password string, useTLS bool, from string, to []string, msg []byte) error {
-	addr := fmt.Sprintf("%s:%d", host, port)
+	settings := &domain.SMTPSettings{
+		Host:     host,
+		Port:     port,
+		Username: username,
+		Password: password,
+		UseTLS:   useTLS,
+		AuthType: "basic",
+	}
+	return sendRawEmailWithSettings(settings, from, to, msg, nil)
+}
+
+// sendRawEmailWithSettings sends an email using raw SMTP commands with full settings support.
+// It supports both basic authentication and OAuth2 (XOAUTH2) authentication.
+func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []string, msg []byte, oauth2Provider OAuth2TokenProvider) error {
+	addr := fmt.Sprintf("%s:%d", settings.Host, settings.Port)
 
 	// Connect to SMTP server with configurable timeout
 	dialer := &net.Dialer{Timeout: getSMTPDialTimeout()}
@@ -146,7 +168,7 @@ func sendRawEmail(host string, port int, username, password string, useTLS bool,
 	}
 
 	// STARTTLS if enabled
-	if useTLS {
+	if settings.UseTLS {
 		code, _, err = smtpConn.sendCommand("STARTTLS")
 		if err != nil {
 			return fmt.Errorf("STARTTLS command failed: %w", err)
@@ -157,7 +179,7 @@ func sendRawEmail(host string, port int, username, password string, useTLS bool,
 
 		// Upgrade connection to TLS
 		tlsConfig := &tls.Config{
-			ServerName: host,
+			ServerName: settings.Host,
 			MinVersion: tls.VersionTLS12,
 		}
 		tlsConn := tls.Client(conn, tlsConfig)
@@ -179,17 +201,67 @@ func sendRawEmail(host string, port int, username, password string, useTLS bool,
 		}
 	}
 
-	// AUTH if credentials provided
-	if username != "" && password != "" {
-		// Use AUTH PLAIN
-		authString := fmt.Sprintf("\x00%s\x00%s", username, password)
-		encoded := base64.StdEncoding.EncodeToString([]byte(authString))
-		code, _, err = smtpConn.sendCommand(fmt.Sprintf("AUTH PLAIN %s", encoded))
+	// Authentication
+	if settings.AuthType == "oauth2" {
+		// OAuth2 XOAUTH2 authentication
+		if oauth2Provider == nil {
+			return fmt.Errorf("OAuth2 authentication requires a token provider")
+		}
+
+		accessToken, err := oauth2Provider.GetAccessToken(settings)
 		if err != nil {
-			return fmt.Errorf("AUTH failed: %w", err)
+			return fmt.Errorf("failed to get OAuth2 token: %w", err)
+		}
+
+		// XOAUTH2 format: base64("user=" + email + "\x01auth=Bearer " + token + "\x01\x01")
+		xoauth2String := fmt.Sprintf("user=%s\x01auth=Bearer %s\x01\x01", settings.Username, accessToken)
+		encoded := base64.StdEncoding.EncodeToString([]byte(xoauth2String))
+
+		code, response, err := smtpConn.sendCommand(fmt.Sprintf("AUTH XOAUTH2 %s", encoded))
+		if err != nil {
+			return fmt.Errorf("XOAUTH2 AUTH failed: %w", err)
 		}
 		if code != 235 {
-			return fmt.Errorf("authentication failed with code: %d", code)
+			// Try refresh once if this looks like a token expiry (535)
+			if code == 535 && oauth2Provider != nil {
+				oauth2Provider.InvalidateCacheForSettings(settings)
+				if newToken, retryErr := oauth2Provider.GetAccessToken(settings); retryErr == nil {
+					retryXoauth2 := fmt.Sprintf("user=%s\x01auth=Bearer %s\x01\x01", settings.Username, newToken)
+					retryEncoded := base64.StdEncoding.EncodeToString([]byte(retryXoauth2))
+					if retryCode, _, retryErr := smtpConn.sendCommand(fmt.Sprintf("AUTH XOAUTH2 %s", retryEncoded)); retryErr == nil && retryCode == 235 {
+						goto authComplete
+					}
+				}
+			}
+			// Decode error response for debugging (XOAUTH2 errors may be base64-encoded JSON)
+			// The response may include an enhanced status code like "5.7.8 <base64>" so try both
+			responseToTry := response
+			if parts := strings.SplitN(response, " ", 2); len(parts) == 2 {
+				responseToTry = parts[1] // Try the part after the status code
+			}
+			if decoded, decodeErr := base64.StdEncoding.DecodeString(responseToTry); decodeErr == nil && len(decoded) > 0 {
+				return fmt.Errorf("XOAUTH2 authentication failed: %s", string(decoded))
+			}
+			// Also try the full response in case it's just base64
+			if decoded, decodeErr := base64.StdEncoding.DecodeString(response); decodeErr == nil && len(decoded) > 0 {
+				return fmt.Errorf("XOAUTH2 authentication failed: %s", string(decoded))
+			}
+			return fmt.Errorf("XOAUTH2 authentication failed with code: %d, response: %s", code, response)
+		}
+	authComplete:
+	} else {
+		// Basic authentication (default)
+		if settings.Username != "" && settings.Password != "" {
+			// Use AUTH PLAIN
+			authString := fmt.Sprintf("\x00%s\x00%s", settings.Username, settings.Password)
+			encoded := base64.StdEncoding.EncodeToString([]byte(authString))
+			code, _, err = smtpConn.sendCommand(fmt.Sprintf("AUTH PLAIN %s", encoded))
+			if err != nil {
+				return fmt.Errorf("AUTH failed: %w", err)
+			}
+			if code != 235 {
+				return fmt.Errorf("authentication failed with code: %d", code)
+			}
 		}
 	}
 
@@ -253,7 +325,8 @@ func sendRawEmail(host string, port int, username, password string, useTLS bool,
 
 // SMTPService implements the domain.EmailProviderService interface for SMTP
 type SMTPService struct {
-	logger logger.Logger
+	logger         logger.Logger
+	oauth2Provider OAuth2TokenProvider
 }
 
 // NewSMTPService creates a new instance of SMTPService
@@ -261,6 +334,19 @@ func NewSMTPService(logger logger.Logger) *SMTPService {
 	return &SMTPService{
 		logger: logger,
 	}
+}
+
+// NewSMTPServiceWithOAuth2 creates a new instance of SMTPService with OAuth2 support
+func NewSMTPServiceWithOAuth2(logger logger.Logger, oauth2Provider OAuth2TokenProvider) *SMTPService {
+	return &SMTPService{
+		logger:         logger,
+		oauth2Provider: oauth2Provider,
+	}
+}
+
+// SetOAuth2Provider sets the OAuth2 token provider for the SMTP service
+func (s *SMTPService) SetOAuth2Provider(provider OAuth2TokenProvider) {
+	s.oauth2Provider = provider
 }
 
 // SendEmail sends an email using SMTP
@@ -378,15 +464,13 @@ func (s *SMTPService) SendEmail(ctx context.Context, request domain.SendEmailPro
 	}
 
 	// Send using native net/smtp (avoids BODY=8BITMIME extension issues - fix for issue #172)
-	if err := sendRawEmail(
-		smtpSettings.Host,
-		smtpSettings.Port,
-		smtpSettings.Username,
-		smtpSettings.Password,
-		smtpSettings.UseTLS,
+	// Use sendRawEmailWithSettings for OAuth2 support
+	if err := sendRawEmailWithSettings(
+		smtpSettings,
 		request.FromAddress,
 		recipients,
 		buf.Bytes(),
+		s.oauth2Provider,
 	); err != nil {
 		return fmt.Errorf("failed to send email: %w", err)
 	}
