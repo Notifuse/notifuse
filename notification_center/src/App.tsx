@@ -303,9 +303,10 @@ function App() {
         }
 
         // Call API to subscribe to list
+        // Include email_hmac from URL params for private list authentication
         await subscribeToLists({
           workspace_id: params.wid,
-          contact: notificationData.contact,
+          contact: { ...notificationData.contact, email_hmac: params.email_hmac },
           list_ids: [listId]
         })
 

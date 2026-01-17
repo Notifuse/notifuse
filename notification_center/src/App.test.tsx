@@ -339,6 +339,56 @@ describe('Notification Center App', () => {
     })
   })
 
+  describe('Manual subscribe via UI (Bug #181)', () => {
+    it('should include email_hmac in subscribe payload for private list support', async () => {
+      const user = userEvent.setup()
+      const mockSubscribe = vi.mocked(notificationCenterApi.subscribeToLists)
+      const mockParseParams = vi.mocked(notificationCenterApi.parseNotificationCenterParams)
+      const mockGetPreferences = vi.mocked(notificationCenterApi.getContactPreferences)
+
+      // Mock preferences with an unsubscribed list to show Subscribe button
+      mockGetPreferences.mockResolvedValue({
+        contact: {
+          id: 'contact-123',
+          email: 'test@example.com',
+          first_name: 'John',
+          last_name: 'Doe',
+        },
+        public_lists: [
+          {
+            id: 'announcements',
+            name: 'Announcements',
+            description: 'Important updates',
+          },
+        ],
+        contact_lists: [], // No subscriptions - will show Subscribe buttons
+        logo_url: 'https://example.com/logo.png',
+        website_url: 'https://example.com',
+      })
+
+      mockParseParams.mockReturnValue(testData.validParams)
+      mockURLSearchParams(testData.validParams)
+
+      render(<App />)
+
+      // Wait for the component to load by finding subscribe button
+      const subscribeButtons = await screen.findAllByRole('button', { name: /subscribe/i })
+      expect(subscribeButtons.length).toBeGreaterThan(0)
+
+      // Click the first subscribe button
+      await user.click(subscribeButtons[0])
+
+      await waitFor(() => {
+        expect(mockSubscribe).toHaveBeenCalled()
+      })
+
+      // CRITICAL: Verify email_hmac is included in the contact object
+      // This is the fix for Bug #181 - manual subscribe must include email_hmac
+      const callArgs = mockSubscribe.mock.calls[0][0]
+      expect(callArgs.contact.email_hmac).toBe(testData.validParams.email_hmac)
+    })
+  })
+
   describe('URL parameter parsing', () => {
     it('should handle URL with all required parameters', async () => {
       const mockGetPreferences = vi.mocked(notificationCenterApi.getContactPreferences)
