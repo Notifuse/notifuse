@@ -3,14 +3,17 @@ import { App } from 'antd'
 import { FileManager } from '../components/file_manager/fileManager'
 import { FileManagerProps } from '../components/file_manager/interfaces'
 import { StorageObject } from '../components/file_manager/interfaces'
-import { useParams } from '@tanstack/react-router'
+import { useParams, useSearch, useNavigate } from '@tanstack/react-router'
 import { useAuth } from '../contexts/AuthContext'
 import { workspaceService } from '../services/api/workspace'
 import { Workspace, FileManagerSettings } from '../services/api/types'
 import { useWorkspacePermissions } from '../contexts/AuthContext'
+import { workspaceFileManagerRoute } from '../router'
 
 export function FileManagerPage() {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId' })
+  const search = useSearch({ from: workspaceFileManagerRoute.id })
+  const navigate = useNavigate()
   const { workspaces, refreshWorkspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId)
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null)
@@ -35,6 +38,14 @@ export function FileManagerPage() {
   const handleSelect = (items: StorageObject[]) => {
     console.log('Selected items:', items)
     // Handle selected items as needed
+  }
+
+  const handlePathChange = (newPath: string) => {
+    navigate({
+      to: workspaceFileManagerRoute.to,
+      params: { workspaceId },
+      search: { path: newPath || undefined }
+    })
   }
 
   const handleUpdateSettings = async (newSettings: FileManagerSettings) => {
@@ -74,6 +85,8 @@ export function FileManagerPage() {
 
   const fileManagerProps: FileManagerProps = {
     currentPath: '',
+    controlledPath: search.path || '',
+    onPathChange: handlePathChange,
     onError: handleError,
     onSelect: handleSelect,
     height: 600,

@@ -28,6 +28,9 @@ export interface FileManagerProps {
   onUpdateSettings: (settings: FileManagerSettings) => Promise<void>
   settingsInfo?: React.ReactNode
   readOnly?: boolean
+  // Controlled path mode for router sync
+  controlledPath?: string
+  onPathChange?: (path: string) => void
 }
 
 export interface ItemFilter {

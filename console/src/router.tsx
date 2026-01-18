@@ -50,6 +50,10 @@ export interface BlogSearch {
   category_id?: string
 }
 
+export interface FileManagerSearch {
+  path?: string
+}
+
 // Create the root route
 const rootRoute = createRootRoute({
   component: RootLayout
@@ -136,10 +140,13 @@ const workspaceListsRoute = createRoute({
   component: ListsPage
 })
 
-const workspaceFileManagerRoute = createRoute({
+export const workspaceFileManagerRoute = createRoute({
   getParentRoute: () => workspaceRoute,
   path: '/file-manager',
-  component: FileManagerPage
+  component: FileManagerPage,
+  validateSearch: (search: Record<string, unknown>): FileManagerSearch => ({
+    path: search.path as string | undefined
+  })
 })
 
 const workspaceTransactionalNotificationsRoute = createRoute({

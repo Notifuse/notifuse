@@ -10,13 +10,21 @@ import {
   Popover,
   Space,
   Table,
-  Tooltip
+  Tooltip,
+  Typography
 } from 'antd'
+import {
+  ClockCircleOutlined,
+  LoadingOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined
+} from '@ant-design/icons'
 import type { FileManagerProps, StorageObject } from './interfaces'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Copy, Folder, Trash2, ExternalLink, Settings, RefreshCw, Plus } from 'lucide-react'
+import { Copy, Folder, Trash2, ExternalLink, Settings, RefreshCw, Plus, Download } from 'lucide-react'
 import { filesize } from 'filesize'
+import { zipSync } from 'fflate'
 import ButtonFilesSettings from './buttonSettings'
 import {
   S3Client,
@@ -51,6 +59,13 @@ dayjs.extend(isToday)
 // eslint-disable-next-line react-refresh/only-export-components -- Utility export co-located with component
 export default dayjs
 
+// Upload file status interface for tracking upload progress
+interface UploadFileStatus {
+  file: File
+  status: 'pending' | 'uploading' | 'done' | 'failed'
+  error?: string
+}
+
 // Common styles
 const styles = {
   folderRow: {
@@ -72,7 +87,7 @@ const styles = {
 
 export const FileManager = (props: FileManagerProps) => {
   const { message } = App.useApp()
-  const [currentPath, setCurrentPath] = useState(props.currentPath || '')
+  const [internalPath, setInternalPath] = useState(props.currentPath || '')
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
   const [items, setItems] = useState<StorageObject[] | undefined>(undefined)
   const [isLoading, setIsLoading] = useState(false)
@@ -81,17 +96,40 @@ export const FileManager = (props: FileManagerProps) => {
   const s3ClientRef = useRef<S3Client | undefined>(undefined)
   const inputFileRef = useRef<HTMLInputElement>(null)
   const [isUploading, setIsUploading] = useState(false)
+  const [isZipping, setIsZipping] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [uploadFileStatuses, setUploadFileStatuses] = useState<UploadFileStatus[]>([])
+  const [isDragging, setIsDragging] = useState(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
   const [form] = Form.useForm()
 
   // Check if file manager is in read-only mode
   const isReadOnly = props.readOnly || false
 
-  const goToPath = (path: string) => {
+  // Check if file manager is operating in controlled mode
+  const isControlledMode = props.controlledPath !== undefined && props.onPathChange !== undefined
+
+  // Effective current path: use controlled prop if in controlled mode, else internal state
+  const currentPath = isControlledMode ? props.controlledPath! : internalPath
+
+  const selectedFileCount = useMemo(() => {
+    if (!items) return 0
+    return items.filter(
+      (item) => selectedRowKeys.includes(item.key) && !item.is_folder
+    ).length
+  }, [items, selectedRowKeys])
+
+  const goToPath = useCallback((path: string) => {
     // reset selection on path change
     setSelectedRowKeys([])
     props.onSelect([])
-    setCurrentPath(path)
-  }
+
+    if (isControlledMode) {
+      props.onPathChange!(path)
+    } else {
+      setInternalPath(path)
+    }
+  }, [isControlledMode, props])
 
   const fetchObjects = useCallback(() => {
     if (!s3ClientRef.current || !props.settings?.bucket) return
@@ -200,7 +238,6 @@ export const FileManager = (props: FileManagerProps) => {
       forcePathStyle: props.settings.force_path_style ?? false
     })
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchObjects()
   }, [props.settings, fetchObjects])
 
@@ -224,7 +261,8 @@ export const FileManager = (props: FileManagerProps) => {
           fetchObjects()
           message.success('Folder deleted successfully.')
           // go to previous path
-          setCurrentPath(key.split('/').slice(0, -2).join('/') + '/')
+          const parentPath = key.split('/').slice(0, -2).join('/')
+          goToPath(parentPath ? parentPath + '/' : '')
         } else {
           message.success('File deleted successfully.')
         }
@@ -340,54 +378,211 @@ export const FileManager = (props: FileManagerProps) => {
       })
   }, [items, currentPath])
 
+  const startUpload = async (files: File[]) => {
+    if (files.length === 0 || !s3ClientRef.current) return
+
+    // Initialize status list with all files as pending
+    const initialStatuses: UploadFileStatus[] = files.map((file) => ({
+      file,
+      status: 'pending'
+    }))
+    setUploadFileStatuses(initialStatuses)
+    setIsUploading(true)
+    abortControllerRef.current = new AbortController()
+
+    for (let i = 0; i < files.length; i++) {
+      if (abortControllerRef.current?.signal.aborted) {
+        break
+      }
+
+      const file = files[i]
+
+      // Update current file to 'uploading'
+      setUploadFileStatuses((prev) =>
+        prev.map((item, idx) => (idx === i ? { ...item, status: 'uploading' } : item))
+      )
+
+      try {
+        const arrayBuffer = await file.arrayBuffer()
+        const uint8Array = new Uint8Array(arrayBuffer)
+
+        await s3ClientRef.current.send(
+          new PutObjectCommand({
+            Bucket: props.settings?.bucket || '',
+            Key: currentPath + file.name,
+            Body: uint8Array,
+            ContentType: file.type
+          }),
+          { abortSignal: abortControllerRef.current?.signal }
+        )
+
+        // Mark as done
+        setUploadFileStatuses((prev) =>
+          prev.map((item, idx) => (idx === i ? { ...item, status: 'done' } : item))
+        )
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') {
+          break
+        }
+        // Mark as failed
+        setUploadFileStatuses((prev) =>
+          prev.map((item, idx) => (idx === i ? { ...item, status: 'failed', error: String(error) } : item))
+        )
+      }
+    }
+
+    setIsUploading(false)
+    setUploadFileStatuses([])
+    abortControllerRef.current = null
+    fetchObjects()
+  }
+
   const onFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return
-    if (isUploading) return
-    if (!s3ClientRef.current) return
+    if (!e.target.files || e.target.files.length === 0) return
+    if (isUploading || !s3ClientRef.current) return
 
-    // console.log(e.target.files)
+    const files = Array.from(e.target.files)
+    startUpload(files)
 
-    for (let i = 0; i < e.target.files.length; i++) {
-      setIsUploading(true)
-      const file = e.target.files.item(i) as File
+    // Reset input so same file can be selected again
+    e.target.value = ''
+  }
 
-      // Convert file to ArrayBuffer for browser compatibility with AWS SDK v3
-      file
-        .arrayBuffer()
-        .then((arrayBuffer) => {
-          const uint8Array = new Uint8Array(arrayBuffer)
+  const handleCancelUpload = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+    message.info('Import cancelled')
+  }
 
-          s3ClientRef
-            .current!.send(
-              new PutObjectCommand({
-                Bucket: props.settings?.bucket || '',
-                Key: currentPath + file.name,
-                Body: uint8Array,
-                ContentType: file.type
-              })
-            )
-            .then(() => {
-              message.success('File ' + file.name + ' uploaded successfully.')
-              setIsUploading(false)
-              fetchObjects()
-            })
-            .catch((error: unknown) => {
-              message.error('Failed to upload file: ' + error)
-              setIsUploading(false)
-              props.onError(error instanceof Error ? error : new Error(String(error)))
-            })
-        })
-        .catch((error: unknown) => {
-          message.error('Failed to read file: ' + error)
-          setIsUploading(false)
-          props.onError(error instanceof Error ? error : new Error(String(error)))
-        })
+  const handleDragEnter = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!isReadOnly) {
+      setIsDragging(true)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    // Only set false if leaving the container (not entering a child)
+    if (e.currentTarget === e.target) {
+      setIsDragging(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsDragging(false)
+
+    if (isReadOnly) {
+      message.warning('Cannot upload in read-only mode')
+      return
+    }
+
+    const files = Array.from(e.dataTransfer.files)
+    if (files.length > 0) {
+      startUpload(files)
     }
   }
 
   const onBrowseFiles = () => {
     if (inputFileRef.current) {
       inputFileRef.current.click()
+    }
+  }
+
+  const downloadSelectedAsZip = async () => {
+    const selectedFiles = items?.filter(
+      (item) => selectedRowKeys.includes(item.key) && !item.is_folder
+    ) || []
+
+    if (selectedFiles.length === 0) {
+      message.warning('No files selected')
+      return
+    }
+
+    setIsZipping(true)
+    try {
+      const zipData: Record<string, Uint8Array> = {}
+
+      for (const file of selectedFiles) {
+        const response = await fetch(file.file_info.url)
+        if (!response.ok) throw new Error(`Failed to fetch ${file.name}`)
+        const arrayBuffer = await response.arrayBuffer()
+        zipData[file.name] = new Uint8Array(arrayBuffer)
+      }
+
+      const zipped = zipSync(zipData)
+      const blob = new Blob([zipped as BlobPart], { type: 'application/zip' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `files-${Date.now()}.zip`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+
+      message.success(`Downloaded ${selectedFiles.length} file(s)`)
+    } catch (error) {
+      console.error('ZIP download failed:', error)
+      message.error('Failed to download files')
+    } finally {
+      setIsZipping(false)
+    }
+  }
+
+  const deleteSelectedItems = async () => {
+    if (!s3ClientRef.current || !props.settings?.bucket) {
+      message.error('S3 client is not initialized.')
+      return
+    }
+
+    const selectedItems = items?.filter(
+      (item) => selectedRowKeys.includes(item.key)
+    ) || []
+
+    if (selectedItems.length === 0) {
+      message.warning('No items selected')
+      return
+    }
+
+    setIsDeleting(true)
+    let deletedCount = 0
+    let failedCount = 0
+
+    for (const item of selectedItems) {
+      try {
+        await s3ClientRef.current.send(
+          new DeleteObjectCommand({
+            Bucket: props.settings.bucket,
+            Key: item.key
+          })
+        )
+        deletedCount++
+      } catch (error) {
+        console.error(`Failed to delete ${item.name}:`, error)
+        failedCount++
+      }
+    }
+
+    setIsDeleting(false)
+    setSelectedRowKeys([])
+    props.onSelect([])
+    fetchObjects()
+
+    if (failedCount === 0) {
+      message.success(`Deleted ${deletedCount} item(s)`)
+    } else {
+      message.warning(`Deleted ${deletedCount}, failed ${failedCount}`)
     }
   }
 
@@ -487,7 +682,7 @@ export const FileManager = (props: FileManagerProps) => {
                       onChange={onFileChange}
                       hidden
                       accept={props.acceptFileType}
-                      multiple={false}
+                      multiple
                     />
                     <Button
                       type="primary"
@@ -513,7 +708,7 @@ export const FileManager = (props: FileManagerProps) => {
                     </Button>
                   </Tooltip>
                 )}
-              </Space>
+                </Space>
             </div>
 
             <Space>
@@ -542,15 +737,42 @@ export const FileManager = (props: FileManagerProps) => {
                     )
                   })}
               </div>
-              <Tooltip title={isReadOnly ? 'New folder (Read-only mode)' : 'Create new folder'}>
+              {selectedRowKeys.length === 0 && (
                 <Button type="primary" ghost onClick={toggleNewFolderModal} disabled={isReadOnly}>
                   New folder
                 </Button>
-              </Tooltip>
+              )}
+              {selectedRowKeys.length > 0 && !isReadOnly && (
+                <Popconfirm
+                  title={`Delete ${selectedRowKeys.length} selected item(s)?`}
+                  onConfirm={deleteSelectedItems}
+                  okText="Delete"
+                  cancelText="Cancel"
+                  okButtonProps={{ danger: true }}
+                >
+                  <Button type="primary" ghost loading={isDeleting}>
+                    <Trash2 size={16} /> Delete ({selectedRowKeys.length})
+                  </Button>
+                </Popconfirm>
+              )}
+              {selectedFileCount > 1 && (
+                <Button type="primary" ghost loading={isZipping} onClick={downloadSelectedAsZip}>
+                  <Download size={16} /> Zip ({selectedFileCount})
+                </Button>
+              )}
             </Space>
           </div>
-          <Table
-            dataSource={itemsAtPath}
+
+          {/* Table container with drag and drop */}
+          <div
+            style={{ position: 'relative', flex: 1 }}
+            onDragEnter={handleDragEnter}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <Table
+              dataSource={itemsAtPath}
             loading={isLoading}
             pagination={false}
             size="middle"
@@ -564,7 +786,7 @@ export const FileManager = (props: FileManagerProps) => {
               return {
                 onClick: () => {
                   if (record.is_folder) {
-                    setCurrentPath(record.key)
+                    goToPath(record.key)
                   }
                 },
                 style: record.is_folder ? styles.folderRow : undefined
@@ -580,7 +802,7 @@ export const FileManager = (props: FileManagerProps) => {
                       selectItem(selectedRows)
                     },
                     getCheckboxProps: (record: StorageObject) => ({
-                      disabled: !props.acceptItem(record as StorageObject)
+                      disabled: record.is_folder || !props.acceptItem(record as StorageObject)
                     })
                   }
                 : undefined
@@ -676,6 +898,32 @@ export const FileManager = (props: FileManagerProps) => {
                           </Button>
                         </a>
                       </Tooltip>
+                      <Tooltip title="Download file">
+                        <Button
+                          type="text"
+                          size="small"
+                          onClick={async (e) => {
+                            e.stopPropagation()
+                            try {
+                              const response = await fetch(item.file_info.url)
+                              const blob = await response.blob()
+                              const url = URL.createObjectURL(blob)
+                              const link = document.createElement('a')
+                              link.href = url
+                              link.download = item.name
+                              document.body.appendChild(link)
+                              link.click()
+                              document.body.removeChild(link)
+                              URL.revokeObjectURL(url)
+                            } catch (error) {
+                              console.error('Download failed:', error)
+                              message.error('Failed to download file')
+                            }
+                          }}
+                        >
+                          <Download size={16} />
+                        </Button>
+                      </Tooltip>
                       {!isReadOnly && (
                         <Popconfirm
                           title="Do you want to permanently delete this file from your storage?"
@@ -704,7 +952,33 @@ export const FileManager = (props: FileManagerProps) => {
                 }
               }
             ]}
-          />
+            />
+
+            {/* Drag visual feedback overlay */}
+            {isDragging && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  backgroundColor: 'rgba(24, 144, 255, 0.1)',
+                  border: '2px dashed #1890ff',
+                  borderRadius: 8,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 999,
+                  pointerEvents: 'none'
+                }}
+              >
+                <Typography.Text style={{ fontSize: 18, color: '#1890ff' }}>
+                  Drop files here to upload
+                </Typography.Text>
+              </div>
+            )}
+          </div>
         </>
       )}
       {newFolderModalVisible && (
@@ -767,6 +1041,73 @@ export const FileManager = (props: FileManagerProps) => {
             </Form.Item>
           </Form>
         </Modal>
+      )}
+
+      {/* Import overlay with status list */}
+      {isUploading && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000
+          }}
+        >
+          <Typography.Title level={4} style={{ marginBottom: 16 }}>
+            Importing files...
+          </Typography.Title>
+
+          <div
+            style={{
+              maxHeight: 300,
+              overflowY: 'auto',
+              width: '80%',
+              maxWidth: 400
+            }}
+          >
+            {uploadFileStatuses.map((item, index) => (
+              <div
+                key={index}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '8px 0',
+                  borderBottom: '1px solid #f0f0f0'
+                }}
+              >
+                {item.status === 'pending' && <ClockCircleOutlined style={{ color: '#999' }} />}
+                {item.status === 'uploading' && <LoadingOutlined style={{ color: '#1890ff' }} />}
+                {item.status === 'done' && <CheckCircleOutlined style={{ color: '#52c41a' }} />}
+                {item.status === 'failed' && <CloseCircleOutlined style={{ color: '#ff4d4f' }} />}
+                <span
+                  style={{
+                    marginLeft: 8,
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {item.file.name}
+                </span>
+                <span style={{ marginLeft: 8, color: '#999', fontSize: 12 }}>
+                  {filesize(item.file.size, { round: 0 })}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <Button onClick={handleCancelUpload} style={{ marginTop: 24 }} danger>
+            Cancel
+          </Button>
+        </div>
       )}
     </div>
   )

@@ -63,6 +63,7 @@
     "echarts": "^5.6.0",
     "echarts-for-react": "^3.0.2",
     "emoji-mart": "^5.6.0",
+    "fflate": "^0.8.2",
     "filesize": "^10.1.6",
     "hast-util-to-html": "^9.0.5",
     "highlight.js": "^11.10.0",
