@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.6] - 2026-01-18
+
+### Improvements
+
+- **Broadcast Progress UX**: Added progress bar with ETA, clearer status badges, and tooltips to show sending progress (#185)
+- **File Manager**: Added single file download, bulk delete, and multi-file ZIP download for selected files (#201)
+- **File Manager**: Folder navigation now syncs with browser URL, enabling back/forward navigation and deep linking to folders
+
 ## [26.5] - 2026-01-18
 
 ### New Features

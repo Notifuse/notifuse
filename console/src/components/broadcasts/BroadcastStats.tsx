@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import React, { useEffect } from 'react'
 import { Row, Col, Statistic, Space, Tooltip, Spin } from 'antd'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
@@ -13,13 +14,29 @@ import { getBroadcastStats } from '../../services/api/messages_history'
 import { useNavigate } from '@tanstack/react-router'
 import type { Workspace } from '../../services/api/types'
 
+export interface ProgressStats {
+  remaining: number
+  processed: number
+  enqueuedCount: number
+  sentCount: number
+  failedCount: number
+}
+
 interface BroadcastStatsProps {
   workspaceId: string
   broadcastId: string
   workspace?: Workspace
+  enqueuedCount?: number
+  onStatsUpdate?: (stats: ProgressStats) => void
 }
 
-export function BroadcastStats({ workspaceId, broadcastId, workspace }: BroadcastStatsProps) {
+export function BroadcastStats({
+  workspaceId,
+  broadcastId,
+  workspace,
+  enqueuedCount,
+  onStatsUpdate
+}: BroadcastStatsProps) {
   const navigate = useNavigate()
 
   const { data, isLoading } = useQuery({
@@ -27,8 +44,8 @@ export function BroadcastStats({ workspaceId, broadcastId, workspace }: Broadcas
     queryFn: async () => {
       return getBroadcastStats(workspaceId, broadcastId)
     },
-    // Refetch every minute to keep stats up to date
-    refetchInterval: 60000
+    // Refetch interval is handled by the query key invalidation
+    refetchInterval: 5000
   })
 
   const stats = data?.stats || {
@@ -41,6 +58,28 @@ export function BroadcastStats({ workspaceId, broadcastId, workspace }: Broadcas
     total_complained: 0,
     total_unsubscribed: 0
   }
+
+  // Calculate remaining
+  const processed = stats.total_sent + stats.total_failed
+  const remaining = enqueuedCount ? Math.max(0, enqueuedCount - processed) : 0
+
+  // Notify parent of stats changes using a ref to avoid re-renders
+  const onStatsUpdateRef = React.useRef(onStatsUpdate)
+  useEffect(() => {
+    onStatsUpdateRef.current = onStatsUpdate
+  })
+
+  useEffect(() => {
+    if (enqueuedCount !== undefined) {
+      onStatsUpdateRef.current?.({
+        remaining,
+        processed,
+        enqueuedCount,
+        sentCount: stats.total_sent,
+        failedCount: stats.total_failed
+      })
+    }
+  }, [remaining, processed, enqueuedCount, stats.total_sent, stats.total_failed])
 
   // Check if marketing provider is SMTP
   const isSmtpProvider = (() => {

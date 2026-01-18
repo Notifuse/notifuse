@@ -52,7 +52,8 @@ import { UpsertBroadcastDrawer } from '../components/broadcasts/UpsertBroadcastD
 import { SendOrScheduleModal } from '../components/broadcasts/SendOrScheduleModal'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
-import { BroadcastStats } from '../components/broadcasts/BroadcastStats'
+import { BroadcastStats, ProgressStats } from '../components/broadcasts/BroadcastStats'
+import { SendingProgress } from '../components/broadcasts/SendingProgress'
 import { Integration, List, Sender } from '../services/api/types'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import { Workspace, UserPermissions } from '../services/api/types'
@@ -95,51 +96,124 @@ const getRemainingTestTime = (broadcast: Broadcast, testResults?: TestResultsRes
   return now.to(endTime, true) + ' remaining'
 }
 
-// Helper function to get status badge
-const getStatusBadge = (broadcast: Broadcast, remainingTime?: string | null) => {
+// Helper function to get status badge with tooltips
+const getStatusBadge = (
+  broadcast: Broadcast,
+  remainingTime?: string | null,
+  progressStats?: ProgressStats
+) => {
   switch (broadcast.status) {
     case 'draft':
-      return <Badge status="default" text="Draft" />
+      return (
+        <Tooltip title="This broadcast is a draft and has not been scheduled or sent yet.">
+          <span>
+            <Badge status="default" text="Draft" />
+          </span>
+        </Tooltip>
+      )
     case 'scheduled':
-      return <Badge status="processing" text="Scheduled" />
+      return (
+        <Tooltip title="This broadcast is scheduled and will start sending at the specified time.">
+          <span>
+            <Badge status="processing" text="Scheduled" />
+          </span>
+        </Tooltip>
+      )
     case 'processing':
-      return <Badge status="processing" text="Processing" />
+      return (
+        <Tooltip title="Preparing emails for delivery. Contacts are being added to the sending queue.">
+          <span>
+            <Badge status="processing" text="Preparing..." />
+          </span>
+        </Tooltip>
+      )
     case 'paused':
       return (
-        <Space size="small">
-          <Badge status="warning" text="Paused" />
-          {broadcast.pause_reason && (
-            <Tooltip title={broadcast.pause_reason}>
+        <Tooltip
+          title={broadcast.pause_reason || 'Sending has been paused. You can resume at any time.'}
+        >
+          <Space size="small">
+            <Badge status="warning" text="Paused" />
+            {broadcast.pause_reason && (
               <FontAwesomeIcon
                 icon={faCircleQuestion}
                 className="text-orange-500 cursor-help"
                 style={{ opacity: 0.7 }}
               />
-            </Tooltip>
-          )}
-        </Space>
+            )}
+          </Space>
+        </Tooltip>
       )
-    case 'processed':
-      return <Badge status="success" text="Processed" />
+    case 'processed': {
+      if (progressStats && progressStats.remaining > 0) {
+        const tooltipText = `Emails are being delivered. ${progressStats.processed.toLocaleString()} sent, ${progressStats.remaining.toLocaleString()} remaining.`
+        return (
+          <Tooltip title={tooltipText}>
+            <span>
+              <Badge
+                status="warning"
+                text={`Sending ${progressStats.remaining.toLocaleString()} remaining`}
+              />
+            </span>
+          </Tooltip>
+        )
+      }
+      const completeTooltip = progressStats
+        ? `All ${progressStats.enqueuedCount.toLocaleString()} emails have been processed.`
+        : 'All emails have been sent.'
+      return (
+        <Tooltip title={completeTooltip}>
+          <span>
+            <Badge status="success" text="Complete" />
+          </span>
+        </Tooltip>
+      )
+    }
     case 'cancelled':
-      return <Badge status="error" text="Cancelled" />
+      return (
+        <Tooltip title="This broadcast was cancelled before completion.">
+          <span>
+            <Badge status="error" text="Cancelled" />
+          </span>
+        </Tooltip>
+      )
     case 'failed':
-      return <Badge status="error" text="Failed" />
+      return (
+        <Tooltip title="This broadcast failed due to an error. Check the logs for details.">
+          <span>
+            <Badge status="error" text="Failed" />
+          </span>
+        </Tooltip>
+      )
     case 'testing':
       return (
-        <Space size="small">
-          <Badge status="processing" text="A/B Testing" />
-          {remainingTime && (
-            <Text type="secondary" style={{ fontSize: '12px' }}>
-              ({remainingTime})
-            </Text>
-          )}
-        </Space>
+        <Tooltip title="A/B test is in progress. Emails are being sent to the test group.">
+          <Space size="small">
+            <Badge status="processing" text="A/B Testing" />
+            {remainingTime && (
+              <Text type="secondary" style={{ fontSize: '12px' }}>
+                ({remainingTime})
+              </Text>
+            )}
+          </Space>
+        </Tooltip>
       )
     case 'test_completed':
-      return <Badge status="success" text="Test Completed" />
+      return (
+        <Tooltip title="A/B test has completed. Select a winner to send to the remaining recipients.">
+          <span>
+            <Badge status="success" text="Test Completed" />
+          </span>
+        </Tooltip>
+      )
     case 'winner_selected':
-      return <Badge status="success" text="Winner Selected" />
+      return (
+        <Tooltip title="A winner has been selected. Emails are being sent to the remaining recipients.">
+          <span>
+            <Badge status="success" text="Winner Selected" />
+          </span>
+        </Tooltip>
+      )
     default:
       return <Badge status="default" text={broadcast.status} />
   }
@@ -186,6 +260,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
   const { message } = App.useApp()
   const [testModalOpen, setTestModalOpen] = useState(false)
   const [templateToTest, setTemplateToTest] = useState<Template | null>(null)
+  const [progressStats, setProgressStats] = useState<ProgressStats | undefined>()
 
   // Fetch task associated with this broadcast
   const { data: task, isLoading: isTaskLoading } = useQuery({
@@ -220,6 +295,9 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
 
   // Calculate remaining test time
   const remainingTestTime = getRemainingTestTime(broadcast, testResults)
+
+  // Get enqueued count from task state
+  const enqueuedCount = task?.state?.send_broadcast?.enqueued_count
 
   // Handler for selecting winner
   const handleSelectWinner = async (templateId: string) => {
@@ -361,7 +439,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
                 trigger="hover"
               >
                 <span className="cursor-help">
-                  {getStatusBadge(broadcast, remainingTestTime)}
+                  {getStatusBadge(broadcast, remainingTestTime, progressStats)}
                   <FontAwesomeIcon
                     icon={faCircleQuestion}
                     style={{ opacity: 0.7 }}
@@ -371,11 +449,11 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
               </Popover>
             ) : isTaskLoading ? (
               <span className="text-gray-400">
-                {getStatusBadge(broadcast, remainingTestTime)}
+                {getStatusBadge(broadcast, remainingTestTime, progressStats)}
                 <FontAwesomeIcon icon={faSpinner} spin className="ml-2" />
               </span>
             ) : (
-              getStatusBadge(broadcast, remainingTestTime)
+              getStatusBadge(broadcast, remainingTestTime, progressStats)
             )}
           </div>
         </Space>
@@ -525,7 +603,25 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
       className="!mb-6"
     >
       <div className="p-6">
-        <BroadcastStats workspaceId={workspaceId} broadcastId={broadcast.id} workspace={currentWorkspace} />
+        {/* Show progress bar when sending */}
+        {broadcast.status === 'processed' &&
+          enqueuedCount &&
+          progressStats &&
+          progressStats.remaining > 0 && (
+            <SendingProgress
+              enqueuedCount={enqueuedCount}
+              sentCount={progressStats.sentCount}
+              failedCount={progressStats.failedCount}
+              startedAt={broadcast.started_at}
+            />
+          )}
+        <BroadcastStats
+          workspaceId={workspaceId}
+          broadcastId={broadcast.id}
+          workspace={currentWorkspace}
+          enqueuedCount={enqueuedCount}
+          onStatsUpdate={setProgressStats}
+        />
       </div>
 
       <div className={`bg-gradient-to-br from-gray-50 to-violet-50 border-t border-gray-200`}>
