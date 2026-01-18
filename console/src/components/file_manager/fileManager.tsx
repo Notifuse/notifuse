@@ -100,6 +100,7 @@ export const FileManager = (props: FileManagerProps) => {
   const [isDeleting, setIsDeleting] = useState(false)
   const [uploadFileStatuses, setUploadFileStatuses] = useState<UploadFileStatus[]>([])
   const [isDragging, setIsDragging] = useState(false)
+  const dragCounterRef = useRef(0)
   const abortControllerRef = useRef<AbortController | null>(null)
   const [form] = Form.useForm()
 
@@ -459,7 +460,10 @@ export const FileManager = (props: FileManagerProps) => {
     e.preventDefault()
     e.stopPropagation()
     if (!isReadOnly) {
-      setIsDragging(true)
+      dragCounterRef.current++
+      if (dragCounterRef.current === 1) {
+        setIsDragging(true)
+      }
     }
   }
 
@@ -471,8 +475,8 @@ export const FileManager = (props: FileManagerProps) => {
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
-    // Only set false if leaving the container (not entering a child)
-    if (e.currentTarget === e.target) {
+    dragCounterRef.current--
+    if (dragCounterRef.current === 0) {
       setIsDragging(false)
     }
   }
@@ -480,6 +484,7 @@ export const FileManager = (props: FileManagerProps) => {
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault()
     e.stopPropagation()
+    dragCounterRef.current = 0
     setIsDragging(false)
 
     if (isReadOnly) {

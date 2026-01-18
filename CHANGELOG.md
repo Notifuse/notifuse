@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.7] - 2026-01-18
+
+- **File Manager**: Fixed drop zone overlay staying active when dragging files out without dropping
+- **Contacts**: Added CSV export with support for current page filters and all contact fields
+
 ## [26.6] - 2026-01-18
 
 ### Improvements
