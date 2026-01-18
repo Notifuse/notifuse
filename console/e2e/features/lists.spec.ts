@@ -1,20 +1,8 @@
 import { test, expect, requestCapture } from '../fixtures/auth'
-import {
-  waitForDrawer,
-  waitForDrawerClose,
-  waitForModal,
-  waitForModalClose,
-  waitForTable,
-  waitForLoading,
-  waitForSuccessMessage,
-  clickButton,
-  getTableRowCount,
-  hasEmptyState
-} from '../fixtures/test-utils'
+import { waitForDrawer, waitForLoading } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
-import { fillListForm } from '../fixtures/form-fillers'
 import { testListData } from '../fixtures/form-data'
-import { assertRequestBodyContains, logCapturedRequests } from '../fixtures/payload-assertions'
+import { logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
 
@@ -124,8 +112,9 @@ test.describe('Lists Feature', () => {
       const addButton = page.getByRole('button', { name: /add|create|new/i })
       await addButton.click()
 
-      // Look for double opt-in toggle/checkbox
-      const doubleOptIn = page.locator('[class*="switch"], [class*="checkbox"]').filter({
+      // Look for double opt-in toggle/checkbox - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _doubleOptIn = page.locator('[class*="switch"], [class*="checkbox"]').filter({
         has: page.locator('text=double opt-in, text=Double Opt-in, text=Confirm')
       })
 

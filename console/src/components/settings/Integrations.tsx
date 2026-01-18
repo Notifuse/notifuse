@@ -140,6 +140,7 @@ const EmailIntegration = ({
     if (workspace?.id && integration?.id) {
       fetchWebhookStatus()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchWebhookStatus is stable
   }, [workspace?.id, integration?.id])
 
   // Function to fetch webhook status
@@ -170,18 +171,19 @@ const EmailIntegration = ({
 
     setRegistrationInProgress(true)
     try {
-      await registerWebhook({
+      const response = await registerWebhook({
         workspace_id: workspace.id,
         integration_id: integration.id,
         base_url: window.API_ENDPOINT || 'http://localhost:3000'
       })
 
-      // Refresh webhook status after registration
-      await fetchWebhookStatus()
+      // Use the status from the registration response directly
+      setWebhookStatus(response.status)
       message.success('Webhooks registered successfully')
     } catch (error) {
       console.error('Failed to register webhooks:', error)
-      message.error('Failed to register webhooks')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to register webhooks'
+      message.error(errorMessage)
     } finally {
       setRegistrationInProgress(false)
     }
@@ -432,6 +434,7 @@ interface EmailProviderFormValues {
   postmark?: EmailProvider['postmark']
   mailgun?: EmailProvider['mailgun']
   mailjet?: EmailProvider['mailjet']
+  sendgrid?: EmailProvider['sendgrid']
   senders: Sender[]
   rate_limit_per_minute: number
   type?: IntegrationType
@@ -457,6 +460,8 @@ const constructProviderFromForm = (formValues: EmailProviderFormValues): EmailPr
     provider.mailgun = formValues.mailgun
   } else if (formValues.kind === 'mailjet' && formValues.mailjet) {
     provider.mailjet = formValues.mailjet
+  } else if (formValues.kind === 'sendgrid' && formValues.sendgrid) {
+    provider.sendgrid = formValues.sendgrid
   }
 
   return provider
@@ -492,9 +497,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
   // Firecrawl Integration state
   const [firecrawlDrawerVisible, setFirecrawlDrawerVisible] = useState(false)
-  const [editingFirecrawlIntegration, setEditingFirecrawlIntegration] = useState<Integration | null>(
-    null
-  )
+  const [editingFirecrawlIntegration, setEditingFirecrawlIntegration] =
+    useState<Integration | null>(null)
   const [firecrawlSaving, setFirecrawlSaving] = useState(false)
   const firecrawlFormRef = React.useRef<{ submit: () => void } | null>(null)
 
@@ -521,6 +525,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       }
     }
     fetchLists()
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Only re-run on workspace change
   }, [workspace?.id])
 
   if (!workspace) {
@@ -602,7 +607,8 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
       sparkpost: integration.email_provider.sparkpost,
       postmark: integration.email_provider.postmark,
       mailgun: integration.email_provider.mailgun,
-      mailjet: integration.email_provider.mailjet
+      mailjet: integration.email_provider.mailjet,
+      sendgrid: integration.email_provider.sendgrid
     })
     setProviderDrawerVisible(true)
   }
@@ -1397,9 +1403,7 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                           </Space>
                         )}
                       </div>
-                      <Tooltip title={integration.id}>
-                        {firecrawlProvider.getIcon('', 14)}
-                      </Tooltip>
+                      <Tooltip title={integration.id}>{firecrawlProvider.getIcon('', 14)}</Tooltip>
                     </>
                   }
                 >
@@ -1539,12 +1543,17 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
               initialValue="basic"
             >
               <Select disabled={!isOwner}>
-                <Select.Option value="basic">Basic Authentication (Username/Password)</Select.Option>
+                <Select.Option value="basic">
+                  Basic Authentication (Username/Password)
+                </Select.Option>
                 <Select.Option value="oauth2">OAuth2 (Microsoft 365 / Google)</Select.Option>
               </Select>
             </Form.Item>
 
-            <Form.Item noStyle shouldUpdate={(prev, curr) => prev?.smtp?.auth_type !== curr?.smtp?.auth_type}>
+            <Form.Item
+              noStyle
+              shouldUpdate={(prev, curr) => prev?.smtp?.auth_type !== curr?.smtp?.auth_type}
+            >
               {({ getFieldValue }) => {
                 const authType = getFieldValue(['smtp', 'auth_type']) || 'basic'
 
@@ -1557,7 +1566,9 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                         rules={[{ required: true, message: 'Please select an OAuth2 provider' }]}
                       >
                         <Select placeholder="Select OAuth2 Provider" disabled={!isOwner}>
-                          <Select.Option value="microsoft">Microsoft 365 / Office 365</Select.Option>
+                          <Select.Option value="microsoft">
+                            Microsoft 365 / Office 365
+                          </Select.Option>
                           <Select.Option value="google">Google Workspace / Gmail</Select.Option>
                         </Select>
                       </Form.Item>
@@ -1565,13 +1576,20 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                       <Form.Item
                         name={['smtp', 'username']}
                         label="Email Address"
-                        rules={[{ required: true, message: 'Email address is required for OAuth2' }]}
+                        rules={[
+                          { required: true, message: 'Email address is required for OAuth2' }
+                        ]}
                         tooltip="The email address that will be used as the SMTP user for authentication"
                       >
                         <Input placeholder="user@yourdomain.com" disabled={!isOwner} />
                       </Form.Item>
 
-                      <Form.Item noStyle shouldUpdate={(prev, curr) => prev?.smtp?.oauth2_provider !== curr?.smtp?.oauth2_provider}>
+                      <Form.Item
+                        noStyle
+                        shouldUpdate={(prev, curr) =>
+                          prev?.smtp?.oauth2_provider !== curr?.smtp?.oauth2_provider
+                        }
+                      >
                         {({ getFieldValue: getInnerValue }) => {
                           const provider = getInnerValue(['smtp', 'oauth2_provider'])
 
@@ -1581,10 +1599,18 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                 <Form.Item
                                   name={['smtp', 'oauth2_tenant_id']}
                                   label="Azure AD Tenant ID"
-                                  rules={[{ required: true, message: 'Tenant ID is required for Microsoft' }]}
+                                  rules={[
+                                    {
+                                      required: true,
+                                      message: 'Tenant ID is required for Microsoft'
+                                    }
+                                  ]}
                                   tooltip="Find this in Azure Portal > Azure Active Directory > Overview"
                                 >
-                                  <Input placeholder="00000000-0000-0000-0000-000000000000" disabled={!isOwner} />
+                                  <Input
+                                    placeholder="00000000-0000-0000-0000-000000000000"
+                                    disabled={!isOwner}
+                                  />
                                 </Form.Item>
                                 <Form.Item
                                   name={['smtp', 'oauth2_client_id']}
@@ -1592,7 +1618,10 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                   rules={[{ required: true, message: 'Client ID is required' }]}
                                   tooltip="Find this in Azure Portal > App registrations > Your App > Overview"
                                 >
-                                  <Input placeholder="Application (Client) ID" disabled={!isOwner} />
+                                  <Input
+                                    placeholder="Application (Client) ID"
+                                    disabled={!isOwner}
+                                  />
                                 </Form.Item>
                                 <Form.Item
                                   name={['smtp', 'oauth2_client_secret']}
@@ -1600,21 +1629,11 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                   rules={[{ required: true, message: 'Client Secret is required' }]}
                                   tooltip="Create this in Azure Portal > App registrations > Your App > Certificates & secrets"
                                 >
-                                  <Input.Password placeholder="Client Secret Value" disabled={!isOwner} />
+                                  <Input.Password
+                                    placeholder="Client Secret Value"
+                                    disabled={!isOwner}
+                                  />
                                 </Form.Item>
-                                <Alert
-                                  message="Microsoft 365 OAuth2 Setup"
-                                  description={
-                                    <ul className="list-disc ml-4 mt-2 space-y-1">
-                                      <li>Create an app registration in Azure Portal</li>
-                                      <li>Add API permission: <code>https://outlook.office365.com/SMTP.Send</code></li>
-                                      <li>Grant admin consent for the organization</li>
-                                      <li>SMTP server: <code>smtp.office365.com:587</code></li>
-                                    </ul>
-                                  }
-                                  type="info"
-                                  className="mb-4"
-                                />
                               </>
                             )
                           }
@@ -1641,25 +1660,16 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
                                 <Form.Item
                                   name={['smtp', 'oauth2_refresh_token']}
                                   label="Refresh Token"
-                                  rules={[{ required: true, message: 'Refresh Token is required for Google' }]}
+                                  rules={[
+                                    {
+                                      required: true,
+                                      message: 'Refresh Token is required for Google'
+                                    }
+                                  ]}
                                   tooltip="Obtain this using the OAuth2 playground or your own OAuth flow"
                                 >
                                   <Input.Password placeholder="Refresh Token" disabled={!isOwner} />
                                 </Form.Item>
-                                <Alert
-                                  message="Google Workspace OAuth2 Setup"
-                                  description={
-                                    <ul className="list-disc ml-4 mt-2 space-y-1">
-                                      <li>Create OAuth2 credentials in Google Cloud Console</li>
-                                      <li>Enable the Gmail API for your project</li>
-                                      <li>Add scope: <code>https://mail.google.com/</code></li>
-                                      <li>Generate a refresh token using OAuth2 Playground</li>
-                                      <li>SMTP server: <code>smtp.gmail.com:587</code></li>
-                                    </ul>
-                                  }
-                                  type="info"
-                                  className="mb-4"
-                                />
                               </>
                             )
                           }
@@ -1773,6 +1783,12 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
               <Switch disabled={!isOwner} />
             </Form.Item>
           </>
+        )}
+
+        {providerType === 'sendgrid' && (
+          <Form.Item name={['sendgrid', 'api_key']} label="API Key" rules={[{ required: true }]}>
+            <Input.Password placeholder="API Key (starts with SG.)" disabled={!isOwner} />
+          </Form.Item>
         )}
 
         <Form.Item
@@ -2286,7 +2302,9 @@ export function Integrations({ workspace, onSave, loading, isOwner }: Integratio
 
       {/* Firecrawl Integration Drawer */}
       <Drawer
-        title={editingFirecrawlIntegration ? 'Edit Firecrawl Integration' : 'Add Firecrawl Integration'}
+        title={
+          editingFirecrawlIntegration ? 'Edit Firecrawl Integration' : 'Add Firecrawl Integration'
+        }
         width={600}
         open={firecrawlDrawerVisible}
         onClose={() => {

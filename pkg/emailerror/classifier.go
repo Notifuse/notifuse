@@ -38,6 +38,8 @@ func (c *Classifier) Classify(err error, provider domain.EmailProviderKind) *Cla
 		return c.classifySparkPostError(err, errStr, httpStatus)
 	case domain.EmailProviderKindSMTP:
 		return c.classifySMTPError(err, errStr, httpStatus)
+	case domain.EmailProviderKindSendGrid:
+		return c.classifySendGridError(err, errStr, httpStatus)
 	default:
 		return c.classifyUnknownProvider(err, errStr, httpStatus)
 	}

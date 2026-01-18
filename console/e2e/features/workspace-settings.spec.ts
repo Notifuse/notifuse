@@ -1,5 +1,5 @@
 import { test, expect, requestCapture } from '../fixtures/auth'
-import { waitForLoading, waitForSuccessMessage } from '../fixtures/test-utils'
+import { waitForLoading } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
 import { testWorkspaceSettingsData } from '../fixtures/form-data'
 import { logCapturedRequests } from '../fixtures/payload-assertions'
@@ -71,8 +71,9 @@ test.describe('Workspace Settings Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/team`)
       await waitForLoading(page)
 
-      // Look for invite button
-      const inviteButton = page.getByRole('button', { name: /invite/i })
+      // Look for invite button - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _inviteButton = page.getByRole('button', { name: /invite/i })
       // Page should load regardless of user role
       await expect(page.locator('body')).toBeVisible()
     })
@@ -211,8 +212,9 @@ test.describe('Workspace Settings Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/settings/custom-fields`)
       await waitForLoading(page)
 
-      // Look for Add Label button
-      const addButton = page.getByRole('button', { name: /add label/i })
+      // Look for Add Label button - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _addButton = page.getByRole('button', { name: /add label/i })
       // Page should load regardless of user role
       await expect(page.locator('body')).toBeVisible()
     })
@@ -309,8 +311,9 @@ test.describe('Workspace Settings Feature', () => {
       await expect(page.locator('body')).toBeVisible()
 
       // Danger Zone should only be visible for owners
-      // If visible, should show delete workspace option
-      const dangerContent = page.locator('text=Delete Workspace, text=delete this workspace')
+      // If visible, should show delete workspace option - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _dangerContent = page.locator('text=Delete Workspace, text=delete this workspace')
       // Just verify page loaded - content depends on user role
     })
   })

@@ -21,6 +21,7 @@ export const FirecrawlIntegration: React.FC<FirecrawlIntegrationProps> = ({
   // Expose form instance to parent via ref
   useEffect(() => {
     if (formRef) {
+      // eslint-disable-next-line react-hooks/immutability -- Intentionally exposing form to parent via ref
       ;(formRef as React.MutableRefObject<{ submit: () => void } | null>).current = form
     }
   }, [form, formRef])

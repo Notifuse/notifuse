@@ -182,7 +182,7 @@ export function ContactsPage() {
     handleEditClose()
   }
 
-  const filterFields: FilterField[] = [
+  const filterFields: FilterField[] = React.useMemo(() => [
     { key: 'email', label: 'Email', type: 'string' as const },
     { key: 'external_id', label: 'External ID', type: 'string' as const },
     { key: 'first_name', label: 'First Name', type: 'string' as const },
@@ -213,7 +213,7 @@ export function ContactsPage() {
         { value: 'complained', label: 'Complained' }
       ]
     }
-  ]
+  ], [listsData?.lists])
 
   // Load saved state from localStorage on mount
   React.useEffect(() => {

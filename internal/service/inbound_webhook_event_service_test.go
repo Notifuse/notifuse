@@ -1867,6 +1867,284 @@ func TestProcessSMTPWebhook(t *testing.T) {
 	})
 }
 
+func TestProcessSendGridWebhook(t *testing.T) {
+	// Setup
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	repo := mocks.NewMockInboundWebhookEventRepository(ctrl)
+	authService := mocks.NewMockAuthService(ctrl)
+	log := pkgmocks.NewMockLogger(ctrl)
+	workspaceRepo := mocks.NewMockWorkspaceRepository(ctrl)
+	messageHistoryRepo := mocks.NewMockMessageHistoryRepository(ctrl)
+
+	service := &InboundWebhookEventService{
+		repo:               repo,
+		authService:        authService,
+		logger:             log,
+		workspaceRepo:      workspaceRepo,
+		messageHistoryRepo: messageHistoryRepo,
+	}
+
+	integrationID := "integration1"
+
+	t.Run("Delivered Event", func(t *testing.T) {
+		// SendGrid sends arrays of events
+		rawPayload := []byte(`[{
+			"email": "test@example.com",
+			"timestamp": 1706097600,
+			"event": "delivered",
+			"sg_event_id": "abc123",
+			"sg_message_id": "14c5d75ce93.dfd.64b469",
+			"response": "250 2.0.0 OK",
+			"notifuse_message_id": "msg_123"
+		}]`)
+
+		events, err := service.processSendGridWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		require.Len(t, events, 1)
+		assert.Equal(t, domain.EmailEventDelivered, events[0].Type)
+		assert.Equal(t, domain.WebhookSourceSendGrid, events[0].Source)
+		assert.Equal(t, integrationID, events[0].IntegrationID)
+		assert.Equal(t, "test@example.com", events[0].RecipientEmail)
+		assert.NotNil(t, events[0].MessageID)
+		assert.Equal(t, "msg_123", *events[0].MessageID) // Uses notifuse_message_id
+	})
+
+	t.Run("Delivered Event - Fallback to sg_message_id", func(t *testing.T) {
+		// When notifuse_message_id is not present, fall back to sg_message_id
+		rawPayload := []byte(`[{
+			"email": "test@example.com",
+			"timestamp": 1706097600,
+			"event": "delivered",
+			"sg_event_id": "abc123",
+			"sg_message_id": "14c5d75ce93.dfd.64b469"
+		}]`)
+
+		events, err := service.processSendGridWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		require.Len(t, events, 1)
+		assert.Equal(t, "14c5d75ce93.dfd.64b469", *events[0].MessageID)
+	})
+
+	t.Run("Bounce Event - Hard Bounce", func(t *testing.T) {
+		rawPayload := []byte(`[{
+			"email": "bounce@example.com",
+			"timestamp": 1706097700,
+			"event": "bounce",
+			"sg_event_id": "def456",
+			"sg_message_id": "14c5d75ce93.dfd.64b469",
+			"reason": "550 5.1.1 The email account does not exist.",
+			"status": "5.1.1",
+			"type": "bounce",
+			"bounce_classification": "Invalid Address",
+			"notifuse_message_id": "msg_456"
+		}]`)
+
+		events, err := service.processSendGridWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		require.Len(t, events, 1)
+		assert.Equal(t, domain.EmailEventBounce, events[0].Type)
+		assert.Equal(t, domain.WebhookSourceSendGrid, events[0].Source)
+		assert.Equal(t, "bounce@example.com", events[0].RecipientEmail)
+		assert.Equal(t, "bounce", events[0].BounceType)
+		assert.Equal(t, "Invalid Address", events[0].BounceCategory)
+		assert.Equal(t, "5.1.1: 550 5.1.1 The email account does not exist.", events[0].BounceDiagnostic)
+	})
+
+	t.Run("Blocked Event - Soft Bounce", func(t *testing.T) {
+		rawPayload := []byte(`[{
+			"email": "blocked@example.com",
+			"timestamp": 1706097800,
+			"event": "blocked",
+			"sg_event_id": "ghi789",
+			"sg_message_id": "14c5d75ce93.dfd.64b469",
+			"reason": "Temporarily rejected due to reputation",
+			"status": "4.7.1",
+			"bounce_classification": "Reputation",
+			"notifuse_message_id": "msg_789"
+		}]`)
+
+		events, err := service.processSendGridWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		require.Len(t, events, 1)
+		assert.Equal(t, domain.EmailEventBounce, events[0].Type)
+		assert.Equal(t, "blocked", events[0].BounceType)
+		assert.Equal(t, "Reputation", events[0].BounceCategory)
+		assert.Equal(t, "4.7.1: Temporarily rejected due to reputation", events[0].BounceDiagnostic)
+	})
+
+	t.Run("Dropped Event", func(t *testing.T) {
+		rawPayload := []byte(`[{
+			"email": "dropped@example.com",
+			"timestamp": 1706097900,
+			"event": "dropped",
+			"sg_event_id": "jkl012",
+			"sg_message_id": "14c5d75ce93.dfd.64b469",
+			"reason": "Bounced Address",
+			"notifuse_message_id": "msg_012"
+		}]`)
+
+		events, err := service.processSendGridWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		require.Len(t, events, 1)
+		assert.Equal(t, domain.EmailEventBounce, events[0].Type)
+		assert.Equal(t, "dropped", events[0].BounceType)
+		assert.Equal(t, "Dropped", events[0].BounceCategory)
+		assert.Equal(t, "Bounced Address", events[0].BounceDiagnostic)
+	})
+
+	t.Run("Spam Report Event", func(t *testing.T) {
+		rawPayload := []byte(`[{
+			"email": "complaint@example.com",
+			"timestamp": 1706099000,
+			"event": "spamreport",
+			"sg_event_id": "mno345",
+			"sg_message_id": "14c5d75ce93.dfd.64b469",
+			"notifuse_message_id": "msg_345"
+		}]`)
+
+		events, err := service.processSendGridWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		require.Len(t, events, 1)
+		assert.Equal(t, domain.EmailEventComplaint, events[0].Type)
+		assert.Equal(t, domain.WebhookSourceSendGrid, events[0].Source)
+		assert.Equal(t, "complaint@example.com", events[0].RecipientEmail)
+		assert.Equal(t, "spam", events[0].ComplaintFeedbackType)
+	})
+
+	t.Run("Multiple Events in Single Payload", func(t *testing.T) {
+		rawPayload := []byte(`[
+			{
+				"email": "delivered@example.com",
+				"timestamp": 1706097600,
+				"event": "delivered",
+				"sg_event_id": "event1",
+				"sg_message_id": "msg1",
+				"notifuse_message_id": "notifuse_1"
+			},
+			{
+				"email": "bounced@example.com",
+				"timestamp": 1706097700,
+				"event": "bounce",
+				"sg_event_id": "event2",
+				"sg_message_id": "msg2",
+				"reason": "User unknown",
+				"bounce_classification": "Invalid Address",
+				"notifuse_message_id": "notifuse_2"
+			},
+			{
+				"email": "complained@example.com",
+				"timestamp": 1706097800,
+				"event": "spamreport",
+				"sg_event_id": "event3",
+				"sg_message_id": "msg3",
+				"notifuse_message_id": "notifuse_3"
+			}
+		]`)
+
+		events, err := service.processSendGridWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		require.Len(t, events, 3)
+
+		// First event: delivered
+		assert.Equal(t, domain.EmailEventDelivered, events[0].Type)
+		assert.Equal(t, "delivered@example.com", events[0].RecipientEmail)
+
+		// Second event: bounce
+		assert.Equal(t, domain.EmailEventBounce, events[1].Type)
+		assert.Equal(t, "bounced@example.com", events[1].RecipientEmail)
+
+		// Third event: complaint
+		assert.Equal(t, domain.EmailEventComplaint, events[2].Type)
+		assert.Equal(t, "complained@example.com", events[2].RecipientEmail)
+	})
+
+	t.Run("Ignored Event Types", func(t *testing.T) {
+		// processed, deferred, open, click should be skipped
+		rawPayload := []byte(`[
+			{
+				"email": "test@example.com",
+				"timestamp": 1706097600,
+				"event": "processed",
+				"sg_event_id": "event1",
+				"sg_message_id": "msg1"
+			},
+			{
+				"email": "test@example.com",
+				"timestamp": 1706097700,
+				"event": "deferred",
+				"sg_event_id": "event2",
+				"sg_message_id": "msg2"
+			},
+			{
+				"email": "test@example.com",
+				"timestamp": 1706097800,
+				"event": "open",
+				"sg_event_id": "event3",
+				"sg_message_id": "msg3"
+			},
+			{
+				"email": "test@example.com",
+				"timestamp": 1706097900,
+				"event": "click",
+				"sg_event_id": "event4",
+				"sg_message_id": "msg4"
+			}
+		]`)
+
+		events, err := service.processSendGridWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		assert.Len(t, events, 0) // All events should be skipped
+	})
+
+	t.Run("Invalid JSON Payload", func(t *testing.T) {
+		rawPayload := []byte(`{invalid json`)
+
+		events, err := service.processSendGridWebhook(integrationID, rawPayload)
+
+		assert.Error(t, err)
+		assert.Nil(t, events)
+		assert.Contains(t, err.Error(), "failed to unmarshal SendGrid webhook payload")
+	})
+
+	t.Run("Empty Array Payload", func(t *testing.T) {
+		rawPayload := []byte(`[]`)
+
+		events, err := service.processSendGridWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		assert.Len(t, events, 0)
+	})
+
+	t.Run("Bounce Without Status - Uses Reason Only", func(t *testing.T) {
+		rawPayload := []byte(`[{
+			"email": "bounce@example.com",
+			"timestamp": 1706097700,
+			"event": "bounce",
+			"sg_event_id": "def456",
+			"sg_message_id": "14c5d75ce93.dfd.64b469",
+			"reason": "Mailbox does not exist",
+			"bounce_classification": "Invalid Address"
+		}]`)
+
+		events, err := service.processSendGridWebhook(integrationID, rawPayload)
+
+		assert.NoError(t, err)
+		require.Len(t, events, 1)
+		// When status is empty, only reason is used
+		assert.Equal(t, "Mailbox does not exist", events[0].BounceDiagnostic)
+	})
+}
+
 // TestProcessWebhook_AdditionalScenarios tests additional scenarios for ProcessWebhook
 func TestProcessWebhook_AdditionalScenarios(t *testing.T) {
 	// Setup

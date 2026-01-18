@@ -59,6 +59,7 @@ async function fillByLabel(page: Page, labelText: string, value: string): Promis
 /**
  * Fill an input field by placeholder text
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future use
 async function fillByPlaceholder(page: Page, placeholder: string, value: string): Promise<void> {
   const input = page.locator(`input[placeholder*="${placeholder}"], textarea[placeholder*="${placeholder}"]`)
   if ((await input.count()) > 0) {
@@ -69,6 +70,7 @@ async function fillByPlaceholder(page: Page, placeholder: string, value: string)
 /**
  * Fill an input field by name attribute
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future use
 async function fillByName(page: Page, name: string, value: string): Promise<void> {
   const input = page.locator(`input[name="${name}"], textarea[name="${name}"]`)
   if ((await input.count()) > 0) {

@@ -1,16 +1,6 @@
 import { test, expect, requestCapture } from '../fixtures/auth'
-import {
-  waitForDrawer,
-  waitForModal,
-  waitForTable,
-  waitForLoading,
-  waitForSuccessMessage,
-  clickButton,
-  getTableRowCount,
-  hasEmptyState
-} from '../fixtures/test-utils'
+import { waitForDrawer, waitForModal, waitForLoading } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
-import { fillSegmentForm } from '../fixtures/form-fillers'
 import { testSegmentData } from '../fixtures/form-data'
 import { logCapturedRequests } from '../fixtures/payload-assertions'
 
@@ -111,8 +101,9 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Look for rule builder elements
-      const ruleBuilder = page.locator('[class*="segment"], [class*="rule"], [class*="condition"]')
+      // Look for rule builder elements - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _ruleBuilder = page.locator('[class*="segment"], [class*="rule"], [class*="condition"]')
 
       // Page should be visible
       await expect(page.locator('body')).toBeVisible()
@@ -126,8 +117,9 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Look for condition/field selectors
-      const fieldSelect = page.locator('.ant-select, select, [class*="field"]')
+      // Look for condition/field selectors - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _fieldSelect = page.locator('.ant-select, select, [class*="field"]')
 
       // Page should load
       await expect(page.locator('body')).toBeVisible()
@@ -139,8 +131,9 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Look for operator options
-      const operatorOption = page.locator('text=equals, text=contains, text=greater, text=less')
+      // Look for operator options - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _operatorOption = page.locator('text=equals, text=contains, text=greater, text=less')
 
       // Page should load
       await expect(page.locator('body')).toBeVisible()
@@ -166,8 +159,9 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Look for contact count or results
-      const countDisplay = page.locator('text=/\\d+/')
+      // Look for contact count or results - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _countDisplay = page.locator('text=/\\d+/')
 
       // Page should load
       await expect(page.locator('body')).toBeVisible()
@@ -182,8 +176,9 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/contacts`)
       await waitForLoading(page)
 
-      // Look for segment filter
-      const segmentFilter = page.locator('text=Segment, text=segment, [class*="segment"]')
+      // Look for segment filter - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _segmentFilter = page.locator('text=Segment, text=segment, [class*="segment"]')
 
       // Page should load
       await expect(page.locator('body')).toBeVisible()
@@ -214,8 +209,9 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Look for add condition button
-      const addButton = page.getByRole('button', { name: /add|condition|rule/i })
+      // Look for add condition button - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _addButton = page.getByRole('button', { name: /add|condition|rule/i })
 
       // Page should load
       await expect(page.locator('body')).toBeVisible()
@@ -227,8 +223,9 @@ test.describe('Segments Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/debug-segment`)
       await waitForLoading(page)
 
-      // Look for AND/OR operators
-      const logicalOp = page.locator('text=AND, text=OR, text=and, text=or')
+      // Look for AND/OR operators - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _logicalOp = page.locator('text=AND, text=OR, text=and, text=or')
 
       // Page should load
       await expect(page.locator('body')).toBeVisible()

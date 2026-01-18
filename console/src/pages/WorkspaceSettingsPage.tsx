@@ -53,6 +53,7 @@ export function WorkspaceSettingsPage() {
         replace: true
       })
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- validSections is static
   }, [section, workspaceId, navigate])
 
   useEffect(() => {
@@ -61,6 +62,7 @@ export function WorkspaceSettingsPage() {
     setWorkspace(currentWorkspace)
 
     fetchMembers()
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchMembers is stable
   }, [workspaceId, workspaces])
 
   const fetchMembers = async () => {

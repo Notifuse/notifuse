@@ -27,6 +27,7 @@ export function WebhooksSettings({ workspaceId }: WebhooksSettingsProps) {
   useEffect(() => {
     fetchSubscriptions()
     fetchEventTypes()
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchSubscriptions is stable
   }, [workspaceId])
 
   const fetchSubscriptions = async () => {

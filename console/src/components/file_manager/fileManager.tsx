@@ -48,6 +48,7 @@ dayjs.extend(isSameOrBefore)
 dayjs.extend(isSameOrAfter)
 dayjs.extend(isToday)
 
+// eslint-disable-next-line react-refresh/only-export-components -- Utility export co-located with component
 export default dayjs
 
 // Common styles

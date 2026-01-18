@@ -283,6 +283,7 @@ const AutomationFlowEditorInner: React.FC = () => {
 
   // Update button positions on mount and when dependencies change
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Required to sync ReactFlow state
     updateButtonPositions()
   }, [updateButtonPositions, nodes, edges])
 

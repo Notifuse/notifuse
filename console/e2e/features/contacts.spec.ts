@@ -2,20 +2,15 @@ import { test, expect, requestCapture } from '../fixtures/auth'
 import {
   waitForDrawer,
   waitForDrawerClose,
-  waitForTable,
   waitForLoading,
   waitForSuccessMessage,
-  fillInput,
   clickButton,
-  getTableRowCount,
-  searchInTable,
-  hasEmptyState,
-  navigateToWorkspacePage
+  hasEmptyState
 } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
 import { fillContactForm } from '../fixtures/form-fillers'
-import { testContactData, testContactDataMinimal } from '../fixtures/form-data'
-import { assertRequestBodyContains, assertFieldInPayload, logCapturedRequests } from '../fixtures/payload-assertions'
+import { testContactDataMinimal } from '../fixtures/form-data'
+import { logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
 

@@ -50,8 +50,8 @@ describe('SignInPage', () => {
     // Clear any previous mock implementations
     vi.spyOn(App, 'useApp').mockReturnValue({
       message: { ...mockMessage, open: vi.fn(), destroy: vi.fn() },
-      notification: {} as any,
-      modal: {} as any
+      notification: {} as ReturnType<typeof App.useApp>['notification'],
+      modal: {} as ReturnType<typeof App.useApp>['modal']
     } as ReturnType<typeof App.useApp>)
     // Reset search mock
     mockSearch.email = undefined

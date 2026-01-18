@@ -646,6 +646,7 @@ func TestNewWebhookRegistrationService(t *testing.T) {
 	mockMailgunService := mocks.NewMockMailgunServiceInterface(ctrl)
 	mockMailjetService := mocks.NewMockMailjetServiceInterface(ctrl)
 	mockSESService := mocks.NewMockSESServiceInterface(ctrl)
+	mockSendGridService := mocks.NewMockSendGridServiceInterface(ctrl)
 
 	// Test constants
 	apiEndpoint := "https://api.notifuse.com"
@@ -659,6 +660,7 @@ func TestNewWebhookRegistrationService(t *testing.T) {
 		mockMailjetService,
 		mockSparkPostService,
 		mockSESService,
+		mockSendGridService,
 		mockLogger,
 		apiEndpoint,
 	)

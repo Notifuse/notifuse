@@ -536,6 +536,7 @@ export function BulkUpdateDrawer({ workspaceId, lists, buttonProps }: BulkUpdate
         clearSavedProgress(csvData.fileName, operation)
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- clearSavedProgress is stable
   }, [uploadComplete, csvData, operation])
 
   const isDangerousOperation = ['delete', 'unsubscribe'].includes(operation)

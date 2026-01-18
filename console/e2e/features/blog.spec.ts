@@ -1,23 +1,9 @@
 import { test, expect, requestCapture } from '../fixtures/auth'
-import {
-  waitForDrawer,
-  waitForModal,
-  waitForTable,
-  waitForLoading,
-  waitForSuccessMessage,
-  clickButton,
-  getTableRowCount,
-  hasEmptyState
-} from '../fixtures/test-utils'
+import { waitForDrawer, waitForLoading } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
-import { fillBlogPostForm, fillSEOSettings } from '../fixtures/form-fillers'
+import { fillSEOSettings } from '../fixtures/form-fillers'
 import { testBlogPostData, testSEOData } from '../fixtures/form-data'
-import {
-  assertRequestBodyContains,
-  assertFieldInPayload,
-  assertSEOPayload,
-  logCapturedRequests
-} from '../fixtures/payload-assertions'
+import { assertFieldInPayload, logCapturedRequests } from '../fixtures/payload-assertions'
 
 const WORKSPACE_ID = 'test-workspace'
 
@@ -133,8 +119,9 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Look for categories tab or section
-      const categoriesTab = page.locator('text=Categories, text=categories')
+      // Look for categories tab or section - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _categoriesTab = page.locator('text=Categories, text=categories')
 
       // Page should load regardless
       await expect(page.locator('body')).toBeVisible()
@@ -160,8 +147,9 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Look for draft status
-      const draftTag = page.locator('text=draft, text=Draft')
+      // Look for draft status - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _draftTag = page.locator('text=draft, text=Draft')
       // Page should load regardless of whether drafts exist
       await expect(page.locator('body')).toBeVisible()
     })
@@ -172,8 +160,9 @@ test.describe('Blog Feature', () => {
       await page.goto(`/console/workspace/${WORKSPACE_ID}/blog`)
       await waitForLoading(page)
 
-      // Look for published status
-      const publishedTag = page.locator('text=published, text=Published')
+      // Look for published status - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _publishedTag = page.locator('text=published, text=Published')
       // Page should load regardless
       await expect(page.locator('body')).toBeVisible()
     })
@@ -193,8 +182,9 @@ test.describe('Blog Feature', () => {
 
         await page.waitForTimeout(500)
 
-        // Look for editor
-        const editor = page.locator(
+        // Look for editor - locator created for potential future assertions
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const _editor = page.locator(
           '.tiptap, .ProseMirror, [class*="editor"], textarea[name="content"]'
         )
 

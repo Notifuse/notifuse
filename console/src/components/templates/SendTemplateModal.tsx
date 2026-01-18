@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Modal, Button, Input, Select, Typography, Form, App, Upload, Space, Tag } from 'antd'
 import { UploadOutlined, DeleteOutlined } from '@ant-design/icons'
 import { Workspace, Template, Integration } from '../../services/api/types'
@@ -42,10 +42,14 @@ export default function SendTemplateModal({
   const { message } = App.useApp()
 
   // Filter to only email integrations
-  const emailIntegrations =
-    workspace?.integrations?.filter(
-      (integration) => integration.type === 'email' && integration.email_provider?.kind
-    ) || []
+   
+  const emailIntegrations = React.useMemo(
+    () =>
+      workspace?.integrations?.filter(
+        (integration) => integration.type === 'email' && integration.email_provider?.kind
+      ) || [],
+    [workspace?.integrations]
+  )
 
   // Set default integration when modal opens or template changes
   useEffect(() => {

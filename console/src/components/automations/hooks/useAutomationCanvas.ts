@@ -635,6 +635,7 @@ export function useAutomationCanvas(): UseAutomationCanvasReturn {
 
   // Handle node drag stop - push history for position changes
   // Note: We ignore the event params, just need to know drag ended
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Event params required by ReactFlow callback signature
   const onNodeDragStop = useCallback((_event: React.MouseEvent, _node: Node, _nodes: Node[]) => {
     pushHistory()
   }, [pushHistory])

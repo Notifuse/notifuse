@@ -153,6 +153,7 @@ const DrawerSegment = (props: {
       }
       autoPreview()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Only re-run on segment tree changes
   }, [props.segment?.tree, workspaceId])
 
   // Fetch lists for the current workspace

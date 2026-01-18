@@ -198,6 +198,7 @@ function convertDomNodeToEmailBlock(element: Element): EmailBlock {
   if (children.length > 0) {
     // Type assertion is safe here because we're building from parsed MJML
     // The children array will contain the appropriate block types based on the parent
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Dynamic MJML block types require any
     (block as any).children = children
   }
 

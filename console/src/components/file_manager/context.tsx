@@ -150,6 +150,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- Hook co-located with provider
 export const useFileManager = (): FileManagerContextValue => {
   const context = useContext(FileManagerContext)
   if (context === undefined) {

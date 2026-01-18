@@ -57,7 +57,7 @@ function automationToViewerFlow(
   }
 
   // Convert automation nodes to ReactFlow nodes with stats
-  let nodes: Node<StatNodeData>[] = automation.nodes.map((node) => ({
+  const nodes: Node<StatNodeData>[] = automation.nodes.map((node) => ({
     id: node.id,
     type: node.type,
     position: node.position,

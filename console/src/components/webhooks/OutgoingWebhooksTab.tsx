@@ -110,6 +110,7 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
     })
 
     if (initialFilters.length > 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Syncing URL params to state on mount
       setActiveFilters(initialFilters)
     }
   }, [filterOptions])
@@ -151,8 +152,8 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
 
   // Reset page and accumulated deliveries when filters change
   useEffect(() => {
-    setAllDeliveries([])
-    setCurrentPage(1)
+    setAllDeliveries([]) // eslint-disable-line react-hooks/set-state-in-effect -- Required to reset pagination
+    setCurrentPage(1)  
     queryClient.resetQueries({ queryKey: ['webhook-deliveries', workspaceId] })
   }, [apiFilters, workspaceId, queryClient])
 
@@ -162,13 +163,13 @@ export function OutgoingWebhooksTab({ workspaceId }: OutgoingWebhooksTabProps) {
 
     if (deliveriesData.deliveries) {
       if (currentPage === 1) {
-        setAllDeliveries(deliveriesData.deliveries)
+        setAllDeliveries(deliveriesData.deliveries) // eslint-disable-line react-hooks/set-state-in-effect -- Syncing query data
       } else if (deliveriesData.deliveries.length > 0) {
-        setAllDeliveries((prev) => [...prev, ...deliveriesData.deliveries])
+        setAllDeliveries((prev) => [...prev, ...deliveriesData.deliveries])  
       }
     }
 
-    setIsLoadingMore(false)
+    setIsLoadingMore(false)  
   }, [deliveriesData, currentPage, isLoading, isFetching])
 
   // Load more deliveries
