@@ -7,8 +7,11 @@ WORKDIR /build/console
 # Copy frontend package files
 COPY console/package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with retry settings for network resilience
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm ci
 
 # Copy frontend source code
 COPY console/ ./
@@ -25,8 +28,11 @@ WORKDIR /build/notification_center
 # Copy notification center package files
 COPY notification_center/package*.json ./
 
-# Install dependencies
-RUN npm ci
+# Install dependencies with retry settings for network resilience
+RUN npm config set fetch-retries 5 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm ci
 
 # Copy notification center source code
 COPY notification_center/ ./
