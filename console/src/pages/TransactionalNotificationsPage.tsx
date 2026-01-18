@@ -1,14 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import {
-  Typography,
-  Space,
-  Tooltip,
-  Button,
-  message,
-  Table,
-  Tag,
-  Popconfirm
-} from 'antd'
+import { Typography, Space, Tooltip, Button, message, Table, Tag, Popconfirm } from 'antd'
 import { useParams } from '@tanstack/react-router'
 import {
   transactionalNotificationsApi,
@@ -377,17 +368,15 @@ export function TransactionalNotificationsPage() {
         <SendTemplateModal
           isOpen={testModalOpen}
           onClose={() => setTestModalOpen(false)}
-          template={
-            {
-              id: notificationToTest.channels.email.template_id,
-              name: notificationToTest.name,
-              version: 0,
-              category: 'transactional',
-              channel: 'email',
-              created_at: '',
-              updated_at: ''
-            }
-          }
+          template={{
+            id: notificationToTest.channels.email.template_id,
+            name: notificationToTest.name,
+            version: 0,
+            category: 'transactional',
+            channel: 'email',
+            created_at: '',
+            updated_at: ''
+          }}
           workspace={currentWorkspace || null}
           withCCAndBCC={true}
         />

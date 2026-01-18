@@ -161,6 +161,7 @@ type App struct {
 	mailjetService   *service.MailjetService
 	sparkPostService *service.SparkPostService
 	sesService       *service.SESService
+	sendGridService  *service.SendGridService
 
 	// Cache
 	blogCache cache.Cache // Dedicated cache for blog rendering
@@ -583,6 +584,7 @@ func (a *App) InitServices() error {
 	a.mailjetService = service.NewMailjetService(httpClient, a.authService, a.logger)
 	a.sparkPostService = service.NewSparkPostService(httpClient, a.authService, a.logger)
 	a.sesService = service.NewSESService(a.authService, a.logger)
+	a.sendGridService = service.NewSendGridService(httpClient, a.authService, a.logger)
 
 	// Initialize email service
 	a.emailService = service.NewEmailService(
@@ -608,6 +610,7 @@ func (a *App) InitServices() error {
 		a.mailjetService,
 		a.sparkPostService,
 		a.sesService,
+		a.sendGridService,
 		a.logger,
 		a.config.WebhookEndpoint,
 	)

@@ -1,15 +1,6 @@
 import { test, expect, requestCapture } from '../fixtures/auth'
-import {
-  waitForDrawer,
-  waitForModal,
-  waitForTable,
-  waitForLoading,
-  waitForSuccessMessage,
-  clickButton,
-  hasEmptyState
-} from '../fixtures/test-utils'
+import { waitForDrawer, waitForLoading } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
-import { fillTransactionalForm } from '../fixtures/form-fillers'
 import { testTransactionalData } from '../fixtures/form-data'
 import { logCapturedRequests } from '../fixtures/payload-assertions'
 
@@ -140,8 +131,9 @@ test.describe('Transactional Notifications Feature', () => {
 
       await page.waitForTimeout(500)
 
-      // Look for tracking options
-      const trackingOption = page.locator('text=tracking, text=Tracking, text=opens, text=clicks')
+      // Look for tracking options - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _trackingOption = page.locator('text=tracking, text=Tracking, text=opens, text=clicks')
 
       // Form should be visible regardless
       await expect(page.locator('.ant-drawer-content, .ant-modal-content, form').first()).toBeVisible()

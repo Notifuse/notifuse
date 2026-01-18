@@ -7,6 +7,7 @@ import { faFlask } from '@fortawesome/free-solid-svg-icons'
 import type { NodeType } from '../../services/api/automation'
 
 // Single source of truth for menu items
+// eslint-disable-next-line react-refresh/only-export-components -- Menu items intentionally co-located with button
 export const ADD_NODE_MENU_ITEMS: { key: NodeType; label: string; icon: React.ReactNode }[] = [
   { key: 'delay', label: 'Delay', icon: <FontAwesomeIcon icon={faHourglass} style={{ color: '#faad14' }} /> },
   { key: 'email', label: 'Email', icon: <FontAwesomeIcon icon={faEnvelope} style={{ color: '#1890ff' }} /> },
@@ -46,6 +47,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({
 
   // Store onMenuToggle in a ref to avoid effect dependency issues
   const onMenuToggleRef = useRef(onMenuToggle)
+  // eslint-disable-next-line react-hooks/refs -- Intentionally updating ref during render for callback stability
   onMenuToggleRef.current = onMenuToggle
 
   // Helper to set menu state (works for both controlled and uncontrolled)

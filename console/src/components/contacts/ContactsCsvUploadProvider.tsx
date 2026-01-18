@@ -6,6 +6,7 @@ import { ContactsCsvUploadDrawer } from './ContactsCsvUploadDrawer'
 import { useQueryClient } from '@tanstack/react-query'
 
 // Create a context for the singleton
+// eslint-disable-next-line react-refresh/only-export-components -- Context co-located with provider
 export const CsvUploadContext = React.createContext<{
   openDrawer: (workspaceId: string, lists?: List[], refreshOnClose?: boolean) => void
   openDrawerWithSelectedList: (
@@ -82,6 +83,7 @@ export const ContactsCsvUploadProvider: React.FC<ContactsCsvUploadDrawerProvider
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- Hook co-located with provider
 export function useContactsCsvUpload() {
   const context = React.useContext(CsvUploadContext)
   if (!context) {

@@ -81,6 +81,8 @@ func (s *InboundWebhookEventService) ProcessWebhook(ctx context.Context, workspa
 		events, err = s.processMailjetWebhook(integration.ID, rawPayload)
 	case domain.EmailProviderKindSMTP:
 		events, err = s.processSMTPWebhook(integration.ID, rawPayload)
+	case domain.EmailProviderKindSendGrid:
+		events, err = s.processSendGridWebhook(integration.ID, rawPayload)
 	default:
 		// codecov:ignore:start
 		tracing.MarkSpanError(ctx, fmt.Errorf("unsupported email provider kind: %s", integration.EmailProvider.Kind))
@@ -227,6 +229,30 @@ func isHardBounce(bounceType, bounceCategory string) bool {
 		bounceCategory == "54" || bounceCategory == "60" || bounceCategory == "70" ||
 		bounceCategory == "80" || bounceCategory == "100" {
 		return false // Soft/temporary bounce
+	}
+
+	// SendGrid bounce classification
+	// Reference: https://docs.sendgrid.com/glossary/bounces
+	// type="bounce" = hard bounce (permanent failure)
+	// type="blocked" = soft bounce (temporary rejection)
+	// type="dropped" = message dropped before sending (treat as soft)
+	if bounceType == "bounce" {
+		return true // Hard bounce - permanent failure
+	}
+	if bounceType == "blocked" || bounceType == "dropped" {
+		return false // Soft bounce - temporary issue
+	}
+
+	// SendGrid bounce_classification values
+	// "Invalid Address" indicates permanent failure
+	if bounceCategory == "invalid address" {
+		return true
+	}
+	// Other classifications are typically temporary
+	if bounceCategory == "technical" || bounceCategory == "content" ||
+		bounceCategory == "reputation" || bounceCategory == "frequency/volume" ||
+		bounceCategory == "mailbox unavailable" || bounceCategory == "unclassified" {
+		return false
 	}
 
 	// Default to false (don't update contact lists unless we're certain it's a hard bounce)
@@ -924,6 +950,101 @@ func (s *InboundWebhookEventService) processSMTPWebhook(integrationID string, ra
 	}
 
 	return []*domain.InboundWebhookEvent{event}, nil
+}
+
+// processSendGridWebhook processes webhook events from SendGrid
+// SendGrid sends events as a JSON array with custom_args flattened into top-level fields
+func (s *InboundWebhookEventService) processSendGridWebhook(integrationID string, rawPayload []byte) (events []*domain.InboundWebhookEvent, err error) {
+	// SendGrid sends webhooks as a JSON array of events
+	var payload []domain.SendGridWebhookEvent
+	if err := json.Unmarshal(rawPayload, &payload); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal SendGrid webhook payload: %w", err)
+	}
+
+	events = []*domain.InboundWebhookEvent{}
+
+	for _, sgEvent := range payload {
+		var eventType domain.EmailEventType
+		var bounceType, bounceCategory, bounceDiagnostic, complaintFeedbackType string
+
+		timestamp := time.Unix(sgEvent.Timestamp, 0)
+		recipientEmail := sgEvent.Email
+
+		// Use notifuse_message_id if present (flattened at top level by SendGrid)
+		// Otherwise fall back to SendGrid's message ID
+		messageID := sgEvent.SGMessageID
+		if sgEvent.NotifuseMessageID != "" {
+			messageID = sgEvent.NotifuseMessageID
+		}
+
+		// Map SendGrid event types to our event types
+		// Reference: https://docs.sendgrid.com/for-developers/tracking-events/event
+		switch sgEvent.Event {
+		case "delivered":
+			eventType = domain.EmailEventDelivered
+
+		case "bounce":
+			// type="bounce" indicates a hard/permanent bounce
+			eventType = domain.EmailEventBounce
+			bounceType = "bounce"
+			bounceCategory = sgEvent.BounceClassification
+			bounceDiagnostic = sgEvent.Reason
+			if sgEvent.Status != "" {
+				bounceDiagnostic = fmt.Sprintf("%s: %s", sgEvent.Status, sgEvent.Reason)
+			}
+
+		case "blocked":
+			// type="blocked" indicates a soft/temporary bounce
+			eventType = domain.EmailEventBounce
+			bounceType = "blocked"
+			bounceCategory = sgEvent.BounceClassification
+			bounceDiagnostic = sgEvent.Reason
+			if sgEvent.Status != "" {
+				bounceDiagnostic = fmt.Sprintf("%s: %s", sgEvent.Status, sgEvent.Reason)
+			}
+
+		case "dropped":
+			// Dropped messages were not sent due to prior issues
+			eventType = domain.EmailEventBounce
+			bounceType = "dropped"
+			bounceCategory = "Dropped"
+			bounceDiagnostic = sgEvent.Reason
+
+		case "spamreport":
+			eventType = domain.EmailEventComplaint
+			complaintFeedbackType = "spam"
+
+		default:
+			// Skip event types we don't track (processed, deferred, open, click, unsubscribe, etc.)
+			continue
+		}
+
+		// Create the webhook event
+		event := domain.NewInboundWebhookEvent(
+			uuid.New().String(),
+			eventType,
+			domain.WebhookSourceSendGrid,
+			integrationID,
+			recipientEmail,
+			&messageID,
+			timestamp,
+			string(rawPayload),
+		)
+
+		// Set event-specific information
+		switch eventType {
+		case domain.EmailEventBounce:
+			event.BounceType = bounceType
+			event.BounceCategory = bounceCategory
+			event.BounceDiagnostic = bounceDiagnostic
+		case domain.EmailEventComplaint:
+			event.ComplaintFeedbackType = complaintFeedbackType
+		}
+
+		events = append(events, event)
+	}
+
+	return events, nil
 }
 
 // ListEvents retrieves all webhook events for a workspace

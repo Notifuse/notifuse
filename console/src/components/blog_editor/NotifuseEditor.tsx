@@ -522,7 +522,10 @@ export const NotifuseEditor = forwardRef<NotifuseEditorRef, NotifuseEditorProps>
 NotifuseEditor.displayName = 'NotifuseEditor'
 
 // Export default styles and utility functions for external use
+// eslint-disable-next-line react-refresh/only-export-components -- Utility exports co-located with component
 export { defaultEditorStyles } from './config/defaultEditorStyles'
+// eslint-disable-next-line react-refresh/only-export-components -- Utility exports co-located with component
 export { generateBlogPostCSS } from './utils/styleUtils'
+// eslint-disable-next-line react-refresh/only-export-components -- Utility exports co-located with component
 export { validateStyleConfig } from './utils/validateStyleConfig'
 export type { EditorStyleConfig } from './types/EditorStyleConfig'

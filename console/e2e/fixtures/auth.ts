@@ -472,6 +472,7 @@ export const test = base.extend<{
       localStorage.setItem('auth_token', 'test-token-for-e2e')
     })
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- use() is Playwright's fixture API, not a React hook
     await use(page)
   },
 
@@ -487,6 +488,7 @@ export const test = base.extend<{
       localStorage.setItem('auth_token', 'test-token-for-e2e')
     })
 
+    // eslint-disable-next-line react-hooks/rules-of-hooks -- use() is Playwright's fixture API, not a React hook
     await use(page)
   }
 })

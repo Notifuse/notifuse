@@ -1,7 +1,7 @@
 import { api } from './client'
 
 export type EmailEventType = 'delivered' | 'bounce' | 'complaint' | 'auth_email' | 'before_user_created'
-export type WebhookSource = 'ses' | 'sparkpost' | 'mailgun' | 'mailjet' | 'postmark' | 'smtp' | 'supabase'
+export type WebhookSource = 'ses' | 'sparkpost' | 'mailgun' | 'mailjet' | 'postmark' | 'smtp' | 'supabase' | 'sendgrid'
 
 export interface InboundWebhookEvent {
   id: string

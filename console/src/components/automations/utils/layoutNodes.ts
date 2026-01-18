@@ -1,5 +1,5 @@
 import type { Node } from '@xyflow/react'
-import type { ABTestNodeConfig, FilterNodeConfig, NodeType } from '../../../services/api/automation'
+import type { ABTestNodeConfig, NodeType } from '../../../services/api/automation'
 
 interface LayoutOptions {
   horizontalSpacing?: number

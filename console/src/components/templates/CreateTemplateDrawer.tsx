@@ -131,6 +131,7 @@ const HelpSupportDropdown: React.FC<{ onStartTour: () => void }> = ({ onStartTou
 /**
  * Renders a Tag component with the appropriate color for an email template category
  */
+// eslint-disable-next-line react-refresh/only-export-components -- Utility export co-located with component
 export const renderCategoryTag = (category: string) => {
   let color = 'default'
 
@@ -214,6 +215,7 @@ export function CreateTemplateDrawer({
         ? workspace.settings.marketing_email_provider_id
         : workspace.settings.transactional_email_provider_id
     return workspace.integrations?.find((integration) => integration.id === providerId)
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- Provider IDs are part of workspace settings
   }, [workspace.integrations, categoryValue])
 
   const emailSender = useMemo(() => {

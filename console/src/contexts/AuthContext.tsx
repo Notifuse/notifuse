@@ -114,6 +114,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components -- Hook co-located with context
 export function useAuth() {
   const context = useContext(AuthContext)
   if (context === undefined) {
@@ -123,6 +124,7 @@ export function useAuth() {
 }
 
 // Custom hook to get user permissions for a specific workspace
+// eslint-disable-next-line react-refresh/only-export-components -- Hook co-located with context
 export function useWorkspacePermissions(workspaceId: string) {
   const { user } = useAuth()
   const [permissions, setPermissions] = useState<UserPermissions | null>(null)

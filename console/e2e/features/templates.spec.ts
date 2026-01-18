@@ -1,16 +1,5 @@
 import { test, expect, requestCapture } from '../fixtures/auth'
-import {
-  waitForDrawer,
-  waitForModal,
-  waitForTable,
-  waitForLoading,
-  waitForSuccessMessage,
-  clickButton,
-  getTableRowCount,
-  hasEmptyState
-} from '../fixtures/test-utils'
-import { API_PATTERNS } from '../fixtures/request-capture'
-import { fillTemplateForm } from '../fixtures/form-fillers'
+import { waitForDrawer, waitForLoading } from '../fixtures/test-utils'
 import { testTemplateData } from '../fixtures/form-data'
 import { logCapturedRequests } from '../fixtures/payload-assertions'
 
@@ -93,7 +82,8 @@ test.describe('Templates Feature', () => {
 
       // Check if category options are visible
       const categoryOptions = page.locator('.ant-select-item-option')
-      const optionCount = await categoryOptions.count()
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _optionCount = await categoryOptions.count()
 
       // Verify drawer is still open and form is interactive
       await expect(page.locator('.ant-drawer-content')).toBeVisible()
@@ -153,8 +143,9 @@ test.describe('Templates Feature', () => {
 
       await page.waitForTimeout(500)
 
-      // Subject field might be visible
-      const subjectInput = page.locator('input[name="subject"], input[placeholder*="subject" i]')
+      // Subject field might be visible - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _subjectInput = page.locator('input[name="subject"], input[placeholder*="subject" i]')
       // Either subject exists or we're on a simpler form
       await expect(page.locator('body')).toBeVisible()
     })
@@ -173,8 +164,9 @@ test.describe('Templates Feature', () => {
 
       await page.waitForTimeout(500)
 
-      // Category select might be visible
-      const categorySelect = page.locator('.ant-select').filter({
+      // Category select might be visible - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _categorySelect = page.locator('.ant-select').filter({
         has: page.locator('text=category, text=Category, text=Type')
       })
 

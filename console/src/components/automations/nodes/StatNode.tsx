@@ -62,8 +62,10 @@ export const StatNode: React.FC<StatNodeProps> = ({ data }) => {
   // Calculate percentages for email and webhook nodes
   const showFailedRate = nodeType === 'email' || nodeType === 'webhook'
   const total = nodeStats.entered
-  const completedRate = total > 0 ? Math.round((nodeStats.completed / total) * 100) : 0
-  const failedRate = total > 0 ? Math.round((nodeStats.failed / total) * 100) : 0
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future rate display
+  const _completedRate = total > 0 ? Math.round((nodeStats.completed / total) * 100) : 0
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future rate display
+  const _failedRate = total > 0 ? Math.round((nodeStats.failed / total) * 100) : 0
 
   return (
     <>

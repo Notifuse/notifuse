@@ -130,6 +130,7 @@ const TemplatePreviewDrawer: React.FC<TemplatePreviewDrawerProps> = ({
       setActiveTabKey('1')
       setProcessedSubject(null)
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- fetchPreview is stable
   }, [isOpen, record.id, record.version, workspace.id]) // Keep original dependencies
 
   // Process subject with Liquid using provided template data

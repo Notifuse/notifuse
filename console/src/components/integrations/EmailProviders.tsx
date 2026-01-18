@@ -22,6 +22,8 @@ export const getProviderName = (kind: string): string => {
       return 'Mailgun'
     case 'mailjet':
       return 'Mailjet'
+    case 'sendgrid':
+      return 'SendGrid'
     case 'supabase':
       return 'Supabase'
     default:
@@ -124,7 +126,7 @@ export const emailProviders: ProviderInfo[] = [
     name: 'Mailgun',
     getIcon: (className = '', size = 'small') => (
       <img
-        src="/console/mailgun.png"
+        src="/console/mailgun.svg"
         alt="Mailgun"
         className={`${size === 'small' ? 'h-3 object-contain inline-block' : 'h-6 object-contain inline-block'} ${className}`.trim()}
       />
@@ -136,8 +138,20 @@ export const emailProviders: ProviderInfo[] = [
     name: 'Mailjet',
     getIcon: (className = '', size = 'small') => (
       <img
-        src="/console/mailjet.png"
+        src="/console/mailjet.svg"
         alt="Mailjet"
+        className={`${size === 'small' ? 'h-3 object-contain inline-block' : 'h-6 object-contain inline-block'} ${className}`.trim()}
+      />
+    )
+  },
+  {
+    type: 'email',
+    kind: 'sendgrid',
+    name: 'SendGrid',
+    getIcon: (className = '', size = 'small') => (
+      <img
+        src="/console/sendgrid.svg"
+        alt="SendGrid"
         className={`${size === 'small' ? 'h-3 object-contain inline-block' : 'h-6 object-contain inline-block'} ${className}`.trim()}
       />
     )

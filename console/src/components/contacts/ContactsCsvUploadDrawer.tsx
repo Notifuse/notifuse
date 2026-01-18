@@ -776,6 +776,7 @@ export function ContactsCsvUploadDrawer({
         clearSavedProgress(fileName)
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- clearSavedProgress is stable
   }, [uploadComplete, fileName])
 
   return (

@@ -461,7 +461,9 @@ export function validateFlow(
 export function isValidConnection(
   sourceNodeType: NodeType,
   targetNodeType: NodeType,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future validation logic
   _existingEdges: Edge[],
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future validation logic
   _targetNodeId: string
 ): boolean {
   // Cannot connect TO trigger node (it's the entry point)

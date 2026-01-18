@@ -178,6 +178,7 @@ export const workspaceContactsRoute = createRoute({
   })
 })
 
+// eslint-disable-next-line react-refresh/only-export-components -- Internal redirect component
 const WorkspaceSettingsRedirect = () => {
   const { workspaceId } = useParams({ from: '/console/workspace/$workspaceId/settings' })
   const navigate = useNavigate()

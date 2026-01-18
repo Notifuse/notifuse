@@ -47,8 +47,8 @@ type SMTPSettings struct {
 	EncryptedOAuth2RefreshToken string `json:"encrypted_oauth2_refresh_token,omitempty"` // Encrypted refresh token (Google)
 
 	// Runtime decrypted OAuth2 secrets (not stored in database)
-	OAuth2ClientSecret string `json:"-"` // Decrypted client secret
-	OAuth2RefreshToken string `json:"-"` // Decrypted refresh token (Google)
+	OAuth2ClientSecret string `json:"oauth2_client_secret,omitempty"` // Decrypted client secret
+	OAuth2RefreshToken string `json:"oauth2_refresh_token,omitempty"` // Decrypted refresh token (Google)
 }
 
 func (s *SMTPSettings) DecryptUsername(passphrase string) error {

@@ -1,16 +1,6 @@
 import { test, expect, requestCapture } from '../fixtures/auth'
-import {
-  waitForDrawer,
-  waitForModal,
-  waitForTable,
-  waitForLoading,
-  waitForSuccessMessage,
-  clickButton,
-  getTableRowCount,
-  hasEmptyState
-} from '../fixtures/test-utils'
+import { waitForDrawer, waitForLoading } from '../fixtures/test-utils'
 import { API_PATTERNS } from '../fixtures/request-capture'
-import { fillBroadcastForm } from '../fixtures/form-fillers'
 import { testBroadcastData } from '../fixtures/form-data'
 import { logCapturedRequests } from '../fixtures/payload-assertions'
 
@@ -147,8 +137,9 @@ test.describe('Broadcasts Feature', () => {
 
       await page.waitForTimeout(500)
 
-      // Scheduling options might be available
-      const scheduleOption = page.locator('text=Schedule, text=schedule, text=Send later')
+      // Scheduling options might be available - locator created for potential future assertions
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const _scheduleOption = page.locator('text=Schedule, text=schedule, text=Send later')
 
       // Form should be visible regardless
       await expect(page.locator('.ant-drawer-content, .ant-modal-content, form').first()).toBeVisible()

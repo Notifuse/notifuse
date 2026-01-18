@@ -57,6 +57,9 @@ const (
 
 	// WebhookSourceSupabase indicates webhook from Supabase
 	WebhookSourceSupabase WebhookSource = "supabase"
+
+	// WebhookSourceSendGrid indicates webhook from SendGrid
+	WebhookSourceSendGrid WebhookSource = "sendgrid"
 )
 
 // InboundWebhookEvent represents an event received from an email provider or integration webhook

@@ -61,7 +61,7 @@ export interface FileManagerSettings {
   force_path_style?: boolean
 }
 
-export type EmailProviderKind = 'smtp' | 'ses' | 'sparkpost' | 'postmark' | 'mailgun' | 'mailjet'
+export type EmailProviderKind = 'smtp' | 'ses' | 'sparkpost' | 'postmark' | 'mailgun' | 'mailjet' | 'sendgrid'
 
 export interface Sender {
   id: string
@@ -78,6 +78,7 @@ export interface EmailProvider {
   postmark?: PostmarkSettings
   mailgun?: MailgunSettings
   mailjet?: MailjetSettings
+  sendgrid?: SendGridSettings
   senders: Sender[]
   rate_limit_per_minute: number
 }
@@ -139,6 +140,11 @@ export interface MailjetSettings {
   secret_key?: string
   encrypted_secret_key?: string
   sandbox_mode: boolean
+}
+
+export interface SendGridSettings {
+  api_key?: string
+  encrypted_api_key?: string
 }
 
 export type IntegrationType = 'email' | 'sms' | 'whatsapp' | 'supabase' | 'llm' | 'firecrawl'

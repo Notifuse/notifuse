@@ -94,7 +94,8 @@ export function AutomationProvider({
   segments = [],
   templates = [],
   onSaveSuccess,
-  onClose,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Reserved for future use
+  onClose: _onClose,
   children
 }: AutomationProviderProps) {
   const queryClient = useQueryClient()
@@ -450,6 +451,7 @@ export function AutomationProvider({
 }
 
 // Hook to use automation context
+// eslint-disable-next-line react-refresh/only-export-components -- Hook co-located with context
 export function useAutomation(): AutomationContextType {
   const context = useContext(AutomationContext)
   if (!context) {

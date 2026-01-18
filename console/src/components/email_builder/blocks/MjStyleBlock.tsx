@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Switch, Drawer, Button } from 'antd'
 import { Editor } from '@monaco-editor/react'
-import type { MJMLComponentType, MJStyleAttributes } from '../types'
+import type { MJMLComponentType, MJStyleAttributes, MergedBlockAttributes, EmailBlock } from '../types'
 import {
   BaseEmailBlock,
   type OnUpdateAttributesFunction
@@ -54,9 +54,13 @@ export class MjStyleBlock extends BaseEmailBlock {
    * Render the settings panel for the style block
    */
   renderSettingsPanel(
-    onUpdate: OnUpdateAttributesFunction
+    onUpdate: OnUpdateAttributesFunction,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Required by interface
+    _blockDefaults: MergedBlockAttributes,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars -- Required by interface
+    _emailTree?: EmailBlock
   ): React.ReactNode {
-    const currentAttributes = this.block.attributes as MJStyleAttributes
+    const currentAttributes = (this.block.attributes ?? {}) as MJStyleAttributes
     const CSSEditorComponent = () => {
       const [isDrawerOpen, setIsDrawerOpen] = useState(false)
       const blockContent = 'content' in this.block ? (this.block.content as string) : ''

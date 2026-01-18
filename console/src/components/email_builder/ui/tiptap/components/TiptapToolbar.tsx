@@ -296,6 +296,7 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
         setLinkType('url')
       }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- getCurrentLink is stable
   }, [visible, isActiveLink])
 
   const handleInsertLink = () => {

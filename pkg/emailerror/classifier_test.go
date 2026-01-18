@@ -368,6 +368,121 @@ func TestClassifier_ClassifySMTP(t *testing.T) {
 	}
 }
 
+func TestClassifier_ClassifySendGrid(t *testing.T) {
+	classifier := NewClassifier()
+
+	tests := []struct {
+		name         string
+		err          error
+		expectedType ErrorType
+		retryable    bool
+	}{
+		// Recipient errors (not retryable)
+		{
+			name:         "recipient error - invalid email",
+			err:          errors.New("Error: invalid email address"),
+			expectedType: ErrorTypeRecipient,
+			retryable:    false,
+		},
+		{
+			name:         "recipient error - mailbox not found",
+			err:          errors.New("550 mailbox not found"),
+			expectedType: ErrorTypeRecipient,
+			retryable:    false,
+		},
+		{
+			name:         "recipient error - user unknown",
+			err:          errors.New("user unknown"),
+			expectedType: ErrorTypeRecipient,
+			retryable:    false,
+		},
+		{
+			name:         "recipient error - does not exist",
+			err:          errors.New("Email address does not exist"),
+			expectedType: ErrorTypeRecipient,
+			retryable:    false,
+		},
+		{
+			name:         "recipient error - 551 user not local",
+			err:          errors.New("551 User not local"),
+			expectedType: ErrorTypeRecipient,
+			retryable:    false,
+		},
+		{
+			name:         "recipient error - 552 exceeded storage",
+			err:          errors.New("552 Exceeded storage allocation"),
+			expectedType: ErrorTypeRecipient,
+			retryable:    false,
+		},
+		{
+			name:         "recipient error - 553 mailbox syntax",
+			err:          errors.New("553 Mailbox name not allowed"),
+			expectedType: ErrorTypeRecipient,
+			retryable:    false,
+		},
+		{
+			name:         "recipient error - 554 transaction failed",
+			err:          errors.New("554 Transaction failed"),
+			expectedType: ErrorTypeRecipient,
+			retryable:    false,
+		},
+		// Provider errors (retryable)
+		{
+			name:         "provider error - rate limit (retryable)",
+			err:          errors.New("rate limit exceeded"),
+			expectedType: ErrorTypeProvider,
+			retryable:    true,
+		},
+		{
+			name:         "provider error - too many requests (retryable)",
+			err:          errors.New("too many requests"),
+			expectedType: ErrorTypeProvider,
+			retryable:    true,
+		},
+		{
+			name:         "provider error - throttled (retryable)",
+			err:          errors.New("Request throttled"),
+			expectedType: ErrorTypeProvider,
+			retryable:    true,
+		},
+		{
+			name:         "provider error - service unavailable (retryable)",
+			err:          errors.New("service unavailable"),
+			expectedType: ErrorTypeProvider,
+			retryable:    true,
+		},
+		// Provider errors (not retryable)
+		{
+			name:         "provider error - authentication (not retryable)",
+			err:          errors.New("authentication failed"),
+			expectedType: ErrorTypeProvider,
+			retryable:    false,
+		},
+		{
+			name:         "provider error - unauthorized (not retryable)",
+			err:          errors.New("unauthorized access"),
+			expectedType: ErrorTypeProvider,
+			retryable:    false,
+		},
+		// Unknown error
+		{
+			name:         "unknown error",
+			err:          errors.New("some random error"),
+			expectedType: ErrorTypeUnknown,
+			retryable:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := classifier.Classify(tt.err, domain.EmailProviderKindSendGrid)
+			assert.Equal(t, tt.expectedType, result.Type)
+			assert.Equal(t, tt.retryable, result.Retryable)
+			assert.Equal(t, "sendgrid", result.Provider)
+		})
+	}
+}
+
 func TestClassifier_HTTPStatusExtraction(t *testing.T) {
 	tests := []struct {
 		name           string
