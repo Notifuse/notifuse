@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.5] - 2026-01-18
+
+### New Features
+
+- Added **SMTP OAuth2 authentication** method with support for Microsoft 365 and Gmail SMTP servers (#184)
+- Added **Twilio SendGrid email provider** integration (#178)
+
+### Bug Fixes
+
+- Fix resubcribe to private lists in notification center
+- Fix "custom CSS" edit when imported MJML templates have missing default attributes
+- Fix email editor switch settings (fullWidth, fluidOnMobile) not persisting after page refresh (#206)
+
 ## [26.4] - 2026-01-15
 
 ### Bug Fixes
@@ -132,6 +145,7 @@ All notable changes to this project will be documented in this file.
 ### Features
 
 - **Blog AI Assistant**: AI-powered writing assistant for blog posts
+
   - Streaming chat with Anthropic Claude models (Opus, Sonnet, Haiku)
   - Tool use for updating blog content and metadata directly in editor
   - Server-side web scraping and search via Firecrawl integration
