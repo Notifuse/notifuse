@@ -450,19 +450,20 @@ func TestDemoService_GenerateTransactionalMessageHistoryForContact(t *testing.T)
 	assert.Contains(t, data.(string), "reset-password")
 }
 
-func TestDemoService_CompileTemplateToHTML_WithFallback(t *testing.T) {
+func TestDemoService_CompileTemplateToHTML_WithMinimalInput(t *testing.T) {
 	svc := &DemoService{logger: logger.NewLoggerWithLevel("disabled")}
 
-	// Create a simple MJML structure that should fail compilation (invalid structure)
-	invalidBlock := &notifuse_mjml.MJTextBlock{BaseBlock: notifuse_mjml.NewBaseBlock("invalid", notifuse_mjml.MJMLComponentMjText)}
-	invalidBlock.Content = nil // This should cause issues
+	// Create a minimal MJML structure (just mj-text without proper MJML wrapper)
+	// gomjml handles this by producing partial HTML output
+	minimalBlock := &notifuse_mjml.MJTextBlock{BaseBlock: notifuse_mjml.NewBaseBlock("minimal", notifuse_mjml.MJMLComponentMjText)}
+	minimalBlock.Content = nil
 
 	testData := domain.MapOfAny{"test": "value"}
-	html := svc.compileTemplateToHTML("demo", "test", invalidBlock, testData)
+	html := svc.compileTemplateToHTML("demo", "test", minimalBlock, testData)
 
-	// Should return fallback HTML
-	assert.Contains(t, html, "<!DOCTYPE html>")
-	assert.Contains(t, html, "Demo Template")
+	// gomjml produces partial HTML for minimal/incomplete structures
+	// The output should be non-empty (some HTML is generated)
+	assert.NotEmpty(t, html, "Should return HTML output even for minimal input")
 }
 
 func TestDemoService_CreateSampleLists_Success(t *testing.T) {
@@ -800,10 +801,11 @@ func TestDemoService_CompileTemplateToHTML_CompilationFailure(t *testing.T) {
 	testData := domain.MapOfAny{"test": "value"}
 	html := svc.compileTemplateToHTML("demo", "test", root, testData)
 
-	// Should return fallback HTML due to compilation failure
-	assert.Contains(t, html, "<!DOCTYPE html>")
-	// The test may or may not trigger fallback depending on mjml-go behavior
-	// but we're testing the code path
+	// gomjml produces valid HTML with doctype for properly structured MJML
+	// (even if the inner content is minimal)
+	assert.NotEmpty(t, html, "Should return HTML output")
+	assert.True(t, strings.Contains(strings.ToLower(html), "<!doctype html"),
+		"Should contain valid HTML doctype (gomjml uses lowercase)")
 }
 
 func TestDemoService_GenerateEmail_AllFormats(t *testing.T) {

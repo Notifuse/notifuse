@@ -1055,8 +1055,8 @@ func TestCompileTemplate_InvalidTreeData(t *testing.T) {
 	// --- Assert ---
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	assert.False(t, resp.Success, "Response Success should be false for invalid tree")
-	require.NotNil(t, resp.Error, "Response Error should not be nil for invalid tree")
-	assert.Contains(t, resp.Error.Message, "mjml", "Error message should relate to MJML processing")
-
+	// gomjml succeeds with minimal/empty MJML structures and produces valid HTML
+	assert.True(t, resp.Success, "gomjml should succeed with empty MJML block")
+	require.NotNil(t, resp.HTML, "Response HTML should not be nil")
+	assert.NotEmpty(t, *resp.HTML, "HTML output should not be empty")
 }

@@ -1,7 +1,6 @@
 package notifuse_mjml
 
 import (
-	"context"
 	"database/sql/driver"
 	"encoding/json"
 	"fmt"
@@ -10,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	mjmlgo "github.com/Boostport/mjml-go"
+	"github.com/preslavrachev/gomjml/mjml"
 )
 
 // MapOfAny represents a map of string to any value, used for template data
@@ -207,7 +206,7 @@ type CompileTemplateResponse struct {
 	Success bool          `json:"success"`
 	MJML    *string       `json:"mjml,omitempty"`  // Pointer, omit if nil
 	HTML    *string       `json:"html,omitempty"`  // Pointer, omit if nil
-	Error   *mjmlgo.Error `json:"error,omitempty"` // Pointer, omit if nil
+	Error   *mjml.Error `json:"error,omitempty"` // Pointer, omit if nil
 }
 
 // GenerateEmailRedirectionEndpoint generates the email redirection endpoint URL
@@ -247,7 +246,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 				Success: false,
 				MJML:    nil,
 				HTML:    nil,
-				Error: &mjmlgo.Error{
+				Error: &mjml.Error{
 					Message: fmt.Sprintf("failed to marshal template data: %v", err),
 				},
 			}, nil
@@ -265,7 +264,7 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 				Success: false,
 				MJML:    nil,
 				HTML:    nil,
-				Error: &mjmlgo.Error{
+				Error: &mjml.Error{
 					Message: err.Error(),
 				},
 			}, nil
@@ -274,15 +273,15 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		mjmlString = ConvertJSONToMJML(tree)
 	}
 
-	// Compile MJML to HTML using mjml-go library
-	htmlResult, err := mjmlgo.ToHTML(context.Background(), mjmlString)
+	// Compile MJML to HTML using gomjml library
+	htmlResult, err := mjml.Render(mjmlString)
 	if err != nil {
 		// Return the response struct with Success=false and the Error details
 		return &CompileTemplateResponse{
 			Success: false,
 			MJML:    &mjmlString, // Include original MJML for context if desired
 			HTML:    nil,
-			Error: &mjmlgo.Error{
+			Error: &mjml.Error{
 				Message: err.Error(),
 			},
 		}, nil

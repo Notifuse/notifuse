@@ -8,12 +8,12 @@ import (
 	"testing"
 	"time"
 
-	mjmlgo "github.com/Boostport/mjml-go"
 	"github.com/Notifuse/notifuse/internal/domain"
 	domainmocks "github.com/Notifuse/notifuse/internal/domain/mocks"
 	"github.com/Notifuse/notifuse/pkg/logger"
 	notifusemjml "github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
+	"github.com/preslavrachev/gomjml/mjml"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -1449,7 +1449,7 @@ func TestBroadcastService_SendToIndividual_TemplateCompilationNotSuccessful(t *t
 	errMsg := "Template syntax error"
 	compiledTemplate := &domain.CompileTemplateResponse{
 		Success: false,
-		Error:   &mjmlgo.Error{Message: errMsg},
+		Error:   &mjml.Error{Message: errMsg},
 	}
 	d.templateSvc.EXPECT().CompileTemplate(ctx, gomock.Any()).Return(compiledTemplate, nil)
 
