@@ -10,7 +10,6 @@ import React from 'react'
 import { workspaceContactsRoute } from '../router'
 import { Filter } from '../components/filters/Filter'
 import { ContactUpsertDrawer } from '../components/contacts/ContactUpsertDrawer'
-import { ImportContactsButton } from '../components/contacts/ImportContactsButton'
 import { BulkUpdateDrawer } from '../components/contacts/BulkUpdateDrawer'
 import { CountriesFormOptions } from '../lib/countries_timezones'
 import { Languages } from '../lib/languages'
@@ -31,7 +30,9 @@ import { SegmentsFilter } from '../components/contacts/SegmentsFilter'
 import dayjs from '../lib/dayjs'
 import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import numbro from 'numbro'
-import { PlusOutlined } from '@ant-design/icons'
+import { PlusOutlined, DownloadOutlined, UploadOutlined } from '@ant-design/icons'
+import { ExportContactsModal } from '../components/contacts/ExportContactsModal'
+import { useContactsCsvUpload } from '../components/contacts/ContactsCsvUploadProvider'
 import { getCustomFieldLabel } from '../hooks/useCustomFieldLabel'
 
 const STORAGE_KEY = 'contact_columns_visibility'
@@ -78,6 +79,7 @@ export function ContactsPage() {
   const queryClient = useQueryClient()
   const { workspaces } = useAuth()
   const { permissions } = useWorkspacePermissions(workspaceId)
+  const { openDrawer: openImportDrawer } = useContactsCsvUpload()
 
   // Get the current workspace timezone
   const currentWorkspace = workspaces.find((workspace) => workspace.id === workspaceId)
@@ -96,6 +98,8 @@ export function ContactsPage() {
   // Edit drawer state
   const [editDrawerVisible, setEditDrawerVisible] = React.useState(false)
   const [contactToEdit, setContactToEdit] = React.useState<Contact | null>(null)
+  // Export modal state
+  const [exportModalVisible, setExportModalVisible] = React.useState(false)
 
   // Fetch lists for the current workspace
   const { data: listsData } = useQuery({
@@ -879,6 +883,27 @@ export function ContactsPage() {
           )}
         </div>
         <Space>
+          <Dropdown
+            menu={{
+              items: [
+                {
+                  key: 'import',
+                  label: 'Import',
+                  icon: <UploadOutlined />,
+                  disabled: !permissions?.contacts?.write,
+                  onClick: () => openImportDrawer(workspaceId, listsData?.lists || [], true)
+                },
+                {
+                  key: 'export',
+                  label: 'Export',
+                  icon: <DownloadOutlined />,
+                  onClick: () => setExportModalVisible(true)
+                }
+              ]
+            }}
+          >
+            <Button type="text">CSV</Button>
+          </Dropdown>
           <Tooltip
             title={
               !permissions?.contacts?.write
@@ -891,26 +916,10 @@ export function ContactsPage() {
                 workspaceId={workspaceId}
                 lists={listsData?.lists || []}
                 buttonProps={{
-                  type: 'primary',
-                  ghost: true,
+                  type: 'text',
                   children: 'Bulk Update',
                   disabled: !permissions?.contacts?.write
                 }}
-              />
-            </span>
-          </Tooltip>
-          <Tooltip
-            title={
-              !permissions?.contacts?.write
-                ? "You don't have write permission for contacts"
-                : undefined
-            }
-          >
-            <span>
-              <ImportContactsButton
-                lists={listsData?.lists || []}
-                workspaceId={workspaceId}
-                disabled={!permissions?.contacts?.write}
               />
             </span>
           </Tooltip>
@@ -1010,6 +1019,16 @@ export function ContactsPage() {
           onContactUpdate={handleContactUpdate}
         />
       )}
+
+      <ExportContactsModal
+        visible={exportModalVisible}
+        onCancel={() => setExportModalVisible(false)}
+        workspaceId={workspaceId}
+        workspace={currentWorkspace}
+        filters={search}
+        segmentsData={segmentsData?.segments || []}
+        listsData={listsData?.lists || []}
+      />
     </div>
   )
 }
