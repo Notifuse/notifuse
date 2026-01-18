@@ -5,12 +5,12 @@ import (
 	"testing"
 	"time"
 
-	mjmlgo "github.com/Boostport/mjml-go"
 	"github.com/Notifuse/notifuse/internal/domain"
 	"github.com/Notifuse/notifuse/internal/domain/mocks"
 	pkgmocks "github.com/Notifuse/notifuse/pkg/mocks"
 	"github.com/Notifuse/notifuse/pkg/notifuse_mjml"
 	"github.com/golang/mock/gomock"
+	"github.com/preslavrachev/gomjml/mjml"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1072,7 +1072,7 @@ func TestEmailService_SendEmailForTemplate(t *testing.T) {
 		// Create unsuccessful compile result
 		unsuccessfulResult := &domain.CompileTemplateResponse{
 			Success: false,
-			Error: &mjmlgo.Error{
+			Error: &mjml.Error{
 				Message: "Template compilation error",
 			},
 		}

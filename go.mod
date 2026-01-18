@@ -9,12 +9,12 @@ require (
 	contrib.go.opencensus.io/exporter/stackdriver v0.13.14
 	contrib.go.opencensus.io/exporter/zipkin v0.1.2
 	contrib.go.opencensus.io/integrations/ocsql v0.1.7
-	github.com/Boostport/mjml-go v0.15.0
 	github.com/DATA-DOG/go-sqlmock v1.5.2
 	github.com/DataDog/opencensus-go-exporter-datadog v0.0.0-20220622145613-731d59e8b567
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/Notifuse/liquidgo v0.0.0-20251124135804-bb1578ffeff3
-	github.com/PuerkitoBio/goquery v1.10.2
+	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/anthropics/anthropic-sdk-go v1.19.0
 	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2
 	github.com/aws/aws-sdk-go v1.55.7
 	github.com/emersion/go-sasl v0.0.0-20241020182733-b788ff22d5a6
@@ -23,7 +23,9 @@ require (
 	github.com/golang/mock v1.6.0
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
+	github.com/lithammer/shortuuid/v4 v4.2.0
 	github.com/openzipkin/zipkin-go v0.4.2
+	github.com/preslavrachev/gomjml v0.10.0
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/viper v1.19.0
 	github.com/standard-webhooks/standard-webhooks/libraries v0.0.0-20250711233419-a173a6c0125c
@@ -44,9 +46,7 @@ require (
 	cloud.google.com/go/monitoring v1.20.1 // indirect
 	cloud.google.com/go/trace v1.10.9 // indirect
 	github.com/DataDog/datadog-go v3.5.0+incompatible // indirect
-	github.com/andybalholm/brotli v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.3 // indirect
-	github.com/anthropics/anthropic-sdk-go v1.19.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
@@ -63,11 +63,9 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.5 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
-	github.com/jackc/puddle/v2 v2.2.1 // indirect
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/lann/builder v0.0.0-20180802200727-47ae307949d0 // indirect
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
-	github.com/lithammer/shortuuid/v4 v4.2.0 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -87,10 +85,9 @@ require (
 	github.com/sourcegraph/conc v0.3.0 // indirect
 	github.com/spf13/afero v1.11.0 // indirect
 	github.com/spf13/cast v1.6.0 // indirect
-	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
-	github.com/tetratelabs/wazero v1.8.0 // indirect
 	github.com/tidwall/match v1.2.0 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect

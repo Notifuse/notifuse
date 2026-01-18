@@ -48,7 +48,7 @@ func TestCompileTemplateRequest_Validate(t *testing.T) {
 }
 
 func TestCompileTemplate_ErrorFromMJMLGo(t *testing.T) {
-	// Intentionally left empty to avoid flaky external mjml-go behavior while covering function presence.
+	// Intentionally left empty to avoid flaky external MJML compilation behavior while covering function presence.
 }
 
 func TestCompileTemplate_WithTemplateDataJSON(t *testing.T) {
