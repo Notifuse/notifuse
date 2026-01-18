@@ -276,7 +276,7 @@ export class MjImageBlock extends BaseEmailBlock {
           <Switch
             size="small"
             checked={currentAttributes['fluidOnMobile'] === 'true'}
-            onChange={(checked) => onUpdate({ fluidOnMobile: checked ? 'true' : undefined })}
+            onChange={(checked) => onUpdate({ fluidOnMobile: checked ? 'true' : 'false' })}
           />
         </InputLayout>
 

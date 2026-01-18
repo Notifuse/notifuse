@@ -14,28 +14,28 @@ import (
 	"github.com/spf13/viper"
 )
 
-const VERSION = "26.4"
+const VERSION = "26.5"
 
 type Config struct {
-	Server          ServerConfig
-	Database        DatabaseConfig
-	Security        SecurityConfig
-	Tracing         TracingConfig
-	SMTP            SMTPConfig
-	SMTPRelay       SMTPRelayConfig
-	Demo            DemoConfig
+	Server              ServerConfig
+	Database            DatabaseConfig
+	Security            SecurityConfig
+	Tracing             TracingConfig
+	SMTP                SMTPConfig
+	SMTPRelay           SMTPRelayConfig
+	Demo                DemoConfig
 	Broadcast           BroadcastConfig
 	TaskScheduler       TaskSchedulerConfig
 	AutomationScheduler AutomationSchedulerConfig
 	Telemetry           bool
-	CheckForUpdates bool
-	RootEmail       string
-	Environment     string
-	APIEndpoint     string
-	WebhookEndpoint string
-	LogLevel        string
-	Version         string
-	IsInstalled     bool // NEW: Indicates if setup wizard has been completed
+	CheckForUpdates     bool
+	RootEmail           string
+	Environment         string
+	APIEndpoint         string
+	WebhookEndpoint     string
+	LogLevel            string
+	Version             string
+	IsInstalled         bool // NEW: Indicates if setup wizard has been completed
 
 	// Track which values came from actual environment variables (not database, not generated)
 	EnvValues EnvValues

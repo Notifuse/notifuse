@@ -148,7 +148,7 @@ export class MjWrapperBlock extends BaseEmailBlock {
               size="small"
               checked={currentAttributes.fullWidth === 'full-width'}
               onChange={(checked) =>
-                handleAttributeChange('fullWidth', checked ? 'full-width' : undefined)
+                handleAttributeChange('fullWidth', checked ? 'full-width' : '')
               }
             />
           </InputLayout>
