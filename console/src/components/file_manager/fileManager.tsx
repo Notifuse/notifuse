@@ -203,7 +203,7 @@ export const FileManager = (props: FileManagerProps) => {
             size: x.Size as number,
             size_human: filesize(x.Size || 0, { round: 0 }),
             content_type: GetContentType(key),
-            url: baseUrl ? `${baseUrl}/${key}` : key
+            url: baseUrl ? `${baseUrl}/${encodeURIComponent(key)}` : key
           }
         }
 
