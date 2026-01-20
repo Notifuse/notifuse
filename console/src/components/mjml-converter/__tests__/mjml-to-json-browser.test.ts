@@ -35,6 +35,67 @@ describe('MJML Preprocessing', () => {
     expect(preprocessMjml(input)).toBe(expected)
   })
 
+  describe('BR Tag Handling', () => {
+    test('should convert <br> to <br /> for proper MJML/XML compatibility', () => {
+      const input = '<mj-text>Line 1<br>Line 2</mj-text>'
+      const expected = '<mj-text>Line 1<br />Line 2</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should handle <br> with trailing space', () => {
+      const input = '<mj-text>Line 1<br >Line 2</mj-text>'
+      const expected = '<mj-text>Line 1<br />Line 2</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should handle multiple <br> tags', () => {
+      const input = '<mj-text>Line 1<br><br>Line 2<br><br>Line 3</mj-text>'
+      const expected = '<mj-text>Line 1<br /><br />Line 2<br /><br />Line 3</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should not double-convert already self-closing <br />', () => {
+      const input = '<mj-text>Line 1<br />Line 2</mj-text>'
+      expect(preprocessMjml(input)).toBe(input) // Should remain unchanged
+    })
+
+    test('should handle <br> in complex MJML with attributes', () => {
+      const input = `
+        <mjml>
+          <mj-body>
+            <mj-section>
+              <mj-column>
+                <mj-text color="#333" font-size="16px">Hello<br>World</mj-text>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
+      const processed = preprocessMjml(input)
+      expect(processed).toContain('<br />')
+      expect(processed).not.toContain('<br>') // All <br> should be converted
+    })
+
+    test('should handle real-world MJML export with unclosed <br> tags', () => {
+      // This simulates the issue reported in GitHub issue #216
+      const input = `
+        <mjml>
+          <mj-body>
+            <mj-section>
+              <mj-column>
+                <mj-text><p>Welcome! Please confirm your email address.<br><br>Click the button below to verify:</p></mj-text>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
+      const processed = preprocessMjml(input)
+      // Should convert all <br> tags to <br />
+      expect(processed).not.toMatch(/<br>/) // No unclosed <br> tags
+      expect(processed).toContain('<br />') // Should have self-closing <br />
+    })
+  })
+
   describe('Duplicate Attribute Handling', () => {
     test('should remove duplicate attributes and keep the last occurrence', () => {
       const input =

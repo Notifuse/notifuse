@@ -53,6 +53,11 @@ export function preprocessMjml(mjmlString: string): string {
     return '="' + fixed + '"'
   })
 
+  // Fix <br> tags to be self-closing <br /> for proper MJML/XML compatibility
+  // This fixes the common issue where HTML-style <br> tags cause XML parsing errors
+  // when importing MJML templates that were exported with unclosed <br> tags
+  processed = processed.replace(/<br\s*>/g, '<br />')
+
   // Fix duplicate attributes in opening tags
   // Match opening tags like <mj-section ...> or <mj-button ... />
   processed = processed.replace(/<([^>]+)>/g, (fullMatch, tagContent) => {
