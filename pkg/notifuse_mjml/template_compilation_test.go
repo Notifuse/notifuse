@@ -739,6 +739,255 @@ func TestCompileTemplateWithButtonQueryParameters(t *testing.T) {
 	t.Logf("Generated HTML (excerpt):\n%s", *resp.HTML)
 }
 
+func TestPreprocessMjmlForXML(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "convert br tag to self-closing",
+			input:    "<mj-text><p>Line 1<br>Line 2</p></mj-text>",
+			expected: "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
+		},
+		{
+			name:     "convert br tag with space to self-closing",
+			input:    "<mj-text><p>Line 1<br >Line 2</p></mj-text>",
+			expected: "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
+		},
+		{
+			name:     "preserve already self-closing br",
+			input:    "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
+			expected: "<mj-text><p>Line 1<br/>Line 2</p></mj-text>",
+		},
+		{
+			name:     "preserve already self-closing br with space",
+			input:    "<mj-text><p>Line 1<br />Line 2</p></mj-text>",
+			expected: "<mj-text><p>Line 1<br />Line 2</p></mj-text>",
+		},
+		{
+			name:     "convert hr tag to self-closing",
+			input:    "<mj-raw><hr></mj-raw>",
+			expected: "<mj-raw><hr/></mj-raw>",
+		},
+		{
+			name:     "convert multiple void tags",
+			input:    "<mj-text><p>A<br>B<br>C<hr>D</p></mj-text>",
+			expected: "<mj-text><p>A<br/>B<br/>C<hr/>D</p></mj-text>",
+		},
+		{
+			name:     "convert img tag with attributes to self-closing",
+			input:    `<mj-raw><img src="test.jpg" alt="test"></mj-raw>`,
+			expected: `<mj-raw><img src="test.jpg" alt="test"/></mj-raw>`,
+		},
+		{
+			name:     "convert nbsp entity to numeric",
+			input:    "<mj-text>Hello&nbsp;World</mj-text>",
+			expected: "<mj-text>Hello&#160;World</mj-text>",
+		},
+		{
+			name:     "convert multiple nbsp entities",
+			input:    "<mj-text>A&nbsp;&nbsp;&nbsp;B</mj-text>",
+			expected: "<mj-text>A&#160;&#160;&#160;B</mj-text>",
+		},
+		{
+			name:     "convert copy entity to numeric",
+			input:    "<mj-text>&copy; 2024</mj-text>",
+			expected: "<mj-text>&#169; 2024</mj-text>",
+		},
+		{
+			name:     "preserve xml predefined entities",
+			input:    "<mj-text>&amp; &lt; &gt; &quot; &apos;</mj-text>",
+			expected: "<mj-text>&amp; &lt; &gt; &quot; &apos;</mj-text>",
+		},
+		{
+			name:     "preserve numeric entities",
+			input:    "<mj-text>&#160;&#169;</mj-text>",
+			expected: "<mj-text>&#160;&#169;</mj-text>",
+		},
+		{
+			name:     "combined void tags and entities",
+			input:    "<mj-text><p>Hello<br>World&nbsp;&copy;</p></mj-text>",
+			expected: "<mj-text><p>Hello<br/>World&#160;&#169;</p></mj-text>",
+		},
+		{
+			name:     "preserve liquid double braces",
+			input:    "<mj-text>Hello {{ user.name }}&nbsp;welcome!</mj-text>",
+			expected: "<mj-text>Hello {{ user.name }}&#160;welcome!</mj-text>",
+		},
+		{
+			name:     "preserve liquid tags",
+			input:    "<mj-text>{% if show %}<br>Show this{% endif %}</mj-text>",
+			expected: "<mj-text>{% if show %}<br/>Show this{% endif %}</mj-text>",
+		},
+		{
+			name:     "combined liquid, void tags and entities",
+			input:    "<mj-text><p>Dear {{ user.name }},<br>Your order #{{ order.id }}&nbsp;shipped!</p></mj-text>",
+			expected: "<mj-text><p>Dear {{ user.name }},<br/>Your order #{{ order.id }}&#160;shipped!</p></mj-text>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := preprocessMjmlForXML(tt.input)
+			if result != tt.expected {
+				t.Errorf("preprocessMjmlForXML() =\n%s\nwant:\n%s", result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestCompileTemplateWithHtmlVoidTags(t *testing.T) {
+	// Test that templates with <br> tags compile successfully
+	textContent := "<p>Line 1<br>Line 2<br>Line 3</p>"
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = &textContent
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{textBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false,
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+	}
+
+	if resp.HTML == nil {
+		t.Fatal("Expected HTML in response")
+	}
+
+	// Verify the HTML contains the content
+	if !strings.Contains(*resp.HTML, "Line 1") || !strings.Contains(*resp.HTML, "Line 2") {
+		t.Errorf("Expected HTML to contain the text content:\n%s", *resp.HTML)
+	}
+}
+
+func TestCompileTemplateWithHtmlEntitiesAndLiquid(t *testing.T) {
+	// Test that templates with HTML entities AND Liquid markup work correctly
+	textContent := "<p>Hello {{ user.name }},<br>Welcome&nbsp;to&nbsp;our&nbsp;service!<br>&copy; 2024</p>"
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = &textContent
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{textBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TemplateData: MapOfAny{
+			"user": map[string]interface{}{
+				"name": "John",
+			},
+		},
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false,
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+	}
+
+	if resp.HTML == nil {
+		t.Fatal("Expected HTML in response")
+	}
+
+	// Verify the Liquid variable was replaced
+	if !strings.Contains(*resp.HTML, "Hello John") {
+		t.Errorf("Expected HTML to contain 'Hello John' (Liquid processed), got:\n%s", *resp.HTML)
+	}
+
+	// Verify the content is present
+	if !strings.Contains(*resp.HTML, "Welcome") {
+		t.Errorf("Expected HTML to contain 'Welcome', got:\n%s", *resp.HTML)
+	}
+}
+
+func TestCompileTemplateWithHtmlEntities(t *testing.T) {
+	// Test that templates with &nbsp; and other HTML entities compile successfully
+	textContent := "<p>Hello&nbsp;World &copy; 2024</p>"
+	textBase := NewBaseBlock("text-1", MJMLComponentMjText)
+	textBase.Content = &textContent
+	textBlock := &MJTextBlock{BaseBlock: textBase}
+
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{textBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	req := CompileTemplateRequest{
+		WorkspaceID:      "test-workspace",
+		MessageID:        "test-message",
+		VisualEditorTree: mjml,
+		TrackingSettings: TrackingSettings{
+			EnableTracking: false,
+		},
+	}
+
+	resp, err := CompileTemplate(req)
+	if err != nil {
+		t.Fatalf("CompileTemplate failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+	}
+
+	if resp.HTML == nil {
+		t.Fatal("Expected HTML in response")
+	}
+
+	// Verify the HTML contains the content
+	if !strings.Contains(*resp.HTML, "Hello") || !strings.Contains(*resp.HTML, "World") {
+		t.Errorf("Expected HTML to contain the text content:\n%s", *resp.HTML)
+	}
+}
+
 func TestCompileTemplateButtonVsTextURL(t *testing.T) {
 	// Verify that both button href and text content handle URLs correctly
 	confirmURL := "https://example.com/confirm?action=confirm&email=test@example.com&token=abc"

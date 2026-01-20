@@ -12,6 +12,92 @@ import (
 	"github.com/preslavrachev/gomjml/mjml"
 )
 
+// htmlVoidElements are HTML elements that must be self-closing in XML
+var htmlVoidElements = []string{
+	"area", "base", "br", "col", "embed", "hr", "img", "input",
+	"link", "meta", "param", "source", "track", "wbr",
+}
+
+// htmlEntityToCodepoint maps HTML named entities to their Unicode code points
+// Only entities not predefined in XML (amp, lt, gt, quot, apos) need conversion
+var htmlEntityToCodepoint = map[string]int{
+	// Whitespace and formatting
+	"nbsp": 160, "ensp": 8194, "emsp": 8195, "thinsp": 8201,
+	// Punctuation
+	"bull": 8226, "hellip": 8230, "mdash": 8212, "ndash": 8211,
+	"lsquo": 8216, "rsquo": 8217, "ldquo": 8220, "rdquo": 8221,
+	"laquo": 171, "raquo": 187,
+	// Symbols
+	"copy": 169, "reg": 174, "trade": 8482, "sect": 167, "para": 182,
+	"deg": 176, "plusmn": 177, "times": 215, "divide": 247,
+	"micro": 181, "middot": 183,
+	// Currency
+	"euro": 8364, "pound": 163, "yen": 165, "cent": 162,
+	// Arrows
+	"larr": 8592, "rarr": 8594, "uarr": 8593, "darr": 8595, "harr": 8596,
+	// Spanish/French punctuation
+	"iexcl": 161, "iquest": 191,
+}
+
+// preprocessMjmlForXML preprocesses MJML string to fix common HTML vs XML incompatibilities
+// This is necessary because gomjml uses a strict XML parser
+func preprocessMjmlForXML(mjmlString string) string {
+	processed := mjmlString
+
+	// Step 1: Convert HTML void tags to self-closing XML format
+	// HTML allows <br>, <hr>, <img>, etc. without closing slash
+	// XML requires self-closing: <br/>, <hr/>, <img/>
+	// Match: <br>, <br >, <hr>, <img src="...">, etc.
+	// Don't match: <br/>, <br />
+	voidTagPattern := regexp.MustCompile(
+		`(?i)<(` + strings.Join(htmlVoidElements, "|") + `)(\s[^>]*)?>`,
+	)
+	processed = voidTagPattern.ReplaceAllStringFunc(processed, func(match string) string {
+		// Check if already self-closing (ends with /> or / >)
+		trimmed := strings.TrimSpace(match)
+		if strings.HasSuffix(trimmed, "/>") {
+			return match
+		}
+
+		// Extract tag name and attributes using submatch
+		parts := voidTagPattern.FindStringSubmatch(match)
+		if len(parts) < 2 {
+			return match
+		}
+		tagName := parts[1]
+		attrs := ""
+		if len(parts) > 2 && parts[2] != "" {
+			attrs = strings.TrimRight(parts[2], " ")
+		}
+		return "<" + tagName + attrs + "/>"
+	})
+
+	// Step 2: Convert HTML named entities to XML numeric entities
+	// XML only predefines: &amp; &lt; &gt; &quot; &apos;
+	// HTML entities like &nbsp; must be converted to &#160;
+	entityPattern := regexp.MustCompile(`&([a-zA-Z]+);`)
+	processed = entityPattern.ReplaceAllStringFunc(processed, func(match string) string {
+		// Extract entity name (without & and ;)
+		entityName := strings.ToLower(match[1 : len(match)-1])
+
+		// Preserve XML predefined entities
+		if entityName == "amp" || entityName == "lt" || entityName == "gt" ||
+			entityName == "quot" || entityName == "apos" {
+			return match
+		}
+
+		// Convert known HTML entities to numeric
+		if codepoint, ok := htmlEntityToCodepoint[entityName]; ok {
+			return fmt.Sprintf("&#%d;", codepoint)
+		}
+
+		// Unknown entity - leave as-is
+		return match
+	})
+
+	return processed
+}
+
 // MapOfAny represents a map of string to any value, used for template data
 type MapOfAny map[string]any
 
@@ -273,8 +359,12 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		mjmlString = ConvertJSONToMJML(tree)
 	}
 
+	// Preprocess MJML to fix HTML vs XML incompatibilities
+	// gomjml uses a strict XML parser that doesn't accept HTML void tags (<br>) or HTML entities (&nbsp;)
+	preprocessedMjml := preprocessMjmlForXML(mjmlString)
+
 	// Compile MJML to HTML using gomjml library
-	htmlResult, err := mjml.Render(mjmlString)
+	htmlResult, err := mjml.Render(preprocessedMjml)
 	if err != nil {
 		// Return the response struct with Success=false and the Error details
 		return &CompileTemplateResponse{

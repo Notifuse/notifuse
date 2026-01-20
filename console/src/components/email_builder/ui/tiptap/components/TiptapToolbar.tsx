@@ -37,7 +37,8 @@ import {
   handleBackgroundColorChange as handleBackgroundColorChangeUtil,
   getEffectiveTextColor,
   getEffectiveBackgroundColor,
-  createLinkWithStyleMerging
+  createLinkWithStyleMerging,
+  expandSelectionToLinkRange
 } from '../shared/utils'
 
 // Toolbar Button Component
@@ -302,8 +303,15 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
   const handleInsertLink = () => {
     if (!linkValue.trim()) {
       // Remove link if value is empty
+      // Expand selection to full link range first to ensure entire link is removed
+      expandSelectionToLinkRange(editor)
       editor.chain().focus().unsetLink().run()
     } else {
+      // If we're editing an existing link, expand selection to cover the full link
+      // This ensures the entire link text gets updated, not just the cursor position
+      if (isActiveLink) {
+        expandSelectionToLinkRange(editor)
+      }
       // Use our enhanced link creation that merges textStyle attributes
       createLinkWithStyleMerging(editor, linkValue, linkType)
     }
@@ -312,6 +320,8 @@ export const LinkButton: React.FC<LinkButtonProps> = ({ editor, title }) => {
   }
 
   const handleRemoveLink = () => {
+    // Expand selection to full link range first to ensure entire link is removed
+    expandSelectionToLinkRange(editor)
     editor.chain().focus().unsetLink().run()
     setVisible(false)
     setLinkValue('')

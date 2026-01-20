@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.8] - 2026-01-19
+
+- **File Manager**: Added explicit "Select" button in actions column when opened from email editor, replacing row-click selection behavior
+- **File Manager**: Fixed files with spaces in filename breaking image delivery by URL-encoding path segments (#209)
+- **Email Builder**: Fixed MJML template import failing when content contains HTML tags like `<br>` or entities like `&nbsp;` (#218)
+- **Email Builder**: Fixed link editing in text blocks requiring exact text selection to update URL
+
 ## [26.7] - 2026-01-18
 
 - **MJML Engine**: Switched from `mjml-go` to `gomjml` v0.10.0 for MJML-to-HTML compilation

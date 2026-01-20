@@ -35,6 +35,143 @@ describe('MJML Preprocessing', () => {
     expect(preprocessMjml(input)).toBe(expected)
   })
 
+  describe('HTML Void Tags to Self-Closing XML', () => {
+    test('should convert <br> to <br/>', () => {
+      const input = '<mj-text><p>Line 1<br>Line 2</p></mj-text>'
+      const expected = '<mj-text><p>Line 1<br/>Line 2</p></mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should convert <br > (with space) to <br/>', () => {
+      const input = '<mj-text><p>Line 1<br >Line 2</p></mj-text>'
+      const expected = '<mj-text><p>Line 1<br/>Line 2</p></mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should preserve already self-closing <br/>', () => {
+      const input = '<mj-text><p>Line 1<br/>Line 2</p></mj-text>'
+      expect(preprocessMjml(input)).toBe(input)
+    })
+
+    test('should preserve already self-closing <br />', () => {
+      const input = '<mj-text><p>Line 1<br />Line 2</p></mj-text>'
+      expect(preprocessMjml(input)).toBe(input)
+    })
+
+    test('should convert <hr> to <hr/>', () => {
+      const input = '<mj-raw><hr></mj-raw>'
+      const expected = '<mj-raw><hr/></mj-raw>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should convert multiple void tags in same content', () => {
+      const input = '<mj-text><p>A<br>B<br>C<hr>D</p></mj-text>'
+      const expected = '<mj-text><p>A<br/>B<br/>C<hr/>D</p></mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should handle void tags with attributes', () => {
+      const input = '<mj-raw><img src="test.jpg" alt="test"></mj-raw>'
+      const expected = '<mj-raw><img src="test.jpg" alt="test"/></mj-raw>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should handle uppercase void tags', () => {
+      const input = '<mj-text><p>A<BR>B</p></mj-text>'
+      const expected = '<mj-text><p>A<BR/>B</p></mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should handle mixed case void tags', () => {
+      const input = '<mj-text><p>A<Br>B<bR>C</p></mj-text>'
+      const expected = '<mj-text><p>A<Br/>B<bR/>C</p></mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should handle void tags at start of content', () => {
+      const input = '<mj-text><br>Starting with br</mj-text>'
+      const expected = '<mj-text><br/>Starting with br</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should handle void tags at end of content', () => {
+      const input = '<mj-text>Ending with br<br></mj-text>'
+      const expected = '<mj-text>Ending with br<br/></mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should handle consecutive void tags', () => {
+      const input = '<mj-text><br><br><hr></mj-text>'
+      const expected = '<mj-text><br/><br/><hr/></mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+  })
+
+  describe('HTML Named Entities to XML Numeric Entities', () => {
+    test('should convert &nbsp; to &#160;', () => {
+      const input = '<mj-text>Hello&nbsp;World</mj-text>'
+      const expected = '<mj-text>Hello&#160;World</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should convert multiple &nbsp; occurrences', () => {
+      const input = '<mj-text>A&nbsp;&nbsp;&nbsp;B</mj-text>'
+      const expected = '<mj-text>A&#160;&#160;&#160;B</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should convert &copy; to &#169;', () => {
+      const input = '<mj-text>&copy; 2024</mj-text>'
+      const expected = '<mj-text>&#169; 2024</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should convert &reg; to &#174;', () => {
+      const input = '<mj-text>Brand&reg;</mj-text>'
+      const expected = '<mj-text>Brand&#174;</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should convert &trade; to &#8482;', () => {
+      const input = '<mj-text>Product&trade;</mj-text>'
+      const expected = '<mj-text>Product&#8482;</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should convert &mdash; to &#8212;', () => {
+      const input = '<mj-text>Hello&mdash;World</mj-text>'
+      const expected = '<mj-text>Hello&#8212;World</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should convert &ndash; to &#8211;', () => {
+      const input = '<mj-text>2020&ndash;2024</mj-text>'
+      const expected = '<mj-text>2020&#8211;2024</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+
+    test('should preserve XML predefined entities (&amp; &lt; &gt; &quot; &apos;)', () => {
+      const input = '<mj-text>&amp; &lt; &gt; &quot; &apos;</mj-text>'
+      expect(preprocessMjml(input)).toBe(input)
+    })
+
+    test('should preserve already numeric entities', () => {
+      const input = '<mj-text>&#160;&#169;&#8212;</mj-text>'
+      expect(preprocessMjml(input)).toBe(input)
+    })
+
+    test('should preserve hex numeric entities', () => {
+      const input = '<mj-text>&#xA0;&#xA9;</mj-text>'
+      expect(preprocessMjml(input)).toBe(input)
+    })
+
+    test('should handle multiple different entities together', () => {
+      const input = '<mj-text>&copy;&nbsp;&reg;&nbsp;&trade;</mj-text>'
+      const expected = '<mj-text>&#169;&#160;&#174;&#160;&#8482;</mj-text>'
+      expect(preprocessMjml(input)).toBe(expected)
+    })
+  })
+
   describe('Duplicate Attribute Handling', () => {
     test('should remove duplicate attributes and keep the last occurrence', () => {
       const input =
@@ -393,6 +530,136 @@ describe('MJML to JSON Browser Converter', () => {
       expect(buttonBlock?.type).toBe('mj-button')
       // Button content should NOT be wrapped (normalization only applies to mj-text)
       expect((buttonBlock as { content?: string })?.content).toBe('Click Me')
+    })
+  })
+
+  describe('Full MJML Import with HTML Content (Issue #218)', () => {
+    test('should successfully import MJML with <br> tags in mj-text', () => {
+      const mjmlInput = `
+        <mjml>
+          <mj-body>
+            <mj-section>
+              <mj-column>
+                <mj-text>Line 1<br>Line 2<br>Line 3</mj-text>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
+
+      // Should NOT throw
+      expect(() => convertMjmlToJsonBrowser(mjmlInput)).not.toThrow()
+
+      const result = convertMjmlToJsonBrowser(mjmlInput)
+      expect(result.type).toBe('mjml')
+
+      const textBlock = result.children?.[0]?.children?.[0]?.children?.[0]?.children?.[0]
+      expect(textBlock?.type).toBe('mj-text')
+      // Content should be preserved
+      expect((textBlock as { content?: string })?.content).toContain('Line 1')
+    })
+
+    test('should successfully import MJML with &nbsp; entities', () => {
+      const mjmlInput = `
+        <mjml>
+          <mj-body>
+            <mj-section>
+              <mj-column>
+                <mj-text>Hello&nbsp;World</mj-text>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
+
+      // Should NOT throw
+      expect(() => convertMjmlToJsonBrowser(mjmlInput)).not.toThrow()
+
+      const result = convertMjmlToJsonBrowser(mjmlInput)
+      expect(result.type).toBe('mjml')
+    })
+
+    test('should successfully import MJML with mixed HTML content', () => {
+      const mjmlInput = `
+        <mjml>
+          <mj-body>
+            <mj-section>
+              <mj-column>
+                <mj-text>
+                  <p>First line<br>Second line</p>
+                  <p>Copyright&nbsp;&copy;&nbsp;2024</p>
+                </mj-text>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
+
+      // Should NOT throw
+      expect(() => convertMjmlToJsonBrowser(mjmlInput)).not.toThrow()
+
+      const result = convertMjmlToJsonBrowser(mjmlInput)
+      expect(result.type).toBe('mjml')
+    })
+
+    test('should handle real-world export/reimport scenario', () => {
+      // Simulating content that would come from Tiptap editor export
+      const mjmlInput = `
+        <mjml>
+          <mj-body>
+            <mj-section background-color="#ffffff">
+              <mj-column>
+                <mj-text font-size="16px" color="#333333">
+                  <p>Dear Customer,</p>
+                  <p>Thank you for your order!<br>Your order number is: #12345</p>
+                  <p>&nbsp;</p>
+                  <p>Best regards,<br>The Team</p>
+                  <p>&copy; 2024 Company Name&trade;</p>
+                </mj-text>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
+
+      // Should NOT throw "Invalid MJML syntax" error
+      expect(() => convertMjmlToJsonBrowser(mjmlInput)).not.toThrow()
+
+      const result = convertMjmlToJsonBrowser(mjmlInput)
+      expect(result.type).toBe('mjml')
+      expect(result.children).toBeDefined()
+    })
+
+    test('should combine void tag conversion with entity conversion and existing preprocessing', () => {
+      // This tests all preprocessing together
+      const mjmlInput = `
+        <mjml>
+          <mj-body>
+            <mj-section background-color="#fff" background-color="#000">
+              <mj-column>
+                <mj-image src="https://example.com?a=1&b=2" />
+                <mj-text>Line 1<br>Line 2&nbsp;&copy;</mj-text>
+              </mj-column>
+            </mj-section>
+          </mj-body>
+        </mjml>
+      `
+
+      // Should NOT throw
+      expect(() => convertMjmlToJsonBrowser(mjmlInput)).not.toThrow()
+
+      const result = convertMjmlToJsonBrowser(mjmlInput)
+
+      // Verify duplicate attribute was handled (last value wins)
+      const sectionBlock = result.children?.[0]?.children?.[0]
+      expect((sectionBlock?.attributes as Record<string, unknown>)?.backgroundColor).toBe('#000')
+
+      // Verify ampersand in URL was escaped
+      const columnBlock = sectionBlock?.children?.[0]
+      const imageBlock = columnBlock?.children?.[0]
+      expect((imageBlock?.attributes as Record<string, unknown>)?.src).toBe(
+        'https://example.com?a=1&b=2'
+      )
     })
   })
 })

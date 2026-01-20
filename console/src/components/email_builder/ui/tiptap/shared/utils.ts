@@ -399,6 +399,46 @@ export const getInitialInlineContent = (content: string): string => {
   }
 }
 
+// Helper function to expand selection to cover the full link range
+// This is specifically for updating links when cursor is inside a link with no selection
+// IMPORTANT: Only expands if selection is empty (cursor only) to respect user's intentional selections
+export const expandSelectionToLinkRange = (editor: Editor): boolean => {
+  const { state } = editor
+  const { selection } = state
+
+  // Only expand if selection is empty (just a cursor, no text selected)
+  // If user has made an intentional selection, respect it
+  if (!selection.empty) {
+    return false
+  }
+
+  // Only expand if we're inside a link
+  if (!editor.isActive('link')) {
+    return false
+  }
+
+  const { from } = selection
+  const { doc } = state
+  const $pos = doc.resolve(from)
+
+  // Find the link mark at the current position
+  const linkMark = $pos.marks().find((mark: Mark) => mark.type.name === 'link')
+
+  if (linkMark) {
+    try {
+      const markRange = getMarkRange($pos, linkMark.type)
+      if (markRange && markRange.from < markRange.to) {
+        editor.chain().focus().setTextSelection({ from: markRange.from, to: markRange.to }).run()
+        return true
+      }
+    } catch (e) {
+      console.warn('Could not get link mark range:', e)
+    }
+  }
+
+  return false
+}
+
 // Utility functions for link styling
 export const isSelectionInsideLink = (editor: Editor): boolean => {
   return editor.isActive('link')

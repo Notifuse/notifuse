@@ -59,9 +59,9 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
       if (selectedFile.file_info?.url) {
         currentOptions.onSelect(selectedFile.file_info.url)
         message.success(`Selected: ${selectedFile.name}`)
+        closeModal()
       }
     }
-    closeModal()
   }
 
   // Handle file manager errors
@@ -121,7 +121,7 @@ export const FileManagerProvider: React.FC<FileManagerProviderProps> = ({
         open={isModalVisible}
         onCancel={closeModal}
         footer={null}
-        width={900}
+        width={1000}
         style={{ top: 20 }}
         styles={{ body: { padding: 0 } }}
         zIndex={1300}

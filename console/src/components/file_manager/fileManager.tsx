@@ -199,11 +199,17 @@ export const FileManager = (props: FileManagerProps) => {
         } as StorageObject
 
         if (!isFolder) {
+          // Encode each path segment separately to preserve folder structure
+          // This ensures spaces and special chars are encoded but slashes are kept
+          const encodedKey = key
+            .split('/')
+            .map((segment) => encodeURIComponent(segment))
+            .join('/')
           item.file_info = {
             size: x.Size as number,
             size_human: filesize(x.Size || 0, { round: 0 }),
             content_type: GetContentType(key),
-            url: baseUrl ? `${baseUrl}/${key}` : key
+            url: baseUrl ? `${baseUrl}/${encodedKey}` : encodedKey
           }
         }
 
@@ -819,13 +825,13 @@ export const FileManager = (props: FileManagerProps) => {
                 render: (item: StorageObject) => {
                   if (item.is_folder) {
                     return (
-                      <div onClick={toggleSelectionForItem.bind(null, item)}>
+                      <div>
                         <Folder size={16} style={styles.primary} />
                       </div>
                     )
                   }
                   return (
-                    <div onClick={toggleSelectionForItem.bind(null, item)}>
+                    <div>
                       {item.file_info.content_type.includes('image') && (
                         <Popover
                           placement="right"
@@ -849,18 +855,14 @@ export const FileManager = (props: FileManagerProps) => {
                 title: 'Name',
                 key: 'name',
                 render: (item: StorageObject) => {
-                  return <div onClick={toggleSelectionForItem.bind(null, item)}>{item.name}</div>
+                  return <div>{item.name}</div>
                 }
               },
               {
                 title: 'Size',
                 key: 'size',
                 render: (item: StorageObject) => {
-                  return (
-                    <div onClick={toggleSelectionForItem.bind(null, item)}>
-                      {item.is_folder ? '-' : item.file_info.size_human}
-                    </div>
-                  )
+                  return <div>{item.is_folder ? '-' : item.file_info.size_human}</div>
                 }
               },
               {
@@ -869,9 +871,7 @@ export const FileManager = (props: FileManagerProps) => {
                 render: (item: StorageObject) => {
                   return (
                     <Tooltip title={dayjs(item.last_modified).format('llll')}>
-                      <div onClick={toggleSelectionForItem.bind(null, item)}>
-                        {dayjs(item.last_modified).format('ll')}
-                      </div>
+                      <div>{dayjs(item.last_modified).format('ll')}</div>
                     </Tooltip>
                   )
                 }
@@ -880,6 +880,7 @@ export const FileManager = (props: FileManagerProps) => {
                 title: '',
                 key: 'actions',
                 align: 'right',
+                width: 250,
                 render: (item: StorageObject) => {
                   if (item.is_folder) return
                   return (
@@ -951,6 +952,16 @@ export const FileManager = (props: FileManagerProps) => {
                             <Trash2 size={16} />
                           </Button>
                         </Tooltip>
+                      )}
+                      {props.withSelection && props.acceptItem(item) && (
+                        <Button
+                          type="primary"
+                          size="small"
+                          style={{ marginRight: 16 }}
+                          onClick={() => toggleSelectionForItem(item)}
+                        >
+                          Select
+                        </Button>
                       )}
                     </Space>
                   )

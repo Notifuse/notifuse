@@ -1,6 +1,81 @@
 import type { EmailBlock } from '../email_builder/types'
 
 /**
+ * HTML void elements that must be self-closing in XML
+ * @see https://html.spec.whatwg.org/multipage/syntax.html#void-elements
+ */
+const HTML_VOID_ELEMENTS = [
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'link',
+  'meta',
+  'param',
+  'source',
+  'track',
+  'wbr'
+] as const
+
+/**
+ * HTML named entities mapped to their Unicode code points
+ * Only entities not predefined in XML (amp, lt, gt, quot, apos) need conversion
+ */
+const HTML_ENTITY_TO_CODEPOINT: Record<string, number> = {
+  // Whitespace and formatting
+  nbsp: 160,
+  ensp: 8194,
+  emsp: 8195,
+  thinsp: 8201,
+
+  // Punctuation
+  bull: 8226,
+  hellip: 8230,
+  mdash: 8212,
+  ndash: 8211,
+  lsquo: 8216,
+  rsquo: 8217,
+  ldquo: 8220,
+  rdquo: 8221,
+  laquo: 171,
+  raquo: 187,
+
+  // Symbols
+  copy: 169,
+  reg: 174,
+  trade: 8482,
+  sect: 167,
+  para: 182,
+  deg: 176,
+  plusmn: 177,
+  times: 215,
+  divide: 247,
+  micro: 181,
+  middot: 183,
+
+  // Currency
+  euro: 8364,
+  pound: 163,
+  yen: 165,
+  cent: 162,
+
+  // Arrows
+  larr: 8592,
+  rarr: 8594,
+  uarr: 8593,
+  darr: 8595,
+  harr: 8596,
+
+  // Spanish/French punctuation
+  iexcl: 161,
+  iquest: 191
+}
+
+/**
  * Fixes duplicate attributes on a single tag
  * When an attribute appears multiple times, keeps only the last occurrence
  * @param tagContent - The inner content of an XML/MJML tag
@@ -44,7 +119,39 @@ function fixDuplicateAttributes(tagContent: string): string {
 export function preprocessMjml(mjmlString: string): string {
   let processed = mjmlString
 
-  // Fix unescaped ampersands in attribute values
+  // Step 1: Convert HTML void tags to self-closing XML format
+  // HTML allows <br>, <hr>, <img>, etc. without closing slash
+  // XML requires self-closing: <br/>, <hr/>, <img/>
+  // This regex matches void tags that are NOT already self-closing
+  const voidTagPattern = new RegExp(
+    `<(${HTML_VOID_ELEMENTS.join('|')})\\b([^>]*[^/])?>(?!/)`,
+    'gi'
+  )
+  processed = processed.replace(voidTagPattern, (match, tagName, attrs) => {
+    // Check if already self-closing (ends with />)
+    if (match.endsWith('/>')) {
+      return match
+    }
+    // Convert to self-closing
+    const attributes = attrs ? attrs.trimEnd() : ''
+    return `<${tagName}${attributes}/>`
+  })
+
+  // Step 2: Convert HTML named entities to XML numeric entities
+  // XML only predefines: &amp; &lt; &gt; &quot; &apos;
+  // HTML entities like &nbsp; must be converted to &#160;
+  processed = processed.replace(/&([a-zA-Z]+);/g, (match, entityName) => {
+    const lowerName = entityName.toLowerCase()
+    // Preserve XML predefined entities
+    if (['amp', 'lt', 'gt', 'quot', 'apos'].includes(lowerName)) {
+      return match
+    }
+    // Convert known HTML entities to numeric
+    const codePoint = HTML_ENTITY_TO_CODEPOINT[lowerName]
+    return codePoint !== undefined ? `&#${codePoint};` : match
+  })
+
+  // Step 3: Fix unescaped ampersands in attribute values
   // Use a callback function to process all ampersands within each attribute value
   processed = processed.replace(/="([^"]*)"/g, (_match, attrValue) => {
     // Within this attribute value, escape all unescaped ampersands
@@ -53,7 +160,7 @@ export function preprocessMjml(mjmlString: string): string {
     return '="' + fixed + '"'
   })
 
-  // Fix duplicate attributes in opening tags
+  // Step 4: Fix duplicate attributes in opening tags
   // Match opening tags like <mj-section ...> or <mj-button ... />
   processed = processed.replace(/<([^>]+)>/g, (fullMatch, tagContent) => {
     // Check if this tag has any attributes
