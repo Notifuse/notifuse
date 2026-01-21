@@ -238,7 +238,8 @@ type CompileTemplateRequest struct {
 	VisualEditorTree EmailBlock       `json:"visual_editor_tree"`
 	TemplateData     MapOfAny         `json:"test_data,omitempty"`
 	TrackingSettings TrackingSettings `json:"tracking_settings,omitempty"`
-	Channel          string           `json:"channel,omitempty"` // "email" or "web" - filters blocks by visibility
+	Channel          string           `json:"channel,omitempty"`          // "email" or "web" - filters blocks by visibility
+	PreserveLiquid   bool             `json:"preserve_liquid,omitempty"`  // When true, skip Liquid template processing and preserve raw syntax
 }
 
 // UnmarshalJSON implements custom JSON unmarshaling for CompileTemplateRequest
@@ -322,41 +323,48 @@ func CompileTemplate(req CompileTemplateRequest) (resp *CompileTemplateResponse,
 		tree = FilterBlocksByChannel(req.VisualEditorTree, req.Channel)
 	}
 
-	// Prepare template data JSON string
-	// Note: Web channel doesn't use template data (no contact personalization)
-	var templateDataStr string
-	if len(req.TemplateData) > 0 && req.Channel != "web" {
-		jsonDataBytes, err := json.Marshal(req.TemplateData)
-		if err != nil {
-			return &CompileTemplateResponse{
-				Success: false,
-				MJML:    nil,
-				HTML:    nil,
-				Error: &mjml.Error{
-					Message: fmt.Sprintf("failed to marshal template data: %v", err),
-				},
-			}, nil
-		}
-		templateDataStr = string(jsonDataBytes)
-	}
-
-	// Compile tree to MJML using our pkg/mjml function with template data
 	var mjmlString string
-	if templateDataStr != "" {
-		var err error
-		mjmlString, err = ConvertJSONToMJMLWithData(tree, templateDataStr)
-		if err != nil {
-			return &CompileTemplateResponse{
-				Success: false,
-				MJML:    nil,
-				HTML:    nil,
-				Error: &mjml.Error{
-					Message: err.Error(),
-				},
-			}, nil
-		}
+
+	// If PreserveLiquid is true, skip all Liquid processing and return raw MJML
+	// This is used for MJML export where we want to preserve Liquid syntax like {{contact.external_id}}
+	if req.PreserveLiquid {
+		mjmlString = ConvertJSONToMJMLRaw(tree)
 	} else {
-		mjmlString = ConvertJSONToMJML(tree)
+		// Prepare template data JSON string
+		// Note: Web channel doesn't use template data (no contact personalization)
+		var templateDataStr string
+		if len(req.TemplateData) > 0 && req.Channel != "web" {
+			jsonDataBytes, err := json.Marshal(req.TemplateData)
+			if err != nil {
+				return &CompileTemplateResponse{
+					Success: false,
+					MJML:    nil,
+					HTML:    nil,
+					Error: &mjml.Error{
+						Message: fmt.Sprintf("failed to marshal template data: %v", err),
+					},
+				}, nil
+			}
+			templateDataStr = string(jsonDataBytes)
+		}
+
+		// Compile tree to MJML using our pkg/mjml function with template data
+		if templateDataStr != "" {
+			var err error
+			mjmlString, err = ConvertJSONToMJMLWithData(tree, templateDataStr)
+			if err != nil {
+				return &CompileTemplateResponse{
+					Success: false,
+					MJML:    nil,
+					HTML:    nil,
+					Error: &mjml.Error{
+						Message: err.Error(),
+					},
+				}, nil
+			}
+		} else {
+			mjmlString = ConvertJSONToMJML(tree)
+		}
 	}
 
 	// Preprocess MJML to fix HTML vs XML incompatibilities

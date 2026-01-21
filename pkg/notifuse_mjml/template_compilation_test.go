@@ -1047,3 +1047,362 @@ func TestCompileTemplateButtonVsTextURL(t *testing.T) {
 			occurrences, *resp.HTML)
 	}
 }
+
+// TestCompileTemplateWithImageLiquidOnlySrc tests that mj-image with only Liquid syntax
+// in the src attribute compiles successfully without test data (GitHub issue #226)
+func TestCompileTemplateWithImageLiquidOnlySrc(t *testing.T) {
+	// Create an mj-image with only Liquid syntax in src attribute
+	// This is a common use case for transactional emails where the image URL
+	// is dynamically populated from the application
+	imageBase := NewBaseBlock("image-1", MJMLComponentMjImage)
+	imageBase.Attributes["src"] = "{{ postImage }}"
+	imageBase.Attributes["alt"] = "Post Image"
+	imageBlock := &MJImageBlock{BaseBlock: imageBase}
+
+	// Create complete MJML structure
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{imageBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	// Test 1: Compile WITHOUT test data (simulates export without preview data)
+	// This is the bug scenario - it should still compile successfully
+	t.Run("without test data", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			// No TemplateData - this simulates export without test data
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate should not return error: %v", err)
+		}
+
+		// Log MJML output for debugging even on failure
+		if resp.MJML != nil {
+			t.Logf("Generated MJML:\n%s", *resp.MJML)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		if resp.MJML == nil {
+			t.Fatal("Expected MJML in response")
+		}
+
+		if resp.HTML == nil {
+			t.Fatal("Expected HTML in response")
+		}
+
+		// The Liquid syntax should be preserved in the output
+		if !strings.Contains(*resp.MJML, "{{ postImage }}") {
+			t.Errorf("Expected MJML to contain preserved Liquid syntax '{{ postImage }}', got:\n%s", *resp.MJML)
+		}
+
+		t.Logf("Generated MJML:\n%s", *resp.MJML)
+		t.Logf("Generated HTML:\n%s", *resp.HTML)
+	})
+
+	// Test 2: Compile WITH test data (simulates preview with actual data)
+	// This should work and replace the Liquid variable
+	t.Run("with test data", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData: MapOfAny{
+				"postImage": "https://example.com/images/post.jpg",
+			},
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate failed: %v", err)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		if resp.HTML == nil {
+			t.Fatal("Expected HTML in response")
+		}
+
+		// The Liquid variable should be replaced with the actual URL
+		if !strings.Contains(*resp.HTML, "https://example.com/images/post.jpg") {
+			t.Errorf("Expected HTML to contain the resolved image URL, got:\n%s", *resp.HTML)
+		}
+
+		t.Logf("Generated HTML:\n%s", *resp.HTML)
+	})
+}
+
+// TestCompileTemplateWithPreserveLiquid tests that the preserve_liquid flag
+// correctly skips Liquid template processing and preserves raw syntax (GitHub issue #225)
+func TestCompileTemplateWithPreserveLiquid(t *testing.T) {
+	// Create a text block with Liquid syntax in a link
+	textContent := `<a href="https://example.com?external_id={{contact.external_id}}&amp;unsubscribe=true">Unsubscribe</a>`
+	textBlock := &MJTextBlock{
+		BaseBlock: NewBaseBlock("text-1", MJMLComponentMjText),
+	}
+	textBlock.Content = &textContent
+
+	// Create complete MJML structure
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{textBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	// Test 1: Compile with empty template data - Liquid syntax should be preserved
+	// This is the expected behavior: when no template data is provided, Liquid syntax is preserved
+	// to prevent broken URLs like src="" which would fail MJML compilation (issue #225, #226)
+	t.Run("with empty template data", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData:     MapOfAny{}, // Empty test data - Liquid syntax should be preserved
+			PreserveLiquid:   false,
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate should not return error: %v", err)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		// With empty template data, Liquid syntax should be preserved (not rendered to empty)
+		if resp.MJML == nil || !strings.Contains(*resp.MJML, "{{contact.external_id}}") {
+			t.Errorf("With empty template data, Liquid syntax should be preserved in MJML, got:\n%s", *resp.MJML)
+		}
+
+		t.Logf("MJML with empty template data:\n%s", *resp.MJML)
+	})
+
+	// Test 2: Compile WITH preserve_liquid - Liquid syntax should be preserved
+	t.Run("with preserve_liquid", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData:     MapOfAny{}, // This should be ignored when PreserveLiquid is true
+			PreserveLiquid:   true,       // Preserve Liquid syntax
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate should not return error: %v", err)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		// With preserve_liquid, the Liquid syntax should be preserved in MJML output
+		if resp.MJML == nil {
+			t.Fatal("Expected MJML in response")
+		}
+
+		if !strings.Contains(*resp.MJML, "{{contact.external_id}}") {
+			t.Errorf("With preserve_liquid, Liquid syntax '{{contact.external_id}}' should be preserved in MJML, got:\n%s", *resp.MJML)
+		}
+
+		t.Logf("MJML with preserve_liquid:\n%s", *resp.MJML)
+	})
+
+	// Test 3: Compile with test data but preserve_liquid=true should still preserve Liquid
+	t.Run("with test data and preserve_liquid", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData: MapOfAny{
+				"contact": map[string]interface{}{
+					"external_id": "12345",
+				},
+			},
+			PreserveLiquid: true, // Should ignore TemplateData
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate should not return error: %v", err)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		// With preserve_liquid, the Liquid syntax should be preserved even with test data
+		if resp.MJML == nil {
+			t.Fatal("Expected MJML in response")
+		}
+
+		if !strings.Contains(*resp.MJML, "{{contact.external_id}}") {
+			t.Errorf("With preserve_liquid, Liquid syntax should be preserved even with test data, got:\n%s", *resp.MJML)
+		}
+
+		// Should NOT contain the rendered value "12345"
+		if strings.Contains(*resp.MJML, "12345") {
+			t.Errorf("With preserve_liquid, test data should not be rendered, but found '12345' in MJML:\n%s", *resp.MJML)
+		}
+
+		t.Logf("MJML with test data and preserve_liquid:\n%s", *resp.MJML)
+	})
+}
+
+// TestCompileTemplateWithImageLiquidOnlySrcPartialData tests the bug scenario from issue #226
+// where an mj-image has only Liquid syntax in src (e.g., "{{ postImage }}") and template data
+// exists but doesn't include the referenced variable. This would cause the Liquid engine
+// to render the variable as an empty string, resulting in src="" which breaks MJML compilation.
+func TestCompileTemplateWithImageLiquidOnlySrcPartialData(t *testing.T) {
+	// Create an mj-image with only Liquid syntax in src attribute
+	imageBase := NewBaseBlock("image-1", MJMLComponentMjImage)
+	imageBase.Attributes["src"] = "{{ postImage }}"
+	imageBase.Attributes["alt"] = "Post Image"
+	imageBlock := &MJImageBlock{BaseBlock: imageBase}
+
+	// Create complete MJML structure
+	column := &MJColumnBlock{BaseBlock: NewBaseBlock("column-1", MJMLComponentMjColumn)}
+	column.Children = []EmailBlock{imageBlock}
+
+	section := &MJSectionBlock{BaseBlock: NewBaseBlock("section-1", MJMLComponentMjSection)}
+	section.Children = []EmailBlock{column}
+
+	body := &MJBodyBlock{BaseBlock: NewBaseBlock("body-1", MJMLComponentMjBody)}
+	body.Children = []EmailBlock{section}
+
+	mjml := &MJMLBlock{BaseBlock: NewBaseBlock("mjml-1", MJMLComponentMjml)}
+	mjml.Children = []EmailBlock{body}
+
+	// BUG SCENARIO: Template data exists but doesn't include "postImage"
+	// Without the fix, this would render {{ postImage }} to empty string,
+	// resulting in src="" which breaks the MJML compiler or produces invalid HTML.
+	t.Run("with partial template data missing image variable", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData: MapOfAny{
+				"other_var": "some_value",
+				"contact": map[string]interface{}{
+					"email": "test@example.com",
+				},
+			}, // Has data, but NOT the "postImage" variable
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate should not return error: %v", err)
+		}
+
+		// Log MJML output for debugging
+		if resp.MJML != nil {
+			t.Logf("Generated MJML:\n%s", *resp.MJML)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		if resp.MJML == nil {
+			t.Fatal("Expected MJML in response")
+		}
+
+		if resp.HTML == nil {
+			t.Fatal("Expected HTML in response")
+		}
+
+		// CRITICAL: A helpful debug message should be shown when the variable is not in template data.
+		// Without the fix, it would render to src="" which is broken.
+		if !strings.Contains(*resp.MJML, "[undefined: postImage]") {
+			t.Errorf("Expected MJML to contain debug message '[undefined: postImage]' when variable is not in template data.\n"+
+				"This likely means the Liquid engine rendered it to empty string.\n"+
+				"Got MJML:\n%s", *resp.MJML)
+		}
+
+		// The HTML should also contain the debug message
+		if !strings.Contains(*resp.HTML, "[undefined: postImage]") {
+			t.Errorf("Expected HTML to contain debug message '[undefined: postImage]' when variable is not in template data.\n"+
+				"This likely means the Liquid engine rendered it to empty string.\n"+
+				"Got HTML:\n%s", *resp.HTML)
+		}
+
+		t.Logf("Generated HTML:\n%s", *resp.HTML)
+	})
+
+	// Verify that when the variable IS present, it gets properly replaced
+	t.Run("with complete template data including image variable", func(t *testing.T) {
+		req := CompileTemplateRequest{
+			WorkspaceID:      "test-workspace",
+			MessageID:        "test-message",
+			VisualEditorTree: mjml,
+			TemplateData: MapOfAny{
+				"postImage": "https://example.com/images/my-post.jpg",
+				"other_var": "some_value",
+			}, // Has the "postImage" variable
+			TrackingSettings: TrackingSettings{
+				EnableTracking: false,
+			},
+		}
+
+		resp, err := CompileTemplate(req)
+		if err != nil {
+			t.Fatalf("CompileTemplate failed: %v", err)
+		}
+
+		if !resp.Success {
+			t.Fatalf("Expected successful compilation, got error: %v", resp.Error)
+		}
+
+		// When the variable IS present, it should be replaced
+		if !strings.Contains(*resp.HTML, "https://example.com/images/my-post.jpg") {
+			t.Errorf("Expected HTML to contain the resolved image URL when variable is present, got:\n%s", *resp.HTML)
+		}
+
+		// Should NOT contain the raw Liquid syntax
+		if strings.Contains(*resp.HTML, "{{ postImage }}") {
+			t.Errorf("Expected HTML to NOT contain raw Liquid syntax when variable is present, got:\n%s", *resp.HTML)
+		}
+
+		t.Logf("Generated HTML:\n%s", *resp.HTML)
+	})
+}

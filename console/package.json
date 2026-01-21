@@ -100,6 +100,10 @@
     "use-debounce": "^10.0.6",
     "uuid": "^11.1.0"
   },
+  "overrides": {
+    "seroval": "^1.4.1",
+    "seroval-plugins": "^1.4.1"
+  },
   "devDependencies": {
     "@eslint/js": "^9.19.0",
     "@playwright/test": "^1.57.0",

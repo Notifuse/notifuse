@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/Notifuse/notifuse/pkg/crypto"
 	"github.com/asaskevich/govalidator"
@@ -654,8 +656,8 @@ func FromJSON(data interface{}) (*Contact, error) {
 		return nil, fmt.Errorf("unsupported data type: %T", data)
 	}
 
-	// Extract required fields
-	email := jsonResult.Get("email").String()
+	// Extract required fields and trim all Unicode whitespace (including NBSP)
+	email := trimUnicodeSpace(jsonResult.Get("email").String())
 	if email == "" {
 		return nil, fmt.Errorf("email is required")
 	}
@@ -808,6 +810,13 @@ func FromJSON(data interface{}) (*Contact, error) {
 	return contact, nil
 }
 
+// trimUnicodeSpace trims all Unicode whitespace characters from a string,
+// including non-breaking space (NBSP, U+00A0) which is not trimmed by strings.TrimSpace.
+// This is important for CSV imports where NBSP characters can prevent email delivery.
+func trimUnicodeSpace(s string) string {
+	return strings.TrimFunc(s, unicode.IsSpace)
+}
+
 // Helper functions for parsing nullable fields from JSON
 func parseNullableString(result gjson.Result, field string, target **NullableString) error {
 	if value := result.Get(field); value.Exists() {
@@ -815,7 +824,7 @@ func parseNullableString(result gjson.Result, field string, target **NullableStr
 		case gjson.Null:
 			*target = &NullableString{IsNull: true}
 		case gjson.String:
-			*target = &NullableString{String: value.String(), IsNull: false}
+			*target = &NullableString{String: trimUnicodeSpace(value.String()), IsNull: false}
 		default:
 			return fmt.Errorf("invalid type for %s: expected string, got %s", field, value.Type)
 		}

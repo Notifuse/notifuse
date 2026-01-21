@@ -12,6 +12,12 @@ func ConvertJSONToMJML(tree EmailBlock) string {
 	return convertBlockToMJML(tree, 0, "")
 }
 
+// ConvertJSONToMJMLRaw converts an EmailBlock JSON tree to MJML string
+// without processing Liquid templates - preserving raw template syntax
+func ConvertJSONToMJMLRaw(tree EmailBlock) string {
+	return convertBlockToMJMLRaw(tree, 0)
+}
+
 // ConvertJSONToMJMLWithData converts an EmailBlock JSON tree to MJML string with template data
 func ConvertJSONToMJMLWithData(tree EmailBlock, templateData string) (string, error) {
 	// Parse template data once at the beginning
@@ -37,12 +43,16 @@ func convertBlockToMJMLWithErrorAndParsedData(block EmailBlock, indentLevel int,
 			// Process Liquid templating for mj-text, mj-button, mj-title, mj-preview, and mj-raw blocks
 			blockType := block.GetType()
 			if blockType == MJMLComponentMjText || blockType == MJMLComponentMjButton || blockType == MJMLComponentMjTitle || blockType == MJMLComponentMjPreview || blockType == MJMLComponentMjRaw {
-				processedContent, err := processLiquidContent(content, parsedData, block.GetID())
-				if err != nil {
-					// Return error instead of just logging
-					return "", fmt.Errorf("liquid processing failed for block %s: %v", block.GetID(), err)
-				} else {
-					content = processedContent
+				// Only process Liquid when we have actual template data.
+				// When parsedData is nil or empty, preserve Liquid syntax for MJML export (issue #226).
+				if parsedData != nil && len(parsedData) > 0 {
+					processedContent, err := processLiquidContent(content, parsedData, block.GetID())
+					if err != nil {
+						// Return error instead of just logging
+						return "", fmt.Errorf("liquid processing failed for block %s: %v", block.GetID(), err)
+					} else {
+						content = processedContent
+					}
 				}
 			}
 
@@ -120,7 +130,9 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 			// Process Liquid templating for mj-text, mj-button, mj-title, mj-preview, and mj-raw blocks
 			blockType := block.GetType()
 			if blockType == MJMLComponentMjText || blockType == MJMLComponentMjButton || blockType == MJMLComponentMjTitle || blockType == MJMLComponentMjPreview || blockType == MJMLComponentMjRaw {
-				if parsedData != nil {
+				// Only process Liquid when we have actual template data.
+				// When parsedData is nil or empty, preserve Liquid syntax for MJML export (issue #226).
+				if parsedData != nil && len(parsedData) > 0 {
 					processedContent, err := processLiquidContent(content, parsedData, block.GetID())
 					if err != nil {
 						// Log error but continue with original content
@@ -159,6 +171,65 @@ func convertBlockToMJMLWithParsedData(block EmailBlock, indentLevel int, templat
 	for _, child := range children {
 		if child != nil {
 			childrenMJML = append(childrenMJML, convertBlockToMJMLWithParsedData(child, indentLevel+1, templateData, parsedData))
+		}
+	}
+
+	return fmt.Sprintf("%s\n%s\n%s", openTag, strings.Join(childrenMJML, "\n"), closeTag)
+}
+
+// convertBlockToMJMLRaw recursively converts a single EmailBlock to MJML string
+// without any Liquid template processing - preserving raw template syntax
+func convertBlockToMJMLRaw(block EmailBlock, indentLevel int) string {
+	// Defensive check: ensure the block has a valid BaseBlock pointer
+	if block == nil {
+		return ""
+	}
+
+	// Check if GetType returns empty (indicates invalid/uninitialized block)
+	blockType := block.GetType()
+	if blockType == "" {
+		return ""
+	}
+
+	indent := strings.Repeat("  ", indentLevel)
+	tagName := string(blockType)
+	children := block.GetChildren()
+
+	// Handle self-closing tags that don't have children but may have content
+	if len(children) == 0 {
+		// Check if the block has content (for mj-text, mj-button, etc.)
+		content := getBlockContent(block)
+
+		if content != "" {
+			// Do NOT process Liquid - keep content raw
+			// Block with content - don't escape for mj-raw, mj-text, and mj-button (they can contain HTML)
+			attributeString := formatAttributes(block.GetAttributes())
+			if blockType == MJMLComponentMjRaw || blockType == MJMLComponentMjText || blockType == MJMLComponentMjButton {
+				return fmt.Sprintf("%s<%s%s>%s</%s>", indent, tagName, attributeString, content, tagName)
+			} else {
+				return fmt.Sprintf("%s<%s%s>%s</%s>", indent, tagName, attributeString, escapeContent(content), tagName)
+			}
+		} else {
+			// Self-closing block or empty block
+			attributeString := formatAttributes(block.GetAttributes())
+			if attributeString != "" {
+				return fmt.Sprintf("%s<%s%s />", indent, tagName, attributeString)
+			} else {
+				return fmt.Sprintf("%s<%s />", indent, tagName)
+			}
+		}
+	}
+
+	// Block with children
+	attributeString := formatAttributes(block.GetAttributes())
+	openTag := fmt.Sprintf("%s<%s%s>", indent, tagName, attributeString)
+	closeTag := fmt.Sprintf("%s</%s>", indent, tagName)
+
+	// Process children
+	var childrenMJML []string
+	for _, child := range children {
+		if child != nil {
+			childrenMJML = append(childrenMJML, convertBlockToMJMLRaw(child, indentLevel+1))
 		}
 	}
 
@@ -341,10 +412,16 @@ func processAttributeValue(value, attributeKey string, templateData map[string]i
 	// Alt attribute for images - users commonly personalize this
 	isAltAttribute := attributeKey == "alt"
 
-	// If templateData is nil or this isn't a processable attribute, return as-is
-	if templateData == nil || (!isURLAttribute && !isAltAttribute) {
+	// If templateData is nil/empty or this isn't a processable attribute, return as-is.
+	// This preserves Liquid syntax (e.g., {{ postImage }}) when no template data is provided,
+	// which is important for MJML export where we want to keep the raw Liquid syntax.
+	// Without this check, Liquid variables would render as empty strings, breaking URLs (issue #226).
+	if templateData == nil || len(templateData) == 0 || (!isURLAttribute && !isAltAttribute) {
 		return value
 	}
+
+	// Check if value contains Liquid syntax before processing
+	hasLiquidSyntax := strings.Contains(value, "{{") || strings.Contains(value, "{%")
 
 	// Process liquid content for URL attributes
 	processedValue, err := processLiquidContent(value, templateData, fmt.Sprintf("%s.%s", blockID, attributeKey))
@@ -354,7 +431,35 @@ func processAttributeValue(value, attributeKey string, templateData map[string]i
 		return value
 	}
 
+	// Issue #226 fix: If the original value contained Liquid syntax but rendered to empty,
+	// it means the template variable is not defined in the template data.
+	// Show a helpful debug message instead of an empty string to help users identify missing variables.
+	// This also prevents broken URLs like src="" which would cause MJML compilation errors.
+	if hasLiquidSyntax && strings.TrimSpace(processedValue) == "" {
+		// Extract variable name from Liquid syntax for clearer error message
+		// Handles {{ varName }} and {{ object.property }} patterns
+		varName := extractLiquidVariableName(value)
+		if varName != "" {
+			return fmt.Sprintf("[undefined: %s]", varName)
+		}
+		return "[undefined variable]"
+	}
+
 	return processedValue
+}
+
+// liquidVarRegex matches Liquid variable expressions like {{ varName }} or {{ object.property }}
+// Compiled once at package level for performance
+var liquidVarRegex = regexp.MustCompile(`\{\{\s*([a-zA-Z_][a-zA-Z0-9_.]*)\s*(?:\|[^}]*)?\}\}`)
+
+// extractLiquidVariableName extracts the variable name from a Liquid template expression
+// e.g., "{{ postImage }}" -> "postImage", "{{ contact.email }}" -> "contact.email"
+func extractLiquidVariableName(value string) string {
+	matches := liquidVarRegex.FindStringSubmatch(value)
+	if len(matches) >= 2 {
+		return matches[1]
+	}
+	return ""
 }
 
 // camelToKebab converts camelCase to kebab-case

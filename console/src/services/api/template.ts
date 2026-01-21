@@ -140,6 +140,7 @@ export interface CompileTemplateRequest {
   test_data?: Record<string, unknown> | null
   tracking_settings?: TrackingSettings
   channel?: string // "email" or "web" - filters blocks by visibility
+  preserve_liquid?: boolean // When true, skip Liquid template processing and preserve raw syntax
 }
 
 export interface CompileTemplateResponse {

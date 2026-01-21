@@ -241,7 +241,7 @@ func TestLiquidInHrefAttributes(t *testing.T) {
 			expectError:  false,
 		},
 		{
-			name: "empty template data",
+			name: "empty template data preserves liquid syntax",
 			block: func() EmailBlock {
 				b := NewBaseBlock("btn3", MJMLComponentMjButton)
 				b.Attributes["href"] = "{{ fallback_url | default: 'https://fallback.com' }}"
@@ -249,6 +249,20 @@ func TestLiquidInHrefAttributes(t *testing.T) {
 				return &MJButtonBlock{BaseBlock: b}
 			}(),
 			templateData: `{}`,
+			// With empty template data, Liquid syntax is preserved (issue #225, #226)
+			expectedHref: `href="{{ fallback_url | default: &#39;https://fallback.com&#39; }}"`,
+			expectError:  false,
+		},
+		{
+			name: "undefined variable with default filter",
+			block: func() EmailBlock {
+				b := NewBaseBlock("btn3b", MJMLComponentMjButton)
+				b.Attributes["href"] = "{{ fallback_url | default: 'https://fallback.com' }}"
+				b.Content = stringPtr("Fallback")
+				return &MJButtonBlock{BaseBlock: b}
+			}(),
+			// When template data has some values (but not fallback_url), default filter is used
+			templateData: `{"other_var": "value"}`,
 			expectedHref: `href="https://fallback.com"`,
 			expectError:  false,
 		},
@@ -377,6 +391,40 @@ func TestProcessAttributeValue(t *testing.T) {
 			templateData: map[string]interface{}{"product": map[string]interface{}{"name": "Blue Widget"}},
 			blockID:      "test",
 			expected:     "Blue Widget image",
+		},
+		// Issue #226: Liquid-only src that would render to empty when variable is missing
+		{
+			name:         "src with liquid-only value when variable missing from template data",
+			value:        "{{ postImage }}",
+			attributeKey: "src",
+			templateData: map[string]interface{}{"other_var": "value"}, // postImage is NOT in data
+			blockID:      "test",
+			expected:     "[undefined: postImage]", // Should show debug message, NOT render to empty
+		},
+		{
+			name:         "href with liquid-only value when variable missing from template data",
+			value:        "{{ link_url }}",
+			attributeKey: "href",
+			templateData: map[string]interface{}{"contact": map[string]interface{}{"email": "test@example.com"}}, // link_url is NOT in data
+			blockID:      "test",
+			expected:     "[undefined: link_url]", // Should show debug message, NOT render to empty
+		},
+		{
+			name:         "src with mixed content when variable missing",
+			value:        "https://cdn.example.com/{{ image_path }}",
+			attributeKey: "src",
+			templateData: map[string]interface{}{"other_var": "value"}, // image_path is NOT in data
+			blockID:      "test",
+			// When some part of the URL is static, the result will be non-empty
+			expected: "https://cdn.example.com/",
+		},
+		{
+			name:         "src with liquid and default filter when variable missing",
+			value:        "{{ image_url | default: 'https://placeholder.com/img.jpg' }}",
+			attributeKey: "src",
+			templateData: map[string]interface{}{"other_var": "value"}, // image_url is NOT in data
+			blockID:      "test",
+			expected:     "https://placeholder.com/img.jpg", // Default should be used
 		},
 	}
 

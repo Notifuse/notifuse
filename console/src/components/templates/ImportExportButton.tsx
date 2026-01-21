@@ -322,7 +322,8 @@ export const ImportExportButton: React.FC<ImportExportButtonProps> = ({
         workspace_id: workspaceId,
         message_id: 'export',
         visual_editor_tree: tree as EmailBlock,
-        test_data: testData || {}
+        test_data: testData || {},
+        preserve_liquid: true // Preserve Liquid syntax like {{contact.external_id}} in MJML export
       })
 
       if (response.error) {

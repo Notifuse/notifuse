@@ -2585,3 +2585,181 @@ func TestComputeEmailHMAC_DeterministicAndKeySensitive(t *testing.T) {
 	h3 := ComputeEmailHMAC(email, key2)
 	assert.NotEqual(t, h1, h3)
 }
+
+func TestFromJSON_TrimsWhitespace(t *testing.T) {
+	// NBSP is U+00A0 (non-breaking space)
+	nbsp := "\u00a0"
+
+	tests := []struct {
+		name           string
+		input          string
+		expectedEmail  string
+		expectedFirst  string
+		expectedLast   string
+		wantErr        bool
+		wantErrContain string
+	}{
+		{
+			name:          "trims trailing NBSP from email",
+			input:         `{"email": "test@example.com` + nbsp + `", "first_name": "John"}`,
+			expectedEmail: "test@example.com",
+			expectedFirst: "John",
+			wantErr:       false,
+		},
+		{
+			name:          "trims leading NBSP from email",
+			input:         `{"email": "` + nbsp + `test@example.com", "first_name": "John"}`,
+			expectedEmail: "test@example.com",
+			expectedFirst: "John",
+			wantErr:       false,
+		},
+		{
+			name:          "trims surrounding NBSP from email",
+			input:         `{"email": "` + nbsp + `test@example.com` + nbsp + `", "first_name": "John"}`,
+			expectedEmail: "test@example.com",
+			expectedFirst: "John",
+			wantErr:       false,
+		},
+		{
+			name:          "trims regular spaces from email",
+			input:         `{"email": "  test@example.com  ", "first_name": "John"}`,
+			expectedEmail: "test@example.com",
+			expectedFirst: "John",
+			wantErr:       false,
+		},
+		{
+			name:          "trims mixed whitespace from email",
+			input:         `{"email": " ` + nbsp + `test@example.com` + nbsp + ` ", "first_name": "John"}`,
+			expectedEmail: "test@example.com",
+			expectedFirst: "John",
+			wantErr:       false,
+		},
+		{
+			name:          "trims NBSP from string fields",
+			input:         `{"email": "test@example.com", "first_name": "` + nbsp + `John` + nbsp + `", "last_name": "` + nbsp + `Doe` + nbsp + `"}`,
+			expectedEmail: "test@example.com",
+			expectedFirst: "John",
+			expectedLast:  "Doe",
+			wantErr:       false,
+		},
+		{
+			name:          "trims tabs and newlines from email",
+			input:         "{\"email\": \"\ttest@example.com\n\", \"first_name\": \"John\"}",
+			expectedEmail: "test@example.com",
+			expectedFirst: "John",
+			wantErr:       false,
+		},
+		{
+			name:           "email with only NBSP becomes empty and fails validation",
+			input:          `{"email": "` + nbsp + nbsp + `"}`,
+			wantErr:        true,
+			wantErrContain: "email is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			contact, err := FromJSON(tt.input)
+
+			if tt.wantErr {
+				require.Error(t, err)
+				if tt.wantErrContain != "" {
+					assert.Contains(t, err.Error(), tt.wantErrContain)
+				}
+				return
+			}
+
+			require.NoError(t, err)
+			require.NotNil(t, contact)
+
+			assert.Equal(t, tt.expectedEmail, contact.Email, "email should be trimmed")
+
+			if tt.expectedFirst != "" && contact.FirstName != nil {
+				assert.Equal(t, tt.expectedFirst, contact.FirstName.String, "first_name should be trimmed")
+			}
+
+			if tt.expectedLast != "" && contact.LastName != nil {
+				assert.Equal(t, tt.expectedLast, contact.LastName.String, "last_name should be trimmed")
+			}
+		})
+	}
+}
+
+func TestTrimUnicodeSpace(t *testing.T) {
+	// NBSP is U+00A0 (non-breaking space)
+	nbsp := "\u00a0"
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "no whitespace",
+			input:    "hello",
+			expected: "hello",
+		},
+		{
+			name:     "regular spaces",
+			input:    "  hello  ",
+			expected: "hello",
+		},
+		{
+			name:     "tabs",
+			input:    "\thello\t",
+			expected: "hello",
+		},
+		{
+			name:     "newlines",
+			input:    "\nhello\n",
+			expected: "hello",
+		},
+		{
+			name:     "NBSP only",
+			input:    nbsp + nbsp,
+			expected: "",
+		},
+		{
+			name:     "trailing NBSP",
+			input:    "hello" + nbsp,
+			expected: "hello",
+		},
+		{
+			name:     "leading NBSP",
+			input:    nbsp + "hello",
+			expected: "hello",
+		},
+		{
+			name:     "surrounding NBSP",
+			input:    nbsp + "hello" + nbsp,
+			expected: "hello",
+		},
+		{
+			name:     "mixed whitespace",
+			input:    " " + nbsp + "\t" + "hello" + "\n" + nbsp + " ",
+			expected: "hello",
+		},
+		{
+			name:     "preserves internal whitespace",
+			input:    "hello world",
+			expected: "hello world",
+		},
+		{
+			name:     "preserves internal NBSP",
+			input:    "hello" + nbsp + "world",
+			expected: "hello" + nbsp + "world",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := trimUnicodeSpace(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

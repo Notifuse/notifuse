@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.9] - 2026-01-21
+
+- **Contacts**: Fixed CSV import not trimming non-breaking spaces (NBSP) from email addresses and string fields (#223)
+- **Email Builder**: Fixed MJML export stripping Liquid template syntax like `{{contact.external_id}}` from links (#225)
+- **Email Builder**: Preview now shows `[undefined: varName]` debug message when Liquid variables are missing from template data (#226)
+
 ## [26.8] - 2026-01-19
 
 - **File Manager**: Added explicit "Select" button in actions column when opened from email editor, replacing row-click selection behavior
