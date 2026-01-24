@@ -1,20 +1,35 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Typography, Space, Tooltip, Button, message, Table, Tag, Popconfirm } from 'antd'
+import {
+  Typography,
+  Space,
+  Tooltip,
+  Button,
+  message,
+  Popconfirm,
+  Card,
+  Statistic,
+  Row,
+  Col,
+  Spin,
+  Segmented,
+  Descriptions,
+  Divider
+} from 'antd'
 import { useParams } from '@tanstack/react-router'
 import {
   transactionalNotificationsApi,
-  TransactionalNotification,
-  ChannelTemplates
+  TransactionalNotification
 } from '../services/api/transactional_notifications'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faPenToSquare,
   faTrashCan,
-  faEnvelope,
   faPaperPlane,
-  faEye
+  faEye,
+  faCircleCheck,
+  faCircleXmark
 } from '@fortawesome/free-regular-svg-icons'
-import { faTerminal } from '@fortawesome/free-solid-svg-icons'
+import { faTerminal, faTriangleExclamation } from '@fortawesome/free-solid-svg-icons'
 import UpsertTransactionalNotificationDrawer from '../components/transactional/UpsertTransactionalNotificationDrawer'
 import { useState } from 'react'
 import dayjs from '../lib/dayjs'
@@ -22,10 +37,11 @@ import { useAuth, useWorkspacePermissions } from '../contexts/AuthContext'
 import SendTemplateModal from '../components/templates/SendTemplateModal'
 import TemplatePreviewDrawer from '../components/templates/TemplatePreviewDrawer'
 import { templatesApi } from '../services/api/template'
-import { Workspace } from '../services/api/types'
+import { Workspace, UserPermissions } from '../services/api/types'
 import { ApiCommandModal } from '../components/transactional/ApiCommandModal'
+import { analyticsService } from '../services/api/analytics'
 
-const { Title, Paragraph, Text } = Typography
+const { Title, Paragraph } = Typography
 
 // Helper function to get integration icon
 const getIntegrationIcon = (integrationType: string) => {
@@ -35,6 +51,14 @@ const getIntegrationIcon = (integrationType: string) => {
     default:
       return <FontAwesomeIcon icon={faTerminal} className="text-gray-600" />
   }
+}
+
+// Helper for rate calculation
+const getRate = (numerator: number, denominator: number) => {
+  if (denominator === 0) return '-'
+  const percentage = (numerator / denominator) * 100
+  if (percentage === 0 || percentage >= 10) return `${Math.round(percentage)}%`
+  return `${percentage.toFixed(1)}%`
 }
 
 // Template preview component
@@ -63,25 +87,181 @@ const TemplatePreview: React.FC<{ templateId: string; workspace: Workspace }> = 
   )
 }
 
-// Component for rendering channels
-const ChannelsList: React.FC<{ channels: ChannelTemplates; workspace: Workspace }> = ({
-  channels,
-  workspace
+
+// Stats type
+interface NotificationStats {
+  sent: number
+  delivered: number
+  failed: number
+  bounced: number
+}
+
+// Card component for each transactional notification
+const TransactionalNotificationCard: React.FC<{
+  notification: TransactionalNotification
+  workspace: Workspace
+  permissions: UserPermissions | undefined
+  stats: NotificationStats
+  isLoadingStats: boolean
+  onDelete: (n: TransactionalNotification) => void
+  onTest: (n: TransactionalNotification) => void
+  onShowApi: (n: TransactionalNotification) => void
+}> = ({
+  notification,
+  workspace,
+  permissions,
+  stats,
+  isLoadingStats,
+  onDelete,
+  onTest,
+  onShowApi
 }) => {
+  const integration = workspace.integrations?.find((i) => i.id === notification.integration_id)
+  const canDelete = permissions?.transactional?.write && !notification.integration_id
+  const canWrite = permissions?.transactional?.write
+
   return (
-    <Space direction="vertical" size="small">
-      {channels.email && (
-        <div className="flex items-center justify-between w-full">
-          <Tag bordered={false} color="blue">
-            <FontAwesomeIcon icon={faEnvelope} style={{ opacity: 0.7 }} /> Email
-          </Tag>
-          {channels.email.template_id && workspace.id && (
-            <TemplatePreview templateId={channels.email.template_id} workspace={workspace} />
+    <Card
+      className="!mb-6"
+      title={
+        <Space size="large">
+          {integration && (
+            <Tooltip title={`Managed by ${integration.name} (${integration.type} integration)`}>
+              {getIntegrationIcon(integration.type)}
+            </Tooltip>
           )}
-        </div>
-      )}
-      {/* Add more channel types here as they become available */}
-    </Space>
+          <div>{notification.name}</div>
+        </Space>
+      }
+      extra={
+        <Space>
+          {canDelete && (
+            <Popconfirm
+              title="Delete the notification?"
+              description="This cannot be undone."
+              onConfirm={() => onDelete(notification)}
+              okText="Yes, Delete"
+              cancelText="Cancel"
+            >
+              <Button type="text" size="small">
+                <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
+              </Button>
+            </Popconfirm>
+          )}
+          {canWrite && (
+            <Tooltip title="Edit">
+              <span>
+                <UpsertTransactionalNotificationDrawer
+                  workspace={workspace}
+                  notification={notification}
+                  buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
+                  buttonProps={{ type: 'text', size: 'small' }}
+                />
+              </span>
+            </Tooltip>
+          )}
+          {notification.channels?.email?.template_id && (
+            <TemplatePreview
+              templateId={notification.channels.email.template_id}
+              workspace={workspace}
+            />
+          )}
+          {canWrite && (
+            <Tooltip title="Test">
+              <Button type="text" size="small" onClick={() => onTest(notification)}>
+                <FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />
+              </Button>
+            </Tooltip>
+          )}
+          <Tooltip title="API Command">
+            <Button type="text" size="small" onClick={() => onShowApi(notification)}>
+              <FontAwesomeIcon icon={faTerminal} style={{ opacity: 0.7 }} />
+            </Button>
+          </Tooltip>
+        </Space>
+      }
+    >
+      {/* Stats Row - Delivery-focused metrics */}
+      <Row gutter={[16, 16]}>
+        <Col span={6}>
+          <Statistic
+            title={
+              <Space className="font-medium">
+                <FontAwesomeIcon
+                  icon={faPaperPlane}
+                  style={{ opacity: 0.7 }}
+                  className="text-blue-500"
+                />{' '}
+                Sent
+              </Space>
+            }
+            value={isLoadingStats ? '-' : stats.sent}
+            valueStyle={{ fontSize: '16px' }}
+            prefix={isLoadingStats ? <Spin size="small" /> : undefined}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={
+              <Space className="font-medium">
+                <FontAwesomeIcon
+                  icon={faCircleCheck}
+                  style={{ opacity: 0.7 }}
+                  className="text-green-500"
+                />{' '}
+                Delivered
+              </Space>
+            }
+            value={isLoadingStats ? '-' : getRate(stats.delivered, stats.sent)}
+            valueStyle={{ fontSize: '16px' }}
+            prefix={isLoadingStats ? <Spin size="small" /> : undefined}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={
+              <Space className="font-medium">
+                <FontAwesomeIcon
+                  icon={faCircleXmark}
+                  style={{ opacity: 0.7 }}
+                  className="text-red-500"
+                />{' '}
+                Failed
+              </Space>
+            }
+            value={isLoadingStats ? '-' : stats.failed}
+            valueStyle={{ fontSize: '16px' }}
+            prefix={isLoadingStats ? <Spin size="small" /> : undefined}
+          />
+        </Col>
+        <Col span={6}>
+          <Statistic
+            title={
+              <Space className="font-medium">
+                <FontAwesomeIcon
+                  icon={faTriangleExclamation}
+                  style={{ opacity: 0.7 }}
+                  className="text-orange-500"
+                />{' '}
+                Bounced
+              </Space>
+            }
+            value={isLoadingStats ? '-' : stats.bounced}
+            valueStyle={{ fontSize: '16px' }}
+            prefix={isLoadingStats ? <Spin size="small" /> : undefined}
+          />
+        </Col>
+      </Row>
+
+      <Divider />
+
+      <Descriptions size="small" column={2}>
+        <Descriptions.Item label="ID">{notification.id}</Descriptions.Item>
+        {notification.description && (
+          <Descriptions.Item label="Description">{notification.description}</Descriptions.Item>
+        )}
+      </Descriptions>
+    </Card>
   )
 }
 
@@ -101,8 +281,7 @@ export function TransactionalNotificationsPage() {
   const [notificationToTest, setNotificationToTest] = useState<TransactionalNotification | null>(
     null
   )
-
-  // Removed usePrismjs hook call
+  const [statsPeriod, setStatsPeriod] = useState<'7D' | '30D' | '60D'>('30D')
 
   // Fetch notifications
   const {
@@ -117,6 +296,43 @@ export function TransactionalNotificationsPage() {
       }),
     enabled: !!workspaceId
   })
+
+  // Get days from period
+  const periodDays = statsPeriod === '7D' ? 7 : statsPeriod === '30D' ? 30 : 60
+
+  // Fetch delivery-focused stats grouped by external_id
+  const { data: statsData, isLoading: isLoadingStats } = useQuery({
+    queryKey: ['transactional-stats', workspaceId, statsPeriod],
+    queryFn: () =>
+      analyticsService.query(
+        {
+          schema: 'message_history',
+          measures: ['count_sent', 'count_delivered', 'count_failed', 'count_bounced'],
+          dimensions: ['external_id'],
+          filters: [
+            { member: 'broadcast_id', operator: 'notSet', values: [] },
+            {
+              member: 'sent_at',
+              operator: 'gte',
+              values: [dayjs().subtract(periodDays, 'days').toISOString()]
+            }
+          ]
+        },
+        workspaceId as string
+      ),
+    enabled: !!workspaceId
+  })
+
+  // Helper to get stats for a notification
+  const getStatsForNotification = (notificationId: string): NotificationStats => {
+    const row = statsData?.data?.find((d) => d.external_id === notificationId)
+    return {
+      sent: Number(row?.count_sent || 0),
+      delivered: Number(row?.count_delivered || 0),
+      failed: Number(row?.count_failed || 0),
+      bounced: Number(row?.count_bounced || 0)
+    }
+  }
 
   const handleDeleteNotification = async (notification: TransactionalNotification) => {
     try {
@@ -149,7 +365,7 @@ export function TransactionalNotificationsPage() {
     return (
       <div>
         <Title level={4}>Error loading data</Title>
-        <Text type="danger">{(notificationsError as Error)?.message}</Text>
+        <Paragraph type="danger">{(notificationsError as Error)?.message}</Paragraph>
       </div>
     )
   }
@@ -161,169 +377,61 @@ export function TransactionalNotificationsPage() {
     return <div>Loading...</div>
   }
 
-  const canDelete = (notification: TransactionalNotification) => {
-    return permissions?.transactional?.write && !notification.integration_id
-  }
-
-  const canWrite = permissions?.transactional?.write
-
-  const columns = [
-    {
-      title: 'Name / ID',
-      dataIndex: 'name',
-      key: 'name',
-      render: (text: string, record: TransactionalNotification) => {
-        const integration = currentWorkspace?.integrations?.find(
-          (i) => i.id === record.integration_id
-        )
-        return (
-          <Space size="large">
-            {record.integration_id && integration && (
-              <Tooltip title={`Managed by ${integration.name} (${integration.type} integration)`}>
-                {getIntegrationIcon(integration.type)}
-              </Tooltip>
-            )}
-            <div>
-              <div className="font-bold">{text}</div>
-              <div className=" text-gray-500">{record.id}</div>
-            </div>
-          </Space>
-        )
-      }
-    },
-    {
-      title: 'Description',
-      dataIndex: 'description',
-      key: 'description',
-      render: (text: string) => <Text ellipsis>{text}</Text>
-    },
-    {
-      title: 'Channels',
-      dataIndex: 'channels',
-      key: 'channels',
-      render: (channels: ChannelTemplates) => (
-        <ChannelsList channels={channels} workspace={currentWorkspace} />
-      )
-    },
-    {
-      title: 'Created',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      render: (date: string) => (
-        <Tooltip
-          title={
-            dayjs(date).tz(currentWorkspace?.settings.timezone).format('llll') +
-            ' in ' +
-            currentWorkspace?.settings.timezone
-          }
-        >
-          <span>{dayjs(date).format('ll')}</span>
-        </Tooltip>
-      )
-    },
-    {
-      title: '',
-      key: 'actions',
-      width: 100,
-      align: 'right' as const,
-      render: (_: unknown, record: TransactionalNotification) => (
-        <Space>
-          {canDelete(record) && (
-            <>
-              <Popconfirm
-                title="Delete the notification?"
-                description="Are you sure you want to delete this notification? This cannot be undone."
-                onConfirm={() => handleDeleteNotification(record)}
-                okText="Yes, Delete"
-                cancelText="Cancel"
-                placement="topRight"
-                disabled={!!record.integration_id}
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  disabled={!permissions?.transactional?.write || !!record.integration_id}
-                >
-                  <FontAwesomeIcon icon={faTrashCan} style={{ opacity: 0.7 }} />
-                </Button>
-              </Popconfirm>
-            </>
-          )}
-          {canWrite && currentWorkspace?.id && (
-            <Tooltip title={'Edit'}>
-              <>
-                <UpsertTransactionalNotificationDrawer
-                  workspace={currentWorkspace}
-                  notification={record}
-                  buttonContent={<FontAwesomeIcon icon={faPenToSquare} style={{ opacity: 0.7 }} />}
-                  buttonProps={{ type: 'text', size: 'small', disabled: !canWrite }}
-                />
-              </>
-            </Tooltip>
-          )}
-          {canWrite && (
-            <Tooltip title={'Test'}>
-              <Button
-                type="text"
-                size="small"
-                onClick={() => handleTestNotification(record)}
-                disabled={!canWrite}
-              >
-                <FontAwesomeIcon icon={faPaperPlane} style={{ opacity: 0.7 }} />
-              </Button>
-            </Tooltip>
-          )}
-          <Tooltip title={'API Command'}>
-            <Button
-              type="text"
-              size="small"
-              onClick={() => handleShowApiModal(record)}
-              disabled={!canWrite}
-            >
-              <FontAwesomeIcon icon={faTerminal} style={{ opacity: 0.7 }} />
-            </Button>
-          </Tooltip>
-        </Space>
-      )
-    }
-  ]
-
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <div className="text-2xl font-medium">Transactional Notifications</div>
         {currentWorkspace && hasNotifications && (
-          <Tooltip
-            title={
-              !permissions?.transactional?.write
-                ? "You don't have write permission for transactional notifications"
-                : undefined
-            }
-          >
-            <div>
-              <UpsertTransactionalNotificationDrawer
-                workspace={currentWorkspace}
-                buttonContent={'Create Notification'}
-                buttonProps={{
-                  type: 'primary',
-                  disabled: !permissions?.transactional?.write
-                }}
-              />
-            </div>
-          </Tooltip>
+          <Space size="middle">
+            <Segmented
+              options={['7D', '30D', '60D']}
+              value={statsPeriod}
+              onChange={(value) => setStatsPeriod(value as '7D' | '30D' | '60D')}
+            />
+            <Tooltip
+              title={
+                !permissions?.transactional?.write
+                  ? "You don't have write permission for transactional notifications"
+                  : undefined
+              }
+            >
+              <div>
+                <UpsertTransactionalNotificationDrawer
+                  workspace={currentWorkspace}
+                  buttonContent={'Create Notification'}
+                  buttonProps={{
+                    type: 'primary',
+                    disabled: !permissions?.transactional?.write
+                  }}
+                />
+              </div>
+            </Tooltip>
+          </Space>
         )}
       </div>
 
       {isLoadingNotifications ? (
-        <Table columns={columns} dataSource={[]} loading={true} rowKey="id" />
+        <div>
+          {[1, 2, 3].map((key) => (
+            <Card key={key} loading className="!mb-6" />
+          ))}
+        </div>
       ) : hasNotifications ? (
-        <Table
-          columns={columns}
-          dataSource={notifications}
-          rowKey="id"
-          pagination={{ hideOnSinglePage: true }}
-          className="border border-gray-200 rounded-md"
-        />
+        <div>
+          {notifications.map((notification) => (
+            <TransactionalNotificationCard
+              key={notification.id}
+              notification={notification}
+              workspace={currentWorkspace}
+              permissions={permissions}
+              stats={getStatsForNotification(notification.id)}
+              isLoadingStats={isLoadingStats}
+              onDelete={handleDeleteNotification}
+              onTest={handleTestNotification}
+              onShowApi={handleShowApiModal}
+            />
+          ))}
+        </div>
       ) : (
         <div className="text-center py-12">
           <Title level={4} type="secondary">

@@ -44,6 +44,20 @@ func TestAnalyticsQueryValidation(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "valid message_history query with external_id dimension for transactional stats",
+			query: analytics.Query{
+				Schema:     "message_history",
+				Measures:   []string{"count_sent", "count_delivered"},
+				Dimensions: []string{"external_id"},
+				Filters: []analytics.Filter{{
+					Member:   "broadcast_id",
+					Operator: "notSet",
+					Values:   []string{},
+				}},
+			},
+			wantErr: false,
+		},
+		{
 			name: "invalid schema",
 			query: analytics.Query{
 				Schema:   "invalid_schema",
@@ -158,7 +172,7 @@ func TestSchemaDefinitionStructure(t *testing.T) {
 	}
 
 	// Test required dimensions
-	requiredDimensions := []string{"created_at", "sent_at", "contact_email", "broadcast_id", "channel", "template_id"}
+	requiredDimensions := []string{"created_at", "sent_at", "contact_email", "broadcast_id", "channel", "template_id", "external_id"}
 	for _, dimension := range requiredDimensions {
 		assert.Contains(t, schema.Dimensions, dimension, "message_history should have dimension %s", dimension)
 	}

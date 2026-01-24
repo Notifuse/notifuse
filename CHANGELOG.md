@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.12] - 2026-01-24
+
+- **Transactional Notifications**: Added card-based UI with delivery stats (sent, delivered, failed, bounced) and period selector (7D/30D/60D)
+
 ## [26.11] - 2026-01-24
 
 - **Broadcasts**: Fixed crash on Broadcasts page when `variations` is null instead of empty array (#233)

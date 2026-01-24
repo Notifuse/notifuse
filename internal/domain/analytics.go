@@ -188,6 +188,12 @@ var PredefinedSchemas = map[string]analytics.SchemaDefinition{
 				SQL:         "template_id",
 				Description: "Template identifier",
 			},
+			"external_id": {
+				Type:        "string",
+				Title:       "External ID",
+				SQL:         "external_id",
+				Description: "Client-provided transactional notification identifier",
+			},
 		},
 	},
 	"contacts": {

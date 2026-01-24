@@ -65,7 +65,7 @@
 
       Unlike the public `/subscribe` endpoint, this endpoint can subscribe contacts to **any list** (public or private) as long as the authenticated user has write permission on lists.
 
-      If the list has double opt-in enabled, a confirmation email will be sent.
+      **Note:** Double opt-in is bypassed for authenticated requests. Contacts are immediately set to `active` status regardless of the list's double opt-in setting. This allows administrators to manually add contacts without requiring email confirmation.
     operationId: subscribeToListsAuthenticated
     security:
       - BearerAuth: []
