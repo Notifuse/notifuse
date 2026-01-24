@@ -29,7 +29,6 @@ export const EmailConfigForm: React.FC<EmailConfigFormProps> = ({
           value={config.template_id || null}
           onChange={handleTemplateChange}
           workspaceId={workspaceId}
-          category="marketing"
           placeholder="Select email template..."
         />
       </Form.Item>
