@@ -5,6 +5,7 @@ import Subscript from '@tiptap/extension-subscript'
 import Superscript from '@tiptap/extension-superscript'
 import { Node, Mark, mergeAttributes } from '@tiptap/core'
 import type { Mark as ProseMirrorMark } from '@tiptap/pm/model'
+import { Plugin, PluginKey } from '@tiptap/pm/state'
 import type { RawCommands } from '@tiptap/core'
 import { TextStyleMark } from '../TiptapSchema'
 
@@ -369,6 +370,41 @@ export const CustomLink = Mark.create({
           return linkFound
         }
     }
+  },
+
+  addProseMirrorPlugins() {
+    const plugins: Plugin[] = []
+
+    // Plugin to prevent link clicks from navigating when openOnClick is false
+    if (!this.options.openOnClick) {
+      plugins.push(
+        new Plugin({
+          key: new PluginKey('handleClickLink'),
+          props: {
+            handleClick: (view, pos, event) => {
+              // Only handle if editor is editable
+              if (!view.editable) {
+                return false
+              }
+
+              // Check if the click target is an anchor element
+              const target = event.target as HTMLElement
+              const link = target.closest('a')
+
+              if (link) {
+                // Prevent the default link navigation
+                event.preventDefault()
+                return true
+              }
+
+              return false
+            }
+          }
+        })
+      )
+    }
+
+    return plugins
   }
 })
 

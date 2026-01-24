@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file.
 ## [26.12] - 2026-01-24
 
 - **Transactional Notifications**: Added card-based UI with delivery stats (sent, delivered, failed, bounced) and period selector (7D/30D/60D)
+- **Email Builder**: Fixed clicking links in mj-text blocks navigating away instead of allowing text editing
+- **Console i18n**: Added internationalization support with translations for English, French, Spanish, German, and Catalan
+- **File Manager**: Increased actions column width and simplified new folder modal
 
 ## [26.11] - 2026-01-24
 

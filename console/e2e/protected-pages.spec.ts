@@ -136,6 +136,20 @@ test.describe('Protected Pages Load', () => {
     expect(errors).toHaveLength(0)
   })
 
+  test('AutomationsPage loads correctly', async ({ authenticatedPage }) => {
+    const page = authenticatedPage
+    const errors = setupConsoleErrorTracking(page)
+
+    await page.goto(`/console/workspace/${WORKSPACE_ID}/automations`)
+    await waitForPageLoad(page)
+
+    // Should show automations content
+    await expect(page.locator('body')).toBeVisible()
+
+    // Check for critical console errors
+    expect(errors).toHaveLength(0)
+  })
+
   test('WorkspaceSettingsPage loads correctly', async ({ authenticatedPage }) => {
     const page = authenticatedPage
     const errors = setupConsoleErrorTracking(page)

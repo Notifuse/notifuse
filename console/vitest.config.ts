@@ -19,6 +19,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': '/src'
-    }
+    },
+    mainFields: ['module', 'jsnext:main', 'jsnext', 'main']
   }
 })

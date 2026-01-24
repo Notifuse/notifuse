@@ -297,6 +297,25 @@ async function setupApiMocks(page: Page, config: MockConfig = {}) {
     }
 
     // ============================================
+    // AUTOMATIONS
+    // ============================================
+    if (url.includes('/api/automation.list') || url.includes('/api/automations.list')) {
+      return route.fulfill(jsonResponse({ automations: [] }))
+    }
+    if (url.includes('/api/automation.get') || url.includes('/api/automations.get')) {
+      return route.fulfill(jsonResponse({ automation: null }))
+    }
+    if (url.includes('/api/automation.create') || url.includes('/api/automations.create')) {
+      return route.fulfill(jsonResponse({ automation: { id: 'new-automation' } }))
+    }
+    if (url.includes('/api/automation.update') || url.includes('/api/automations.update')) {
+      return route.fulfill(jsonResponse({ automation: { id: 'updated-automation' } }))
+    }
+    if (url.includes('/api/automation.delete') || url.includes('/api/automations.delete')) {
+      return route.fulfill(jsonResponse(mockSuccessResponse))
+    }
+
+    // ============================================
     // TRANSACTIONAL NOTIFICATIONS
     // ============================================
     if (url.includes('/api/transactional.list')) {

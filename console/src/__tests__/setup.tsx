@@ -52,6 +52,62 @@ Object.defineProperty(window, 'matchMedia', {
   }))
 })
 
+// Mock window.getComputedStyle for Ant Design components
+window.getComputedStyle = () => {
+  return {
+    getPropertyValue: () => '',
+    width: '0px',
+    height: '0px',
+    display: 'block',
+    overflow: 'hidden',
+    overflowY: 'hidden',
+    overflowX: 'hidden',
+    position: 'static',
+    margin: '0px',
+    padding: '0px'
+  } as unknown as CSSStyleDeclaration
+}
+
+// Mock HTMLCanvasElement.getContext for emoji-related packages
+const originalGetContext = HTMLCanvasElement.prototype.getContext
+HTMLCanvasElement.prototype.getContext = function(contextId: string, options?: unknown) {
+  if (contextId === '2d') {
+    return {
+      canvas: this,
+      fillRect: vi.fn(),
+      clearRect: vi.fn(),
+      getImageData: vi.fn().mockReturnValue({ data: new Uint8ClampedArray(4), width: 1, height: 1 }),
+      putImageData: vi.fn(),
+      createImageData: vi.fn().mockReturnValue({ data: new Uint8ClampedArray(4), width: 1, height: 1 }),
+      setTransform: vi.fn(),
+      drawImage: vi.fn(),
+      save: vi.fn(),
+      fillText: vi.fn(),
+      restore: vi.fn(),
+      beginPath: vi.fn(),
+      moveTo: vi.fn(),
+      lineTo: vi.fn(),
+      closePath: vi.fn(),
+      stroke: vi.fn(),
+      translate: vi.fn(),
+      scale: vi.fn(),
+      rotate: vi.fn(),
+      arc: vi.fn(),
+      fill: vi.fn(),
+      measureText: vi.fn().mockReturnValue({ width: 0 }),
+      transform: vi.fn(),
+      rect: vi.fn(),
+      clip: vi.fn(),
+      font: '',
+      textAlign: 'start',
+      textBaseline: 'alphabetic',
+      fillStyle: '',
+      strokeStyle: ''
+    } as unknown as CanvasRenderingContext2D
+  }
+  return originalGetContext?.call(this, contextId, options) ?? null
+} as typeof HTMLCanvasElement.prototype.getContext
+
 // Mock Ant Design message component
 vi.mock('antd', async () => {
   const actual = await vi.importActual('antd')

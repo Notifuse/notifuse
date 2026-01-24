@@ -1,6 +1,6 @@
 # TODO
 
-## Content
+## Marketing
 
 - create notifuse blog
 - pages on homepage for:
@@ -14,8 +14,6 @@
 - post supabase on twitter and facebook
 - page vs mailerlite
 - page vs mautic
-
-## Plugins
 
 - https://docs.dify.ai/en/develop-plugin/getting-started/getting-started-dify-plugin
 - n8N
