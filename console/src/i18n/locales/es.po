@@ -1526,7 +1526,7 @@ msgstr "Tamaño del botón"
 #: src/components/file_manager/fileManager.tsx:762
 #: src/components/file_manager/fileManager.tsx:940
 #: src/components/file_manager/fileManager.tsx:1008
-#: src/components/file_manager/fileManager.tsx:1125
+#: src/components/file_manager/fileManager.tsx:1118
 #: src/components/segment/button_upsert.tsx:285
 #: src/components/segment/input_dimension_filters.tsx:162
 #: src/components/segment/input.tsx:376
@@ -4348,7 +4348,7 @@ msgstr "Carpeta eliminada exitosamente."
 msgid "Folder is empty"
 msgstr "La carpeta está vacía"
 
-#: src/components/file_manager/fileManager.tsx:1022
+#: src/components/file_manager/fileManager.tsx:1023
 msgid "Folder name"
 msgstr "Nombre de carpeta"
 
@@ -4860,7 +4860,7 @@ msgstr "Importados {0} contactos ({1} fallidos, ver detalles abajo)"
 msgid "Imported Fonts"
 msgstr "Fuentes importadas"
 
-#: src/components/file_manager/fileManager.tsx:1081
+#: src/components/file_manager/fileManager.tsx:1074
 msgid "Importing files..."
 msgstr "Importando archivos..."
 
@@ -6232,7 +6232,7 @@ msgstr "Una vez"
 msgid "Once per contact"
 msgstr "Una vez por contacto"
 
-#: src/components/file_manager/fileManager.tsx:1040
+#: src/components/file_manager/fileManager.tsx:1034
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Solo se permiten caracteres alfanuméricos en minúsculas, guión bajo y guión."
 

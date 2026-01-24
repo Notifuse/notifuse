@@ -338,13 +338,13 @@ msgstr "Un brouillon plus récent a été trouvé dans le stockage local. Voulez
 #. placeholder {0}: csvData.fileName
 #: src/components/contacts/BulkUpdateDrawer.tsx:398
 msgid "A previous {operation} operation for \"{0}\" was found. Would you like to resume from where you left off?"
-msgstr "Une opération {operation} précédente pour "{0}" a été trouvée. Voulez-vous reprendre là où vous vous êtes arrêté ?"
+msgstr "Une opération {operation} précédente pour \"{0}\" a été trouvée. Voulez-vous reprendre là où vous vous êtes arrêté ?"
 
 #. placeholder {0}: file.name
 #. placeholder {1}: new Date(savedProgress.timestamp).toLocaleString()
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:374
 msgid "A previous upload for \"{0}\" was found ({1}). Would you like to resume from where you left off?"
-msgstr "Un envoi précédent pour "{0}" a été trouvé ({1}). Voulez-vous reprendre là où vous vous êtes arrêté ?"
+msgstr "Un envoi précédent pour \"{0}\" a été trouvé ({1}). Voulez-vous reprendre là où vous vous êtes arrêté ?"
 
 #: src/components/segment/button_upsert.tsx:634
 msgid "A tree is required"
@@ -830,12 +830,12 @@ msgstr "Êtes-vous sûr de vouloir supprimer"
 #. placeholder {0}: segment.name
 #: src/components/contacts/SegmentsFilter.tsx:147
 msgid "Are you sure you want to delete \"{0}\"?"
-msgstr "Êtes-vous sûr de vouloir supprimer "{0}" ?"
+msgstr "Êtes-vous sûr de vouloir supprimer \"{0}\" ?"
 
 #. placeholder {0}: broadcastToDelete.name
 #: src/pages/BroadcastsPage.tsx:1432
 msgid "Are you sure you want to delete the broadcast \"{0}\"?"
-msgstr "Êtes-vous sûr de vouloir supprimer la diffusion "{0}" ?"
+msgstr "Êtes-vous sûr de vouloir supprimer la diffusion \"{0}\" ?"
 
 #: src/components/blog/DeleteCategoryModal.tsx:34
 msgid "Are you sure you want to delete the category"
@@ -849,7 +849,7 @@ msgstr "Êtes-vous sûr de vouloir supprimer l invitation pour {0} ?"
 #. placeholder {0}: listToDelete.name
 #: src/pages/ListsPage.tsx:334
 msgid "Are you sure you want to delete the list \"{0}\"?"
-msgstr "Êtes-vous sûr de vouloir supprimer la liste "{0}" ?"
+msgstr "Êtes-vous sûr de vouloir supprimer la liste \"{0}\" ?"
 
 #: src/components/blog/DeletePostModal.tsx:34
 msgid "Are you sure you want to delete the post"
@@ -880,7 +880,7 @@ msgstr "Êtes-vous sûr de vouloir publier le thème v{0} ? Il sera mis en ligne
 #. placeholder {0}: segment.name
 #: src/components/contacts/SegmentsFilter.tsx:132
 msgid "Are you sure you want to rebuild \"{0}\"? This will recalculate segment membership."
-msgstr "Êtes-vous sûr de vouloir reconstruire "{0}" ? L appartenance au segment sera recalculée."
+msgstr "Êtes-vous sûr de vouloir reconstruire \"{0}\" ? L appartenance au segment sera recalculée."
 
 #. placeholder {0}: record.email
 #. placeholder {1}: record.type === 'api_key' ? ' This API key will be permanently deleted.' : ''
@@ -907,7 +907,7 @@ msgstr "Êtes-vous sûr de vouloir supprimer cette variation ?"
 #. placeholder {0}: record.templateName
 #: src/pages/BroadcastsPage.tsx:873
 msgid "Are you sure you want to select \"{0}\" as the winner? The broadcast will be sent to the remaining recipients."
-msgstr "Êtes-vous sûr de vouloir sélectionner "{0}" comme gagnant ? La diffusion sera envoyée aux destinataires restants."
+msgstr "Êtes-vous sûr de vouloir sélectionner \"{0}\" comme gagnant ? La diffusion sera envoyée aux destinataires restants."
 
 #: src/components/blog/PostsTable.tsx:316
 msgid "Are you sure you want to unpublish this post?"
@@ -1180,7 +1180,7 @@ msgstr "Liste noire"
 #. placeholder {0}: selectedBlock?.name
 #: src/components/email_builder/ui/BlockToolbar.tsx:119
 msgid "Block \"{0}\" updated"
-msgstr "Bloc "{0}" mis à jour"
+msgstr "Bloc \"{0}\" mis à jour"
 
 #: src/components/email_builder/ui/BlockToolbar.tsx:264
 msgid "Block Name"
@@ -1189,7 +1189,7 @@ msgstr "Nom du bloc"
 #. placeholder {0}: saveBlockName.trim()
 #: src/components/email_builder/ui/BlockToolbar.tsx:114
 msgid "Block saved as \"{0}\""
-msgstr "Bloc enregistré sous "{0}""
+msgstr "Bloc enregistré sous \"{0}\""
 
 #: src/components/templates/CreateTemplateDrawer.tsx:866
 msgid "Block Settings Panel"
@@ -1383,37 +1383,37 @@ msgstr "Newsletter"
 #. placeholder {0}: broadcast.name
 #: src/pages/BroadcastsPage.tsx:1221
 msgid "Broadcast \"{0}\" cancelled successfully"
-msgstr "Newsletter "{0}" annulée avec succès"
+msgstr "Newsletter \"{0}\" annulée avec succès"
 
 #. placeholder {0}: broadcastToDelete.name
 #: src/pages/BroadcastsPage.tsx:1163
 msgid "Broadcast \"{0}\" deleted successfully"
-msgstr "Newsletter "{0}" supprimée avec succès"
+msgstr "Newsletter \"{0}\" supprimée avec succès"
 
 #. placeholder {0}: broadcast.name
 #: src/pages/BroadcastsPage.tsx:1189
 msgid "Broadcast \"{0}\" paused successfully"
-msgstr "Newsletter "{0}" mise en pause avec succès"
+msgstr "Newsletter \"{0}\" mise en pause avec succès"
 
 #. placeholder {0}: broadcast.name
 #: src/pages/BroadcastsPage.tsx:1259
 msgid "Broadcast \"{0}\" refreshed"
-msgstr "Newsletter "{0}" actualisée"
+msgstr "Newsletter \"{0}\" actualisée"
 
 #. placeholder {0}: broadcast.name
 #: src/pages/BroadcastsPage.tsx:1205
 msgid "Broadcast \"{0}\" resumed successfully"
-msgstr "Newsletter "{0}" reprise avec succès"
+msgstr "Newsletter \"{0}\" reprise avec succès"
 
 #. placeholder {0}: broadcast.name
 #: src/components/broadcasts/SendOrScheduleModal.tsx:144
 msgid "Broadcast \"{0}\" scheduled successfully"
-msgstr "Newsletter "{0}" programmée avec succès"
+msgstr "Newsletter \"{0}\" programmée avec succès"
 
 #. placeholder {0}: broadcast.name
 #: src/components/broadcasts/SendOrScheduleModal.tsx:96
 msgid "Broadcast \"{0}\" sending started"
-msgstr "Envoi de la diffusion "{0}" démarré"
+msgstr "Envoi de la diffusion \"{0}\" démarré"
 
 #: src/components/broadcasts/UpsertBroadcastDrawer.tsx:146
 msgid "Broadcast created successfully"
@@ -1526,7 +1526,7 @@ msgstr "Taille du bouton"
 #: src/components/file_manager/fileManager.tsx:762
 #: src/components/file_manager/fileManager.tsx:940
 #: src/components/file_manager/fileManager.tsx:1008
-#: src/components/file_manager/fileManager.tsx:1125
+#: src/components/file_manager/fileManager.tsx:1118
 #: src/components/segment/button_upsert.tsx:285
 #: src/components/segment/input_dimension_filters.tsx:162
 #: src/components/segment/input.tsx:376
@@ -1688,7 +1688,7 @@ msgstr "Choisissez un point de départ pour votre nouveau thème. Vous pourrez t
 #. placeholder {0}: post.settings.title
 #: src/components/blog/PublishModal.tsx:110
 msgid "Choose when to publish \"{0}\""
-msgstr "Choisir quand publier "{0}""
+msgstr "Choisir quand publier \"{0}\""
 
 #: src/components/contacts/InlineEditableField.tsx:308
 #: src/components/email_builder/ui/ImportFontInput.tsx:169
@@ -1815,7 +1815,7 @@ msgstr "Attributs de colonne"
 
 #: src/components/email_builder/blocks/MjColumnBlock.tsx:42
 msgid "Column width (e.g., '50%', '300px', 'auto')"
-msgstr "Largeur de colonne (ex. : "50%", "300px", "auto")"
+msgstr "Largeur de colonne (ex. : \"50%\", \"300px\", \"auto\")"
 
 #: src/pages/SetupWizard.tsx:441
 msgid "Common ports: 587 (TLS), 465 (SSL), 25 (unencrypted)"
@@ -2022,7 +2022,7 @@ msgstr "Email du contact :"
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:48
 msgid "Contact has \"active\" subscription status"
-msgstr "Le contact a le statut d abonnement "actif""
+msgstr "Le contact a le statut d abonnement \"actif\""
 
 #: src/components/automations/config/ListStatusBranchConfigForm.tsx:51
 msgid "Contact has pending, unsubscribed, bounced, or complained status"
@@ -2053,7 +2053,7 @@ msgstr "Contacts"
 
 #: src/components/automations/config/FilterConfigForm.tsx:61
 msgid "Contacts matching these conditions will follow the 'Yes' path. Others will follow 'No'."
-msgstr "Les contacts correspondant à ces conditions suivront le chemin "Oui". Les autres suivront "Non"."
+msgstr "Les contacts correspondant à ces conditions suivront le chemin \"Oui\". Les autres suivront \"Non\"."
 
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:1026
 msgid "Contacts will be added to these lists on import (optional)"
@@ -2906,7 +2906,7 @@ msgstr "Voulez-vous supprimer définitivement ce fichier de votre stockage ?"
 #. placeholder {0}: broadcast.name
 #: src/components/broadcasts/SendOrScheduleModal.tsx:194
 msgid "Do you want to send \"{0}\" immediately or schedule it for later?"
-msgstr "Voulez-vous envoyer "{0}" immédiatement ou le programmer pour plus tard ?"
+msgstr "Voulez-vous envoyer \"{0}\" immédiatement ou le programmer pour plus tard ?"
 
 #: src/layouts/WorkspaceLayout.tsx:552
 msgid "Documentation"
@@ -3554,7 +3554,7 @@ msgstr "Entrez le code à 6 chiffres envoyé à {email}"
 
 #: src/components/automations/config/TriggerConfigForm.tsx:300
 msgid "Enter the name of the custom event (e.g., 'purchase', 'signup')"
-msgstr "Entrez le nom de l événement personnalisé (ex. "achat", "inscription")"
+msgstr "Entrez le nom de l événement personnalisé (ex. \"achat\", \"inscription\")"
 
 #: src/components/email_builder/ui/StringPopoverInput.tsx:24
 msgid "Enter value"
@@ -4348,7 +4348,7 @@ msgstr "Dossier supprimé avec succès."
 msgid "Folder is empty"
 msgstr "Le dossier est vide"
 
-#: src/components/file_manager/fileManager.tsx:1022
+#: src/components/file_manager/fileManager.tsx:1023
 msgid "Folder name"
 msgstr "Nom du dossier"
 
@@ -4760,7 +4760,7 @@ msgstr "Identifie le site qui a envoyé le trafic (ex. google, newsletter)"
 
 #: src/components/email_builder/blocks/MjImageBlock.tsx:91
 msgid "If \"true\", will be full width on mobile even if width is set"
-msgstr "Si "true", sera en pleine largeur sur mobile même si une largeur est définie"
+msgstr "Si \"true\", sera en pleine largeur sur mobile même si une largeur est définie"
 
 #: src/components/contacts/ContactUpsertDrawer.tsx:508
 msgid "If a contact with this email already exists, the provided fields will be overwritten. Fields not included in the form will remain unchanged."
@@ -4860,7 +4860,7 @@ msgstr "{0} contacts importés ({1} échoués, voir détails ci-dessous)"
 msgid "Imported Fonts"
 msgstr "Polices importées"
 
-#: src/components/file_manager/fileManager.tsx:1081
+#: src/components/file_manager/fileManager.tsx:1074
 msgid "Importing files..."
 msgstr "Importation des fichiers..."
 
@@ -5324,7 +5324,7 @@ msgstr "Liste"
 #. placeholder {0}: listToDelete.name
 #: src/pages/ListsPage.tsx:117
 msgid "List \"{0}\" deleted successfully"
-msgstr "Liste "{0}" supprimée avec succès"
+msgstr "Liste \"{0}\" supprimée avec succès"
 
 #: src/components/lists/ListDrawer.tsx:66
 msgid "List created successfully"
@@ -5914,7 +5914,7 @@ msgstr "pas d email"
 
 #: src/components/contacts/BulkUpdateDrawer.tsx:149
 msgid "No email column found. Please ensure your CSV has a column with \"email\" in the name"
-msgstr "Aucune colonne email trouvée. Assurez-vous que votre CSV a une colonne avec "email" dans le nom"
+msgstr "Aucune colonne email trouvée. Assurez-vous que votre CSV a une colonne avec \"email\" dans le nom"
 
 #: src/components/templates/SendTemplateModal.tsx:272
 msgid "No email integrations available. Please configure one in Settings."
@@ -6044,7 +6044,7 @@ msgstr "Aucun modèle trouvé pour la catégorie {0}"
 
 #: src/pages/TemplatesPage.tsx:419
 msgid "No templates found for category \"{selectedCategory}\""
-msgstr "Aucun modèle trouvé pour la catégorie "{selectedCategory}""
+msgstr "Aucun modèle trouvé pour la catégorie \"{selectedCategory}\""
 
 #: src/components/blog/RecentThemesTable.tsx:211
 msgid "No themes yet"
@@ -6232,7 +6232,7 @@ msgstr "Une fois"
 msgid "Once per contact"
 msgstr "Une fois par contact"
 
-#: src/components/file_manager/fileManager.tsx:1040
+#: src/components/file_manager/fileManager.tsx:1034
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Seuls les caractères alphanumériques minuscules, le tiret bas et le tiret sont autorisés."
 
@@ -7528,7 +7528,7 @@ msgstr "Recherche sur le web et retourne les URLs pertinentes"
 #. placeholder {0}: toolInput.query
 #: src/components/ai-assistant/useAIAssistant.tsx:101
 msgid "Searching: \"{0}\""
-msgstr "Recherche : "{0}""
+msgstr "Recherche : \"{0}\""
 
 #: src/components/segment/form_leaf.tsx:620
 msgid "Second value must be greater than first value"
@@ -8599,16 +8599,16 @@ msgstr "Modèle d'email {0}"
 #. placeholder {0}: existingBlock?.name || nameOrId
 #: src/components/templates/CreateTemplateDrawer.tsx:385
 msgid "Template block \"{0}\" deleted successfully"
-msgstr "Bloc de modèle "{0}" supprimé avec succès"
+msgstr "Bloc de modèle \"{0}\" supprimé avec succès"
 
 #. placeholder {0}: existingBlock.name
 #: src/components/templates/CreateTemplateDrawer.tsx:377
 msgid "Template block \"{0}\" updated successfully"
-msgstr "Bloc de modèle "{0}" mis à jour avec succès"
+msgstr "Bloc de modèle \"{0}\" mis à jour avec succès"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:363
 msgid "Template block \"{nameOrId}\" saved successfully"
-msgstr "Bloc de modèle "{nameOrId}" enregistré avec succès"
+msgstr "Bloc de modèle \"{nameOrId}\" enregistré avec succès"
 
 #: src/components/templates/CreateTemplateDrawer.tsx:368
 msgid "Template block not found"
@@ -8948,7 +8948,7 @@ msgstr "Cet email sera utilisé pour le compte administrateur racine"
 
 #: src/components/integrations/SupabaseIntegration.tsx:245
 msgid "This hook never blocks Supabase user creation for errors. However, if 'Reject Disposable Email Addresses' is enabled and a disposable email is detected, the user signup will be rejected by Supabase."
-msgstr "Ce hook ne bloque jamais la création d'utilisateur Supabase pour les erreurs. Cependant, si "Rejeter les adresses email jetables" est activé et qu'un email jetable est détecté, l'inscription de l'utilisateur sera rejetée par Supabase."
+msgstr "Ce hook ne bloque jamais la création d'utilisateur Supabase pour les erreurs. Cependant, si \"Rejeter les adresses email jetables\" est activé et qu'un email jetable est détecté, l'inscription de l'utilisateur sera rejetée par Supabase."
 
 #: src/pages/CreateWorkspacePage.tsx:129
 msgid "This ID will be used in URLs and API requests. It can only contain lowercase letters and numbers."
@@ -8984,7 +8984,7 @@ msgstr "Cette notification est gérée par une intégration et le modèle ne peu
 
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:218
 msgid "This section contains Liquid template tags for personalization. Web publications don't have access to contact data, so these tags will not render properly. Consider marking this section as 'Email Only' or remove personalization tags."
-msgstr "Cette section contient des balises de modèle Liquid pour la personnalisation. Les publications web n'ont pas accès aux données de contact, donc ces balises ne s'afficheront pas correctement. Envisagez de marquer cette section comme "Email uniquement" ou supprimez les balises de personnalisation."
+msgstr "Cette section contient des balises de modèle Liquid pour la personnalisation. Les publications web n'ont pas accès aux données de contact, donc ces balises ne s'afficheront pas correctement. Envisagez de marquer cette section comme \"Email uniquement\" ou supprimez les balises de personnalisation."
 
 #: src/components/email_builder/blocks/MjSectionBlock.tsx:255
 msgid "This section is empty. Add columns or groups to display content."
@@ -9017,7 +9017,7 @@ msgstr "Cela invalidera le secret actuel. Vous devrez mettre à jour votre réce
 #. placeholder {0}: workspace.name
 #: src/components/settings/DeleteWorkspace.tsx:49
 msgid "This will permanently delete the workspace \"{0}\" and all of its data. To confirm, please enter the workspace ID:"
-msgstr "Cela supprimera définitivement l'espace de travail "{0}" et toutes ses données. Pour confirmer, veuillez entrer l'ID de l'espace de travail :"
+msgstr "Cela supprimera définitivement l'espace de travail \"{0}\" et toutes ses données. Pour confirmer, veuillez entrer l'ID de l'espace de travail :"
 
 #: src/components/contacts/DeleteContactModal.tsx:50
 msgid "This will permanently remove the contact and their subscriptions."
@@ -9913,7 +9913,7 @@ msgstr "avec statut"
 #. placeholder {0}: values.name
 #: src/pages/CreateWorkspacePage.tsx:73
 msgid "Workspace \"{0}\" created successfully!"
-msgstr "Espace de travail "{0}" créé avec succès !"
+msgstr "Espace de travail \"{0}\" créé avec succès !"
 
 #: src/components/settings/DeleteWorkspace.tsx:33
 msgid "Workspace deleted successfully"
@@ -10117,7 +10117,7 @@ msgstr "Vous avez besoin des permissions de lecture des modèles et d'écriture 
 #. placeholder {0}: currentRow + 1
 #: src/components/contacts/ContactsCsvUploadDrawer.tsx:844
 msgid "You're continuing a previous upload session of \"{fileName}\". The upload will resume from row {0} of {totalRows}."
-msgstr "Vous continuez une session de téléversement précédente de "{fileName}". Le téléversement reprendra à partir de la ligne {0} sur {totalRows}."
+msgstr "Vous continuez une session de téléversement précédente de \"{fileName}\". Le téléversement reprendra à partir de la ligne {0} sur {totalRows}."
 
 #: src/pages/AcceptInvitationPage.tsx:140
 msgid "You've been invited to join"

@@ -1526,7 +1526,7 @@ msgstr "Button Size"
 #: src/components/file_manager/fileManager.tsx:762
 #: src/components/file_manager/fileManager.tsx:940
 #: src/components/file_manager/fileManager.tsx:1008
-#: src/components/file_manager/fileManager.tsx:1125
+#: src/components/file_manager/fileManager.tsx:1118
 #: src/components/segment/button_upsert.tsx:285
 #: src/components/segment/input_dimension_filters.tsx:162
 #: src/components/segment/input.tsx:376
@@ -4348,7 +4348,7 @@ msgstr "Folder deleted successfully."
 msgid "Folder is empty"
 msgstr "Folder is empty"
 
-#: src/components/file_manager/fileManager.tsx:1022
+#: src/components/file_manager/fileManager.tsx:1023
 msgid "Folder name"
 msgstr "Folder name"
 
@@ -4860,7 +4860,7 @@ msgstr "Imported {0} contacts ({1} failed, see details below)"
 msgid "Imported Fonts"
 msgstr "Imported Fonts"
 
-#: src/components/file_manager/fileManager.tsx:1081
+#: src/components/file_manager/fileManager.tsx:1074
 msgid "Importing files..."
 msgstr "Importing files..."
 
@@ -6232,7 +6232,7 @@ msgstr "Once"
 msgid "Once per contact"
 msgstr "Once per contact"
 
-#: src/components/file_manager/fileManager.tsx:1040
+#: src/components/file_manager/fileManager.tsx:1034
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 

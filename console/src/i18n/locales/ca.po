@@ -1526,7 +1526,7 @@ msgstr "Mida del botó"
 #: src/components/file_manager/fileManager.tsx:762
 #: src/components/file_manager/fileManager.tsx:940
 #: src/components/file_manager/fileManager.tsx:1008
-#: src/components/file_manager/fileManager.tsx:1125
+#: src/components/file_manager/fileManager.tsx:1118
 #: src/components/segment/button_upsert.tsx:285
 #: src/components/segment/input_dimension_filters.tsx:162
 #: src/components/segment/input.tsx:376
@@ -4348,7 +4348,7 @@ msgstr "Carpeta eliminada correctament."
 msgid "Folder is empty"
 msgstr "La carpeta és buida"
 
-#: src/components/file_manager/fileManager.tsx:1022
+#: src/components/file_manager/fileManager.tsx:1023
 msgid "Folder name"
 msgstr "Nom de la carpeta"
 
@@ -4860,7 +4860,7 @@ msgstr "Importats {0} contactes ({1} fallats, vegeu detalls a continuació)"
 msgid "Imported Fonts"
 msgstr "Fonts importades"
 
-#: src/components/file_manager/fileManager.tsx:1081
+#: src/components/file_manager/fileManager.tsx:1074
 msgid "Importing files..."
 msgstr "Important fitxers..."
 
@@ -6232,7 +6232,7 @@ msgstr "Una vegada"
 msgid "Once per contact"
 msgstr "Una vegada per contacte"
 
-#: src/components/file_manager/fileManager.tsx:1040
+#: src/components/file_manager/fileManager.tsx:1034
 msgid "Only lowercase alphanumeric characters, underscore, and dash are allowed."
 msgstr "Només es permeten caràcters alfanumèrics en minúscules, guió baix i guió."
 

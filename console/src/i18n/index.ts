@@ -1,8 +1,8 @@
 import { i18n } from "@lingui/core"
 
-export type Locale = "en" | "fr" | "es" | "de" | "ca"
+export type Locale = "en" | "fr" | "es" | "de" | "ca" | "pt-BR" | "ja" | "it"
 
-export const locales: Locale[] = ["en", "fr", "es", "de", "ca"]
+export const locales: Locale[] = ["en", "fr", "es", "de", "ca", "pt-BR", "ja", "it"]
 
 export const localeNames: Record<Locale, string> = {
   en: "English",
@@ -10,6 +10,9 @@ export const localeNames: Record<Locale, string> = {
   es: "Español",
   de: "Deutsch",
   ca: "Català",
+  "pt-BR": "Português (Brasil)",
+  ja: "日本語",
+  it: "Italiano",
 }
 
 /**
