@@ -1107,6 +1107,24 @@ func TestBroadcastTestSettings_ValueScan(t *testing.T) {
 	err = invalidTarget.Scan("not-a-byte-array")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "type assertion to []byte failed")
+
+	// Test that null variations becomes empty array after scan
+	nullVariationsJSON := []byte(`{"enabled":true,"sample_percentage":10,"auto_send_winner":false,"variations":null}`)
+	var nullVariationsTarget domain.BroadcastTestSettings
+	err = nullVariationsTarget.Scan(nullVariationsJSON)
+	require.NoError(t, err)
+	assert.NotNil(t, nullVariationsTarget.Variations, "Variations should not be nil after scanning null")
+	assert.Equal(t, 0, len(nullVariationsTarget.Variations), "Variations should be empty array")
+
+	// Test that MarshalJSON produces empty array instead of null
+	emptySettings := domain.BroadcastTestSettings{
+		Enabled:          true,
+		SamplePercentage: 10,
+		Variations:       nil, // nil variations
+	}
+	marshaled, err := emptySettings.MarshalJSON()
+	require.NoError(t, err)
+	assert.Contains(t, string(marshaled), `"variations":[]`, "Variations should be serialized as empty array, not null")
 }
 
 // TestBroadcastVariation_ValueScan tests the Value and Scan methods for BroadcastVariation

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [26.11] - 2026-01-24
+
+- **Broadcasts**: Fixed crash on Broadcasts page when `variations` is null instead of empty array (#233)
+- **SMTP Email**: Fixed URL corruption in emails where dots were stripped after quoted-printable line breaks by adding proper SMTP dot-stuffing
+
 ## [26.10] - 2026-01-23
 
 - **Automations**: Email node template selector now shows all template categories instead of only marketing templates

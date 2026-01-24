@@ -54,6 +54,16 @@ func (b BroadcastTestSettings) Value() (driver.Value, error) {
 	return json.Marshal(b)
 }
 
+// MarshalJSON implements custom JSON marshaling to ensure Variations is never null
+func (b BroadcastTestSettings) MarshalJSON() ([]byte, error) {
+	type Alias BroadcastTestSettings
+	// Ensure Variations is an empty array, not null
+	if b.Variations == nil {
+		b.Variations = []BroadcastVariation{}
+	}
+	return json.Marshal((*Alias)(&b))
+}
+
 // Scan implements the sql.Scanner interface for database deserialization
 func (b *BroadcastTestSettings) Scan(value interface{}) error {
 	if value == nil {
@@ -66,7 +76,16 @@ func (b *BroadcastTestSettings) Scan(value interface{}) error {
 	}
 
 	cloned := bytes.Clone(v)
-	return json.Unmarshal(cloned, b)
+	if err := json.Unmarshal(cloned, b); err != nil {
+		return err
+	}
+
+	// Ensure Variations is never nil to prevent frontend crashes
+	if b.Variations == nil {
+		b.Variations = []BroadcastVariation{}
+	}
+
+	return nil
 }
 
 // BroadcastVariation represents a single variation in an A/B test

@@ -8,6 +8,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net"
+	"net/textproto"
 	"os"
 	"strings"
 	"time"
@@ -297,15 +298,21 @@ func sendRawEmailWithSettings(settings *domain.SMTPSettings, from string, to []s
 		return fmt.Errorf("DATA rejected with code: %d", code)
 	}
 
-	// Send message body
-	// Ensure proper line endings and dot-stuffing
-	if _, err := smtpConn.conn.Write(msg); err != nil {
+	// Send message body using textproto.DotWriter for automatic dot-stuffing
+	// Per RFC 5321 Section 4.5.2, lines starting with a period must be escaped
+	// by doubling the period. This prevents the SMTP server from stripping
+	// leading periods or misinterpreting them as end-of-message markers.
+	// The DotWriter handles this automatically and also sends the terminating
+	// CRLF.CRLF sequence when Close() is called.
+	// See: https://datatracker.ietf.org/doc/html/rfc5321#section-4.5.2
+	tw := textproto.NewWriter(bufio.NewWriter(smtpConn.conn))
+	dw := tw.DotWriter()
+	if _, err := dw.Write(msg); err != nil {
+		dw.Close()
 		return fmt.Errorf("failed to write message: %w", err)
 	}
-
-	// End message with CRLF.CRLF
-	if _, err := fmt.Fprintf(smtpConn.conn, "\r\n.\r\n"); err != nil {
-		return fmt.Errorf("failed to write message terminator: %w", err)
+	if err := dw.Close(); err != nil {
+		return fmt.Errorf("failed to close message: %w", err)
 	}
 
 	// Read response after DATA

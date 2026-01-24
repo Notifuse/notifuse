@@ -649,7 +649,7 @@ const BroadcastCard: React.FC<BroadcastCardProps> = ({
             <div className="mb-6">
               <Table
                 showHeader={false}
-                dataSource={broadcast.test_settings.variations.map((variation, index) => {
+                dataSource={(broadcast.test_settings.variations || []).map((variation, index) => {
                   const emailProvider = currentWorkspace?.integrations?.find(
                     (i: Integration) =>
                       i.id ===

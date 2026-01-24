@@ -1662,3 +1662,46 @@ func TestNewSMTPServiceWithOAuth2(t *testing.T) {
 	assert.Equal(t, log, service.logger)
 	assert.Equal(t, mockProvider, service.oauth2Provider)
 }
+
+// TestDotStuffingIntegration tests that emails with URLs crossing line boundaries
+// are properly handled by the SMTP sending logic using textproto.DotWriter.
+// This verifies the fix for the URL corruption bug where dots after soft line
+// breaks in quoted-printable encoded content were being stripped by SMTP servers.
+func TestDotStuffingIntegration(t *testing.T) {
+	// Create a mock server that captures the raw message data
+	// The server starts serving automatically in newMockSMTPServer
+	server := newMockSMTPServer(t, true)
+	defer server.Close()
+
+	// Wait for server to start
+	time.Sleep(50 * time.Millisecond)
+
+	host, portStr, _ := net.SplitHostPort(server.Addr())
+	port := 0
+	fmt.Sscanf(portStr, "%d", &port)
+
+	// Create a message with content that would trigger the bug:
+	// After quoted-printable encoding, a soft line break before ".com" results in
+	// a line starting with ".com". Without proper dot-stuffing, SMTP servers
+	// strip the leading dot, corrupting URLs.
+	//
+	// The test message simulates this by having a line that starts with a period.
+	testMessage := []byte("Content-Type: text/html\r\n\r\n" +
+		"Line one\r\n" +
+		".com/path/to/image.png\r\n" + // This line starts with a dot
+		"Line three\r\n")
+
+	err := sendRawEmail(host, port, "user", "pass", false, "sender@test.com", []string{"recipient@test.com"}, testMessage)
+	require.NoError(t, err)
+
+	// Verify the message was received
+	require.Len(t, server.messages, 1)
+	receivedData := string(server.messages[0].data)
+
+	// The SMTP server should have received the message with the dot doubled (dot-stuffed).
+	// textproto.DotWriter automatically handles this per RFC 5321.
+	// When the server receives "..com", it strips one dot to get ".com" back.
+	// Our mock server stores the raw data as received (with dot-stuffing applied).
+	assert.Contains(t, receivedData, "..com/path/to/image.png",
+		"Expected dot-stuffed content (double dot) but got: %s", receivedData)
+}
